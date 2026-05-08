@@ -25,32 +25,49 @@ function getCellValue(ws: XLSX.WorkSheet, row: number, col: string): string {
   return String(cell.v ?? '').trim()
 }
 
-/** Truncate to max characters — use for every VARCHAR column */
+/**
+ * Truncate to `max` chars. Returns null if empty.
+ * Use for EVERY VARCHAR column — pass the schema limit.
+ */
 function trunc(val: string | null | undefined, max: number): string | null {
   if (!val) return null
-  return val.length > max ? val.slice(0, max) : val
+  const s = String(val).trim()
+  if (!s) return null
+  return s.length > max ? s.slice(0, max) : s
 }
 
+/**
+ * Convert Excel date serial or string to ISO date "YYYY-MM-DD".
+ * Returns null for invalid or out-of-range values.
+ */
 function excelDateToISO(val: unknown): string | null {
-  if (!val) return null
+  if (val === null || val === undefined || val === '') return null
   if (typeof val === 'number') {
+    if (val <= 0) return null          // 0 or negative = no date
+    if (val > 60000) return null       // > year 2064 = garbage
     const d = XLSX.SSF.parse_date_code(val)
-    if (!d) return null
+    if (!d || d.y < 1990 || d.y > 2100) return null
     return `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`
   }
   if (typeof val === 'string') {
     const date = new Date(val)
-    if (!isNaN(date.getTime())) return date.toISOString().split('T')[0]
+    const y = date.getFullYear()
+    if (!isNaN(date.getTime()) && y >= 1990 && y <= 2100) {
+      return date.toISOString().split('T')[0]
+    }
   }
   return null
 }
 
 function detectAsesor(text: string, prefix?: string): 'Fátima' | 'Dan' | 'Claudia' {
-  const t = text.toLowerCase()
-  if (t.includes('fátima') || t.includes('fatima') || t.includes('fã¡tima') || t.includes('gonzalez') || t.includes('gonzález')) return 'Fátima'
+  const t = (text || '').toLowerCase()
+  if (
+    t.includes('fátima') || t.includes('fatima') ||
+    t.includes('fã¡tima') || t.includes('fátima') ||
+    t.includes('gonzalez') || t.includes('gonzález')
+  ) return 'Fátima'
   if (t.includes('dan')) return 'Dan'
   if (t.includes('claudia')) return 'Claudia'
-  // Fall back to prefix
   if (prefix === 'D') return 'Dan'
   if (prefix === 'C') return 'Claudia'
   return 'Fátima'
@@ -87,6 +104,11 @@ function parseTopSheet(wb: XLSX.WorkBook) {
 // T=LINK ZOHO, U=CUANTAS OFICINAS, V=TOTAL EMPLEADOS, W=ACTIVIDAD/GIRO,
 // X=TAMAÑO EMPRESA, Y=SERVICIO, Z=ACTIVA DESDE, AB=EJECUTIVO POSTVENTA,
 // AD=OBSERVACIONES, AE=NOMBRE DEL GRUPO
+//
+// DB VARCHAR limits (as of schema + applied ALTERs):
+//   empresa VARCHAR(255), giro VARCHAR(255), num_oficinas VARCHAR(255),
+//   total_empleados VARCHAR(100), tamano_empresa VARCHAR(50),
+//   pagina_web VARCHAR(255), observaciones_kam TEXT (no limit)
 function parseConcentrado(wb: XLSX.WorkBook): Map<string, Record<string, unknown>> {
   const map = new Map<string, Record<string, unknown>>()
   const ws = wb.Sheets['Concentrado']
@@ -102,30 +124,30 @@ function parseConcentrado(wb: XLSX.WorkBook): Map<string, Record<string, unknown
     const ejecutivoPost = getCellValue(ws, row, 'AB')
     const asesor = detectAsesor(ejecutivoPost, consec.charAt(0))
 
+    // Z = CUENTA ACTIVA DESDE (Excel date serial or 0 = no date)
     const activoDesde = excelDateToISO(ws[`Z${row}`]?.v)
 
-    // NOTE: direccion_fiscal, pagina_web, zoho_link, num_oficinas, giro,
-    // observaciones_kam are stored as TEXT in DB — no 255 limit.
-    // We still trunc large fields defensively to 500 chars max.
+    const empresa = getCellValue(ws, row, 'C')
+
     map.set(consec, {
       consecutivo:       trunc(consec, 10),
       cid:               trunc(getCellValue(ws, row, 'B'), 20),
-      empresa:           getCellValue(ws, row, 'C') || null,
+      empresa:           trunc(empresa, 250) || null,
       asesor,
       contacto_nombre:   trunc(getCellValue(ws, row, 'D'), 250),
       contacto_cargo:    trunc(getCellValue(ws, row, 'E'), 250),
       contacto_tel:      trunc(getCellValue(ws, row, 'F') || getCellValue(ws, row, 'H'), 100),
-      direccion_fiscal:  getCellValue(ws, row, 'P') || null,
-      pagina_web:        getCellValue(ws, row, 'Q') || null,
-      zoho_link:         getCellValue(ws, row, 'T') || null,
-      num_oficinas:      getCellValue(ws, row, 'U') || null,
-      total_empleados:   trunc(getCellValue(ws, row, 'V'), 250),
-      giro:              trunc(getCellValue(ws, row, 'W'), 250),   // ← truncated to fit VARCHAR(255)
-      tamano_empresa:    trunc(getCellValue(ws, row, 'X'), 50),
+      direccion_fiscal:  trunc(getCellValue(ws, row, 'P'), 250),
+      pagina_web:        trunc(getCellValue(ws, row, 'Q'), 250),
+      zoho_link:         trunc(getCellValue(ws, row, 'T'), 250),
+      num_oficinas:      trunc(getCellValue(ws, row, 'U'), 250),   // up to 534 chars in source
+      total_empleados:   trunc(getCellValue(ws, row, 'V'), 95),    // VARCHAR(100) → cap at 95
+      giro:              trunc(getCellValue(ws, row, 'W'), 250),   // up to 355 chars in source
+      tamano_empresa:    trunc(getCellValue(ws, row, 'X'), 45),    // VARCHAR(50) → cap at 45
       servicio:          getCellValue(ws, row, 'Y') || null,
       activo_desde:      activoDesde,
       grupo_empresarial: trunc(getCellValue(ws, row, 'AE'), 250),
-      observaciones_kam: getCellValue(ws, row, 'AD') || null,
+      observaciones_kam: getCellValue(ws, row, 'AD') || null,      // TEXT — no limit needed
     })
   }
 
@@ -133,13 +155,8 @@ function parseConcentrado(wb: XLSX.WorkBook): Map<string, Record<string, unknown
 }
 
 // ── Parse individual Ficha UX sheets ─────────────────────────────────────────
-// Layout (verified against F1):
-//   D1  = CID
-//   C2  = empresa name
-//   C3  = contacto_nombre
-//   C4  = contacto_cargo
-//   C5  = contacto_tel (oficina)
-//   C7  = contacto_tel (celular, fallback)
+// Layout verified against F1:
+//   D1  = CID (numeric)
 //   G2  = direccion_fiscal
 //   G3  = pagina_web
 //   G6  = zoho_link
@@ -147,14 +164,15 @@ function parseConcentrado(wb: XLSX.WorkBook): Map<string, Record<string, unknown
 //   G8  = total_empleados
 //   G9  = giro
 //   G10 = tamano_empresa
-//   G11 = servicio name
 //   G12 = activo_desde (Excel date serial)
-//   G13 = asesor comercial
-//   G14 = ejecutivo postventa ← THIS is the asesor for CS
+//   G14 = ejecutivo postventa → asesor
+//   C3  = contacto_nombre
+//   C4  = contacto_cargo
+//   C5  = contacto_tel (oficina)   / C7 = celular fallback
 function parseFichaUX(ws: XLSX.WorkSheet, sheet: string): Record<string, unknown> {
   const get = (row: number, col: string) => getCellValue(ws, row, col)
 
-  const ejecutivoPost = get(14, 'G')   // row 14 = EJECUTIVO POSTVENTA
+  const ejecutivoPost = get(14, 'G')   // G14 = EJECUTIVO POSTVENTA
   const asesor = detectAsesor(ejecutivoPost, sheet.charAt(0))
 
   const activoDesde = excelDateToISO(ws['G12']?.v)   // G12 = CUENTA ACTIVA DESDE
@@ -165,18 +183,18 @@ function parseFichaUX(ws: XLSX.WorkSheet, sheet: string): Record<string, unknown
     contacto_nombre:  trunc(get(3, 'C'), 250)  || undefined,
     contacto_cargo:   trunc(get(4, 'C'), 250)  || undefined,
     contacto_tel:     trunc(get(5, 'C') || get(7, 'C'), 100) || undefined,
-    direccion_fiscal: get(2, 'G')  || undefined,
-    pagina_web:       get(3, 'G')  || undefined,
-    zoho_link:        get(6, 'G')  || undefined,
-    num_oficinas:     get(7, 'G')  || undefined,
-    total_empleados:  trunc(get(8, 'G'), 250)  || undefined,
+    direccion_fiscal: trunc(get(2, 'G'), 250)  || undefined,
+    pagina_web:       trunc(get(3, 'G'), 250)  || undefined,
+    zoho_link:        trunc(get(6, 'G'), 250)  || undefined,
+    num_oficinas:     trunc(get(7, 'G'), 250)  || undefined,
+    total_empleados:  trunc(get(8, 'G'), 95)   || undefined,   // VARCHAR(100)
     giro:             trunc(get(9, 'G'), 250)  || undefined,
-    tamano_empresa:   trunc(get(10, 'G'), 50)  || undefined,
+    tamano_empresa:   trunc(get(10, 'G'), 45)  || undefined,   // VARCHAR(50)
   }
 
   if (activoDesde) fichaData.activo_desde = activoDesde
 
-  // Remove undefined keys
+  // Remove undefined keys so they don't overwrite good Concentrado data
   Object.keys(fichaData).forEach(k => fichaData[k] === undefined && delete fichaData[k])
 
   return fichaData
@@ -189,17 +207,20 @@ async function main() {
 
   const wb = readExcel(xlsxPath)
   const topAccounts = parseTopSheet(wb)
-  console.log(`TOP sheet    → ${topAccounts.length} accounts`)
 
   const fichaSheets = wb.SheetNames.filter(n => /^[FDC]\d+$/.test(n))
-  console.log(`Ficha sheets → ${fichaSheets.length} sheets (${fichaSheets.filter(n=>n.startsWith('F')).length}F / ${fichaSheets.filter(n=>n.startsWith('D')).length}D / ${fichaSheets.filter(n=>n.startsWith('C')).length}C)`)
+  const fSheets = fichaSheets.filter(n => n.startsWith('F')).length
+  const dSheets = fichaSheets.filter(n => n.startsWith('D')).length
+  const cSheets = fichaSheets.filter(n => n.startsWith('C')).length
+  console.log(`TOP sheet    → ${topAccounts.length} accounts (F:${topAccounts.filter(a=>a.consecutivo.startsWith('F')).length} D:${topAccounts.filter(a=>a.consecutivo.startsWith('D')).length} C:${topAccounts.filter(a=>a.consecutivo.startsWith('C')).length})`)
+  console.log(`Ficha sheets → ${fichaSheets.length} sheets (F:${fSheets} D:${dSheets} C:${cSheets})`)
 
-  // Pass 1 — seed from TOP sheet
+  // ── Pass 1: seed accountMap from TOP sheet ────────────────────────────────
   const accountMap = new Map<string, Record<string, unknown>>()
   for (const acc of topAccounts) {
     accountMap.set(acc.consecutivo, {
       consecutivo:      trunc(acc.consecutivo, 10),
-      empresa:          acc.empresa,
+      empresa:          trunc(acc.empresa, 250),
       facturacion:      acc.facturacion,
       servicio:         acc.servicio || null,
       score_actividad:  50,
@@ -210,49 +231,78 @@ async function main() {
     })
   }
 
-  // Pass 2 — merge Concentrado into ALL accounts
+  // ── Pass 2: merge Concentrado into ALL 108 accounts ───────────────────────
+  // Accounts not in TOP (e.g. D10-D14, C15-C47) are ADDED here.
   const concentradoMap = parseConcentrado(wb)
   console.log(`Concentrado  → ${concentradoMap.size} accounts`)
 
-  for (const [consec, conData] of concentradoMap) {
-    const existing = accountMap.get(consec) || {}
-    accountMap.set(consec, {
-      score_actividad:  50,
-      score_adopcion:   50,
-      score_pago:       50,
-      score_relacional: 50,
-      estado:           'activo',
-      ...conData,
-      // TOP-sheet values win for facturación and empresa (more up-to-date)
-      facturacion: (existing as any).facturacion ?? (conData as any).facturacion ?? 0,
-      empresa:     (existing as any).empresa     || conData.empresa,
-      servicio:    (existing as any).servicio    || conData.servicio,
-    })
-  }
+  let mergeNew = 0, mergeExisting = 0
+  // Use .forEach() instead of for...of to avoid TS Map iteration compilation issues
+  concentradoMap.forEach((conData, consec) => {
+    const existing = accountMap.get(consec)   // undefined if not in TOP
 
-  // Pass 3 — enrich with individual Ficha UX sheets
-  let fichaEnriched = 0
+    if (existing) {
+      // Account was in TOP — merge, keep TOP's facturación and empresa
+      accountMap.set(consec, {
+        ...existing,
+        ...conData,
+        consecutivo:     existing.consecutivo,
+        empresa:         existing.empresa  || conData.empresa,
+        facturacion:     (existing as any).facturacion !== undefined ? (existing as any).facturacion : ((conData as any).facturacion || 0),
+        servicio:        existing.servicio || conData.servicio,
+        score_actividad: 50, score_adopcion: 50, score_pago: 50, score_relacional: 50,
+        estado:          'activo',
+      })
+      mergeExisting++
+    } else {
+      // Account only in Concentrado — add fresh with defaults
+      accountMap.set(consec, {
+        score_actividad: 50, score_adopcion: 50, score_pago: 50, score_relacional: 50,
+        estado:          'activo',
+        facturacion:     0,
+        ...conData,
+      })
+      mergeNew++
+    }
+  })
+  console.log(`After merge  → ${accountMap.size} accounts (updated:${mergeExisting} added:${mergeNew})`)
+
+  // ── Pass 3: enrich with individual Ficha UX sheets ───────────────────────
+  let enriched = 0
   for (const sheet of fichaSheets) {
     const ws = wb.Sheets[sheet]
     if (!ws) continue
 
     const existing = accountMap.get(sheet)
-    if (!existing?.empresa) continue   // skip orphan sheets
+    if (!existing) continue   // not found in either TOP or Concentrado
 
     const fichaData = parseFichaUX(ws, sheet)
     accountMap.set(sheet, { ...existing, ...fichaData })
-    fichaEnriched++
+    enriched++
   }
-  console.log(`Ficha UX     → ${fichaEnriched} accounts enriched\n`)
+  console.log(`Ficha UX     → ${enriched} accounts enriched`)
 
-  const rows = Array.from(accountMap.values()).filter(r => r.empresa)
-  console.log(`Upserting ${rows.length} accounts to Supabase…\n`)
+  // ── Filter and upsert ─────────────────────────────────────────────────────
+  const allRows = Array.from(accountMap.values())
+  const rowsWithEmpresa = allRows.filter(r => r.empresa)
+  const rowsNoEmpresa   = allRows.filter(r => !r.empresa).map(r => r.consecutivo)
+
+  if (rowsNoEmpresa.length) {
+    console.warn(`\n⚠  Skipping ${rowsNoEmpresa.length} accounts with no empresa: ${rowsNoEmpresa.join(', ')}`)
+  }
+
+  console.log(`\nUpserting ${rowsWithEmpresa.length} accounts to Supabase…`)
+  console.log(`  Fátima:  ${rowsWithEmpresa.filter(r => String(r.consecutivo).startsWith('F')).length} cuentas`)
+  console.log(`  Dan:     ${rowsWithEmpresa.filter(r => String(r.consecutivo).startsWith('D')).length} cuentas`)
+  console.log(`  Claudia: ${rowsWithEmpresa.filter(r => String(r.consecutivo).startsWith('C')).length} cuentas\n`)
 
   let totalErrors = 0
-  for (let i = 0; i < rows.length; i += 50) {
-    const chunk = rows.slice(i, i + 50)
+  for (let i = 0; i < rowsWithEmpresa.length; i += 50) {
+    const chunk = rowsWithEmpresa.slice(i, i + 50)
     const label = `Chunk ${Math.floor(i / 50) + 1}`
-    const { error } = await supabase.from('cuentas').upsert(chunk, { onConflict: 'consecutivo' })
+    const { error } = await supabase
+      .from('cuentas')
+      .upsert(chunk, { onConflict: 'consecutivo' })
     if (error) {
       console.error(`✗ ${label} error:`, error.message)
       totalErrors++
@@ -262,12 +312,9 @@ async function main() {
   }
 
   if (totalErrors === 0) {
-    console.log('\n✅ Import complete! All accounts loaded successfully.')
-    console.log(`   Fátima: F1-F47 (${rows.filter(r => String(r.consecutivo).startsWith('F')).length} accounts)`)
-    console.log(`   Dan:    D1-D14 (${rows.filter(r => String(r.consecutivo).startsWith('D')).length} accounts)`)
-    console.log(`   Claudia: C1-C47 (${rows.filter(r => String(r.consecutivo).startsWith('C')).length} accounts)`)
+    console.log('\n✅ Import complete — todas las cuentas cargadas correctamente.')
   } else {
-    console.error(`\n❌ Import finished with ${totalErrors} chunk error(s). Check messages above.`)
+    console.error(`\n❌ Import terminó con ${totalErrors} error(es). Revisa los mensajes arriba.`)
   }
 }
 
