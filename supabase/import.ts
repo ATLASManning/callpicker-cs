@@ -14,16 +14,21 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
 
-// ── Excel reader ──────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function readExcel(filePath: string) {
-  const wb = XLSX.readFile(filePath)
-  return wb
+  return XLSX.readFile(filePath)
 }
 
 function getCellValue(ws: XLSX.WorkSheet, row: number, col: string): string {
   const cell = ws[`${col}${row}`]
   if (!cell) return ''
   return String(cell.v ?? '').trim()
+}
+
+// Safe truncate — only applies to VARCHAR columns, TEXT cols pass through
+function trunc(val: string | null | undefined, max: number): string | null {
+  if (!val) return null
+  return val.length > max ? val.slice(0, max) : val
 }
 
 function excelDateToISO(val: unknown): string | null {
@@ -40,6 +45,16 @@ function excelDateToISO(val: unknown): string | null {
   return null
 }
 
+function detectAsesor(text: string, prefix?: string): 'Fátima' | 'Dan' | 'Claudia' {
+  const t = text.toLowerCase()
+  if (t.includes('fátima') || t.includes('fatima')) return 'Fátima'
+  if (t.includes('dan')) return 'Dan'
+  if (t.includes('claudia')) return 'Claudia'
+  if (prefix === 'D') return 'Dan'
+  if (prefix === 'C') return 'Claudia'
+  return 'Fátima'
+}
+
 // ── Parse TOP sheet ───────────────────────────────────────────────────────────
 function parseTopSheet(wb: XLSX.WorkBook) {
   const ws = wb.Sheets['TOP']
@@ -50,9 +65,9 @@ function parseTopSheet(wb: XLSX.WorkBook) {
 
   for (let r = range.s.r + 1; r <= range.e.r; r++) {
     const row = r + 1
-    const consec = getCellValue(ws, row, 'A')
-    const empresa = getCellValue(ws, row, 'C')
-    const facStr = getCellValue(ws, row, 'D')
+    const consec  = getCellValue(ws, row, 'A')
+    const empresa  = getCellValue(ws, row, 'C')
+    const facStr   = getCellValue(ws, row, 'D')
     const servicio = getCellValue(ws, row, 'E')
 
     if (!consec || !empresa) continue
@@ -64,65 +79,49 @@ function parseTopSheet(wb: XLSX.WorkBook) {
   return accounts
 }
 
-// ── Parse individual Ficha UX sheet ──────────────────────────────────────────
-function parseFichaSheet(wb: XLSX.WorkBook, sheetName: string) {
-  const ws = wb.Sheets[sheetName]
-  if (!ws) return null
+// ── Parse Concentrado sheet (source of truth for contact / company data) ──────
+function parseConcentrado(wb: XLSX.WorkBook): Map<string, Record<string, unknown>> {
+  const map = new Map<string, Record<string, unknown>>()
+  const ws = wb.Sheets['Concentrado']
+  if (!ws) return map
 
-  function get(row: number, col: string) { return getCellValue(ws, row, col) }
+  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:AJ200')
 
-  // Map of known cell positions in the Ficha UX layout
-  const cid           = get(1, 'D')
-  const nombre        = get(2, 'C')
-  const contacto      = get(3, 'C')
-  const cargo         = get(4, 'C')
-  const telOficina    = get(5, 'C')
-  const telCelular    = get(7, 'C')
-  const direccion     = get(2, 'G')
-  const web           = get(3, 'G')
-  const zohoLink      = get(6, 'G')
-  const numOficinas   = get(7, 'G')
-  const empleados     = get(8, 'G')
-  const giro          = get(9, 'G')
-  const tamano        = get(10, 'G')
-  const servicio      = get(11, 'G')
-  const activoDesde   = ws['C13']?.v  // Could be date serial
-  const asesorComercial = get(14, 'G')
-  const ejecutivoPost = get(15, 'G')
+  for (let r = range.s.r + 1; r <= range.e.r; r++) {
+    const row = r + 1
+    const consec = getCellValue(ws, row, 'A')
+    if (!consec || !/^[FDC]\d+$/.test(consec)) continue
 
-  // Determine asesor from sheet name prefix and postvent executive
-  let asesor: 'Fátima' | 'Dan' | 'Claudia' = 'Fátima'
-  const prefix = sheetName.charAt(0)
-  if (prefix === 'D') asesor = 'Dan'
-  else if (prefix === 'C') asesor = 'Claudia'
-  else {
-    // Fallback: check ejecutivo name
-    if (ejecutivoPost.toLowerCase().includes('dan')) asesor = 'Dan'
-    else if (ejecutivoPost.toLowerCase().includes('claudia')) asesor = 'Claudia'
+    const ejecutivoPost = getCellValue(ws, row, 'AB')
+    const asesor = detectAsesor(ejecutivoPost, consec.charAt(0))
+
+    // activo_desde from column Z (may be date serial)
+    const activoDesdeRaw = ws[`Z${row}`]?.v
+    const activoDesde = excelDateToISO(activoDesdeRaw)
+
+    map.set(consec, {
+      consecutivo:      trunc(consec, 10),
+      cid:              trunc(getCellValue(ws, row, 'B'), 20),
+      empresa:          getCellValue(ws, row, 'C') || null,          // TEXT
+      asesor,
+      contacto_nombre:  trunc(getCellValue(ws, row, 'D'), 250),
+      contacto_cargo:   trunc(getCellValue(ws, row, 'E'), 250),
+      contacto_tel:     trunc(getCellValue(ws, row, 'F') || getCellValue(ws, row, 'H'), 100),
+      direccion_fiscal: getCellValue(ws, row, 'P') || null,          // TEXT
+      pagina_web:       getCellValue(ws, row, 'Q') || null,          // TEXT
+      zoho_link:        getCellValue(ws, row, 'T') || null,          // TEXT
+      num_oficinas:     getCellValue(ws, row, 'U') || null,          // TEXT
+      total_empleados:  trunc(getCellValue(ws, row, 'V'), 250),
+      giro:             getCellValue(ws, row, 'W') || null,          // TEXT
+      tamano_empresa:   trunc(getCellValue(ws, row, 'X'), 250),
+      servicio:         getCellValue(ws, row, 'Y') || null,          // TEXT
+      activo_desde:     activoDesde,
+      grupo_empresarial: trunc(getCellValue(ws, row, 'AE'), 250),
+      observaciones_kam: getCellValue(ws, row, 'AD') || null,        // TEXT
+    })
   }
 
-  // Determine asesor from ejecutivo postvent field
-  if (ejecutivoPost.toLowerCase().includes('fátima') || ejecutivoPost.toLowerCase().includes('fatima')) asesor = 'Fátima'
-  else if (ejecutivoPost.toLowerCase().includes('dan')) asesor = 'Dan'
-  else if (ejecutivoPost.toLowerCase().includes('claudia')) asesor = 'Claudia'
-
-  return {
-    cid: cid || null,
-    contacto_nombre: contacto || null,
-    contacto_cargo: cargo || null,
-    contacto_tel: telOficina || telCelular || null,
-    contacto_email: null,
-    direccion_fiscal: direccion || null,
-    pagina_web: web || null,
-    zoho_link: zohoLink || null,
-    num_oficinas: numOficinas || null,
-    total_empleados: empleados || null,
-    giro: giro || null,
-    tamano_empresa: tamano || null,
-    servicio: servicio || null,
-    activo_desde: excelDateToISO(activoDesde),
-    asesor,
-  }
+  return map
 }
 
 // ── Main import ───────────────────────────────────────────────────────────────
@@ -134,104 +133,81 @@ async function main() {
   const topAccounts = parseTopSheet(wb)
   console.log(`Found ${topAccounts.length} accounts in TOP sheet`)
 
-  // Get all individual sheet names
   const fichaSheets = wb.SheetNames.filter(n => /^[FDC]\d+$/.test(n))
   console.log(`Found ${fichaSheets.length} Ficha UX sheets`)
 
-  // Build merged account map
+  // 1. Seed with TOP sheet (facturación is the authoritative source)
   const accountMap = new Map<string, Record<string, unknown>>()
-
-  // Start with TOP sheet data
   for (const acc of topAccounts) {
     accountMap.set(acc.consecutivo, {
-      consecutivo: acc.consecutivo,
-      empresa: acc.empresa,
-      facturacion: acc.facturacion,
-      servicio: acc.servicio,
-      // Default health scores (will be updated as team uses the app)
+      consecutivo:     trunc(acc.consecutivo, 10),
+      empresa:         acc.empresa,   // TEXT
+      facturacion:     acc.facturacion,
+      servicio:        acc.servicio,  // TEXT
       score_actividad: 50,
-      score_adopcion: 50,
-      score_pago: 50,
-      score_relacional: 50,
-      estado: 'activo',
+      score_adopcion:  50,
+      score_pago:      50,
+      score_relacional:50,
+      estado:          'activo',
     })
   }
 
-  // Enrich with Ficha UX data
+  // 2. Merge Concentrado data into ALL accounts (not just new ones)
+  const concentradoMap = parseConcentrado(wb)
+  for (const [consec, conData] of concentradoMap) {
+    const existing = accountMap.get(consec) || {}
+    accountMap.set(consec, {
+      // Defaults
+      score_actividad: 50, score_adopcion: 50, score_pago: 50, score_relacional: 50,
+      estado: 'activo',
+      // Concentrado data
+      ...conData,
+      // TOP data wins for facturación and empresa name (more up-to-date)
+      facturacion: (existing as any).facturacion ?? (conData as any).facturacion ?? 0,
+      empresa:     (existing as any).empresa     || conData.empresa,
+      servicio:    (existing as any).servicio    || conData.servicio,
+    })
+  }
+
+  // 3. Enrich with individual Ficha UX sheets (contact details, asesor)
   for (const sheet of fichaSheets) {
-    const ficha = parseFichaSheet(wb, sheet)
-    if (!ficha) continue
+    const ws = wb.Sheets[sheet]
+    if (!ws) continue
+
+    const get = (row: number, col: string) => getCellValue(ws, row, col)
+    const ejecutivoPost = get(15, 'G')
+    const asesor = detectAsesor(ejecutivoPost, sheet.charAt(0))
+
+    const activoDesde = excelDateToISO(ws['C13']?.v)
+
+    const fichaData: Record<string, unknown> = {
+      asesor,
+      cid:             trunc(get(1, 'D'), 20)  || undefined,
+      contacto_nombre: trunc(get(3, 'C'), 250) || undefined,
+      contacto_cargo:  trunc(get(4, 'C'), 250) || undefined,
+      contacto_tel:    trunc(get(5, 'C') || get(7, 'C'), 100) || undefined,
+      direccion_fiscal: get(2, 'G') || undefined,
+      pagina_web:      get(3, 'G') || undefined,
+      zoho_link:       get(6, 'G') || undefined,
+      num_oficinas:    get(7, 'G') || undefined,
+      total_empleados: trunc(get(8, 'G'), 250) || undefined,
+      giro:            get(9, 'G') || undefined,
+      tamano_empresa:  trunc(get(10, 'G'), 250) || undefined,
+    }
+    if (activoDesde) fichaData.activo_desde = activoDesde
+
+    // Remove undefined keys
+    Object.keys(fichaData).forEach(k => fichaData[k] === undefined && delete fichaData[k])
 
     const existing = accountMap.get(sheet) || {}
-
-    // If not in TOP, try to get empresa from ficha sheet context
-    if (!existing.empresa) {
-      // Try to get from Concentrado
-      continue
-    }
-
-    accountMap.set(sheet, {
-      ...existing,
-      ...ficha,
-      consecutivo: sheet,
-    })
-  }
-
-  // Parse Concentrado sheet for additional info
-  const concentrado = wb.Sheets['Concentrado']
-  if (concentrado) {
-    const range = XLSX.utils.decode_range(concentrado['!ref'] || 'A1:AJ200')
-    for (let r = range.s.r + 1; r <= range.e.r; r++) {
-      const row = r + 1
-      const consec = getCellValue(concentrado, row, 'A')
-      if (!consec || !/^[FDC]\d+$/.test(consec)) continue
-
-      const cid = getCellValue(concentrado, row, 'B')
-      const empresa = getCellValue(concentrado, row, 'C')
-      const contactoNombre = getCellValue(concentrado, row, 'D')
-      const web = getCellValue(concentrado, row, 'Q')
-      const zohoLink = getCellValue(concentrado, row, 'T')
-      const empleados = getCellValue(concentrado, row, 'V')
-      const giro = getCellValue(concentrado, row, 'W')
-      const tamano = getCellValue(concentrado, row, 'X')
-      const servicio = getCellValue(concentrado, row, 'Y')
-      const ejecutivoPost = getCellValue(concentrado, row, 'AB')
-      const observaciones = getCellValue(concentrado, row, 'AD')
-      const grupo = getCellValue(concentrado, row, 'AE')
-
-      let asesor: 'Fátima' | 'Dan' | 'Claudia' = 'Fátima'
-      if (ejecutivoPost.toLowerCase().includes('dan')) asesor = 'Dan'
-      else if (ejecutivoPost.toLowerCase().includes('claudia')) asesor = 'Claudia'
-
-      const existing = accountMap.get(consec) || {}
-      if (!existing.empresa && empresa) {
-        accountMap.set(consec, {
-          ...existing,
-          consecutivo: consec,
-          cid: cid || null,
-          empresa,
-          asesor,
-          contacto_nombre: contactoNombre || null,
-          pagina_web: web || null,
-          zoho_link: zohoLink || null,
-          total_empleados: empleados || null,
-          giro: giro || null,
-          tamano_empresa: tamano || null,
-          servicio: servicio || null,
-          observaciones_kam: observaciones || null,
-          grupo_empresarial: grupo || null,
-          facturacion: (existing as {facturacion?: number}).facturacion || 0,
-          score_actividad: 50, score_adopcion: 50, score_pago: 50, score_relacional: 50,
-          estado: 'activo',
-        })
-      }
+    if (existing.empresa) {
+      accountMap.set(sheet, { ...existing, ...fichaData })
     }
   }
 
   const rows = Array.from(accountMap.values()).filter(r => r.empresa)
   console.log(`Upserting ${rows.length} accounts to Supabase…`)
 
-  // Batch upsert in chunks of 50
   for (let i = 0; i < rows.length; i += 50) {
     const chunk = rows.slice(i, i + 50)
     const { error } = await supabase.from('cuentas').upsert(chunk, { onConflict: 'consecutivo' })
