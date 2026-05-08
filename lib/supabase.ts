@@ -6,11 +6,21 @@ const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabas
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Public client (browser-safe)
-export const supabase = createClient(URL, ANON)
+// Bypass Next.js 14 data cache — every query must hit Supabase fresh
+const noStoreConfig = {
+  global: {
+    fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+      fetch(input, { ...init, cache: 'no-store' }),
+  },
+}
 
-// Admin client (server-only — bypasses RLS)
-export const supabaseAdmin = SERVICE ? createClient(URL, SERVICE) : supabase
+// Public client (browser-safe)
+export const supabase = createClient(URL, ANON, noStoreConfig)
+
+// Admin client (server-only — bypasses RLS + Next.js data cache)
+export const supabaseAdmin = SERVICE
+  ? createClient(URL, SERVICE, noStoreConfig)
+  : supabase
 
 // ── Cuentas ─────────────────────────────────────────────────────────────────
 
