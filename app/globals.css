@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0A1628;
+  color: #F0F6FF;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0F1E38; }
+::-webkit-scrollbar-thumb { background: #263352; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+
+/* Semáforo pulse animation */
+@keyframes pulse-rojo {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+}
+.semaforo-rojo { animation: pulse-rojo 2s infinite; }
+
+/* Table styles */
+.cp-table { width: 100%; border-collapse: collapse; }
+.cp-table th {
+  background: #0F1E38;
+  color: #94A3B8;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #263352;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.cp-table th:hover { color: #F0F6FF; }
+.cp-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #162038;
+  font-size: 13px;
+  vertical-align: middle;
+}
+.cp-table tbody tr:hover { background: #162038; }
+
+/* Card */
+.cp-card {
+  background: #162038;
+  border: 1px solid #263352;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+/* Input */
+.cp-input {
+  background: #0F1E38;
+  border: 1px solid #263352;
+  border-radius: 8px;
+  color: #F0F6FF;
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.cp-input:focus { border-color: #0057FF; }
+.cp-input::placeholder { color: #4B5E82; }
+
+/* Select */
+.cp-select {
+  background: #0F1E38;
+  border: 1px solid #263352;
+  border-radius: 8px;
+  color: #F0F6FF;
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+.cp-select:focus { border-color: #0057FF; }
+
+/* Button */
+.cp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+}
+.cp-btn-primary { background: #0057FF; color: white; }
+.cp-btn-primary:hover { background: #0046CC; }
+.cp-btn-ghost { background: transparent; color: #94A3B8; border: 1px solid #263352; }
+.cp-btn-ghost:hover { background: #1C2A48; color: #F0F6FF; }
+.cp-btn-danger { background: #EF4444; color: white; }
+.cp-btn-danger:hover { background: #DC2626; }
