@@ -15,7 +15,7 @@ interface Props {
 }
 
 const SEM_COLORS = { verde:'#22C55E', azul:'#3B82F6', amarillo:'#EAB308', naranja:'#F97316', rojo:'#EF4444' }
-const TT_STYLE = { background: '#0F1E38', border: '1px solid #263352', borderRadius: 8, fontSize: 12 }
+const TT_STYLE = { background: '#FFFFFF', border: '1px solid #BFDBFE', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 12px rgba(0,87,255,0.1)' }
 
 export default function MetricasCharts({ data }: Props) {
   const pieData = Object.entries(data.dist).map(([k, v]) => ({
@@ -47,12 +47,12 @@ export default function MetricasCharts({ data }: Props) {
         <h3 className="text-sm font-semibold text-textHi mb-4">Top 10 Facturación</h3>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={data.top10} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-            <XAxis type="number" tick={{ fill: '#4B5E82', fontSize: 10 }} axisLine={false} tickLine={false}
+            <XAxis type="number" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false}
               tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
             <YAxis type="category" dataKey="empresa" width={110}
               tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false}
               tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 14) + '…' : v} />
-            <Tooltip contentStyle={TT_STYLE} formatter={(v: number) => [formatMXN(v)]} labelStyle={{ color: '#F0F6FF' }} />
+            <Tooltip contentStyle={TT_STYLE} formatter={(v: number) => [formatMXN(v)]} labelStyle={{ color: '#0F172A' }} />
             <Bar dataKey="facturacion" fill="#0057FF" radius={[0,4,4,0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -64,8 +64,8 @@ export default function MetricasCharts({ data }: Props) {
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={data.semaforoAsesor.map(d => ({ name: d.asesor, ...d }))} margin={{ top:0, right:10, left:-20, bottom:0 }}>
             <XAxis dataKey="name" tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#4B5E82', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={TT_STYLE} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+            <YAxis tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={TT_STYLE} cursor={{ fill: 'rgba(0,87,255,0.04)' }} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="verde"    stackId="a" fill={SEM_COLORS.verde}    name="Verde" />
             <Bar dataKey="azul"     stackId="a" fill={SEM_COLORS.azul}     name="Azul" />

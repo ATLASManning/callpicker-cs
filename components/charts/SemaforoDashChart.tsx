@@ -21,12 +21,12 @@ export default function SemaforoDashChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-        <XAxis dataKey="name" tick={{ fill: '#94A3B8', fontSize: 12 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: '#4B5E82', fontSize: 11 }} axisLine={false} tickLine={false} />
+        <XAxis dataKey="name" tick={{ fill: '#64748B', fontSize: 12 }} axisLine={false} tickLine={false} />
+        <YAxis tick={{ fill: '#94A3B8', fontSize: 11 }} axisLine={false} tickLine={false} />
         <Tooltip
-          contentStyle={{ background: '#0F1E38', border: '1px solid #263352', borderRadius: 8, fontSize: 12 }}
-          labelStyle={{ color: '#F0F6FF', fontWeight: 600 }}
-          cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+          contentStyle={{ background: '#FFFFFF', border: '1px solid #BFDBFE', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 12px rgba(0,87,255,0.1)' }}
+          labelStyle={{ color: '#0F172A', fontWeight: 600 }}
+          cursor={{ fill: 'rgba(0,87,255,0.04)' }}
         />
         <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
         {Object.entries(COLORS).map(([key, color]) => (

@@ -21,16 +21,16 @@ export default function Sidebar() {
   const path = usePathname()
 
   return (
-    <aside className="w-60 flex-shrink-0 bg-bgAlt border-r border-border flex flex-col h-full">
+    <aside className="w-60 flex-shrink-0 flex flex-col h-full" style={{ background: '#1E3A5F', borderRight: '1px solid #2D4D73' }}>
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-border">
+      <div className="px-5 py-5" style={{ borderBottom: '1px solid #2D4D73' }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-cp flex items-center justify-center shadow-glow-cp">
             <Phone size={16} className="text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold text-textHi leading-tight">Callpicker</p>
-            <p className="text-[10px] text-cpTeal font-medium tracking-wide uppercase">Customer Success</p>
+            <p className="text-sm font-bold leading-tight" style={{ color: '#F0F7FF' }}>Callpicker</p>
+            <p className="text-[10px] font-medium tracking-wide uppercase" style={{ color: '#38BDF8' }}>Customer Success</p>
           </div>
         </div>
       </div>
@@ -45,29 +45,35 @@ export default function Sidebar() {
               href={href}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all group
                 ${active
-                  ? 'bg-cp/15 text-cpTeal border-l-2 border-cp pl-[10px]'
-                  : 'text-textMid hover:bg-surface hover:text-textHi'
+                  ? 'border-l-2 border-cp pl-[10px]'
+                  : ''
                 }`}
+              style={active
+                ? { background: 'rgba(0,87,255,0.18)', color: '#38BDF8' }
+                : { color: '#94BBDD' }
+              }
+              onMouseEnter={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = '#2D4D73'; (e.currentTarget as HTMLElement).style.color = '#F0F7FF' } }}
+              onMouseLeave={e => { if (!active) { (e.currentTarget as HTMLElement).style.background = ''; (e.currentTarget as HTMLElement).style.color = '#94BBDD' } }}
             >
-              <Icon size={16} className={active ? 'text-cp' : 'text-textLow group-hover:text-textMid'} />
+              <Icon size={16} style={{ color: active ? '#3B82F6' : '#6B8FAF' }} />
               {label}
-              {active && <ChevronRight size={14} className="ml-auto text-cp opacity-60" />}
+              {active && <ChevronRight size={14} className="ml-auto opacity-60" style={{ color: '#3B82F6' }} />}
             </Link>
           )
         })}
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4 border-t border-border">
+      <div className="px-4 py-4" style={{ borderTop: '1px solid #2D4D73' }}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-cp/20 flex items-center justify-center">
-            <span className="text-xs font-bold text-cp">CS</span>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: 'rgba(0,87,255,0.25)' }}>
+            <span className="text-xs font-bold" style={{ color: '#3B82F6' }}>CS</span>
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-textHi truncate">Equipo UX</p>
-            <p className="text-[10px] text-textLow truncate">callpicker.com</p>
+            <p className="text-xs font-semibold truncate" style={{ color: '#F0F7FF' }}>Equipo UX</p>
+            <p className="text-[10px] truncate" style={{ color: '#6B8FAF' }}>callpicker.com</p>
           </div>
-          <Link href="/settings" className="ml-auto text-textLow hover:text-textMid">
+          <Link href="/settings" className="ml-auto" style={{ color: '#6B8FAF' }}>
             <Settings size={14} />
           </Link>
         </div>
