@@ -2,19 +2,19 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Users, CalendarCheck, BarChart3,
+  LayoutDashboard, Users, BarChart3,
   MessageSquare, TrendingUp, Settings, ChevronRight,
-  Phone, Activity
+  Phone, Activity, BookOpenCheck,
 } from 'lucide-react'
 
 const NAV = [
-  { href: '/',          label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/cuentas',   label: 'Cuentas',         icon: Users },
-  { href: '/junta',     label: 'Junta Semanal',   icon: CalendarCheck },
-  { href: '/asesores',  label: 'Asesores',        icon: Activity },
-  { href: '/metricas',  label: 'Métricas',        icon: BarChart3 },
-  { href: '/chat',      label: 'Atlas IA',        icon: MessageSquare },
-  { href: '/upsell',    label: 'Upsell / Cross',  icon: TrendingUp },
+  { href: '/',              label: 'Dashboard',      icon: LayoutDashboard },
+  { href: '/cuentas',       label: 'Cuentas',         icon: Users },
+  { href: '/seguimiento',   label: 'Seguimiento',     icon: BookOpenCheck },
+  { href: '/asesores',      label: 'Asesores',        icon: Activity },
+  { href: '/metricas',      label: 'Métricas',        icon: BarChart3 },
+  { href: '/chat',          label: 'Atlas IA',        icon: MessageSquare },
+  { href: '/upsell',        label: 'Upsell / Cross',  icon: TrendingUp },
 ]
 
 export default function Sidebar() {
