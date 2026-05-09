@@ -220,48 +220,38 @@ export type CuentaMin = {
   facturacion: number
 }
 
-export type SeguimientoConCuenta = Seguimiento & {
-  cuentas: CuentaMin | null
-}
+export type SeguimientoConCuenta = Seguimiento & { cuentas: CuentaMin | null }
+export type OportunidadConCuenta = Oportunidad & { cuentas: CuentaMin | null }
+export type TicketConCuenta      = Ticket       & { cuentas: CuentaMin | null }
 
-export type OportunidadConCuenta = Oportunidad & {
-  cuentas: CuentaMin | null
-}
-
-export type TicketConCuenta = Ticket & {
-  cuentas: CuentaMin | null
-}
-
-export async function getSeguimientosRango(
-  desde: string,
-  hasta: string,
-): Promise<SeguimientoConCuenta[]> {
+// Queries sin FK-join — join manual con el mapa de cuentas que pasa el caller
+export async function getSeguimientosRango(desde: string, hasta: string): Promise<Seguimiento[]> {
   const { data, error } = await supabaseAdmin
     .from('seguimientos')
-    .select('*, cuentas(id, empresa, consecutivo, asesor, facturacion)')
+    .select('*')
     .gte('fecha', desde)
     .lte('fecha', hasta)
     .order('fecha', { ascending: false })
   if (error) throw error
-  return (data ?? []) as SeguimientoConCuenta[]
+  return (data ?? []) as Seguimiento[]
 }
 
-export async function getOportunidadesActivas(): Promise<OportunidadConCuenta[]> {
+export async function getOportunidadesActivasRaw(): Promise<Oportunidad[]> {
   const { data, error } = await supabaseAdmin
     .from('oportunidades')
-    .select('*, cuentas(id, empresa, consecutivo, asesor, facturacion)')
+    .select('*')
     .in('estado', ['identificada', 'en_proceso'])
     .order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as OportunidadConCuenta[]
+  return (data ?? []) as Oportunidad[]
 }
 
-export async function getTicketsAbiertos(): Promise<TicketConCuenta[]> {
+export async function getTicketsAbiertosRaw(): Promise<Ticket[]> {
   const { data, error } = await supabaseAdmin
     .from('tickets')
-    .select('*, cuentas(id, empresa, consecutivo, asesor, facturacion)')
+    .select('*')
     .in('estado', ['abierto', 'en_proceso'])
     .order('dias_abierto', { ascending: false })
   if (error) throw error
-  return (data ?? []) as TicketConCuenta[]
+  return (data ?? []) as Ticket[]
 }
