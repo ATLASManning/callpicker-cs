@@ -10,30 +10,34 @@ const config: Config = {
     extend: {
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
       colors: {
-        bg:       '#0A1628',
-        bgAlt:    '#0F1E38',
-        surface:  '#162038',
-        surfaceAlt: '#1C2A48',
-        border:   '#263352',
+        // Main content — light blue-white theme
+        bg:         '#EFF6FF',      // page background
+        bgAlt:      '#1E3A5F',      // sidebar (stays dark navy)
+        surface:    '#FFFFFF',      // card background
+        surfaceAlt: '#F0F7FF',      // subtle card variant
+        border:     '#BFDBFE',      // light blue border
+
         // Callpicker brand
         cp:       '#0057FF',
         cpLight:  '#3B82F6',
-        cpTeal:   '#00D4FF',
-        // Text
-        textHi:   '#F0F6FF',
-        textMid:  '#94A3B8',
-        textLow:  '#4B5E82',
-        // Semáforo
-        verde:    '#22C55E',
-        azul:     '#3B82F6',
-        amarillo: '#EAB308',
-        naranja:  '#F97316',
-        rojo:     '#EF4444',
+        cpTeal:   '#0EA5E9',
+
+        // Text hierarchy (optimised for white bg)
+        textHi:   '#0F172A',        // near-black
+        textMid:  '#334155',        // medium slate
+        textLow:  '#64748B',        // muted slate
+
+        // Semáforo — slightly deeper for white bg legibility
+        verde:    '#16A34A',
+        azul:     '#2563EB',
+        amarillo: '#CA8A04',
+        naranja:  '#EA580C',
+        rojo:     '#DC2626',
       },
       boxShadow: {
-        'glow-cp': '0 0 24px rgba(0,87,255,0.25)',
-        'glow-teal': '0 0 20px rgba(0,212,255,0.2)',
-        'card': '0 2px 8px rgba(0,0,0,0.4)',
+        'glow-cp':   '0 0 24px rgba(0,87,255,0.18)',
+        'glow-teal': '0 0 20px rgba(14,165,233,0.18)',
+        'card':      '0 1px 4px rgba(0,87,255,0.08)',
       },
     },
   },
