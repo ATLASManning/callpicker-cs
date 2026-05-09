@@ -7,9 +7,19 @@ export const metadata: Metadata = {
   description: 'Panel de seguimiento y retención de cuentas estratégicas Callpicker',
 }
 
+const FORCE_LIGHT = `
+  html, body { background: #EFF6FF !important; color: #0F172A !important; }
+  main { background: #EFF6FF !important; }
+  .cp-card { background: #ffffff !important; color: #0F172A !important; }
+  * { color-scheme: light !important; }
+`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" style={{ background: '#EFF6FF' }}>
+    <html lang="es" suppressHydrationWarning style={{ background: '#EFF6FF', colorScheme: 'light' }}>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: FORCE_LIGHT }} />
+      </head>
       <body className="flex h-screen overflow-hidden" style={{ background: '#EFF6FF', color: '#0F172A' }}>
         <Sidebar />
         <main className="flex-1 overflow-y-auto" style={{ background: '#EFF6FF' }}>
