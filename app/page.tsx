@@ -31,9 +31,9 @@ export default async function DashboardPage() {
         title="Dashboard Customer Success"
         subtitle={`${new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
         actions={
-          <Link href="/junta" className="cp-btn cp-btn-primary">
+          <Link href="/seguimiento" className="cp-btn cp-btn-primary">
             <Activity size={14} />
-            Junta Semanal
+            Seguimiento
           </Link>
         }
       />
