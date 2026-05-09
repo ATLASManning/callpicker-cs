@@ -1,0 +1,335 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { Calendar, Plus, X, Save, ChevronDown, Users, FileText, ArrowLeft, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+import PageHeader from '@/components/PageHeader'
+
+type TipoReunion = 'junta_semanal' | 'one_on_one' | 'cliente' | 'estrategia' | 'otro'
+type Reunion = {
+  id: string
+  fecha: string
+  tipo: TipoReunion
+  titulo: string
+  participantes: string
+  resumen: string
+  acuerdos: string
+  proximos_pasos: string
+  creado_en: string
+}
+
+const TIPOS: Record<TipoReunion, { label: string; color: string; bg: string }> = {
+  junta_semanal: { label: 'Junta Semanal',  color: '#0057FF', bg: 'rgba(0,87,255,0.08)' },
+  one_on_one:    { label: 'One-on-One',     color: '#7C3AED', bg: 'rgba(124,58,237,0.08)' },
+  cliente:       { label: 'Con Cliente',    color: '#059669', bg: 'rgba(5,150,105,0.08)' },
+  estrategia:    { label: 'Estrategia',     color: '#D97706', bg: 'rgba(217,119,6,0.08)' },
+  otro:          { label: 'Otro',           color: '#475569', bg: 'rgba(71,85,105,0.08)' },
+}
+
+const STORAGE_KEY = 'cp_reuniones'
+
+function loadReuniones(): Reunion[] {
+  if (typeof window === 'undefined') return []
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  } catch { return [] }
+}
+
+function saveReuniones(data: Reunion[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+}
+
+const hoy = () => new Date().toISOString().slice(0, 10)
+
+const emptyForm = (): Omit<Reunion, 'id' | 'creado_en'> => ({
+  fecha: hoy(),
+  tipo: 'junta_semanal',
+  titulo: '',
+  participantes: '',
+  resumen: '',
+  acuerdos: '',
+  proximos_pasos: '',
+})
+
+export default function ReunionesPage() {
+  const [reuniones, setReuniones] = useState<Reunion[]>([])
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState(emptyForm())
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [mesActivo, setMesActivo] = useState(() => hoy().slice(0, 7))
+
+  useEffect(() => {
+    setReuniones(loadReuniones().sort((a, b) => b.fecha.localeCompare(a.fecha)))
+  }, [])
+
+  function guardar() {
+    if (!form.titulo.trim()) return
+    const nueva: Reunion = {
+      ...form,
+      id: Date.now().toString(),
+      creado_en: new Date().toISOString(),
+    }
+    const updated = [nueva, ...reuniones].sort((a, b) => b.fecha.localeCompare(a.fecha))
+    setReuniones(updated)
+    saveReuniones(updated)
+    setForm(emptyForm())
+    setShowForm(false)
+    setExpanded(nueva.id)
+  }
+
+  function eliminar(id: string) {
+    const updated = reuniones.filter(r => r.id !== id)
+    setReuniones(updated)
+    saveReuniones(updated)
+    if (expanded === id) setExpanded(null)
+  }
+
+  // Meses disponibles
+  const meses = [...new Set(reuniones.map(r => r.fecha.slice(0, 7)))].sort((a, b) => b.localeCompare(a))
+  if (!meses.includes(mesActivo) && meses.length) setMesActivo(meses[0])
+
+  const reunionesMes = reuniones.filter(r => r.fecha.startsWith(mesActivo))
+
+  function formatFecha(f: string) {
+    return new Date(f + 'T12:00:00').toLocaleDateString('es-MX', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    })
+  }
+
+  function formatMes(m: string) {
+    const [y, mo] = m.split('-')
+    return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })
+  }
+
+  return (
+    <div className="min-h-screen" style={{ background: '#EFF6FF' }}>
+      <div className="px-6 pt-5 pb-0">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs mb-4"
+          style={{ color: '#64748B' }}>
+          <ArrowLeft size={13} /> Volver al Dashboard
+        </Link>
+        <div className="flex items-center justify-between pb-4">
+          <div>
+            <h1 className="text-2xl font-extrabold" style={{ color: '#0F172A', letterSpacing: '-0.02em' }}>
+              Reuniones
+            </h1>
+            <p className="text-sm mt-0.5" style={{ color: '#475569' }}>
+              Resúmenes, acuerdos y próximos pasos de cada meeting
+            </p>
+          </div>
+          <button onClick={() => { setShowForm(true); setForm(emptyForm()) }}
+            className="cp-btn cp-btn-primary">
+            <Plus size={15} /> Nueva Reunión
+          </button>
+        </div>
+      </div>
+
+      {/* Modal formulario */}
+      {showForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-2xl rounded-2xl p-6 space-y-4"
+            style={{ background: '#ffffff', border: '1px solid #BFDBFE', boxShadow: '0 20px 60px rgba(0,87,255,0.15)' }}>
+
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>Nueva Reunión</h2>
+              <button onClick={() => setShowForm(false)} className="cp-icon-btn">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Fecha</label>
+                <input type="date" value={form.fecha}
+                  onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))}
+                  className="cp-input w-full" />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Tipo</label>
+                <select value={form.tipo}
+                  onChange={e => setForm(p => ({ ...p, tipo: e.target.value as TipoReunion }))}
+                  className="cp-select w-full">
+                  {Object.entries(TIPOS).map(([k, v]) => (
+                    <option key={k} value={k}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Título / Tema</label>
+              <input type="text" placeholder="ej. Revisión semanal KAM · Mayo"
+                value={form.titulo}
+                onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
+                className="cp-input w-full" />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
+                <Users size={12} className="inline mr-1" />Participantes
+              </label>
+              <input type="text" placeholder="Fátima, Dan, Claudia, ..."
+                value={form.participantes}
+                onChange={e => setForm(p => ({ ...p, participantes: e.target.value }))}
+                className="cp-input w-full" />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
+                <FileText size={12} className="inline mr-1" />Resumen de la reunión
+              </label>
+              <textarea rows={3} placeholder="¿De qué se habló? Principales temas discutidos..."
+                value={form.resumen}
+                onChange={e => setForm(p => ({ ...p, resumen: e.target.value }))}
+                className="cp-input w-full resize-none" />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Acuerdos / Decisiones</label>
+              <textarea rows={2} placeholder="¿Qué se acordó? ¿Qué decisiones se tomaron?"
+                value={form.acuerdos}
+                onChange={e => setForm(p => ({ ...p, acuerdos: e.target.value }))}
+                className="cp-input w-full resize-none" />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Próximos pasos</label>
+              <textarea rows={2} placeholder="Tareas y responsables para la próxima semana..."
+                value={form.proximos_pasos}
+                onChange={e => setForm(p => ({ ...p, proximos_pasos: e.target.value }))}
+                className="cp-input w-full resize-none" />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={guardar} className="cp-btn cp-btn-primary flex-1 justify-center">
+                <Save size={14} /> Guardar Reunión
+              </button>
+              <button onClick={() => setShowForm(false)} className="cp-btn cp-btn-ghost">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="px-6 pb-6">
+        {/* Filtro por mes */}
+        {meses.length > 1 && (
+          <div className="flex gap-2 mb-5 flex-wrap">
+            {meses.map(m => (
+              <button key={m}
+                onClick={() => setMesActivo(m)}
+                className="cp-btn text-xs"
+                style={mesActivo === m
+                  ? { background: '#0057FF', color: '#fff', border: '1px solid #003db3', boxShadow: '0 2px 8px rgba(0,87,255,0.3)' }
+                  : { background: '#fff', color: '#334155', border: '1px solid #BFDBFE' }}>
+                {formatMes(m)}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Estado vacío */}
+        {reuniones.length === 0 && (
+          <div className="cp-card text-center py-16">
+            <Calendar size={40} className="mx-auto mb-3" style={{ color: '#BFDBFE' }} />
+            <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>Sin reuniones registradas</p>
+            <p className="text-sm mb-4" style={{ color: '#64748B' }}>
+              Documenta el resumen de cada meeting del equipo
+            </p>
+            <button onClick={() => { setShowForm(true); setForm(emptyForm()) }}
+              className="cp-btn cp-btn-primary mx-auto">
+              <Plus size={14} /> Registrar primera reunión
+            </button>
+          </div>
+        )}
+
+        {/* Lista de reuniones del mes */}
+        {reunionesMes.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: '#64748B' }}>
+              {formatMes(mesActivo)} · {reunionesMes.length} reunión{reunionesMes.length !== 1 ? 'es' : ''}
+            </p>
+            {reunionesMes.map(r => {
+              const cfg = TIPOS[r.tipo]
+              const open = expanded === r.id
+              return (
+                <div key={r.id} className="cp-card" style={{ padding: 0, overflow: 'hidden' }}>
+                  {/* Header de la tarjeta */}
+                  <button
+                    onClick={() => setExpanded(open ? null : r.id)}
+                    className="w-full flex items-center gap-3 text-left"
+                    style={{ padding: '16px 20px' }}>
+                    {/* Fecha */}
+                    <div className="flex-shrink-0 w-12 text-center rounded-xl py-1.5"
+                      style={{ background: cfg.bg, border: `1px solid ${cfg.color}30` }}>
+                      <p className="text-[10px] font-semibold uppercase" style={{ color: cfg.color }}>
+                        {new Date(r.fecha + 'T12:00:00').toLocaleDateString('es-MX', { month: 'short' })}
+                      </p>
+                      <p className="text-lg font-bold leading-tight" style={{ color: cfg.color }}>
+                        {new Date(r.fecha + 'T12:00:00').getDate()}
+                      </p>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: cfg.bg, color: cfg.color }}>
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <p className="text-sm font-semibold truncate" style={{ color: '#0F172A' }}>{r.titulo}</p>
+                      {r.participantes && (
+                        <p className="text-xs truncate mt-0.5" style={{ color: '#64748B' }}>
+                          <Users size={10} className="inline mr-1" />{r.participantes}
+                        </p>
+                      )}
+                    </div>
+
+                    <ChevronDown size={16} style={{ color: '#94A3B8', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+                  </button>
+
+                  {/* Contenido expandido */}
+                  {open && (
+                    <div style={{ borderTop: '1px solid #EFF6FF', padding: '0 20px 20px' }}>
+                      <p className="text-[11px] mt-3 mb-3" style={{ color: '#94A3B8' }}>
+                        {formatFecha(r.fecha)}
+                      </p>
+
+                      {r.resumen && (
+                        <div className="mb-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#64748B' }}>Resumen</p>
+                          <p className="text-sm whitespace-pre-wrap" style={{ color: '#334155' }}>{r.resumen}</p>
+                        </div>
+                      )}
+
+                      {r.acuerdos && (
+                        <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(0,87,255,0.04)', border: '1px solid rgba(0,87,255,0.1)' }}>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#0057FF' }}>Acuerdos</p>
+                          <p className="text-sm whitespace-pre-wrap" style={{ color: '#334155' }}>{r.acuerdos}</p>
+                        </div>
+                      )}
+
+                      {r.proximos_pasos && (
+                        <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(5,150,105,0.04)', border: '1px solid rgba(5,150,105,0.12)' }}>
+                          <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#059669' }}>Próximos Pasos</p>
+                          <p className="text-sm whitespace-pre-wrap" style={{ color: '#334155' }}>{r.proximos_pasos}</p>
+                        </div>
+                      )}
+
+                      <button onClick={() => eliminar(r.id)}
+                        className="cp-btn cp-btn-ghost text-xs mt-1"
+                        style={{ color: '#EF4444', borderColor: '#FECACA' }}>
+                        <Trash2 size={12} /> Eliminar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

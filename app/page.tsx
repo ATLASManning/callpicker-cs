@@ -1,4 +1,4 @@
-import { Users, DollarSign, AlertTriangle, TrendingUp, Activity, CheckCircle2 } from 'lucide-react'
+import { Users, DollarSign, AlertTriangle, TrendingUp, CalendarDays, CheckCircle2 } from 'lucide-react'
 import StatCard from '@/components/StatCard'
 import PageHeader from '@/components/PageHeader'
 import SemaforoDashChart from '@/components/charts/SemaforoDashChart'
@@ -31,9 +31,9 @@ export default async function DashboardPage() {
         title="Dashboard Customer Success"
         subtitle={`${new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`}
         actions={
-          <Link href="/seguimiento" className="cp-btn cp-btn-primary">
-            <Activity size={14} />
-            Seguimiento
+          <Link href="/reuniones" className="cp-btn cp-btn-primary">
+            <CalendarDays size={14} />
+            Reuniones
           </Link>
         }
       />

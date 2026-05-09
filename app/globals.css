@@ -6,13 +6,10 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html {
-  background: #EFF6FF;
-}
-
+html,
 body {
-  background: #EFF6FF;
-  color: #0F172A;
+  background: #EFF6FF !important;
+  color: #0F172A !important;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -58,7 +55,8 @@ body {
 
 /* ── Card — profundidad estilo iOS ────────────────── */
 .cp-card {
-  background: linear-gradient(160deg, #ffffff 0%, #f5f9ff 100%);
+  background: #ffffff !important;
+  background: linear-gradient(160deg, #ffffff 0%, #f5f9ff 100%) !important;
   border: 1px solid #BFDBFE;
   border-radius: 16px;
   padding: 20px;
@@ -66,6 +64,7 @@ body {
     0 1px 0 rgba(255,255,255,0.95) inset,
     0 4px 16px rgba(0,87,255,0.08),
     0 1px 3px rgba(0,0,0,0.05);
+  color: #0F172A !important;
 }
 
 /* ── Título de sección — contraste claro/oscuro ───── */
