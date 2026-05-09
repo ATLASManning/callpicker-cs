@@ -36,7 +36,14 @@ export default function StatCard({ label, value, sub, icon: Icon, variant = 'pri
           )}
         </div>
         {Icon && (
-          <div className={clsx('p-2 rounded-lg bg-cp/10', v.icon)}>
+          <div className={clsx(
+            'flex-shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center',
+            'border border-white/60',
+            v.icon,
+          )} style={{
+            background: 'linear-gradient(160deg, rgba(255,255,255,0.9) 0%, rgba(220,235,255,0.6) 100%)',
+            boxShadow: '0 1px 0 rgba(255,255,255,0.95) inset, 0 4px 10px rgba(0,87,255,0.14), 0 1px 3px rgba(0,0,0,0.06)',
+          }}>
             <Icon size={20} />
           </div>
         )}
