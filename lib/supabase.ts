@@ -209,3 +209,59 @@ export async function getHealthHistorial(cuentaId: string) {
     .limit(12)
   return data ?? []
 }
+
+// ── Junta Semanal — tipos extendidos ─────────────────────────────────────────
+
+export type CuentaMin = {
+  id: string
+  empresa: string
+  consecutivo: string
+  asesor: string
+  facturacion: number
+}
+
+export type SeguimientoConCuenta = Seguimiento & {
+  cuentas: CuentaMin | null
+}
+
+export type OportunidadConCuenta = Oportunidad & {
+  cuentas: CuentaMin | null
+}
+
+export type TicketConCuenta = Ticket & {
+  cuentas: CuentaMin | null
+}
+
+export async function getSeguimientosRango(
+  desde: string,
+  hasta: string,
+): Promise<SeguimientoConCuenta[]> {
+  const { data, error } = await supabaseAdmin
+    .from('seguimientos')
+    .select('*, cuentas(id, empresa, consecutivo, asesor, facturacion)')
+    .gte('fecha', desde)
+    .lte('fecha', hasta)
+    .order('fecha', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as SeguimientoConCuenta[]
+}
+
+export async function getOportunidadesActivas(): Promise<OportunidadConCuenta[]> {
+  const { data, error } = await supabaseAdmin
+    .from('oportunidades')
+    .select('*, cuentas(id, empresa, consecutivo, asesor, facturacion)')
+    .in('estado', ['identificada', 'en_proceso'])
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as OportunidadConCuenta[]
+}
+
+export async function getTicketsAbiertos(): Promise<TicketConCuenta[]> {
+  const { data, error } = await supabaseAdmin
+    .from('tickets')
+    .select('*, cuentas(id, empresa, consecutivo, asesor, facturacion)')
+    .in('estado', ['abierto', 'en_proceso'])
+    .order('dias_abierto', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as TicketConCuenta[]
+}
