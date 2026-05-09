@@ -84,7 +84,7 @@ export default function ReunionesPage() {
   }
 
   // Meses disponibles
-  const meses = [...new Set(reuniones.map(r => r.fecha.slice(0, 7)))].sort((a, b) => b.localeCompare(a))
+  const meses = Array.from(new Set(reuniones.map(r => r.fecha.slice(0, 7)))).sort((a, b) => b.localeCompare(a))
   if (!meses.includes(mesActivo) && meses.length) setMesActivo(meses[0])
 
   const reunionesMes = reuniones.filter(r => r.fecha.startsWith(mesActivo))
