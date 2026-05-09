@@ -8,16 +8,17 @@ export const metadata: Metadata = {
 }
 
 const FORCE_LIGHT = `
-  html, body { background: #EFF6FF !important; color: #0F172A !important; }
+  :root { color-scheme: only light !important; }
+  html, body { background: #EFF6FF !important; color: #0F172A !important; color-scheme: only light !important; }
   main { background: #EFF6FF !important; }
   .cp-card { background: #ffffff !important; color: #0F172A !important; }
-  * { color-scheme: light !important; }
 `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" suppressHydrationWarning style={{ background: '#EFF6FF', colorScheme: 'light' }}>
+    <html lang="es" suppressHydrationWarning style={{ background: '#EFF6FF', colorScheme: 'only light' }}>
       <head>
+        <meta name="color-scheme" content="only light" />
         <style dangerouslySetInnerHTML={{ __html: FORCE_LIGHT }} />
       </head>
       <body className="flex h-screen overflow-hidden" style={{ background: '#EFF6FF', color: '#0F172A' }}>
