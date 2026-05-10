@@ -11,7 +11,7 @@ const config: Config = {
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
       colors: {
         // Main content — light blue-white theme
-        page:       '#EFF6FF',      // page background (renamed from 'bg' to avoid Tailwind prefix conflict)
+        page:       '#DBEAFE',      // page background — azul pastel
         bgAlt:      '#1E3A5F',      // sidebar (stays dark navy)
         surface:    '#FFFFFF',      // card background
         surfaceAlt: '#F0F7FF',      // subtle card variant

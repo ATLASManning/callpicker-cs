@@ -8,7 +8,7 @@
 
 html,
 body {
-  background: #EFF6FF !important;
+  background: #DBEAFE !important;
   color: #0F172A !important;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -16,7 +16,7 @@ body {
 
 /* ── Custom scrollbar ─────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #DBEAFE; }
+::-webkit-scrollbar-track { background: #BFDBFE; }
 ::-webkit-scrollbar-thumb { background: #93C5FD; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
 
