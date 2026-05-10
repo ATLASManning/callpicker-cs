@@ -3,8 +3,19 @@ import './globals.css'
 import Sidebar from '@/components/Sidebar'
 
 export const metadata: Metadata = {
-  title: 'Callpicker CS — Customer Success',
+  title: 'Callpicker Customer Success',
   description: 'Panel de seguimiento y retención de cuentas estratégicas Callpicker',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Callpicker CS',
+  },
+  formatDetection: { telephone: false },
+  icons: {
+    icon: '/icons/icon-192x192.png',
+    apple: '/icons/icon-192x192.png',
+  },
 }
 
 const FORCE_LIGHT = `
@@ -19,6 +30,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" suppressHydrationWarning style={{ background: '#DBEAFE', colorScheme: 'only light' }}>
       <head>
         <meta name="color-scheme" content="only light" />
+        <meta name="theme-color" content="#1B3FCC" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Callpicker CS" />
         <style dangerouslySetInnerHTML={{ __html: FORCE_LIGHT }} />
       </head>
       <body className="flex h-screen overflow-hidden" style={{ background: '#EFF6FF', color: '#0F172A' }}>

@@ -1,0 +1,47 @@
+{
+  "name": "Callpicker Customer Success",
+  "short_name": "Callpicker CS",
+  "description": "Panel de seguimiento y retención de cuentas estratégicas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#DBEAFE",
+  "theme_color": "#1B3FCC",
+  "orientation": "landscape",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/",
+      "description": "Vista general de Customer Success"
+    },
+    {
+      "name": "Cuentas",
+      "url": "/cuentas",
+      "description": "Cartera de clientes"
+    },
+    {
+      "name": "Seguimiento",
+      "url": "/seguimiento",
+      "description": "Agenda de mentoring"
+    },
+    {
+      "name": "Reuniones",
+      "url": "/reuniones",
+      "description": "Log de reuniones del equipo"
+    }
+  ]
+}
