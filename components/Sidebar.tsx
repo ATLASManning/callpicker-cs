@@ -18,9 +18,9 @@ const NAV = [
   { href: '/upsell',        label: 'Upsell / Cross',  icon: TrendingUp },
 ]
 
-// Azul royal del sidebar: #1B3FCC
-const SB   = '#1B3FCC'
-const SB_D = '#1530A8'   // borde / divisor (más oscuro)
+// Azul marino del sidebar: #0A1628
+const SB   = '#0A1628'
+const SB_D = '#071020'   // borde / divisor (más oscuro)
 const SB_H = 'rgba(255,255,255,0.12)'  // hover
 const SB_A = 'rgba(255,255,255,0.18)'  // active bg
 const TX   = 'rgba(255,255,255,0.92)'  // texto principal
