@@ -497,7 +497,7 @@ function BloqueSection({ titulo, subtitulo, colorHex, cuentas: lista, getAccione
 // ── Página ───────────────────────────────────────────────────────────────────
 
 export default async function SeguimientoPage() {
-  const cuentas = await getCuentas({ estado: 'activo' })
+  const cuentas = await getCuentas()
 
   const asesores: Asesor[] = ['Fátima', 'Dan', 'Claudia']
   const today = new Date().toLocaleDateString('es-MX', {
@@ -511,7 +511,7 @@ export default async function SeguimientoPage() {
     <div className="min-h-screen pb-16">
       <PageHeader
         title="Seguimiento y Mentoring"
-        subtitle={`${today} · ${cuentas.length} cuentas activas`}
+        subtitle={`${today} · ${cuentas.length} cuentas en cartera`}
         actions={
           <div className="flex items-center gap-3 text-xs">
             {totalChurn > 0 && (
