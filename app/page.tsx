@@ -1,4 +1,4 @@
-import { Users, DollarSign, AlertTriangle, TrendingUp, CalendarDays, CheckCircle2 } from 'lucide-react'
+import { Users, DollarSign, AlertTriangle, TrendingUp, CalendarDays, CheckCircle2, AlertCircle } from 'lucide-react'
 import StatCard from '@/components/StatCard'
 import PageHeader from '@/components/PageHeader'
 import SemaforoDashChart from '@/components/charts/SemaforoDashChart'
@@ -37,6 +37,26 @@ export default async function DashboardPage() {
           </Link>
         }
       />
+
+      {/* Fichas pendientes banner */}
+      {(kpis.faltaTC > 0 || kpis.faltaHS > 0) && (
+        <div className="mx-6 mb-4 flex flex-wrap gap-3">
+          {kpis.faltaTC > 0 && (
+            <Link href="/cuentas?warning=FALTA_TC"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-orange-500/40 bg-orange-500/10 text-orange-400 text-xs font-semibold hover:bg-orange-500/20 transition-colors">
+              <AlertCircle size={14} />
+              {kpis.faltaTC} cuentas sin ficha Top Customer — pendiente del asesor
+            </Link>
+          )}
+          {kpis.faltaHS > 0 && (
+            <Link href="/cuentas?warning=FALTA_HS"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 text-yellow-500 text-xs font-semibold hover:bg-yellow-500/20 transition-colors">
+              <AlertCircle size={14} />
+              {kpis.faltaHS} cuentas sin Health Score Callpicker
+            </Link>
+          )}
+        </div>
+      )}
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-6 pb-6">

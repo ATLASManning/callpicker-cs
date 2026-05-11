@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Filter, RefreshCw, Plus, ArrowUpDown } from 'lucide-react'
+import { Search, Filter, RefreshCw, Plus, ArrowUpDown, AlertCircle } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
@@ -12,7 +13,32 @@ import { getSemaforo, formatMXN } from '@/lib/types'
 const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 const SEMAFOROS: Semaforo[] = ['rojo', 'naranja', 'amarillo', 'azul', 'verde']
 
-export default function CuentasPage() {
+type DataWarning = 'FALTA_TC' | 'FALTA_HS' | null
+
+function getDataWarning(c: Cuenta): DataWarning {
+  if (!c.notas) return null
+  if (c.notas.includes('[FALTA_TC]')) return 'FALTA_TC'
+  if (c.notas.includes('[FALTA_HS]')) return 'FALTA_HS'
+  return null
+}
+
+function DataWarningBadge({ warning }: { warning: DataWarning }) {
+  if (!warning) return null
+  const isFaltaTC = warning === 'FALTA_TC'
+  return (
+    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border mt-0.5 ${
+      isFaltaTC
+        ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
+        : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
+    }`}>
+      <AlertCircle size={9} />
+      {isFaltaTC ? 'Falta Top Customer (ficha)' : 'Falta Health Score Callpicker'}
+    </span>
+  )
+}
+
+function CuentasPageInner() {
+  const searchParams = useSearchParams()
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -20,6 +46,9 @@ export default function CuentasPage() {
   const [semaforoFilter, setSemaforoFilter] = useState('')
   const [sortField, setSortField] = useState<keyof Cuenta>('facturacion')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [warningFilter, setWarningFilter] = useState<'' | 'FALTA_TC' | 'FALTA_HS'>(
+    (searchParams.get('warning') as '' | 'FALTA_TC' | 'FALTA_HS') || ''
+  )
 
   const fetchCuentas = useCallback(async () => {
     setLoading(true)
@@ -35,7 +64,11 @@ export default function CuentasPage() {
 
   useEffect(() => { fetchCuentas() }, [fetchCuentas])
 
-  const sorted = [...cuentas].sort((a, b) => {
+  const filtered = warningFilter
+    ? cuentas.filter(c => getDataWarning(c) === warningFilter)
+    : cuentas
+
+  const sorted = [...filtered].sort((a, b) => {
     const av = a[sortField] as number | string
     const bv = b[sortField] as number | string
     if (av == null) return 1
@@ -63,7 +96,7 @@ export default function CuentasPage() {
     <div className="min-h-screen">
       <PageHeader
         title="Cuentas Estratégicas"
-        subtitle={`${cuentas.length} cuentas activas`}
+        subtitle={`${sorted.length} de ${cuentas.length} cuentas`}
         actions={
           <Link href="/cuentas/nueva" className="cp-btn cp-btn-primary">
             <Plus size={14} /> Nueva cuenta
@@ -93,12 +126,18 @@ export default function CuentasPage() {
           {SEMAFOROS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
         </select>
 
+        <select className="cp-select" value={warningFilter} onChange={e => setWarningFilter(e.target.value as '' | 'FALTA_TC' | 'FALTA_HS')}>
+          <option value="">Todas las fichas</option>
+          <option value="FALTA_TC">⚠ Falta Top Customer (ficha)</option>
+          <option value="FALTA_HS">⚠ Falta Health Score Callpicker</option>
+        </select>
+
         <button onClick={fetchCuentas} className="cp-btn cp-btn-ghost">
           <RefreshCw size={14} /> Actualizar
         </button>
 
-        {(search || asesorFilter || semaforoFilter) && (
-          <button onClick={() => { setSearch(''); setAsesorFilter(''); setSemaforoFilter('') }}
+        {(search || asesorFilter || semaforoFilter || warningFilter) && (
+          <button onClick={() => { setSearch(''); setAsesorFilter(''); setSemaforoFilter(''); setWarningFilter('') }}
             className="cp-btn cp-btn-ghost text-xs text-rojo border-rojo/30 hover:bg-rojo/10">
             Limpiar filtros
           </button>
@@ -139,6 +178,7 @@ export default function CuentasPage() {
                 <tbody>
                   {sorted.map(c => {
                     const semaforo = getSemaforo(c.health_score)
+                    const warning = getDataWarning(c)
                     const llamadaCls = c.llamadas_cambio_pct > 0 ? 'text-verde' :
                       c.llamadas_cambio_pct < -30 ? 'text-rojo' : 'text-naranja'
                     return (
@@ -151,6 +191,7 @@ export default function CuentasPage() {
                               {c.empresa}
                             </Link>
                             {c.giro && <p className="text-[11px] text-textLow truncate max-w-[180px]">{c.giro}</p>}
+                            <DataWarningBadge warning={warning} />
                           </div>
                         </td>
                         <td><AsesorBadge asesor={c.asesor} /></td>
@@ -206,5 +247,13 @@ export default function CuentasPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function CuentasPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-40 text-textLow text-sm">Cargando…</div>}>
+      <CuentasPageInner />
+    </Suspense>
   )
 }

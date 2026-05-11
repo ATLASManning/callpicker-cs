@@ -97,7 +97,7 @@ export async function updateCuenta(id: string, changes: Partial<Cuenta>): Promis
 export async function getKPIs() {
   const { data } = await supabaseAdmin
     .from('cuentas')
-    .select('facturacion, health_score, estado, asesor')
+    .select('facturacion, health_score, estado, asesor, notas')
     .in('estado', ['activo', 'en_riesgo'])
 
   const cuentas = data ?? []
@@ -108,8 +108,10 @@ export async function getKPIs() {
     .filter(c => c.health_score < 40)
     .reduce((s, c) => s + (c.facturacion ?? 0), 0)
   const saludables = cuentas.filter(c => c.health_score >= 60).length
+  const faltaTC = cuentas.filter(c => c.notas?.includes('[FALTA_TC]')).length
+  const faltaHS = cuentas.filter(c => c.notas?.includes('[FALTA_HS]')).length
 
-  return { total, facturacionTotal, enRiesgo, facturacionRiesgo, saludables }
+  return { total, facturacionTotal, enRiesgo, facturacionRiesgo, saludables, faltaTC, faltaHS }
 }
 
 export async function getSemaforoByAsesor(): Promise<SemaforoAsesor[]> {
