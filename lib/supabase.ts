@@ -98,7 +98,7 @@ export async function getKPIs() {
   const { data } = await supabaseAdmin
     .from('cuentas')
     .select('facturacion, health_score, estado, asesor')
-    .eq('estado', 'activo')
+    .in('estado', ['activo', 'en_riesgo'])
 
   const cuentas = data ?? []
   const total = cuentas.length
@@ -114,9 +114,32 @@ export async function getKPIs() {
 
 export async function getSemaforoByAsesor(): Promise<SemaforoAsesor[]> {
   const { data } = await supabaseAdmin
-    .from('vista_semaforo_asesor')
-    .select('*')
-  return (data ?? []) as SemaforoAsesor[]
+    .from('cuentas')
+    .select('asesor, health_score, facturacion')
+    .in('estado', ['activo', 'en_riesgo'])
+
+  const map: Record<string, SemaforoAsesor> = {}
+  for (const c of data ?? []) {
+    if (!map[c.asesor]) {
+      map[c.asesor] = {
+        asesor: c.asesor,
+        verde: 0, azul: 0, amarillo: 0, naranja: 0, rojo: 0,
+        total: 0, facturacion_total: 0, facturacion_en_riesgo: 0,
+      }
+    }
+    const m = map[c.asesor]
+    const hs = c.health_score ?? 50
+    const fac = c.facturacion ?? 0
+    m.total++
+    m.facturacion_total += fac
+    if (hs >= 80)                   m.verde++
+    else if (hs >= 60)              m.azul++
+    else if (hs >= 40)              m.amarillo++
+    else if (hs >= 20)              m.naranja++
+    else                            m.rojo++
+    if (hs < 40) m.facturacion_en_riesgo += fac
+  }
+  return Object.values(map).sort((a, b) => b.facturacion_total - a.facturacion_total)
 }
 
 // ── Seguimientos ─────────────────────────────────────────────────────────────

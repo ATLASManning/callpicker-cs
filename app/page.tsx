@@ -13,7 +13,7 @@ export default async function DashboardPage() {
   const [kpis, semaforoAsesor, cuentas] = await Promise.all([
     getKPIs(),
     getSemaforoByAsesor(),
-    getCuentas({ estado: 'activo' }),
+    getCuentas(),
   ])
 
   const dist = { verde: 0, azul: 0, amarillo: 0, naranja: 0, rojo: 0 }
