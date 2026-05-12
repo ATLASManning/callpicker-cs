@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, BarChart3,
   MessageSquare, TrendingUp, Settings, ChevronRight,
-  Phone, Activity, BookOpenCheck, CalendarDays, ClipboardList,
+  Phone, Activity, BookOpenCheck, CalendarDays, ClipboardList, TrendingDown,
 } from 'lucide-react'
 
 const NAV = [
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/metricas',      label: 'Métricas',          icon: BarChart3 },
   { href: '/chat',          label: 'Atlas IA',          icon: MessageSquare },
   { href: '/upsell',        label: 'Upsell / Cross',    icon: TrendingUp },
+  { href: '/churn',         label: 'Churn',             icon: TrendingDown },
   { href: '/auditoria',     label: 'Auditoría Cuentas', icon: ClipboardList },
 ]
 
