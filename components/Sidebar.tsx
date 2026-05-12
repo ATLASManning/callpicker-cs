@@ -4,18 +4,19 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, BarChart3,
   MessageSquare, TrendingUp, Settings, ChevronRight,
-  Phone, Activity, BookOpenCheck, CalendarDays,
+  Phone, Activity, BookOpenCheck, CalendarDays, ClipboardList,
 } from 'lucide-react'
 
 const NAV = [
-  { href: '/',              label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/cuentas',       label: 'Cuentas',         icon: Users },
-  { href: '/seguimiento',   label: 'Seguimiento',     icon: BookOpenCheck },
-  { href: '/reuniones',     label: 'Reuniones',       icon: CalendarDays },
-  { href: '/asesores',      label: 'Asesores',        icon: Activity },
-  { href: '/metricas',      label: 'Métricas',        icon: BarChart3 },
-  { href: '/chat',          label: 'Atlas IA',        icon: MessageSquare },
-  { href: '/upsell',        label: 'Upsell / Cross',  icon: TrendingUp },
+  { href: '/',              label: 'Dashboard',        icon: LayoutDashboard },
+  { href: '/cuentas',       label: 'Cuentas',           icon: Users },
+  { href: '/seguimiento',   label: 'Seguimiento',       icon: BookOpenCheck },
+  { href: '/reuniones',     label: 'Reuniones',         icon: CalendarDays },
+  { href: '/asesores',      label: 'Asesores',          icon: Activity },
+  { href: '/metricas',      label: 'Métricas',          icon: BarChart3 },
+  { href: '/chat',          label: 'Atlas IA',          icon: MessageSquare },
+  { href: '/upsell',        label: 'Upsell / Cross',    icon: TrendingUp },
+  { href: '/auditoria',     label: 'Auditoría Cuentas', icon: ClipboardList },
 ]
 
 // Azul marino del sidebar: #0A1628
