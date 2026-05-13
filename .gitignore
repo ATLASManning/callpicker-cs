@@ -35,3 +35,7 @@ next-env.d.ts
 
 # supabase scripts (only for local use)
 /supabase/
+
+.vercel
+
+scripts/update-facturacion.log
