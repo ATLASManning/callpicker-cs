@@ -4,22 +4,23 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Users, BarChart3,
   MessageSquare, TrendingUp, Settings, ChevronRight,
-  Phone, Activity, BookOpenCheck, CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
+  Phone, Activity, BookOpenCheck, CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt, Clock,
 } from 'lucide-react'
 
 const NAV = [
-  { href: '/',              label: 'Dashboard',          icon: LayoutDashboard },
-  { href: '/cuentas',       label: 'Cuentas',             icon: Users },
-  { href: '/seguimiento',   label: 'Seguimiento',         icon: BookOpenCheck },
-  { href: '/reuniones',     label: 'Reuniones',           icon: CalendarDays },
-  { href: '/asesores',      label: 'Asesores',            icon: Activity },
-  { href: '/metricas',      label: 'Métricas',            icon: BarChart3 },
-  { href: '/chat',          label: 'Atlas IA',            icon: MessageSquare },
-  { href: '/upsell',        label: 'Upsell / Cross',      icon: TrendingUp },
-  { href: '/churn',         label: 'Churn',               icon: TrendingDown },
-  { href: '/tickets',       label: 'Tickets',             icon: Ticket },
-  { href: '/facturacion',   label: 'Corte Facturación',   icon: Receipt },
-  { href: '/auditoria',     label: 'Auditoría Cuentas',   icon: ClipboardList },
+  { href: '/',                  label: 'Dashboard',          icon: LayoutDashboard },
+  { href: '/cuentas',           label: 'Cuentas',             icon: Users },
+  { href: '/seguimiento',       label: 'Seguimiento',         icon: BookOpenCheck },
+  { href: '/reuniones',         label: 'Reuniones',           icon: CalendarDays },
+  { href: '/asesores',          label: 'Asesores',            icon: Activity },
+  { href: '/metricas',          label: 'Métricas',            icon: BarChart3 },
+  { href: '/chat',              label: 'Atlas IA',            icon: MessageSquare },
+  { href: '/upsell',            label: 'Upsell / Cross',      icon: TrendingUp },
+  { href: '/churn',             label: 'Churn',               icon: TrendingDown },
+  { href: '/tickets',           label: 'Tickets',             icon: Ticket },
+  { href: '/facturacion',       label: 'Corte Facturación',   icon: Receipt },
+  { href: '/customer-tenure',   label: 'Customer Tenure',     icon: Clock },
+  { href: '/auditoria',         label: 'Auditoría Cuentas',   icon: ClipboardList },
 ]
 
 // Azul marino del sidebar: #0A1628
