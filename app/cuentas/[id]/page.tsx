@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Phone, Globe, MapPin, ExternalLink, Building2,
-  TrendingUp, AlertTriangle, MessageSquare, Calendar, CheckCircle
+  TrendingUp, AlertTriangle, MessageSquare, Calendar
 } from 'lucide-react'
 import { getCuentaById, getSeguimientos, getOportunidades, getTickets, getHealthHistorial } from '@/lib/supabase'
 import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
@@ -12,6 +12,7 @@ import AsesorBadge from '@/components/AsesorBadge'
 import HealthScoreEditor from '@/components/HealthScoreEditor'
 import SeguimientoForm from '@/components/SeguimientoForm'
 import HealthHistorialChart from '@/components/charts/HealthHistorialChart'
+import AdopcionProducto from '@/components/AdopcionProducto'
 
 export const dynamic = 'force-dynamic'
 
@@ -188,28 +189,8 @@ export default async function CuentaDetailPage({ params }: Props) {
             )}
           </div>
 
-          {/* Features activas */}
-          <div className="cp-card">
-            <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide mb-3">Adopción de Producto</h3>
-            <div className="space-y-2">
-              {[
-                { label: 'Callpicker Chat', active: cuenta.tiene_chat_activo },
-                { label: 'Integración API', active: cuenta.tiene_integracion_api },
-                { label: 'Pago Automático', active: cuenta.tiene_pago_automatico },
-                { label: 'IA de Voz', active: cuenta.tiene_ia_voz },
-                { label: 'IA de Chat', active: cuenta.tiene_ia_chat },
-                { label: 'Dashboard revisado', active: cuenta.dashboard_revisado },
-              ].map(f => (
-                <div key={f.label} className="flex items-center justify-between text-xs">
-                  <span className="text-textMid">{f.label}</span>
-                  <span className={`flex items-center gap-1 font-medium ${f.active ? 'text-verde' : 'text-textLow'}`}>
-                    {f.active ? <CheckCircle size={12} /> : '○'}
-                    {f.active ? 'Activo' : 'Inactivo'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Adopción de Producto — interactiva con historial */}
+          <AdopcionProducto cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} />
         </div>
 
         {/* CENTER + RIGHT — Seguimientos + Oportunidades + Historial */}
