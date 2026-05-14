@@ -15,6 +15,7 @@ import HealthHistorialChart from '@/components/charts/HealthHistorialChart'
 import AdopcionProducto from '@/components/AdopcionProducto'
 import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
+import { getTicketsByCuenta, getFacturacionByCuenta } from '@/lib/cuenta-data'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +31,10 @@ export default async function CuentaDetailPage({ params }: Props) {
   ])
 
   if (!cuenta) notFound()
+
+  // Datos de Zoho Desk y Facturación — server-side directo desde JSON
+  const zohoTickets = getTicketsByCuenta(cuenta.cid ?? null, cuenta.empresa)
+  const zohoFact    = getFacturacionByCuenta(cuenta.cid ?? null, cuenta.empresa)
 
   const semaforo = getSemaforo(cuenta.health_score)
   const cfg = SEMAFORO_CONFIG[semaforo]
@@ -326,10 +331,21 @@ export default async function CuentaDetailPage({ params }: Props) {
           )}
 
           {/* Tickets Zoho Desk — por cuenta */}
-          <CuentaTicketsPanel cid={cuenta.cid ?? null} empresa={cuenta.empresa} />
+          <CuentaTicketsPanel
+            rows={zohoTickets.rows}
+            total={zohoTickets.total}
+            matchedBy={zohoTickets.matchedBy}
+            cid={cuenta.cid ?? null}
+            empresa={cuenta.empresa}
+          />
 
           {/* Facturación — historial de cortes por cuenta */}
-          <CuentaFacturacionPanel cid={cuenta.cid ?? null} empresa={cuenta.empresa} />
+          <CuentaFacturacionPanel
+            rows={zohoFact.rows}
+            matchedBy={zohoFact.matchedBy}
+            cid={cuenta.cid ?? null}
+            empresa={cuenta.empresa}
+          />
         </div>
       </div>
     </div>
