@@ -34,6 +34,7 @@ function normalize(s: string) {
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams
   const q         = sp.get('q')?.toLowerCase() ?? ''
+  const cidExact  = sp.get('cid') ?? ''          // match exacto por CID de cuenta
   const producto  = sp.get('producto') ?? ''
   const categoria = sp.get('categoria') ?? ''
   const esFalla   = sp.get('es_falla') ?? ''
@@ -118,6 +119,7 @@ export async function GET(req: NextRequest) {
 
   // ── List (default) ─────────────────────────────────────────────────
   let filtered = ALL_TICKETS.filter(t => {
+    if (cidExact && t.cid !== cidExact) return false   // filtro exacto por CID
     if (q) {
       const hay = normalize(t.empresa) + ' ' + t.num + ' ' + t.ticket_id
       if (!hay.includes(normalize(q))) return false

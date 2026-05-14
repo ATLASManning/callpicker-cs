@@ -13,6 +13,8 @@ import HealthScoreEditor from '@/components/HealthScoreEditor'
 import SeguimientoForm from '@/components/SeguimientoForm'
 import HealthHistorialChart from '@/components/charts/HealthHistorialChart'
 import AdopcionProducto from '@/components/AdopcionProducto'
+import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
+import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
 
 export const dynamic = 'force-dynamic'
 
@@ -322,6 +324,12 @@ export default async function CuentaDetailPage({ params }: Props) {
               <p className="text-sm text-textMid whitespace-pre-wrap">{cuenta.observaciones_kam}</p>
             </div>
           )}
+
+          {/* Tickets Zoho Desk — por cuenta */}
+          <CuentaTicketsPanel cid={cuenta.cid ?? null} empresa={cuenta.empresa} />
+
+          {/* Facturación — historial de cortes por cuenta */}
+          <CuentaFacturacionPanel cid={cuenta.cid ?? null} empresa={cuenta.empresa} />
         </div>
       </div>
     </div>
