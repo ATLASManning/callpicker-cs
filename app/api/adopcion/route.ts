@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
 
   const rows = productos.map((p: { producto: string; nivel: string; notas?: string }) => ({
-    cuenta_id: Number(cuenta_id),
+    cuenta_id: cuenta_id,  // uuid string — no convertir a Number
     producto:  p.producto,
     nivel:     p.nivel,
     fecha:     fecha ?? new Date().toISOString().slice(0, 10),

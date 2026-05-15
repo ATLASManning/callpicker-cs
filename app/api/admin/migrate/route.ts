@@ -20,7 +20,7 @@ $$;
 const CREATE_TABLE = `
 CREATE TABLE IF NOT EXISTS adopcion_producto (
   id          bigserial    PRIMARY KEY,
-  cuenta_id   bigint       NOT NULL REFERENCES cuentas(id) ON DELETE CASCADE,
+  cuenta_id   uuid         NOT NULL REFERENCES cuentas(id) ON DELETE CASCADE,
   producto    text         NOT NULL,
   nivel       text         NOT NULL CHECK (nivel IN ('alto','medio','bajo','no_aplica')),
   fecha       date         NOT NULL DEFAULT CURRENT_DATE,
