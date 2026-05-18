@@ -13,6 +13,15 @@ import { getSemaforo, formatMXN } from '@/lib/types'
 const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 const SEMAFOROS: Semaforo[] = ['rojo', 'naranja', 'amarillo', 'azul', 'verde']
 
+// Rangos oficiales Top Customer según Concentrado
+const TOP_RANGES: Record<string, number> = { F: 47, D: 38, C: 43 }
+function isTopCustomer(consecutivo: string | null): boolean {
+  if (!consecutivo) return false
+  const prefix = consecutivo[0]
+  const num = parseInt(consecutivo.slice(1), 10)
+  return !!TOP_RANGES[prefix] && num >= 1 && num <= TOP_RANGES[prefix]
+}
+
 type DataWarning = 'FALTA_TC' | 'FALTA_HS' | null
 
 function getDataWarning(c: Cuenta): DataWarning {
@@ -49,6 +58,7 @@ function CuentasPageInner() {
   const [warningFilter, setWarningFilter] = useState<'' | 'FALTA_TC' | 'FALTA_HS'>(
     (searchParams.get('warning') as '' | 'FALTA_TC' | 'FALTA_HS') || ''
   )
+  const [topFilter, setTopFilter] = useState(searchParams.get('top') === '1')
 
   const fetchCuentas = useCallback(async () => {
     setLoading(true)
@@ -64,9 +74,9 @@ function CuentasPageInner() {
 
   useEffect(() => { fetchCuentas() }, [fetchCuentas])
 
-  const filtered = warningFilter
-    ? cuentas.filter(c => getDataWarning(c) === warningFilter)
-    : cuentas
+  const filtered = cuentas
+    .filter(c => !warningFilter || getDataWarning(c) === warningFilter)
+    .filter(c => !topFilter || isTopCustomer(c.consecutivo))
 
   const sorted = [...filtered].sort((a, b) => {
     const av = a[sortField] as number | string
@@ -132,12 +142,22 @@ function CuentasPageInner() {
           <option value="FALTA_HS">⚠ Falta Health Score Callpicker</option>
         </select>
 
+        <button
+          onClick={() => setTopFilter(t => !t)}
+          className={`cp-btn text-xs font-semibold border transition-colors ${
+            topFilter
+              ? 'bg-cp/20 text-cp border-cp/50 hover:bg-cp/30'
+              : 'cp-btn-ghost border-cp/30 text-cp hover:bg-cp/10'
+          }`}>
+          ⭐ Solo Top Customer
+        </button>
+
         <button onClick={fetchCuentas} className="cp-btn cp-btn-ghost">
           <RefreshCw size={14} /> Actualizar
         </button>
 
-        {(search || asesorFilter || semaforoFilter || warningFilter) && (
-          <button onClick={() => { setSearch(''); setAsesorFilter(''); setSemaforoFilter(''); setWarningFilter('') }}
+        {(search || asesorFilter || semaforoFilter || warningFilter || topFilter) && (
+          <button onClick={() => { setSearch(''); setAsesorFilter(''); setSemaforoFilter(''); setWarningFilter(''); setTopFilter(false) }}
             className="cp-btn cp-btn-ghost text-xs text-rojo border-rojo/30 hover:bg-rojo/10">
             Limpiar filtros
           </button>
@@ -183,7 +203,14 @@ function CuentasPageInner() {
                       c.llamadas_cambio_pct < -30 ? 'text-rojo' : 'text-naranja'
                     return (
                       <tr key={c.id}>
-                        <td className="font-mono text-xs text-cp font-bold">{c.consecutivo}</td>
+                        <td className="font-mono text-xs font-bold">
+                          <span className={isTopCustomer(c.consecutivo) ? 'text-cp' : 'text-textLow'}>
+                            {c.consecutivo}
+                          </span>
+                          {isTopCustomer(c.consecutivo) && (
+                            <span className="ml-1 text-[9px] text-amber-400">TOP</span>
+                          )}
+                        </td>
                         <td>
                           <div>
                             <Link href={`/cuentas/${c.id}`}

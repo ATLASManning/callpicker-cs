@@ -128,14 +128,41 @@ export default async function DashboardPage() {
           </div>
 
           {/* Resumen por asesor */}
-          <div className="mt-5 pt-4 border-t border-border space-y-2">
-            {semaforoAsesor.map(a => (
-              <div key={a.asesor} className="flex items-center justify-between">
-                <span className="text-xs text-textMid">{a.asesor}</span>
-                <span className="text-xs font-semibold text-textHi">{formatMXN(a.facturacion_total)}</span>
+          {(() => {
+            const topRanges: Record<string, number> = { F: 47, D: 38, C: 43 }
+            const prefixAsesor: Record<string, string> = { F: 'Fátima', D: 'Dan', C: 'Claudia' }
+            const topCount: Record<string, number> = { Fátima: 47, Dan: 38, Claudia: 43 }
+            const topFac: Record<string, number> = {}
+            cuentas.forEach(c => {
+              if (!c.consecutivo) return
+              const prefix = c.consecutivo[0]
+              const num = parseInt(c.consecutivo.slice(1), 10)
+              if (topRanges[prefix] && num >= 1 && num <= topRanges[prefix]) {
+                const a = prefixAsesor[prefix]
+                topFac[a] = (topFac[a] || 0) + (c.facturacion || 0)
+              }
+            })
+            return (
+              <div className="mt-5 pt-4 border-t border-border space-y-2">
+                {semaforoAsesor.map(a => (
+                  <div key={a.asesor}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-textMid">{a.asesor}</span>
+                        <span className="text-[10px] text-amber-400 font-semibold">⭐ {topCount[a.asesor] || 0} TOP</span>
+                      </div>
+                      <span className="text-xs font-semibold text-textHi">{formatMXN(a.facturacion_total)}</span>
+                    </div>
+                    {topFac[a.asesor] && (
+                      <p className="text-[10px] text-textLow">
+                        Top Customer: {formatMXN(topFac[a.asesor])}
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )
+          })()}
         </div>
       </div>
 
