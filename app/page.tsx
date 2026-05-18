@@ -129,9 +129,9 @@ export default async function DashboardPage() {
 
           {/* Resumen por asesor */}
           {(() => {
-            const topRanges: Record<string, number> = { F: 47, D: 38, C: 43 }
+            const topRanges: Record<string, number> = { F: 46, D: 38, C: 43 }
             const prefixAsesor: Record<string, string> = { F: 'Fátima', D: 'Dan', C: 'Claudia' }
-            const topCount: Record<string, number> = { Fátima: 47, Dan: 38, Claudia: 43 }
+            const topCount: Record<string, number> = { Fátima: 46, Dan: 38, Claudia: 43 }
             const topFac: Record<string, number> = {}
             cuentas.forEach(c => {
               if (!c.consecutivo) return

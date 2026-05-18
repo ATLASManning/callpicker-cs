@@ -14,7 +14,7 @@ const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 const SEMAFOROS: Semaforo[] = ['rojo', 'naranja', 'amarillo', 'azul', 'verde']
 
 // Rangos oficiales Top Customer según Concentrado
-const TOP_RANGES: Record<string, number> = { F: 47, D: 38, C: 43 }
+const TOP_RANGES: Record<string, number> = { F: 46, D: 38, C: 43 }
 function isTopCustomer(consecutivo: string | null): boolean {
   if (!consecutivo) return false
   const prefix = consecutivo[0]
