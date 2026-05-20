@@ -13,6 +13,7 @@ import HealthScoreEditor from '@/components/HealthScoreEditor'
 import SeguimientoForm from '@/components/SeguimientoForm'
 import HealthHistorialChart from '@/components/charts/HealthHistorialChart'
 import AdopcionProducto from '@/components/AdopcionProducto'
+import CuentaInfoEditor from '@/components/CuentaInfoEditor'
 import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
 import { getTicketsByCuenta, getFacturacionByCuenta } from '@/lib/cuenta-data'
@@ -148,7 +149,10 @@ export default async function CuentaDetailPage({ params }: Props) {
 
           {/* Info básica */}
           <div className="cp-card space-y-3">
-            <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Información</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Información</h3>
+              <CuentaInfoEditor cuenta={cuenta} />
+            </div>
             {cuenta.servicio && (
               <div><p className="text-[10px] text-textLow mb-0.5">Servicio</p>
                 <p className="text-xs text-textHi">{cuenta.servicio}</p></div>
