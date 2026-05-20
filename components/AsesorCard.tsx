@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   ChevronDown, ChevronUp, ArrowUpRight, AlertTriangle,
-  TrendingUp, Users, DollarSign,
+  TrendingUp, Users, DollarSign, LifeBuoy,
 } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
 import { getSemaforo, formatMXN, ASESOR_CONFIG } from '@/lib/types'
@@ -132,6 +132,20 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
 
           {/* Acciones: Slack + toggle */}
           <div className="flex flex-col gap-2 self-start flex-shrink-0">
+
+            {/* Botón Centro de Ayuda */}
+            <a
+              href="https://ayuda.callpicker.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold
+                bg-[#0F766E] hover:bg-[#0D9488] text-white shadow-sm
+                transition-all duration-150 whitespace-nowrap"
+              title="Centro de Ayuda Callpicker"
+            >
+              <LifeBuoy size={15} />
+              Centro de Ayuda
+            </a>
 
             {/* Botón Slack — fondo sólido púrpura Slack, letras blancas */}
             <a

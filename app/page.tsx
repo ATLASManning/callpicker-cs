@@ -1,6 +1,6 @@
 import {
   Users, DollarSign, AlertTriangle, TrendingUp,
-  CalendarDays, CheckCircle2, AlertCircle, Ticket,
+  CalendarDays, CheckCircle2, AlertCircle, Ticket, LifeBuoy,
 } from 'lucide-react'
 import StatCard from '@/components/StatCard'
 import PageHeader from '@/components/PageHeader'
@@ -188,6 +188,16 @@ export default async function DashboardPage() {
           <Link href="/tickets" className="text-cp hover:text-cpTeal font-medium transition-colors flex items-center gap-1">
             Ver todos los tickets →
           </Link>
+          <a
+            href="https://ayuda.callpicker.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold
+              bg-[#0F766E] hover:bg-[#0D9488] text-white shadow-sm transition-all duration-150"
+            title="Centro de Ayuda Callpicker"
+          >
+            <LifeBuoy size={13} /> Centro de Ayuda
+          </a>
         </div>
       </div>
 
