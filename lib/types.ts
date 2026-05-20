@@ -8,6 +8,19 @@ export type EstadoOportunidad = 'identificada' | 'en_proceso' | 'ganada' | 'perd
 export type PrioridadTicket = 'critica' | 'alta' | 'normal' | 'baja'
 export type EstadoTicket = 'abierto' | 'en_proceso' | 'resuelto' | 'cerrado'
 
+// ── Contacto / Servicio (para listas dinámicas) ──────────────────────────────
+export interface ContactoCuenta {
+  nombre: string
+  cargo:  string
+  email:  string
+  tel:    string
+}
+
+export interface ServicioCuenta {
+  nombre:      string
+  descripcion: string
+}
+
 // ── Main Cuenta type ────────────────────────────────────────────────────────
 export interface Cuenta {
   id: string
@@ -70,6 +83,10 @@ export interface Cuenta {
   estado: EstadoCuenta
   notas: string | null
   observaciones_kam: string | null
+
+  // Listas dinámicas (JSONB en DB)
+  contactos_json: ContactoCuenta[] | null
+  servicios_json: ServicioCuenta[] | null
 
   created_at: string
   updated_at: string

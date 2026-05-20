@@ -153,10 +153,24 @@ export default async function CuentaDetailPage({ params }: Props) {
               <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Información</h3>
               <CuentaInfoEditor cuenta={cuenta} />
             </div>
-            {cuenta.servicio && (
+            {/* Servicios — lista dinámica primero, fallback al campo legacy */}
+            {(cuenta.servicios_json && cuenta.servicios_json.length > 0) ? (
+              <div>
+                <p className="text-[10px] text-textLow mb-1.5">Servicios contratados</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {cuenta.servicios_json.map((sv, i) => (
+                    <div key={i} className="bg-cp/10 border border-cp/20 rounded-lg px-2 py-1">
+                      <p className="text-xs text-cp font-medium">{sv.nombre}</p>
+                      {sv.descripcion && <p className="text-[10px] text-textLow">{sv.descripcion}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : cuenta.servicio ? (
               <div><p className="text-[10px] text-textLow mb-0.5">Servicio</p>
                 <p className="text-xs text-textHi">{cuenta.servicio}</p></div>
-            )}
+            ) : null}
+
             {cuenta.activo_desde && (
               <div className="flex items-center gap-2 text-xs">
                 <Calendar size={12} className="text-textLow" />
@@ -167,7 +181,32 @@ export default async function CuentaDetailPage({ params }: Props) {
                 <span className="text-cpTeal">({diasCliente}d)</span>
               </div>
             )}
-            {cuenta.contacto_nombre && (
+
+            {/* Contactos — lista dinámica primero, fallback al campo legacy */}
+            {(cuenta.contactos_json && cuenta.contactos_json.length > 0) ? (
+              <div className="space-y-2">
+                <p className="text-[10px] text-textLow">Contactos ({cuenta.contactos_json.length})</p>
+                {cuenta.contactos_json.map((ct, i) => (
+                  <div key={i} className="bg-surface rounded-lg px-3 py-2 border border-border">
+                    <p className="text-xs font-medium text-textHi">{ct.nombre}</p>
+                    {ct.cargo && <p className="text-[11px] text-textLow">{ct.cargo}</p>}
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+                      {ct.tel && (
+                        <div className="flex items-center gap-1">
+                          <Phone size={10} className="text-textLow" />
+                          <span className="text-[11px] text-textMid">{ct.tel}</span>
+                        </div>
+                      )}
+                      {ct.email && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-[11px] text-textLow">{ct.email}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : cuenta.contacto_nombre ? (
               <div><p className="text-[10px] text-textLow mb-0.5">Contacto</p>
                 <p className="text-xs text-textHi">{cuenta.contacto_nombre}</p>
                 {cuenta.contacto_cargo && <p className="text-[11px] text-textLow">{cuenta.contacto_cargo}</p>}
@@ -178,7 +217,8 @@ export default async function CuentaDetailPage({ params }: Props) {
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
+
             {cuenta.pagina_web && (
               <a href={cuenta.pagina_web} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-xs text-cp hover:text-cpTeal transition-colors">

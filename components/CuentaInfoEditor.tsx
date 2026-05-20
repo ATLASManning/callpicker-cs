@@ -1,54 +1,145 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Pencil, X, Save, Loader2, Globe, Phone, Mail, MapPin, Building2, Briefcase, Users, Hash } from 'lucide-react'
-import type { Cuenta } from '@/lib/types'
+import {
+  Pencil, X, Save, Loader2, Globe, Phone, Mail, MapPin,
+  Building2, Briefcase, Users, Hash, Plus, Trash2, UserPlus, Package,
+} from 'lucide-react'
+import type { Cuenta, ContactoCuenta, ServicioCuenta } from '@/lib/types'
 
-interface Props {
-  cuenta: Cuenta
-}
+interface Props { cuenta: Cuenta }
 
 const ASESORES = ['Fátima', 'Dan', 'Claudia'] as const
-const TAMANOS = ['Micro', 'Pequeña', 'Mediana', 'Grande', 'Enterprise'] as const
+const TAMANOS  = ['Micro', 'Pequeña', 'Mediana', 'Grande', 'Enterprise'] as const
+
+const EMPTY_CONTACTO: ContactoCuenta = { nombre: '', cargo: '', email: '', tel: '' }
+const EMPTY_SERVICIO: ServicioCuenta  = { nombre: '', descripcion: '' }
+
+// Migración automática: contacto legacy → contactos_json
+function seedContactos(cuenta: Cuenta): ContactoCuenta[] {
+  if (cuenta.contactos_json && cuenta.contactos_json.length > 0) return cuenta.contactos_json
+  if (cuenta.contacto_nombre) {
+    return [{
+      nombre: cuenta.contacto_nombre ?? '',
+      cargo:  cuenta.contacto_cargo  ?? '',
+      email:  cuenta.contacto_email  ?? '',
+      tel:    cuenta.contacto_tel    ?? '',
+    }]
+  }
+  return []
+}
+
+function seedServicios(cuenta: Cuenta): ServicioCuenta[] {
+  if (cuenta.servicios_json && cuenta.servicios_json.length > 0) return cuenta.servicios_json
+  if (cuenta.servicio) return [{ nombre: cuenta.servicio, descripcion: '' }]
+  return []
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+type Tab = 'info' | 'contactos' | 'servicios'
 
 export default function CuentaInfoEditor({ cuenta }: Props) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const [open,   setOpen]   = useState(false)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error,  setError]  = useState<string | null>(null)
+  const [tab,    setTab]    = useState<Tab>('info')
+  const [migrated, setMigrated] = useState(false)
 
-  const [form, setForm] = useState({
-    empresa:          cuenta.empresa ?? '',
-    servicio:         cuenta.servicio ?? '',
-    asesor:           cuenta.asesor ?? '',
-    giro:             cuenta.giro ?? '',
-    tamano_empresa:   cuenta.tamano_empresa ?? '',
-    total_empleados:  cuenta.total_empleados ?? '',
-    num_oficinas:     cuenta.num_oficinas ?? '',
+  // ── Form state ──────────────────────────────────────────────────────────────
+  const [info, setInfo] = useState({
+    empresa:           cuenta.empresa           ?? '',
+    asesor:            cuenta.asesor            ?? '',
+    cid:               cuenta.cid               ?? '',
+    giro:              cuenta.giro              ?? '',
+    tamano_empresa:    cuenta.tamano_empresa     ?? '',
+    total_empleados:   cuenta.total_empleados   ?? '',
+    num_oficinas:      cuenta.num_oficinas      ?? '',
     grupo_empresarial: cuenta.grupo_empresarial ?? '',
-    contacto_nombre:  cuenta.contacto_nombre ?? '',
-    contacto_cargo:   cuenta.contacto_cargo ?? '',
-    contacto_email:   cuenta.contacto_email ?? '',
-    contacto_tel:     cuenta.contacto_tel ?? '',
-    pagina_web:       cuenta.pagina_web ?? '',
-    direccion_fiscal: cuenta.direccion_fiscal ?? '',
-    zoho_link:        cuenta.zoho_link ?? '',
-    cid:              cuenta.cid ?? '',
+    pagina_web:        cuenta.pagina_web        ?? '',
+    direccion_fiscal:  cuenta.direccion_fiscal  ?? '',
+    zoho_link:         cuenta.zoho_link         ?? '',
   })
 
-  function set(field: keyof typeof form, value: string) {
-    setForm(f => ({ ...f, [field]: value }))
+  const [contactos, setContactos] = useState<ContactoCuenta[]>(seedContactos(cuenta))
+  const [servicios, setServicios] = useState<ServicioCuenta[]>(seedServicios(cuenta))
+
+  // Auto-migrar columnas JSONB en Supabase (una sola vez por sesión)
+  useEffect(() => {
+    if (migrated) return
+    // Solo si las columnas todavía no existen (undefined significa que aún no están)
+    if (cuenta.contactos_json === undefined) {
+      fetch('/api/admin/migrate-contactos', { method: 'POST' })
+        .finally(() => setMigrated(true))
+    } else {
+      setMigrated(true)
+    }
+  }, [cuenta.contactos_json, migrated])
+
+  // ── Helpers info ────────────────────────────────────────────────────────────
+  function setInfoField(field: keyof typeof info, value: string) {
+    setInfo(f => ({ ...f, [field]: value }))
   }
 
-  async function handleSave() {
+  // ── Helpers contactos ───────────────────────────────────────────────────────
+  function addContacto() {
+    setContactos(c => [...c, { ...EMPTY_CONTACTO }])
+  }
+  function removeContacto(i: number) {
+    setContactos(c => c.filter((_, idx) => idx !== i))
+  }
+  function updateContacto(i: number, field: keyof ContactoCuenta, value: string) {
+    setContactos(c => c.map((ct, idx) => idx === i ? { ...ct, [field]: value } : ct))
+  }
+
+  // ── Helpers servicios ───────────────────────────────────────────────────────
+  function addServicio() {
+    setServicios(s => [...s, { ...EMPTY_SERVICIO }])
+  }
+  function removeServicio(i: number) {
+    setServicios(s => s.filter((_, idx) => idx !== i))
+  }
+  function updateServicio(i: number, field: keyof ServicioCuenta, value: string) {
+    setServicios(s => s.map((sv, idx) => idx === i ? { ...sv, [field]: value } : sv))
+  }
+
+  // ── Guardar ─────────────────────────────────────────────────────────────────
+  const handleSave = useCallback(async () => {
     setSaving(true)
     setError(null)
     try {
-      // Build payload — send only non-empty or explicitly set values
-      const payload: Record<string, string | null> = {}
-      for (const [k, v] of Object.entries(form)) {
-        payload[k] = v.trim() === '' ? null : v.trim()
+      // Info básica — vacío → null
+      const infoPayload: Record<string, string | null> = {}
+      for (const [k, v] of Object.entries(info)) {
+        infoPayload[k] = v.trim() === '' ? null : v.trim()
+      }
+
+      // Contactos — filtrar filas completamente vacías
+      const contactosClean = contactos.filter(c => c.nombre.trim() || c.email.trim() || c.tel.trim())
+      // Servicios — filtrar filas sin nombre
+      const serviciosClean = servicios.filter(s => s.nombre.trim())
+
+      // Sincronizar campo legacy con primer contacto (backward compat)
+      const primero = contactosClean[0]
+      const legacyContact = primero
+        ? {
+            contacto_nombre: primero.nombre || null,
+            contacto_cargo:  primero.cargo  || null,
+            contacto_email:  primero.email  || null,
+            contacto_tel:    primero.tel    || null,
+          }
+        : { contacto_nombre: null, contacto_cargo: null, contacto_email: null, contacto_tel: null }
+
+      const primerServicio = serviciosClean[0]
+      const legacyServicio = { servicio: primerServicio?.nombre || null }
+
+      const payload = {
+        ...infoPayload,
+        ...legacyContact,
+        ...legacyServicio,
+        contactos_json: contactosClean,
+        servicios_json: serviciosClean,
       }
 
       const res = await fetch(`/api/cuentas/${cuenta.id}`, {
@@ -69,13 +160,20 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
     } finally {
       setSaving(false)
     }
-  }
+  }, [info, contactos, servicios, cuenta.id, router])
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+  const tabs: { id: Tab; label: string; count?: number }[] = [
+    { id: 'info',      label: 'Información' },
+    { id: 'contactos', label: 'Contactos',  count: contactos.length },
+    { id: 'servicios', label: 'Servicios',  count: servicios.length },
+  ]
 
   return (
     <>
-      {/* Trigger button — integrado en la card de Información */}
+      {/* Trigger */}
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => { setOpen(true); setTab('info') }}
         className="flex items-center gap-1.5 text-[11px] text-textLow hover:text-cp transition-colors"
         title="Editar información"
       >
@@ -91,15 +189,15 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
         />
       )}
 
-      {/* Slide-over panel */}
+      {/* Slide-over */}
       <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-md bg-card border-l border-border shadow-2xl
         flex flex-col transition-transform duration-300 ease-in-out
-        ${open ? 'translate-x-0' : 'translate-x-full'}`}>
-
+        ${open ? 'translate-x-0' : 'translate-x-full'}`}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">
           <div>
-            <h2 className="text-sm font-bold text-textHi">Editar Información</h2>
+            <h2 className="text-sm font-bold text-textHi">Editar cuenta</h2>
             <p className="text-[11px] text-textLow mt-0.5">{cuenta.empresa} · {cuenta.consecutivo}</p>
           </div>
           <button
@@ -110,173 +208,210 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
           </button>
         </div>
 
-        {/* Scrollable form */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        {/* Tabs */}
+        <div className="flex border-b border-border flex-shrink-0">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex-1 py-2.5 text-xs font-medium transition-colors flex items-center justify-center gap-1.5
+                ${tab === t.id
+                  ? 'text-cp border-b-2 border-cp'
+                  : 'text-textLow hover:text-textMid border-b-2 border-transparent'}`}
+            >
+              {t.label}
+              {t.count !== undefined && t.count > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold
+                  ${tab === t.id ? 'bg-cp/20 text-cp' : 'bg-surface text-textLow'}`}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
 
-          {/* Sección: Empresa */}
-          <Section title="Empresa">
-            <Field label="Nombre de empresa">
-              <input
-                value={form.empresa}
-                onChange={e => set('empresa', e.target.value)}
-                className="cp-input"
-                placeholder="Nombre comercial"
-              />
-            </Field>
-            <Field label="Servicio contratado">
-              <input
-                value={form.servicio}
-                onChange={e => set('servicio', e.target.value)}
-                className="cp-input"
-                placeholder="Ej: AV Agentes Virtuales"
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Asesor">
-                <select
-                  value={form.asesor}
-                  onChange={e => set('asesor', e.target.value)}
-                  className="cp-input"
-                >
-                  <option value="">— Sin asignar —</option>
-                  {ASESORES.map(a => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="CID (Zoho)">
-                <input
-                  value={form.cid}
-                  onChange={e => set('cid', e.target.value)}
-                  className="cp-input font-mono"
-                  placeholder="123456"
-                />
-              </Field>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+
+          {/* ── TAB: Información ── */}
+          {tab === 'info' && (
+            <div className="space-y-5">
+              <Section title="Empresa">
+                <Field label="Nombre de empresa">
+                  <input value={info.empresa} onChange={e => setInfoField('empresa', e.target.value)}
+                    className="cp-input" placeholder="Nombre comercial" />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Asesor">
+                    <select value={info.asesor} onChange={e => setInfoField('asesor', e.target.value)}
+                      className="cp-input">
+                      <option value="">— Sin asignar —</option>
+                      {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="CID (Zoho)">
+                    <input value={info.cid} onChange={e => setInfoField('cid', e.target.value)}
+                      className="cp-input font-mono" placeholder="123456" />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Giro / Industria">
+                    <input value={info.giro} onChange={e => setInfoField('giro', e.target.value)}
+                      className="cp-input" placeholder="Automotriz, Tech…" />
+                  </Field>
+                  <Field label="Tamaño">
+                    <select value={info.tamano_empresa} onChange={e => setInfoField('tamano_empresa', e.target.value)}
+                      className="cp-input">
+                      <option value="">— Seleccionar —</option>
+                      {TAMANOS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Empleados" icon={<Users size={11} />}>
+                    <input value={info.total_empleados} onChange={e => setInfoField('total_empleados', e.target.value)}
+                      className="cp-input" placeholder="Ej: 1200" />
+                  </Field>
+                  <Field label="Oficinas" icon={<Hash size={11} />}>
+                    <input value={info.num_oficinas} onChange={e => setInfoField('num_oficinas', e.target.value)}
+                      className="cp-input" placeholder="Ej: 5" />
+                  </Field>
+                </div>
+                <Field label="Grupo empresarial">
+                  <input value={info.grupo_empresarial} onChange={e => setInfoField('grupo_empresarial', e.target.value)}
+                    className="cp-input" placeholder="Ej: Grupo Torres" />
+                </Field>
+              </Section>
+
+              <Section title="Web y ubicación">
+                <Field label="Página web" icon={<Globe size={11} />}>
+                  <input value={info.pagina_web} onChange={e => setInfoField('pagina_web', e.target.value)}
+                    className="cp-input" placeholder="https://www.empresa.com" />
+                </Field>
+                <Field label="Dirección fiscal" icon={<MapPin size={11} />}>
+                  <textarea value={info.direccion_fiscal} onChange={e => setInfoField('direccion_fiscal', e.target.value)}
+                    className="cp-input resize-none" rows={3} placeholder="Calle, colonia, ciudad, CP" />
+                </Field>
+              </Section>
+
+              <Section title="Integraciones">
+                <Field label="Zoho CRM Link" icon={<Building2 size={11} />}>
+                  <input value={info.zoho_link} onChange={e => setInfoField('zoho_link', e.target.value)}
+                    className="cp-input" placeholder="https://crm.zoho.com/..." />
+                </Field>
+              </Section>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Giro / Industria">
-                <input
-                  value={form.giro}
-                  onChange={e => set('giro', e.target.value)}
-                  className="cp-input"
-                  placeholder="Automotriz, Tech, Salud…"
-                />
-              </Field>
-              <Field label="Tamaño">
-                <select
-                  value={form.tamano_empresa}
-                  onChange={e => set('tamano_empresa', e.target.value)}
-                  className="cp-input"
-                >
-                  <option value="">— Seleccionar —</option>
-                  {TAMANOS.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </Field>
+          )}
+
+          {/* ── TAB: Contactos ── */}
+          {tab === 'contactos' && (
+            <div className="space-y-4">
+              {contactos.length === 0 && (
+                <div className="text-center py-10 text-textLow">
+                  <UserPlus size={28} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-xs">Sin contactos registrados</p>
+                  <p className="text-[11px] mt-0.5 opacity-60">Agrega el primer contacto de esta cuenta</p>
+                </div>
+              )}
+
+              {contactos.map((ct, i) => (
+                <div key={i} className="bg-surface border border-border rounded-xl p-4 space-y-3 relative">
+                  {/* Header de la tarjeta */}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-semibold text-textLow uppercase tracking-widest">
+                      Contacto {i + 1}{i === 0 ? ' · Principal' : ''}
+                    </span>
+                    <button
+                      onClick={() => removeContacto(i)}
+                      className="flex items-center gap-1 text-[11px] text-rojo/60 hover:text-rojo transition-colors"
+                      title="Eliminar contacto"
+                    >
+                      <Trash2 size={12} /> Eliminar
+                    </button>
+                  </div>
+
+                  <Field label="Nombre completo">
+                    <input value={ct.nombre} onChange={e => updateContacto(i, 'nombre', e.target.value)}
+                      className="cp-input" placeholder="Jorge García" />
+                  </Field>
+                  <Field label="Cargo" icon={<Briefcase size={11} />}>
+                    <input value={ct.cargo} onChange={e => updateContacto(i, 'cargo', e.target.value)}
+                      className="cp-input" placeholder="Director de TI" />
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="Email" icon={<Mail size={11} />}>
+                      <input type="email" value={ct.email} onChange={e => updateContacto(i, 'email', e.target.value)}
+                        className="cp-input" placeholder="correo@empresa.com" />
+                    </Field>
+                    <Field label="Teléfono" icon={<Phone size={11} />}>
+                      <input type="tel" value={ct.tel} onChange={e => updateContacto(i, 'tel', e.target.value)}
+                        className="cp-input" placeholder="55 1234 5678" />
+                    </Field>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                onClick={addContacto}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border
+                  text-xs text-textLow hover:text-cp hover:border-cp transition-colors"
+              >
+                <Plus size={14} /> Agregar contacto
+              </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Empleados" icon={<Users size={11} />}>
-                <input
-                  value={form.total_empleados}
-                  onChange={e => set('total_empleados', e.target.value)}
-                  className="cp-input"
-                  placeholder="Ej: 1200"
-                />
-              </Field>
-              <Field label="Oficinas" icon={<Hash size={11} />}>
-                <input
-                  value={form.num_oficinas}
-                  onChange={e => set('num_oficinas', e.target.value)}
-                  className="cp-input"
-                  placeholder="Ej: 5"
-                />
-              </Field>
+          )}
+
+          {/* ── TAB: Servicios ── */}
+          {tab === 'servicios' && (
+            <div className="space-y-4">
+              {servicios.length === 0 && (
+                <div className="text-center py-10 text-textLow">
+                  <Package size={28} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-xs">Sin servicios registrados</p>
+                  <p className="text-[11px] mt-0.5 opacity-60">Agrega los servicios contratados por esta cuenta</p>
+                </div>
+              )}
+
+              {servicios.map((sv, i) => (
+                <div key={i} className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-semibold text-textLow uppercase tracking-widest">
+                      Servicio {i + 1}
+                    </span>
+                    <button
+                      onClick={() => removeServicio(i)}
+                      className="flex items-center gap-1 text-[11px] text-rojo/60 hover:text-rojo transition-colors"
+                      title="Eliminar servicio"
+                    >
+                      <Trash2 size={12} /> Eliminar
+                    </button>
+                  </div>
+
+                  <Field label="Nombre del servicio">
+                    <input value={sv.nombre} onChange={e => updateServicio(i, 'nombre', e.target.value)}
+                      className="cp-input" placeholder="Ej: AV Agentes Virtuales, CP Chat, CP Voz…" />
+                  </Field>
+                  <Field label="Descripción / notas">
+                    <textarea value={sv.descripcion} onChange={e => updateServicio(i, 'descripcion', e.target.value)}
+                      className="cp-input resize-none" rows={2}
+                      placeholder="Detalles del plan, configuración especial, etc." />
+                  </Field>
+                </div>
+              ))}
+
+              <button
+                onClick={addServicio}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border
+                  text-xs text-textLow hover:text-cp hover:border-cp transition-colors"
+              >
+                <Plus size={14} /> Agregar servicio
+              </button>
             </div>
-            <Field label="Grupo empresarial">
-              <input
-                value={form.grupo_empresarial}
-                onChange={e => set('grupo_empresarial', e.target.value)}
-                className="cp-input"
-                placeholder="Ej: Grupo Torres"
-              />
-            </Field>
-          </Section>
+          )}
 
-          {/* Sección: Contacto */}
-          <Section title="Contacto principal">
-            <Field label="Nombre">
-              <input
-                value={form.contacto_nombre}
-                onChange={e => set('contacto_nombre', e.target.value)}
-                className="cp-input"
-                placeholder="Nombre completo"
-              />
-            </Field>
-            <Field label="Cargo" icon={<Briefcase size={11} />}>
-              <input
-                value={form.contacto_cargo}
-                onChange={e => set('contacto_cargo', e.target.value)}
-                className="cp-input"
-                placeholder="Ej: Director de TI"
-              />
-            </Field>
-            <Field label="Email" icon={<Mail size={11} />}>
-              <input
-                type="email"
-                value={form.contacto_email}
-                onChange={e => set('contacto_email', e.target.value)}
-                className="cp-input"
-                placeholder="correo@empresa.com"
-              />
-            </Field>
-            <Field label="Teléfono" icon={<Phone size={11} />}>
-              <input
-                type="tel"
-                value={form.contacto_tel}
-                onChange={e => set('contacto_tel', e.target.value)}
-                className="cp-input"
-                placeholder="55 1234 5678"
-              />
-            </Field>
-          </Section>
-
-          {/* Sección: Web y ubicación */}
-          <Section title="Web y ubicación">
-            <Field label="Página web" icon={<Globe size={11} />}>
-              <input
-                value={form.pagina_web}
-                onChange={e => set('pagina_web', e.target.value)}
-                className="cp-input"
-                placeholder="https://www.empresa.com"
-              />
-            </Field>
-            <Field label="Dirección fiscal" icon={<MapPin size={11} />}>
-              <textarea
-                value={form.direccion_fiscal}
-                onChange={e => set('direccion_fiscal', e.target.value)}
-                className="cp-input resize-none"
-                rows={3}
-                placeholder="Calle, colonia, ciudad, CP"
-              />
-            </Field>
-          </Section>
-
-          {/* Sección: Links */}
-          <Section title="Integraciones">
-            <Field label="Zoho CRM Link" icon={<Building2 size={11} />}>
-              <input
-                value={form.zoho_link}
-                onChange={e => set('zoho_link', e.target.value)}
-                className="cp-input"
-                placeholder="https://crm.zoho.com/..."
-              />
-            </Field>
-          </Section>
-
-          {/* Error */}
+          {/* Error global */}
           {error && (
-            <div className="text-xs text-rojo bg-rojo/10 border border-rojo/20 rounded-lg px-3 py-2">
+            <div className="mt-4 text-xs text-rojo bg-rojo/10 border border-rojo/20 rounded-lg px-3 py-2">
               {error}
             </div>
           )}
@@ -296,11 +431,9 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
             disabled={saving}
             className="cp-btn cp-btn-primary flex-1 justify-center"
           >
-            {saving ? (
-              <><Loader2 size={13} className="animate-spin" /> Guardando…</>
-            ) : (
-              <><Save size={13} /> Guardar cambios</>
-            )}
+            {saving
+              ? <><Loader2 size={13} className="animate-spin" /> Guardando…</>
+              : <><Save size={13} /> Guardar cambios</>}
           </button>
         </div>
       </div>
@@ -308,7 +441,7 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
   )
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers UI ────────────────────────────────────────────────────────────────
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -321,20 +454,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   )
 }
 
-function Field({
-  label,
-  icon,
-  children,
-}: {
-  label: string
-  icon?: React.ReactNode
-  children: React.ReactNode
-}) {
+function Field({ label, icon, children }: { label: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
       <label className="flex items-center gap-1 text-[10px] text-textLow mb-1 font-medium">
-        {icon}
-        {label}
+        {icon}{label}
       </label>
       {children}
     </div>
