@@ -133,30 +133,26 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
           {/* Acciones: Slack + toggle */}
           <div className="flex flex-col gap-2 self-start flex-shrink-0">
 
-            {/* Botón Slack */}
+            {/* Botón Slack — fondo sólido púrpura Slack, letras blancas */}
             <a
               href="https://callpicker.slack.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold
-                border border-[#4A154B]/30 bg-[#4A154B]/08 hover:bg-[#4A154B]/15
-                text-[#4A154B] dark:text-[#E8D5E8] transition-all"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold
+                bg-[#4A154B] hover:bg-[#611f69] text-white shadow-sm
+                transition-all duration-150 whitespace-nowrap"
               title="Abrir Slack Callpicker"
             >
               <SlackIcon size={15} />
               Slack Callpicker
             </a>
 
-            {/* Botón toggle */}
+            {/* Botón toggle — fondo sólido del color del asesor, letras blancas */}
             <button
               onClick={() => setExpanded(v => !v)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold
-                border transition-all"
-              style={{
-                background:  expanded ? `${ac.color}12` : 'transparent',
-                borderColor: `${ac.color}35`,
-                color:       expanded ? ac.color : '#94A3B8',
-              }}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+                text-xs font-bold text-white shadow-sm transition-all duration-150 whitespace-nowrap"
+              style={{ background: ac.color }}
             >
               {expanded
                 ? <><ChevronUp size={14} /> Compactar</>
