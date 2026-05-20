@@ -8,6 +8,13 @@ export type EstadoOportunidad = 'identificada' | 'en_proceso' | 'ganada' | 'perd
 export type PrioridadTicket = 'critica' | 'alta' | 'normal' | 'baja'
 export type EstadoTicket = 'abierto' | 'en_proceso' | 'resuelto' | 'cerrado'
 
+// ── Ticket stats enriquecidos (viene de la API, no de Supabase) ──────────────
+export interface ZohoTicketStats {
+  total:  number
+  fallas: number
+  ultima: string | null
+}
+
 // ── Contacto / Servicio (para listas dinámicas) ──────────────────────────────
 export interface ContactoCuenta {
   nombre: string
@@ -87,6 +94,9 @@ export interface Cuenta {
   // Listas dinámicas (JSONB en DB)
   contactos_json: ContactoCuenta[] | null
   servicios_json: ServicioCuenta[] | null
+
+  // Enriquecido por la API (no almacenado en Supabase)
+  zoho_tickets?: ZohoTicketStats
 
   created_at: string
   updated_at: string
