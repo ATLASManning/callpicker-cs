@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Pencil, X, Save, Loader2, Globe, Phone, Mail, MapPin,
-  Building2, Briefcase, Users, Hash, Plus, Trash2, UserPlus, Package,
+  Building2, Briefcase, Users, Hash, Plus, Trash2, UserPlus,
+  Package, ChevronDown,
 } from 'lucide-react'
 import type { Cuenta, ContactoCuenta, ServicioCuenta } from '@/lib/types'
 
@@ -16,7 +17,8 @@ const TAMANOS  = ['Micro', 'Pequeña', 'Mediana', 'Grande', 'Enterprise'] as con
 const EMPTY_CONTACTO: ContactoCuenta = { nombre: '', cargo: '', email: '', tel: '' }
 const EMPTY_SERVICIO: ServicioCuenta  = { nombre: '', descripcion: '' }
 
-// Migración automática: contacto legacy → contactos_json
+type Tab = 'info' | 'contactos' | 'servicios'
+
 function seedContactos(cuenta: Cuenta): ContactoCuenta[] {
   if (cuenta.contactos_json && cuenta.contactos_json.length > 0) return cuenta.contactos_json
   if (cuenta.contacto_nombre) {
@@ -36,18 +38,17 @@ function seedServicios(cuenta: Cuenta): ServicioCuenta[] {
   return []
 }
 
-// ── Tabs ─────────────────────────────────────────────────────────────────────
-type Tab = 'info' | 'contactos' | 'servicios'
-
 export default function CuentaInfoEditor({ cuenta }: Props) {
-  const router = useRouter()
-  const [open,   setOpen]   = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error,  setError]  = useState<string | null>(null)
-  const [tab,    setTab]    = useState<Tab>('info')
-  const [migrated, setMigrated] = useState(false)
+  const router   = useRouter()
+  const dropRef  = useRef<HTMLDivElement>(null)
 
-  // ── Form state ──────────────────────────────────────────────────────────────
+  const [open,       setOpen]       = useState(false)
+  const [saving,     setSaving]     = useState(false)
+  const [error,      setError]      = useState<string | null>(null)
+  const [tab,        setTab]        = useState<Tab>('info')
+  const [migrated,   setMigrated]   = useState(false)
+  const [dropOpen,   setDropOpen]   = useState(false)
+
   const [info, setInfo] = useState({
     empresa:           cuenta.empresa           ?? '',
     asesor:            cuenta.asesor            ?? '',
@@ -65,10 +66,20 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
   const [contactos, setContactos] = useState<ContactoCuenta[]>(seedContactos(cuenta))
   const [servicios, setServicios] = useState<ServicioCuenta[]>(seedServicios(cuenta))
 
-  // Auto-migrar columnas JSONB en Supabase (una sola vez por sesión)
+  // Cerrar dropdown al click fuera
+  useEffect(() => {
+    function onOutside(e: MouseEvent) {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setDropOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
+  }, [])
+
+  // Auto-migrar columnas JSONB
   useEffect(() => {
     if (migrated) return
-    // Solo si las columnas todavía no existen (undefined significa que aún no están)
     if (cuenta.contactos_json === undefined) {
       fetch('/api/admin/migrate-contactos', { method: 'POST' })
         .finally(() => setMigrated(true))
@@ -77,29 +88,30 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
     }
   }, [cuenta.contactos_json, migrated])
 
-  // ── Helpers info ────────────────────────────────────────────────────────────
+  // ── Abrir editor en un tab específico ───────────────────────────────────────
+  function openAt(t: Tab, addNew = false) {
+    setDropOpen(false)
+    setTab(t)
+    setOpen(true)
+    if (addNew) {
+      if (t === 'contactos') setContactos(c => [...c, { ...EMPTY_CONTACTO }])
+      if (t === 'servicios') setServicios(s => [...s, { ...EMPTY_SERVICIO }])
+    }
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
   function setInfoField(field: keyof typeof info, value: string) {
     setInfo(f => ({ ...f, [field]: value }))
   }
 
-  // ── Helpers contactos ───────────────────────────────────────────────────────
-  function addContacto() {
-    setContactos(c => [...c, { ...EMPTY_CONTACTO }])
-  }
-  function removeContacto(i: number) {
-    setContactos(c => c.filter((_, idx) => idx !== i))
-  }
+  function addContacto() { setContactos(c => [...c, { ...EMPTY_CONTACTO }]) }
+  function removeContacto(i: number) { setContactos(c => c.filter((_, idx) => idx !== i)) }
   function updateContacto(i: number, field: keyof ContactoCuenta, value: string) {
     setContactos(c => c.map((ct, idx) => idx === i ? { ...ct, [field]: value } : ct))
   }
 
-  // ── Helpers servicios ───────────────────────────────────────────────────────
-  function addServicio() {
-    setServicios(s => [...s, { ...EMPTY_SERVICIO }])
-  }
-  function removeServicio(i: number) {
-    setServicios(s => s.filter((_, idx) => idx !== i))
-  }
+  function addServicio() { setServicios(s => [...s, { ...EMPTY_SERVICIO }]) }
+  function removeServicio(i: number) { setServicios(s => s.filter((_, idx) => idx !== i)) }
   function updateServicio(i: number, field: keyof ServicioCuenta, value: string) {
     setServicios(s => s.map((sv, idx) => idx === i ? { ...sv, [field]: value } : sv))
   }
@@ -109,35 +121,25 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
     setSaving(true)
     setError(null)
     try {
-      // Info básica — vacío → null
       const infoPayload: Record<string, string | null> = {}
       for (const [k, v] of Object.entries(info)) {
         infoPayload[k] = v.trim() === '' ? null : v.trim()
       }
 
-      // Contactos — filtrar filas completamente vacías
       const contactosClean = contactos.filter(c => c.nombre.trim() || c.email.trim() || c.tel.trim())
-      // Servicios — filtrar filas sin nombre
       const serviciosClean = servicios.filter(s => s.nombre.trim())
 
-      // Sincronizar campo legacy con primer contacto (backward compat)
       const primero = contactosClean[0]
       const legacyContact = primero
-        ? {
-            contacto_nombre: primero.nombre || null,
-            contacto_cargo:  primero.cargo  || null,
-            contacto_email:  primero.email  || null,
-            contacto_tel:    primero.tel    || null,
-          }
+        ? { contacto_nombre: primero.nombre || null, contacto_cargo: primero.cargo || null,
+            contacto_email: primero.email || null, contacto_tel: primero.tel || null }
         : { contacto_nombre: null, contacto_cargo: null, contacto_email: null, contacto_tel: null }
 
       const primerServicio = serviciosClean[0]
       const legacyServicio = { servicio: primerServicio?.nombre || null }
 
       const payload = {
-        ...infoPayload,
-        ...legacyContact,
-        ...legacyServicio,
+        ...infoPayload, ...legacyContact, ...legacyServicio,
         contactos_json: contactosClean,
         servicios_json: serviciosClean,
       }
@@ -162,24 +164,57 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
     }
   }, [info, contactos, servicios, cuenta.id, router])
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   const tabs: { id: Tab; label: string; count?: number }[] = [
     { id: 'info',      label: 'Información' },
     { id: 'contactos', label: 'Contactos',  count: contactos.length },
     { id: 'servicios', label: 'Servicios',  count: servicios.length },
   ]
 
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
-      {/* Trigger */}
-      <button
-        onClick={() => { setOpen(true); setTab('info') }}
-        className="flex items-center gap-1.5 text-[11px] text-textLow hover:text-cp transition-colors"
-        title="Editar información"
-      >
-        <Pencil size={11} />
-        Editar
-      </button>
+      {/* ── Barra de acciones en la card ── */}
+      <div className="flex items-center gap-2">
+
+        {/* Botón Editar */}
+        <button
+          onClick={() => openAt('info')}
+          className="flex items-center gap-1.5 text-[11px] text-textLow hover:text-cp transition-colors"
+        >
+          <Pencil size={11} /> Editar
+        </button>
+
+        {/* Combo + Agregar ▾ */}
+        <div ref={dropRef} className="relative">
+          <button
+            onClick={() => setDropOpen(d => !d)}
+            className="flex items-center gap-1 text-[11px] font-medium text-cp bg-cp/10 hover:bg-cp/20
+              border border-cp/20 px-2 py-0.5 rounded-md transition-colors"
+          >
+            <Plus size={11} /> Agregar <ChevronDown size={10} className={`transition-transform ${dropOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {dropOpen && (
+            <div className="absolute right-0 top-full mt-1 w-44 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+              <button
+                onClick={() => openAt('contactos', true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-textMid hover:bg-surface hover:text-cp transition-colors text-left"
+              >
+                <UserPlus size={13} className="text-cp flex-shrink-0" />
+                Agregar contacto
+              </button>
+              <div className="border-t border-border" />
+              <button
+                onClick={() => openAt('servicios', true)}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-textMid hover:bg-surface hover:text-cp transition-colors text-left"
+              >
+                <Package size={13} className="text-cp flex-shrink-0" />
+                Agregar servicio
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Backdrop */}
       {open && (
@@ -243,8 +278,7 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Asesor">
-                    <select value={info.asesor} onChange={e => setInfoField('asesor', e.target.value)}
-                      className="cp-input">
+                    <select value={info.asesor} onChange={e => setInfoField('asesor', e.target.value)} className="cp-input">
                       <option value="">— Sin asignar —</option>
                       {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
                     </select>
@@ -260,8 +294,7 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
                       className="cp-input" placeholder="Automotriz, Tech…" />
                   </Field>
                   <Field label="Tamaño">
-                    <select value={info.tamano_empresa} onChange={e => setInfoField('tamano_empresa', e.target.value)}
-                      className="cp-input">
+                    <select value={info.tamano_empresa} onChange={e => setInfoField('tamano_empresa', e.target.value)} className="cp-input">
                       <option value="">— Seleccionar —</option>
                       {TAMANOS.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
@@ -307,7 +340,7 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
           {tab === 'contactos' && (
             <div className="space-y-4">
               {contactos.length === 0 && (
-                <div className="text-center py-10 text-textLow">
+                <div className="text-center py-8 text-textLow">
                   <UserPlus size={28} className="mx-auto mb-2 opacity-30" />
                   <p className="text-xs">Sin contactos registrados</p>
                   <p className="text-[11px] mt-0.5 opacity-60">Agrega el primer contacto de esta cuenta</p>
@@ -315,21 +348,16 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
               )}
 
               {contactos.map((ct, i) => (
-                <div key={i} className="bg-surface border border-border rounded-xl p-4 space-y-3 relative">
-                  {/* Header de la tarjeta */}
-                  <div className="flex items-center justify-between mb-1">
+                <div key={i} className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
                     <span className="text-[10px] font-semibold text-textLow uppercase tracking-widest">
                       Contacto {i + 1}{i === 0 ? ' · Principal' : ''}
                     </span>
-                    <button
-                      onClick={() => removeContacto(i)}
-                      className="flex items-center gap-1 text-[11px] text-rojo/60 hover:text-rojo transition-colors"
-                      title="Eliminar contacto"
-                    >
+                    <button onClick={() => removeContacto(i)}
+                      className="flex items-center gap-1 text-[11px] text-rojo/60 hover:text-rojo transition-colors">
                       <Trash2 size={12} /> Eliminar
                     </button>
                   </div>
-
                   <Field label="Nombre completo">
                     <input value={ct.nombre} onChange={e => updateContacto(i, 'nombre', e.target.value)}
                       className="cp-input" placeholder="Jorge García" />
@@ -351,12 +379,14 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
                 </div>
               ))}
 
+              {/* Botón Agregar prominente */}
               <button
                 onClick={addContacto}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border
-                  text-xs text-textLow hover:text-cp hover:border-cp transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl
+                  bg-cp/10 hover:bg-cp/20 border border-cp/30 hover:border-cp/50
+                  text-xs font-medium text-cp transition-colors"
               >
-                <Plus size={14} /> Agregar contacto
+                <UserPlus size={14} /> Agregar contacto
               </button>
             </div>
           )}
@@ -365,31 +395,27 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
           {tab === 'servicios' && (
             <div className="space-y-4">
               {servicios.length === 0 && (
-                <div className="text-center py-10 text-textLow">
+                <div className="text-center py-8 text-textLow">
                   <Package size={28} className="mx-auto mb-2 opacity-30" />
                   <p className="text-xs">Sin servicios registrados</p>
-                  <p className="text-[11px] mt-0.5 opacity-60">Agrega los servicios contratados por esta cuenta</p>
+                  <p className="text-[11px] mt-0.5 opacity-60">Agrega los servicios contratados</p>
                 </div>
               )}
 
               {servicios.map((sv, i) => (
                 <div key={i} className="bg-surface border border-border rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between">
                     <span className="text-[10px] font-semibold text-textLow uppercase tracking-widest">
                       Servicio {i + 1}
                     </span>
-                    <button
-                      onClick={() => removeServicio(i)}
-                      className="flex items-center gap-1 text-[11px] text-rojo/60 hover:text-rojo transition-colors"
-                      title="Eliminar servicio"
-                    >
+                    <button onClick={() => removeServicio(i)}
+                      className="flex items-center gap-1 text-[11px] text-rojo/60 hover:text-rojo transition-colors">
                       <Trash2 size={12} /> Eliminar
                     </button>
                   </div>
-
                   <Field label="Nombre del servicio">
                     <input value={sv.nombre} onChange={e => updateServicio(i, 'nombre', e.target.value)}
-                      className="cp-input" placeholder="Ej: AV Agentes Virtuales, CP Chat, CP Voz…" />
+                      className="cp-input" placeholder="AV Agentes Virtuales, CP Chat, CP Voz…" />
                   </Field>
                   <Field label="Descripción / notas">
                     <textarea value={sv.descripcion} onChange={e => updateServicio(i, 'descripcion', e.target.value)}
@@ -399,17 +425,18 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
                 </div>
               ))}
 
+              {/* Botón Agregar prominente */}
               <button
                 onClick={addServicio}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-border
-                  text-xs text-textLow hover:text-cp hover:border-cp transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl
+                  bg-cp/10 hover:bg-cp/20 border border-cp/30 hover:border-cp/50
+                  text-xs font-medium text-cp transition-colors"
               >
-                <Plus size={14} /> Agregar servicio
+                <Package size={14} /> Agregar servicio
               </button>
             </div>
           )}
 
-          {/* Error global */}
           {error && (
             <div className="mt-4 text-xs text-rojo bg-rojo/10 border border-rojo/20 rounded-lg px-3 py-2">
               {error}
@@ -419,18 +446,12 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
 
         {/* Footer */}
         <div className="flex items-center gap-3 px-5 py-4 border-t border-border flex-shrink-0">
-          <button
-            onClick={() => !saving && setOpen(false)}
-            disabled={saving}
-            className="cp-btn cp-btn-ghost flex-1 justify-center"
-          >
+          <button onClick={() => !saving && setOpen(false)} disabled={saving}
+            className="cp-btn cp-btn-ghost flex-1 justify-center">
             Cancelar
           </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="cp-btn cp-btn-primary flex-1 justify-center"
-          >
+          <button onClick={handleSave} disabled={saving}
+            className="cp-btn cp-btn-primary flex-1 justify-center">
             {saving
               ? <><Loader2 size={13} className="animate-spin" /> Guardando…</>
               : <><Save size={13} /> Guardar cambios</>}
