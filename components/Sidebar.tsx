@@ -9,9 +9,32 @@ import {
   Clock, ChevronDown,
 } from 'lucide-react'
 
-// ── Colores del sidebar ────────────────────────────────────────────────────────
-const SB   = '#0A1628'
-const SB_D = '#071020'
+// ── Textura acero azul marino ──────────────────────────────────────────────────
+const SB_TEXTURE = `
+  repeating-linear-gradient(
+    180deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(255,255,255,0.013) 2px,
+    rgba(255,255,255,0.013) 3px
+  ),
+  linear-gradient(
+    90deg,
+    rgba(0,80,160,0.0) 0%,
+    rgba(0,100,200,0.10) 45%,
+    rgba(0,80,160,0.0) 100%
+  ),
+  linear-gradient(
+    180deg,
+    #0E2240 0%,
+    #0A1628 35%,
+    #081422 70%,
+    #060F1A 100%
+  )
+`.replace(/\s+/g, ' ').trim()
+
+const SB   = SB_TEXTURE
+const SB_D = 'rgba(255,255,255,0.07)'
 const SB_H = 'rgba(255,255,255,0.10)'
 const SB_A = 'rgba(255,255,255,0.16)'
 const TX   = 'rgba(255,255,255,0.92)'
@@ -160,10 +183,10 @@ export default function Sidebar() {
       style={{ background: SB, borderRight: `1px solid ${SB_D}` }}>
 
       {/* Logo */}
-      <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB_D}` }}>
+      <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB_D}`, background: 'rgba(6,15,26,0.45)' }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.18)', boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
+            style={{ background: 'rgba(0,120,220,0.30)', border: '1px solid rgba(0,140,255,0.25)', boxShadow: '0 2px 10px rgba(0,80,180,0.35)' }}>
             <Phone size={16} style={{ color: '#FFFFFF' }} />
           </div>
           <div>
@@ -186,7 +209,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4" style={{ borderTop: `1px solid ${SB_D}` }}>
+      <div className="px-4 py-4" style={{ borderTop: `1px solid ${SB_D}`, background: 'rgba(6,15,26,0.45)' }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center"
             style={{ background: 'rgba(255,255,255,0.16)' }}>
