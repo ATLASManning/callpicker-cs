@@ -120,7 +120,7 @@ function PanelTitle({ children }: { children: React.ReactNode }) {
     <p style={{
       fontSize: 11, fontWeight: 700,
       textTransform: 'uppercase', letterSpacing: '0.10em',
-      color: TX_LOW, marginBottom: 16,
+      color: TX_MID, marginBottom: 16,
     }}>{children}</p>
   )
 }
@@ -205,7 +205,6 @@ export default async function DashboardPage() {
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <PageHeader
-        dark
         title="Dashboard Customer Success"
         subtitle={new Date().toLocaleDateString('es-MX', {
           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -396,7 +395,7 @@ export default async function DashboardPage() {
             padding: '16px 20px 12px', borderBottom: `1px solid ${BORDER2}`,
           }}>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: TX_LOW }}>
+              <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: TX_MID }}>
                 Top Cuentas en Riesgo
               </p>
               <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>

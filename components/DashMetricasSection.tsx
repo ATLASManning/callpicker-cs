@@ -139,7 +139,7 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
           <div className="flex items-center gap-2">
             <BarChart3 size={14} style={{ color: CYAN }} />
             <span className="text-xs font-black uppercase tracking-[0.10em]"
-              style={{ color: TX_MID }}>
+              style={{ color: TX_HI }}>
               Métricas · Resumen Operativo
             </span>
           </div>
@@ -204,7 +204,7 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
 
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-bold uppercase tracking-[0.10em]"
-              style={{ color: TX_MID }}>
+              style={{ color: TX_HI }}>
               Top 10 · Mayor Facturación
             </h3>
             <span className="text-[10px]" style={{ color: TX_LOW }}>
