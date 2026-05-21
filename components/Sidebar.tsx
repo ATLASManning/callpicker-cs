@@ -27,10 +27,6 @@ type NavEntry  = NavItem | NavGroup
 function isGroup(e: NavEntry): e is NavGroup { return 'group' in e }
 
 const NAV: NavEntry[] = [
-  { href: '/',              label: 'Dashboard',        icon: LayoutDashboard },
-  { href: '/cuentas',       label: 'Cuentas',          icon: Users },
-  { href: '/reuniones',     label: 'Reuniones',        icon: CalendarDays },
-
   // ── Grupo: Asesores ──────────────────────────────────────────────────────
   {
     group: 'Asesores',
@@ -41,13 +37,16 @@ const NAV: NavEntry[] = [
     ],
   },
 
-  { href: '/chat',          label: 'Atlas IA',          icon: MessageSquare },
-  { href: '/upsell',        label: 'Upsell / Cross',    icon: TrendingUp },
-  { href: '/churn',         label: 'Churn',             icon: TrendingDown },
-  { href: '/tickets',       label: 'Tickets',           icon: Ticket },
-  { href: '/facturacion',   label: 'Corte Facturación', icon: Receipt },
-  { href: '/customer-tenure', label: 'Customer Tenure', icon: Clock },
-  { href: '/auditoria',     label: 'Auditoría Cuentas', icon: ClipboardList },
+  { href: '/chat',            label: 'Atlas IA',          icon: MessageSquare },
+  { href: '/auditoria',       label: 'Auditoría Cuentas', icon: ClipboardList },
+  { href: '/churn',           label: 'Churn',             icon: TrendingDown },
+  { href: '/facturacion',     label: 'Corte Facturación', icon: Receipt },
+  { href: '/cuentas',         label: 'Cuentas',           icon: Users },
+  { href: '/customer-tenure', label: 'Customer Tenure',   icon: Clock },
+  { href: '/',                label: 'Dashboard',         icon: LayoutDashboard },
+  { href: '/reuniones',       label: 'Reuniones',         icon: CalendarDays },
+  { href: '/tickets',         label: 'Tickets',           icon: Ticket },
+  { href: '/upsell',          label: 'Upsell / Cross',    icon: TrendingUp },
 ]
 
 // ── NavLink simple ────────────────────────────────────────────────────────────
