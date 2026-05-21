@@ -132,48 +132,33 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
   ]
 
   return (
-    <section style={{ background: `linear-gradient(180deg, ${BG} 0%, #040C17 100%)` }}>
+    <section style={{ background: 'transparent' }}>
 
-      {/* ── Banner de sección ─────────────────────────────────────────────── */}
-      <div className="px-6 py-5 flex items-center justify-between flex-wrap gap-3"
-        style={{ borderBottom: `1px solid ${BORDER}` }}>
-
-        <div className="flex items-center gap-4">
-          {/* Indicador de estado */}
+      {/* ── Separador de sección ──────────────────────────────────────────── */}
+      <div className="px-6 pt-2 pb-4 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="relative">
-              <div className="w-2.5 h-2.5 rounded-full bg-green-400"
-                style={{ boxShadow: '0 0 8px rgba(74,222,128,0.8)' }} />
-              <div className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-40" />
-            </div>
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em]"
-              style={{ color: '#4ADE80' }}>Sistema en línea</span>
+            <BarChart3 size={14} style={{ color: CYAN }} />
+            <span className="text-xs font-black uppercase tracking-[0.10em]"
+              style={{ color: TX_MID }}>
+              Métricas · Resumen Operativo
+            </span>
           </div>
-
-          <div style={{ width: 1, height: 16, background: BORDER }} />
-
-          {/* Título */}
-          <div className="flex items-center gap-2">
-            <BarChart3 size={16} style={{ color: CYAN }} />
-            <h2 className="text-sm font-black uppercase tracking-[0.08em]"
-              style={{ color: TX_HI }}>
-              Métricas
-              <span className="ml-2 font-light tracking-normal normal-case"
-                style={{ color: TX_LOW, fontSize: 11 }}>· Resumen Operativo</span>
-            </h2>
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-400"
+              style={{ boxShadow: '0 0 6px rgba(74,222,128,0.7)' }} />
+            <span className="text-[10px] font-semibold" style={{ color: '#4ADE80' }}>En línea</span>
           </div>
         </div>
-
         <div className="flex items-center gap-4 text-[11px]" style={{ color: TX_LOW }}>
           <span className="flex items-center gap-1.5">
             <Zap size={11} style={{ color: CYAN }} />
             Actualizado {fmtTime(updatedAt)}
           </span>
-          <span style={{ color: BORDER }}>·</span>
+          <span>·</span>
           <span>{kpis.totalCuentas} cuentas en cartera</span>
-          <span style={{ color: BORDER }}>·</span>
           <Link href="/cuentas"
-            className="flex items-center gap-1 hover:underline transition-all"
+            className="flex items-center gap-1 hover:underline"
             style={{ color: CYAN }}>
             Ver todas <ArrowUpRight size={11} />
           </Link>
@@ -372,15 +357,6 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
         </div>
       )}
 
-      {/* ── Footer del panel ──────────────────────────────────────────────── */}
-      <div className="px-6 py-3 flex items-center gap-2 text-[10px]"
-        style={{ borderTop: `1px solid ${BORDER_B}`, color: TX_LOW }}>
-        <span>CALLPICKER CUSTOMER SUCCESS</span>
-        <span style={{ color: BORDER }}>·</span>
-        <span>Datos sincronizados desde Supabase en tiempo real</span>
-        <span style={{ color: BORDER }}>·</span>
-        <span style={{ color: CYAN, fontWeight: 700 }}>force-dynamic · auto-refresh 5 min</span>
-      </div>
     </section>
   )
 }

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import {
-  LayoutDashboard, Users, BarChart3, MessageSquare, TrendingUp,
+  LayoutDashboard, Users, MessageSquare, TrendingUp,
   Settings, ChevronRight, Phone, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
   Clock, ChevronDown,
@@ -41,7 +41,6 @@ const NAV: NavEntry[] = [
     ],
   },
 
-  { href: '/metricas',      label: 'Métricas',         icon: BarChart3 },
   { href: '/chat',          label: 'Atlas IA',          icon: MessageSquare },
   { href: '/upsell',        label: 'Upsell / Cross',    icon: TrendingUp },
   { href: '/churn',         label: 'Churn',             icon: TrendingDown },
