@@ -198,10 +198,13 @@ export const SEMAFORO_CONFIG: Record<Semaforo, { label: string; color: string; b
   rojo:     { label: 'Riesgo Alto',  color: '#EF4444', bg: 'bg-rojo/10',     border: 'border-rojo' },
 }
 
-export const ASESOR_CONFIG: Record<Asesor, { color: string; initial: string }> = {
-  'Fátima':  { color: '#A855F7', initial: 'F' },
-  'Dan':     { color: '#0EA5E9', initial: 'D' },
-  'Claudia': { color: '#F97316', initial: 'C' },
+export const ASESOR_CONFIG: Record<Asesor, {
+  color: string; initial: string
+  fullName: string; ext: string; email: string; tel?: string
+}> = {
+  'Fátima':  { color: '#A855F7', initial: 'F', fullName: 'Fátima González',   ext: '457', email: 'fatima@callpicker.com' },
+  'Dan':     { color: '#0EA5E9', initial: 'D', fullName: 'Dan Domínguez',     ext: '450', email: 'dominguez.dan@callpicker.com' },
+  'Claudia': { color: '#F97316', initial: 'C', fullName: 'Claudia Hernández', ext: '452', email: 'claudia@callpicker.com', tel: '442 454 0355' },
 }
 
 export function formatMXN(amount: number): string {

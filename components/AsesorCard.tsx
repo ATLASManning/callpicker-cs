@@ -4,12 +4,20 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   ChevronDown, ChevronUp, ArrowUpRight, AlertTriangle,
-  TrendingUp, Users, DollarSign, LifeBuoy,
+  TrendingUp, DollarSign, LifeBuoy, Phone, Mail, Hash,
 } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
 import { getSemaforo, formatMXN, ASESOR_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
+
+// ── Paleta azul marino ────────────────────────────────────────────────────────
+const NAVY      = '#0A1628'
+const NAVY_MID  = '#0F2040'
+const NAVY_LINE = 'rgba(255,255,255,0.10)'
+const TX_HI     = '#FFFFFF'
+const TX_MID    = 'rgba(255,255,255,0.70)'
+const TX_LOW    = 'rgba(255,255,255,0.45)'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface ZohoStats { total: number; fallas: number; ultima: string | null }
@@ -21,9 +29,9 @@ interface SemaforoResumen {
 }
 
 interface Props {
-  asesor:    string
-  cuentas:   CuentaRich[]
-  resumen:   SemaforoResumen
+  asesor:      string
+  cuentas:     CuentaRich[]
+  resumen:     SemaforoResumen
   defaultOpen?: boolean
 }
 
@@ -70,10 +78,31 @@ function TicketCell({ zt }: { zt: ZohoStats }) {
   )
 }
 
+// ── KpiCard — tarjeta KPI para la zona oscura ─────────────────────────────────
+function KpiCard({
+  icon, label, value, accent, sub,
+}: {
+  icon: React.ReactNode; label: string; value: string; accent: string; sub?: string
+}) {
+  return (
+    <div className="flex flex-col gap-1 px-4 py-3 rounded-xl flex-1 min-w-[110px]"
+      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
+      <div className="flex items-center gap-1.5">
+        <span style={{ color: accent }} className="opacity-80">{icon}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: TX_LOW }}>{label}</span>
+      </div>
+      <p className="text-xl font-black tabular-nums leading-none" style={{ color: TX_HI }}>{value}</p>
+      {sub && <p className="text-[10px] leading-tight" style={{ color: TX_LOW }}>{sub}</p>}
+    </div>
+  )
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = false }: Props) {
   const [expanded, setExpanded] = useState(defaultOpen)
-  const ac = ASESOR_CONFIG[asesor as keyof typeof ASESOR_CONFIG] ?? { color: '#94A3B8', initial: '?' }
+  const ac = ASESOR_CONFIG[asesor as keyof typeof ASESOR_CONFIG] ?? {
+    color: '#94A3B8', initial: '?', fullName: asesor, ext: '—', email: '—',
+  }
 
   const saludables  = cuentas.filter(c => c.health_score >= 60).length
   const observacion = cuentas.filter(c => c.health_score >= 40 && c.health_score < 60).length
@@ -83,127 +112,154 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
   const conOportunidad = cuentas.filter(c => c.upsell_producto || c.crossell_producto).length
 
   return (
-    <div className="rounded-2xl border border-border overflow-hidden shadow-sm bg-card"
-      style={{ borderLeftWidth: 3, borderLeftColor: ac.color }}>
+    <div className="rounded-2xl overflow-hidden shadow-lg"
+      style={{ border: `1px solid ${NAVY_LINE}`, borderLeft: `4px solid ${ac.color}` }}>
 
-      {/* ── Header del asesor ─────────────────────────────────────────────── */}
-      <div className="px-6 py-5">
-        <div className="flex items-start gap-5 flex-wrap">
+      {/* ════════════════════════════════════════════════════════════════════════
+          HEADER — fondo azul marino
+          ════════════════════════════════════════════════════════════════════════ */}
+      <div style={{ background: `linear-gradient(135deg, ${NAVY} 0%, ${NAVY_MID} 100%)` }}>
 
-          {/* Avatar + identidad */}
-          <div className="flex items-center gap-4 min-w-[180px]">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-black flex-shrink-0"
-              style={{ background: `${ac.color}18`, color: ac.color, border: `2px solid ${ac.color}30` }}>
-              {ac.initial}
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-textHi leading-tight">{asesor}</h2>
-              <p className="text-xs text-textLow mt-0.5">Ejecutivo Customer Success</p>
-              <span className="inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: `${ac.color}15`, color: ac.color }}>
-                {cuentas.length} cuentas asignadas
+        {/* ── Fila superior: identidad + acciones ────────────────────────── */}
+        <div className="px-6 pt-5 pb-4 flex items-start gap-6 flex-wrap">
+
+          {/* Avatar */}
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center
+            text-3xl font-black flex-shrink-0 select-none"
+            style={{
+              background: `${ac.color}25`,
+              border: `2px solid ${ac.color}50`,
+              color: ac.color,
+              boxShadow: `0 4px 16px ${ac.color}30`,
+            }}>
+            {ac.initial}
+          </div>
+
+          {/* Identidad + datos de contacto */}
+          <div className="flex-1 min-w-[200px]">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-xl font-black leading-tight" style={{ color: TX_HI }}>
+                {ac.fullName}
+              </h2>
+              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest"
+                style={{ background: `${ac.color}25`, color: ac.color, border: `1px solid ${ac.color}40` }}>
+                Ejecutivo CS
+              </span>
+              <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                style={{ background: 'rgba(255,255,255,0.08)', color: TX_MID }}>
+                {cuentas.length} cuentas
               </span>
             </div>
+
+            {/* Datos de contacto */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2.5">
+              <span className="flex items-center gap-1.5 text-xs" style={{ color: TX_MID }}>
+                <Hash size={12} style={{ color: ac.color, opacity: 0.8 }} />
+                Ext. {ac.ext}
+              </span>
+              <a href={`mailto:${ac.email}`}
+                className="flex items-center gap-1.5 text-xs hover:opacity-90 transition-opacity"
+                style={{ color: TX_MID }}>
+                <Mail size={12} style={{ color: ac.color, opacity: 0.8 }} />
+                {ac.email}
+              </a>
+              {ac.tel && (
+                <a href={`tel:${ac.tel.replace(/\s/g,'')}`}
+                  className="flex items-center gap-1.5 text-xs hover:opacity-90 transition-opacity"
+                  style={{ color: TX_MID }}>
+                  <Phone size={12} style={{ color: ac.color, opacity: 0.8 }} />
+                  {ac.tel}
+                </a>
+              )}
+            </div>
           </div>
 
-          {/* KPIs principales */}
-          <div className="flex flex-wrap gap-3 flex-1">
-            <KpiPill icon={<DollarSign size={13} />} label="Facturación"
-              value={formatMXN(resumen.facturacion_total)} color="#3B82F6" />
-            <KpiPill icon={<Users size={13} />} label="Saludables"
-              value={String(saludables)} color="#22C55E" />
-            <KpiPill icon={<AlertTriangle size={13} />} label="Observación"
-              value={String(observacion)} color="#EAB308" />
-            <KpiPill icon={<AlertTriangle size={13} />} label="En Riesgo"
-              value={String(enRiesgo)} color="#EF4444" />
-            {totalTix > 0 && (
-              <KpiPill
-                icon={<AlertTriangle size={13} />}
-                label={totalFallas > 0 ? `Tickets · ${totalFallas} fallas` : 'Tickets Zoho'}
-                value={String(totalTix)}
-                color={totalFallas > 0 ? '#EF4444' : '#F97316'}
-              />
-            )}
-            {conOportunidad > 0 && (
-              <KpiPill icon={<TrendingUp size={13} />} label="Oportunidades"
-                value={String(conOportunidad)} color="#14B8A6" />
-            )}
-          </div>
-
-          {/* Acciones: Slack + toggle */}
-          <div className="flex flex-col gap-2 self-start flex-shrink-0">
-
-            {/* Botón Centro de Ayuda */}
-            <a
-              href="https://ayuda.callpicker.com/"
-              target="_blank"
-              rel="noopener noreferrer"
+          {/* Acciones */}
+          <div className="flex flex-col gap-2 flex-shrink-0 self-start">
+            <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold
-                bg-[#0F766E] hover:bg-[#0D9488] text-white shadow-sm
-                transition-all duration-150 whitespace-nowrap"
-              title="Centro de Ayuda Callpicker"
-            >
-              <LifeBuoy size={15} />
-              Centro de Ayuda
+                text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
+              style={{ background: '#0F766E' }}>
+              <LifeBuoy size={14} /> Centro de Ayuda
             </a>
-
-            {/* Botón Slack — fondo sólido púrpura Slack, letras blancas */}
-            <a
-              href="https://callpicker.slack.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href="https://callpicker.slack.com" target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold
-                bg-[#4A154B] hover:bg-[#611f69] text-white shadow-sm
-                transition-all duration-150 whitespace-nowrap"
-              title="Abrir Slack Callpicker"
-            >
-              <SlackIcon size={15} />
-              Slack Callpicker
+                text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
+              style={{ background: '#4A154B' }}>
+              <SlackIcon size={14} /> Slack Callpicker
             </a>
-
-            {/* Botón toggle — fondo sólido del color del asesor, letras blancas */}
-            <button
-              onClick={() => setExpanded(v => !v)}
+            <button onClick={() => setExpanded(v => !v)}
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-                text-xs font-bold text-white shadow-sm transition-all duration-150 whitespace-nowrap"
-              style={{ background: ac.color }}
-            >
+                text-xs font-bold text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
+              style={{ background: ac.color }}>
               {expanded
-                ? <><ChevronUp size={14} /> Compactar</>
-                : <><ChevronDown size={14} /> Mostrar cuentas</>}
+                ? <><ChevronUp size={13} /> Compactar</>
+                : <><ChevronDown size={13} /> Mostrar cuentas</>}
             </button>
           </div>
         </div>
 
-        {/* ── Mini semáforo ── */}
-        <div className="flex gap-2 mt-4">
+        {/* ── Fila KPIs ─────────────────────────────────────────────────── */}
+        <div className="px-6 pb-5 flex gap-3 flex-wrap">
+          <KpiCard icon={<DollarSign size={14} />} label="Facturación"
+            value={formatMXN(resumen.facturacion_total)} accent="#3B82F6" />
+          <KpiCard icon={<span className="text-sm">✓</span>} label="Saludables"
+            value={String(saludables)} accent="#22C55E"
+            sub={`${Math.round((saludables / (cuentas.length || 1)) * 100)}% de cartera`} />
+          <KpiCard icon={<AlertTriangle size={14} />} label="Observación"
+            value={String(observacion)} accent="#EAB308" />
+          <KpiCard icon={<AlertTriangle size={14} />} label="En Riesgo"
+            value={String(enRiesgo)} accent="#EF4444" />
+          {totalTix > 0 && (
+            <KpiCard
+              icon={<AlertTriangle size={14} />}
+              label={totalFallas > 0 ? `Tickets · ${totalFallas} fallas` : 'Tickets Zoho'}
+              value={String(totalTix)}
+              accent={totalFallas > 0 ? '#EF4444' : '#F97316'}
+            />
+          )}
+          {conOportunidad > 0 && (
+            <KpiCard icon={<TrendingUp size={14} />} label="Oportunidades"
+              value={String(conOportunidad)} accent="#14B8A6" />
+          )}
+        </div>
+
+        {/* ── Mini semáforo ─────────────────────────────────────────────── */}
+        <div className="px-6 pb-5 flex gap-2 flex-wrap">
           {SEMAFORO_META.map(s => {
             const cnt = resumen[s.key]
             if (cnt === 0) return null
             return (
               <div key={s.key}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs"
-                style={{ background: `${s.color}10`, border: `1px solid ${s.color}20`, color: s.color }}>
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs"
+                style={{
+                  background: `${s.color}18`,
+                  border: `1px solid ${s.color}35`,
+                  color: s.color,
+                }}>
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
                 <span className="font-bold tabular-nums">{cnt}</span>
-                <span className="opacity-70 text-[10px]">{s.label}</span>
+                <span className="text-[10px]" style={{ opacity: 0.8 }}>{s.label}</span>
               </div>
             )
           })}
         </div>
       </div>
+      {/* ── FIN HEADER ───────────────────────────────────────────────────────── */}
 
-      {/* ── Tabla colapsable ──────────────────────────────────────────────── */}
+      {/* ════════════════════════════════════════════════════════════════════════
+          TABLA colapsable — fondo del tema (bg-card)
+          ════════════════════════════════════════════════════════════════════════ */}
       <div className={`transition-all duration-300 ease-in-out overflow-hidden
         ${expanded ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'}`}>
 
         <div className="border-t border-border">
-          {/* Sub-header de la tabla */}
+          {/* Sub-header */}
           <div className="px-6 py-2.5 bg-surface/50 flex items-center justify-between">
             <span className="text-[11px] text-textLow font-medium">
               {cuentas.length} cuentas · ordenadas por Health Score ascendente
             </span>
-            <Link href={`/cuentas`}
+            <Link href="/cuentas"
               className="text-[11px] text-cp hover:text-cpTeal font-medium transition-colors flex items-center gap-1">
               Ver en Cuentas <ArrowUpRight size={11} />
             </Link>
@@ -321,6 +377,7 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
           </div>
         </div>
       </div>
+
     </div>
   )
 }
@@ -334,23 +391,5 @@ function SlackIcon({ size = 16 }: { size?: number }) {
       <path d="M97 45.2c0-7.1 5.8-12.9 12.9-12.9s12.9 5.8 12.9 12.9-5.8 12.9-12.9 12.9H97V45.2zm-6.5 0c0 7.1-5.8 12.9-12.9 12.9s-12.9-5.8-12.9-12.9V12.9C64.7 5.8 70.5 0 77.6 0s12.9 5.8 12.9 12.9v32.3z" fill="#2eb67d"/>
       <path d="M77.6 97c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9-12.9-5.8-12.9-12.9V97h12.9zm0-6.5c-7.1 0-12.9-5.8-12.9-12.9s5.8-12.9 12.9-12.9h32.3c7.1 0 12.9 5.8 12.9 12.9s-5.8 12.9-12.9 12.9H77.6z" fill="#ecb22e"/>
     </svg>
-  )
-}
-
-// ── KpiPill ───────────────────────────────────────────────────────────────────
-function KpiPill({
-  icon, label, value, color,
-}: {
-  icon: React.ReactNode; label: string; value: string; color: string
-}) {
-  return (
-    <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl border"
-      style={{ background: `${color}08`, borderColor: `${color}20` }}>
-      <span style={{ color }} className="flex-shrink-0">{icon}</span>
-      <div>
-        <p className="text-sm font-bold tabular-nums leading-tight" style={{ color }}>{value}</p>
-        <p className="text-[10px] text-textLow leading-tight whitespace-nowrap">{label}</p>
-      </div>
-    </div>
   )
 }
