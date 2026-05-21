@@ -137,28 +137,28 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
       <div className="px-6 pt-2 pb-4 flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <BarChart3 size={14} style={{ color: CYAN }} />
+            <BarChart3 size={14} style={{ color: '#0057B8' }} />
             <span className="text-xs font-black uppercase tracking-[0.10em]"
-              style={{ color: TX_HI }}>
+              style={{ color: '#0A1628' }}>
               Métricas · Resumen Operativo
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400"
-              style={{ boxShadow: '0 0 6px rgba(74,222,128,0.7)' }} />
-            <span className="text-[10px] font-semibold" style={{ color: '#4ADE80' }}>En línea</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500"
+              style={{ boxShadow: '0 0 6px rgba(34,197,94,0.6)' }} />
+            <span className="text-[10px] font-semibold" style={{ color: '#16A34A' }}>En línea</span>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-[11px]" style={{ color: TX_LOW }}>
+        <div className="flex items-center gap-4 text-[11px]" style={{ color: 'rgba(10,22,40,0.55)' }}>
           <span className="flex items-center gap-1.5">
-            <Zap size={11} style={{ color: CYAN }} />
+            <Zap size={11} style={{ color: '#0057B8' }} />
             Actualizado {fmtTime(updatedAt)}
           </span>
           <span>·</span>
           <span>{kpis.totalCuentas} cuentas en cartera</span>
           <Link href="/cuentas"
             className="flex items-center gap-1 hover:underline"
-            style={{ color: CYAN }}>
+            style={{ color: '#0057B8' }}>
             Ver todas <ArrowUpRight size={11} />
           </Link>
         </div>
