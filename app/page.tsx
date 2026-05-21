@@ -200,7 +200,7 @@ export default async function DashboardPage() {
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: BG }}>
+    <div className="min-h-screen">
       <AutoRefresh intervalMs={300_000} showIndicator={false} />
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
@@ -448,9 +448,8 @@ export default async function DashboardPage() {
       />
 
       {/* ── Footer de página ──────────────────────────────────────────────── */}
-      <div className="px-6 pb-6 pt-2 flex items-center gap-2 text-[10px]"
-        style={{ borderTop: `1px solid ${BORDER2}`, color: TX_LOW }}>
-        <span style={{ color: CYAN, fontWeight: 700 }}>CALLPICKER CUSTOMER SUCCESS</span>
+      <div className="px-6 pb-6 pt-2 flex items-center gap-2 text-[10px] text-textLow">
+        <span className="text-cp font-bold">CALLPICKER CUSTOMER SUCCESS</span>
         <span>·</span>
         <span>Datos sincronizados en tiempo real · force-dynamic · auto-refresh 5 min</span>
         <span>·</span>
