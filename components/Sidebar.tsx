@@ -9,39 +9,15 @@ import {
   Clock, ChevronDown,
 } from 'lucide-react'
 
-// ── Textura acero azul claro ───────────────────────────────────────────────────
-const SB_TEXTURE = `
-  repeating-linear-gradient(
-    180deg,
-    transparent 0px,
-    transparent 2px,
-    rgba(255,255,255,0.55) 2px,
-    rgba(255,255,255,0.55) 3px
-  ),
-  linear-gradient(
-    135deg,
-    rgba(255,255,255,0.0)  0%,
-    rgba(255,255,255,0.30) 38%,
-    rgba(255,255,255,0.08) 55%,
-    rgba(180,210,240,0.12) 100%
-  ),
-  linear-gradient(
-    180deg,
-    #C2D9F4 0%,
-    #AECAE8 40%,
-    #9BB8DC 75%,
-    #8AAAD0 100%
-  )
-`.replace(/\s+/g, ' ').trim()
-
-const SB   = SB_TEXTURE
-const SB_D = 'rgba(80,130,190,0.30)'
-const SB_H = 'rgba(255,255,255,0.40)'
-const SB_A = 'rgba(255,255,255,0.55)'
-const TX   = '#0A1628'
-const TX_M = 'rgba(10,22,60,0.62)'
-const IC_A = '#0A1628'
-const IC   = 'rgba(10,22,60,0.50)'
+// ── Azul royal sólido ─────────────────────────────────────────────────────────
+const SB   = '#0E30CC'
+const SB_D = 'rgba(0,0,0,0.18)'
+const SB_H = 'rgba(255,255,255,0.12)'
+const SB_A = 'rgba(255,255,255,0.18)'
+const TX   = '#FFFFFF'
+const TX_M = 'rgba(255,255,255,0.65)'
+const IC_A = '#FFFFFF'
+const IC   = 'rgba(255,255,255,0.55)'
 
 // ── Definición de nav ─────────────────────────────────────────────────────────
 type NavItem   = { href: string; label: string; icon: React.ElementType }
@@ -87,7 +63,7 @@ function NavLink({ href, label, icon: Icon, indent = false }: NavItem & { indent
         padding:     indent ? '8px 10px 8px 32px' : '10px 12px',
         background:  active ? SB_A : 'transparent',
         color:       active ? TX : TX_M,
-        borderLeft:  active && !indent ? '3px solid #0A1628' : '3px solid transparent',
+        borderLeft:  active && !indent ? '3px solid rgba(255,255,255,0.90)' : '3px solid transparent',
       }}
       onMouseEnter={e => {
         if (!active) {
@@ -144,14 +120,14 @@ function NavGroupItem({ group, icon: Icon, children }: NavGroup) {
 
         {/* Badge con conteo de hijos */}
         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-          style={{ background: 'rgba(10,22,60,0.12)', color: 'rgba(10,22,60,0.70)' }}>
+          style={{ background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.75)' }}>
           {children.length}
         </span>
 
         <ChevronDown
           size={13}
           style={{
-            color: 'rgba(10,22,60,0.45)',
+            color: 'rgba(255,255,255,0.50)',
             transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 200ms',
             marginLeft: 4,
@@ -167,7 +143,7 @@ function NavGroupItem({ group, icon: Icon, children }: NavGroup) {
       }}>
         {/* Línea vertical guía */}
         <div className="ml-5 pl-3 py-0.5 space-y-0.5"
-          style={{ borderLeft: '1px solid rgba(10,22,60,0.18)' }}>
+          style={{ borderLeft: '1px solid rgba(255,255,255,0.18)' }}>
           {children.map(child => (
             <NavLink key={child.href} {...child} indent />
           ))}
@@ -184,16 +160,16 @@ export default function Sidebar() {
       style={{ background: SB, borderRight: `1px solid ${SB_D}` }}>
 
       {/* Logo */}
-      <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB_D}`, background: 'rgba(255,255,255,0.18)' }}>
+      <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB_D}` }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(10,22,80,0.18)', border: '1px solid rgba(10,40,120,0.22)', boxShadow: '0 2px 8px rgba(10,22,80,0.18)' }}>
-            <Phone size={16} style={{ color: '#0A1628' }} />
+            style={{ background: 'rgba(255,255,255,0.18)', boxShadow: '0 2px 8px rgba(0,0,0,0.20)' }}>
+            <Phone size={16} style={{ color: '#FFFFFF' }} />
           </div>
           <div>
-            <p className="text-sm font-bold leading-tight" style={{ color: '#0A1628' }}>Callpicker</p>
+            <p className="text-sm font-bold leading-tight" style={{ color: '#FFFFFF' }}>Callpicker</p>
             <p className="text-[10px] font-semibold tracking-widest uppercase"
-              style={{ color: 'rgba(10,22,60,0.55)' }}>
+              style={{ color: 'rgba(255,255,255,0.55)' }}>
               Customer Success
             </p>
           </div>
@@ -210,11 +186,11 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4" style={{ borderTop: `1px solid ${SB_D}`, background: 'rgba(255,255,255,0.18)' }}>
+      <div className="px-4 py-4" style={{ borderTop: `1px solid ${SB_D}` }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(10,22,80,0.18)', border: '1px solid rgba(10,40,120,0.20)' }}>
-            <span className="text-xs font-bold" style={{ color: '#0A1628' }}>CS</span>
+            style={{ background: 'rgba(255,255,255,0.18)' }}>
+            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>CS</span>
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold truncate" style={{ color: TX }}>Equipo UX</p>
