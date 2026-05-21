@@ -9,38 +9,39 @@ import {
   Clock, ChevronDown,
 } from 'lucide-react'
 
-// ── Textura acero azul marino ──────────────────────────────────────────────────
+// ── Textura acero azul claro ───────────────────────────────────────────────────
 const SB_TEXTURE = `
   repeating-linear-gradient(
     180deg,
     transparent 0px,
     transparent 2px,
-    rgba(255,255,255,0.013) 2px,
-    rgba(255,255,255,0.013) 3px
+    rgba(255,255,255,0.55) 2px,
+    rgba(255,255,255,0.55) 3px
   ),
   linear-gradient(
-    90deg,
-    rgba(0,80,160,0.0) 0%,
-    rgba(0,100,200,0.10) 45%,
-    rgba(0,80,160,0.0) 100%
+    135deg,
+    rgba(255,255,255,0.0)  0%,
+    rgba(255,255,255,0.30) 38%,
+    rgba(255,255,255,0.08) 55%,
+    rgba(180,210,240,0.12) 100%
   ),
   linear-gradient(
     180deg,
-    #0E2240 0%,
-    #0A1628 35%,
-    #081422 70%,
-    #060F1A 100%
+    #C2D9F4 0%,
+    #AECAE8 40%,
+    #9BB8DC 75%,
+    #8AAAD0 100%
   )
 `.replace(/\s+/g, ' ').trim()
 
 const SB   = SB_TEXTURE
-const SB_D = 'rgba(255,255,255,0.07)'
-const SB_H = 'rgba(255,255,255,0.10)'
-const SB_A = 'rgba(255,255,255,0.16)'
-const TX   = 'rgba(255,255,255,0.92)'
-const TX_M = 'rgba(255,255,255,0.55)'
-const IC_A = '#FFFFFF'
-const IC   = 'rgba(255,255,255,0.50)'
+const SB_D = 'rgba(80,130,190,0.30)'
+const SB_H = 'rgba(255,255,255,0.40)'
+const SB_A = 'rgba(255,255,255,0.55)'
+const TX   = '#0A1628'
+const TX_M = 'rgba(10,22,60,0.62)'
+const IC_A = '#0A1628'
+const IC   = 'rgba(10,22,60,0.50)'
 
 // ── Definición de nav ─────────────────────────────────────────────────────────
 type NavItem   = { href: string; label: string; icon: React.ElementType }
@@ -86,7 +87,7 @@ function NavLink({ href, label, icon: Icon, indent = false }: NavItem & { indent
         padding:     indent ? '8px 10px 8px 32px' : '10px 12px',
         background:  active ? SB_A : 'transparent',
         color:       active ? TX : TX_M,
-        borderLeft:  active && !indent ? '3px solid rgba(255,255,255,0.85)' : '3px solid transparent',
+        borderLeft:  active && !indent ? '3px solid #0A1628' : '3px solid transparent',
       }}
       onMouseEnter={e => {
         if (!active) {
@@ -143,14 +144,14 @@ function NavGroupItem({ group, icon: Icon, children }: NavGroup) {
 
         {/* Badge con conteo de hijos */}
         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-          style={{ background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)' }}>
+          style={{ background: 'rgba(10,22,60,0.12)', color: 'rgba(10,22,60,0.70)' }}>
           {children.length}
         </span>
 
         <ChevronDown
           size={13}
           style={{
-            color: 'rgba(255,255,255,0.45)',
+            color: 'rgba(10,22,60,0.45)',
             transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 200ms',
             marginLeft: 4,
@@ -166,7 +167,7 @@ function NavGroupItem({ group, icon: Icon, children }: NavGroup) {
       }}>
         {/* Línea vertical guía */}
         <div className="ml-5 pl-3 py-0.5 space-y-0.5"
-          style={{ borderLeft: '1px solid rgba(255,255,255,0.10)' }}>
+          style={{ borderLeft: '1px solid rgba(10,22,60,0.18)' }}>
           {children.map(child => (
             <NavLink key={child.href} {...child} indent />
           ))}
@@ -183,16 +184,16 @@ export default function Sidebar() {
       style={{ background: SB, borderRight: `1px solid ${SB_D}` }}>
 
       {/* Logo */}
-      <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB_D}`, background: 'rgba(6,15,26,0.45)' }}>
+      <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB_D}`, background: 'rgba(255,255,255,0.18)' }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(0,120,220,0.30)', border: '1px solid rgba(0,140,255,0.25)', boxShadow: '0 2px 10px rgba(0,80,180,0.35)' }}>
-            <Phone size={16} style={{ color: '#FFFFFF' }} />
+            style={{ background: 'rgba(10,22,80,0.18)', border: '1px solid rgba(10,40,120,0.22)', boxShadow: '0 2px 8px rgba(10,22,80,0.18)' }}>
+            <Phone size={16} style={{ color: '#0A1628' }} />
           </div>
           <div>
-            <p className="text-sm font-bold leading-tight" style={{ color: '#FFFFFF' }}>Callpicker</p>
+            <p className="text-sm font-bold leading-tight" style={{ color: '#0A1628' }}>Callpicker</p>
             <p className="text-[10px] font-semibold tracking-widest uppercase"
-              style={{ color: 'rgba(255,255,255,0.50)' }}>
+              style={{ color: 'rgba(10,22,60,0.55)' }}>
               Customer Success
             </p>
           </div>
@@ -209,11 +210,11 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4" style={{ borderTop: `1px solid ${SB_D}`, background: 'rgba(6,15,26,0.45)' }}>
+      <div className="px-4 py-4" style={{ borderTop: `1px solid ${SB_D}`, background: 'rgba(255,255,255,0.18)' }}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.16)' }}>
-            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>CS</span>
+            style={{ background: 'rgba(10,22,80,0.18)', border: '1px solid rgba(10,40,120,0.20)' }}>
+            <span className="text-xs font-bold" style={{ color: '#0A1628' }}>CS</span>
           </div>
           <div className="min-w-0">
             <p className="text-xs font-semibold truncate" style={{ color: TX }}>Equipo UX</p>
