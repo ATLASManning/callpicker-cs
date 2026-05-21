@@ -174,27 +174,37 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
             </div>
           </div>
 
-          {/* Acciones */}
-          <div className="flex flex-col gap-2 flex-shrink-0 self-start">
+          {/* Acciones — grid 2×2 */}
+          <div className="grid grid-cols-2 gap-2 flex-shrink-0 self-start" style={{ minWidth: 280 }}>
+            {/* 1 — Centro de Ayuda */}
             <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold
                 text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
               style={{ background: '#0F766E' }}>
-              <LifeBuoy size={14} /> Centro de Ayuda
+              <LifeBuoy size={13} /> Centro de Ayuda
             </a>
+            {/* 2 — Slack */}
             <a href="https://callpicker.slack.com" target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold
                 text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
               style={{ background: '#4A154B' }}>
-              <SlackIcon size={14} /> Slack Callpicker
+              <SlackIcon size={13} /> Slack Callpicker
             </a>
+            {/* 3 — My Callpicker */}
+            <a href="https://my.callpicker.com/" target="_blank" rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold
+                text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
+              style={{ background: '#0E30CC' }}>
+              <Phone size={13} /> Callpicker
+            </a>
+            {/* 4 — Compactar / Expandir */}
             <button onClick={() => setExpanded(v => !v)}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl
                 text-xs font-bold text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
               style={{ background: ac.color }}>
               {expanded
                 ? <><ChevronUp size={13} /> Compactar</>
-                : <><ChevronDown size={13} /> Mostrar cuentas</>}
+                : <><ChevronDown size={13} /> Ver cuentas</>}
             </button>
           </div>
         </div>
