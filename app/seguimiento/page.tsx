@@ -2,10 +2,11 @@ import { getCuentas } from '@/lib/supabase'
 import { formatMXN, getSemaforo, SEMAFORO_CONFIG, ASESOR_CONFIG } from '@/lib/types'
 import type { Asesor, Cuenta } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
+import AutoRefresh from '@/components/AutoRefresh'
 import {
-  AlertTriangle, TrendingUp, LayoutDashboard, ChevronDown,
-  CircleDot, CheckCircle2, HelpCircle, Banknote, TicketIcon,
-  Brain, Info,
+  AlertTriangle, ChevronDown, CircleDot, CheckCircle2,
+  HelpCircle, Banknote, TicketIcon, Brain, Info,
+  ShieldAlert, TrendingUp, MonitorCheck,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -459,36 +460,51 @@ function CuentaCard({ cuenta, acciones, preguntas }: {
 
 // ── Bloque temático (Churn / Upsell / Panel) ─────────────────────────────────
 
-function BloqueSection({ titulo, subtitulo, colorHex, cuentas: lista, getAcciones, getPreguntas, emptyMsg }: {
+const BLOQUE_ICONS: Record<string, React.ElementType> = {
+  churn:  ShieldAlert,
+  upsell: TrendingUp,
+  panel:  MonitorCheck,
+}
+
+function BloqueSection({ titulo, subtitulo, colorHex, icono, cuentas: lista, getAcciones, getPreguntas, emptyMsg }: {
   titulo: string
   subtitulo: string
   colorHex: string
+  icono?: string
   cuentas: Cuenta[]
   getAcciones: (c: Cuenta) => string[]
   getPreguntas: (c: Cuenta) => string[]
   emptyMsg: string
 }) {
+  const BIcon = icono ? (BLOQUE_ICONS[icono] ?? CheckCircle2) : CheckCircle2
   return (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-1 h-5 rounded-full flex-shrink-0" style={{ background: colorHex }} />
-        <div className="flex-1">
-          <span className="text-sm font-bold mr-2" style={{ color: colorHex }}>{titulo}</span>
-          <span className="text-[11px] text-textLow">{subtitulo}</span>
+    <div className="mb-5">
+      {/* Encabezado de sección */}
+      <div className="flex items-center gap-3 mb-3 px-1">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: `${colorHex}15`, border: `1px solid ${colorHex}30` }}>
+          <BIcon size={15} style={{ color: colorHex }} />
         </div>
-        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-          style={{ background: `${colorHex}12`, color: colorHex }}>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-bold" style={{ color: colorHex }}>{titulo}</span>
+          <p className="text-[11px] text-textLow leading-tight">{subtitulo}</p>
+        </div>
+        <span className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0"
+          style={{ background: `${colorHex}15`, color: colorHex, border: `1px solid ${colorHex}25` }}>
           {lista.length}
         </span>
       </div>
+
       {lista.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border py-4 px-4 text-center text-xs text-textLow">
+        <div className="rounded-xl border border-dashed border-border py-5 px-4 text-center text-xs text-textLow">
           {emptyMsg}
         </div>
       ) : (
-        lista.map(c => (
-          <CuentaCard key={c.id} cuenta={c} acciones={getAcciones(c)} preguntas={getPreguntas(c)} />
-        ))
+        <div className="space-y-1.5">
+          {lista.map(c => (
+            <CuentaCard key={c.id} cuenta={c} acciones={getAcciones(c)} preguntas={getPreguntas(c)} />
+          ))}
+        </div>
       )}
     </div>
   )
@@ -507,35 +523,35 @@ export default async function SeguimientoPage() {
   const totalChurn   = cuentas.filter(c => c.health_score < 60).length
   const totalTickets = cuentas.reduce((s, c) => s + c.tickets_abiertos, 0)
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen pb-16">
+      <AutoRefresh intervalMs={300_000} showIndicator={false} />
+
       <PageHeader
         title="Seguimiento y Mentoring"
         subtitle={`${today} · ${cuentas.length} cuentas en cartera`}
         actions={
-          <div className="flex items-center gap-3 text-xs">
-            {totalChurn > 0 && (
-              <span className="flex items-center gap-1 text-rojo font-semibold">
-                <AlertTriangle size={13} />
-                {totalChurn} en riesgo
-              </span>
-            )}
-            {totalTickets > 0 && (
-              <span className="flex items-center gap-1 text-naranja font-semibold">
-                <TicketIcon size={13} />
-                {totalTickets} tickets abiertos
-              </span>
-            )}
+          <div className="flex items-center gap-4">
+            <AutoRefresh intervalMs={300_000} showIndicator />
+            <div className="flex items-center gap-3 text-xs">
+              {totalChurn > 0 && (
+                <span className="flex items-center gap-1.5 font-semibold text-rojo
+                  bg-rojo/10 border border-rojo/25 px-3 py-1.5 rounded-lg">
+                  <AlertTriangle size={12} /> {totalChurn} en riesgo
+                </span>
+              )}
+            </div>
           </div>
         }
       />
 
-      <div className="px-6 space-y-4 mt-2">
+      {/* ── Cuerpo: un bloque por asesor ─────────────────────────────────── */}
+      <div className="px-6 space-y-5 mt-2">
         {asesores.map(asesor => {
           const ac = ASESOR_CONFIG[asesor]
           const lista = cuentas.filter(c => c.asesor === asesor)
 
-          // Semáforo calculado localmente
           const verde    = lista.filter(c => c.health_score >= 80).length
           const azul     = lista.filter(c => c.health_score >= 60 && c.health_score < 80).length
           const amarillo = lista.filter(c => c.health_score >= 40 && c.health_score < 60).length
@@ -545,7 +561,6 @@ export default async function SeguimientoPage() {
           const facturacionRiesgo = lista.filter(c => c.health_score < 40)
             .reduce((s, c) => s + (c.facturacion ?? 0), 0)
 
-          // Bloques
           const churnLista = [...lista]
             .filter(c => c.health_score < 60)
             .sort((a, b) => a.health_score - b.health_score)
@@ -555,176 +570,235 @@ export default async function SeguimientoPage() {
           )
           const upsellLista = conOportunidad.length > 0
             ? conOportunidad
-            : [...lista]
-                .filter(c => c.health_score >= 70)
-                .sort((a, b) => b.facturacion - a.facturacion)
-                .slice(0, 5)
+            : [...lista].filter(c => c.health_score >= 70)
+                .sort((a, b) => b.facturacion - a.facturacion).slice(0, 5)
 
           const panelLista = [...lista]
             .filter(c => !c.dashboard_revisado || !c.tiene_chat_activo || c.dias_sin_actividad > 14)
             .sort((a, b) => b.dias_sin_actividad - a.dias_sin_actividad)
 
           const semPills = [
-            { v: verde,    c: '#22C55E' },
-            { v: azul,     c: '#3B82F6' },
-            { v: amarillo, c: '#EAB308' },
-            { v: naranja,  c: '#F97316' },
-            { v: rojo,     c: '#EF4444' },
+            { v: verde,    c: '#22C55E', l: 'Saludable'   },
+            { v: azul,     c: '#3B82F6', l: 'Estable'     },
+            { v: amarillo, c: '#EAB308', l: 'Observación' },
+            { v: naranja,  c: '#F97316', l: 'En Riesgo'   },
+            { v: rojo,     c: '#EF4444', l: 'Riesgo Alto' },
           ].filter(s => s.v > 0)
+
+          const { contexto, preguntas } = mentoringOneOnOne(asesor, lista)
 
           return (
             <details key={asesor} open
-              className="rounded-2xl border overflow-hidden"
-              style={{ borderColor: `${ac.color}30` }}>
+              className="rounded-2xl overflow-hidden shadow-sm"
+              style={{
+                border: `1px solid ${ac.color}30`,
+                borderLeft: `4px solid ${ac.color}`,
+                background: 'var(--card)',
+              }}>
 
-              {/* Header asesor */}
-              <summary
-                className="flex items-center gap-3 px-5 py-4 cursor-pointer list-none
-                  hover:bg-black/[0.015] transition-colors group"
-                style={{ background: `${ac.color}06` }}>
-                <div
-                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
-                  style={{ background: `${ac.color}20`, color: ac.color, border: `2px solid ${ac.color}40` }}>
-                  {ac.initial}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-bold text-textHi">{asesor}</p>
-                  <p className="text-xs text-textLow">
-                    {lista.length} cuentas · {formatMXN(facturacionTotal)}
-                    {facturacionRiesgo > 0 && (
-                      <span className="text-rojo ml-1.5">
-                        · {formatMXN(facturacionRiesgo)} en riesgo
+              {/* ── Header del asesor ── */}
+              <summary className="list-none cursor-pointer group">
+                <div className="flex items-center gap-4 px-5 py-4 hover:bg-black/[0.015] transition-colors"
+                  style={{ background: `${ac.color}05` }}>
+
+                  {/* Avatar */}
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-lg font-black flex-shrink-0"
+                    style={{ background: `${ac.color}20`, color: ac.color, border: `2px solid ${ac.color}35` }}>
+                    {ac.initial}
+                  </div>
+
+                  {/* Nombre + stats */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-base font-bold text-textHi">{asesor}</p>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: `${ac.color}15`, color: ac.color }}>
+                        {lista.length} cuentas
+                      </span>
+                      {facturacionRiesgo > 0 && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full
+                          bg-rojo/10 text-rojo border border-rojo/20">
+                          {formatMXN(facturacionRiesgo)} en riesgo
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-textLow mt-0.5">
+                      Cartera: {formatMXN(facturacionTotal)}
+                      {' · '}Ejecutivo Customer Success
+                    </p>
+                  </div>
+
+                  {/* Semáforo pills */}
+                  <div className="hidden md:flex items-center gap-1.5 flex-wrap mr-3">
+                    {semPills.map((s, i) => (
+                      <span key={i}
+                        className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg"
+                        style={{ background: `${s.c}15`, color: s.c, border: `1px solid ${s.c}25` }}>
+                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.c }} />
+                        {s.v}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Alertas + toggle */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {churnLista.length > 0 && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold
+                        bg-rojo/10 text-rojo border border-rojo/20 px-2 py-1 rounded-lg">
+                        <AlertTriangle size={11} /> {churnLista.length} prioritarias
                       </span>
                     )}
-                  </p>
-                </div>
-                <div className="hidden sm:flex items-center gap-1 mr-2">
-                  {semPills.map((s, i) => (
-                    <span key={i}
-                      className="text-[11px] font-bold px-2 py-0.5 rounded"
-                      style={{ background: `${s.c}18`, color: s.c }}>
-                      {s.v}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {churnLista.length > 0 && (
-                    <span className="flex items-center gap-1 text-[11px] font-semibold text-rojo">
-                      <AlertTriangle size={11} />
-                      {churnLista.length}
-                    </span>
-                  )}
-                  <ChevronDown
-                    size={15}
-                    className="text-textLow transition-transform group-open:rotate-180"
-                  />
+                    <div className="flex items-center gap-1 text-[11px] text-textLow px-3 py-1.5
+                      rounded-lg border border-border bg-surface/50">
+                      <ChevronDown size={13} className="transition-transform group-open:rotate-180" />
+                      <span className="hidden sm:inline group-open:hidden">Expandir</span>
+                      <span className="hidden sm:inline hidden group-open:inline">Cerrar</span>
+                    </div>
+                  </div>
                 </div>
               </summary>
 
-              {/* Contenido */}
-              <div className="px-5 py-5 border-t" style={{ borderColor: `${ac.color}20` }}>
+              {/* ── Contenido expandido ── */}
+              <div className="border-t" style={{ borderColor: `${ac.color}20` }}>
 
-                {/* 1 — CHURN */}
-                <BloqueSection
-                  titulo="Retención y Churn"
-                  subtitulo="Cuentas con health score < 60 — intervención prioritaria"
-                  colorHex="#DC2626"
-                  cuentas={churnLista}
-                  getAcciones={churnAcciones}
-                  getPreguntas={churnPreguntas}
-                  emptyMsg="✓ Todas las cuentas superan 60 de health score. Sin riesgo de churn esta semana."
-                />
+                {/* Barra de navegación interna de secciones */}
+                <div className="flex items-center gap-1 px-5 py-2.5 overflow-x-auto"
+                  style={{ background: `${ac.color}04`, borderBottom: `1px solid ${ac.color}12` }}>
+                  {[
+                    { label: 'Retención & Churn', n: churnLista.length,  color: '#DC2626' },
+                    { label: 'Upsell & Cross',    n: upsellLista.length, color: '#A855F7' },
+                    { label: 'Panel de Control',  n: panelLista.length,  color: '#0057FF' },
+                    { label: 'Mentoring 1:1',     n: preguntas.length,   color: ac.color  },
+                  ].map(tab => (
+                    <span key={tab.label}
+                      className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5
+                        rounded-lg whitespace-nowrap flex-shrink-0"
+                      style={{ background: `${tab.color}10`, color: tab.color, border: `1px solid ${tab.color}20` }}>
+                      {tab.label}
+                      <span className="font-bold px-1.5 py-0.5 rounded text-[10px]"
+                        style={{ background: `${tab.color}20` }}>
+                        {tab.n}
+                      </span>
+                    </span>
+                  ))}
+                </div>
 
-                <div className="border-t border-border my-5" />
+                <div className="px-5 py-5 space-y-6">
 
-                {/* 2 — UPSELL / CROSS-SELL */}
-                <BloqueSection
-                  titulo="Upsell y Cross-sell"
-                  subtitulo={
-                    conOportunidad.length > 0
+                  {/* 1 — CHURN */}
+                  <BloqueSection
+                    titulo="Retención y Churn"
+                    subtitulo="Cuentas con Health Score < 60 — intervención prioritaria"
+                    colorHex="#DC2626" icono="churn"
+                    cuentas={churnLista}
+                    getAcciones={churnAcciones}
+                    getPreguntas={churnPreguntas}
+                    emptyMsg="✓ Todas las cuentas superan HS 60. Sin riesgo de churn esta semana."
+                  />
+
+                  <div className="border-t border-border" />
+
+                  {/* 2 — UPSELL */}
+                  <BloqueSection
+                    titulo="Upsell y Cross-sell"
+                    subtitulo={conOportunidad.length > 0
                       ? 'Oportunidades activas de expansión'
-                      : `Sin oportunidades registradas — candidatos saludables (HS ≥ 70)`
-                  }
-                  colorHex="#A855F7"
-                  cuentas={upsellLista}
-                  getAcciones={upsellAcciones}
-                  getPreguntas={upsellPreguntas}
-                  emptyMsg="Sin oportunidades activas ni cuentas candidatas disponibles."
-                />
+                      : 'Sin oportunidades registradas — candidatos saludables (HS ≥ 70)'}
+                    colorHex="#A855F7" icono="upsell"
+                    cuentas={upsellLista}
+                    getAcciones={upsellAcciones}
+                    getPreguntas={upsellPreguntas}
+                    emptyMsg="Sin oportunidades activas ni cuentas candidatas disponibles."
+                  />
 
-                <div className="border-t border-border my-5" />
+                  <div className="border-t border-border" />
 
-                {/* 3 — PANEL DE CONTROL */}
-                <BloqueSection
-                  titulo="Uso del Panel de Control"
-                  subtitulo="Sin dashboard revisado, sin chat activo o con más de 14 días de inactividad"
-                  colorHex="#0057FF"
-                  cuentas={panelLista}
-                  getAcciones={panelAcciones}
-                  getPreguntas={panelPreguntas}
-                  emptyMsg="✓ Todas las cuentas tienen el panel activo y revisado."
-                />
+                  {/* 3 — PANEL */}
+                  <BloqueSection
+                    titulo="Uso del Panel de Control"
+                    subtitulo="Sin dashboard revisado, sin chat activo o con +14 días de inactividad"
+                    colorHex="#0057FF" icono="panel"
+                    cuentas={panelLista}
+                    getAcciones={panelAcciones}
+                    getPreguntas={panelPreguntas}
+                    emptyMsg="✓ Todas las cuentas tienen el panel activo y revisado."
+                  />
 
-                <div className="border-t border-border my-5" />
+                  <div className="border-t border-border" />
 
-                {/* 4 — MENTORING ONE-ON-ONE */}
-                {(() => {
-                  const { contexto, preguntas } = mentoringOneOnOne(asesor, lista)
-                  return (
-                    <div className="mb-2">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-1 h-5 rounded-full flex-shrink-0" style={{ background: ac.color }} />
-                        <div className="flex-1">
-                          <span className="text-sm font-bold mr-2" style={{ color: ac.color }}>
-                            Mentoring One-on-One
-                          </span>
-                          <span className="text-[11px] text-textLow">
-                            Preguntas de diagnóstico para la sesión semanal con {asesor}
-                          </span>
-                        </div>
-                        <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
-                          style={{ background: `${ac.color}12`, color: ac.color }}>
-                          <Brain size={10} /> {preguntas.length} preguntas
-                        </span>
+                  {/* 4 — MENTORING 1:1 */}
+                  <div>
+                    <div className="flex items-center gap-3 mb-4 px-1">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: `${ac.color}15`, border: `1px solid ${ac.color}30` }}>
+                        <Brain size={15} style={{ color: ac.color }} />
                       </div>
+                      <div className="flex-1">
+                        <span className="text-sm font-bold" style={{ color: ac.color }}>
+                          Mentoring One-on-One
+                        </span>
+                        <p className="text-[11px] text-textLow leading-tight">
+                          Sesión semanal con {asesor} · diagnóstico y preguntas clave
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+                        style={{ background: `${ac.color}15`, color: ac.color, border: `1px solid ${ac.color}25` }}>
+                        {preguntas.length} preguntas
+                      </span>
+                    </div>
 
-                      {/* Contexto del portafolio */}
-                      {contexto.length > 0 && (
-                        <div className="rounded-xl border p-3 mb-3 space-y-1.5"
-                          style={{ borderColor: `${ac.color}25`, background: `${ac.color}05` }}>
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <Info size={11} style={{ color: ac.color }} />
-                            <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: ac.color }}>
-                              Contexto del portafolio
-                            </span>
-                          </div>
-                          {contexto.map((ctx, i) => (
-                            <div key={i} className="flex items-start gap-2 text-xs text-textMid">
-                              <CircleDot size={9} className="flex-shrink-0 mt-0.5" style={{ color: ac.color }} />
-                              {ctx}
-                            </div>
-                          ))}
+                    {/* Contexto del portafolio */}
+                    {contexto.length > 0 && (
+                      <div className="rounded-xl border p-4 mb-4 space-y-2"
+                        style={{ borderColor: `${ac.color}25`, background: `${ac.color}05` }}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <Info size={12} style={{ color: ac.color }} />
+                          <span className="text-[10px] font-bold uppercase tracking-widest"
+                            style={{ color: ac.color }}>
+                            Contexto del portafolio
+                          </span>
                         </div>
-                      )}
-
-                      {/* Preguntas */}
-                      <div className="rounded-xl border overflow-hidden" style={{ borderColor: `${ac.color}25` }}>
-                        {preguntas.map((q, i) => (
-                          <div key={i}
-                            className="flex items-start gap-3 px-4 py-3 text-xs border-b last:border-b-0"
-                            style={{ borderColor: `${ac.color}15` }}>
-                            <span className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5"
-                              style={{ background: `${ac.color}18`, color: ac.color }}>
-                              {i + 1}
-                            </span>
-                            <span className="text-textMid leading-relaxed">{q}</span>
+                        {contexto.map((ctx, i) => (
+                          <div key={i} className="flex items-start gap-2 text-xs text-textMid leading-relaxed">
+                            <CircleDot size={9} className="flex-shrink-0 mt-0.5" style={{ color: ac.color }} />
+                            {ctx}
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )
-                })()}
+                    )}
 
+                    {/* Preguntas numeradas */}
+                    <div className="rounded-xl border overflow-hidden"
+                      style={{ borderColor: `${ac.color}25` }}>
+                      {preguntas.map((q, i) => (
+                        <div key={i}
+                          className="flex items-start gap-3 px-4 py-3 text-xs border-b last:border-b-0"
+                          style={{ borderColor: `${ac.color}12` }}>
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center
+                            text-[10px] font-bold mt-0.5"
+                            style={{ background: `${ac.color}18`, color: ac.color }}>
+                            {i + 1}
+                          </span>
+                          <span className="text-textMid leading-relaxed">{q}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>{/* /px-5 py-5 */}
+
+                {/* Footer del bloque */}
+                <div className="px-5 py-3 flex items-center justify-between border-t"
+                  style={{ borderColor: `${ac.color}15`, background: `${ac.color}04` }}>
+                  <span className="text-[11px] text-textLow">
+                    {lista.length} cuentas · {formatMXN(facturacionTotal)} cartera total
+                  </span>
+                  <Link href="/asesores"
+                    className="text-[11px] font-medium transition-colors"
+                    style={{ color: ac.color }}>
+                    Ver panel completo →
+                  </Link>
+                </div>
               </div>
             </details>
           )
