@@ -8,16 +8,16 @@ import HealthScoreRing from './HealthScoreRing'
 
 // ── Dark palette (match DashMetricasSection) ─────────────────────────────────
 const D = {
-  panel:    '#071828',
-  border:   'rgba(0,180,255,0.10)',
-  borderH:  'rgba(0,180,255,0.20)',
-  txHi:     '#E8F4FF',
-  txMid:    'rgba(200,228,255,0.65)',
-  txLow:    'rgba(200,228,255,0.35)',
-  rowAlt:   'rgba(255,255,255,0.018)',
-  rowHover: 'rgba(0,180,255,0.05)',
+  panel:    '#0F2040',
+  border:   'rgba(255,255,255,0.10)',
+  borderH:  'rgba(255,255,255,0.18)',
+  txHi:     '#FFFFFF',
+  txMid:    'rgba(255,255,255,0.70)',
+  txLow:    'rgba(255,255,255,0.45)',
+  rowAlt:   'rgba(255,255,255,0.03)',
+  rowHover: 'rgba(255,255,255,0.06)',
   cyan:     '#00B4FF',
-  th:       'rgba(255,255,255,0.025)',
+  th:       'rgba(255,255,255,0.04)',
 }
 
 interface Props { cuentas: Cuenta[]; dark?: boolean }

@@ -17,20 +17,19 @@ import {
 } from 'lucide-react'
 import { formatMXN } from '@/lib/types'
 
-// ── Paleta NASA ───────────────────────────────────────────────────────────────
-const BG       = '#050D1A'
-const PANEL    = '#071828'
-const BORDER   = 'rgba(0,180,255,0.18)'
-const BORDER_B = 'rgba(0,180,255,0.10)'
-const TX_HI    = '#E8F4FF'
-const TX_MID   = 'rgba(200,228,255,0.65)'
-const TX_LOW   = 'rgba(200,228,255,0.35)'
+// ── Paleta azul marino — igual que AsesorCard y Dashboard ────────────────────
+const PANEL    = '#0F2040'
+const BORDER   = 'rgba(255,255,255,0.10)'
+const BORDER_B = 'rgba(255,255,255,0.06)'
+const TX_HI    = '#FFFFFF'
+const TX_MID   = 'rgba(255,255,255,0.70)'
+const TX_LOW   = 'rgba(255,255,255,0.45)'
 const CYAN     = '#00B4FF'
 
 // Tooltip oscuro para Recharts
 const TT = {
-  background: '#0A1E35',
-  border: '1px solid rgba(0,180,255,0.30)',
+  background: '#0A1628',
+  border: '1px solid rgba(255,255,255,0.15)',
   borderRadius: 8,
   fontSize: 12,
   color: TX_HI,
@@ -81,7 +80,7 @@ function KpiBlock({
   return (
     <div className="flex flex-col gap-3 p-5 rounded-2xl relative overflow-hidden"
       style={{
-        background: `linear-gradient(145deg, ${PANEL} 0%, rgba(5,13,26,0.95) 100%)`,
+        background: `linear-gradient(145deg, ${PANEL} 0%, rgba(10,22,40,0.98) 100%)`,
         border: `1px solid ${accent}25`,
         boxShadow: `0 0 20px ${accent}10, 0 4px 16px rgba(0,0,0,0.4)`,
       }}>
@@ -201,7 +200,7 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
       {/* ── Top 10 Facturación ─────────────────────────────────────────────── */}
       <div className="px-6 pb-5">
         <div className="rounded-2xl p-5"
-          style={{ background: PANEL, border: `1px solid ${BORDER_B}` }}>
+          style={{ background: PANEL, border: `1px solid ${BORDER}` }}>
 
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-bold uppercase tracking-[0.10em]"

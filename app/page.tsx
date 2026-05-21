@@ -16,15 +16,15 @@ import rawTickets from '@/lib/tickets-data.json'
 
 export const dynamic = 'force-dynamic'
 
-// ── Paleta NASA (consistente con DashMetricasSection y TopRiesgoTable) ────────
-const BG      = '#050D1A'
-const PANEL   = '#071828'
-const PANEL2  = '#0A1E35'
-const BORDER  = 'rgba(0,180,255,0.15)'
-const BORDER2 = 'rgba(0,180,255,0.08)'
-const TX_HI   = '#E8F4FF'
-const TX_MID  = 'rgba(200,228,255,0.65)'
-const TX_LOW  = 'rgba(200,228,255,0.35)'
+// ── Paleta azul marino — igual que AsesorCard ─────────────────────────────────
+const BG      = '#0A1628'
+const PANEL   = '#0F2040'
+const PANEL2  = '#0D1B35'
+const BORDER  = 'rgba(255,255,255,0.10)'
+const BORDER2 = 'rgba(255,255,255,0.06)'
+const TX_HI   = '#FFFFFF'
+const TX_MID  = 'rgba(255,255,255,0.70)'
+const TX_LOW  = 'rgba(255,255,255,0.45)'
 const CYAN    = '#00B4FF'
 
 // ── Semáforo colores ──────────────────────────────────────────────────────────
