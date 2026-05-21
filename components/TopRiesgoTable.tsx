@@ -1,3 +1,4 @@
+'use client'
 import Link from 'next/link'
 import { AlertTriangle, ArrowUpRight } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
