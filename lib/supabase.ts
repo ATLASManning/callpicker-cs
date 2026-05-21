@@ -92,6 +92,14 @@ export async function updateCuenta(id: string, changes: Partial<Cuenta>): Promis
   return data as Cuenta
 }
 
+export async function deleteCuenta(id: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('cuentas')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
 // ── KPIs / Dashboard ────────────────────────────────────────────────────────
 
 export async function getKPIs() {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCuentaById, updateCuenta, saveHealthSnapshot } from '@/lib/supabase'
+import { getCuentaById, updateCuenta, saveHealthSnapshot, deleteCuenta } from '@/lib/supabase'
 
 interface Ctx { params: { id: string } }
 
@@ -21,6 +21,15 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     }
 
     return NextResponse.json(updated)
+  } catch (e: unknown) {
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: Ctx) {
+  try {
+    await deleteCuenta(params.id)
+    return NextResponse.json({ ok: true, deleted: params.id })
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
