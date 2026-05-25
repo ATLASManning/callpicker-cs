@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import SemaforoDashChart from '@/components/charts/SemaforoDashChart'
+import AsesorLineasChart from '@/components/charts/AsesorLineasChart'
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
 import DashMetricasSection from '@/components/DashMetricasSection'
@@ -383,7 +384,20 @@ export default async function DashboardPage() {
         </Panel>
       </div>
 
-      {/* ══ §4 Top Cuentas en Riesgo ══════════════════════════════════════════ */}
+      {/* ══ §4 Tendencia Cuentas por Asesor y Rango ══════════════════════════ */}
+      <div className="px-6 pb-5">
+        <Panel>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
+            <PanelTitle>Distribución por Asesor · Rango de Salud</PanelTitle>
+          </div>
+          <p style={{ fontSize: 11, color: TX_LOW, marginBottom: 14, marginTop: -6 }}>
+            Cuentas e importe por semáforo — alterna entre vista de cantidad e importe facturado
+          </p>
+          <AsesorLineasChart data={semaforoAsesor} />
+        </Panel>
+      </div>
+
+      {/* ══ §5 Top Cuentas en Riesgo ══════════════════════════════════════════ */}
       <div className="px-6 pb-5">
         <div style={{
           background: PANEL, border: `1px solid ${BORDER}`,
