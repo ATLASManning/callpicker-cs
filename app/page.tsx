@@ -183,7 +183,7 @@ export default async function DashboardPage() {
     }))
 
   // Resumen Top Customer por asesor
-  const topRanges:  Record<string, number> = { F: 46, D: 38, C: 43 }
+  const topRanges:  Record<string, number> = { F: 46, D: 48, C: 47 }
   const prefixAsesor: Record<string, string> = { F: 'Fátima', D: 'Dan', C: 'Claudia' }
   const topFac: Record<string, number> = {}
   cuentas.forEach(c => {
