@@ -390,7 +390,7 @@ export default async function DashboardPage() {
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 4 }}>
             <PanelTitle>Distribución por Asesor · Rango de Salud</PanelTitle>
           </div>
-          <p style={{ fontSize: 11, color: TX_LOW, marginBottom: 14, marginTop: -6 }}>
+          <p style={{ fontSize: 13, color: TX_MID, marginBottom: 16, marginTop: -4 }}>
             Cuentas e importe por semáforo — alterna entre vista de cantidad e importe facturado
           </p>
           <AsesorLineasChart data={semaforoAsesor} />
