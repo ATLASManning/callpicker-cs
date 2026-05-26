@@ -10,21 +10,35 @@ import {
 /* ═══════════════════════════════════════════════════════════════════════
    TIPOS
 ═══════════════════════════════════════════════════════════════════════ */
-type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade'
-type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 't1'
+type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
+type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'grc' | 't1'
 
-interface ChurnPendiente  { cliente: string; monto: number; mesesActivo: number; ultimaFactura: string }
-interface ChurnCancelado  { cliente: string; mrr: number;   mesesActivo: number; acumulado: number    }
-interface ChurnDowngrade  { cliente: string; perdida: number; nota: string                            }
+interface ChurnPendiente   { cliente: string; monto: number; mesesActivo: number; ultimaFactura: string }
+interface ChurnCancelado   { cliente: string; mrr: number;   mesesActivo: number; acumulado: number    }
+interface ChurnDowngrade   { cliente: string; perdida: number; nota: string                            }
+interface ChurnSuspendido  { cliente: string; importe: number; mesesActivo: number; estado: 'Suspendido' | 'Inactivo' }
+
+interface ChurnGRC {
+  evolucion:   { mes: string; pct: number }[]
+  acumulado:   number
+  notaClave:   string
+  notaEspecial?: string
+}
 
 interface ChurnReporte {
   id:          string
-  periodo:     string   // "Semana 20 – Mayo 2026"
-  fecha:       string   // "12/05/2026"
+  periodo:     string
+  fecha:       string
   notas:       string
   pendientes:  ChurnPendiente[]
   cancelados:  ChurnCancelado[]
   downgrades:  ChurnDowngrade[]
+  suspendidos?: ChurnSuspendido[]
+  grc?:        ChurnGRC
+  pendientesTotalReal?:   number   // Total real cuando hay más registros que los mostrados
+  pendientesCuentasReal?: number
+  suspendidosTotalReal?:  number
+  suspendidosCuentasReal?: number
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -38,10 +52,13 @@ const INDIGO = '#6366f1'
 const GREEN  = '#22c55e'
 
 const SEMAFORO_MAP: Record<SemaforoChurn, { color: string; label: string; dot: string }> = {
-  cancelado: { color: RED,    label: 'Cancelado',          dot: '🔴' },
-  pendiente: { color: ORANGE, label: 'Pendiente Facturar', dot: '🟠' },
-  downgrade: { color: AMBER,  label: 'Downgrade',          dot: '🟡' },
+  cancelado:  { color: RED,    label: 'Cancelado',          dot: '🔴' },
+  pendiente:  { color: ORANGE, label: 'Pendiente Facturar', dot: '🟠' },
+  downgrade:  { color: AMBER,  label: 'Downgrade',          dot: '🟡' },
+  suspendido: { color: BLUE,   label: 'Suspendido/Inactivo',dot: '🔵' },
 }
+
+const TEAL = '#0d9488'
 
 /* ═══════════════════════════════════════════════════════════════════════
    REPORTE BASE — ABRIL 2026 (hardcoded, no se puede eliminar)
@@ -87,6 +104,66 @@ const REPORTE_ABRIL_2026: ChurnReporte = {
     { cliente: 'ESDIE',             perdida: 3000,    nota: 'Paquete Min Voicebot cancelado de su facturación.' },
     { cliente: 'Finsus Cobranza',   perdida: 2880,    nota: 'Extension Callcenter reducida de $8,268 a $5,388.' },
     { cliente: 'Finaura',           perdida: 2333.20, nota: 'Ofuscador $4,276→$3,000 · Paquete Min VyC $2,557→$1,794 · Paquete Campañas $984→$690. Facturación total pasa de $7,817.20 a $5,484.' },
+  ],
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 4 · MAYO 2026 (hardcoded, no se puede eliminar)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S4_MAYO_2026: ChurnReporte = {
+  id:      's4-mayo-2026',
+  periodo: 'Semana 4 · Mayo 2026',
+  fecha:   '22/05/2026',
+  notas:   'Gross Revenue Churn · Semana 4. Al 22 de mayo del 2026. El incremento crítico en Mayo se debe principalmente al volumen de clientes que se encuentran pendientes de facturar. El GRC acumulado alcanza un 28%.',
+
+  /* Nota FINSUS */
+  grc: {
+    evolucion: [
+      { mes: 'Marzo',          pct: 2.3  },
+      { mes: 'Abril',          pct: 2.0  },
+      { mes: 'Mayo (Actual)',   pct: 19.7 },
+    ],
+    acumulado: 28,
+    notaClave: 'El incremento crítico en Mayo se debe principalmente al volumen de clientes pendientes de facturar.',
+    notaEspecial: '✅ Nota Finsus Growth: Se revisó el caso del decremento de WhatsApp API por $121,500. Confirmamos que este monto ya se facturó exitosamente y ha sido descartado de las métricas de pérdida neta de este periodo.',
+  },
+
+  /* Pendiente de Facturar — top 5 de 31 cuentas */
+  pendientesTotalReal:   28735,
+  pendientesCuentasReal: 31,
+  pendientes: [
+    { cliente: 'Inteligencia Canina',         monto: 5568, mesesActivo: 0, ultimaFactura: '08/04/2026' },
+    { cliente: 'Espumas de Calidad',          monto: 1389, mesesActivo: 0, ultimaFactura: '17/04/2026' },
+    { cliente: 'Evolución IT',               monto: 1278, mesesActivo: 0, ultimaFactura: '13/04/2026' },
+    { cliente: 'Industrias Quimicas ANAVAL',  monto: 1189, mesesActivo: 0, ultimaFactura: '14/04/2026' },
+    { cliente: 'Benemas',                     monto: 1078, mesesActivo: 0, ultimaFactura: '14/04/2026' },
+    { cliente: '+ 26 clientes adicionales',   monto: 18233,mesesActivo: 0, ultimaFactura: 'Ver reporte base' },
+  ],
+
+  /* Sin cancelados confirmados en este corte */
+  cancelados: [],
+
+  /* Downgrades */
+  downgrades: [
+    { cliente: 'Embler Autopartes',        perdida: 3560,    nota: 'En su Extension Callcenter de $4,450 bajó a $890.' },
+    { cliente: 'GTC - CENTRO MAX',         perdida: 3295.90, nota: 'De su facturación redujo el paquete ops Automatizaciones de $12,631.14 a $9,335.24.' },
+    { cliente: 'GTC - NAVA',               perdida: 3295.90, nota: 'De su facturación redujo el paquete ops Automatizaciones de $12,631.14 a $9,335.' },
+    { cliente: 'SG LOCALIZACION',          perdida: 3143.02, nota: 'De su facturación redujo el artículo Extension VyC de $9,429.02 a $6,286.' },
+    { cliente: 'SAMALAB',                  perdida: 3000,    nota: 'Redujo su facturación recurrente en el artículo paquete Min Voicebot de $6,000 a $3,000, pero llevó la gran parte de su facturación a consumo Min Voicebot con un monto de $11,523.60.' },
+    { cliente: 'GTC - FORUM',              perdida: 2396.43, nota: 'Redujo el paquete ops Automatizaciones de $9,184.03 a $6,787.60; cambió el artículo de Agente CP Chat a Agente CP Chat Callcenter con el mismo monto de $4,845.55.' },
+    { cliente: 'Petroil - Prebiem Oceanica',perdida: 2431,   nota: 'Canceló el artículo Extension CE con un monto de $5,725 y adquirió Extension VyC por un monto de $3,294.' },
+  ],
+
+  /* Suspendidos e Inactivos — top 5 de 22 cuentas */
+  suspendidosTotalReal:   14845,
+  suspendidosCuentasReal: 22,
+  suspendidos: [
+    { cliente: 'ISAGAS',                     importe: 3089, mesesActivo: 68,  estado: 'Suspendido' },
+    { cliente: 'Transportes BPG SAS. de CV.',importe: 2546, mesesActivo: 90,  estado: 'Inactivo'   },
+    { cliente: 'Pizzall',                    importe: 1870, mesesActivo: 38,  estado: 'Inactivo'   },
+    { cliente: 'CF Group',                   importe: 1182, mesesActivo: 46,  estado: 'Suspendido' },
+    { cliente: 'Ruandi',                     importe: 1084, mesesActivo: 105, estado: 'Suspendido' },
+    { cliente: '+ 17 cuentas adicionales',   importe: 5074, mesesActivo: 0,   estado: 'Suspendido' },
   ],
 }
 
@@ -472,13 +549,26 @@ function ChurnForm({ onClose, onSave }: { onClose: () => void; onSave: (r: Churn
    TABS CONFIG (dinámica según reporte seleccionado)
 ═══════════════════════════════════════════════════════════════════════ */
 function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[] {
-  return [
-    { id: 'resumen',    label: 'Resumen',                                 color: INDIGO  },
-    { id: 'pendiente',  label: `🟠 Pendientes (${r.pendientes.length})`,  color: ORANGE  },
-    { id: 'cancelados', label: `🔴 Cancelados (${r.cancelados.length})`,  color: RED     },
-    { id: 'downgrades', label: `🟡 Downgrades (${r.downgrades.length})`,  color: AMBER   },
-    { id: 't1',         label: 'Resumen T1 2026',                          color: BLUE    },
+  const tabs: { id: Tab; label: string; color: string }[] = [
+    { id: 'resumen',    label: 'Resumen',                                              color: INDIGO },
   ]
+  if (r.grc) {
+    tabs.push({ id: 'grc', label: '📊 Comportamiento GRC',                            color: TEAL   })
+  }
+  tabs.push(
+    { id: 'pendiente',    label: `🟠 Pendientes (${r.pendientesCuentasReal ?? r.pendientes.length})`, color: ORANGE },
+  )
+  if (r.cancelados.length > 0) {
+    tabs.push({ id: 'cancelados', label: `🔴 Cancelados (${r.cancelados.length})`,    color: RED    })
+  }
+  tabs.push(
+    { id: 'downgrades',  label: `🟡 Downgrades (${r.downgrades.length})`,             color: AMBER  },
+  )
+  if (r.suspendidos && r.suspendidos.length > 0) {
+    tabs.push({ id: 'suspendidos', label: `🔵 Suspendidos (${r.suspendidosCuentasReal ?? r.suspendidos.length})`, color: BLUE })
+  }
+  tabs.push({ id: 't1', label: 'Resumen T1 2026',                                     color: INDIGO })
+  return tabs
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -486,20 +576,22 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('abril-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s4-mayo-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, ...userReportes]
+  const BASE_IDS = ['abril-2026', 's4-mayo-2026']
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, ...userReportes]
   const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_ABRIL_2026
 
-  const { pendientes, cancelados, downgrades } = reporte
-  const totalPendiente  = pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
+  const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
+  const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
   const totalCancelados = cancelados.reduce((s, c) => s + (Number(c.mrr)     || 0), 0)
   const totalDowngrades = downgrades.reduce((s, c) => s + (Number(c.perdida) || 0), 0)
+  const totalSuspendidos = reporte.suspendidosTotalReal ?? (suspendidos ?? []).reduce((s, c) => s + (Number(c.importe) || 0), 0)
   const TABS = buildTabs(reporte)
 
   const handleSave = (r: ChurnReporte) => {
@@ -516,7 +608,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('abril-2026')
+    if (selectedId === id) setSelectedId('s4-mayo-2026')
     setDelConfirm(null)
   }
 
@@ -553,8 +645,8 @@ export default function ChurnPage() {
           <div className="flex overflow-x-auto gap-1 p-2">
             {allReportes.map(r => {
               const active   = selectedId === r.id
-              const isBase   = r.id === 'abril-2026'
-              const totImpact = r.pendientes.reduce((s, x) => s + (Number(x.monto) || 0), 0)
+              const isBase    = BASE_IDS.includes(r.id)
+              const totImpact = (r.pendientesTotalReal ?? r.pendientes.reduce((s, x) => s + (Number(x.monto) || 0), 0))
                               + r.cancelados.reduce((s, x) => s + (Number(x.mrr)   || 0), 0)
                               + r.downgrades.reduce((s, x) => s + (Number(x.perdida) || 0), 0)
               return (
@@ -611,13 +703,21 @@ export default function ChurnPage() {
       {/* KPI Cards */}
       <div className="px-6 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
         <KpiCard icon={Clock}          label="Pendiente de Facturar"    value={fmt(totalPendiente)}
-          sub={`${pendientes.length} clientes · ${reporte.periodo}`}  color={ORANGE} />
-        <KpiCard icon={XCircle}        label="MRR Cancelado"            value={fmt(totalCancelados)}
-          sub={`${cancelados.length} clientes · ${reporte.periodo}`}  color={RED}    />
+          sub={`${reporte.pendientesCuentasReal ?? pendientes.length} cuentas · ${reporte.periodo}`}  color={ORANGE} />
+        {cancelados.length > 0
+          ? <KpiCard icon={XCircle}    label="MRR Cancelado"            value={fmt(totalCancelados)}
+              sub={`${cancelados.length} clientes · ${reporte.periodo}`} color={RED} />
+          : <KpiCard icon={BarChart3}  label="Suspendidos / Inactivos"  value={fmt(totalSuspendidos)}
+              sub={`${reporte.suspendidosCuentasReal ?? (suspendidos?.length ?? 0)} cuentas pausadas`} color={BLUE} />
+        }
         <KpiCard icon={ArrowDownRight} label="Ingreso Perdido Downgrade" value={fmt(totalDowngrades)}
           sub={`${downgrades.length} clientes · ${reporte.periodo}`}  color={AMBER}  />
-        <KpiCard icon={TrendingDown}   label="Pérdida Total T1 2026"    value={fmt(TOTAL_T1)}
-          sub="34.2% en 15 clientes clave"                              color={INDIGO} />
+        {grc
+          ? <KpiCard icon={TrendingDown} label="GRC Acumulado Mayo"     value={`${grc.acumulado}%`}
+              sub={`Mayo actual: ${grc.evolucion.find(e => e.mes.startsWith('Mayo'))?.pct ?? 0}%`} color={RED} />
+          : <KpiCard icon={TrendingDown} label="Pérdida Total T1 2026"  value={fmt(TOTAL_T1)}
+              sub="34.2% en 15 clientes clave"                            color={INDIGO} />
+        }
       </div>
 
       {/* Tabs */}
@@ -867,6 +967,165 @@ export default function ChurnPage() {
             </div>
             <p className="px-5 py-3 text-[11px] text-gray-400 border-t border-gray-100">
               Haz clic en cada fila para ver el detalle del downgrade.
+            </p>
+          </div>
+        )}
+
+        {/* ── GRC SEMANAL ──────────────────────────────────────────── */}
+        {tab === 'grc' && grc && (
+          <>
+            {/* Encabezado */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: `${TEAL}15` }}>
+                  <BarChart3 size={16} style={{ color: TEAL }} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm">Comportamiento Semanal en CHURN</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Gross Revenue Churn (GRC) · {reporte.periodo}</p>
+                </div>
+                <div className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl"
+                  style={{ background: `${RED}10`, border: `1px solid ${RED}30` }}>
+                  <span className="text-xs font-semibold text-gray-600">GRC Acumulado</span>
+                  <span className="text-2xl font-black" style={{ color: RED }}>{grc.acumulado}%</span>
+                </div>
+              </div>
+              <p className="text-sm text-gray-700 leading-relaxed bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                ⚠️ {grc.notaClave}
+              </p>
+            </div>
+
+            {/* Evolución GRC */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-gray-900 text-sm mb-4">Análisis de Evolución GRC</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {grc.evolucion.map((e, i) => {
+                  const isCritical = e.pct >= 10
+                  const color = e.pct >= 10 ? RED : e.pct >= 5 ? AMBER : GREEN
+                  const pctMax = Math.max(...grc.evolucion.map(x => x.pct))
+                  const barW = Math.round((e.pct / pctMax) * 100)
+                  return (
+                    <div key={i} className="rounded-xl border p-4"
+                      style={{ background: `${color}08`, borderColor: `${color}30` }}>
+                      <p className="text-xs font-semibold text-gray-500 mb-1">{e.mes}</p>
+                      <p className="text-3xl font-black mb-3" style={{ color }}>{e.pct}%</p>
+                      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${barW}%`, background: color }} />
+                      </div>
+                      {isCritical && (
+                        <p className="text-[10px] font-bold mt-2 uppercase tracking-wide" style={{ color: RED }}>
+                          ⚠ Nivel crítico
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Nota especial FINSUS u otras */}
+            {grc.notaEspecial && (
+              <div className="bg-white rounded-xl border border-green-200 p-5 shadow-sm"
+                style={{ background: `${GREEN}06` }}>
+                <p className="text-sm text-gray-800 leading-relaxed">{grc.notaEspecial}</p>
+              </div>
+            )}
+
+            {/* Resumen de impacto */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <h3 className="font-semibold text-gray-900 text-sm mb-4">Resumen de Impacto — {reporte.periodo}</h3>
+              <div className="space-y-3">
+                {[
+                  { label: 'Pendiente de facturar (31 cuentas)',     monto: totalPendiente,  color: ORANGE, sub: 'Riesgo inmediato de churn' },
+                  { label: 'Downgrades detectados',                   monto: totalDowngrades, color: AMBER,  sub: `${downgrades.length} clientes con reducción de plan` },
+                  { label: 'Suspendidos / Inactivos en retención',    monto: totalSuspendidos, color: BLUE,  sub: `${reporte.suspendidosCuentasReal ?? suspendidos?.length ?? 0} cuentas pausadas` },
+                ].map(row => {
+                  const total = totalPendiente + totalDowngrades + totalSuspendidos || 1
+                  return (
+                    <div key={row.label}>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-gray-700 font-medium">{row.label}</span>
+                        <div className="text-right">
+                          <span className="font-bold" style={{ color: row.color }}>{fmt(row.monto)}</span>
+                          <span className="text-gray-400 ml-2 text-[11px]">{row.sub}</span>
+                        </div>
+                      </div>
+                      <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(row.monto / total) * 100}%`, background: row.color }} />
+                      </div>
+                    </div>
+                  )
+                })}
+                <div className="pt-3 border-t border-gray-100 flex justify-between">
+                  <span className="text-sm font-semibold text-gray-800">Exposición total identificada</span>
+                  <span className="text-sm font-bold text-gray-900">{fmt(totalPendiente + totalDowngrades + totalSuspendidos)}</span>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── SUSPENDIDOS / INACTIVOS ───────────────────────────────── */}
+        {tab === 'suspendidos' && suspendidos && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2"
+              style={{ background: `${BLUE}08` }}>
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">Suspendidos e Inactivos — {reporte.periodo}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Total en riesgo retenido: <strong>{fmt(totalSuspendidos)}</strong> ·{' '}
+                  {reporte.suspendidosCuentasReal ?? suspendidos.length} cuentas pausadas o inactivas
+                </p>
+              </div>
+              <SemaforoDot tipo="suspendido" />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/70">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Importe BCY</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Meses Activo</th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {suspendidos.map((c, i) => (
+                    <tr key={i} className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors">
+                      <td className="py-3 px-4 font-medium text-gray-900">{c.cliente}</td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: BLUE }}>{fmt(Number(c.importe))}</td>
+                      <td className="py-3 px-4 text-right">
+                        {c.mesesActivo > 0 ? (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            c.mesesActivo >= 60 ? 'bg-green-100 text-green-700' :
+                            c.mesesActivo >= 24 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+                          }`}>{c.mesesActivo} meses</span>
+                        ) : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
+                          style={c.estado === 'Suspendido'
+                            ? { background: `${BLUE}15`, color: BLUE,   borderColor: `${BLUE}35` }
+                            : { background: `${INDIGO}15`, color: INDIGO, borderColor: `${INDIGO}35` }
+                          }>
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                            style={{ background: c.estado === 'Suspendido' ? BLUE : INDIGO }} />
+                          {c.estado}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-blue-50/50 font-bold">
+                    <td className="py-3 px-4 text-gray-900">TOTAL RETENIDO</td>
+                    <td className="py-3 px-4 text-right" style={{ color: BLUE }}>{fmt(totalSuspendidos)}</td>
+                    <td colSpan={2} />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="px-5 py-3 text-[11px] text-gray-400 border-t border-gray-100">
+              Clientes con posibilidad de reactivación. Representan ingreso recuperable con gestión proactiva.
             </p>
           </div>
         )}
