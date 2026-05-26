@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, MessageSquare, TrendingUp,
   Settings, ChevronRight, Phone, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
-  Clock, ChevronDown,
+  Clock, ChevronDown, Zap,
 } from 'lucide-react'
 
 // ── Azul royal sólido ─────────────────────────────────────────────────────────
@@ -37,6 +37,7 @@ const NAV: NavEntry[] = [
     ],
   },
 
+  { href: '/activaciones',    label: 'Activaciones',      icon: Zap },
   { href: '/chat',            label: 'Atlas IA',          icon: MessageSquare },
   { href: '/auditoria',       label: 'Auditoría Cuentas', icon: ClipboardList },
   { href: '/churn',           label: 'Churn',             icon: TrendingDown },
