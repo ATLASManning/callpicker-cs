@@ -84,7 +84,7 @@ export default async function ActivacionesPage() {
 
   if (registros.length === 0) {
     return (
-      <main style={{ minHeight: '100vh', background: BG, padding: '48px 32px' }}>
+      <div style={{ minHeight: '100%', background: '#050D1A', padding: '48px 32px' }}>
         <div style={{
           maxWidth: 500, margin: '0 auto', padding: '40px 32px', borderRadius: 16,
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)',
@@ -102,7 +102,7 @@ export default async function ActivacionesPage() {
             </code> del proyecto y reinicia el servidor.
           </p>
         </div>
-      </main>
+      </div>
     )
   }
 
@@ -110,38 +110,36 @@ export default async function ActivacionesPage() {
   const anos     = Array.from(new Set(registros.map(r => r.ano).filter(Boolean))).sort()
 
   return (
-    /* Fondo oscuro que sobrescribe el layout light */
-    <div style={{ minHeight: '100vh', background: '#050D1A', margin: '-0px' }}>
-      <main style={{ minHeight: '100vh', background: '#050D1A' }}>
-        {/* Header */}
-        <div style={{
-          padding: '28px 32px 24px',
-          borderBottom: '1px solid rgba(0,180,255,0.12)',
-          background: 'linear-gradient(180deg, rgba(0,180,255,0.06) 0%, transparent 100%)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <div>
-              <h1 style={{ fontSize: 26, fontWeight: 900, color: '#E8F4FF', lineHeight: 1, letterSpacing: '-0.02em' }}>
-                Activaciones 2.0
-              </h1>
-              <p style={{ fontSize: 13, color: 'rgba(200,228,255,0.65)', marginTop: 8 }}>
-                {registros.length.toLocaleString('es-MX')} activaciones &middot; {anos.join(' · ')} &middot; Facturación total{' '}
-                <strong style={{ color: '#22C55E' }}>
-                  {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalFac)}
-                </strong>
-              </p>
-            </div>
-            <p style={{ fontSize: 11, color: 'rgba(200,228,255,0.35)' }}>
-              Fuente: Tablero de Activaciones 2.0 · Hoja Registros
+    // Solo <div> — nunca <main> aquí: el CSS del layout tiene main{background:#DBEAFE !important}
+    <div style={{ minHeight: '100%', background: '#050D1A' }}>
+      {/* Header */}
+      <div style={{
+        padding: '28px 32px 24px',
+        borderBottom: '1px solid rgba(0,180,255,0.12)',
+        background: 'linear-gradient(180deg, rgba(0,180,255,0.08) 0%, #050D1A 100%)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <h1 style={{ fontSize: 26, fontWeight: 900, color: '#E8F4FF', lineHeight: 1, letterSpacing: '-0.02em' }}>
+              Activaciones 2.0
+            </h1>
+            <p style={{ fontSize: 13, color: 'rgba(200,228,255,0.65)', marginTop: 8 }}>
+              {registros.length.toLocaleString('es-MX')} activaciones &middot; {anos.join(' · ')} &middot; Facturación total{' '}
+              <strong style={{ color: '#22C55E' }}>
+                {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalFac)}
+              </strong>
             </p>
           </div>
+          <p style={{ fontSize: 11, color: 'rgba(200,228,255,0.35)' }}>
+            Fuente: Tablero de Activaciones 2.0 · Hoja Registros
+          </p>
         </div>
+      </div>
 
-        {/* Charts */}
-        <div style={{ padding: '28px 32px 64px' }}>
-          <ActivacionesCharts registros={registros} anos={anos} />
-        </div>
-      </main>
+      {/* Charts */}
+      <div style={{ padding: '28px 32px 64px' }}>
+        <ActivacionesCharts registros={registros} anos={anos} />
+      </div>
     </div>
   )
 }
