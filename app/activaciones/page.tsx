@@ -122,7 +122,7 @@ export default async function ActivacionesPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             <div>
               <h1 style={{ fontSize: 26, fontWeight: 900, color: '#E8F4FF', lineHeight: 1, letterSpacing: '-0.02em' }}>
-                Tablero de Activaciones
+                Activaciones 2.0
               </h1>
               <p style={{ fontSize: 13, color: 'rgba(200,228,255,0.65)', marginTop: 8 }}>
                 {registros.length.toLocaleString('es-MX')} activaciones &middot; {anos.join(' · ')} &middot; Facturación total{' '}

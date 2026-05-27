@@ -37,7 +37,7 @@ const NAV: NavEntry[] = [
     ],
   },
 
-  { href: '/activaciones',    label: 'Tablero Activaciones', icon: Zap },
+  { href: '/activaciones',    label: 'Activaciones 2.0',     icon: Zap },
   { href: '/chat',            label: 'Atlas IA',          icon: MessageSquare },
   { href: '/auditoria',       label: 'Auditoría Cuentas', icon: ClipboardList },
   { href: '/churn',           label: 'Churn',             icon: TrendingDown },
