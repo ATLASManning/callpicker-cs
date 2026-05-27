@@ -110,31 +110,38 @@ export default async function ActivacionesPage() {
   const anos     = Array.from(new Set(registros.map(r => r.ano).filter(Boolean))).sort()
 
   return (
-    <main style={{ minHeight: '100vh', background: BG }}>
-      {/* Header */}
-      <div style={{ padding: '28px 32px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, color: TX, lineHeight: 1 }}>
-              Tablero de Activaciones
-            </h1>
-            <p style={{ fontSize: 13, color: TX_MID, marginTop: 6 }}>
-              {registros.length.toLocaleString('es-MX')} activaciones · {anos.join(', ')} · Facturación total{' '}
-              <strong style={{ color: TX }}>
-                {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalFac)}
-              </strong>
+    /* Fondo oscuro que sobrescribe el layout light */
+    <div style={{ minHeight: '100vh', background: '#050D1A', margin: '-0px' }}>
+      <main style={{ minHeight: '100vh', background: '#050D1A' }}>
+        {/* Header */}
+        <div style={{
+          padding: '28px 32px 24px',
+          borderBottom: '1px solid rgba(0,180,255,0.12)',
+          background: 'linear-gradient(180deg, rgba(0,180,255,0.06) 0%, transparent 100%)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+            <div>
+              <h1 style={{ fontSize: 26, fontWeight: 900, color: '#E8F4FF', lineHeight: 1, letterSpacing: '-0.02em' }}>
+                Tablero de Activaciones
+              </h1>
+              <p style={{ fontSize: 13, color: 'rgba(200,228,255,0.65)', marginTop: 8 }}>
+                {registros.length.toLocaleString('es-MX')} activaciones &middot; {anos.join(' · ')} &middot; Facturación total{' '}
+                <strong style={{ color: '#22C55E' }}>
+                  {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalFac)}
+                </strong>
+              </p>
+            </div>
+            <p style={{ fontSize: 11, color: 'rgba(200,228,255,0.35)' }}>
+              Fuente: Tablero de Activaciones 2.0 · Hoja Registros
             </p>
           </div>
-          <p style={{ fontSize: 11, color: TX_MID, opacity: 0.6 }}>
-            Fuente: Tablero de Activaciones 2.0 · Hoja Registros
-          </p>
         </div>
-      </div>
 
-      {/* Charts */}
-      <div style={{ padding: '28px 32px 56px' }}>
-        <ActivacionesCharts registros={registros} anos={anos} />
-      </div>
-    </main>
+        {/* Charts */}
+        <div style={{ padding: '28px 32px 64px' }}>
+          <ActivacionesCharts registros={registros} anos={anos} />
+        </div>
+      </main>
+    </div>
   )
 }
