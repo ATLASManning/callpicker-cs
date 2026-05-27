@@ -1,267 +1,139 @@
-import ActivacionesCharts, { ActivacionesData, MesDato, VendedorDato, TamanoDato, Reciente } from '@/components/charts/ActivacionesCharts'
+import path from 'path'
+import ActivacionesCharts, { RegistroItem } from '@/components/charts/ActivacionesCharts'
 
 export const dynamic = 'force-dynamic'
 
-// ── Colores y helpers ─────────────────────────────────────────────────────────
 const BG     = '#0A1628'
 const TX     = '#E8F4FF'
 const TX_MID = 'rgba(200,228,255,0.65)'
 
-// ── Mapa de meses para ordenación ─────────────────────────────────────────────
-const MES_NUM: Record<string, number> = {
-  Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
-  Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12,
-}
-const MES_ES: Record<string, string> = {
-  Jan: 'Ene', Feb: 'Feb', Mar: 'Mar', Apr: 'Abr', May: 'May', Jun: 'Jun',
-  Jul: 'Jul', Aug: 'Ago', Sep: 'Sep', Oct: 'Oct', Nov: 'Nov', Dec: 'Dic',
-}
-
-// ── Parseo CSV con soporte de campos entre comillas ───────────────────────────
-function parseCSVLine(line: string): string[] {
-  const cols: string[] = []
-  let cur = '', inQ = false
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i]
-    if (ch === '"') { inQ = !inQ }
-    else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = '' }
-    else { cur += ch }
-  }
-  cols.push(cur.trim())
-  return cols
-}
-
-function parsePeso(val: string): number {
-  return parseFloat((val || '0').replace(/[$,\s]/g, '')) || 0
-}
-
-function parseFecha(fecha: string): { label: string; sortKey: number } {
-  // Formato: "19-Nov-2025"
-  const parts = fecha.split('-')
-  if (parts.length < 3) return { label: '', sortKey: 0 }
-  const abbr = parts[1]
-  const year = parseInt(parts[2])
-  const num  = MES_NUM[abbr] ?? 0
-  const es   = MES_ES[abbr]  ?? abbr
-  return {
-    label:   `${es} ${String(year).slice(2)}`,   // "Nov 25"
-    sortKey: year * 100 + num,
-  }
-}
-
-function normalizeVendedor(v: string): string {
+// ── Normalización ─────────────────────────────────────────────────────────────
+function normVendedor(v: string): string {
   const lc = (v || '').trim().toLowerCase()
-  if (!lc || lc.startsWith('sin') || lc === 'n/a') return 'Sin vendedor'
-  if (lc === 'otro' || lc === 'other') return 'Otro'
-  // Capitalizar correctamente
-  return v.trim().replace(/\b\w/g, c => c.toUpperCase())
+  if (!lc || lc === 'sin vendedor' || lc.startsWith('sin')) return 'Sin vendedor'
+  if (lc === 'otro' || lc === 'other')  return 'Otro'
+  if (lc === 'm.mandujano')             return 'M. Mandujano'
+  return v.trim()
+}
+function normEjecutivo(e: string): string {
+  const lc = (e || '').trim().toLowerCase()
+  if (!lc || lc === 'n/a' || lc === '')  return 'N/A'
+  if (lc === 'otro' || lc === 'other')   return 'Otro'
+  return e.trim()
+}
+function normTamano(t: string): string {
+  const lc = (t || '').trim().toLowerCase()
+  if (!lc || lc === '-') return 'N/A'
+  return t.trim().toLowerCase()
+}
+function normGiro(g: string): string {
+  if (!g || g.trim() === '') return 'N/A'
+  const lc = g.trim().toLowerCase()
+  if (lc === 'bienes raices' || lc === 'bienes raíces') return 'Bienes Raíces'
+  return g.trim().charAt(0).toUpperCase() + g.trim().slice(1)
+}
+function normTipo(t: string): string {
+  if (!t || t.trim() === '') return 'N/A'
+  return t.trim().toLowerCase()
 }
 
-function normalizeTamanoEmpresa(t: string): string {
-  const lc = (t || '').toLowerCase()
-  if (lc.includes('1') && lc.includes('10'))  return '1–10 personas'
-  if (lc.includes('11') && lc.includes('50')) return '11–50 personas'
-  if (lc.includes('51') && lc.includes('150'))return '51–150 personas'
-  if (lc.includes('150') && lc.includes('más')) return '150+ personas'
-  return t || 'N/A'
-}
-
-// ── Fetch y procesamiento ─────────────────────────────────────────────────────
-async function getActivacionesData(): Promise<ActivacionesData | null> {
-  const csvUrl = process.env.ACTIVACIONES_CSV_URL
-  if (!csvUrl) return null
-
+// ── Lectura del Excel ─────────────────────────────────────────────────────────
+async function getRegistros(): Promise<RegistroItem[]> {
   try {
-    const res = await fetch(csvUrl, { cache: 'no-store' })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    // Importación dinámica para que Next.js no falle en build client-side
+    const xlsx = (await import('xlsx')).default
+    const fs   = (await import('fs')).default
+    const filePath = path.join(process.cwd(), 'data', 'activaciones.xlsx')
 
-    const text = await res.text()
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-    if (lines.length < 2) return null
-
-    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/"/g, ''))
-
-    // Detectar índices de columnas por nombre (robusto ante reordenación)
-    const idx = {
-      id:            headers.findIndex(h => h === 'cid' || h === 'id'),
-      cliente:       headers.findIndex(h => h === 'nombre' || h === 'cliente'),
-      mes:           headers.findIndex(h => h === 'mes'),
-      fechaArranque: headers.findIndex(h => h.includes('arranque') || h.includes('fecha')),
-      vendedor:      headers.findIndex(h => h === 'vendedor'),
-      tamanoEmpresa: headers.findIndex(h => h.includes('empresa')),
-      tamanoCuenta:  headers.findIndex(h => h.includes('cuenta')),
-      primerPago:    headers.findIndex(h => h.includes('pago') || h.includes('1er')),
+    if (!fs.existsSync(filePath)) {
+      console.warn('[activaciones] Excel no encontrado en', filePath)
+      return []
     }
 
-    const records = lines.slice(1).map(line => {
-      const c = parseCSVLine(line)
-      const g = (i: number) => (i >= 0 ? c[i] ?? '' : '')
-      return {
-        id:            g(idx.id),
-        cliente:       g(idx.cliente),
-        mes:           g(idx.mes),
-        fechaArranque: g(idx.fechaArranque),
-        vendedor:      normalizeVendedor(g(idx.vendedor)),
-        tamanoEmpresa: normalizeTamanoEmpresa(g(idx.tamanoEmpresa)),
-        tamanoCuenta:  g(idx.tamanoCuenta).toLowerCase().trim(),
-        primerPago:    parsePeso(g(idx.primerPago)),
-      }
-    }).filter(r => r.id && r.cliente)
+    const wb   = xlsx.readFile(filePath)
+    const ws   = wb.Sheets['Registros']
+    if (!ws) { console.warn('[activaciones] Hoja Registros no encontrada'); return [] }
 
-    if (records.length === 0) return null
+    const raw: Record<string, any>[] = xlsx.utils.sheet_to_json(ws, { defval: '' })
 
-    // ── Agregaciones ──────────────────────────────────────────────────────────
-    const byMes    = new Map<string, { count: number; facturacion: number; sortKey: number }>()
-    const byVnd    = new Map<string, { count: number; facturacion: number }>()
-    const byCuenta = new Map<string, number>()
-    const byEmpresa= new Map<string, number>()
-
-    let totalFac = 0
-    let sinVnd   = 0
-
-    for (const r of records) {
-      // Mes
-      const { label, sortKey } = parseFecha(r.fechaArranque)
-      if (label) {
-        const m = byMes.get(label) ?? { count: 0, facturacion: 0, sortKey }
-        m.count++; m.facturacion += r.primerPago
-        byMes.set(label, m)
-      }
-
-      // Vendedor
-      const vd = byVnd.get(r.vendedor) ?? { count: 0, facturacion: 0 }
-      vd.count++; vd.facturacion += r.primerPago
-      byVnd.set(r.vendedor, vd)
-      if (r.vendedor === 'Sin vendedor') sinVnd++
-
-      // Tamaño cuenta
-      const tc = r.tamanoCuenta || 'N/A'
-      byCuenta.set(tc, (byCuenta.get(tc) ?? 0) + 1)
-
-      // Tamaño empresa
-      const te = r.tamanoEmpresa || 'N/A'
-      byEmpresa.set(te, (byEmpresa.get(te) ?? 0) + 1)
-
-      totalFac += r.primerPago
-    }
-
-    const porMes: MesDato[] = Array.from(byMes.entries())
-      .map(([mes, d]) => ({ mes, ...d }))
-      .sort((a, b) => a.sortKey - b.sortKey)
-
-    const porVendedor: VendedorDato[] = Array.from(byVnd.entries())
-      .map(([vendedor, d]) => ({ vendedor, ...d }))
-      .sort((a, b) => b.count - a.count)
-
-    const porTamanoCuenta: TamanoDato[] = Array.from(byCuenta.entries())
-      .map(([tamano, count]) => ({ tamano, count }))
-      .sort((a, b) => b.count - a.count)
-
-    const porTamanoEmpresa: TamanoDato[] = Array.from(byEmpresa.entries())
-      .map(([tamano, count]) => ({ tamano, count }))
-      .sort((a, b) => b.count - a.count)
-
-    // Últimas 20 por fecha
-    const recientes: Reciente[] = [...records]
-      .sort((a, b) => {
-        const { sortKey: sa } = parseFecha(a.fechaArranque)
-        const { sortKey: sb } = parseFecha(b.fechaArranque)
-        return sb - sa
-      })
-      .slice(0, 20)
-
-    return {
-      total:            records.length,
-      facturacionTotal: totalFac,
-      promedioPago:     records.length > 0 ? totalFac / records.length : 0,
-      pctSinVendedor:   records.length > 0 ? (sinVnd / records.length) * 100 : 0,
-      porMes,
-      porVendedor,
-      porTamanoCuenta,
-      porTamanoEmpresa,
-      recientes,
-      updatedAt: new Date().toISOString(),
-    }
+    return raw
+      .filter(r => r['ID'] && r['Cliente'])
+      .map(r => ({
+        id:           String(r['ID']),
+        cliente:      String(r['Cliente']).trim(),
+        primerPago:   typeof r['1er Pago'] === 'number' ? r['1er Pago'] : parseFloat(String(r['1er Pago']).replace(/[$,]/g, '')) || 0,
+        tamano:       normTamano(String(r['Tamaño'])),
+        ejecutivo:    normEjecutivo(String(r['Ejecutivo'])),
+        mes:          String(r['Mes 1er Pago']).trim(),      // January … December
+        ano:          typeof r['Año'] === 'number' ? r['Año'] : parseInt(String(r['Año'])) || 0,
+        vendedor:     normVendedor(String(r['Vendedor'])),
+        giro:         normGiro(String(r['Giro'])),
+        tipo:         normTipo(String(r['Tipo'])),           // pagada / demo / convertida
+      }))
+      .filter(r => r.ano >= 2020)   // excluir filas con año inválido
 
   } catch (err) {
-    console.error('[activaciones] Error:', err)
-    return null
+    console.error('[activaciones] Error leyendo Excel:', err)
+    return []
   }
 }
 
 // ── Página ────────────────────────────────────────────────────────────────────
 export default async function ActivacionesPage() {
-  const data = await getActivacionesData()
+  const registros = await getRegistros()
 
-  if (!data) {
+  if (registros.length === 0) {
     return (
       <main style={{ minHeight: '100vh', background: BG, padding: '48px 32px' }}>
         <div style={{
-          maxWidth: 520, margin: '0 auto', padding: '40px 32px', borderRadius: 16,
+          maxWidth: 500, margin: '0 auto', padding: '40px 32px', borderRadius: 16,
           background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)',
           textAlign: 'center',
         }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
           <h2 style={{ fontSize: 20, fontWeight: 800, color: TX, marginBottom: 12 }}>
-            Configuración pendiente
+            Archivo no encontrado
           </h2>
-          <p style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7, marginBottom: 24 }}>
-            Para activar el Tablero de Activaciones, publica la hoja <strong style={{ color: TX }}>Registros</strong> de Google Sheets como CSV y agrega la URL al archivo <code style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: 4 }}>.env.local</code>.
+          <p style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>
+            Coloca el archivo <code style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: 4 }}>
+              activaciones.xlsx
+            </code> en la carpeta <code style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: 4 }}>
+              /data
+            </code> del proyecto y reinicia el servidor.
           </p>
-          <div style={{
-            background: 'rgba(0,180,255,0.08)', border: '1px solid rgba(0,180,255,0.20)',
-            borderRadius: 10, padding: '16px 20px', textAlign: 'left',
-          }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#00B4FF', marginBottom: 10 }}>
-              Pasos en Google Sheets:
-            </p>
-            {[
-              'Archivo → Compartir → Publicar en la web',
-              'Seleccionar hoja "Registros" y formato CSV',
-              'Hacer clic en Publicar → Copiar URL',
-              'Agregar al .env.local como ACTIVACIONES_CSV_URL',
-            ].map((step, i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 8, alignItems: 'flex-start' }}>
-                <span style={{
-                  width: 20, height: 20, borderRadius: '50%', background: '#00B4FF20',
-                  color: '#00B4FF', fontSize: 11, fontWeight: 800, flexShrink: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>{i + 1}</span>
-                <span style={{ fontSize: 13, color: TX_MID }}>{step}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </main>
     )
   }
 
+  const totalFac = registros.reduce((s, r) => s + r.primerPago, 0)
+  const anos     = Array.from(new Set(registros.map(r => r.ano).filter(Boolean))).sort()
+
   return (
     <main style={{ minHeight: '100vh', background: BG }}>
       {/* Header */}
-      <div style={{
-        padding: '28px 32px 0',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        marginBottom: 28,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingBottom: 24 }}>
+      <div style={{ padding: '28px 32px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>
             <h1 style={{ fontSize: 24, fontWeight: 800, color: TX, lineHeight: 1 }}>
               Tablero de Activaciones
             </h1>
             <p style={{ fontSize: 13, color: TX_MID, marginTop: 6 }}>
-              Datos en tiempo real · Hoja <strong style={{ color: TX }}>Registros</strong> · {data.total.toLocaleString('es-MX')} activaciones totales
+              {registros.length.toLocaleString('es-MX')} activaciones · {anos.join(', ')} · Facturación total{' '}
+              <strong style={{ color: TX }}>
+                {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalFac)}
+              </strong>
             </p>
           </div>
-          <p style={{ fontSize: 11, color: TX_MID }}>
-            Fuente: Tablero de Activaciones 2.0
+          <p style={{ fontSize: 11, color: TX_MID, opacity: 0.6 }}>
+            Fuente: Tablero de Activaciones 2.0 · Hoja Registros
           </p>
         </div>
       </div>
 
       {/* Charts */}
-      <div style={{ padding: '0 32px 48px' }}>
-        <ActivacionesCharts data={data} />
+      <div style={{ padding: '28px 32px 56px' }}>
+        <ActivacionesCharts registros={registros} anos={anos} />
       </div>
     </main>
   )
