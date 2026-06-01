@@ -680,6 +680,29 @@ export default function ChurnPage() {
         subtitle="Análisis de pérdida de clientes · DATA → Dirección de Satisfacción al Cliente"
       />
 
+      {/* ── Botón Zoho GRC ──────────────────────────────────────────────── */}
+      <div className="px-6 pt-4">
+        <a
+          href="https://marketingplus.zoho.com/reports/open-view/245443000007094051"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            background: '#0E2354', color: '#FFFFFF',
+            padding: '14px 28px', borderRadius: 12,
+            fontWeight: 800, fontSize: 16, letterSpacing: '0.04em',
+            textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.12)',
+            boxShadow: '0 4px 18px rgba(14,35,84,0.35)',
+            transition: 'opacity 150ms',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
+          <BarChart3 size={20} style={{ opacity: 0.85 }} />
+          GROSS REVENUE CHURN
+        </a>
+      </div>
+
       {/* ── Selector de períodos ─────────────────────────────────────── */}
       <div className="px-6 pt-4 pb-0">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
