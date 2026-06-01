@@ -167,6 +167,64 @@ const REPORTE_S4_MAYO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 5 · MAYO 2026 (hardcoded, no se puede eliminar)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S5_MAYO_2026: ChurnReporte = {
+  id:      's5-mayo-2026',
+  periodo: 'Semana 5 · Mayo 2026',
+  fecha:   '29/05/2026',
+  notas:   'Gross Revenue Churn · Semana 5. Al 29 de mayo del 2026. Cierre de mayo con churn Q2 en 4.8% y acumulado 2026 en 13.1%. Siguiente revisión: viernes 5 de junio.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Abril',  pct: 1.9 },
+      { mes: 'Mayo',   pct: 4.8 },
+    ],
+    acumulado: 13.1,
+    notaClave: 'Churn Q2 mayo cerró en 4.8%. Acumulado 2026: 13.1%.',
+    notaEspecial: '⚠️ Doble facturación en mayo detectada en 6 cuentas: COLEGIO CARL ROGERS ($6,996 real $3,498) · satvpafc ($3,542 real $1,771) · PVnube ($3,454 real $1,727) · Industrias la Cascada ($3,198 real $1,599) · Ncubo Capital ($3,169 real $1,584.50) · GRUPO LCHAT MEXICO ($2,386 real $1,193). Si en junio solo se factura un período, el sistema podría interpretar una baja del 50% que no es real.',
+  },
+
+  /* En Corte — top 11 de 20 cuentas */
+  pendientesTotalReal:   23893.50,
+  pendientesCuentasReal: 20,
+  pendientes: [
+    { cliente: 'EKTARIS GRUPO INMOBILIARIO', monto: 3798,    mesesActivo: 0, ultimaFactura: '23/04/2026' },
+    { cliente: 'TAQUERIA EL PARIENTE',       monto: 3500,    mesesActivo: 0, ultimaFactura: '28/04/2026' },
+    { cliente: 'AIRAPI MEMORIAL PARK',       monto: 2157,    mesesActivo: 0, ultimaFactura: '28/04/2026' },
+    { cliente: 'Grupo Orve',                 monto: 2083,    mesesActivo: 0, ultimaFactura: '27/04/2026' },
+    { cliente: 'Dos Valles Residencial',     monto: 1189,    mesesActivo: 0, ultimaFactura: '25/04/2026' },
+    { cliente: 'Smart Lending SPV',          monto: 1069,    mesesActivo: 0, ultimaFactura: '25/04/2026' },
+    { cliente: 'Livceller',                  monto: 1069,    mesesActivo: 0, ultimaFactura: '25/04/2026' },
+    { cliente: 'Eden Zavala',                monto: 989,     mesesActivo: 0, ultimaFactura: '28/04/2026' },
+    { cliente: 'Oscorp International',       monto: 986,     mesesActivo: 0, ultimaFactura: '25/04/2026' },
+    { cliente: 'Urbanelle BH Inmobiliaria',  monto: 979,     mesesActivo: 0, ultimaFactura: '28/04/2026' },
+    { cliente: 'SPORTIX RL',                 monto: 979,     mesesActivo: 0, ultimaFactura: '23/04/2026' },
+    { cliente: '+ 9 clientes adicionales',   monto: 5095.50, mesesActivo: 0, ultimaFactura: 'REFLEXUM · Khalil Constructor · Clarivate Lifescience · Gallardo y Asoc. · Dios Del Aire · Equipos y Desarrollos Inf. · Vulcano · Brida IT Services · Biotechgraft · Remax Las Palmas' },
+  ],
+
+  cancelados: [],
+
+  /* Downgrades */
+  downgrades: [
+    { cliente: 'Petroil - Prebiem Oceanica', perdida: 2431,    nota: '$7,409 → $4,978' },
+    { cliente: 'GTC - FORUM',                perdida: 2396.43, nota: '$28,380.74 → $25,984.31' },
+    { cliente: 'TURISMO NICETRIP',           perdida: 1656,    nota: '$1,825 → $169' },
+    { cliente: 'PlastilinaBTl',              perdida: 488,     nota: '$587 → $99' },
+  ],
+
+  /* Suspendidos e Inactivos */
+  suspendidosTotalReal:   7987,
+  suspendidosCuentasReal: 4,
+  suspendidos: [
+    { cliente: 'Municipio de Teoloyucan', importe: 3290, mesesActivo: 15, estado: 'Inactivo'   },
+    { cliente: 'Custodias RJ',            importe: 2920, mesesActivo: 2,  estado: 'Inactivo'   },
+    { cliente: 'Sermedi Mx',              importe: 1288, mesesActivo: 7,  estado: 'Suspendido' },
+    { cliente: 'LIGO CONSULTING',         importe: 489,  mesesActivo: 19, estado: 'Inactivo'   },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -576,15 +634,15 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s4-mayo-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s5-mayo-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
-  const BASE_IDS = ['abril-2026', 's4-mayo-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, ...userReportes]
+  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026']
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, ...userReportes]
   const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_ABRIL_2026
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
@@ -608,7 +666,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s4-mayo-2026')
+    if (selectedId === id) setSelectedId('s5-mayo-2026')
     setDelConfirm(null)
   }
 
