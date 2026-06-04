@@ -8,6 +8,7 @@ export interface ApiItem   { nombre: string; descripcion: string }
 
 export interface Articulo {
   id:             string
+  pdfUrl?:        string   // ruta relativa a /public, p.ej. "/docs/archivo.pdf"
   titulo:         string
   descripcion:    string
   ubicacion?:     string
@@ -92,6 +93,7 @@ export const KB: Categoria[] = [
       },
       {
         id: 'ext-ilimitadas',
+        pdfUrl: '/docs/Política de Uso Justo.pdf',
         titulo: 'Extensiones con Llamadas Ilimitadas',
         descripcion: 'Tipo de extensión con llamadas ilimitadas para hacer y recibir llamadas en destinos nacionales, EEUU y Canadá.',
         ubicacion: 'Configuración > Extensiones',
@@ -175,6 +177,7 @@ export const KB: Categoria[] = [
       },
       {
         id: 'softphone',
+        pdfUrl: '/docs/Venta Equipos IP.pdf',
         titulo: 'Softphone + Compatibilidad SIP',
         descripcion: 'Callpicker es compatible con Softphone para Windows y Mac, y teléfonos IP bajo el estándar SIP.',
         consideraciones: [
@@ -531,6 +534,7 @@ export const KB: Categoria[] = [
       },
       {
         id: 'campanas',
+        pdfUrl: '/docs/Guía Campañas 2024.pdf',
         titulo: 'Campañas',
         descripcion: 'Módulo para cargar una base de teléfonos y generarles llamadas en un rango de tiempo establecido, ya sea para mensajes automáticos, enlazar con extensiones o agentes virtuales.',
         ubicacion: 'Flujo > Campañas',
@@ -704,6 +708,7 @@ export const KB: Categoria[] = [
     articulos: [
       {
         id: 'seguridad-datos',
+        pdfUrl: '/docs/Seguridad Callpicker.pdf',
         titulo: 'Seguridad de Datos y Red',
         descripcion: 'Callpicker soporta TLS 1.2 para encriptar el tráfico de red entre la aplicación del cliente y los servidores. Para tráfico de voz se ofrecen múltiples opciones de cifrado.',
         subtitulos: [
@@ -730,6 +735,7 @@ export const KB: Categoria[] = [
       },
       {
         id: 'seguridad-fisica',
+        pdfUrl: '/docs/Seguridad Callpicker.pdf',
         titulo: 'Seguridad Física e Infraestructura',
         descripcion: 'La infraestructura de Callpicker se encuentra hospedada en Amazon Web Services (AWS) bajo controles de seguridad física certificados.',
         subtitulos: [
@@ -761,6 +767,7 @@ export const KB: Categoria[] = [
     articulos: [
       {
         id: 'integraciones-hubspot',
+        pdfUrl: '/docs/Listado de integraciones - Sheet1.pdf',
         titulo: 'HubSpot',
         descripcion: 'Tres modalidades de integración con HubSpot para marcación, registro y sincronización de contactos.',
         subtitulos: [
@@ -776,6 +783,7 @@ export const KB: Categoria[] = [
       },
       {
         id: 'integraciones-zoho',
+        pdfUrl: '/docs/Listado de integraciones - Sheet1.pdf',
         titulo: 'Zoho CRM',
         descripcion: 'Cuatro modalidades de integración con Zoho CRM para marcación automática, registro y apertura automática.',
         subtitulos: [
@@ -792,6 +800,7 @@ export const KB: Categoria[] = [
       },
       {
         id: 'integraciones-otras',
+        pdfUrl: '/docs/Listado de integraciones - Sheet1.pdf',
         titulo: 'Otras Integraciones CRM',
         descripcion: 'Callpicker se integra con múltiples plataformas además de HubSpot y Zoho.',
         subtitulos: [
@@ -822,6 +831,7 @@ export const KB: Categoria[] = [
     articulos: [
       {
         id: 'cobertura-mexico',
+        pdfUrl: '/docs/Callpicker - Cobertura de Números Telefónicos - cobertura.pdf',
         titulo: 'Cobertura de Números en México',
         descripcion: 'Callpicker ofrece numeración fija en las principales ciudades de la República Mexicana. La activación y renta estándar es de $250 MXN por número.',
         subtitulos: [
@@ -851,6 +861,7 @@ export const KB: Categoria[] = [
       },
       {
         id: 'dids-internacionales',
+        pdfUrl: '/docs/DIDs Internacionales - Costos DID Internacionales.pdf',
         titulo: 'DIDs Internacionales — Precios y Cobertura',
         descripcion: 'Callpicker ofrece numeración en más de 60 países con disponibilidad de líneas locales, números nacionales, móviles y líneas 800/toll-free. Todos los precios están en MXN.',
         subtitulos: [

@@ -6,7 +6,7 @@ import {
   MessageSquare, ChevronRight, MapPin, Lightbulb,
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
-  ShieldCheck, Puzzle, Globe,
+  ShieldCheck, Puzzle, Globe, FileText,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
 
@@ -70,9 +70,9 @@ function Consideracion({ texto, tipo }: { texto: string; tipo?: string }) {
               : TX_LOW
   const Icon = icon
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>
-      <Icon size={13} style={{ color, flexShrink: 0, marginTop: 2 }} />
-      <span style={{ fontSize: 13, color: TX_MID, lineHeight: 1.6 }}>{texto}</span>
+    <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', marginBottom: 8 }}>
+      <Icon size={15} style={{ color, flexShrink: 0, marginTop: 2 }} />
+      <span style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>{texto}</span>
     </div>
   )
 }
@@ -92,36 +92,57 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
       <button
         onClick={() => hasExtra && setOpen(v => !v)}
         style={{
-          width: '100%', padding: '16px 20px', textAlign: 'left',
+          width: '100%', padding: '18px 22px', textAlign: 'left',
           background: 'transparent', border: 'none',
           cursor: hasExtra ? 'pointer' : 'default',
-          display: 'flex', alignItems: 'flex-start', gap: 12,
+          display: 'flex', alignItems: 'flex-start', gap: 14,
         }}
       >
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: TX }}>{art.titulo}</p>
+          {/* Título + badge + PDF */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+            <p style={{ fontSize: 17, fontWeight: 700, color: TX }}>{art.titulo}</p>
             {art.badge && <Badge type={art.badge} />}
+            {art.pdfUrl && (
+              <a
+                href={art.pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
+                  background: `${catColor}18`, color: catColor,
+                  border: `1px solid ${catColor}35`, textDecoration: 'none',
+                  transition: 'opacity 150ms',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                <FileText size={11} />
+                Ver PDF
+              </a>
+            )}
           </div>
-          <p style={{ fontSize: 13, color: TX_MID, lineHeight: 1.6 }}>{art.descripcion}</p>
+          <p style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>{art.descripcion}</p>
           {art.ubicacion && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6 }}>
-              <MapPin size={11} style={{ color: catColor }} />
-              <span style={{ fontSize: 11, color: catColor, fontWeight: 600 }}>{art.ubicacion}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8 }}>
+              <MapPin size={12} style={{ color: catColor }} />
+              <span style={{ fontSize: 12, color: catColor, fontWeight: 600 }}>{art.ubicacion}</span>
             </div>
           )}
           {art.utilidad && (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 8,
-              padding: '8px 12px', borderRadius: 8,
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10,
+              padding: '10px 14px', borderRadius: 8,
               background: `${catColor}0F`, border: `1px solid ${catColor}25` }}>
-              <Lightbulb size={12} style={{ color: catColor, flexShrink: 0, marginTop: 2 }} />
-              <span style={{ fontSize: 12, color: TX_MID }}><strong style={{ color: catColor }}>Utilidad: </strong>{art.utilidad}</span>
+              <Lightbulb size={14} style={{ color: catColor, flexShrink: 0, marginTop: 2 }} />
+              <span style={{ fontSize: 13, color: TX_MID }}><strong style={{ color: catColor }}>Utilidad: </strong>{art.utilidad}</span>
             </div>
           )}
         </div>
         {hasExtra && (
-          <div style={{ color: TX_LOW, flexShrink: 0, marginTop: 2 }}>
-            {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          <div style={{ color: TX_LOW, flexShrink: 0, marginTop: 3 }}>
+            {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
         )}
       </button>
@@ -133,17 +154,17 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
           {/* Tarificación */}
           {art.tarificacion && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                 Tarificación
               </p>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   {art.tarificacion.map((t, i) => (
                     <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
-                      <td style={{ padding: '9px 12px', color: TX_MID, fontSize: 13, borderBottom: `1px solid ${BORDER}` }}>{t.tipo}</td>
-                      <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>
+                      <td style={{ padding: '11px 14px', color: TX_MID, fontSize: 14, borderBottom: `1px solid ${BORDER}` }}>{t.tipo}</td>
+                      <td style={{ padding: '11px 14px', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>
                         <span style={{
-                          fontSize: 12, fontWeight: 700, padding: '2px 10px', borderRadius: 6,
+                          fontSize: 13, fontWeight: 700, padding: '3px 12px', borderRadius: 6,
                           color: NIVEL_COLOR[t.nivel], background: `${NIVEL_COLOR[t.nivel]}18`,
                         }}>{t.regla}</span>
                       </td>
@@ -157,12 +178,12 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
           {/* Modalidades */}
           {art.modalidades && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Modalidades</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Modalidades</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {art.modalidades.map((m, i) => (
                   <div key={i} style={{ padding: '10px 14px', borderRadius: 8, background: `${catColor}0A`, border: `1px solid ${catColor}20` }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: catColor, marginBottom: 3 }}>{m.nombre}</p>
-                    <p style={{ fontSize: 12, color: TX_MID }}>{m.descripcion}</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: catColor, marginBottom: 4 }}>{m.nombre}</p>
+                    <p style={{ fontSize: 14, color: TX_MID, lineHeight: 1.6 }}>{m.descripcion}</p>
                   </div>
                 ))}
               </div>
@@ -172,11 +193,11 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
           {/* Funcionamiento */}
           {art.funcionamiento && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Funcionamiento</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Funcionamiento</p>
               {art.funcionamiento.map((f, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: catColor, minWidth: 20, paddingTop: 2 }}>{i + 1}.</span>
-                  <span style={{ fontSize: 13, color: TX_MID, lineHeight: 1.6 }}>{f}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: catColor, minWidth: 22, paddingTop: 2 }}>{i + 1}.</span>
+                  <span style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>{f}</span>
                 </div>
               ))}
             </div>
@@ -185,11 +206,11 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
           {/* Acciones */}
           {art.acciones && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Acciones disponibles</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Acciones disponibles</p>
               {art.acciones.map((a, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 5 }}>
-                  <CheckCircle2 size={13} style={{ color: GREEN, flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, color: TX_MID }}>{a}</span>
+                  <CheckCircle2 size={15} style={{ color: GREEN, flexShrink: 0 }} />
+                  <span style={{ fontSize: 14, color: TX_MID }}>{a}</span>
                 </div>
               ))}
             </div>
@@ -198,11 +219,11 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
           {/* Subtítulos con listas */}
           {art.subtitulos && art.subtitulos.map((s, si) => (
             <div key={si} style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>{s.titulo}</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{s.titulo}</p>
               {s.items.map((item, ii) => (
                 <div key={ii} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 5 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: catColor, flexShrink: 0, marginTop: 6 }} />
-                  <span style={{ fontSize: 13, color: TX_MID, lineHeight: 1.6 }}>{item}</span>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: catColor, flexShrink: 0, marginTop: 7 }} />
+                  <span style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>{item}</span>
                 </div>
               ))}
             </div>
@@ -211,13 +232,13 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
           {/* Gráficas */}
           {art.graficas && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                 Gráficas disponibles ({art.graficas.length})
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {art.graficas.map((g, i) => (
                   <span key={i} style={{
-                    fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20,
+                    fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 20,
                     background: `${catColor}12`, color: TX_MID, border: `1px solid ${catColor}20`,
                   }}>{g}</span>
                 ))}
@@ -228,12 +249,12 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
           {/* APIs */}
           {art.apis && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>APIs disponibles</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>APIs disponibles</p>
               {art.apis.map((a, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 8,
                   padding: '8px 12px', borderRadius: 8, background: `${catColor}0A`, border: `1px solid ${catColor}20` }}>
-                  <code style={{ fontSize: 12, fontWeight: 800, color: catColor, flexShrink: 0 }}>{a.nombre}</code>
-                  <span style={{ fontSize: 12, color: TX_MID }}>{a.descripcion}</span>
+                  <code style={{ fontSize: 13, fontWeight: 800, color: catColor, flexShrink: 0 }}>{a.nombre}</code>
+                  <span style={{ fontSize: 13, color: TX_MID }}>{a.descripcion}</span>
                 </div>
               ))}
             </div>
@@ -242,7 +263,7 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
           {/* Consideraciones */}
           {art.consideraciones && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Consideraciones</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Consideraciones</p>
               {art.consideraciones.map((c, i) => <Consideracion key={i} {...c} />)}
             </div>
           )}
@@ -303,7 +324,7 @@ export default function BaseCSPage() {
           display: 'flex', flexDirection: 'column', gap: 2,
           overflowY: 'auto',
         }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.09em', padding: '0 8px 8px' }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.09em', padding: '0 8px 10px' }}>
             Categorías
           </p>
           {KB.map(c => {
@@ -312,20 +333,20 @@ export default function BaseCSPage() {
             const count = c.articulos.length
             return (
               <button key={c.id} onClick={() => { setActiva(c.id); setQuery('') }} style={{
-                display: 'flex', alignItems: 'center', gap: 9,
-                padding: '9px 10px', borderRadius: 9, width: '100%',
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px', borderRadius: 9, width: '100%',
                 textAlign: 'left', cursor: 'pointer', transition: 'all 150ms',
                 background:   isActive ? `${c.color}18` : 'transparent',
                 border:       isActive ? `1px solid ${c.color}35` : '1px solid transparent',
                 borderLeft:   isActive ? `3px solid ${c.color}` : '3px solid transparent',
               }}>
-                <CIcon size={14} style={{ color: isActive ? c.color : TX_LOW, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 500, color: isActive ? TX : TX_MID, flex: 1, lineHeight: 1.2 }}>
+                <CIcon size={15} style={{ color: isActive ? c.color : TX_LOW, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? TX : TX_MID, flex: 1, lineHeight: 1.3 }}>
                   {c.label}
                 </span>
                 {count > 0
-                  ? <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 10, background: `${c.color}25`, color: c.color }}>{count}</span>
-                  : <span style={{ fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: TX_LOW }}>pronto</span>
+                  ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 10, background: `${c.color}25`, color: c.color }}>{count}</span>
+                  : <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: TX_LOW }}>pronto</span>
                 }
               </button>
             )
@@ -338,9 +359,9 @@ export default function BaseCSPage() {
           {/* Breadcrumb + búsqueda */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, color: TX_LOW }}>Base de Conocimiento</span>
-              <ChevronRight size={11} style={{ color: TX_LOW }} />
-              <span style={{ fontSize: 11, color: cat.color, fontWeight: 700 }}>{cat.label}</span>
+              <span style={{ fontSize: 13, color: TX_LOW }}>Base de Conocimiento</span>
+              <ChevronRight size={13} style={{ color: TX_LOW }} />
+              <span style={{ fontSize: 13, color: cat.color, fontWeight: 700 }}>{cat.label}</span>
             </div>
             {cat.articulos.length > 3 && (
               <div style={{ position: 'relative' }}>
@@ -350,8 +371,8 @@ export default function BaseCSPage() {
                   onChange={e => setQuery(e.target.value)}
                   placeholder="Buscar en esta categoría..."
                   style={{
-                    paddingLeft: 30, paddingRight: 14, paddingTop: 7, paddingBottom: 7,
-                    borderRadius: 8, fontSize: 12, background: PANEL,
+                    paddingLeft: 32, paddingRight: 14, paddingTop: 8, paddingBottom: 8,
+                    borderRadius: 8, fontSize: 13, background: PANEL,
                     border: `1px solid ${BORDER}`, color: TX, outline: 'none', width: 220,
                   }}
                 />
@@ -365,8 +386,8 @@ export default function BaseCSPage() {
               <Icon size={18} style={{ color: cat.color }} />
             </div>
             <div>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: TX, lineHeight: 1 }}>{cat.label}</h2>
-              <p style={{ fontSize: 11, color: TX_LOW, marginTop: 3 }}>{artsFiltrados.length} artículo{artsFiltrados.length !== 1 ? 's' : ''}</p>
+              <h2 style={{ fontSize: 21, fontWeight: 800, color: TX, lineHeight: 1 }}>{cat.label}</h2>
+              <p style={{ fontSize: 13, color: TX_LOW, marginTop: 4 }}>{artsFiltrados.length} artículo{artsFiltrados.length !== 1 ? 's' : ''}</p>
             </div>
           </div>
 
@@ -376,8 +397,8 @@ export default function BaseCSPage() {
             : (
               <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.5 }}>
                 {cat.articulos.length === 0
-                  ? <><p style={{ fontSize: 14, color: TX_MID, fontWeight: 700, marginBottom: 6 }}>Próximamente</p><p style={{ fontSize: 12, color: TX_LOW }}>Contenido en preparación para esta categoría.</p></>
-                  : <><p style={{ fontSize: 14, color: TX_MID, fontWeight: 700, marginBottom: 6 }}>Sin resultados</p><p style={{ fontSize: 12, color: TX_LOW }}>Intenta con otros términos de búsqueda.</p></>
+                  ? <><p style={{ fontSize: 16, color: TX_MID, fontWeight: 700, marginBottom: 8 }}>Próximamente</p><p style={{ fontSize: 14, color: TX_LOW }}>Contenido en preparación para esta categoría.</p></>
+                  : <><p style={{ fontSize: 16, color: TX_MID, fontWeight: 700, marginBottom: 8 }}>Sin resultados</p><p style={{ fontSize: 14, color: TX_LOW }}>Intenta con otros términos de búsqueda.</p></>
                 }
               </div>
             )
