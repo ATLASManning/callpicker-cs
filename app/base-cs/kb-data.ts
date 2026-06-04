@@ -697,4 +697,205 @@ export const KB: Categoria[] = [
     id: 'chat', label: 'Chat', color: '#EC4899',
     articulos: [],
   },
+
+  // ── SEGURIDAD ─────────────────────────────────────────────────────────────
+  {
+    id: 'seguridad', label: 'Seguridad', color: '#22D3EE',
+    articulos: [
+      {
+        id: 'seguridad-datos',
+        titulo: 'Seguridad de Datos y Red',
+        descripcion: 'Callpicker soporta TLS 1.2 para encriptar el tráfico de red entre la aplicación del cliente y los servidores. Para tráfico de voz se ofrecen múltiples opciones de cifrado.',
+        subtitulos: [
+          { titulo: 'Opciones de seguridad para tráfico de voz', items: [
+            'WebRTC: señalización sobre TLS.',
+            'SIP: TLS.',
+            'VPN IPSEC: disponible para clientes que lo requieran.',
+          ]},
+          { titulo: 'Política de contraseñas (NIST SP 800-63-3)', items: [
+            'Mínimo 8 caracteres alfanuméricos.',
+            'Uso de caracteres especiales requerido.',
+            'Verificación en 2 pasos (2FA) obligatoria para panel de administrador.',
+            'Bloqueo de cuenta tras múltiples intentos fallidos.',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'Callpicker NO puede garantizar que todas las conexiones con operadores telefónicos estén encriptadas, debido a la naturaleza de las interconexiones telefónicas y la regulación vigente.', tipo: 'warning' },
+        ],
+      },
+      {
+        id: 'seguridad-audit',
+        titulo: 'Registro de Auditoría (Audit Logging)',
+        descripcion: 'El cliente tiene acceso al historial de actividad de su cuenta. Dependiendo del plan contratado, incluye registro de historial de señalización de llamadas y eventos, incluyendo intentos de acceso no autorizados.',
+      },
+      {
+        id: 'seguridad-fisica',
+        titulo: 'Seguridad Física e Infraestructura',
+        descripcion: 'La infraestructura de Callpicker se encuentra hospedada en Amazon Web Services (AWS) bajo controles de seguridad física certificados.',
+        subtitulos: [
+          { titulo: 'Certificaciones y cumplimiento', items: [
+            'Compatible con PCI/DSS para Callpicker® Pay.',
+            'Acceso web: SSL obligatorio SHA-256.',
+            'Acceso API: SSL obligatorio SHA-256.',
+            'Almacenamiento por bloques: Cifrado SHA-256.',
+            'Almacenamiento por objetos: Cifrado SHA-256.',
+          ]},
+          { titulo: 'Subprocesadores', items: [
+            'Amazon Web Services (EUA) — Hosting, almacenamiento, conectividad.',
+            'Meta (EUA) — Conectividad con Messenger® y WhatsApp®.',
+            'OpenAI (EUA) — Agente virtual, análisis y clasificación de interacciones.',
+            'HubSpot (EUA) — Registro de llamadas e interacción con clientes.',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'Resolución de título de Concesión: P/IFT/210824/299.' },
+          { texto: 'Aviso de privacidad: https://callpicker.com/aviso-de-privacidad.html', tipo: 'info' },
+        ],
+      },
+    ],
+  },
+
+  // ── INTEGRACIONES ─────────────────────────────────────────────────────────
+  {
+    id: 'integraciones', label: 'Integraciones', color: '#A855F7',
+    articulos: [
+      {
+        id: 'integraciones-hubspot',
+        titulo: 'HubSpot',
+        descripcion: 'Tres modalidades de integración con HubSpot para marcación, registro y sincronización de contactos.',
+        subtitulos: [
+          { titulo: 'Integraciones disponibles', items: [
+            'Marcación de llamadas y envío de WhatsApp — Realiza llamadas desde HubSpot con un clic; envía mensajes WhatsApp con plantillas precargadas.',
+            'Registro de llamadas y creación de leads — Registra todas las llamadas (incluyendo audios) en el contacto correspondiente; crea lead nuevo si no existe el número.',
+            'Sincronización de contactos HubSpot → Callpicker — Al crear un contacto en HubSpot, se registra automáticamente en Callpicker para identificar llamadas entrantes.',
+          ]},
+          { titulo: 'Variables de Callpicker requeridas', items: [
+            'Customer ID · Teléfono(s) Callpicker · Extension ID · Extension Hash',
+          ]},
+        ],
+      },
+      {
+        id: 'integraciones-zoho',
+        titulo: 'Zoho CRM',
+        descripcion: 'Cuatro modalidades de integración con Zoho CRM para marcación automática, registro y apertura automática.',
+        subtitulos: [
+          { titulo: 'Integraciones disponibles', items: [
+            'Auto call — Genera una llamada automática cuando un prospecto se registra en Zoho. Permite filtrar por origen (formulario, red social).',
+            'Registro de llamadas y creación de leads — Registra todas las llamadas en Zoho; crea prospecto nuevo si no existe el número.',
+            'Abrir Zoho automáticamente al recibir llamadas — La extensión de Chrome abre Zoho y muestra información del número que llamó.',
+            'Llamada programada — Programa llamadas desde Zoho que se detonan en Callpicker.',
+          ]},
+          { titulo: 'Variables requeridas', items: [
+            'Client ID · Client Secret · Customer ID · Extension ID · Extension Hash · *Habilitar Callpicker Dial API',
+          ]},
+        ],
+      },
+      {
+        id: 'integraciones-otras',
+        titulo: 'Otras Integraciones CRM',
+        descripcion: 'Callpicker se integra con múltiples plataformas además de HubSpot y Zoho.',
+        subtitulos: [
+          { titulo: 'Plataformas disponibles', items: [
+            'Zendesk — Registro de llamadas + apertura automática con info del cliente al recibir una llamada.',
+            'SalesForce — Registro de llamadas entrantes y salientes con audios; crea lead si no existe el número.',
+            'Bitrix24 — Hacer y recibir llamadas desde Bitrix web, escritorio y móvil; registro y flujos configurables.',
+            'Sirena App — Registro de llamadas con audios; crea lead automáticamente evitando duplicados.',
+            'SalesUp — Registro de llamadas como seguimiento; crea prospecto nuevo con origen personalizable.',
+            'AmoCRM — Registro de llamadas y sincronización de contactos; crea contacto+lead vinculados.',
+            'Monday.com — Registra llamadas como items dentro del tablero especificado.',
+            'Odoo — Registra llamadas como nota dentro de oportunidades.',
+            'Active Campaign — Marcación desde Active Campaign; apertura automática al recibir llamada.',
+            'Zapier — Marcación automática al crear un lead o al llenar un formulario.',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'Para Bitrix24 se requieren credenciales SIP (Servidor, Usuario, Contraseña).', tipo: 'info' },
+          { texto: 'Para Zapier se requiere habilitar el uso de API y contar con Client ID, Client Secret, Extension IDs.', tipo: 'info' },
+        ],
+      },
+    ],
+  },
+
+  // ── COBERTURA Y DIDS ──────────────────────────────────────────────────────
+  {
+    id: 'cobertura', label: 'Cobertura y DIDs', color: '#F59E0B',
+    articulos: [
+      {
+        id: 'cobertura-mexico',
+        titulo: 'Cobertura de Números en México',
+        descripcion: 'Callpicker ofrece numeración fija en las principales ciudades de la República Mexicana. La activación y renta estándar es de $250 MXN por número.',
+        subtitulos: [
+          { titulo: 'Cobertura por estado (principales ciudades)', items: [
+            'Aguascalientes — Aguascalientes (449), Rincón de Romos (465), Calvillo (495)',
+            'Baja California — Tijuana (664), Mexicali (686), Ensenada (646), Rosarito (661), Tecate (665)',
+            'Chihuahua — Chihuahua (614), Juárez (656), Parral (627), Cuauhtémoc (625)',
+            'Coahuila — Saltillo (844), Torreón (871), Monclova (866), Piedras Negras (878)',
+            'Guanajuato — León (477), Celaya (461), Irapuato (462), Guanajuato (473), Salamanca (464)',
+            'Jalisco — Guadalajara (33), Puerto Vallarta (322), Lagos de Moreno (474)',
+            'Nuevo León — Monterrey (81), Monterrey área (81)',
+            'Querétaro — Santiago de Querétaro (442), San Juan del Río (427)',
+            'Quintana Roo — Cancún (998), Playa del Carmen (984), Tulum (984), Chetumal (983)',
+            'Sonora — Hermosillo (662), Nogales (631), Guaymas (622), Ciudad Obregón (644)',
+            'Tamaulipas — Tampico (833), Reynosa (899), Matamoros (868), Nuevo Laredo (867)',
+            'Veracruz — Veracruz (229), Xalapa (228), Coatzacoalcos (921), Orizaba (272)',
+            'CDMX — Ciudad de México (55)',
+            'Yucatán — Mérida (999)',
+            'Y muchos más estados: Campeche, Chiapas, Colima, Durango, Guerrero, Hidalgo, Michoacán, Morelos, Nayarit, Oaxaca, Puebla, San Luis Potosí, Sinaloa, Tabasco, Tlaxcala, Zacatecas',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'Los números 800 solo permiten recibir llamadas, no realizar.', tipo: 'warning' },
+          { texto: 'No se pueden incorporar números celulares como troncal de entrada o salida.' },
+          { texto: 'Se aceptan portabilidades de números fijos nacionales cumpliendo los requisitos indicados.' },
+        ],
+      },
+      {
+        id: 'dids-internacionales',
+        titulo: 'DIDs Internacionales — Precios y Cobertura',
+        descripcion: 'Callpicker ofrece numeración en más de 60 países con disponibilidad de líneas locales, números nacionales, móviles y líneas 800/toll-free. Todos los precios están en MXN.',
+        subtitulos: [
+          { titulo: 'América Latina y el Caribe', items: [
+            'Argentina — Buenos Aires y 20+ ciudades · $250 activación / $250 renta · Toll-free $1,400 / $550',
+            'Brasil — São Paulo, Río y 30+ ciudades · $250 / $250 · Toll-free $300 / $300',
+            'Chile — Santiago, Valparaíso y 15+ ciudades · $250 / $250 · Toll-free $450 / $450',
+            'Colombia — Bogotá, Medellín, Cali, Barranquilla · $450 / $450 · Toll-free $1,000 / $350',
+            'México — Cobertura nacional · $250 / $250 · Toll-free $250 / $250',
+            'Panamá — $300 / $300 · Toll-free $600 / $600',
+            'Perú — Lima y 5 ciudades · $250 / $250',
+            'Venezuela — Caracas y 14 ciudades · $450 / $450',
+            'Guatemala, El Salvador, Ecuador, Nicaragua, Paraguay, Uruguay — disponibles',
+            'Rep. Dominicana, Puerto Rico — disponibles',
+          ]},
+          { titulo: 'América del Norte', items: [
+            'Estados Unidos — 500+ ciudades · $200 / $200 · Toll-free (800/888/877/866/855/844/833) $200 / $200',
+            'Nota: Nueva York (212/718) y otras ciudades premium · $3,200 activación / $800 renta',
+            'Canadá — 400+ ciudades · $200 / $200 · Toll-free $200 / $200',
+            'Nota: Toronto (416) · $3,200 activación / $800 renta',
+          ]},
+          { titulo: 'Europa', items: [
+            'España — Madrid, Barcelona y 50+ ciudades · $200 / $200 · Toll-free $250 / $250',
+            'Francia — París, Lyon y ciudades principales · $200 / $200',
+            'Alemania — Berlín, Múnich y 100+ ciudades · $200 / $200 · Toll-free $2,700 / $200',
+            'Italia — Roma, Milán y 200+ ciudades · $200 / $200 · Toll-free $200 / $200',
+            'Reino Unido — Londres y 500+ ciudades · $200 / $200 · Toll-free $200 / $200',
+            'Nota: Londres (207) · $3,200 activación / $800 renta',
+            'Portugal, Bélgica, Holanda, Suiza, Polonia, Suecia, Noruega, otros países europeos — disponibles',
+          ]},
+          { titulo: 'Asia, Oceanía y África', items: [
+            'Australia — Sydney, Melbourne y 25+ ciudades · $200 / $200 · Toll-free $2,000 / $350',
+            'China — Shanghai, Beijing · $600 / $600',
+            'Japón — Tokio, Osaka y 5 ciudades · $250 / $250 · Toll-free $750 / $850',
+            'Hong Kong, Singapur, India, Tailandia, Indonesia, Vietnam — disponibles',
+            'Israel, Emiratos Árabes, Arabia Saudita, Kenia, Uganda, Sudáfrica, Ghana — disponibles',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'Todos los DIDs internacionales incluyen 2 canales de voz estándar (salvo los metered/300 canales para toll-free).', tipo: 'info' },
+          { texto: 'Los números Metered (ej. Filipinas, Alemania national) incluyen 300 canales con costo por uso.', tipo: 'info' },
+          { texto: 'Para consultar precios de un país específico o solicitar un DID, contactar al equipo de soporte.', tipo: 'info' },
+          { texto: 'Los números toll-free 800 solo reciben llamadas; no permiten marcar salientes.', tipo: 'warning' },
+        ],
+      },
+    ],
+  },
 ]

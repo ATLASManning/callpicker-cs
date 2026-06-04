@@ -6,6 +6,7 @@ import {
   MessageSquare, ChevronRight, MapPin, Lightbulb,
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
+  ShieldCheck, Puzzle, Globe,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
 
@@ -37,6 +38,9 @@ const CAT_ICONS: Record<string, React.ElementType> = {
   desarrollador:Code,
   operativas:   Settings2,
   chat:         MessageSquare,
+  seguridad:    ShieldCheck,
+  integraciones:Puzzle,
+  cobertura:    Globe,
 }
 
 // ── Componentes pequeños ──────────────────────────────────────────────────────
