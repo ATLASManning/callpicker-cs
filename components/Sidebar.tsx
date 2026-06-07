@@ -15,9 +15,9 @@ const SB_D = 'rgba(0,0,0,0.18)'
 const SB_H = 'rgba(255,255,255,0.12)'
 const SB_A = 'rgba(255,255,255,0.18)'
 const TX   = '#FFFFFF'
-const TX_M = 'rgba(255,255,255,0.65)'
+const TX_M = '#FFFFFF'
 const IC_A = '#FFFFFF'
-const IC   = 'rgba(255,255,255,0.55)'
+const IC   = '#FFFFFF'
 
 // ── Definición de nav ─────────────────────────────────────────────────────────
 type NavItem   = { href: string; label: string; icon: React.ElementType }
@@ -59,7 +59,7 @@ function NavLink({ href, label, icon: Icon, indent = false }: NavItem & { indent
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-lg text-sm font-medium transition-all"
+      className="flex items-center gap-3 rounded-lg text-sm font-semibold transition-all"
       style={{
         padding:     indent ? '8px 10px 8px 32px' : '10px 12px',
         background:  active ? SB_A : 'transparent',
@@ -102,7 +102,7 @@ function NavGroupItem({ group, icon: Icon, children }: NavGroup) {
       {/* Cabecera del grupo */}
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
+        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all"
         style={{
           color:      anyActive ? TX : TX_M,
           background: anyActive ? 'rgba(255,255,255,0.07)' : 'transparent',
