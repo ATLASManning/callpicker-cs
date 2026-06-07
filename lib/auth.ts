@@ -15,7 +15,7 @@ export interface SessionPayload {
   asesor_nombre: string | null   // 'Fátima' | 'Dan' | 'Claudia' | null
 }
 
-const SESSION_DURATION = 60 * 60 * 12   // 12 horas en segundos
+const SESSION_DURATION = 60 * 60 * 52   // 52 horas en segundos
 export const COOKIE_NAME = 'cp_session'
 
 function getSecret() {
