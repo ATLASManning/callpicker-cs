@@ -1,13 +1,14 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Users, MessageSquare, TrendingUp,
   Settings, ChevronRight, Phone, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
-  Clock, ChevronDown, Zap, Library,
+  Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
 } from 'lucide-react'
+import type { SessionPayload } from '@/lib/auth'
 
 // ── Azul royal sólido ─────────────────────────────────────────────────────────
 const SB   = '#0E30CC'
@@ -156,6 +157,35 @@ function NavGroupItem({ group, icon: Icon, children }: NavGroup) {
 
 // ── Sidebar principal ─────────────────────────────────────────────────────────
 export default function Sidebar() {
+  const router   = useRouter()
+  const [me, setMe] = useState<SessionPayload | null>(null)
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(setMe)
+  }, [])
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/acceso')
+  }
+
+  const rolIcon = me?.rol === 'admin' ? ShieldCheck : me?.rol === 'asesor' ? UserCheck : Eye
+  const RolIcon = rolIcon
+  const rolColor = me?.rol === 'admin' ? '#1B3FCC' : me?.rol === 'asesor' ? '#059669' : '#D97706'
+  const rolLabel = me?.rol === 'admin' ? 'Admin' : me?.rol === 'asesor' ? 'Asesor' : 'Viewer'
+
+  // Filtrar nav según rol
+  const navFiltered = NAV.filter(entry => {
+    // Admin ve todo
+    if (!me || me.rol === 'admin') return true
+    // Asesores y viewers NO ven ciertas secciones
+    if (isGroup(entry)) return true // los grupos los mostramos siempre
+    const item = entry as NavItem
+    // Viewers no ven seguimiento ni auditoria
+    if (me.rol === 'viewer' && ['/seguimiento', '/auditoria'].includes(item.href)) return false
+    return true
+  })
+
   return (
     <aside className="w-60 flex-shrink-0 flex flex-col h-full"
       style={{ background: SB, borderRight: `1px solid ${SB_D}` }}>
@@ -179,26 +209,47 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto">
-        {NAV.map((entry, i) =>
+        {navFiltered.map((entry) =>
           isGroup(entry)
             ? <NavGroupItem key={entry.group} {...entry} />
-            : <NavLink key={entry.href} {...entry} />
+            : <NavLink key={(entry as NavItem).href} {...(entry as NavItem)} />
+        )}
+        {/* Admin: enlace a gestión de usuarios */}
+        {me?.rol === 'admin' && (
+          <NavLink href="/admin/usuarios" label="Usuarios" icon={Users} />
         )}
       </nav>
 
-      {/* Footer */}
-      <div className="px-4 py-4" style={{ borderTop: `1px solid ${SB_D}` }}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.18)' }}>
-            <span className="text-xs font-bold" style={{ color: '#FFFFFF' }}>CS</span>
+      {/* Footer: usuario + logout */}
+      <div className="px-3 py-3" style={{ borderTop: `1px solid ${SB_D}` }}>
+        {me && (
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(255,255,255,0.18)' }}>
+              <RolIcon size={13} style={{ color: '#fff' }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold truncate" style={{ color: '#fff' }}>{me.nombre}</p>
+              <p className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                <span style={{ color: rolColor, fontWeight: 700 }}>{rolLabel}</span>
+                {me.asesor_nombre ? ` · ${me.asesor_nombre}` : ''}
+              </p>
+            </div>
+            <button onClick={logout} title="Cerrar sesión"
+              className="flex-shrink-0 p-1.5 rounded-lg transition-colors"
+              style={{ color: 'rgba(255,255,255,0.6)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}>
+              <LogOut size={14} />
+            </button>
           </div>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold truncate" style={{ color: TX }}>Equipo UX</p>
-            <p className="text-[10px] truncate" style={{ color: TX_M }}>callpicker.com</p>
-          </div>
-          <Link href="/settings" className="ml-auto" style={{ color: TX_M }}>
-            <Settings size={14} />
+        )}
+        <div className="flex items-center gap-2 px-1">
+          <Link href="/settings" className="p-1.5 rounded-lg transition-colors"
+            style={{ color: 'rgba(255,255,255,0.5)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}>
+            <Settings size={13} />
           </Link>
         </div>
       </div>

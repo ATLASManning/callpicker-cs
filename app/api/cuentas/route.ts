@@ -60,10 +60,16 @@ function getTicketStats(cid: string | null, empresa: string): TicketStats {
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  const sp = req.nextUrl.searchParams
+  const sp  = req.nextUrl.searchParams
+  const rol = req.headers.get('x-user-rol') ?? 'viewer'
+  const asesorHeader = req.headers.get('x-user-asesor') ?? ''
+
+  // Si el usuario es asesor, forzar filtro por su nombre (ignora el param del frontend)
+  const asesorFiltro = rol === 'asesor' ? asesorHeader : (sp.get('asesor') || undefined)
+
   try {
     const data = await getCuentas({
-      asesor:   sp.get('asesor')   || undefined,
+      asesor:   asesorFiltro || undefined,
       semaforo: sp.get('semaforo') || undefined,
       estado:   sp.get('estado')   || undefined,
       search:   sp.get('search')   || undefined,
