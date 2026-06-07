@@ -37,21 +37,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'codigo_expirado' }, { status: 401 })
   }
 
+  /* Firmar JWT primero — si falla, el código sigue válido en DB */
+  let token: string
+  try {
+    token = await signToken({
+      email: clean,
+      nombre: user.nombre,
+      rol: user.rol as Rol,
+      asesor_nombre: user.asesor_nombre ?? null,
+    })
+  } catch (err) {
+    console.error('[verify] signToken error:', err)
+    return NextResponse.json({ error: 'config_error', detail: String(err) }, { status: 500 })
+  }
+
   /* Limpiar código usado + actualizar último acceso */
   await supabaseAdmin
     .from('usuarios')
     .update({ codigo: null, codigo_expira: null, ultimo_acceso: new Date().toISOString() })
     .eq('id', user.id)
 
-  /* Firmar JWT y emitir cookie */
-  const token = await signToken({
-    email: clean,
-    nombre: user.nombre,
-    rol: user.rol as Rol,
-    asesor_nombre: user.asesor_nombre ?? null,
-  })
-
   const res = NextResponse.json({ ok: true, rol: user.rol })
-  res.cookies.set(COOKIE_NAME, token, cookieOptions())
+  res.cookies.set(COOKIE_NAME, token!, cookieOptions())
   return res
 }
