@@ -47,9 +47,12 @@ export default function AccesoPage() {
   }
 
   /* ── Paso 2: verificar código ─────────────────────────────────── */
+  const verifyingRef = useRef(false)
   async function handleVerify() {
     const codeStr = code.join('')
     if (codeStr.length < 6) return
+    if (verifyingRef.current) return   // guard doble-submit
+    verifyingRef.current = true
     setLoading(true); setError('')
     try {
       const res  = await fetch('/api/auth/verify', {
@@ -59,17 +62,23 @@ export default function AccesoPage() {
       const data = await res.json()
       if (res.ok) {
         router.push('/')
-      } else {
-        const msg =
-          data.error === 'codigo_invalido'  ? 'Código incorrecto. Verifica e intenta de nuevo.' :
-          data.error === 'codigo_expirado'  ? 'El código expiró. Solicita uno nuevo.' :
-          'Error de verificación.'
-        setError(msg)
-        setCode(['', '', '', '', '', ''])
-        inputs.current[0]?.focus()
+        return
       }
-    } catch { setError('Error de red. Intenta de nuevo.') }
-    finally   { setLoading(false) }
+      const msg =
+        data.error === 'codigo_invalido'  ? 'Código incorrecto. Solicita uno nuevo.' :
+        data.error === 'codigo_expirado'  ? 'El código expiró. Solicita uno nuevo.' :
+        data.error === 'usuario_invalido' ? 'Usuario no autorizado.' :
+        data.error === 'config_error'     ? 'Error de configuración del servidor. Contacta al admin.' :
+        `Error: ${data.error ?? 'desconocido'}`
+      setError(msg)
+      setCode(['', '', '', '', '', ''])
+      setTimeout(() => inputs.current[0]?.focus(), 50)
+    } catch (e) {
+      setError('Error de red. Verifica tu conexión e intenta de nuevo.')
+    } finally {
+      setLoading(false)
+      verifyingRef.current = false
+    }
   }
 
   /* ── Inputs de código ─────────────────────────────────────────── */
@@ -79,8 +88,9 @@ export default function AccesoPage() {
     next[i] = v
     setCode(next)
     if (v && i < 5) inputs.current[i + 1]?.focus()
-    if (next.every(d => d !== '')) {
-      setTimeout(() => handleVerify(), 80)
+    // auto-submit solo si no hay un verify en curso
+    if (next.every(d => d !== '') && !verifyingRef.current) {
+      setTimeout(() => handleVerify(), 120)
     }
   }
   function handleCodeKey(i: number, e: React.KeyboardEvent) {
