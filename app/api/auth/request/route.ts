@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 /* ── Enviar código de acceso ────────────────────────────────────────── */
 async function sendCode(email: string, nombre: string, code: string) {
   const apiKey = process.env.RESEND_API_KEY
-  const from   = process.env.RESEND_FROM ?? 'Callpicker CS <onboarding@resend.dev>'
+  const from   = process.env.RESEND_FROM ?? 'onboarding@resend.dev'
 
   if (!apiKey) {
     /* Modo desarrollo — imprimir código en consola del servidor */
@@ -95,7 +95,7 @@ async function sendCode(email: string, nombre: string, code: string) {
 async function notifyAdmin(email: string) {
   const apiKey     = process.env.RESEND_API_KEY
   const adminEmail = process.env.ADMIN_EMAIL ?? 'lopezdjosemanuel@gmail.com'
-  const from       = process.env.RESEND_FROM ?? 'Callpicker CS <onboarding@resend.dev>'
+  const from       = process.env.RESEND_FROM ?? 'onboarding@resend.dev'
   const appUrl     = process.env.NEXT_PUBLIC_APP_URL ?? 'https://callpicker-cs.vercel.app'
 
   if (!apiKey) {
