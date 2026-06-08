@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Users, Plus, Trash2, RefreshCw, ShieldCheck, Eye, UserCheck, ToggleLeft, ToggleRight, X, Save } from 'lucide-react'
+import { Users, Plus, Trash2, RefreshCw, ShieldCheck, Eye, UserCheck, ToggleLeft, ToggleRight, X, Save, KeyRound, Copy, Check } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 
 type Rol = 'admin' | 'asesor' | 'viewer'
@@ -8,6 +8,7 @@ type Usuario = {
   id: string; email: string; nombre: string; rol: Rol
   asesor_nombre: string | null; activo: boolean
   ultimo_acceso: string | null; creado_en: string
+  codigo: string | null; codigo_expira: string | null
 }
 
 const ROL_CONFIG: Record<Rol, { label: string; color: string; icon: React.ElementType }> = {
@@ -27,6 +28,7 @@ export default function AdminUsuariosPage() {
   const [showForm,  setShowForm]  = useState(false)
   const [form,      setForm]      = useState(emptyForm())
   const [saving,    setSaving]    = useState(false)
+  const [copied,    setCopied]    = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -83,10 +85,24 @@ export default function AdminUsuariosPage() {
     setSaving(false)
   }
 
+  function copyCode(id: string, code: string) {
+    navigator.clipboard.writeText(code).catch(() => {})
+    setCopied(id)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
   function fmtDate(d: string | null) {
     if (!d) return '—'
     return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
   }
+
+  function isCodeExpired(expira: string | null) {
+    if (!expira) return true
+    return new Date(expira) < new Date()
+  }
+
+  // Usuarios con código activo pendiente (para el banner de alerta)
+  const pendientes = usuarios.filter(u => u.codigo && !isCodeExpired(u.codigo_expira))
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gray-50">
@@ -96,6 +112,36 @@ export default function AdminUsuariosPage() {
       />
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
+
+        {/* Banner: códigos pendientes de entregar */}
+        {pendientes.length > 0 && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <p className="text-xs font-bold text-amber-700 mb-2 flex items-center gap-1.5">
+              <KeyRound size={13} /> {pendientes.length} usuario{pendientes.length > 1 ? 's' : ''} esperando su código de acceso
+            </p>
+            <div className="space-y-1.5">
+              {pendientes.map(u => (
+                <div key={u.id} className="flex items-center gap-3 bg-white rounded-lg px-3 py-2 border border-amber-100">
+                  <span className="text-xs text-gray-600 flex-1">
+                    <span className="font-semibold">{u.nombre}</span> · {u.email}
+                  </span>
+                  <span className="font-mono text-lg font-bold tracking-widest text-blue-700">{u.codigo}</span>
+                  <button
+                    onClick={() => copyCode(u.id, u.codigo!)}
+                    className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg transition-colors"
+                    style={{ background: copied === u.id ? '#D1FAE5' : '#EFF6FF', color: copied === u.id ? '#059669' : '#1B3FCC' }}>
+                    {copied === u.id ? <Check size={11} /> : <Copy size={11} />}
+                    {copied === u.id ? 'Copiado' : 'Copiar'}
+                  </button>
+                  <span className="text-[10px] text-gray-400">
+                    exp: {fmtDate(u.codigo_expira)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Barra de acciones */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -177,7 +223,7 @@ export default function AdminUsuariosPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  {['Usuario', 'Rol', 'Asesor', 'Estado', 'Último acceso', ''].map(h => (
+                  {['Usuario', 'Rol', 'Asesor', 'Estado', 'Código activo', 'Último acceso', ''].map(h => (
                     <th key={h} className="py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide text-left whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -186,6 +232,7 @@ export default function AdminUsuariosPage() {
                 {usuarios.map(u => {
                   const rc = ROL_CONFIG[u.rol] ?? ROL_CONFIG.viewer
                   const RolIcon = rc.icon
+                  const tieneCodigoActivo = u.codigo && !isCodeExpired(u.codigo_expira)
                   return (
                     <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/40 transition-colors">
                       <td className="py-3 px-4">
@@ -214,6 +261,20 @@ export default function AdminUsuariosPage() {
                             ? <><ToggleRight size={16} /> Activo</>
                             : <><ToggleLeft  size={16} /> Inactivo</>}
                         </button>
+                      </td>
+                      <td className="py-3 px-4">
+                        {tieneCodigoActivo ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono font-bold text-sm text-blue-700 tracking-widest">{u.codigo}</span>
+                            <button onClick={() => copyCode(u.id, u.codigo!)}
+                              className="p-1 rounded transition-colors"
+                              style={{ color: copied === u.id ? '#059669' : '#94A3B8' }}>
+                              {copied === u.id ? <Check size={11} /> : <Copy size={11} />}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-gray-300">—</span>
+                        )}
                       </td>
                       <td className="py-3 px-4 text-[11px] text-gray-400 whitespace-nowrap">
                         {fmtDate(u.ultimo_acceso)}

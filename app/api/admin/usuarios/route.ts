@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from('usuarios')
-    .select('id, email, nombre, rol, asesor_nombre, activo, ultimo_acceso, creado_en')
+    .select('id, email, nombre, rol, asesor_nombre, activo, ultimo_acceso, creado_en, codigo, codigo_expira')
     .order('creado_en', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])
