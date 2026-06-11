@@ -43,7 +43,7 @@ const NAV: NavEntry[] = [
   { href: '/chat',            label: 'Atlas IA',          icon: MessageSquare },
   { href: '/auditoria',       label: 'Auditoría Cuentas', icon: ClipboardList },
   { href: '/churn',           label: 'Churn',             icon: TrendingDown },
-  { href: '/facturacion',     label: 'Corte Facturación', icon: Receipt },
+  { href: '/facturacion',     label: 'Facturación',       icon: Receipt },
   { href: '/cuentas',         label: 'Cuentas',           icon: Users },
   { href: '/customer-tenure', label: 'Customer Tenure',   icon: Clock },
   { href: '/',                label: 'Dashboard',         icon: LayoutDashboard },
