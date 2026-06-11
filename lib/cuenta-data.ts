@@ -2,7 +2,7 @@
  * Funciones server-side para obtener tickets y facturación por cuenta.
  * Se leen los JSON directamente — sin fetch, sin API round-trip.
  */
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 
 /* ── Tipos ─────────────────────────────────────────────────────────── */
@@ -40,7 +40,9 @@ function getTickets(): TicketRow[] {
 
 function getFact(): FactRow[] {
   if (_fact) return _fact
-  _fact = JSON.parse(readFileSync(join(process.cwd(), 'lib', 'facturacion-data.json'), 'utf-8'))
+  const p = join(process.cwd(), 'lib', 'facturacion-data.json')
+  if (!existsSync(p)) { _fact = []; return [] }
+  _fact = JSON.parse(readFileSync(p, 'utf-8'))
   return _fact!
 }
 

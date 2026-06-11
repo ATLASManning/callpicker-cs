@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFileSync, existsSync } from 'fs'
-import { join } from 'path'
 import { supabaseAdmin } from '@/lib/supabase'
 import {
   isZohoConfigured, queryZohoView, parseNum, ZohoViewData
@@ -9,97 +7,98 @@ import {
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55
 
-/* ─── Tipo de registro ───────────────────────────────────────────────── */
+/* ─── Tipo de registro LTV ───────────────────────────────────────────── */
 export interface FactRow {
   CID:                          string
   'Nombre del Cliente':         string
-  'Fecha de corte':             string
-  Periodo:                      string
-  'Nombre del Plan':            string
-  'Minutos Incluidos':          number | null
-  'Minutos Consumidos':         number | null
-  'Monto del plan':             number | null
-  '% Consumo':                  number | null
-  'Extensiones ilimitadas':     string
-  'Clasificación de empresa':   string
-  'Toggle Status':              number | null
-  'Menú Configuracion':         number | null
-  Reportes:                     number | null
-  'Call History':               number | null
-  'Visit Inbound':              number | null
-  'Visit Outbound':             number | null
-  'My extension':               number | null
-  'Total de interacciones':     number | null
-  '% Llamadas entrantes':       number | null
-  '% Llamadas salientes':       number | null
-  'Uso Principal de llamadas':  string
-  'Eventos analizados':         string
+  'Tamaño Empresa':             string
+  'Clasificación LTV':          string
+  'Clasificación Cliente':      string
+  'Segmento Factura':           string
+  'MRR Limpio':                 number | null
+  'Importe Acumulado Recurrente': number | null
+  'Importe Acumulado Bruto':    number | null
+  'Meses Activo':               number | null
+  'Meses con Factura':          number | null
+  'Primera Factura':            string
+  'Última Factura':             string
+  'Semáforo Actividad':         string
+  'Es One Timer':               string
+  'MRR por Mes Facturado':      number | null
+  'Total Facturas':             number | null
+  'Cohorte Periodo':            string
+  'Días sin Factura':           number | null
+  'Ticket Promedio':            number | null
+  'Rango LTV':                  string
+  'RFC':                        string
+  'Correo':                     string
 }
 
-/* ── Mapeo columnas Zoho → FactRow ────────────────────────────────────
-   Ajustar los nombres izquierda (Zoho) si cambia el reporte.
-   Los nombres derecha (FactRow) son los que usa el dashboard.
-─────────────────────────────────────────────────────────────────────── */
+/* ── Mapeo columnas Zoho LTV → FactRow ──────────────────────────────── */
 const COL: Record<string, keyof FactRow> = {
-  'CID':                         'CID',
-  'Nombre del Cliente':          'Nombre del Cliente',
-  'Fecha de corte':              'Fecha de corte',
-  'Periodo':                     'Periodo',
-  'Nombre del Plan':             'Nombre del Plan',
-  'Minutos Incluidos':           'Minutos Incluidos',
-  'Minutos Consumidos':          'Minutos Consumidos',
-  'Monto del plan':              'Monto del plan',
-  '% Consumo':                   '% Consumo',
-  'Extensiones ilimitadas':      'Extensiones ilimitadas',
-  'Clasificación de empresa':    'Clasificación de empresa',
-  'Toggle Status':               'Toggle Status',
-  'Menú Configuracion':          'Menú Configuracion',
-  'Reportes':                    'Reportes',
-  'Call History':                'Call History',
-  'Visit Inbound':               'Visit Inbound',
-  'Visit Outbound':              'Visit Outbound',
-  'My extension':                'My extension',
-  'Total de interacciones':      'Total de interacciones',
-  '% Llamadas entrantes':        '% Llamadas entrantes',
-  '% Llamadas salientes':        '% Llamadas salientes',
-  'Uso Principal de llamadas':   'Uso Principal de llamadas',
-  'Eventos analizados':          'Eventos analizados',
+  'id_cliente':                    'CID',
+  'nombre_cliente':                'Nombre del Cliente',
+  'tamano_empresa':                'Tamaño Empresa',
+  'clasificacion_ltv':             'Clasificación LTV',
+  'clasificacion_cliente':         'Clasificación Cliente',
+  'segmento_factura':              'Segmento Factura',
+  'mrr_limpio':                    'MRR Limpio',
+  'importe_acumulado_recurrente':  'Importe Acumulado Recurrente',
+  'importe_acumulado_bruto':       'Importe Acumulado Bruto',
+  'meses_activo':                  'Meses Activo',
+  'meses_con_factura':             'Meses con Factura',
+  'primera_factura':               'Primera Factura',
+  'ultima_factura':                'Última Factura',
+  'semaforo_actividad':            'Semáforo Actividad',
+  'es_one_timer':                  'Es One Timer',
+  'mrr_por_mes_facturado':         'MRR por Mes Facturado',
+  'total_facturas':                'Total Facturas',
+  'cohorte_periodo':               'Cohorte Periodo',
+  'dias_sin_factura':              'Días sin Factura',
+  'ticket_limpio_promedio':        'Ticket Promedio',
+  'rango_ltv_limpio':              'Rango LTV',
+  'rfc':                           'RFC',
+  'correo':                        'Correo',
 }
 
 const NUM_COLS = new Set<keyof FactRow>([
-  'Minutos Incluidos', 'Minutos Consumidos', 'Monto del plan',
-  '% Consumo', 'Toggle Status', 'Menú Configuracion', 'Reportes',
-  'Call History', 'Visit Inbound', 'Visit Outbound', 'My extension',
-  'Total de interacciones', '% Llamadas entrantes', '% Llamadas salientes',
+  'MRR Limpio', 'Importe Acumulado Recurrente', 'Importe Acumulado Bruto',
+  'Meses Activo', 'Meses con Factura', 'MRR por Mes Facturado',
+  'Total Facturas', 'Días sin Factura', 'Ticket Promedio',
 ])
 
-/* ── Convertir fila Zoho → FactRow ────────────────────────────────── */
 function zohoRowToFact(raw: Record<string, string>): FactRow {
   const row: Partial<FactRow> = {}
   for (const [zohoCol, factKey] of Object.entries(COL)) {
-    const val = raw[zohoCol] ?? raw[factKey] ?? ''
+    const val = raw[zohoCol] ?? ''
     if (NUM_COLS.has(factKey)) {
-      (row as Record<string, unknown>)[factKey] = parseNum(val)
+      // Zoho puede devolver "$1,234.56" — limpiar símbolos
+      const cleaned = String(val).replace(/[$,]/g, '').trim();
+      (row as Record<string, unknown>)[factKey] = parseNum(cleaned)
     } else {
       (row as Record<string, unknown>)[factKey] = val
     }
   }
-  // Garantizar campos obligatorios
   if (!row['CID']) row['CID'] = ''
   if (!row['Nombre del Cliente']) row['Nombre del Cliente'] = ''
-  if (!row['Fecha de corte']) row['Fecha de corte'] = ''
-  if (!row.Periodo) row.Periodo = ''
-  if (!row['Nombre del Plan']) row['Nombre del Plan'] = ''
-  if (!row['Extensiones ilimitadas']) row['Extensiones ilimitadas'] = ''
-  if (!row['Clasificación de empresa']) row['Clasificación de empresa'] = ''
-  if (!row['Uso Principal de llamadas']) row['Uso Principal de llamadas'] = ''
-  if (!row['Eventos analizados']) row['Eventos analizados'] = ''
+  if (!row['Primera Factura']) row['Primera Factura'] = ''
+  if (!row['Última Factura']) row['Última Factura'] = ''
+  if (!row['Semáforo Actividad']) row['Semáforo Actividad'] = ''
+  if (!row['Clasificación LTV']) row['Clasificación LTV'] = ''
+  if (!row['Clasificación Cliente']) row['Clasificación Cliente'] = ''
+  if (!row['Segmento Factura']) row['Segmento Factura'] = ''
+  if (!row['Tamaño Empresa']) row['Tamaño Empresa'] = ''
+  if (!row['Rango LTV']) row['Rango LTV'] = ''
+  if (!row['Es One Timer']) row['Es One Timer'] = ''
+  if (!row['Cohorte Periodo']) row['Cohorte Periodo'] = ''
+  if (!row['RFC']) row['RFC'] = ''
+  if (!row['Correo']) row['Correo'] = ''
   return row as FactRow
 }
 
-/* ── Cache Zoho en memoria (TTL: 10 min) ─────────────────────────── */
+/* ── Cache Zoho en memoria (TTL: 15 min) ─────────────────────────── */
 let _zohoCache: { data: FactRow[]; ts: number } | null = null
-const ZOHO_TTL_MS = 10 * 60 * 1000
+const ZOHO_TTL_MS = 15 * 60 * 1000
 
 async function getZohoData(): Promise<FactRow[]> {
   if (_zohoCache && Date.now() - _zohoCache.ts < ZOHO_TTL_MS) return _zohoCache.data
@@ -113,28 +112,17 @@ async function getZohoData(): Promise<FactRow[]> {
   return data
 }
 
-/* ── Fallback: JSON local ─────────────────────────────────────────── */
-let _localCache: FactRow[] | null = null
-function getLocalData(): FactRow[] {
-  if (_localCache) return _localCache
-  const p = join(process.cwd(), 'lib', 'facturacion-data.json')
-  if (!existsSync(p)) return []
-  _localCache = JSON.parse(readFileSync(p, 'utf-8')) as FactRow[]
-  return _localCache
-}
-
-/* ── Obtener datos (Zoho si configurado, local si no) ────────────── */
-async function getData(): Promise<{ rows: FactRow[]; source: 'zoho' | 'local' | 'empty' }> {
+async function getData(): Promise<{ rows: FactRow[]; source: 'zoho' | 'empty' }> {
   if (isZohoConfigured()) {
     try {
       const rows = await getZohoData()
       return { rows, source: 'zoho' }
     } catch (err) {
-      console.error('[facturacion] Zoho error, fallback local:', err)
+      console.error('[facturacion] Zoho error:', err)
+      throw err
     }
   }
-  const rows = getLocalData()
-  return { rows, source: rows.length ? 'local' : 'empty' }
+  return { rows: [], source: 'empty' }
 }
 
 function normalize(s: string) {
@@ -148,121 +136,135 @@ export async function GET(req: NextRequest) {
   const sp   = req.nextUrl.searchParams
   const mode = sp.get('mode') ?? 'list'
 
-  const { rows: all, source } = await getData()
+  let rows: FactRow[] = []
+  let source = 'empty'
 
-  /* ── Status de la fuente ─────────────────────────────────────────── */
+  try {
+    const result = await getData()
+    rows = result.rows
+    source = result.source
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: msg, periodos: [], rows: [] }, { status: 200 })
+  }
+
+  /* ── MODO: source ─────────────────────────────────────────────── */
   if (mode === 'source') {
-    return NextResponse.json({
-      source,
-      zohoConfigured: isZohoConfigured(),
-      rows: all.length,
-    })
+    return NextResponse.json({ source, zohoConfigured: isZohoConfigured(), rows: rows.length })
   }
 
-  /* ── MODO: periodos ─────────────────────────────────────────────── */
+  /* ── MODO: periodos — en LTV no hay períodos de corte, usamos cohorte ── */
   if (mode === 'periodos') {
-    const map: Record<string, { count: number; mrr: number }> = {}
-    for (const r of all) {
-      const f = r['Fecha de corte'] ?? ''
-      if (!f) continue
-      if (!map[f]) map[f] = { count: 0, mrr: 0 }
-      map[f].count++
-      map[f].mrr += Number(r['Monto del plan'] ?? 0)
+    // Agrupar por Semáforo de actividad para dar una visión resumen
+    const semaforos: Record<string, { count: number; mrr: number }> = {}
+    for (const r of rows) {
+      const s = r['Semáforo Actividad'] || 'Sin datos'
+      if (!semaforos[s]) semaforos[s] = { count: 0, mrr: 0 }
+      semaforos[s].count++
+      semaforos[s].mrr += r['MRR Limpio'] ?? 0
     }
-    const periodos = Object.entries(map)
+    // Devolver como "periodos" usando semáforo como "fecha" para el selector
+    const periodos = Object.entries(semaforos)
+      .sort((a, b) => b[1].mrr - a[1].mrr)
       .map(([fecha, v]) => ({ fecha, count: v.count, mrr: Math.round(v.mrr * 100) / 100 }))
-      .sort((a, b) => b.fecha.localeCompare(a.fecha))
-    return NextResponse.json({ periodos, source })
+    return NextResponse.json({ periodos, total: rows.length, source })
   }
 
-  /* ── Filtrar por fecha ──────────────────────────────────────────── */
-  const fecha = sp.get('fecha') ?? ''
-  const rows  = fecha ? all.filter(r => r['Fecha de corte'] === fecha) : all
+  /* ── Filtrar por semáforo (en lugar de fecha) ─────────────────── */
+  const semaforo = sp.get('fecha') ?? ''
+  const filtered = semaforo && semaforo !== '__all__'
+    ? rows.filter(r => r['Semáforo Actividad'] === semaforo)
+    : rows
 
   /* ── MODO: stats ────────────────────────────────────────────────── */
   if (mode === 'stats') {
-    const totalMrr   = rows.reduce((s, r) => s + (r['Monto del plan'] ?? 0), 0)
-    const avgConsumo = rows.length
-      ? rows.reduce((s, r) => s + (r['% Consumo'] ?? 0), 0) / rows.length
-      : 0
-    const sinUso = rows.filter(r => (r['Toggle Status'] ?? 0) === 0).length
-    const conUso = rows.length - sinUso
+    const totalMrr = filtered.reduce((s, r) => s + (r['MRR Limpio'] ?? 0), 0)
+    const avgMrr   = filtered.length ? totalMrr / filtered.length : 0
 
-    const byClas: Record<string, { count: number; mrr: number }> = {}
-    for (const r of rows) {
-      const c = r['Clasificación de empresa'] ?? 'N/A'
-      if (!byClas[c]) byClas[c] = { count: 0, mrr: 0 }
-      byClas[c].count++
-      byClas[c].mrr += r['Monto del plan'] ?? 0
+    // Por segmento
+    const bySegmento: Record<string, { count: number; mrr: number }> = {}
+    for (const r of filtered) {
+      const s = r['Segmento Factura'] || 'N/A'
+      if (!bySegmento[s]) bySegmento[s] = { count: 0, mrr: 0 }
+      bySegmento[s].count++
+      bySegmento[s].mrr += r['MRR Limpio'] ?? 0
     }
 
-    const byPlan: Record<string, { count: number; mrr: number }> = {}
-    for (const r of rows) {
-      const p = r['Nombre del Plan'] ?? 'N/A'
-      if (!byPlan[p]) byPlan[p] = { count: 0, mrr: 0 }
-      byPlan[p].count++
-      byPlan[p].mrr += r['Monto del plan'] ?? 0
-    }
-    const topPlanes = Object.entries(byPlan)
-      .map(([plan, v]) => ({ plan, count: v.count, mrr: Math.round(v.mrr * 100) / 100 }))
-      .sort((a, b) => b.mrr - a.mrr).slice(0, 15)
-
-    const bins = [0, 0, 0, 0, 0, 0]
-    for (const r of rows) {
-      const c = r['% Consumo'] ?? 0
-      if (c === 0)       bins[0]++
-      else if (c <= 25)  bins[1]++
-      else if (c <= 50)  bins[2]++
-      else if (c <= 75)  bins[3]++
-      else if (c <= 100) bins[4]++
-      else               bins[5]++
+    // Por clasificación LTV
+    const byLTV: Record<string, { count: number; mrr: number }> = {}
+    for (const r of filtered) {
+      const s = r['Clasificación LTV'] || 'N/A'
+      if (!byLTV[s]) byLTV[s] = { count: 0, mrr: 0 }
+      byLTV[s].count++
+      byLTV[s].mrr += r['MRR Limpio'] ?? 0
     }
 
-    const modulos = {
-      menuConfig:   rows.reduce((s, r) => s + (r['Menú Configuracion'] ?? 0), 0),
-      reportes:     rows.reduce((s, r) => s + (r.Reportes ?? 0), 0),
-      callHistory:  rows.reduce((s, r) => s + (r['Call History'] ?? 0), 0),
-      visitInbound: rows.reduce((s, r) => s + (r['Visit Inbound'] ?? 0), 0),
-      visitOutbound:rows.reduce((s, r) => s + (r['Visit Outbound'] ?? 0), 0),
-      myExtension:  rows.reduce((s, r) => s + (r['My extension'] ?? 0), 0),
+    // Top clientes por MRR
+    const topClientes = filtered
+      .filter(r => (r['MRR Limpio'] ?? 0) > 0)
+      .sort((a, b) => (b['MRR Limpio'] ?? 0) - (a['MRR Limpio'] ?? 0))
+      .slice(0, 10)
+      .map(r => ({
+        nombre: r['Nombre del Cliente'],
+        mrr: r['MRR Limpio'] ?? 0,
+        clas: r['Clasificación LTV'],
+        semaforo: r['Semáforo Actividad'],
+        rango: r['Rango LTV'],
+      }))
+
+    // Por rango LTV
+    const byRango: Record<string, { count: number; mrr: number }> = {}
+    for (const r of filtered) {
+      const s = r['Rango LTV'] || 'N/A'
+      if (!byRango[s]) byRango[s] = { count: 0, mrr: 0 }
+      byRango[s].count++
+      byRango[s].mrr += r['MRR Limpio'] ?? 0
     }
 
-    const usoPrincipal: Record<string, number> = {}
-    for (const r of rows) {
-      const u = r['Uso Principal de llamadas'] ?? 'N/A'
-      usoPrincipal[u] = (usoPrincipal[u] ?? 0) + 1
+    // Semáforo actividad
+    const bySemaforo: Record<string, number> = {}
+    for (const r of filtered) {
+      const s = r['Semáforo Actividad'] || 'N/A'
+      bySemaforo[s] = (bySemaforo[s] ?? 0) + 1
     }
+
+    const activos   = filtered.filter(r => r['Semáforo Actividad']?.includes('Activo') || r['Semáforo Actividad']?.includes('activo')).length
+    const dormidos  = filtered.filter(r => r['Semáforo Actividad']?.includes('Dormido') || r['Semáforo Actividad']?.includes('dormido')).length
+    const onTimers  = filtered.filter(r => r['Es One Timer'] === 'Yes').length
 
     return NextResponse.json({
-      total: rows.length, totalMrr: Math.round(totalMrr * 100) / 100,
-      avgConsumo: Math.round(avgConsumo * 10) / 10,
-      sinUso, conUso, byClas, topPlanes, bins, modulos, usoPrincipal, source,
+      total: filtered.length,
+      totalMrr: Math.round(totalMrr),
+      avgMrr: Math.round(avgMrr),
+      activos, dormidos, onTimers,
+      bySegmento, byLTV, byRango, bySemaforo,
+      topClientes,
+      source,
     })
   }
 
   /* ── MODO: list ─────────────────────────────────────────────────── */
   if (mode === 'list') {
     const q         = (sp.get('q') ?? '').toLowerCase()
-    const clas      = sp.get('clas') ?? ''
-    const plan      = sp.get('plan') ?? ''
-    const usoFilter = sp.get('uso') ?? ''
     const page      = Math.max(1, parseInt(sp.get('page') ?? '1'))
     const size      = Math.min(100, parseInt(sp.get('size') ?? '50'))
+    const ltv       = sp.get('ltv') ?? ''
+    const seg       = sp.get('seg') ?? ''
 
-    let filtered = rows
-    if (q) filtered = filtered.filter(r =>
-      (r.CID ?? '').includes(q) ||
+    let list = filtered
+    if (q) list = list.filter(r =>
       normalize(r['Nombre del Cliente'] ?? '').includes(normalize(q)) ||
-      normalize(r['Nombre del Plan'] ?? '').includes(normalize(q))
+      (r.CID ?? '').toLowerCase().includes(q) ||
+      normalize(r['Segmento Factura'] ?? '').includes(normalize(q))
     )
-    if (clas) filtered = filtered.filter(r => r['Clasificación de empresa'] === clas)
-    if (plan) filtered = filtered.filter(r => r['Nombre del Plan'] === plan)
-    if (usoFilter === 'activo')   filtered = filtered.filter(r => (r['Toggle Status'] ?? 0) > 0)
-    if (usoFilter === 'inactivo') filtered = filtered.filter(r => (r['Toggle Status'] ?? 0) === 0)
+    if (ltv) list = list.filter(r => r['Clasificación LTV'] === ltv)
+    if (seg) list = list.filter(r => r['Segmento Factura'] === seg)
 
-    const total  = filtered.length
+    const total  = list.length
     const offset = (page - 1) * size
-    const slice  = filtered.slice(offset, offset + size)
+    const slice  = list
+      .sort((a, b) => (b['MRR Limpio'] ?? 0) - (a['MRR Limpio'] ?? 0))
+      .slice(offset, offset + size)
     return NextResponse.json({ total, page, size, rows: slice, source })
   }
 
@@ -283,23 +285,16 @@ export async function GET(req: NextRequest) {
       mapNombre[normalize(c.nombre ?? '')] = c
     }
 
-    const cidSet    = new Set(rows.map(r => r.CID))
-    const uniqueCids = Array.from(cidSet)
-    const result = uniqueCids.map(cid => {
-      const factRows = rows.filter(r => r.CID === cid)
-      const first    = factRows[0]
-      const mrr      = factRows.reduce((s, r) => s + (r['Monto del plan'] ?? 0), 0)
-      const cuenta   = mapCid[cid]
-        ?? mapNombre[normalize(first?.['Nombre del Cliente'] ?? '')]
-        ?? null
-
+    const result = rows.map(r => {
+      const cuenta = mapCid[r.CID] ?? mapNombre[normalize(r['Nombre del Cliente'] ?? '')] ?? null
       return {
-        cid, nombre: first?.['Nombre del Cliente'] ?? '',
-        plan: first?.['Nombre del Plan'] ?? '',
-        clas: first?.['Clasificación de empresa'] ?? '',
-        mrr: Math.round(mrr * 100) / 100,
-        toggle: first?.['Toggle Status'] ?? 0,
-        consumo: first?.['% Consumo'] ?? 0,
+        cid: r.CID,
+        nombre: r['Nombre del Cliente'],
+        ltv: r['Clasificación LTV'],
+        segmento: r['Segmento Factura'],
+        mrr: r['MRR Limpio'] ?? 0,
+        semaforo: r['Semáforo Actividad'],
+        rango: r['Rango LTV'],
         matched: !!cuenta,
         cuenta_id: cuenta?.id ?? null,
         estado: cuenta?.estado ?? null,
@@ -313,23 +308,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ total: result.length, matched, unmatched, rows: result, source })
   }
 
-  /* ── MODO: by-cid (para panel de cuenta) ────────────────────────── */
+  /* ── MODO: by-cid ────────────────────────────────────────────────── */
   if (mode === 'by-cid') {
     const cid    = sp.get('cid') ?? ''
     const nombre = sp.get('nombre') ?? ''
 
-    let found = cid ? all.filter(r => (r.CID ?? '').trim() === cid.trim()) : []
-
+    let found = cid ? rows.filter(r => (r.CID ?? '').trim() === cid.trim()) : []
     if (!found.length && nombre) {
       const normNombre = normalize(nombre)
-      found = all.filter(r => {
-        const cn = normalize(r['Nombre del Cliente'] ?? '')
-        return cn.includes(normNombre) || normNombre.includes(cn.split(' ')[0] ?? '')
-      })
+      found = rows.filter(r => normalize(r['Nombre del Cliente'] ?? '').includes(normNombre.split(' ')[0] ?? ''))
     }
-
-    found = found.sort((a, b) => (b['Fecha de corte'] ?? '').localeCompare(a['Fecha de corte'] ?? '')).slice(0, 24)
-    return NextResponse.json({ rows: found, source })
+    return NextResponse.json({ rows: found.slice(0, 5), source })
   }
 
   return NextResponse.json({ error: 'mode not found' }, { status: 400 })

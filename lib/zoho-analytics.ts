@@ -103,13 +103,14 @@ export async function queryZohoView(opts: ZohoQueryOptions): Promise<ZohoViewDat
 
   const token = await getAccessToken(cfg)
 
-  const config: Record<string, unknown> = { responseFormat: 'json' }
+  const url = new URL(`${ZOHO_API_BASE}/workspaces/${cfg.workspaceId}/views/${opts.viewId}/data`)
+  url.searchParams.set('responseFormat', 'json')
+
+  const config: Record<string, unknown> = {}
   if (opts.criteria)        config.criteria        = opts.criteria
   if (opts.selectedColumns) config.selectedColumns = opts.selectedColumns
   if (opts.maxRows)         config.maxRows         = opts.maxRows
-
-  const url = new URL(`${ZOHO_API_BASE}/workspaces/${cfg.workspaceId}/views/${opts.viewId}/data`)
-  url.searchParams.set('CONFIG', JSON.stringify(config))
+  if (Object.keys(config).length > 0) url.searchParams.set('CONFIG', JSON.stringify(config))
 
   const res = await fetch(url.toString(), {
     headers: {
