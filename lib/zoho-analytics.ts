@@ -132,29 +132,65 @@ export async function queryZohoView(opts: ZohoQueryOptions): Promise<ZohoViewDat
     throw new Error(`Zoho Analytics query failed (${res.status}): ${text}`)
   }
 
-  const json = await res.json()
+  const text = await res.text()
 
-  // Estructura Zoho v2: { data: { columns: [...], rows: [[...], ...] } }
-  const data = json?.data
-  if (!data) throw new Error('Respuesta inesperada de Zoho Analytics')
+  // Zoho devuelve CSV independientemente de responseFormat
+  // Parsear CSV: primera línea = cabeceras, resto = datos
+  const lines = text.replace(/^﻿/, '').split('\n').filter(l => l.trim())
+  if (lines.length === 0) return { columns: [], rows: [] }
 
-  const columns: string[] = data.columns ?? []
+  // Intentar JSON primero por si cambian el API
+  if (text.trimStart().startsWith('{')) {
+    try {
+      const json = JSON.parse(text)
+      const data = json?.data
+      if (data) {
+        const columns: string[] = data.columns ?? []
+        const rawRows: unknown[] = data.rows ?? []
+        let rows: Record<string, string>[]
+        if (rawRows.length === 0) {
+          rows = []
+        } else if (Array.isArray(rawRows[0])) {
+          rows = (rawRows as string[][]).map(row => {
+            const obj: Record<string, string> = {}
+            columns.forEach((col, i) => { obj[col] = row[i] ?? '' })
+            return obj
+          })
+        } else {
+          rows = rawRows as Record<string, string>[]
+        }
+        return { columns, rows }
+      }
+    } catch { /* caer a CSV */ }
+  }
 
-  // Las filas pueden venir como array de arrays o array de objetos
-  const rawRows: unknown[] = data.rows ?? []
-  let rows: Record<string, string>[]
+  // Parsear CSV con soporte de valores entre comillas
+  function parseCSVLine(line: string): string[] {
+    const result: string[] = []
+    let cur = ''
+    let inQuote = false
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]
+      if (ch === '"') {
+        if (inQuote && line[i + 1] === '"') { cur += '"'; i++ }
+        else inQuote = !inQuote
+      } else if (ch === ',' && !inQuote) {
+        result.push(cur.trim()); cur = ''
+      } else {
+        cur += ch
+      }
+    }
+    result.push(cur.trim())
+    return result
+  }
 
-  if (rawRows.length === 0) {
-    rows = []
-  } else if (Array.isArray(rawRows[0])) {
-    // Array de arrays → convertir a objetos
-    rows = (rawRows as string[][]).map(row => {
-      const obj: Record<string, string> = {}
-      columns.forEach((col, i) => { obj[col] = row[i] ?? '' })
-      return obj
-    })
-  } else {
-    rows = rawRows as Record<string, string>[]
+  const columns = parseCSVLine(lines[0])
+  const rows: Record<string, string>[] = []
+  for (let i = 1; i < lines.length; i++) {
+    const vals = parseCSVLine(lines[i])
+    const obj: Record<string, string> = {}
+    columns.forEach((col, idx) => { obj[col] = vals[idx] ?? '' })
+    rows.push(obj)
   }
 
   return { columns, rows }
