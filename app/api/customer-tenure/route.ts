@@ -63,13 +63,28 @@ let _cache: TenureRow[] | null = null
 let _cacheTime = 0
 const CACHE_TTL = 5 * 60 * 1000
 
+/* Semáforo from Supabase estado field */
+function estadoToSemaforo(estado: string | null, mrr: number): 'verde' | 'amarillo' | 'rojo' {
+  if (mrr <= 0) return 'rojo'
+  if (estado === 'activo') return 'verde'
+  if (estado === 'en_riesgo') return 'amarillo'
+  return 'rojo'
+}
+
+/* Clasificacion by MRR tier */
+function mrrToClasificacion(mrr: number): string {
+  if (mrr >= 5000) return 'AAA'
+  if (mrr >= 1500) return 'Mediana'
+  return 'Pequeña'
+}
+
 async function buildTenure(): Promise<TenureRow[]> {
   if (_cache && Date.now() - _cacheTime < CACHE_TTL) return _cache
 
   const allRows: {
-    cid: string; empresa: string; facturacion: number | null
-    primera_factura: string | null; ultima_factura: string | null
-    clasificacion: string | null
+    cid: string | null; empresa: string; facturacion: number | null
+    activo_desde: string | null; dias_como_cliente: number | null
+    estado: string | null
   }[] = []
 
   let from = 0
@@ -77,9 +92,8 @@ async function buildTenure(): Promise<TenureRow[]> {
   while (true) {
     const { data, error } = await supabaseAdmin
       .from('cuentas')
-      .select('cid, empresa, facturacion, primera_factura, ultima_factura, clasificacion')
-      .not('cid', 'is', null)
-      .not('primera_factura', 'is', null)
+      .select('cid, empresa, facturacion, activo_desde, dias_como_cliente, estado')
+      .not('activo_desde', 'is', null)
       .range(from, from + PAGE - 1)
     if (error) throw new Error(error.message)
     if (!data || data.length === 0) break
@@ -88,17 +102,29 @@ async function buildTenure(): Promise<TenureRow[]> {
     from += PAGE
   }
 
+  const today = new Date()
+
   _cache = allRows.map(c => {
-    const mrr         = c.facturacion ?? 0
-    const primera     = c.primera_factura ?? ''
-    const ultima      = c.ultima_factura ?? ''
-    const mesesActivo = monthDiff(primera, ultima)
-    const acumulado   = Math.round(mrr * mesesActivo * 100) / 100
+    const mrr          = c.facturacion ?? 0
+    const activoDesde  = c.activo_desde ?? ''
+    const diasCliente  = c.dias_como_cliente ?? 0
+    const mesesActivo  = activoDesde
+      ? Math.max(1, Math.round(diasCliente / 30.5))
+      : 1
+
+    /* Derive primera/ultima_factura from activo_desde + dias_como_cliente */
+    const primera = activoDesde ? activoDesde.slice(0, 10) : ''
+    const ultimaDate = activoDesde
+      ? new Date(new Date(activoDesde).getTime() + diasCliente * 86400000)
+      : today
+    const ultima = ultimaDate.toISOString().slice(0, 10)
+
+    const acumulado = Math.round(mrr * mesesActivo * 100) / 100
 
     return {
       cid:                   c.cid ?? 'UNKNOWN',
       nombre:                c.empresa ?? '',
-      clasificacion:         c.clasificacion ?? 'N/A',
+      clasificacion:         mrrToClasificacion(mrr),
       segmento_factura:      calcSegmento(mrr),
       meses_activo:          mesesActivo,
       meses_con_factura:     mrr > 0 ? mesesActivo : 0,
@@ -107,7 +133,7 @@ async function buildTenure(): Promise<TenureRow[]> {
       mrr_limpio:            Math.round(mrr * 100) / 100,
       importe_acumulado:     acumulado,
       mrr_por_mes_facturado: mrr > 0 ? Math.round(mrr * 100) / 100 : 0,
-      semaforo:              calcSemaforo(ultima, mrr),
+      semaforo:              estadoToSemaforo(c.estado, mrr),
       total_facturas:        mrr > 0 ? mesesActivo : 0,
       tenure_bucket:         calcBucket(mesesActivo),
     }

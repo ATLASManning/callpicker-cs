@@ -156,7 +156,8 @@ export default function CustomerTenurePage() {
   useEffect(() => {
     fetch('/api/customer-tenure?mode=stats')
       .then(r => r.json())
-      .then(d => { setStats(d); setLS(false) })
+      .then(d => { if (d && !d.error && d.total !== undefined) setStats(d); setLS(false) })
+      .catch(() => setLS(false))
   }, [])
 
   /* ─── Cargar lista ───────────────────────────────────────────────── */
