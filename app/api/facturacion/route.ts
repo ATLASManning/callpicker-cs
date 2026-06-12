@@ -166,6 +166,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ source, zohoConfigured: isZohoConfigured(), rows: rows.length })
   }
 
+  /* ── MODO: filters ── valores únicos para los dropdowns ──────── */
+  if (mode === 'filters') {
+    const uniq = (key: keyof FactRow) =>
+      Array.from(new Set(rows.map(r => String(r[key] ?? '')).filter(Boolean))).sort()
+    return NextResponse.json({
+      meses:     uniq('Cohorte Periodo'),
+      ltvs:      uniq('Clasificación LTV'),
+      segmentos: uniq('Segmento Factura'),
+      tamanos:   uniq('Tamaño Empresa'),
+      semaforos: uniq('Semáforo Actividad'),
+      source,
+    })
+  }
+
   /* ── MODO: periodos — en LTV no hay períodos de corte, usamos cohorte ── */
   if (mode === 'periodos') {
     // Agrupar por Semáforo de actividad para dar una visión resumen
@@ -263,6 +277,9 @@ export async function GET(req: NextRequest) {
     const size      = Math.min(100, parseInt(sp.get('size') ?? '50'))
     const ltv       = sp.get('ltv') ?? ''
     const seg       = sp.get('seg') ?? ''
+    const tamano    = sp.get('tamano') ?? ''
+    const mes       = sp.get('mes') ?? ''
+    const sema      = sp.get('sema') ?? ''
 
     let list = filtered
     if (q) list = list.filter(r =>
@@ -270,8 +287,11 @@ export async function GET(req: NextRequest) {
       (r.CID ?? '').toLowerCase().includes(q) ||
       normalize(r['Segmento Factura'] ?? '').includes(normalize(q))
     )
-    if (ltv) list = list.filter(r => r['Clasificación LTV'] === ltv)
-    if (seg) list = list.filter(r => r['Segmento Factura'] === seg)
+    if (ltv)    list = list.filter(r => r['Clasificación LTV'] === ltv)
+    if (seg)    list = list.filter(r => r['Segmento Factura'] === seg)
+    if (tamano) list = list.filter(r => r['Tamaño Empresa'] === tamano)
+    if (mes)    list = list.filter(r => r['Cohorte Periodo'] === mes)
+    if (sema)   list = list.filter(r => r['Semáforo Actividad'] === sema)
 
     const total  = list.length
     const offset = (page - 1) * size

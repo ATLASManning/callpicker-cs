@@ -47,6 +47,10 @@ interface Stats {
 
 interface ListResult { total: number; page: number; size: number; rows: FactRow[]; source: string }
 
+interface FilterOpts {
+  meses: string[]; ltvs: string[]; segmentos: string[]; tamanos: string[]; semaforos: string[]
+}
+
 /* ── Helpers ───────────────────────────────────────────────────────────────── */
 const fmt$ = (n: number | null | undefined) =>
   n == null ? '—' : '$' + Math.round(n).toLocaleString('es-MX')
@@ -147,16 +151,32 @@ export default function FacturacionPage() {
   const [page, setPage] = useState(1)
   const [tab, setTab] = useState<'resumen' | 'clientes' | 'top'>('resumen')
 
+  /* ── Filtros de tabla ────────────────────────────────────────────── */
+  const [filterOpts, setFilterOpts] = useState<FilterOpts>({ meses: [], ltvs: [], segmentos: [], tamanos: [], semaforos: [] })
+  const [filtroMes,     setFiltroMes]     = useState('')
+  const [filtroLtv,     setFiltroLtv]     = useState('')
+  const [filtroSeg,     setFiltroSeg]     = useState('')
+  const [filtroTamano,  setFiltroTamano]  = useState('')
+  const [filtroSemaforo, setFiltroSemaforo] = useState('')
+
   useEffect(() => {
     setLoading(true)
-    fetch('/api/facturacion?mode=periodos')
-      .then(r => r.json())
-      .then(d => {
-        if (d.error) { setError(d.error); return }
-        setPeriodos(d.periodos ?? [])
-        setTotalGeneral(d.total ?? 0)
-        setSource(d.source ?? '')
+    Promise.all([
+      fetch('/api/facturacion?mode=periodos').then(r => r.json()),
+      fetch('/api/facturacion?mode=filters').then(r => r.json()),
+    ]).then(([periodos, filters]) => {
+      if (periodos.error) { setError(periodos.error); return }
+      setPeriodos(periodos.periodos ?? [])
+      setTotalGeneral(periodos.total ?? 0)
+      setSource(periodos.source ?? '')
+      if (!filters.error) setFilterOpts({
+        meses:     filters.meses     ?? [],
+        ltvs:      filters.ltvs      ?? [],
+        segmentos: filters.segmentos ?? [],
+        tamanos:   filters.tamanos   ?? [],
+        semaforos: filters.semaforos ?? [],
       })
+    })
       .catch(() => setError('No se pudo conectar con la API'))
       .finally(() => setLoading(false))
   }, [])
@@ -170,16 +190,19 @@ export default function FacturacionPage() {
 
   const fetchList = useCallback(() => {
     setLoadingList(true)
-    const params = new URLSearchParams({
-      mode: 'list', page: String(page), size: '25',
-      ...(filtroActivo !== '__all__' && { fecha: filtroActivo }),
-      ...(q && { q }),
-    })
+    const params = new URLSearchParams({ mode: 'list', page: String(page), size: '25' })
+    if (filtroActivo !== '__all__') params.set('fecha', filtroActivo)
+    if (q)             params.set('q',      q)
+    if (filtroMes)     params.set('mes',    filtroMes)
+    if (filtroLtv)     params.set('ltv',    filtroLtv)
+    if (filtroSeg)     params.set('seg',    filtroSeg)
+    if (filtroTamano)  params.set('tamano', filtroTamano)
+    if (filtroSemaforo) params.set('sema',  filtroSemaforo)
     fetch(`/api/facturacion?${params}`)
       .then(r => r.json())
       .then(d => { if (!d.error) setList(d) })
       .finally(() => setLoadingList(false))
-  }, [filtroActivo, page, q])
+  }, [filtroActivo, page, q, filtroMes, filtroLtv, filtroSeg, filtroTamano, filtroSemaforo])
 
   useEffect(() => { if (tab === 'clientes') fetchList() }, [tab, fetchList])
 
@@ -328,7 +351,59 @@ export default function FacturacionPage() {
       {/* ── Tab: Clientes ─────────────────────────────────────── */}
       {tab === 'clientes' && (
         <div className="cp-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 10, alignItems: 'center' }}>
+
+          {/* ── Barra de filtros ──────────────────────────────────── */}
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', background: '#f8fafc' }}>
+            {([
+              { label: 'MES',           placeholder: 'Todos los meses',          opts: filterOpts.meses,     val: filtroMes,      set: setFiltroMes },
+              { label: 'CLASIFICACIÓN', placeholder: 'Todas las clasificaciones', opts: filterOpts.ltvs,      val: filtroLtv,      set: setFiltroLtv },
+              { label: 'SEGMENTO',      placeholder: 'Todos los segmentos',       opts: filterOpts.segmentos, val: filtroSeg,      set: setFiltroSeg },
+              { label: 'TAMAÑO',        placeholder: 'Todos los tamaños',         opts: filterOpts.tamanos,   val: filtroTamano,   set: setFiltroTamano },
+              { label: 'SEMÁFORO',      placeholder: 'Todos los estados',         opts: filterOpts.semaforos, val: filtroSemaforo, set: setFiltroSemaforo },
+            ] as { label: string; placeholder: string; opts: string[]; val: string; set: (v: string) => void }[]).map(f => (
+              <div key={f.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{f.label}</span>
+                <div style={{ position: 'relative' }}>
+                  <select
+                    value={f.val}
+                    onChange={e => { f.set(e.target.value); setPage(1) }}
+                    style={{
+                      appearance: 'none', WebkitAppearance: 'none',
+                      padding: '7px 32px 7px 12px', borderRadius: 8,
+                      border: f.val ? '1.5px solid #1B3FCC' : '1.5px solid #e2e8f0',
+                      fontSize: 13, background: '#fff',
+                      color: f.val ? '#1B3FCC' : '#374151',
+                      fontWeight: f.val ? 600 : 400,
+                      cursor: 'pointer', outline: 'none',
+                      minWidth: 170, maxWidth: 220,
+                    }}
+                  >
+                    <option value="">{f.placeholder}</option>
+                    {f.opts.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                  <svg viewBox="0 0 10 6" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, pointerEvents: 'none', fill: f.val ? '#1B3FCC' : '#94a3b8' }}>
+                    <path d="M0 0l5 6 5-6z" />
+                  </svg>
+                </div>
+              </div>
+            ))}
+
+            {/* Limpiar filtros */}
+            {(filtroMes || filtroLtv || filtroSeg || filtroTamano || filtroSemaforo) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{ fontSize: 10, color: 'transparent' }}>x</span>
+                <button
+                  onClick={() => { setFiltroMes(''); setFiltroLtv(''); setFiltroSeg(''); setFiltroTamano(''); setFiltroSemaforo(''); setPage(1) }}
+                  style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Limpiar filtros
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Buscador ──────────────────────────────────────────── */}
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input value={q} onChange={e => { setQ(e.target.value); setPage(1) }}
