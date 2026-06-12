@@ -6,6 +6,13 @@ export interface TarificacionFila { tipo: string; destino?: string; regla: strin
 export interface Modalidad { nombre: string; descripcion: string }
 export interface ApiItem   { nombre: string; descripcion: string }
 
+export interface Bloque {
+  tipo:    'parrafo' | 'seccion' | 'lista' | 'cita' | 'firma'
+  titulo?: string
+  texto?:  string
+  items?:  string[]
+}
+
 export interface Articulo {
   id:             string
   pdfUrl?:        string   // ruta relativa a /public, p.ej. "/docs/archivo.pdf"
@@ -22,6 +29,7 @@ export interface Articulo {
   graficas?:      string[]
   apis?:          ApiItem[]
   subtitulos?:    { titulo: string; items: string[] }[]
+  bloques?:       Bloque[]
 }
 
 export interface Categoria {
@@ -888,6 +896,125 @@ export const KB: Categoria[] = [
         consideraciones: [
           { texto: 'Para Bitrix24 se requieren credenciales SIP (Servidor, Usuario, Contraseña).', tipo: 'info' },
           { texto: 'Para Zapier se requiere habilitar el uso de API y contar con Client ID, Client Secret, Extension IDs.', tipo: 'info' },
+        ],
+      },
+    ],
+  },
+
+  // ── CALLPICKER SAC ───────────────────────────────────────────────────────
+  {
+    id: 'callpicker-sac', label: 'Callpicker SAC', color: '#0057FF',
+    articulos: [
+      {
+        id: 'cx-antes-de-sac',
+        titulo: 'La Experiencia del Cliente Empieza Antes de que SAC Conteste.',
+        descripcion: 'Reflexión estratégica para equipos de Customer Success: la experiencia del cliente es el resultado acumulado de decisiones internas que el cliente nunca ve, pero siempre siente.',
+        badge: 'nuevo',
+        bloques: [
+          {
+            tipo: 'parrafo',
+            texto: 'Muchas organizaciones invierten en tecnología de voz, automatizan flujos y capacitan a sus equipos de atención. Y aun así, el cliente cancela. No porque el asesor haya fallado en la llamada, sino porque la experiencia ya estaba rota antes de que esa llamada ocurriera.',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'La percepción del cliente no nace en el ticket. Nace en la primera configuración que se hizo bien o mal. En si el agente virtual respondió con criterio o bloqueó la llamada. En si la factura reflejó lo que se prometió. En si alguien de la organización le ahorró un paso o le sumó uno.',
+          },
+          {
+            tipo: 'cita',
+            texto: 'La experiencia del cliente es el resultado acumulado de decisiones internas que el cliente nunca ve, pero siempre siente.',
+          },
+          {
+            tipo: 'seccion',
+            titulo: 'Lo que los datos confirman',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Esto no es intuición de servicio. Tiene respaldo ejecutivo.',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Bain & Company documentó que las empresas que sobresalen en experiencia del cliente crecen entre 4 % y 8 % por encima de su mercado. La razón es estructural: los clientes permanecen donde encuentran predictibilidad, confianza y resolución efectiva. No donde encuentran el precio más bajo.',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'El Zendesk CX Trends 2025, con base en más de 10,000 consumidores y líderes empresariales, confirma que las compañías con mejores resultados no eligen entre automatización y criterio humano: combinan ambos. La tecnología acelera; la confianza aparece cuando el cliente percibe que alguien entiende su contexto y actúa con responsabilidad.',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'En Callpicker, esa combinación ya existe como posibilidad. La pregunta es si se está ejecutando de forma coordinada o por partes.',
+          },
+          {
+            tipo: 'seccion',
+            titulo: 'Los factores que definen si la experiencia funciona o falla',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Desde una perspectiva operativa, gestionar la experiencia del cliente en una plataforma de telefonía cloud exige revisar variables concretas:',
+          },
+          {
+            tipo: 'lista',
+            items: [
+              'Tiempo de respuesta ante incidentes → ¿el cliente espera horas o recibe atención en minutos?',
+              'Calidad del seguimiento → ¿los compromisos se cumplen o se repiten sin resolverse?',
+              'Precisión de la información → ¿el cliente recibió lo que se le prometió en ventas, o SAC hereda una promesa que no puede sostener?',
+              'Facilidad de contacto → ¿el cliente puede llegar a alguien con autoridad para resolver, o rebota entre áreas?',
+              'Velocidad de recuperación ante errores → ¿la organización detecta la falla antes que el cliente, o el cliente es quien la reporta?',
+            ],
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Cada uno de estos factores influye en una sola decisión: quedarse o irse.',
+          },
+          {
+            tipo: 'seccion',
+            titulo: 'Por qué esto no es solo un problema de SAC',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Las empresas que construyen experiencias consistentes entienden que ningún equipo de atención puede compensar lo que otras áreas no hicieron bien.',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'En Callpicker, la lógica es la misma:',
+          },
+          {
+            tipo: 'lista',
+            items: [
+              'Comercial vende una promesa.',
+              'Implementación define si esa promesa arranca bien.',
+              'Producto determina si la plataforma facilita o complica.',
+              'Facturación decide si el cliente entiende lo que paga.',
+              'SAC recibe todo lo anterior y tiene que sostenerlo en tiempo real.',
+            ],
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Cuando estas piezas no están alineadas, SAC se convierte en el área que absorbe los errores del sistema. Cuando sí lo están, SAC se convierte en el área que consolida la confianza.',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'La experiencia del cliente no pertenece a un departamento. Es un sistema de gestión que alinea personas, procesos y decisiones alrededor de un objetivo común: facilitarle la vida al cliente.',
+          },
+          {
+            tipo: 'seccion',
+            titulo: 'La lectura de negocio',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Las organizaciones que comprenden esta lógica dejan de competir únicamente por precio o por funcionalidades. Comienzan a diferenciarse por algo más difícil de copiar: la calidad con la que resuelven lo que realmente importa.',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'En un mercado donde los competidores pueden replicar características en meses, la experiencia del cliente es la ventaja que tarda años en construirse y que el cliente no cambia fácilmente.',
+          },
+          {
+            tipo: 'cita',
+            texto: 'Callpicker tiene la plataforma. Tiene los casos. Tiene el equipo. Lo que esta herramienta construye es el sistema que los conecta.',
+          },
+          {
+            tipo: 'firma',
+            texto: 'Dirección de experiencia al cliente.',
+          },
         ],
       },
     ],

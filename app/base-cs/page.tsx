@@ -7,6 +7,7 @@ import {
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
   ShieldCheck, Puzzle, Globe, FileText, LifeBuoy,
+  Heart,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
 
@@ -38,10 +39,11 @@ const CAT_ICONS: Record<string, React.ElementType> = {
   desarrollador:Code,
   operativas:   Settings2,
   chat:         MessageSquare,
-  seguridad:    ShieldCheck,
-  integraciones:Puzzle,
-  cobertura:    Globe,
-  soporte:      LifeBuoy,
+  seguridad:      ShieldCheck,
+  integraciones:  Puzzle,
+  cobertura:      Globe,
+  soporte:        LifeBuoy,
+  'callpicker-sac': Heart,
 }
 
 // ── KB ordenado alfabéticamente ───────────────────────────────────────────────
@@ -85,7 +87,7 @@ function Consideracion({ texto, tipo }: { texto: string; tipo?: string }) {
 function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
   const [open, setOpen] = useState(false)
   const hasExtra = !!(art.tarificacion || art.funcionamiento || art.consideraciones ||
-    art.modalidades || art.acciones || art.graficas || art.apis || art.subtitulos || art.utilidad)
+    art.modalidades || art.acciones || art.graficas || art.apis || art.subtitulos || art.utilidad || art.bloques)
 
   return (
     <div style={{
@@ -269,6 +271,53 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
             <div style={{ marginTop: 16 }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Consideraciones</p>
               {art.consideraciones.map((c, i) => <Consideracion key={i} {...c} />)}
+            </div>
+          )}
+
+          {/* Bloques editoriales */}
+          {art.bloques && (
+            <div style={{ marginTop: 20, maxWidth: 780 }}>
+              {art.bloques.map((b, i) => {
+                if (b.tipo === 'seccion') return (
+                  <div key={i} style={{ marginTop: 32, marginBottom: 14, paddingBottom: 10, borderBottom: `2px solid ${catColor}30` }}>
+                    <span style={{ display: 'inline-block', width: 4, height: 20, background: catColor, borderRadius: 2, marginRight: 10, verticalAlign: 'middle' }} />
+                    <span style={{ fontSize: 17, fontWeight: 800, color: TX, letterSpacing: '-0.01em' }}>{b.titulo}</span>
+                  </div>
+                )
+                if (b.tipo === 'parrafo') return (
+                  <p key={i} style={{ fontSize: 15, color: '#374151', lineHeight: 1.85, textAlign: 'justify', marginBottom: 16 }}>
+                    {b.texto}
+                  </p>
+                )
+                if (b.tipo === 'cita') return (
+                  <blockquote key={i} style={{
+                    margin: '24px 0', padding: '18px 22px',
+                    borderLeft: `4px solid ${catColor}`,
+                    background: `${catColor}08`,
+                    borderRadius: '0 10px 10px 0',
+                  }}>
+                    <p style={{ fontSize: 16, fontWeight: 600, color: TX, lineHeight: 1.75, fontStyle: 'italic', margin: 0, textAlign: 'justify' }}>
+                      {b.texto}
+                    </p>
+                  </blockquote>
+                )
+                if (b.tipo === 'lista') return (
+                  <ul key={i} style={{ margin: '8px 0 20px', paddingLeft: 0, listStyle: 'none' }}>
+                    {b.items?.map((item, ii) => (
+                      <li key={ii} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: catColor, flexShrink: 0, marginTop: 8 }} />
+                        <span style={{ fontSize: 15, color: '#374151', lineHeight: 1.75, textAlign: 'justify', flex: 1 }}>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )
+                if (b.tipo === 'firma') return (
+                  <div key={i} style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${BORDER}`, textAlign: 'right' }}>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: catColor, fontStyle: 'italic' }}>{b.texto}</span>
+                  </div>
+                )
+                return null
+              })}
             </div>
           )}
         </div>
