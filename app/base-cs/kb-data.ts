@@ -604,11 +604,79 @@ export const KB: Categoria[] = [
     articulos: [
       {
         id: 'agente-virtual',
+        pdfUrl: '/docs/Callpicker_Agentes_Virtuales_OnePager_Confidencial.pdf',
         titulo: 'Agente Virtual de Voz',
-        descripcion: 'Permite construir Agentes Virtuales para interactuar vía telefónica de manera conversacional. Puede consultar múltiples fuentes para obtener información y formular respuestas.',
+        descripcion: 'Permite construir Agentes Virtuales para interactuar vía telefónica de manera conversacional. Puede consultar múltiples fuentes para obtener información y formular respuestas. Opera de forma nativa dentro del ecosistema Callpicker.',
         utilidad: 'Atención fuera de horario y disminución de llamadas atendidas por personas.',
+        subtitulos: [
+          { titulo: 'Funcionalidades disponibles', items: [
+            'Transferencia a destinos Callpicker: extensiones, grupos, colas, guardias u otros destinos configurados.',
+            'Activación del Agente Virtual solo en ciertos días y horarios.',
+            'Extensiones del cliente pueden transferir llamadas hacia el Agente Virtual.',
+            'Envío de mensajes vía WhatsApp mediante Callpicker Chat al terminar la llamada.',
+            'Operación omnicanal entre voz, WhatsApp y mensajería unificada.',
+            'Mejor trazabilidad sobre llamadas, transferencias, eventos y escalamiento humano.',
+            'Continuidad operativa con rutas alternas, horarios, disponibilidad y reglas de negocio.',
+          ]},
+        ],
         consideraciones: [
           { texto: 'El costo del minuto varía dependiendo del modelo y voz elegida.', tipo: 'info' },
+          { texto: 'Al operar de forma nativa, no requiere homologar protocolos, codecs, señalización ni comportamientos de carriers externos.', tipo: 'info' },
+          { texto: 'Soporte centralizado: el cliente no triangula entre múltiples proveedores.', tipo: 'info' },
+        ],
+      },
+      {
+        id: 'ia-externa-protocolo',
+        pdfUrl: '/docs/Callpicker_Agentes_Virtuales_OnePager_Confidencial.pdf',
+        titulo: 'Protocolo: Cliente solicita integrar IA externa a Callpicker',
+        badge: 'avanzado',
+        descripcion: 'Cuando un cliente solicita conectar una plataforma de Agentes de IA de terceros (ej. Retell, Vapi, Bland, ElevenLabs, etc.) con Callpicker, se deben presentar primero los Agentes Virtuales nativos y, si el cliente insiste, iniciar el proceso formal de homologación.',
+        utilidad: 'Guía interna para manejar correctamente la solicitud, evitar compromisos informales y proteger a Callpicker de responsabilidades sobre plataformas externas.',
+        funcionamiento: [
+          'Presentar primero la propuesta de Agentes Virtuales Callpicker nativos y sus ventajas (disponibilidad, soporte, costo, menor riesgo técnico).',
+          'Si el cliente insiste en usar su plataforma externa, explicar que es necesario un proceso formal de integración.',
+          'Iniciar con la sesión de Discovery y Homologación ($5,000 MXN, tomados a cuenta del desarrollo final si el proyecto avanza).',
+          'Si el cliente desea una solución más rápida/económica, evaluar la opción de conexión vía SIP como extensión (alcance limitado, sin soporte garantizado sobre el tercero).',
+          'En ambos casos, informar el costo operativo de $2 MXN por minuto por la interconexión.',
+        ],
+        modalidades: [
+          {
+            nombre: 'Agentes Virtuales Callpicker (Recomendado)',
+            descripcion: 'Sin desarrollo de integración externo. Costo según plan contratado. Soporte incluido bajo alcance Callpicker. Menor riesgo técnico y operativo.',
+          },
+          {
+            nombre: 'Integración externa homologada',
+            descripcion: 'Discovery inicial de $5,000 MXN (tomado a cuenta del desarrollo final). Costo operativo: $2 MXN por minuto entrante y saliente. Soporte según alcance de integración acordado.',
+          },
+          {
+            nombre: 'SIP como extensión (alcance limitado)',
+            descripcion: 'Sin costo de desarrollo, salvo requerimientos especiales. Costo operativo: $2 MXN por minuto. Soporte limitado; diagnóstico especializado puede generar costo adicional.',
+          },
+        ],
+        subtitulos: [
+          { titulo: 'Áreas que se validan en el Discovery', items: [
+            'Arquitectura — APIs, SIP, webhooks, eventos, conectividad, autenticación y seguridad.',
+            'Flujo de llamadas — Entrantes, salientes, transferencias, colgado, reintentos, grabaciones y continuidad.',
+            'Compatibilidad telefónica — Señalización, codecs, DTMF, SIP headers, RTP, NAT, TLS/SRTP, session timers y early media.',
+            'Capacidades del tercero — Transferencias, latencia, concurrencia, disponibilidad, failover y manejo de errores.',
+            'Soporte — Responsabilidades por proveedor, monitoreo, escalamiento, diagnóstico y mantenimiento.',
+          ]},
+          { titulo: 'Riesgos de conexión SIP no homologada', items: [
+            'Compatibilidad SIP — El estándar implementado por el proveedor externo puede variar y no ser totalmente compatible.',
+            'Autenticación — Callpicker no se hace responsable por mecanismos o restricciones de autenticación del tercero.',
+            'Latencia y calidad — No se garantiza latencia, estabilidad ni calidad de audio extremo a extremo.',
+            'Codecs — Puede haber incompatibilidad por codecs soportados, transcodificación o negociación de audio.',
+            'DTMF — No se garantiza el correcto envío o recepción de tonos DTMF.',
+            'Transferencias — Transferencias ciegas, asistidas, REFER, re-INVITE u otros métodos pueden no comportarse correctamente.',
+            'Audio RTP / red — Problemas con NAT, firewalls, puertos RTP, jitter, pérdida de paquetes o audio unidireccional.',
+            'Reportes y métricas — Las llamadas gestionadas por terceros pueden limitar visibilidad, trazabilidad y grabaciones.',
+            'Continuidad — Fallas o indisponibilidad del tercero quedan fuera del control operativo de Callpicker.',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'Las conexiones SIP no homologadas formalmente no incluyen soporte estándar de Callpicker sobre el comportamiento del proveedor externo.', tipo: 'warning' },
+          { texto: 'Cualquier diagnóstico, ajuste técnico, revisión de trazas o soporte especializado relacionado con la conexión externa podrá generar costos adicionales.', tipo: 'warning' },
+          { texto: 'Callpicker no se hace responsable por fallas, incompatibilidades o incidencias originadas en la plataforma externa, carrier externo, red del cliente o proveedor tercero.', tipo: 'error' },
         ],
       },
       {
