@@ -11,13 +11,22 @@ import { getSemaforo, formatMXN, ASESOR_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 
-// ── Paleta azul marino ────────────────────────────────────────────────────────
+// ── Paleta azul marino (header) ───────────────────────────────────────────────
 const NAVY      = '#0A1628'
 const NAVY_MID  = '#0F2040'
 const NAVY_LINE = 'rgba(255,255,255,0.10)'
 const TX_HI     = '#FFFFFF'
 const TX_MID    = 'rgba(255,255,255,0.70)'
 const TX_LOW    = 'rgba(255,255,255,0.45)'
+
+// ── Paleta clara (tabla expandida) ────────────────────────────────────────────
+const L_BG      = '#FFFFFF'
+const L_BG2     = '#F8FAFC'
+const L_BG3     = '#F1F5F9'
+const L_LINE    = '#E2E8F0'
+const L_TX      = '#0F172A'
+const L_TX_MID  = '#475569'
+const L_TX_LOW  = '#94A3B8'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface ZohoStats { total: number; fallas: number; ultima: string | null }
@@ -49,30 +58,22 @@ function fmtFecha(iso: string | null | undefined) {
   return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
 }
 
-function DiasCell({ dias }: { dias: number }) {
-  const cls = dias > 30 ? 'text-rojo font-bold'
-    : dias > 14 ? 'text-naranja font-semibold'
-    : 'text-textMid'
-  return <span className={`text-xs ${cls}`}>{dias}d</span>
-}
-
-function TicketCell({ zt }: { zt: ZohoStats }) {
-  if (zt.total === 0) return <span className="text-xs text-textLow">—</span>
+function TicketCellLight({ zt }: { zt: ZohoStats }) {
+  if (zt.total === 0) return <span style={{ fontSize: 12, color: L_TX_LOW }}>—</span>
   return (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-1.5">
-        <span className={`text-sm font-bold tabular-nums ${zt.total > 10 ? 'text-naranja' : 'text-textHi'}`}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: zt.total > 10 ? '#F97316' : L_TX, fontVariantNumeric: 'tabular-nums' }}>
           {zt.total}
         </span>
         {zt.fallas > 0 && (
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full
-            bg-rojo/10 text-rojo text-[10px] font-semibold border border-rojo/20">
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 99, background: '#FEF2F2', color: '#EF4444', fontSize: 10, fontWeight: 600, border: '1px solid #FECACA' }}>
             <AlertTriangle size={8} /> {zt.fallas}
           </span>
         )}
       </div>
       {zt.ultima && (
-        <span className="text-[10px] text-textLow">Últ: {fmtFecha(zt.ultima)}</span>
+        <span style={{ fontSize: 10, color: L_TX_LOW }}>Últ: {fmtFecha(zt.ultima)}</span>
       )}
     </div>
   )
@@ -258,15 +259,15 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
       {/* ── FIN HEADER ───────────────────────────────────────────────────────── */}
 
       {/* ════════════════════════════════════════════════════════════════════════
-          TABLA colapsable — fondo del tema (bg-card)
+          TABLA colapsable — paleta clara
           ════════════════════════════════════════════════════════════════════════ */}
       <div className={`transition-all duration-300 ease-in-out overflow-hidden
         ${expanded ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'}`}>
 
-        <div className="border-t border-border">
+        <div style={{ borderTop: `1px solid ${L_LINE}`, background: L_BG }}>
           {/* Sub-header */}
-          <div className="px-6 py-2.5 bg-surface/50 flex items-center justify-between">
-            <span className="text-[11px] text-textLow font-medium">
+          <div style={{ padding: '8px 24px', background: L_BG3, borderBottom: `1px solid ${L_LINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11, color: L_TX_LOW, fontWeight: 500 }}>
               {cuentas.length} cuentas · ordenadas por Health Score ascendente
             </span>
             <Link href="/cuentas"
@@ -275,8 +276,8 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
             </Link>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="cp-table">
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <colgroup>
                 <col style={{ width: '72px' }} />
                 <col style={{ minWidth: '180px' }} />
@@ -290,79 +291,75 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
                 <col style={{ width: '52px' }} />
               </colgroup>
               <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Empresa</th>
-                  <th>Facturación</th>
-                  <th>Health Score</th>
-                  <th>Semáforo</th>
-                  <th>Días sin act.</th>
-                  <th>Tickets Zoho Desk</th>
-                  <th>Último contacto</th>
-                  <th>Oportunidad</th>
-                  <th></th>
+                <tr style={{ background: L_BG2 }}>
+                  {['#','Empresa','Facturación','Health Score','Semáforo','Días sin act.','Tickets Zoho Desk','Último contacto','Oportunidad',''].map((h, i) => (
+                    <th key={i} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: L_TX_LOW, borderBottom: `1px solid ${L_LINE}`, whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {cuentas.map(c => {
+                {cuentas.map((c, ri) => {
                   const semaforo = getSemaforo(c.health_score)
                   const hsColor = ['verde', 'azul'].includes(semaforo) ? '#22C55E'
                     : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'
+                  const rowBg = ri % 2 === 0 ? L_BG : L_BG2
+                  const cell: React.CSSProperties = { padding: '11px 14px', borderBottom: `1px solid ${L_LINE}`, verticalAlign: 'middle' }
                   return (
-                    <tr key={c.id}>
-                      <td>
-                        <span className="font-mono text-xs font-bold text-cp">{c.consecutivo}</span>
+                    <tr key={c.id} style={{ background: rowBg }} onMouseEnter={e => (e.currentTarget.style.background = '#EFF6FF')} onMouseLeave={e => (e.currentTarget.style.background = rowBg)}>
+                      <td style={cell}>
+                        <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#1B3FCC' }}>{c.consecutivo}</span>
                       </td>
-                      <td>
+                      <td style={cell}>
                         <Link href={`/cuentas/${c.id}`}
-                          className="text-sm font-semibold text-textHi hover:text-cp transition-colors block leading-tight">
+                          style={{ fontSize: 13, fontWeight: 600, color: L_TX, textDecoration: 'none', display: 'block', lineHeight: 1.3 }}
+                          className="hover:text-cp transition-colors">
                           {c.empresa}
                         </Link>
-                        {c.giro && (
-                          <span className="text-[11px] text-textLow">{c.giro}</span>
-                        )}
+                        {c.giro && <span style={{ fontSize: 11, color: L_TX_LOW }}>{c.giro}</span>}
                       </td>
-                      <td>
-                        <span className="text-sm font-bold tabular-nums text-textHi">
+                      <td style={cell}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: L_TX, fontVariantNumeric: 'tabular-nums' }}>
                           {formatMXN(c.facturacion)}
                         </span>
                       </td>
-                      <td>
-                        <div className="flex items-center gap-2">
+                      <td style={cell}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <HealthScoreRing score={c.health_score} size={32} strokeWidth={4} showLabel={false} />
-                          <span className="text-sm font-bold tabular-nums" style={{ color: hsColor }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: hsColor, fontVariantNumeric: 'tabular-nums' }}>
                             {c.health_score}
                           </span>
                         </div>
                       </td>
-                      <td><SemaforoBadge semaforo={semaforo} size="sm" /></td>
-                      <td><DiasCell dias={c.dias_sin_actividad} /></td>
-                      <td><TicketCell zt={c.zoho_tickets} /></td>
-                      <td>
-                        <span className="text-xs text-textLow whitespace-nowrap">
+                      <td style={cell}><SemaforoBadge semaforo={semaforo} size="sm" /></td>
+                      <td style={cell}>
+                        <span style={{ fontSize: 12, fontWeight: c.dias_sin_actividad > 30 ? 700 : 500, color: c.dias_sin_actividad > 30 ? '#EF4444' : c.dias_sin_actividad > 14 ? '#F97316' : L_TX_MID }}>
+                          {c.dias_sin_actividad}d
+                        </span>
+                      </td>
+                      <td style={cell}><TicketCellLight zt={c.zoho_tickets} /></td>
+                      <td style={cell}>
+                        <span style={{ fontSize: 12, color: L_TX_LOW, whiteSpace: 'nowrap' }}>
                           {fmtFecha(c.ultimo_contacto)}
                         </span>
                       </td>
-                      <td>
-                        <div className="flex flex-col gap-1">
+                      <td style={cell}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {c.upsell_producto && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full
-                              bg-cpTeal/10 text-cpTeal border border-cpTeal/20 whitespace-nowrap">
+                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: '#F0FDF4', color: '#059669', border: '1px solid #BBF7D0', whiteSpace: 'nowrap', fontWeight: 600 }}>
                               ↑ {c.upsell_producto}
                             </span>
                           )}
                           {c.crossell_producto && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full
-                              bg-purple-500/10 text-purple-400 border border-purple-500/20 whitespace-nowrap">
+                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: '#FAF5FF', color: '#7C3AED', border: '1px solid #DDD6FE', whiteSpace: 'nowrap', fontWeight: 600 }}>
                               ⇄ {c.crossell_producto}
                             </span>
                           )}
                           {!c.upsell_producto && !c.crossell_producto && (
-                            <span className="text-xs text-textLow">—</span>
+                            <span style={{ color: L_TX_LOW, fontSize: 12 }}>—</span>
                           )}
                         </div>
                       </td>
-                      <td>
+                      <td style={cell}>
                         <Link href={`/cuentas/${c.id}`}
                           className="inline-flex items-center gap-0.5 text-xs text-cp hover:text-cpTeal font-medium transition-colors">
                           Ver <ArrowUpRight size={11} />
@@ -376,12 +373,12 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
           </div>
 
           {/* Footer tabla */}
-          <div className="px-6 py-2.5 bg-surface/30 border-t border-border flex items-center justify-between text-[11px] text-textLow">
-            <span>{cuentas.length} cuentas · {formatMXN(resumen.facturacion_total)} total cartera</span>
+          <div style={{ padding: '8px 24px', background: L_BG3, borderTop: `1px solid ${L_LINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11, color: L_TX_LOW }}>{cuentas.length} cuentas · {formatMXN(resumen.facturacion_total)} total cartera</span>
             {totalTix > 0 && (
-              <span className="flex items-center gap-1.5">
+              <span style={{ fontSize: 11, color: L_TX_LOW, display: 'flex', alignItems: 'center', gap: 6 }}>
                 {totalTix} tickets
-                {totalFallas > 0 && <span className="text-rojo font-semibold">· {totalFallas} fallas</span>}
+                {totalFallas > 0 && <span style={{ color: '#EF4444', fontWeight: 600 }}>· {totalFallas} fallas</span>}
               </span>
             )}
           </div>

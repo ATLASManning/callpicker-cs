@@ -6,7 +6,7 @@ import {
   MessageSquare, ChevronRight, MapPin, Lightbulb,
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
-  ShieldCheck, Puzzle, Globe, FileText,
+  ShieldCheck, Puzzle, Globe, FileText, LifeBuoy,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
 
@@ -41,7 +41,11 @@ const CAT_ICONS: Record<string, React.ElementType> = {
   seguridad:    ShieldCheck,
   integraciones:Puzzle,
   cobertura:    Globe,
+  soporte:      LifeBuoy,
 }
+
+// ── KB ordenado alfabéticamente ───────────────────────────────────────────────
+const KB_SORTED = [...KB].sort((a, b) => a.label.localeCompare(b.label, 'es'))
 
 // ── Componentes pequeños ──────────────────────────────────────────────────────
 function Badge({ type }: { type: 'roto' | 'pronto' | 'avanzado' | 'nuevo' }) {
@@ -278,7 +282,7 @@ export default function BaseCSPage() {
   const [activa, setActiva] = useState('minutos')
   const [query,  setQuery]  = useState('')
 
-  const cat = KB.find(c => c.id === activa)!
+  const cat = KB_SORTED.find(c => c.id === activa)!
   const Icon = CAT_ICONS[activa] ?? Info
 
   const artsFiltrados = useMemo(() => {
@@ -291,7 +295,7 @@ export default function BaseCSPage() {
     )
   }, [cat, query])
 
-  const totalArticulos = KB.reduce((s, c) => s + c.articulos.length, 0)
+  const totalArticulos = KB_SORTED.reduce((s, c) => s + c.articulos.length, 0)
 
   return (
     <div style={{ minHeight: '100%', background: BG, display: 'flex', flexDirection: 'column' }}>
@@ -327,7 +331,7 @@ export default function BaseCSPage() {
           <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.09em', padding: '0 8px 10px' }}>
             Categorías
           </p>
-          {KB.map(c => {
+          {KB_SORTED.map(c => {
             const CIcon = CAT_ICONS[c.id] ?? Info
             const isActive = activa === c.id
             const count = c.articulos.length
