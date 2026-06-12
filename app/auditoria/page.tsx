@@ -7,6 +7,7 @@ import { ARKANSAS }         from './arkansas-data'
 import { FINSUS }           from './finsus-data'
 import { AGUA_INMACULADA }  from './agua-inmaculada-data'
 import { SALUD_Y_HOGAR }   from './salud-y-hogar-data'
+import { SAMALAB }         from './samalab-data'
 import AuditoriaDetail from './AuditoriaDetail'
 import AuditoriaForm from './AuditoriaForm'
 
@@ -48,7 +49,7 @@ export default function AuditoriaPage() {
   }, [])
 
   /* Lista completa de casos (ARKANSAS siempre primero) */
-  const allCases: AuditoriaCase[] = [ARKANSAS, FINSUS, AGUA_INMACULADA, SALUD_Y_HOGAR, ...userCases]
+  const allCases: AuditoriaCase[] = [ARKANSAS, FINSUS, AGUA_INMACULADA, SALUD_Y_HOGAR, SAMALAB, ...userCases]
   const currentCase = allCases.find(c => c.id === selectedId) ?? ARKANSAS
 
   /* Guardar nuevo caso */
@@ -108,7 +109,7 @@ export default function AuditoriaPage() {
             {allCases.map(c => {
               const active  = selectedId === c.id
               const eColor  = ESTADO_COLOR[c.estado] ?? '#6366f1'
-              const isUser  = !['arkansas', 'finsus', 'agua-inmaculada', 'salud-y-hogar'].includes(c.id)
+              const isUser  = !['arkansas', 'finsus', 'agua-inmaculada', 'salud-y-hogar', 'samalab'].includes(c.id)
               return (
                 <div key={c.id} className="relative group flex-shrink-0">
                   <button
