@@ -4,7 +4,7 @@ import type { AuditoriaCase } from './types'
 import {
   AlertTriangle, CheckCircle2, Clock, TrendingUp,
   User, Users, Zap, Target, Shield, ChevronDown, ChevronUp,
-  FileText, BarChart3, Lightbulb, Search, AlertCircle,
+  FileText, BarChart3, Lightbulb, Search, AlertCircle, Printer,
 } from 'lucide-react'
 
 /* ─── Tipos locales ──────────────────────────────────────────────────── */
@@ -123,7 +123,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
   const estadoColor = ESTADO_COLOR[caso.estado] ?? INDIGO
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0 print:block print:overflow-visible">
 
       {/* Header de cuenta */}
       <div className="px-6 pt-4 pb-2">
@@ -138,9 +138,18 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               {caso.descripcion_contexto} · {caso.fecha_periodo}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <Badge color={estadoColor}>{caso.estado.toUpperCase()}</Badge>
             <span className="text-xs text-gray-400">v{caso.version} · {caso.fecha_auditoria}</span>
+            <button
+              onClick={() => window.print()}
+              className="no-print inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90"
+              style={{ background: '#0F172A' }}
+              title="Exportar como PDF"
+            >
+              <Printer size={13} />
+              Exportar PDF
+            </button>
           </div>
         </div>
       </div>

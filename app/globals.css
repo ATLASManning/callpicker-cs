@@ -227,3 +227,40 @@ body {
     0 6px 14px rgba(0,87,255,0.2);
 }
 .cp-icon-btn:active { transform: translateY(0px) scale(0.97); }
+
+/* ── Print / Exportar PDF ─────────────────────────────────────────────────── */
+@media print {
+  /* Ocultar elementos de navegación */
+  aside,
+  .no-print,
+  nav { display: none !important; }
+
+  /* Liberar alturas fijas para que el contenido fluya */
+  html, body, main,
+  .flex.h-screen,
+  .flex-1.overflow-y-auto,
+  .flex.flex-col.h-full,
+  .flex.flex-col.flex-1 {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  /* Ancho completo sin el sidebar */
+  main { width: 100% !important; padding: 0 !important; }
+
+  /* Fondo blanco y texto negro para impresión */
+  * { background: #fff !important; color: #000 !important;
+      box-shadow: none !important; border-color: #ddd !important; }
+
+  /* Mantener colores de badges semánticos */
+  [style*="background"] { background: unset !important; }
+
+  /* Saltos de página inteligentes */
+  .bg-white.rounded-xl { break-inside: avoid; }
+
+  @page {
+    margin: 16mm;
+    size: A4 portrait;
+  }
+}
