@@ -225,6 +225,68 @@ const REPORTE_S5_MAYO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 1 · JUNIO 2026
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S1_JUNIO_2026: ChurnReporte = {
+  id:      's1-junio-2026',
+  periodo: 'Semana 1 · Jun 2026',
+  fecha:   '05/06/2026',
+  notas:   'Gross Revenue Churn · Semana 6. Al 5 de junio del 2026. Churn Q2: Abril 1.9% · Mayo 3%. Acumulado 2026: 11.3%. 26 cuentas canceladas · 5 suspendidas · 9 inactivas en cierre de mayo. Siguiente revisión: viernes 12 de junio.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Abril', pct: 1.9 },
+      { mes: 'Mayo',  pct: 3.0 },
+    ],
+    acumulado: 11.3,
+    notaClave: 'Churn Q2: Abril 1.9% · Mayo 3.0%. Acumulado 2026: 11.3%.',
+    notaEspecial: '⚠️ Patrón GTC detectado: ~55% del downgrade de mayo (~$22,270) concentrado en 11 sucursales del Grupo GTC por reducción del paquete "Ops Automatizaciones". Recomendación: seguimiento preventivo por futuros downgrades. 🚨 Casos de baja real que requieren atención urgente: SAMALAB (-$3,000) · Turismo Nicetrip (-$1,656) · Rejamex (-$1,116).',
+  },
+
+  /* En Corte — 3 cuentas $24,147 */
+  pendientesTotalReal:   24147,
+  pendientesCuentasReal: 3,
+  pendientes: [
+    { cliente: 'GTC - MG LOMAS',            monto: 19544.44, mesesActivo: 0, ultimaFactura: '13/04/2026' },
+    { cliente: 'GVA - República Dominicana', monto: 3623.56,  mesesActivo: 0, ultimaFactura: '17/04/2026' },
+    { cliente: 'Lácteos ARCE',               monto: 979,      mesesActivo: 0, ultimaFactura: '29/04/2026' },
+  ],
+
+  /* Cancelados — 26 cuentas $24,213 */
+  cancelados: [
+    { cliente: 'Finaura',                     mrr: 5484,  mesesActivo: 10,  acumulado: 0 },
+    { cliente: 'Abelyne Inc',                 mrr: 1797,  mesesActivo: 9,   acumulado: 0 },
+    { cliente: 'Holton',                      mrr: 1555,  mesesActivo: 105, acumulado: 0 },
+    { cliente: '+ 23 cuentas adicionales',    mrr: 15377, mesesActivo: 0,   acumulado: 0 },
+  ],
+
+  /* Downgrades — Mayo 2026  total desglosado $34,521 · real $40,834 · 20 clientes */
+  downgrades: [
+    { cliente: 'SAMALAB',          perdida: 3000, nota: '🚨 Baja real. Min Voicebot $46,000→$3,000 (−$3,000). Sin adquisición de producto equivalente.' },
+    { cliente: 'Turismo Nicetrip', perdida: 1656, nota: '🚨 Baja real. Min CE $1,825→$169 (−$1,656). Sin adquisición equivalente.' },
+    { cliente: 'Rejamex',          perdida: 1116, nota: '🚨 Baja real. Canceló Agente CP Chat completamente (−$1,116).' },
+    { cliente: 'GTC — 11 sucursales (Patrón artículo)', perdida: 22270, nota: '⚠️ Patrón 2: 11 sucursales GTC (~$22,270) concentran ~55% del downgrade. Reducción del paquete "Ops Automatizaciones" de forma idéntica en múltiples cuentas. Decisión grupal del cliente. Aplica: GTC Forum, GTC BMW, GTC Carranza, GTC Sendero, GTC MG Poliforum, GTC Matehuala, GTC Lomas, GTC Rioverde, GTC Infiniti León, GTC Infiniti QRO + otras sucursales.' },
+    { cliente: 'Otros clientes — Cambio de artículo', perdida: 12251, nota: '⚠️ Patrón 1 (10 cuentas): clientes cancelan "Agente CP Chat" pero adquieren "Agente CP Chat Callcenter" por el mismo monto. El ingreso reportado como perdido es un movimiento entre artículos, no una baja real. Clientes afectados: GTC Forum, GTC BMW, GTC Carranza, GTC Sendero, GTC MG Poliforum, GTC Matehuala, GTC Lomas, GTC Rioverde, GTC Infiniti León, GTC Infiniti QRO.' },
+  ],
+
+  /* Suspendidos (5 cuentas $5,786) + Inactivos (9 cuentas $27,799.30) = 14 cuentas $33,585 */
+  suspendidosTotalReal:   33585,
+  suspendidosCuentasReal: 14,
+  suspendidos: [
+    { cliente: 'Campers LEER',                           importe: 1870,     mesesActivo: 3,   estado: 'Suspendido' },
+    { cliente: 'Virtual Homes',                          importe: 979,      mesesActivo: 39,  estado: 'Suspendido' },
+    { cliente: 'PANCHOS DELI MARKET',                    importe: 979,      mesesActivo: 30,  estado: 'Suspendido' },
+    { cliente: 'IMPERIO LUXURY REAL ESTATE SERVICES',    importe: 979,      mesesActivo: 26,  estado: 'Suspendido' },
+    { cliente: 'Arrendo Properties by Pulppo',           importe: 979,      mesesActivo: 81,  estado: 'Suspendido' },
+    { cliente: 'Travelling',                             importe: 12921.99, mesesActivo: 6,   estado: 'Inactivo'   },
+    { cliente: 'EKTARIS GRUPO INMOBILIARIO',             importe: 3798,     mesesActivo: 5,   estado: 'Inactivo'   },
+    { cliente: 'Custodias RJ',                           importe: 2920,     mesesActivo: 2,   estado: 'Inactivo'   },
+    { cliente: 'Grupo Orve',                             importe: 2083,     mesesActivo: 104, estado: 'Inactivo'   },
+    { cliente: '+ 5 inactivos adicionales',              importe: 6076.31,  mesesActivo: 0,   estado: 'Inactivo'   },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -634,15 +696,15 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s5-mayo-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s1-junio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
-  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, ...userReportes]
+  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026']
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, ...userReportes]
   const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_ABRIL_2026
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
@@ -666,7 +728,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s5-mayo-2026')
+    if (selectedId === id) setSelectedId('s1-junio-2026')
     setDelConfirm(null)
   }
 
