@@ -825,6 +825,41 @@ export const KB: Categoria[] = [
     ],
   },
 
+  // ── SOPORTE ───────────────────────────────────────────────────────────────
+  {
+    id: 'soporte', label: 'Soporte', color: '#F97316',
+    articulos: [
+      {
+        id: 'ticket-automatico',
+        titulo: 'Generación automática de Ticket al hacer/recibir una llamada',
+        badge: 'nuevo',
+        descripcion: 'Alineando a tener un mejor registro del tiempo. Cuando origen o destino de una llamada corresponde a alguno de los DIDs listados, se genera automáticamente un ticket en Zoho Desk.',
+        subtitulos: [
+          {
+            titulo: 'DIDs con esta funcionalidad activa',
+            items: [
+              '5550180649 — Funcionalidad Premium',
+              '5550220001 — Soporte CDMX',
+              '4421610188 — Soporte QRO',
+              '5512070510 — CDMX',
+              '5550118919 — Soporte chat',
+            ],
+          },
+        ],
+        funcionamiento: [
+          'Cuando se recibe o se hace una llamada a un teléfono cuyo contacto está asociado a un correo.',
+          'Cuando se recibe o se hace una llamada a un teléfono que no tiene un correo asociado.',
+        ],
+        consideraciones: [
+          { texto: 'Se agregó una regla para que no lleguen avisos de apertura/cierre de dichos tickets.' },
+          { texto: 'Se establece automáticamente que el canal del ticket es Phone.' },
+          { texto: 'Manualmente en ese ticket hay que registrar la entrada de tiempo.', tipo: 'error' },
+          { texto: 'Para que la llamada se asigne correctamente al Agente, el nombre de la extensión en Callpicker Conmutador debe ser idéntico al nombre del agente en Zoho Desk. No editen su nombre en el conmutador.', tipo: 'error' },
+        ],
+      },
+    ],
+  },
+
   // ── COBERTURA Y DIDS ──────────────────────────────────────────────────────
   {
     id: 'cobertura', label: 'Cobertura y DIDs', color: '#F59E0B',
