@@ -6,15 +6,15 @@ import {
 } from 'recharts'
 import { formatMXN } from '@/lib/types'
 
-// ── Paleta dark ───────────────────────────────────────────────────────────────
-const BG      = '#050D1A'
-const PANEL   = 'rgba(255,255,255,0.05)'
-const PANEL2  = 'rgba(0,180,255,0.06)'
-const BORDER  = 'rgba(0,180,255,0.14)'
-const ACCENT  = '#00B4FF'
-const TX      = '#E8F4FF'
-const TX_MID  = 'rgba(200,228,255,0.65)'
-const TX_LOW  = 'rgba(200,228,255,0.38)'
+// ── Paleta clara ──────────────────────────────────────────────────────────────
+const BG      = '#EFF6FF'
+const PANEL   = '#FFFFFF'
+const PANEL2  = 'rgba(0,87,255,0.04)'
+const BORDER  = '#BFDBFE'
+const ACCENT  = '#0057FF'
+const TX      = '#0F172A'
+const TX_MID  = '#475569'
+const TX_LOW  = '#94A3B8'
 
 const VENDEDOR_COLOR: Record<string, string> = {
   'Fátima':       '#A855F7',
@@ -196,11 +196,11 @@ function FilterSelect({
         onChange={e => onChange(e.target.value)}
         style={{
           padding:'7px 10px', borderRadius:8, fontSize:12, fontWeight:600,
-          background: active ? `${ACCENT}22` : 'rgba(255,255,255,0.06)',
+          background: active ? `${ACCENT}18` : '#F0F7FF',
           color: active ? ACCENT : TX_MID,
           border: `1px solid ${active ? ACCENT : BORDER}`,
           cursor:'pointer', outline:'none', appearance:'none',
-          backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2300B4FF' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+          backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230057FF' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
           backgroundRepeat:'no-repeat', backgroundPosition:'right 8px center',
           paddingRight:28,
         }}
@@ -312,7 +312,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
             <button key={String(a)} onClick={()=>setSelAno(a)} style={{
               padding:'5px 14px',borderRadius:8,fontSize:12,fontWeight:700,
               cursor:'pointer',transition:'all 150ms',
-              background: selAno===a ? ACCENT : 'rgba(255,255,255,0.06)',
+              background: selAno===a ? ACCENT : '#EFF6FF',
               color:      selAno===a ? BG     : TX_MID,
               border:     selAno===a ? 'none' : `1px solid ${BORDER}`,
             }}>{a==='todos'?'Todos':a}</button>
@@ -367,7 +367,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
       <Panel title="Activaciones por Mes" sub="Nuevas cuentas y facturación acumulada por período">
         <ResponsiveContainer width="100%" height={240}>
           <ComposedChart data={porMes} margin={{top:4,right:20,left:-10,bottom:0}}>
-            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
+            <CartesianGrid vertical={false} stroke="#DBEAFE" />
             <XAxis dataKey="mes" tick={{fill:TX_MID,fontSize:11,fontWeight:600}} axisLine={false} tickLine={false} />
             <YAxis yAxisId="left" tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
             <YAxis yAxisId="right" orientation="right" domain={[0,maxFacMes*1.1]}
@@ -387,7 +387,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         <Panel title="Por Vendedor" sub="Comercial que cerró la venta">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={porVendedor} layout="vertical" margin={{top:0,right:60,left:10,bottom:0}}>
-              <CartesianGrid horizontal={false} stroke="rgba(255,255,255,0.04)" />
+              <CartesianGrid horizontal={false} stroke="#DBEAFE" />
               <XAxis type="number" tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{fill:TX_MID,fontSize:12,fontWeight:600}} axisLine={false} tickLine={false} width={100} />
               <Tooltip content={(p:any)=><TTBar {...p} label={p.label} colorMap={VENDEDOR_COLOR} />} cursor={{fill:'rgba(0,180,255,0.06)'}} />
@@ -401,7 +401,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         <Panel title="Por Ejecutivo" sub="Responsable de la activación">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={porEjec} layout="vertical" margin={{top:0,right:60,left:10,bottom:0}}>
-              <CartesianGrid horizontal={false} stroke="rgba(255,255,255,0.04)" />
+              <CartesianGrid horizontal={false} stroke="#DBEAFE" />
               <XAxis type="number" tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{fill:TX_MID,fontSize:12,fontWeight:600}} axisLine={false} tickLine={false} width={100} />
               <Tooltip content={(p:any)=><TTBar {...p} label={p.label} colorMap={EJECUTIVO_COLOR} />} cursor={{fill:'rgba(0,180,255,0.06)'}} />
@@ -443,7 +443,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         <Panel title="Por Giro / Industria" sub="Top 10 sectores por número de activaciones">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={porGiro} layout="vertical" margin={{top:0,right:50,left:10,bottom:0}}>
-              <CartesianGrid horizontal={false} stroke="rgba(255,255,255,0.04)" />
+              <CartesianGrid horizontal={false} stroke="#DBEAFE" />
               <XAxis type="number" tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{fill:TX_MID,fontSize:12}} axisLine={false} tickLine={false} width={100} />
               <Tooltip content={(p:any)=><TTBar {...p} label={p.label} colorMap={GIRO_COLOR} />} cursor={{fill:'rgba(0,180,255,0.06)'}} />
@@ -473,7 +473,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
             </thead>
             <tbody>
               {recientes.map((r,i)=>(
-                <tr key={r.id} style={{background:i%2===0?'transparent':'rgba(255,255,255,0.02)'}}>
+                <tr key={r.id} style={{background:i%2===0?'transparent':'#F0F7FF'}}>
                   <td style={{padding:'8px 12px',color:TX_LOW,fontSize:11,fontVariantNumeric:'tabular-nums'}}>{r.id}</td>
                   <td style={{padding:'8px 12px',color:TX,fontWeight:600}}>{r.cliente}</td>
                   <td style={{padding:'8px 12px',color:TX_MID,fontVariantNumeric:'tabular-nums'}}>{MES_ES[r.mes]??r.mes} {r.ano}</td>

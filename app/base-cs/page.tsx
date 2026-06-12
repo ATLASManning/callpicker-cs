@@ -11,16 +11,16 @@ import {
 import { KB, type Categoria, type Articulo } from './kb-data'
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
-const BG     = '#050D1A'
-const PANEL  = 'rgba(255,255,255,0.04)'
-const BORDER = 'rgba(0,180,255,0.13)'
-const TX     = '#E8F4FF'
-const TX_MID = 'rgba(200,228,255,0.65)'
-const TX_LOW = 'rgba(200,228,255,0.38)'
-const GREEN  = '#22C55E'
-const AMBER  = '#F59E0B'
-const RED    = '#EF4444'
-const ACCENT = '#00B4FF'
+const BG     = '#EFF6FF'
+const PANEL  = '#FFFFFF'
+const BORDER = '#BFDBFE'
+const TX     = '#0F172A'
+const TX_MID = '#475569'
+const TX_LOW = '#94A3B8'
+const GREEN  = '#16A34A'
+const AMBER  = '#D97706'
+const RED    = '#DC2626'
+const ACCENT = '#0057FF'
 
 const NIVEL_COLOR = { green: GREEN, amber: AMBER, red: RED }
 
@@ -164,7 +164,7 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   {art.tarificacion.map((t, i) => (
-                    <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                    <tr key={i} style={{ background: i % 2 === 0 ? 'transparent' : '#F0F7FF' }}>
                       <td style={{ padding: '11px 14px', color: TX_MID, fontSize: 14, borderBottom: `1px solid ${BORDER}` }}>{t.tipo}</td>
                       <td style={{ padding: '11px 14px', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>
                         <span style={{
@@ -304,7 +304,7 @@ export default function BaseCSPage() {
       <div style={{
         padding: '24px 32px 20px',
         borderBottom: `1px solid ${BORDER}`,
-        background: 'linear-gradient(180deg, rgba(0,180,255,0.07) 0%, transparent 100%)',
+        background: 'linear-gradient(180deg, rgba(0,87,255,0.05) 0%, transparent 100%)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>
@@ -350,7 +350,7 @@ export default function BaseCSPage() {
                 </span>
                 {count > 0
                   ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 10, background: `${c.color}25`, color: c.color }}>{count}</span>
-                  : <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', color: TX_LOW }}>pronto</span>
+                  : <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: 'rgba(0,87,255,0.06)', color: TX_LOW }}>pronto</span>
                 }
               </button>
             )

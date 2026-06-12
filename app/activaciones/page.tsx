@@ -3,9 +3,9 @@ import ActivacionesCharts, { RegistroItem } from '@/components/charts/Activacion
 
 export const dynamic = 'force-dynamic'
 
-const BG     = '#0A1628'
-const TX     = '#E8F4FF'
-const TX_MID = 'rgba(200,228,255,0.65)'
+const BG     = '#EFF6FF'
+const TX     = '#0F172A'
+const TX_MID = '#475569'
 
 // ── Normalización ─────────────────────────────────────────────────────────────
 function normVendedor(v: string): string {
@@ -84,10 +84,10 @@ export default async function ActivacionesPage() {
 
   if (registros.length === 0) {
     return (
-      <div style={{ minHeight: '100%', background: '#050D1A', padding: '48px 32px' }}>
+      <div style={{ minHeight: '100%', background: BG, padding: '48px 32px' }}>
         <div style={{
           maxWidth: 500, margin: '0 auto', padding: '40px 32px', borderRadius: 16,
-          background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)',
+          background: '#FFFFFF', border: '1px solid #BFDBFE',
           textAlign: 'center',
         }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
@@ -95,9 +95,9 @@ export default async function ActivacionesPage() {
             Archivo no encontrado
           </h2>
           <p style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>
-            Coloca el archivo <code style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: 4 }}>
+            Coloca el archivo <code style={{ background: '#F0F7FF', padding: '2px 6px', borderRadius: 4 }}>
               activaciones.xlsx
-            </code> en la carpeta <code style={{ background: 'rgba(255,255,255,0.08)', padding: '2px 6px', borderRadius: 4 }}>
+            </code> en la carpeta <code style={{ background: '#F0F7FF', padding: '2px 6px', borderRadius: 4 }}>
               /data
             </code> del proyecto y reinicia el servidor.
           </p>
@@ -111,26 +111,26 @@ export default async function ActivacionesPage() {
 
   return (
     // Solo <div> — nunca <main> aquí: el CSS del layout tiene main{background:#DBEAFE !important}
-    <div style={{ minHeight: '100%', background: '#050D1A' }}>
+    <div style={{ minHeight: '100%', background: BG }}>
       {/* Header */}
       <div style={{
         padding: '28px 32px 24px',
-        borderBottom: '1px solid rgba(0,180,255,0.12)',
-        background: 'linear-gradient(180deg, rgba(0,180,255,0.08) 0%, #050D1A 100%)',
+        borderBottom: '1px solid #BFDBFE',
+        background: 'linear-gradient(180deg, rgba(0,87,255,0.05) 0%, #EFF6FF 100%)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>
-            <h1 style={{ fontSize: 26, fontWeight: 900, color: '#E8F4FF', lineHeight: 1, letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: 26, fontWeight: 900, color: TX, lineHeight: 1, letterSpacing: '-0.02em' }}>
               Activaciones 2.0
             </h1>
-            <p style={{ fontSize: 13, color: 'rgba(200,228,255,0.65)', marginTop: 8 }}>
+            <p style={{ fontSize: 13, color: TX_MID, marginTop: 8 }}>
               {registros.length.toLocaleString('es-MX')} activaciones &middot; {anos.join(' · ')} &middot; Facturación total{' '}
-              <strong style={{ color: '#22C55E' }}>
+              <strong style={{ color: '#16A34A' }}>
                 {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalFac)}
               </strong>
             </p>
           </div>
-          <p style={{ fontSize: 11, color: 'rgba(200,228,255,0.35)' }}>
+          <p style={{ fontSize: 11, color: '#94A3B8' }}>
             Fuente: Tablero de Activaciones 2.0 · Hoja Registros
           </p>
         </div>
