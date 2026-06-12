@@ -131,6 +131,19 @@ function normalize(s: string) {
     .replace(/[^a-z0-9\s]/g, '').trim()
 }
 
+/* ── Parsear "DD Mon YYYY" o "YYYY-MM-DD" → "Mon YYYY" ─────────────── */
+function parseMesAnio(fecha: string): string {
+  if (!fecha) return ''
+  const parts = fecha.trim().split(' ')
+  if (parts.length >= 3) return `${parts[1]} ${parts[2]}`   // "15 May 2026" → "May 2026"
+  if (fecha.includes('-')) { const p = fecha.split('-'); return `${p[1]}-${p[0]}` }
+  return fecha
+}
+
+const MESES_ORDEN: Record<string, number> = {
+  Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12
+}
+
 /* ─── Handler ────────────────────────────────────────────────────────── */
 export async function GET(req: NextRequest) {
   const sp   = req.nextUrl.searchParams
@@ -341,33 +354,17 @@ export async function GET(req: NextRequest) {
 
     if (found.length === 0) return NextResponse.json({ rows: [], mrrGrupo: 0, mesReciente: '', subCuentas: 0, source })
 
-    // Determinar mes más reciente por Última Factura
-    // "15 May 2026" → extraer mes/año
-    function parseMesAnio(fecha: string): string {
-      if (!fecha) return ''
-      // Formato "DD Mon YYYY"
-      const parts = fecha.split(' ')
-      if (parts.length >= 3) return `${parts[1]} ${parts[2]}` // "May 2026"
-      // Formato "YYYY-MM-DD"
-      if (fecha.includes('-')) { const p = fecha.split('-'); return `${p[1]}-${p[0]}` }
-      return fecha
-    }
-
     const fechas = found
       .map(r => r['Última Factura'])
-      .filter(f => f && f.trim())
+      .filter((f): f is string => !!f && f.trim().length > 0)
       .map(f => ({ raw: f, parsed: parseMesAnio(f) }))
 
-    // Ordenar para encontrar el más reciente
-    const mesesOrden: Record<string, number> = {
-      Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12
-    }
     const sortedFechas = fechas.sort((a, b) => {
       const [mA, yA] = a.parsed.split(' ')
       const [mB, yB] = b.parsed.split(' ')
       const yearDiff = parseInt(yB ?? '0') - parseInt(yA ?? '0')
       if (yearDiff !== 0) return yearDiff
-      return (mesesOrden[mB] ?? 0) - (mesesOrden[mA] ?? 0)
+      return (MESES_ORDEN[mB ?? ''] ?? 0) - (MESES_ORDEN[mA ?? ''] ?? 0)
     })
 
     const mesReciente = sortedFechas[0]?.parsed ?? ''
