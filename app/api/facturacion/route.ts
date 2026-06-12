@@ -333,11 +333,22 @@ export async function GET(req: NextRequest) {
       .filter(w => w.length >= 3 && !STOP.has(w))
       .slice(0, 3)
 
+    // Generar acrónimo con la primera letra de cada palabra >= 2 chars
+    // Ej: "GRUPO TORRES CORZO" → "GTC", "GRUPO NACIONAL PROVINCIAL" → "GNP"
+    const acronym = nombre.trim().split(/\s+/)
+      .filter(w => w.length >= 2)
+      .map(w => normalize(w)[0] ?? '')
+      .join('')
+    // Solo usar si tiene ≥ 3 chars (evitar falsos positivos con SA, CV, etc.)
+    const useAcronym = acronym.length >= 3
+
     // Buscar todas las sub-cuentas relacionadas
     let found: FactRow[] = []
 
     // 1. CID exacto primero
     if (cid) found = rows.filter(r => (r.CID ?? '').trim() === cid.trim())
+
+    const cidsSeen = new Set(found.map(r => r.CID))
 
     // 2. Ampliar con keywords: cualquier cuenta cuyo nombre contenga alguna keyword
     if (keywords.length > 0) {
@@ -345,9 +356,19 @@ export async function GET(req: NextRequest) {
         const n = normalize(r['Nombre del Cliente'] ?? '')
         return keywords.some(kw => n.includes(kw))
       })
-      // Unir sin duplicar
-      const cidsSeen = new Set(found.map(r => r.CID))
       for (const r of byKeyword) {
+        if (!cidsSeen.has(r.CID)) { found.push(r); cidsSeen.add(r.CID) }
+      }
+    }
+
+    // 3. Buscar por acrónimo: cuentas cuyo nombre empiece con "GTC - " o "GTC-" o "GTC "
+    if (useAcronym) {
+      const acr = acronym.toLowerCase()
+      const byAcronym = rows.filter(r => {
+        const n = normalize(r['Nombre del Cliente'] ?? '')
+        return n.startsWith(acr + ' ') || n.startsWith(acr + '-') || n === acr
+      })
+      for (const r of byAcronym) {
         if (!cidsSeen.has(r.CID)) { found.push(r); cidsSeen.add(r.CID) }
       }
     }
