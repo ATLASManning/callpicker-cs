@@ -1,21 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
-
-/* ─── Raw fact row ───────────────────────────────────────────────────── */
-interface FactRow {
-  CID:                      string
-  'Nombre del Cliente':     string
-  'Fecha de corte':         string
-  'Nombre del Plan':        string
-  'Clasificación de empresa': string
-  'Monto del plan':         number | null
-  '% Consumo':              number | null
-  'Toggle Status':          number | null
-  'Total de interacciones': number | null
-}
 
 /* ─── Computed tenure row ────────────────────────────────────────────── */
 export interface TenureRow {
@@ -37,14 +23,7 @@ export interface TenureRow {
 
 const BUCKET_ORDER = ['Nuevos', 'Jóvenes', 'Activos', 'Maduros', 'Veteranos']
 
-/* ─── Semáforo logic ────────────────────────────────────────────────── */
-function calcSemaforo(toggle: number, consumo: number): 'verde' | 'amarillo' | 'rojo' {
-  if (toggle > 0 && consumo >= 25) return 'verde'
-  if (toggle > 0)                  return 'amarillo'
-  return 'rojo'
-}
-
-/* ─── Tenure bucket ──────────────────────────────────────────────────── */
+/* ─── Helpers ────────────────────────────────────────────────────────── */
 function calcBucket(meses: number): string {
   if (meses <= 3)  return 'Nuevos'
   if (meses <= 6)  return 'Jóvenes'
@@ -53,71 +32,97 @@ function calcBucket(meses: number): string {
   return 'Veteranos'
 }
 
-/* ─── MRR segment ────────────────────────────────────────────────────── */
 function calcSegmento(mrr: number): string {
-  if (mrr <= 0)     return 'Sin Factura'
-  if (mrr < 500)    return 'Básico'
-  if (mrr < 1500)   return 'Estándar'
-  if (mrr < 3000)   return 'Premium'
+  if (mrr <= 0)   return 'Sin Factura'
+  if (mrr < 500)  return 'Básico'
+  if (mrr < 1500) return 'Estándar'
+  if (mrr < 3000) return 'Premium'
   return 'Enterprise'
 }
 
-/* ─── Lazy cache ─────────────────────────────────────────────────────── */
+function monthDiff(a: string, b: string): number {
+  if (!a || !b) return 1
+  const da = new Date(a.length === 7 ? a + '-01' : a)
+  const db = new Date(b.length === 7 ? b + '-01' : b)
+  if (isNaN(da.getTime()) || isNaN(db.getTime())) return 1
+  return Math.max(1, (db.getFullYear() - da.getFullYear()) * 12 + (db.getMonth() - da.getMonth()) + 1)
+}
+
+function calcSemaforo(ultimaFecha: string, mrr: number): 'verde' | 'amarillo' | 'rojo' {
+  if (!ultimaFecha || mrr <= 0) return 'rojo'
+  const ultima = new Date(ultimaFecha.length === 7 ? ultimaFecha + '-01' : ultimaFecha)
+  if (isNaN(ultima.getTime())) return 'rojo'
+  const diffMonths = (Date.now() - ultima.getTime()) / (1000 * 60 * 60 * 24 * 30.5)
+  if (diffMonths <= 1.5) return 'verde'
+  if (diffMonths <= 3.5) return 'amarillo'
+  return 'rojo'
+}
+
+/* ─── Lazy cache (5 min TTL) ─────────────────────────────────────────── */
 let _cache: TenureRow[] | null = null
+let _cacheTime = 0
+const CACHE_TTL = 5 * 60 * 1000
 
-function buildTenure(): TenureRow[] {
-  if (_cache) return _cache
+async function buildTenure(): Promise<TenureRow[]> {
+  if (_cache && Date.now() - _cacheTime < CACHE_TTL) return _cache
 
-  const p = join(process.cwd(), 'lib', 'facturacion-data.json')
-  const raw = JSON.parse(readFileSync(p, 'utf-8')) as FactRow[]
+  const allRows: {
+    cid: string; empresa: string; facturacion: number | null
+    primera_factura: string | null; ultima_factura: string | null
+    clasificacion: string | null
+  }[] = []
 
-  /* Group by CID */
-  const map: Record<string, FactRow[]> = {}
-  for (const r of raw) {
-    const cid = r.CID ?? 'UNKNOWN'
-    if (!map[cid]) map[cid] = []
-    map[cid].push(r)
+  let from = 0
+  const PAGE = 1000
+  while (true) {
+    const { data, error } = await supabaseAdmin
+      .from('cuentas')
+      .select('cid, empresa, facturacion, primera_factura, ultima_factura, clasificacion')
+      .not('cid', 'is', null)
+      .not('primera_factura', 'is', null)
+      .range(from, from + PAGE - 1)
+    if (error) throw new Error(error.message)
+    if (!data || data.length === 0) break
+    allRows.push(...data)
+    if (data.length < PAGE) break
+    from += PAGE
   }
 
-  _cache = Object.entries(map).map(([cid, rows]) => {
-    rows.sort((a, b) => (a['Fecha de corte'] ?? '').localeCompare(b['Fecha de corte'] ?? ''))
-
-    const latest   = rows[rows.length - 1]
-    const earliest = rows[0]
-
-    const mesesActivo      = new Set(rows.map(r => r['Fecha de corte'])).size
-    const rowsConMrr       = rows.filter(r => (r['Monto del plan'] ?? 0) > 0)
-    const mesesConFactura  = rowsConMrr.length
-    const importeAcumulado = rows.reduce((s, r) => s + (r['Monto del plan'] ?? 0), 0)
-    const mrrLimpio        = latest['Monto del plan'] ?? 0
-    const mrrPorMes        = mesesConFactura > 0 ? importeAcumulado / mesesConFactura : 0
+  _cache = allRows.map(c => {
+    const mrr         = c.facturacion ?? 0
+    const primera     = c.primera_factura ?? ''
+    const ultima      = c.ultima_factura ?? ''
+    const mesesActivo = monthDiff(primera, ultima)
+    const acumulado   = Math.round(mrr * mesesActivo * 100) / 100
 
     return {
-      cid,
-      nombre:                latest['Nombre del Cliente'] ?? '',
-      clasificacion:         latest['Clasificación de empresa'] ?? 'N/A',
-      segmento_factura:      calcSegmento(mrrLimpio),
+      cid:                   c.cid ?? 'UNKNOWN',
+      nombre:                c.empresa ?? '',
+      clasificacion:         c.clasificacion ?? 'N/A',
+      segmento_factura:      calcSegmento(mrr),
       meses_activo:          mesesActivo,
-      meses_con_factura:     mesesConFactura,
-      primera_factura:       earliest['Fecha de corte'] ?? '',
-      ultima_factura:        latest['Fecha de corte'] ?? '',
-      mrr_limpio:            Math.round(mrrLimpio        * 100) / 100,
-      importe_acumulado:     Math.round(importeAcumulado * 100) / 100,
-      mrr_por_mes_facturado: Math.round(mrrPorMes        * 100) / 100,
-      semaforo:              calcSemaforo(latest['Toggle Status'] ?? 0, latest['% Consumo'] ?? 0),
-      total_facturas:        mesesConFactura,
+      meses_con_factura:     mrr > 0 ? mesesActivo : 0,
+      primera_factura:       primera,
+      ultima_factura:        ultima,
+      mrr_limpio:            Math.round(mrr * 100) / 100,
+      importe_acumulado:     acumulado,
+      mrr_por_mes_facturado: mrr > 0 ? Math.round(mrr * 100) / 100 : 0,
+      semaforo:              calcSemaforo(ultima, mrr),
+      total_facturas:        mrr > 0 ? mesesActivo : 0,
       tenure_bucket:         calcBucket(mesesActivo),
     }
   })
 
+  _cacheTime = Date.now()
   return _cache!
 }
 
 /* ─── Handler ────────────────────────────────────────────────────────── */
 export async function GET(req: NextRequest) {
+  try {
   const sp   = req.nextUrl.searchParams
   const mode = sp.get('mode') ?? 'stats'
-  const all  = buildTenure()
+  const all  = await buildTenure()
 
   /* ── MODO: stats ─────────────────────────────────────────────────── */
   if (mode === 'stats') {
@@ -173,7 +178,7 @@ export async function GET(req: NextRequest) {
     }
 
     /* Top 15 por LTV acumulado */
-    const topByLtv = [...all]
+    const topByLtv = Array.from(all)
       .sort((a, b) => b.importe_acumulado - a.importe_acumulado)
       .slice(0, 15)
       .map(r => ({
@@ -237,7 +242,7 @@ export async function GET(req: NextRequest) {
     if (segmento) filtered = filtered.filter(r => r.segmento_factura === segmento)
 
     type Key = keyof TenureRow
-    const sorted = [...filtered].sort((a, b) => {
+    const sorted = Array.from(filtered).sort((a, b) => {
       const av = a[sortBy as Key] ?? 0
       const bv = b[sortBy as Key] ?? 0
       const cmp = av < bv ? -1 : av > bv ? 1 : 0
@@ -252,4 +257,8 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ error: 'mode not found' }, { status: 400 })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
 }
