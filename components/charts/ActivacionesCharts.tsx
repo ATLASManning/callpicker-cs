@@ -206,7 +206,7 @@ function FilterSelect({
         }}
       >
         {options.map(o => (
-          <option key={o.value} value={o.value} style={{background:'#0A1E35',color:TX}}>
+          <option key={o.value} value={o.value} style={{background:'#ffffff',color:'#0F172A'}}>
             {o.label}
           </option>
         ))}
