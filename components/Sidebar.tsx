@@ -10,9 +10,9 @@ import {
 } from 'lucide-react'
 import type { SessionPayload } from '@/lib/auth'
 
-// ── Azul royal sólido ─────────────────────────────────────────────────────────
-const SB   = '#0E30CC'
-const SB_D = 'rgba(0,0,0,0.18)'
+// ── Navy oscuro profundo ──────────────────────────────────────────────────────
+const SB   = '#0D1829'
+const SB_D = 'rgba(255,255,255,0.07)'
 const SB_H = 'rgba(255,255,255,0.12)'
 const SB_A = 'rgba(255,255,255,0.18)'
 const TX   = '#FFFFFF'
@@ -171,7 +171,7 @@ export default function Sidebar() {
 
   const rolIcon = me?.rol === 'admin' ? ShieldCheck : me?.rol === 'asesor' ? UserCheck : Eye
   const RolIcon = rolIcon
-  const rolColor = me?.rol === 'admin' ? '#1B3FCC' : me?.rol === 'asesor' ? '#059669' : '#D97706'
+  const rolColor = me?.rol === 'admin' ? '#60A5FA' : me?.rol === 'asesor' ? '#34D399' : '#FBBF24'
   const rolLabel = me?.rol === 'admin' ? 'Admin' : me?.rol === 'asesor' ? 'Asesor' : 'Viewer'
 
   // Filtrar nav según rol
