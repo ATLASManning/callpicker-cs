@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react'
 import PageHeader from '@/components/PageHeader'
 import { Plus, Trash2, FolderOpen } from 'lucide-react'
 import type { AuditoriaCase } from './types'
-import { ARKANSAS } from './arkansas-data'
-import { FINSUS }   from './finsus-data'
+import { ARKANSAS }         from './arkansas-data'
+import { FINSUS }           from './finsus-data'
+import { AGUA_INMACULADA }  from './agua-inmaculada-data'
 import AuditoriaDetail from './AuditoriaDetail'
 import AuditoriaForm from './AuditoriaForm'
 
@@ -46,7 +47,7 @@ export default function AuditoriaPage() {
   }, [])
 
   /* Lista completa de casos (ARKANSAS siempre primero) */
-  const allCases: AuditoriaCase[] = [ARKANSAS, FINSUS, ...userCases]
+  const allCases: AuditoriaCase[] = [ARKANSAS, FINSUS, AGUA_INMACULADA, ...userCases]
   const currentCase = allCases.find(c => c.id === selectedId) ?? ARKANSAS
 
   /* Guardar nuevo caso */
@@ -106,7 +107,7 @@ export default function AuditoriaPage() {
             {allCases.map(c => {
               const active  = selectedId === c.id
               const eColor  = ESTADO_COLOR[c.estado] ?? '#6366f1'
-              const isUser  = c.id !== 'arkansas' && c.id !== 'finsus'
+              const isUser  = !['arkansas', 'finsus', 'agua-inmaculada'].includes(c.id)
               return (
                 <div key={c.id} className="relative group flex-shrink-0">
                   <button
