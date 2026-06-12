@@ -313,12 +313,81 @@ export async function GET(req: NextRequest) {
     const cid    = sp.get('cid') ?? ''
     const nombre = sp.get('nombre') ?? ''
 
-    let found = cid ? rows.filter(r => (r.CID ?? '').trim() === cid.trim()) : []
-    if (!found.length && nombre) {
-      const normNombre = normalize(nombre)
-      found = rows.filter(r => normalize(r['Nombre del Cliente'] ?? '').includes(normNombre.split(' ')[0] ?? ''))
+    // Extraer palabras clave significativas del nombre (>= 3 chars, no stopwords)
+    const STOP = new Set(['de','del','la','el','los','las','en','y','a','s','sa','cv','sapi','grupo','the','and'])
+    const keywords = normalize(nombre)
+      .split(/\s+/)
+      .filter(w => w.length >= 3 && !STOP.has(w))
+      .slice(0, 3)
+
+    // Buscar todas las sub-cuentas relacionadas
+    let found: FactRow[] = []
+
+    // 1. CID exacto primero
+    if (cid) found = rows.filter(r => (r.CID ?? '').trim() === cid.trim())
+
+    // 2. Ampliar con keywords: cualquier cuenta cuyo nombre contenga alguna keyword
+    if (keywords.length > 0) {
+      const byKeyword = rows.filter(r => {
+        const n = normalize(r['Nombre del Cliente'] ?? '')
+        return keywords.some(kw => n.includes(kw))
+      })
+      // Unir sin duplicar
+      const cidsSeen = new Set(found.map(r => r.CID))
+      for (const r of byKeyword) {
+        if (!cidsSeen.has(r.CID)) { found.push(r); cidsSeen.add(r.CID) }
+      }
     }
-    return NextResponse.json({ rows: found.slice(0, 5), source })
+
+    if (found.length === 0) return NextResponse.json({ rows: [], mrrGrupo: 0, mesReciente: '', subCuentas: 0, source })
+
+    // Determinar mes más reciente por Última Factura
+    // "15 May 2026" → extraer mes/año
+    function parseMesAnio(fecha: string): string {
+      if (!fecha) return ''
+      // Formato "DD Mon YYYY"
+      const parts = fecha.split(' ')
+      if (parts.length >= 3) return `${parts[1]} ${parts[2]}` // "May 2026"
+      // Formato "YYYY-MM-DD"
+      if (fecha.includes('-')) { const p = fecha.split('-'); return `${p[1]}-${p[0]}` }
+      return fecha
+    }
+
+    const fechas = found
+      .map(r => r['Última Factura'])
+      .filter(f => f && f.trim())
+      .map(f => ({ raw: f, parsed: parseMesAnio(f) }))
+
+    // Ordenar para encontrar el más reciente
+    const mesesOrden: Record<string, number> = {
+      Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12
+    }
+    const sortedFechas = fechas.sort((a, b) => {
+      const [mA, yA] = a.parsed.split(' ')
+      const [mB, yB] = b.parsed.split(' ')
+      const yearDiff = parseInt(yB ?? '0') - parseInt(yA ?? '0')
+      if (yearDiff !== 0) return yearDiff
+      return (mesesOrden[mB] ?? 0) - (mesesOrden[mA] ?? 0)
+    })
+
+    const mesReciente = sortedFechas[0]?.parsed ?? ''
+
+    // Filtrar solo las cuentas del mes más reciente
+    const cuentasMesReciente = mesReciente
+      ? found.filter(r => parseMesAnio(r['Última Factura']) === mesReciente)
+      : found
+
+    // Suma del MRR del mes reciente
+    const mrrGrupo = cuentasMesReciente.reduce((s, r) => s + (r['MRR Limpio'] ?? 0), 0)
+
+    return NextResponse.json({
+      rows: found,                    // todas las sub-cuentas encontradas
+      cuentasMesReciente,             // solo las del mes reciente
+      mrrGrupo: Math.round(mrrGrupo),
+      mesReciente,
+      subCuentas: found.length,
+      source,
+    })
   }
 
   return NextResponse.json({ error: 'mode not found' }, { status: 400 })

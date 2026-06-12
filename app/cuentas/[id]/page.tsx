@@ -16,6 +16,7 @@ import AdopcionProducto from '@/components/AdopcionProducto'
 import CuentaInfoEditor from '@/components/CuentaInfoEditor'
 import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
+import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 
 export const dynamic = 'force-dynamic'
@@ -84,10 +85,11 @@ export default async function CuentaDetailPage({ params }: Props) {
                 <ExternalLink size={13} /> Zoho CRM
               </a>
             )}
-            <div className="text-right">
-              <p className="text-xs text-textLow">Facturación</p>
-              <p className="text-xl font-bold text-textHi">{formatMXN(cuenta.facturacion)}</p>
-            </div>
+            <CuentaFacHeaderLive
+              cid={cuenta.cid ?? null}
+              empresa={cuenta.empresa}
+              fallback={cuenta.facturacion}
+            />
           </div>
         </div>
       </div>
