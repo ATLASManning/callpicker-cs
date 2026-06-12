@@ -1,55 +1,94 @@
-import { ReceiptText, ExternalLink, TrendingUp, TrendingDown, Minus, SearchX } from 'lucide-react'
-import type { FactRow } from '@/lib/cuenta-data'
+'use client'
+import { useEffect, useState } from 'react'
+import { ReceiptText, ExternalLink, SearchX, Loader2, TrendingUp, Wifi, WifiOff } from 'lucide-react'
 
-function fmtMXN(n: number | null) {
-  if (n == null) return '—'
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
+interface LTVRow {
+  CID: string
+  'Nombre del Cliente': string
+  'Tamaño Empresa': string
+  'Clasificación LTV': string
+  'Clasificación Cliente': string
+  'Segmento Factura': string
+  'MRR Limpio': number | null
+  'Importe Acumulado Recurrente': number | null
+  'Importe Acumulado Bruto': number | null
+  'Meses Activo': number | null
+  'Meses con Factura': number | null
+  'Primera Factura': string
+  'Última Factura': string
+  'Semáforo Actividad': string
+  'Es One Timer': string
+  'MRR por Mes Facturado': number | null
+  'Total Facturas': number | null
+  'Rango LTV': string
+  'Días sin Factura': number | null
+  'Ticket Promedio': number | null
 }
 
-function fmtFecha(d: string) {
-  if (!d) return '—'
-  try { return new Date(d + 'T12:00:00').toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' }) }
-  catch { return d }
+const fmt$ = (n: number | null | undefined) =>
+  n == null ? '—' : '$' + Math.round(n).toLocaleString('es-MX')
+
+const LTV_COLOR: Record<string, string> = {
+  '1 - Alto':   '#1B3FCC',
+  '2 - Bueno':  '#6366f1',
+  '3 - Medio':  '#f59e0b',
+  '4 - Bajo':   '#f97316',
+  '5 - Minimo': '#ef4444',
 }
 
-function ConsumoBadge({ pct }: { pct: number | null }) {
-  if (pct == null) return <span className="text-textLow text-[10px]">—</span>
-  const color = pct >= 50 ? '#22c55e' : pct >= 20 ? '#f59e0b' : '#ef4444'
+const SEM_COLOR: Record<string, string> = {
+  '1 - Activo':    '#22c55e',
+  '2 - En riesgo': '#f59e0b',
+  '3 - Irregular': '#f97316',
+  '4 - Dormido':   '#94a3b8',
+}
+
+function Badge({ val, map }: { val: string; map: Record<string, string> }) {
+  const color = map[val] ?? '#94a3b8'
   return (
-    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-      style={{ background: color + '18', color }}>
-      {pct.toFixed(0)}%
+    <span style={{ background: color + '18', color, fontWeight: 700, fontSize: 10, padding: '2px 8px', borderRadius: 99 }}>
+      {val || '—'}
     </span>
   )
 }
 
-function Trend({ rows }: { rows: FactRow[] }) {
-  if (rows.length < 2) return <Minus size={10} className="text-textLow" />
-  const curr = rows[0]['Monto del plan'] ?? 0
-  const prev = rows[1]['Monto del plan'] ?? 0
-  if (curr > prev) return <TrendingUp size={10} className="text-verde" />
-  if (curr < prev) return <TrendingDown size={10} className="text-rojo" />
-  return <Minus size={10} className="text-textLow" />
+function KpiCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-surface rounded-lg px-2 py-2 text-center">
+      <p className="text-[10px] text-textLow mb-0.5">{label}</p>
+      <p className="text-[11px] font-bold text-textHi leading-tight">{value}</p>
+    </div>
+  )
 }
 
 export default function CuentaFacturacionPanel({
-  rows, matchedBy, cid, empresa,
+  cid, empresa,
 }: {
-  rows: FactRow[]
-  matchedBy: string
   cid: string | null
   empresa: string
 }) {
-  const latest    = rows[0]
-  const mrr       = latest?.['Monto del plan'] ?? null
-  const consumo   = latest?.['% Consumo'] ?? null
-  const toggle    = latest?.['Toggle Status'] ?? 0
-  const lastFecha = latest?.['Fecha de corte'] ?? ''
-  const plan      = latest?.['Nombre del Plan'] ?? ''
+  const [row, setRow] = useState<LTVRow | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [source, setSource] = useState('')
 
-  const facturacionUrl = cid
-    ? `/facturacion?q=${encodeURIComponent(cid)}`
-    : `/facturacion?q=${encodeURIComponent(empresa)}`
+  useEffect(() => {
+    const params = new URLSearchParams({ mode: 'by-cid' })
+    if (cid) params.set('cid', cid)
+    if (empresa) params.set('nombre', empresa)
+
+    fetch(`/api/facturacion?${params}`)
+      .then(r => r.json())
+      .then(d => {
+        setSource(d.source ?? '')
+        if (d.error) { setError(d.error); return }
+        setRow(d.rows?.[0] ?? null)
+      })
+      .catch(() => setError('Error al cargar datos'))
+      .finally(() => setLoading(false))
+  }, [cid, empresa])
+
+  const facturacionUrl = `/facturacion?tab=clientes&q=${encodeURIComponent(cid ?? empresa)}`
 
   return (
     <div className="cp-card">
@@ -57,95 +96,79 @@ export default function CuentaFacturacionPanel({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <ReceiptText size={13} className="text-textMid" />
-          <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">
-            Corte de Facturación
-          </h3>
-          <span className={`text-[10px] font-semibold text-white px-1.5 py-0.5 rounded-full ${rows.length > 0 ? 'bg-cp/80' : 'bg-textLow/40'}`}>
-            {rows.length} cortes
-          </span>
+          <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Facturación · LTV</h3>
+          {!loading && (
+            <span className="flex items-center gap-1 text-[9px]" style={{ color: source === 'zoho' ? '#22c55e' : '#94a3b8' }}>
+              {source === 'zoho' ? <Wifi size={9} /> : <WifiOff size={9} />}
+              {source === 'zoho' ? 'Zoho' : 'Sin datos'}
+            </span>
+          )}
         </div>
         <a href={facturacionUrl} className="flex items-center gap-1 text-[10px] text-cp hover:underline">
-          Ver todos <ExternalLink size={10} />
+          Ver en facturación <ExternalLink size={10} />
         </a>
       </div>
 
-      {rows.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 py-5 text-textLow">
+          <Loader2 size={14} className="animate-spin" />
+          <span className="text-[11px]">Consultando Zoho…</span>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center gap-2 py-4 text-center">
+          <WifiOff size={20} className="text-textLow/40" />
+          <p className="text-[11px] text-textLow">{error}</p>
+        </div>
+      ) : !row ? (
         <div className="flex flex-col items-center gap-2 py-5 text-center">
           <SearchX size={22} className="text-textLow/40" />
-          <p className="text-[11px] text-textLow">Sin cortes de facturación encontrados</p>
+          <p className="text-[11px] text-textLow">Sin datos de facturación para este cliente</p>
           {!cid && (
             <p className="text-[10px] text-amarillo/80 bg-amarillo/10 px-2 py-1 rounded">
-              Configura el CID en la cuenta para match exacto
+              Configura el CID para búsqueda exacta
             </p>
           )}
         </div>
       ) : (
         <>
-          {/* 4 KPIs */}
+          {/* KPIs principales */}
           <div className="grid grid-cols-4 gap-2 mb-3">
-            <div className="bg-surface rounded-lg px-2 py-2 text-center">
-              <p className="text-[10px] text-textLow mb-0.5">MRR</p>
-              <p className="text-[11px] font-bold text-textHi flex items-center justify-center gap-1">
-                {fmtMXN(mrr)} <Trend rows={rows} />
-              </p>
+            <KpiCell label="MRR Limpio" value={fmt$(row['MRR Limpio'])} />
+            <KpiCell label="Acum. Recurrente" value={fmt$(row['Importe Acumulado Recurrente'])} />
+            <KpiCell label="Meses Activo" value={row['Meses Activo'] != null ? String(row['Meses Activo']) : '—'} />
+            <KpiCell label="Total Facturas" value={row['Total Facturas'] != null ? String(row['Total Facturas']) : '—'} />
+          </div>
+
+          {/* Clasificaciones */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="bg-surface rounded-lg px-3 py-2">
+              <p className="text-[10px] text-textLow mb-1">Clasificación LTV</p>
+              <Badge val={row['Clasificación LTV']} map={LTV_COLOR} />
             </div>
-            <div className="bg-surface rounded-lg px-2 py-2 text-center">
-              <p className="text-[10px] text-textLow mb-0.5">Consumo</p>
-              <div className="flex justify-center"><ConsumoBadge pct={consumo} /></div>
-            </div>
-            <div className="bg-surface rounded-lg px-2 py-2 text-center">
-              <p className="text-[10px] text-textLow mb-0.5">Toggle</p>
-              <p className="text-[11px] font-bold text-center">
-                {toggle && toggle > 0
-                  ? <span className="text-verde">● Activo</span>
-                  : <span className="text-textLow">○ Inactivo</span>}
-              </p>
-            </div>
-            <div className="bg-surface rounded-lg px-2 py-2 text-center">
-              <p className="text-[10px] text-textLow mb-0.5">Últ. corte</p>
-              <p className="text-[11px] font-bold text-textMid">{fmtFecha(lastFecha)}</p>
+            <div className="bg-surface rounded-lg px-3 py-2">
+              <p className="text-[10px] text-textLow mb-1">Semáforo de Actividad</p>
+              <Badge val={row['Semáforo Actividad']} map={SEM_COLOR} />
             </div>
           </div>
 
-          {/* Plan */}
-          {plan && (
-            <div className="mb-3 px-3 py-2 bg-cp/5 border border-cp/20 rounded-lg">
-              <p className="text-[10px] text-textLow">Plan activo</p>
-              <p className="text-xs font-semibold text-cp truncate">{plan}</p>
-            </div>
-          )}
-
-          {/* Tabla */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-border">
-                  {['Fecha','Plan','MRR','Consumo','Toggle'].map((h, i) => (
-                    <th key={h} className={`pb-1.5 text-textLow font-medium text-[10px] ${i >= 2 ? (i === 2 ? 'text-right' : 'text-center') : 'text-left'}`}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={i} className="border-b border-border/40 hover:bg-surface/50">
-                    <td className="py-1.5 text-textLow whitespace-nowrap">{fmtFecha(r['Fecha de corte'])}</td>
-                    <td className="py-1.5 text-textMid max-w-[100px] truncate text-[10px]">{r['Nombre del Plan']}</td>
-                    <td className="py-1.5 text-textHi font-medium text-right tabular-nums">{fmtMXN(r['Monto del plan'])}</td>
-                    <td className="py-1.5 text-center"><ConsumoBadge pct={r['% Consumo']} /></td>
-                    <td className="py-1.5 text-center text-[9px]">
-                      {(r['Toggle Status'] ?? 0) > 0
-                        ? <span className="font-bold text-verde">●</span>
-                        : <span className="text-textLow">○</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Detalles adicionales */}
+          <div className="space-y-1.5 text-[11px]">
+            {[
+              { label: 'Segmento', val: row['Segmento Factura'] },
+              { label: 'Rango LTV', val: row['Rango LTV'] },
+              { label: 'Tamaño empresa', val: row['Tamaño Empresa'] },
+              { label: 'Primera factura', val: row['Primera Factura'] },
+              { label: 'Última factura', val: row['Última Factura'] },
+              { label: 'Días sin factura', val: row['Días sin Factura'] != null ? `${row['Días sin Factura']} días` : null },
+              { label: 'Ticket promedio', val: fmt$(row['Ticket Promedio']) },
+              { label: 'One Timer', val: row['Es One Timer'] === 'Yes' ? 'Sí' : 'No' },
+            ].filter(x => x.val).map(({ label, val }) => (
+              <div key={label} className="flex justify-between items-center py-1 border-b border-border/30">
+                <span className="text-textLow">{label}</span>
+                <span className="font-medium text-textMid">{val}</span>
+              </div>
+            ))}
           </div>
-
-          {matchedBy && !cid && (
-            <p className="mt-2 text-[9px] text-textLow/50 text-center italic">Coincidencia por {matchedBy}</p>
-          )}
         </>
       )}
     </div>
