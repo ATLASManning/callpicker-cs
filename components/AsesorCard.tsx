@@ -19,14 +19,14 @@ const TX_HI     = '#FFFFFF'
 const TX_MID    = 'rgba(255,255,255,0.70)'
 const TX_LOW    = 'rgba(255,255,255,0.45)'
 
-// ── Paleta oscura naval (tabla expandida) ─────────────────────────────────────
-const L_BG      = '#132035'
-const L_BG2     = '#0f1c2f'
-const L_BG3     = '#1a2d47'
-const L_LINE    = '#1e3055'
-const L_TX      = '#e2ecf8'
-const L_TX_MID  = '#8aaccb'
-const L_TX_LOW  = '#4d6a88'
+// ── Paleta clara (tabla expandida) ────────────────────────────────────────────
+const L_BG      = '#FFFFFF'
+const L_BG2     = '#F8FAFC'
+const L_BG3     = '#F1F5F9'
+const L_LINE    = '#E2E8F0'
+const L_TX      = '#0F172A'
+const L_TX_MID  = '#475569'
+const L_TX_LOW  = '#94A3B8'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface ZohoStats { total: number; fallas: number; ultima: string | null }
@@ -67,7 +67,7 @@ function TicketCellLight({ zt }: { zt: ZohoStats }) {
           {zt.total}
         </span>
         {zt.fallas > 0 && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', color: '#f87171', fontSize: 10, fontWeight: 600, border: '1px solid rgba(239,68,68,0.30)' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 99, background: '#FEF2F2', color: '#EF4444', fontSize: 10, fontWeight: 600, border: '1px solid #FECACA' }}>
             <AlertTriangle size={8} /> {zt.fallas}
           </span>
         )}
@@ -305,9 +305,9 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
                   const rowBg = ri % 2 === 0 ? L_BG : L_BG2
                   const cell: React.CSSProperties = { padding: '11px 14px', borderBottom: `1px solid ${L_LINE}`, verticalAlign: 'middle' }
                   return (
-                    <tr key={c.id} style={{ background: rowBg }} onMouseEnter={e => (e.currentTarget.style.background = '#1a2d47')} onMouseLeave={e => (e.currentTarget.style.background = rowBg)}>
+                    <tr key={c.id} style={{ background: rowBg }} onMouseEnter={e => (e.currentTarget.style.background = '#EFF6FF')} onMouseLeave={e => (e.currentTarget.style.background = rowBg)}>
                       <td style={cell}>
-                        <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#4d8bff' }}>{c.consecutivo}</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#1B3FCC' }}>{c.consecutivo}</span>
                       </td>
                       <td style={cell}>
                         <Link href={`/cuentas/${c.id}`}
@@ -345,12 +345,12 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
                       <td style={cell}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {c.upsell_producto && (
-                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'rgba(5,150,105,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.30)', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: '#F0FDF4', color: '#059669', border: '1px solid #BBF7D0', whiteSpace: 'nowrap', fontWeight: 600 }}>
                               ↑ {c.upsell_producto}
                             </span>
                           )}
                           {c.crossell_producto && (
-                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'rgba(124,58,237,0.12)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.30)', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: '#FAF5FF', color: '#7C3AED', border: '1px solid #DDD6FE', whiteSpace: 'nowrap', fontWeight: 600 }}>
                               ⇄ {c.crossell_producto}
                             </span>
                           )}

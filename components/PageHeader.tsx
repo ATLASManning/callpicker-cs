@@ -5,7 +5,7 @@ interface Props {
   dark?: boolean
 }
 
-export default function PageHeader({ title, subtitle, actions, dark = true }: Props) {
+export default function PageHeader({ title, subtitle, actions, dark = false }: Props) {
   return (
     <div className="flex items-start justify-between px-6 pt-6 pb-4">
       <div>

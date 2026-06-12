@@ -10,29 +10,29 @@ const config: Config = {
     extend: {
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
       colors: {
-        // Main content — dark naval theme
-        page:       '#0d1829',      // page background — azul marino profundo
-        bgAlt:      '#0E30CC',      // sidebar accent (se mantiene)
-        surface:    '#132035',      // card background — naval medio
-        surfaceAlt: '#1a2d47',      // subtle card variant
-        border:     '#1e3055',      // border naval
+        // Main content — light blue-white theme
+        page:       '#EFF6FF',      // page background — azul pastel suave
+        bgAlt:      '#1E3A5F',      // sidebar (stays dark navy)
+        surface:    '#FFFFFF',      // card background
+        surfaceAlt: '#F0F7FF',      // subtle card variant
+        border:     '#BFDBFE',      // light blue border
 
         // Callpicker brand
-        cp:       '#4d8bff',        // azul claro sobre fondo oscuro
-        cpLight:  '#7fb3ff',
-        cpTeal:   '#38bdf8',
+        cp:       '#0057FF',
+        cpLight:  '#3B82F6',
+        cpTeal:   '#0EA5E9',
 
-        // Text hierarchy (optimised for dark bg)
-        textHi:   '#e2ecf8',        // casi blanco azulado
-        textMid:  '#8aaccb',        // azul grisáceo medio
-        textLow:  '#4d6a88',        // azul grisáceo tenue
+        // Text hierarchy (optimised for white bg)
+        textHi:   '#0F172A',        // near-black
+        textMid:  '#334155',        // medium slate
+        textLow:  '#64748B',        // muted slate
 
-        // Semáforo — ajustados para fondo oscuro
-        verde:    '#22C55E',
-        azul:     '#3B82F6',
-        amarillo: '#EAB308',
-        naranja:  '#F97316',
-        rojo:     '#EF4444',
+        // Semáforo — legibles sobre fondo claro
+        verde:    '#16A34A',
+        azul:     '#2563EB',
+        amarillo: '#CA8A04',
+        naranja:  '#EA580C',
+        rojo:     '#DC2626',
       },
       boxShadow: {
         'glow-cp':   '0 0 24px rgba(0,87,255,0.18)',
