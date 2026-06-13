@@ -634,6 +634,37 @@ export const KB: Categoria[] = [
         ],
       },
       {
+        id: 'agente-virtual-saldo-mxn',
+        titulo: 'Cambio de Contador: Minutos → Saldo MXN en Agente Virtual de Voz',
+        badge: 'nuevo',
+        pdfUrl: '/docs/CAMBIO IMPORTANTE EN EL CONTADOR DE AGENTE VIRTUAL.pdf',
+        descripcion: 'El consumo del Agente Virtual de Voz ahora se mide en saldo en pesos mexicanos (MXN) en lugar de minutos. Este cambio da mayor transparencia sobre el costo real por llamada, considerando que cada voz y modelo de procesamiento puede tener un precio diferente.',
+        utilidad: 'Permite al cliente visualizar con precisión el impacto económico de cada configuración de su Agente Virtual y controlar mejor su inversión.',
+        bloques: [
+          { tipo: 'parrafo', texto: 'Hasta ahora, el consumo del Agente Virtual de Voz se mostraba en minutos dentro de la plataforma. Con la habilitación de distintas voces y modelos de procesamiento — cuyos costos pueden variar — el esquema basado únicamente en minutos ya no reflejaba con precisión el costo real del servicio.' },
+          { tipo: 'seccion', titulo: '¿Qué cambia?' },
+          { tipo: 'lista', items: [
+            'El consumo del Agente Virtual de Voz ahora se mide en saldo en pesos mexicanos (MXN).',
+            'El saldo se descuenta automáticamente conforme al uso y según las configuraciones seleccionadas (voz, modelo, duración, etc.).',
+            'El consumo previo en minutos fue convertido automáticamente a saldo MXN — no se pierde el valor asignado.',
+            'En los cargos recurrentes aparecerá el concepto: "Saldo de Agente Virtual de Voz".',
+          ]},
+          { tipo: 'seccion', titulo: 'Beneficios del cambio' },
+          { tipo: 'lista', items: [
+            'Mayor transparencia en el costo real por llamada.',
+            'Mejor visibilidad del impacto de cada configuración (voz o modelo).',
+            'Mayor control y previsibilidad en la inversión.',
+          ]},
+          { tipo: 'parrafo', texto: 'Este cambio no requiere ninguna acción por parte del cliente. El cambio ya está reflejado y aplicado en su cuenta.' },
+          { tipo: 'cita', texto: 'Esta actualización no modifica la cantidad de minutos asignados mientras no se realicen cambios en la configuración del Agente Virtual.' },
+          { tipo: 'firma', texto: 'Equipo Callpicker' },
+        ],
+        consideraciones: [
+          { texto: 'El saldo en MXN varía según la voz y el modelo de procesamiento seleccionados. Configuraciones con modelos de mayor calidad consumen más saldo por minuto.', tipo: 'info' },
+          { texto: 'El equipo de soporte puede orientar al cliente sobre cómo optimizar su configuración para maximizar el rendimiento del saldo asignado.', tipo: 'info' },
+        ],
+      },
+      {
         id: 'ia-externa-protocolo',
         pdfUrl: '/docs/Callpicker_Agentes_Virtuales_OnePager_Confidencial.pdf',
         titulo: 'Protocolo: Cliente solicita integrar IA externa a Callpicker',
