@@ -46,8 +46,12 @@ const CAT_ICONS: Record<string, React.ElementType> = {
   'callpicker-sac': Heart,
 }
 
-// ── KB ordenado alfabéticamente ───────────────────────────────────────────────
-const KB_SORTED = [...KB].sort((a, b) => a.label.localeCompare(b.label, 'es'))
+// ── KB ordenado alfabéticamente (Callpicker SAC siempre al inicio) ────────────
+const KB_SORTED = [...KB].sort((a, b) => {
+  if (a.id === 'callpicker-sac') return -1
+  if (b.id === 'callpicker-sac') return  1
+  return a.label.localeCompare(b.label, 'es')
+})
 
 // ── Componentes pequeños ──────────────────────────────────────────────────────
 function Badge({ type }: { type: 'roto' | 'pronto' | 'avanzado' | 'nuevo' }) {
@@ -328,7 +332,7 @@ function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function BaseCSPage() {
-  const [activa, setActiva] = useState('minutos')
+  const [activa, setActiva] = useState('callpicker-sac')
   const [query,  setQuery]  = useState('')
 
   const cat = KB_SORTED.find(c => c.id === activa)!
