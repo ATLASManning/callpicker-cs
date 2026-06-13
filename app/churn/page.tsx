@@ -11,16 +11,20 @@ import {
    TIPOS
 ═══════════════════════════════════════════════════════════════════════ */
 type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
-type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'grc' | 't1'
+type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1'
 
 interface ChurnPendiente   { cliente: string; monto: number; mesesActivo: number; ultimaFactura: string }
 interface ChurnCancelado   { cliente: string; mrr: number;   mesesActivo: number; acumulado: number    }
 interface ChurnDowngrade   { cliente: string; perdida: number; nota: string                            }
 interface ChurnSuspendido  { cliente: string; importe: number; mesesActivo: number; estado: 'Suspendido' | 'Inactivo' }
 
+interface ChurnDesactivado { cliente: string; importe: number; mesesActivo: number }
+interface DowngradeArticulo { articulo: string; vecesAfectado: number; clientes: string[] }
+
 interface ChurnGRC {
-  evolucion:   { mes: string; pct: number }[]
+  evolucion:   { mes: string; pct: number; anterior?: number }[]
   acumulado:   number
+  anterior?:   number
   notaClave:   string
   notaEspecial?: string
 }
@@ -30,15 +34,21 @@ interface ChurnReporte {
   periodo:     string
   fecha:       string
   notas:       string
+  notaRemitente?: string
   pendientes:  ChurnPendiente[]
   cancelados:  ChurnCancelado[]
   downgrades:  ChurnDowngrade[]
   suspendidos?: ChurnSuspendido[]
+  desactivados?: ChurnDesactivado[]
+  downgradeArticulos?: DowngradeArticulo[]
   grc?:        ChurnGRC
-  pendientesTotalReal?:   number   // Total real cuando hay más registros que los mostrados
+  pendientesTotalReal?:   number
   pendientesCuentasReal?: number
   suspendidosTotalReal?:  number
   suspendidosCuentasReal?: number
+  desactivadosTotalReal?:  number
+  desactivadosCuentasReal?: number
+  downgradeTotalReal?:     number
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -284,6 +294,118 @@ const REPORTE_S1_JUNIO_2026: ChurnReporte = {
     { cliente: 'Custodias RJ',                           importe: 2920,     mesesActivo: 2,   estado: 'Inactivo'   },
     { cliente: 'Grupo Orve',                             importe: 2083,     mesesActivo: 104, estado: 'Inactivo'   },
     { cliente: '+ 5 inactivos adicionales',              importe: 6076.31,  mesesActivo: 0,   estado: 'Inactivo'   },
+  ],
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 2 · JUNIO 2026  (Semana 7 del GRC)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S2_JUNIO_2026: ChurnReporte = {
+  id:      's2-junio-2026',
+  periodo: 'Semana 2 · Jun 2026',
+  fecha:   '11/06/2026',
+  notas:   'Gross Revenue Churn · Semana 7. Al 11 de junio del 2026. Churn Q2: Abril 1.9% · Mayo 2.4% (corregido de 3%). Acumulado 2026: 10.7% (corregido de 11.3%). Siguiente revisión: viernes 19 de junio.',
+  notaRemitente: 'Daniel Martínez — Solicitud especial: documentar la baja de chat aunque solo represente un downgrade. El equipo de Producto (Ing. Alex) requiere conocer el motivo. Casos prioritarios: Bliss crédito libre, Finsus Cobranza, Pronto LATAM, Akún.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Abril',                   pct: 1.9 },
+      { mes: 'Mayo (corregido)',         pct: 2.4,  anterior: 3.0 },
+    ],
+    acumulado: 10.7,
+    anterior:  11.3,
+    notaClave: 'Churn Q2: Abril 1.9% · Mayo 2.4% (corrección de 3%). Acumulado 2026: 10.7% (corrección de 11.3%).',
+    notaEspecial: '📋 Solicitud Producto (Ing. Alex): Documentar baja de CP Chat aunque solo represente downgrade — se requiere conocer el motivo de cada baja. Casos prioritarios identificados por Daniel Martínez: Bliss crédito libre, Finsus Cobranza, Pronto LATAM, Akún.',
+  },
+
+  /* En Corte — 24 cuentas · $180,215.03 */
+  pendientesTotalReal:   180215.03,
+  pendientesCuentasReal: 24,
+  pendientes: [
+    { cliente: '🔝 Municipio El Marqués', monto: 54659,    mesesActivo: 31,  ultimaFactura: '04/05/2026' },
+    { cliente: 'Ancona Autopartes',       monto: 28156,    mesesActivo: 80,  ultimaFactura: '08/05/2026' },
+    { cliente: 'MKG',                     monto: 17230.03, mesesActivo: 153, ultimaFactura: '06/05/2026' },
+    { cliente: 'Omnitracs',               monto: 16500,    mesesActivo: 63,  ultimaFactura: '04/05/2026' },
+    { cliente: 'Cintas Cove',             monto: 13560,    mesesActivo: 81,  ultimaFactura: '08/05/2026' },
+    { cliente: 'IBC SUITES',              monto: 8025,     mesesActivo: 24,  ultimaFactura: '08/05/2026' },
+    { cliente: 'Grupo Premier',           monto: 7134,     mesesActivo: 44,  ultimaFactura: '04/05/2026' },
+    { cliente: 'Rotoplas',                monto: 4900,     mesesActivo: 149, ultimaFactura: '04/05/2026' },
+    { cliente: 'CNX TELECOMUNICACIONES',  monto: 3843,     mesesActivo: 48,  ultimaFactura: '10/05/2026' },
+    { cliente: 'NatGas - Mesa de Ayuda',  monto: 2912,     mesesActivo: 68,  ultimaFactura: '08/05/2026' },
+    { cliente: 'WiFiTech',                monto: 2878,     mesesActivo: 73,  ultimaFactura: '05/05/2026' },
+    { cliente: 'jemmoma',                 monto: 2634,     mesesActivo: 87,  ultimaFactura: '10/05/2026' },
+    { cliente: 'GS Trackme',              monto: 2488,     mesesActivo: 66,  ultimaFactura: '06/05/2026' },
+    { cliente: 'Grupo Premier Mochis',    monto: 2468,     mesesActivo: 36,  ultimaFactura: '04/05/2026' },
+    { cliente: 'Superpass',               monto: 1959,     mesesActivo: 24,  ultimaFactura: '06/05/2026' },
+    { cliente: 'Nuclea Solutions',        monto: 1684,     mesesActivo: 55,  ultimaFactura: '08/05/2026' },
+    { cliente: 'Nido Fertility S.A.P.I.', monto: 1179,     mesesActivo: 7,   ultimaFactura: '10/05/2026' },
+    { cliente: 'ViTrust',                 monto: 1143,     mesesActivo: 106, ultimaFactura: '06/05/2026' },
+    { cliente: 'Prosanté México',         monto: 989,      mesesActivo: 73,  ultimaFactura: '04/05/2026' },
+    { cliente: 'la victoria dulceria',    monto: 979,      mesesActivo: 5,   ultimaFactura: '09/05/2026' },
+    { cliente: 'Ortodontica Natural Smile',monto: 979,     mesesActivo: 183, ultimaFactura: '05/05/2026' },
+    { cliente: 'Remax Homelife One',      monto: 979,      mesesActivo: 109, ultimaFactura: '07/05/2026' },
+    { cliente: 'World Pack',              monto: 979,      mesesActivo: 40,  ultimaFactura: '09/05/2026' },
+    { cliente: 'investti',                monto: 979,      mesesActivo: 28,  ultimaFactura: '08/05/2026' },
+    { cliente: 'Cañadas del Arroyo',      monto: 979,      mesesActivo: 71,  ultimaFactura: '08/05/2026' },
+  ],
+
+  /* Cancelados — 7 cuentas · $26,500 */
+  cancelados: [
+    { cliente: '🔝 TURBODAYS',                      mrr: 14018, mesesActivo: 0,  acumulado: 0 },
+    { cliente: 'Madero Restaurante',                 mrr: 3782,  mesesActivo: 55, acumulado: 0 },
+    { cliente: 'Grupo Empresarial Moran',            mrr: 3242,  mesesActivo: 91, acumulado: 0 },
+    { cliente: 'HOWARD Corporativo Inmobiliario',    mrr: 1552,  mesesActivo: 35, acumulado: 0 },
+    { cliente: 'Red t',                              mrr: 1488,  mesesActivo: 58, acumulado: 0 },
+    { cliente: 'SalvadoreX',                         mrr: 1218,  mesesActivo: 11, acumulado: 0 },
+    { cliente: 'Remax Quality',                      mrr: 1200,  mesesActivo: 90, acumulado: 0 },
+  ],
+
+  /* Suspendidos — 4 cuentas · $9,691 */
+  suspendidosTotalReal:   9691,
+  suspendidosCuentasReal: 4,
+  suspendidos: [
+    { cliente: '🔝 CH Desarrollos',    importe: 6342, mesesActivo: 68, estado: 'Suspendido' },
+    { cliente: 'Nano Care America',    importe: 1377, mesesActivo: 66, estado: 'Suspendido' },
+    { cliente: 'Ambientec',            importe: 986,  mesesActivo: 51, estado: 'Suspendido' },
+    { cliente: 'The Erikson Agency',   importe: 986,  mesesActivo: 60, estado: 'Suspendido' },
+  ],
+
+  /* Desactivados — 5 cuentas · $10,031 */
+  desactivadosTotalReal:   10031,
+  desactivadosCuentasReal: 5,
+  desactivados: [
+    { cliente: '🔝 Gas Economico Metropolitano Chat', importe: 4500, mesesActivo: 39 },
+    { cliente: 'Relematic.mx',                        importe: 1599, mesesActivo: 72 },
+    { cliente: 'One Stay Hotel Residence',            importe: 1474, mesesActivo: 34 },
+    { cliente: 'GASFERA',                             importe: 1339, mesesActivo: 58 },
+    { cliente: 'Sunnies',                             importe: 1119, mesesActivo: 5  },
+  ],
+
+  /* Downgrades — 8 clientes · total desglosado $35,016.17 · real $40,358.43 */
+  downgradeTotalReal: 40358.43,
+  downgrades: [
+    { cliente: '⚠️ Bliss crédito libre',  perdida: 8787.24, nota: 'Eliminó Agente CP Chat y Paquete WhatsApp API. Facturación $25,587 → $16,799. Conserva solo Paquete Min VyC. PRIORIDAD: documentar motivo de baja CP Chat.' },
+    { cliente: '⚠️ Finsus Cobranza',      perdida: 7016,    nota: 'Reducción en 3 productos: Extensión Callcenter, Agente CP Chat y Ofuscador. MRR $11,211 → $4,195. PRIORIDAD: documentar motivo de baja CP Chat.' },
+    { cliente: 'KIVA',                    perdida: 6000,    nota: 'Eliminó Paquete Min Voicebot ($6,000 → $0). Facturación total $7,177 → $1,177.' },
+    { cliente: 'GBS Cuenta Maestra',      perdida: 5873.97, nota: 'Redujo Paquete Min VyC de $15,663 → $9,790. Facturación total $16,713 → $10,840.' },
+    { cliente: 'Salud y Hogar',           perdida: 2573.96, nota: 'Quitó Plan Celular y bajó DID Nacional (pérdida bruta $4,874), pero hizo upsell en Extensión VyC con SIM (+$2,301). Pérdida neta $2,573.96.' },
+    { cliente: 'Medical Hannover',        perdida: 1690,    nota: 'Eliminó Extensión VyC con SIM y Plan Celular, pero contrató Extensión VyC ($499). Sigue activo.' },
+    { cliente: '⚠️ Pronto LATAM',         perdida: 1639,    nota: 'Eliminó Agente CP Chat ($1,495) y Paquete WhatsApp API ($144). PRIORIDAD: documentar motivo de baja CP Chat.' },
+    { cliente: '⚠️ Akún',                 perdida: 1436,    nota: 'Redujo los 4 artículos de su factura: Min VyC, DiD Nacional, DiD Internacional y Agente CP Chat. PRIORIDAD: documentar motivo de baja CP Chat.' },
+  ],
+
+  /* Artículos más afectados en downgrades de junio */
+  downgradeArticulos: [
+    { articulo: 'Agente CP Chat',          vecesAfectado: 4, clientes: ['Bliss crédito libre', 'Finsus Cobranza', 'Pronto LATAM', 'Akún'] },
+    { articulo: 'Paquete Min VyC',         vecesAfectado: 3, clientes: ['GBS Cuenta Maestra', 'Akún'] },
+    { articulo: 'Paquete WhatsApp API',    vecesAfectado: 2, clientes: ['Bliss crédito libre', 'Pronto LATAM'] },
+    { articulo: 'Plan Celular',            vecesAfectado: 2, clientes: ['Salud y Hogar', 'Medical Hannover'] },
+    { articulo: 'DiD Nacional',            vecesAfectado: 2, clientes: ['Salud y Hogar', 'Akún'] },
+    { articulo: 'Extensión VyC con SIM',   vecesAfectado: 2, clientes: ['Salud y Hogar', 'Medical Hannover'] },
+    { articulo: 'Paquete Min Voicebot',    vecesAfectado: 1, clientes: ['KIVA'] },
+    { articulo: 'Extensión Callcenter',    vecesAfectado: 1, clientes: ['Finsus Cobranza'] },
+    { articulo: 'Ofuscador',               vecesAfectado: 1, clientes: ['Finsus Cobranza'] },
+    { articulo: 'DiD Internacional',       vecesAfectado: 1, clientes: ['Akún'] },
   ],
 }
 
@@ -687,6 +809,9 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
   if (r.suspendidos && r.suspendidos.length > 0) {
     tabs.push({ id: 'suspendidos', label: `🔵 Suspendidos (${r.suspendidosCuentasReal ?? r.suspendidos.length})`, color: BLUE })
   }
+  if (r.desactivados && r.desactivados.length > 0) {
+    tabs.push({ id: 'desactivados', label: `🟣 Desactivados (${r.desactivadosCuentasReal ?? r.desactivados.length})`, color: '#7C3AED' })
+  }
   tabs.push({ id: 't1', label: 'Resumen T1 2026',                                     color: INDIGO })
   return tabs
 }
@@ -696,16 +821,16 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s1-junio-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s2-junio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
-  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_ABRIL_2026
+  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026']
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S2_JUNIO_2026
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
   const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
@@ -728,7 +853,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s1-junio-2026')
+    if (selectedId === id) setSelectedId('s2-junio-2026')
     setDelConfirm(null)
   }
 
@@ -1114,6 +1239,41 @@ export default function ChurnPage() {
           </div>
         )}
 
+        {/* ── ARTÍCULOS MÁS AFECTADOS EN DOWNGRADES ──────────────── */}
+        {tab === 'downgrades' && reporte.downgradeArticulos && reporte.downgradeArticulos.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-4">
+            <div className="px-5 py-4 border-b border-gray-100" style={{ background: `${AMBER}06` }}>
+              <h3 className="font-semibold text-sm text-gray-900">Artículos más afectados en downgrades</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Frecuencia de baja por producto en este periodo</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/70">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Artículo / Producto</th>
+                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Veces afectado</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Clientes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reporte.downgradeArticulos.map((a, i) => (
+                    <tr key={i} className="border-b border-gray-100 hover:bg-amber-50/30 transition-colors">
+                      <td className="py-3 px-4 font-medium text-gray-900">{a.articulo}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                          a.vecesAfectado >= 3 ? 'bg-red-100 text-red-700' :
+                          a.vecesAfectado === 2 ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600'
+                        }`}>{a.vecesAfectado}</span>
+                      </td>
+                      <td className="py-3 px-4 text-xs text-gray-600">{a.clientes.join(' · ')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* ── GRC SEMANAL ──────────────────────────────────────────── */}
         {tab === 'grc' && grc && (
           <>
@@ -1269,6 +1429,69 @@ export default function ChurnPage() {
             </div>
             <p className="px-5 py-3 text-[11px] text-gray-400 border-t border-gray-100">
               Clientes con posibilidad de reactivación. Representan ingreso recuperable con gestión proactiva.
+            </p>
+          </div>
+        )}
+
+        {/* ── DESACTIVADOS ─────────────────────────────────────────── */}
+        {tab === 'desactivados' && reporte.desactivados && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2"
+              style={{ background: '#7C3AED08' }}>
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">Desactivados — {reporte.periodo}</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Impacto: <strong style={{ color: '#7C3AED' }}>{fmt(reporte.desactivadosTotalReal ?? reporte.desactivados.reduce((s, c) => s + (Number(c.importe) || 0), 0))}</strong> ·{' '}
+                  {reporte.desactivadosCuentasReal ?? reporte.desactivados.length} cuentas con módulo o servicio desactivado
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
+                style={{ background: '#7C3AED15', color: '#7C3AED', borderColor: '#7C3AED35' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#7C3AED' }} />
+                Desactivado
+              </span>
+            </div>
+            {reporte.notaRemitente && (
+              <div className="px-5 py-3 bg-purple-50 border-b border-purple-100 text-xs text-purple-800 leading-relaxed">
+                📋 <strong>Nota:</strong> {reporte.notaRemitente}
+              </div>
+            )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/70">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Importe BCY</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Meses Activo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reporte.desactivados.map((c, i) => (
+                    <tr key={i} className="border-b border-gray-100 hover:bg-purple-50/30 transition-colors">
+                      <td className="py-3 px-4 font-medium text-gray-900">{c.cliente}</td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: '#7C3AED' }}>{fmt(Number(c.importe))}</td>
+                      <td className="py-3 px-4 text-right">
+                        {c.mesesActivo > 0 ? (
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            c.mesesActivo >= 60 ? 'bg-green-100 text-green-700' :
+                            c.mesesActivo >= 24 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'
+                          }`}>{c.mesesActivo} meses</span>
+                        ) : <span className="text-xs text-gray-400">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="font-bold" style={{ background: '#7C3AED0A' }}>
+                    <td className="py-3 px-4 text-gray-900">TOTAL</td>
+                    <td className="py-3 px-4 text-right" style={{ color: '#7C3AED' }}>
+                      {fmt(reporte.desactivadosTotalReal ?? reporte.desactivados.reduce((s, c) => s + (Number(c.importe) || 0), 0))}
+                    </td>
+                    <td />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="px-5 py-3 text-[11px] text-gray-400 border-t border-gray-100">
+              Clientes que eliminaron un servicio o módulo. El ingreso puede recuperarse con propuesta de valor específica.
             </p>
           </div>
         )}
