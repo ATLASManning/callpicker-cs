@@ -88,8 +88,8 @@ function Consideracion({ texto, tipo }: { texto: string; tipo?: string }) {
 }
 
 // ── Tarjeta de artículo ───────────────────────────────────────────────────────
-function ArticuloCard({ art, catColor }: { art: Articulo; catColor: string }) {
-  const [open, setOpen] = useState(false)
+function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen ?? false)
   const hasExtra = !!(art.tarificacion || art.funcionamiento || art.consideraciones ||
     art.modalidades || art.acciones || art.graficas || art.apis || art.subtitulos || art.utilidad || art.bloques)
 
@@ -450,7 +450,7 @@ export default function BaseCSPage() {
 
           {/* Artículos */}
           {artsFiltrados.length > 0
-            ? artsFiltrados.map(art => <ArticuloCard key={art.id} art={art} catColor={cat.color} />)
+            ? artsFiltrados.map((art, i) => <ArticuloCard key={art.id} art={art} catColor={cat.color} defaultOpen={cat.id === 'callpicker-sac' && i === 0} />)
             : (
               <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.5 }}>
                 {cat.articulos.length === 0
