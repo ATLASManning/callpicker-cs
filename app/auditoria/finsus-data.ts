@@ -4,24 +4,24 @@ export const FINSUS: AuditoriaCase = {
   id: 'finsus',
   nombre: 'FINSUS – Economía Móvil Inteligente S.A. de C.V.',
   sector: 'Fintech – Sector Financiero / Economía Móvil',
-  fecha_periodo: 'Junio 2023 – Mayo 2026',
-  fecha_auditoria: 'May 2026',
+  fecha_periodo: 'Junio 2023 – Junio 2026',
+  fecha_auditoria: 'June 2026',
   tipo_cliente: 'Cuenta AAA – Auditoría Forense Integral',
-  descripcion_contexto: '36 meses documentados · Auditoría + FODA + Proyección · RFC: EMI180423NV8',
+  descripcion_contexto: '36 meses documentados · Auditoría + FODA + Proyección + Resolución Parcial · RFC: EMI180423NV8',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',
-  version: '1.0',
+  version: '2.0',
 
   kpis: [
-    { label: 'Exposición acumulada',   value: '>$456,910 MXN', color: '#ef4444' },
-    { label: 'Meses sin gobernanza',   value: '36 meses',      color: '#f59e0b' },
-    { label: 'Pipeline generado',      value: '$172,484 MXN',  color: '#6366f1' },
-    { label: 'Potencial 12 meses',     value: '$2.6M MXN',     color: '#22c55e' },
+    { label: 'Exposición acumulada',   value: '>$456,910 MXN',  color: '#ef4444' },
+    { label: 'Recuperado jun 2026',    value: '$242,912 MXN',   color: '#22c55e' },
+    { label: 'Meses sin gobernanza',   value: '36 meses',       color: '#f59e0b' },
+    { label: 'Potencial 12 meses',     value: '$2.6M MXN',      color: '#6366f1' },
   ],
 
-  resumen_ejecutivo: 'Callpicker construyó durante 36 meses una cuenta AAA sobre una arquitectura completamente informal. El asesor comercial operó sistemáticamente fuera de su rol — cediendo precios, firmando contratos, quitando rubros de facturación — mientras el equipo detectaba los problemas pero no los detenía.\n\nEl cliente hoy cuestiona facturas correctas usando concesiones que nunca debieron existir. El problema no es una factura — es el modelo con el que se construyó la cuenta.\n\nLa diferencia entre actuar y no actuar es $1,944,356 MXN en 12 meses.',
+  resumen_ejecutivo: 'Callpicker construyó durante 36 meses una cuenta AAA sobre una arquitectura completamente informal. El asesor comercial operó sistemáticamente fuera de su rol — cediendo precios, firmando contratos, quitando rubros de facturación — mientras el equipo detectaba los problemas pero no los detenía.\n\nEn mayo-junio 2026, la primera intervención formal de SAC logró cobrar dos facturas OTP que el cliente intentaba diferir. El desenlace parcial positivo confirma que el cliente sí paga cuando Callpicker sostiene su posición. También confirma que sin estructura, el siguiente ciclo de concesiones informales ya está en curso.\n\nLa diferencia entre actuar y no actuar es $1,944,356 MXN en 12 meses.',
 
-  resultado_positivo: 'A pesar de 36 meses de informalidad acumulada, Callpicker conserva activos estratégicos valiosos: una relación genuina con 4+ contactos distintos, 7 de 10 oportunidades cerradas, expansión orgánica de 1 a 5 áreas activas, y satisfacción técnica declarada múltiples veces por el cliente. Finsus está en proceso de convertirse en banco — lo que convierte a Callpicker en proveedor preferente si se estructuran los contratos a tiempo.',
+  resultado_positivo: 'En junio 2026, por primera vez en 3 años, Callpicker sostuvo su posición contractual con Finsus y cobró. El cliente pagó ~$242,912 MXN en dos facturas OTP. La fórmula que funcionó: "ya cumplimos + está listo + te lo cobro." El problema nunca fue el cliente — fue que Callpicker no tenía protocolo para decir "esto se cobra."\n\nA pesar de 36 meses de informalidad, Callpicker conserva activos estratégicos valiosos: relación genuina con 4+ contactos, 7 de 10 oportunidades cerradas, expansión orgánica de 1 a 5 áreas activas. Finsus está en proceso de licencia bancaria — lo que convierte a Callpicker en proveedor preferente si formaliza los contratos a tiempo.',
 
   hallazgos: [
     'El asesor comercial operó fuera de su rol durante 36 meses sin supervisión — cediendo precios, firmando contratos y quitando rubros sin autorización formal.',
@@ -34,6 +34,9 @@ export const FINSUS: AuditoriaCase = {
     'Canal principal del cliente (Mauricio Rendón, Dir. Capital Humano) retirándose sin interlocutor de pagos identificado como reemplazo.',
     'Mismo servicio vendido a precios distintos entre áreas sin criterio documentado — discrepancia de $9,480/mes si el cliente exige homologación.',
     'Slack como canal oficial de decisión durante 36 meses — imposible auditar sin reconstruir historial completo.',
+    'Hallazgo 22 — Falla Técnica OTP en Producción (mayo-junio 2026): Juan Carlos detecta bajada en funnel de onboarding. Callpicker respondió reactivamente con Chombo y Alex de vacaciones. Sin protocolo de contingencia. Confirma que la línea OTP sin backup es el riesgo operativo más inmediato.',
+    'Hallazgo 23 — Dashboard OTP Absorbido Sin Costo (junio 2026): Cliente establece expectativa de gratuidad ("no esperamos que se cobre"). Joaquín autoriza el desarrollo sin costo. Es el tercer costo absorbido en el proyecto OTP sin contraprestación. El patrón de concesiones sin caso de negocio ahora opera en nivel de Dirección General.',
+    'Hallazgo 24 — Error de Retenciones IVA/ISR en Factura Crédito: Área de Crédito rechaza factura por falta de retenciones IVA e ISR. Primera vez con Finsus. Riesgo de replicación en otras áreas con condiciones fiscales similares. Retrasa cobro y requiere auditoría fiscal integral de la cuenta.',
   ],
 
   cronologia: [
@@ -50,8 +53,15 @@ export const FINSUS: AuditoriaCase = {
     { fecha: '2025',      responsable: 'Sin protocolo',                   evento: 'Andrea sale de Finsus. Canal principal cambia sin protocolo. Alto riesgo de continuidad no gestionado.', tipo: 'problema' },
     { fecha: 'Oct 2025',  responsable: 'Meta / Alejandro Rendón',         evento: 'Meta recategoriza plantillas Utility. Caída 90% en consumo Utility. Detección reactiva — el cliente reporta.', tipo: 'problema' },
     { fecha: 'Feb 2026',  responsable: 'Galván / Toño',                   evento: 'Contrato marco firmado — 3 años después del primer servicio. Redactado por el cliente. Sin revisión jurídica.', tipo: 'pivote' },
-    { fecha: 'Abr 2026',  responsable: 'Toño del Río',                    evento: 'Anexo B compartido con permisos de edición al cliente. Ningún contrato ejecutable al 100%.', tipo: 'problema' },
-    { fecha: 'May 2026',  responsable: 'Factura 186208',                  evento: 'OTPs no cobrados → factura emitida → cliente objeta. Síntoma final de 36 meses de informalidad acumulada.', tipo: 'problema' },
+    { fecha: '21 Abr 2026',  responsable: 'Toño del Río',           evento: 'Anexo B firmado — OTPs incluidos desde abril. Sin biométricos en Cobranza. Sin onboarding formal de OTPs.', tipo: 'problema' },
+    { fecha: 'May 2026',     responsable: 'Toño del Río',           evento: 'Toño no cobra OTPs — $121,456 MXN. Decisión unilateral sin protocolo. Precedente informal creado.', tipo: 'problema' },
+    { fecha: '19 May 2026',  responsable: 'Daniel + Joaquín',       evento: 'Reunión interna + Factura 186208 emitida. Alarma activada. Factura correcta emitida sin meet previo con cliente.', tipo: 'pivote' },
+    { fecha: '20 May 2026',  responsable: 'José Manuel',            evento: 'José Manuel sostiene posición con Mauricio. Tono de servicio correcto. Mauricio confirma que el contrato es desde el 21-abr.', tipo: 'ok' },
+    { fecha: '26 May 2026',  responsable: 'Juan Carlos / Equipo',   evento: 'Falla técnica OTP en producción. Cliente detecta bajada en funnel de onboarding. Chombo y Alex de vacaciones.', tipo: 'problema' },
+    { fecha: '27 May 2026',  responsable: 'Juan Carlos / Joaquín',  evento: 'Discovery dashboard OTP — "no esperamos que se cobre". Cliente establece expectativa de gratuidad. Desarrollo absorbido sin costo.', tipo: 'problema' },
+    { fecha: '10 Jun 2026',  responsable: 'Joaquín',                evento: 'Joaquín autoriza dashboard OTP sin costo. Tercer costo absorbido en el proyecto OTP. Patrón de concesiones ahora a nivel DG.', tipo: 'problema' },
+    { fecha: 'Jun 2026',     responsable: 'Dir. SAC / José Manuel', evento: 'Dos facturas OTP pagadas. Posición contractual sostenida = cobro exitoso. $242,912 MXN recuperados.', tipo: 'ok' },
+    { fecha: 'Jun 2026',     responsable: 'Área Crédito Finsus',   evento: 'Factura Crédito rechazada por retenciones IVA/ISR. Error fiscal detectado. Posible replicación en otras áreas.', tipo: 'problema' },
   ],
 
   perfil_campos: [
@@ -114,27 +124,27 @@ export const FINSUS: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Sostener posición contractual Factura 186208. Sin cláusula de exención por no uso. Comunicar con firmeza y respeto.', responsable: 'Dir. SAC', criterio: 'Posición comunicada por escrito al cliente' },
-    { accion: 'Identificar contacto de tesorería Finsus antes de que Mauricio Rendón se retire activamente.', responsable: 'Dir. SAC', criterio: 'Nombre y contacto de tesorería obtenido y registrado en CRM' },
-    { accion: 'Verificar si Anexo B fue modificado por el cliente con permisos de edición antes de la firma.', responsable: 'Dir. Administración', criterio: 'Versión firmada vs. compartida comparadas — resultado documentado' },
-    { accion: 'Confirmar estatus biométrico contrato Cobranza y estado real de firmas del Anexo B.', responsable: 'Dir. Administración', criterio: 'Regularización iniciada o confirmada por escrito' },
+    { accion: 'Proponer línea backup OTP a Finsus. La falla técnica de mayo hace la necesidad evidente — es la venta más fácil y más urgente.', responsable: 'Galván + Dir. SAC', criterio: 'Propuesta enviada al cliente' },
+    { accion: 'Identificar contacto de tesorería Finsus antes de que Mauricio se retire. Es la acción más urgente para proteger el cobro recurrente.', responsable: 'Dir. SAC', criterio: 'Nombre y contacto de tesorería obtenido y registrado en CRM' },
+    { accion: 'Resolver falla técnica OTP en producción. Juan Carlos tiene logs — coordinar sesión técnica con el equipo de ingeniería.', responsable: 'Ingeniería + Soporte', criterio: 'Falla resuelta y documentada' },
+    { accion: 'Auditar retenciones IVA/ISR en todas las áreas de Finsus. Si Crédito las tiene, otras áreas con condiciones similares pueden también.', responsable: 'Dir. Administración', criterio: 'Auditoría fiscal completada — refacturaciones emitidas si aplica' },
   ],
 
   plan_mediano: [
-    { accion: 'Firmar adendum unificado: plazo forzoso 12-24m, mora 1.5%, SLA básico. Sin permisos de edición al cliente.', responsable: 'Joaquín (autoriza) + Toño (ejecuta)', criterio: 'Adendum firmado con biométricos — sin omisiones' },
-    { accion: 'Completar onboarding OTPs con mesas de trabajo técnicas con área de Finsus. Emitir acta de inicio formal.', responsable: 'Ingeniería + Galván', criterio: 'Acta de inicio firmada por ambas partes' },
-    { accion: 'Regularizar cartera dic-2025 a abr-2026 ($335K+) con calendario de pago formal aceptado.', responsable: 'Dir. Administración', criterio: 'Calendario aceptado por escrito con fechas comprometidas' },
-    { accion: 'Proponer y vender línea backup OTP como servicio de continuidad ante riesgo de spam.', responsable: 'Galván + Dir. SAC', criterio: 'Línea backup contratada y documentada' },
+    { accion: 'Firmar adendum unificado: plazo forzoso 12-24m, mora 1.5%, SLA básico. Sin permisos de edición al cliente.', responsable: 'Joaquín (autoriza) + Toño (ejecuta)', criterio: 'Adendum firmado con biométricos' },
+    { accion: 'Completar onboarding OTPs — mesas de trabajo con área técnica de Finsus + acta de inicio firmada.', responsable: 'Ingeniería + Galván', criterio: 'Acta de inicio firmada por ambas partes' },
+    { accion: 'Regularizar cartera dic-2025 a abr-2026 ($335K+) con calendario de pago formal aceptado por el cliente.', responsable: 'Dir. Administración', criterio: 'Calendario aceptado por escrito con fechas comprometidas' },
     { accion: 'Resolver razón social correcta (Economía Móvil Inteligente vs. Financiera Sustentable) en todos los contratos.', responsable: 'Dir. Administración', criterio: 'Razón social unificada y validada en todos los instrumentos' },
+    { accion: 'Verificar si Anexo B fue modificado con los permisos de edición antes de la firma. Comparar versión compartida vs. firmada.', responsable: 'Dir. Administración', criterio: 'Versión firmada vs. compartida comparadas — resultado documentado' },
   ],
 
   plan_estrategico: [
-    { accion: 'Protocolo formal: todo ajuste comercial en cuenta AAA requiere caso de negocio firmado por Dir. SAC — sin excepciones.', responsable: 'Joaquín Martínez', criterio: 'Protocolo documentado, comunicado y en vigor' },
+    { accion: 'Protocolo formal: todo ajuste comercial — incluyendo absorciones de costo por DG — requiere caso de negocio aprobado por Dir. SAC. Sin excepciones.', responsable: 'Joaquín Martínez', criterio: 'Protocolo documentado y comunicado' },
     { accion: 'Definir rol del asesor comercial: qué puede acordar, qué escalar, qué nunca autorizar. Manual de roles.', responsable: 'Dir. General', criterio: 'Manual de roles documentado y firmado por Galván' },
-    { accion: 'Registrar en Zoho CRM todo el historial de Finsus. Eliminar Slack como canal de decisión comercial.', responsable: 'Daniel + Galván', criterio: 'CRM actualizado, auditado y validado por Dirección' },
-    { accion: 'Implementar monitoreo proactivo de categorías Meta — alerta automática ante cambios de clasificación.', responsable: 'Alejandro Rendón', criterio: 'Sistema activo documentado y con responsable asignado' },
-    { accion: 'Validar rentabilidad del esquema OTP a $0.2430 MXN antes de que escale a 500K mensuales.', responsable: 'Dir. Administración', criterio: 'Análisis con margen positivo validado y aprobado por Dirección' },
-    { accion: 'QBR trimestral con Finsus — consumo, satisfacción, oportunidades y riesgos cada 90 días.', responsable: 'Dir. SAC + Galván', criterio: 'Primera QBR agendada y con agenda definida' },
+    { accion: 'Eliminar WhatsApp grupal como canal de soporte. Registrar en Zoho CRM todo el historial de Finsus.', responsable: 'Daniel + equipo de soporte', criterio: 'CRM actualizado. Canal WhatsApp reencauzado a tickets' },
+    { accion: 'Implementar monitoreo proactivo de categorías Meta — alerta automática ante cambios de clasificación.', responsable: 'Alejandro Rendón', criterio: 'Sistema activo documentado con responsable asignado' },
+    { accion: 'Validar rentabilidad OTP a $0.2430 MXN — confirmar margen positivo antes de que escale a 500K mensuales.', responsable: 'Dir. Administración', criterio: 'Análisis con margen validado y aprobado por Dirección' },
+    { accion: 'QBR trimestral con Finsus — consumo, satisfacción, oportunidades y riesgos cada 90 días.', responsable: 'Dir. SAC + Galván', criterio: 'Primera QBR agendada con agenda definida' },
   ],
 
   areas_oportunidad: [
@@ -194,6 +204,16 @@ export const FINSUS: AuditoriaCase = {
         { label: 'Acción requerida',       value: 'Autorizar y comunicar protocolo de gobernanza. Ser el punto de no-retorno para concesiones en cuentas AAA.' },
       ],
     },
+    {
+      nombre: 'José Manuel López Delgadillo', rol: 'Dirección de SAC — Gestión Correcta · Primera Intervención Formal', color: '#22c55e',
+      campos: [
+        { label: 'Conducta documentada',     value: 'Primera intervención formal en la cuenta. Ejecutó bien: tono de servicio, posición contractual sostenida, cobro exitoso de dos facturas que el cliente intentaba diferir.' },
+        { label: 'Logro clave',              value: 'Factura 186208 cobrada en junio. Segunda factura OTP cobrada en el mismo período. ~$242,912 MXN recuperados con posición firme y sin confrontación.' },
+        { label: 'La fórmula',               value: '"Era cuestión de encontrar las palabras clave: ya cumplimos, esto está listo, lo que me pediste te lo tengo que cobrar." — José Manuel, 10 jun 2026.' },
+        { label: 'Área de mejora',           value: 'En la conversación con Mauricio preguntó si hubo "acuerdo de no cobrar" — encuadre que podía fortalecer el argumento del cliente. Para futuras conversaciones: nunca abrir la hipótesis de un acuerdo informal. Que lo proponga el cliente.' },
+        { label: 'Potencial',                value: 'Escalar la fórmula SAC como protocolo de cobro en cuentas AAA. Liderar el adendum y la regularización de cartera.' },
+      ],
+    },
   ],
 
   foda: {
@@ -244,22 +264,27 @@ export const FINSUS: AuditoriaCase = {
     ],
   },
 
-  conclusion: 'Finsus es la cuenta que mejor resume lo que Callpicker hace bien y lo que necesita estructurar. En 36 meses, el equipo construyó una relación genuina, sostuvo la lealtad del cliente a través de 5 áreas y generó casi $1M de facturación anual. También demostró que el crecimiento sin estructura no es sostenible.\n\nEl cliente no se va a ir mañana. Pero tiene todas las condiciones para irse en 12 meses si Callpicker no actúa ahora. La diferencia entre actuar y no actuar es $1,944,356 MXN en 12 meses.',
+  conclusion: 'En junio 2026, por primera vez en 3 años, Callpicker sostuvo su posición contractual con Finsus y cobró. El cliente pagó. Eso no resuelve los 24 hallazgos activos ni los 36 meses de informalidad acumulada — pero prueba que el modelo correcto funciona.\n\nLa diferencia entre seguir como hasta hoy y ejecutar el Escenario C es de $1,944,356 MXN en 12 meses. La ventana está abierta. El cliente quiere crecer con Callpicker. La pregunta es si Callpicker está listo para recibirlo con estructura.',
 
   pierde: [
-    'Factura 186208 — $121,456 MXN objetada sin instrumento de cobro efectivo',
-    'Cartera $335K+ acumulada sin mecanismo formal de recuperación',
-    'OTPs 500K — $121,500 MXN/mes en oportunidad perdida por falta de onboarding',
-    'La cuenta más grande: cliente puede cancelar sin penalización (sin plazo forzoso)',
-    'Credibilidad institucional cuando Finsus obtenga su licencia bancaria',
+    'Sin protocolo — la próxima concesión informal ya está en curso (dashboard DG absorb)',
+    'Incidente de spam en línea OTP sin backup = churn inmediato sin solución',
+    'Cliente puede cancelar sin penalización en cualquier momento (sin plazo forzoso)',
+    'Mauricio se retira sin reemplazo — cobro mensual a discreción del cliente',
+    'Oportunidad OTP $100K en buzón — se pierde sin seguimiento activo',
+    'Nueva concesión informal a nivel DG (dashboard OTP) — patrón reactivado',
+    'Migración cuando llegue la presión regulatoria por licencia bancaria',
+    'Ingreso proyectado Escenario A: <$700,000 MXN/año',
   ],
   gana: [
-    'Factura 186208 cobrada — posición contractual sostenida con la relación intacta',
-    'Cartera $335K+ recuperada con calendario formal de pago',
-    'OTPs 500K activos → $121,500 MXN/mes recurrente adicional',
-    'Adendum unificado con plazo forzoso → $2.6M/año asegurado en 12 meses',
-    'Finsus como banco → Callpicker como proveedor institucional formalizado',
-    'Un modelo de gobernanza que previene la próxima crisis en cualquier cuenta AAA',
+    'Dos facturas OTP cobradas — posición contractual sostenida con la relación intacta',
+    'Backup OTP vendido — protección del cliente y del ingreso recurrente',
+    'Adendum con plazo forzoso — $1M+/año asegurado',
+    'Canal tesorería identificado — cobro profesionalizado e independiente de Mauricio',
+    'OTPs 500K activos → $121,500 MXN/mes adicional recurrente',
+    'Gobernanza — fórmula SAC escalada como protocolo replicable',
+    'Finsus como banco → Callpicker como proveedor institucional formalizado y auditable',
+    'Ingreso proyectado Escenario C: $2,644,356 MXN/año',
   ],
   recomendacion_central: 'El modelo de gobernanza comercial debe cambiar ahora — no después del siguiente incidente. Cada cuenta AAA requiere: contrato ejecutable al 100% antes de facturar, caso de negocio firmado antes de cualquier concesión, CRM como canal oficial de registro (no Slack), y revisión ejecutiva trimestral. Finsus no es un problema de Galván — es un espejo del sistema que lo permitió durante 36 meses.',
 }
