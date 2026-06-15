@@ -103,6 +103,7 @@ const MESES = [
   { val: '2026-03', label: 'Marzo 2026' },
   { val: '2026-04', label: 'Abril 2026' },
   { val: '2026-05', label: 'Mayo 2026' },
+  { val: '2026-06', label: 'Junio 2026' },
 ]
 
 export default function TicketsPage() {
