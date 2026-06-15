@@ -51,8 +51,8 @@ async function getRegistros(): Promise<RegistroItem[]> {
     }
 
     const wb   = xlsx.readFile(filePath)
-    const ws   = wb.Sheets['Registros']
-    if (!ws) { console.warn('[activaciones] Hoja Registros no encontrada'); return [] }
+    const ws   = wb.Sheets['Hoja1']
+    if (!ws) { console.warn('[activaciones] Hoja Hoja1 no encontrada'); return [] }
 
     const raw: Record<string, any>[] = xlsx.utils.sheet_to_json(ws, { defval: '' })
 
