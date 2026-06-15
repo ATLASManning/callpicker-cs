@@ -200,7 +200,7 @@ export default function TicketsPage() {
     <div className="flex flex-col h-full overflow-hidden bg-gray-50">
       <PageHeader
         title="Tickets 2026"
-        subtitle="1,582 tickets · Zoho Desk · Febrero – Mayo 2026"
+        subtitle={`${stats ? stats.total.toLocaleString('es-MX') : '—'} tickets · Zoho Desk`}
       />
 
       {/* Tabs */}
