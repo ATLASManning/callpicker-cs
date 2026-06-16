@@ -26,12 +26,12 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
 
   return (
     <div className="text-right">
-      <p className="text-xs text-textLow">Facturación</p>
+      <p className="text-xs text-textLow">Factura Mensual</p>
       <p className={`text-xl font-bold ${loading ? 'text-textLow/50' : 'text-textHi'}`}>
         {loading ? fmt(fallback) : fmt(value)}
       </p>
-      {!loading && mrr != null && mrr !== fallback && (
-        <p className="text-[9px] text-cp/70 mt-0.5">MRR grupo · Zoho</p>
+      {!loading && mrr != null && (
+        <p className="text-[9px] text-cp/70 mt-0.5">Zoho · {mrr !== fallback ? 'en vivo' : 'sincronizado'}</p>
       )}
     </div>
   )

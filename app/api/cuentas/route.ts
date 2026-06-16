@@ -1,6 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCuentas, upsertCuenta } from '@/lib/supabase'
 import rawTickets from '@/lib/tickets-data.json'
+import { queryZohoView, parseNum, isZohoConfigured } from '@/lib/zoho-analytics'
+
+// ── Cache Zoho LTV (15 min) ──────────────────────────────────────────────────
+let _zohoMrrCache: { map: Record<string, number>; ts: number } | null = null
+const ZOHO_TTL = 15 * 60 * 1000
+
+async function getZohoMrrMap(): Promise<Record<string, number>> {
+  if (_zohoMrrCache && Date.now() - _zohoMrrCache.ts < ZOHO_TTL) return _zohoMrrCache.map
+  if (!isZohoConfigured()) return {}
+  try {
+    const viewId = process.env.ZOHO_VIEW_ID_FACTURACION!
+    const result = await queryZohoView({ viewId })
+    const map: Record<string, number> = {}
+    for (const row of result.rows) {
+      const semaforo = row['semaforo_actividad'] ?? ''
+      if (semaforo === '4 - Dormido') continue
+      const mrr = parseNum(row['mrr_limpio']?.replace(/[$,]/g, '')) ?? 0
+      const name = normStr(row['nombre_cliente'] ?? '')
+      if (!name || mrr <= 0) continue
+      map[name] = (map[name] ?? 0) + mrr
+    }
+    _zohoMrrCache = { map, ts: Date.now() }
+    return map
+  } catch {
+    return {}
+  }
+}
+
+function normStr(s: string) {
+  return (s ?? '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, '').trim()
+}
+
+function lookupMrr(empresa: string, zmap: Record<string, number>): number {
+  const n = normStr(empresa)
+  if (zmap[n]) return zmap[n]
+  // Fallback: coincidencia por primeras dos palabras significativas
+  const words = n.split(/\s+/).filter(w => w.length >= 3).slice(0, 2)
+  if (words.length === 0) return 0
+  let best = 0
+  for (const [key, val] of Object.entries(zmap)) {
+    if (words.every(w => key.includes(w))) { best += val }
+  }
+  return best
+}
 
 // ── Tipos de tickets ─────────────────────────────────────────────────────────
 interface TicketRaw {
@@ -68,17 +114,21 @@ export async function GET(req: NextRequest) {
   const asesorFiltro = rol === 'asesor' ? asesorHeader : (sp.get('asesor') || undefined)
 
   try {
-    const data = await getCuentas({
-      asesor:   asesorFiltro || undefined,
-      semaforo: sp.get('semaforo') || undefined,
-      estado:   sp.get('estado')   || undefined,
-      search:   sp.get('search')   || undefined,
-    })
+    const [data, zohoMrr] = await Promise.all([
+      getCuentas({
+        asesor:   asesorFiltro || undefined,
+        semaforo: sp.get('semaforo') || undefined,
+        estado:   sp.get('estado')   || undefined,
+        search:   sp.get('search')   || undefined,
+      }),
+      getZohoMrrMap(),
+    ])
 
-    // Enriquecer cada cuenta con stats reales de tickets Zoho Desk
+    // Enriquecer cada cuenta con tickets + MRR real de Zoho
     const enriched = data.map(c => ({
       ...c,
       zoho_tickets: getTicketStats(c.cid ?? null, c.empresa),
+      mrr_zoho: lookupMrr(c.empresa, zohoMrr) || null,
     }))
 
     return NextResponse.json(enriched)

@@ -145,7 +145,7 @@ function CuentasPageInner() {
   }
 
   // ── Totales rápidos ───────────────────────────────────────────────────────
-  const totalFac = sorted.reduce((s, c) => s + (c.facturacion ?? 0), 0)
+  const totalFac = sorted.reduce((s, c) => s + (c.mrr_zoho ?? c.facturacion ?? 0), 0)
   const totalTickets = sorted.reduce((s, c) => s + (c.zoho_tickets?.total ?? 0), 0)
   const totalFallas  = sorted.reduce((s, c) => s + (c.zoho_tickets?.fallas ?? 0), 0)
 
@@ -318,11 +318,16 @@ function CuentasPageInner() {
                           <AsesorBadge asesor={c.asesor} />
                         </td>
 
-                        {/* Facturación */}
+                        {/* Facturación — MRR desde Zoho (con fallback a Supabase) */}
                         <td>
-                          <span className="text-sm font-bold text-textHi tabular-nums">
-                            {formatMXN(c.facturacion)}
-                          </span>
+                          <div>
+                            <span className="text-sm font-bold text-textHi tabular-nums">
+                              {formatMXN(c.mrr_zoho ?? c.facturacion)}
+                            </span>
+                            {c.mrr_zoho != null && (
+                              <p className="text-[9px] text-cp/60 mt-0.5">mensual · Zoho</p>
+                            )}
+                          </div>
                         </td>
 
                         {/* Health Score */}

@@ -426,7 +426,7 @@ export default function FacturacionPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: '#f8fafc' }}>
-                        {['Cliente', 'Segmento', 'MRR', 'Acumulado Rec.', 'Clasif. LTV', 'Semáforo', 'Meses Activo', 'Última Factura'].map(h => (
+                        {['Cliente', 'Segmento', 'Factura Mensual', 'Acumulado Rec.', 'Clasif. LTV', 'Semáforo', 'Meses Activo', 'Última Factura'].map(h => (
                           <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>

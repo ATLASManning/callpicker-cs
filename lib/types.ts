@@ -36,6 +36,7 @@ export interface Cuenta {
   empresa: string
   asesor: Asesor
   facturacion: number
+  mrr_zoho?: number | null
   servicio: string | null
   activo_desde: string | null
 
