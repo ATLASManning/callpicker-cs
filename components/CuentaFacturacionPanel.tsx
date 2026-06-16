@@ -9,6 +9,7 @@ interface LTVRow {
   'Clasificación LTV': string
   'Segmento Factura': string
   'MRR Limpio': number | null
+  'Ticket Promedio': number | null
   'Importe Acumulado Recurrente': number | null
   'Última Factura': string
   'Semáforo Actividad': string
@@ -102,7 +103,7 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <ReceiptText size={13} className="text-textMid" />
-          <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Facturación Mensual · LTV</h3>
+          <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Facturación · LTV</h3>
           {data && (
             <span className="flex items-center gap-1 text-[9px]" style={{ color: data.source === 'zoho' ? '#22c55e' : '#94a3b8' }}>
               {data.source === 'zoho' ? <Wifi size={9} /> : <WifiOff size={9} />}
@@ -128,15 +129,15 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-[10px] text-textLow font-semibold uppercase tracking-wide mb-0.5">
-                  Factura Mensual · {data!.mesReciente}
+                  MRR Grupo · {data!.mesReciente}
                 </p>
                 <p style={{ fontSize: 22, fontWeight: 800, color: '#1B3FCC', lineHeight: 1 }}>
                   {fmt$(data!.mrrGrupo)}
                 </p>
                 <p className="text-[10px] text-textLow mt-1">
-                  {data!.cuentasMesReciente.length} sub-cuenta{data!.cuentasMesReciente.length !== 1 ? 's' : ''} facturadas en {data!.mesReciente}
+                  {data!.cuentasMesReciente.length} sub-cuenta{data!.cuentasMesReciente.length !== 1 ? 's' : ''} activas en {data!.mesReciente}
                   {data!.subCuentas > data!.cuentasMesReciente.length && (
-                    <span className="text-textLow/60"> · {data!.subCuentas - data!.cuentasMesReciente.length} sin factura en ese mes</span>
+                    <span className="text-textLow/60"> · {data!.subCuentas - data!.cuentasMesReciente.length} inactivas no incluidas</span>
                   )}
                 </p>
               </div>
@@ -165,6 +166,7 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
                       <tr className="border-b border-border">
                         <th className="pb-1.5 text-left text-textLow font-medium text-[10px]">Cuenta</th>
                         <th className="pb-1.5 text-right text-textLow font-medium text-[10px]">Factura Mensual</th>
+                        <th className="pb-1.5 text-right text-textLow font-medium text-[10px]">MRR</th>
                         <th className="pb-1.5 text-center text-textLow font-medium text-[10px]">LTV</th>
                         <th className="pb-1.5 text-center text-textLow font-medium text-[10px]">Semáforo</th>
                       </tr>
@@ -175,6 +177,7 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
                         .map((r, i) => (
                           <tr key={i} className="border-b border-border/30 hover:bg-surface/50">
                             <td className="py-1.5 text-textMid max-w-[140px] truncate font-medium">{r['Nombre del Cliente']}</td>
+                            <td className="py-1.5 text-right font-semibold text-textHi tabular-nums">{fmt$(r['Ticket Promedio'])}</td>
                             <td className="py-1.5 text-right font-bold text-cp tabular-nums">{fmt$(r['MRR Limpio'])}</td>
                             <td className="py-1.5 text-center"><Badge val={r['Clasificación LTV']} map={LTV_COLOR} /></td>
                             <td className="py-1.5 text-center"><Badge val={r['Semáforo Actividad']} map={SEM_COLOR} /></td>
@@ -184,6 +187,9 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
                     <tfoot>
                       <tr className="border-t border-border">
                         <td className="pt-1.5 text-[10px] font-bold text-textMid">TOTAL</td>
+                        <td className="pt-1.5 text-right font-bold text-textHi tabular-nums">
+                          {fmt$(data!.cuentasMesReciente.reduce((s, r) => s + (r['Ticket Promedio'] ?? 0), 0))}
+                        </td>
                         <td className="pt-1.5 text-right font-bold text-cp tabular-nums">{fmt$(data!.mrrGrupo)}</td>
                         <td colSpan={2} />
                       </tr>

@@ -4,25 +4,28 @@ import rawTickets from '@/lib/tickets-data.json'
 import { queryZohoView, parseNum, isZohoConfigured } from '@/lib/zoho-analytics'
 
 // ── Cache Zoho LTV (15 min) ──────────────────────────────────────────────────
-let _zohoMrrCache: { map: Record<string, number>; ts: number } | null = null
+interface ZohoAcct { mrr: number; factura_mensual: number }
+let _zohoCache: { map: Record<string, ZohoAcct>; ts: number } | null = null
 const ZOHO_TTL = 15 * 60 * 1000
 
-async function getZohoMrrMap(): Promise<Record<string, number>> {
-  if (_zohoMrrCache && Date.now() - _zohoMrrCache.ts < ZOHO_TTL) return _zohoMrrCache.map
+async function getZohoMap(): Promise<Record<string, ZohoAcct>> {
+  if (_zohoCache && Date.now() - _zohoCache.ts < ZOHO_TTL) return _zohoCache.map
   if (!isZohoConfigured()) return {}
   try {
     const viewId = process.env.ZOHO_VIEW_ID_FACTURACION!
     const result = await queryZohoView({ viewId })
-    const map: Record<string, number> = {}
+    const map: Record<string, ZohoAcct> = {}
     for (const row of result.rows) {
-      const semaforo = row['semaforo_actividad'] ?? ''
-      if (semaforo === '4 - Dormido') continue
-      const mrr = parseNum(row['mrr_limpio']?.replace(/[$,]/g, '')) ?? 0
+      if ((row['semaforo_actividad'] ?? '') === '4 - Dormido') continue
       const name = normStr(row['nombre_cliente'] ?? '')
-      if (!name || mrr <= 0) continue
-      map[name] = (map[name] ?? 0) + mrr
+      if (!name) continue
+      const mrr     = parseNum(row['mrr_limpio']?.replace(/[$,]/g, '')) ?? 0
+      const factura = parseNum(row['ticket_limpio_promedio']?.replace(/[$,]/g, '')) ?? 0
+      if (!map[name]) map[name] = { mrr: 0, factura_mensual: 0 }
+      map[name].mrr            += mrr
+      map[name].factura_mensual += factura
     }
-    _zohoMrrCache = { map, ts: Date.now() }
+    _zohoCache = { map, ts: Date.now() }
     return map
   } catch {
     return {}
@@ -35,17 +38,17 @@ function normStr(s: string) {
     .replace(/[^a-z0-9\s]/g, '').trim()
 }
 
-function lookupMrr(empresa: string, zmap: Record<string, number>): number {
+function lookupZoho(empresa: string, zmap: Record<string, ZohoAcct>): ZohoAcct | null {
   const n = normStr(empresa)
   if (zmap[n]) return zmap[n]
-  // Fallback: coincidencia por primeras dos palabras significativas
+  // Fallback: coincidencia por primeras dos palabras significativas (grupos multi-subcuenta)
   const words = n.split(/\s+/).filter(w => w.length >= 3).slice(0, 2)
-  if (words.length === 0) return 0
-  let best = 0
+  if (words.length === 0) return null
+  let mrr = 0, factura_mensual = 0
   for (const [key, val] of Object.entries(zmap)) {
-    if (words.every(w => key.includes(w))) { best += val }
+    if (words.every(w => key.includes(w))) { mrr += val.mrr; factura_mensual += val.factura_mensual }
   }
-  return best
+  return mrr > 0 ? { mrr, factura_mensual } : null
 }
 
 // ── Tipos de tickets ─────────────────────────────────────────────────────────
@@ -114,22 +117,26 @@ export async function GET(req: NextRequest) {
   const asesorFiltro = rol === 'asesor' ? asesorHeader : (sp.get('asesor') || undefined)
 
   try {
-    const [data, zohoMrr] = await Promise.all([
+    const [data, zohoMap] = await Promise.all([
       getCuentas({
         asesor:   asesorFiltro || undefined,
         semaforo: sp.get('semaforo') || undefined,
         estado:   sp.get('estado')   || undefined,
         search:   sp.get('search')   || undefined,
       }),
-      getZohoMrrMap(),
+      getZohoMap(),
     ])
 
-    // Enriquecer cada cuenta con tickets + MRR real de Zoho
-    const enriched = data.map(c => ({
-      ...c,
-      zoho_tickets: getTicketStats(c.cid ?? null, c.empresa),
-      mrr_zoho: lookupMrr(c.empresa, zohoMrr) || null,
-    }))
+    // Enriquecer cada cuenta con tickets + MRR y Factura Mensual de Zoho
+    const enriched = data.map(c => {
+      const z = lookupZoho(c.empresa, zohoMap)
+      return {
+        ...c,
+        zoho_tickets:       getTicketStats(c.cid ?? null, c.empresa),
+        mrr_zoho:           z?.mrr            ?? null,
+        factura_mensual_zoho: z?.factura_mensual ?? null,
+      }
+    })
 
     return NextResponse.json(enriched)
   } catch (e: unknown) {

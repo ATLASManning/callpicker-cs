@@ -426,7 +426,7 @@ export default function FacturacionPage() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: '#f8fafc' }}>
-                        {['Cliente', 'Segmento', 'Factura Mensual', 'Acumulado Rec.', 'Clasif. LTV', 'Semáforo', 'Meses Activo', 'Última Factura'].map(h => (
+                        {['Cliente', 'Segmento', 'Factura Mensual', 'MRR', 'Acumulado Rec.', 'Clasif. LTV', 'Semáforo', 'Meses Activo', 'Última Factura'].map(h => (
                           <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
@@ -439,6 +439,7 @@ export default function FacturacionPage() {
                             <div style={{ fontSize: 10, color: '#94a3b8' }}>{r['Tamaño Empresa']}</div>
                           </td>
                           <td style={{ padding: '9px 12px', color: '#374151' }}>{r['Segmento Factura'] || '—'}</td>
+                          <td style={{ padding: '9px 12px', fontWeight: 700, color: '#0f172a' }}>{fmt$(r['Ticket Promedio'])}</td>
                           <td style={{ padding: '9px 12px', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(r['MRR Limpio'])}</td>
                           <td style={{ padding: '9px 12px', color: '#374151' }}>{fmt$(r['Importe Acumulado Recurrente'])}</td>
                           <td style={{ padding: '9px 12px' }}><span style={getBadgeStyle(r['Clasificación LTV'], LTV_COLOR)}>{r['Clasificación LTV'] || '—'}</span></td>

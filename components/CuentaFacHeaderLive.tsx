@@ -7,6 +7,7 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
   fallback: number | null
 }) {
   const [mrr, setMrr] = useState<number | null>(null)
+  const [factura, setFactura] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -15,23 +16,37 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
     if (empresa) params.set('nombre', empresa)
     fetch(`/api/facturacion?${params}`)
       .then(r => r.json())
-      .then(d => { if (d.mrrGrupo > 0) setMrr(d.mrrGrupo) })
+      .then(d => {
+        if (d.mrrGrupo > 0) setMrr(d.mrrGrupo)
+        const ticketSum = (d.cuentasMesReciente ?? [])
+          .reduce((s: number, r: { 'Ticket Promedio': number | null }) => s + (r['Ticket Promedio'] ?? 0), 0)
+        if (ticketSum > 0) setFactura(ticketSum)
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [cid, empresa])
 
-  const value = mrr ?? fallback
   const fmt = (n: number | null) =>
     n == null ? '—' : '$' + Math.round(n).toLocaleString('es-MX')
 
   return (
-    <div className="text-right">
-      <p className="text-xs text-textLow">Factura Mensual</p>
-      <p className={`text-xl font-bold ${loading ? 'text-textLow/50' : 'text-textHi'}`}>
-        {loading ? fmt(fallback) : fmt(value)}
-      </p>
-      {!loading && mrr != null && (
-        <p className="text-[9px] text-cp/70 mt-0.5">Zoho · {mrr !== fallback ? 'en vivo' : 'sincronizado'}</p>
+    <div className="text-right flex flex-col gap-1">
+      <div>
+        <p className="text-[10px] text-textLow font-medium">Factura Mensual</p>
+        <p className={`text-xl font-bold leading-tight ${loading ? 'text-textLow/50' : 'text-textHi'}`}>
+          {loading ? fmt(fallback) : fmt(factura ?? fallback)}
+        </p>
+      </div>
+      {(loading || mrr != null) && (
+        <div>
+          <p className="text-[10px] text-textLow font-medium">MRR</p>
+          <p className={`text-sm font-bold text-cp ${loading ? 'opacity-50' : ''}`}>
+            {fmt(mrr)}
+          </p>
+        </div>
+      )}
+      {!loading && (mrr != null || factura != null) && (
+        <p className="text-[9px] text-cp/70">Zoho · en vivo</p>
       )}
     </div>
   )
