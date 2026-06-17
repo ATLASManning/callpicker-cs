@@ -4,17 +4,33 @@ import { supabaseAdmin } from '@/lib/supabase'
 export const dynamic = 'force-dynamic'
 
 /* ── GET /api/reuniones ─────────────────────────────────────────────── */
-export async function GET() {
-  const { data, error } = await supabaseAdmin
+export async function GET(req: NextRequest) {
+  const sp      = req.nextUrl.searchParams
+  const tipo    = sp.get('tipo')
+  const empresa = sp.get('empresa')
+
+  let query = supabaseAdmin
     .from('reuniones')
     .select('*')
     .order('fecha', { ascending: false })
     .order('creado_en', { ascending: false })
 
+  if (tipo)    query = query.eq('tipo', tipo)
+  if (empresa) query = query.ilike('empresa', `%${empresa}%`)
+
+  const { data, error } = await query
+
   if (error) {
-    // Si la tabla no existe todavía, retornar array vacío con flag
-    if (error.code === '42P01') {
-      return NextResponse.json({ rows: [], tableExists: false })
+    if (error.code === '42P01') return NextResponse.json({ rows: [], tableExists: false })
+    // Columna empresa no existe aún — ignorar filtro, devolver todo
+    if (error.code === '42703') {
+      const { data: all, error: e2 } = await supabaseAdmin
+        .from('reuniones')
+        .select('*')
+        .order('fecha', { ascending: false })
+        .order('creado_en', { ascending: false })
+      if (e2) return NextResponse.json({ error: e2.message }, { status: 500 })
+      return NextResponse.json({ rows: all ?? [], tableExists: true })
     }
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
@@ -25,7 +41,7 @@ export async function GET() {
 /* ── POST /api/reuniones ────────────────────────────────────────────── */
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { fecha, tipo, titulo, participantes, resumen, acuerdos, proximos_pasos } = body
+  const { fecha, tipo, titulo, participantes, resumen, acuerdos, proximos_pasos, empresa } = body
 
   if (!fecha || !titulo?.trim()) {
     return NextResponse.json({ error: 'fecha y titulo son requeridos' }, { status: 400 })
@@ -41,14 +57,13 @@ export async function POST(req: NextRequest) {
       resumen:        resumen ?? '',
       acuerdos:       acuerdos ?? '',
       proximos_pasos: proximos_pasos ?? '',
+      empresa:        tipo === 'cliente' ? (empresa ?? null) : null,
     })
     .select()
     .single()
 
   if (error) {
-    if (error.code === '42P01') {
-      return NextResponse.json({ error: 'table_not_found', tableExists: false }, { status: 503 })
-    }
+    if (error.code === '42P01') return NextResponse.json({ error: 'table_not_found', tableExists: false }, { status: 503 })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 

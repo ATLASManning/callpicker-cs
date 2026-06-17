@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Calendar, Plus, X, Save, ChevronDown, Users, FileText,
   ArrowLeft, Trash2, RefreshCw, AlertTriangle, CheckCircle2,
-  Database,
+  Database, Building2,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -18,6 +18,7 @@ type Reunion = {
   resumen: string
   acuerdos: string
   proximos_pasos: string
+  empresa?: string | null
   creado_en: string
 }
 
@@ -34,7 +35,7 @@ const hoy = () => new Date().toISOString().slice(0, 10)
 
 const emptyForm = (): Omit<Reunion, 'id' | 'creado_en'> => ({
   fecha: hoy(), tipo: 'junta_semanal',
-  titulo: '', participantes: '', resumen: '', acuerdos: '', proximos_pasos: '',
+  titulo: '', participantes: '', resumen: '', acuerdos: '', proximos_pasos: '', empresa: '',
 })
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -49,9 +50,12 @@ const SQL_CREAR_TABLA = `CREATE TABLE IF NOT EXISTS public.reuniones (
   resumen TEXT DEFAULT '',
   acuerdos TEXT DEFAULT '',
   proximos_pasos TEXT DEFAULT '',
+  empresa TEXT DEFAULT NULL,
   creado_en TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
-);`
+);
+-- Si la tabla ya existe, agregar la columna empresa:
+ALTER TABLE public.reuniones ADD COLUMN IF NOT EXISTS empresa TEXT DEFAULT NULL;`
 
 function SetupBanner() {
   const [copied, setCopied] = useState(false)
@@ -166,6 +170,7 @@ export default function ReunionesPage() {
   /* ── Guardar nueva reunión ──────────────────────────────────────── */
   async function guardar() {
     if (!form.titulo.trim()) return
+    if (form.tipo === 'cliente' && !form.empresa?.trim()) return
     setSaving(true)
     try {
       const res = await fetch('/api/reuniones', {
@@ -301,6 +306,22 @@ export default function ReunionesPage() {
                 className="cp-input w-full" />
             </div>
 
+            {form.tipo === 'cliente' && (
+              <div>
+                <label className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: '#059669' }}>
+                  <Building2 size={12} /> Cuenta / Empresa <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input type="text" placeholder="ej. Finsus Growth, VAEO, Grupo FRISA…"
+                  value={form.empresa ?? ''}
+                  onChange={e => setForm(p => ({ ...p, empresa: e.target.value }))}
+                  className="cp-input w-full"
+                  style={{ borderColor: !form.empresa?.trim() ? '#fca5a5' : undefined }} />
+                <p className="text-[10px] mt-1" style={{ color: '#94a3b8' }}>
+                  Este nombre vincula la reunión con la cuenta en el módulo Cuentas
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
                 <Users size={12} className="inline mr-1" />Participantes
@@ -425,6 +446,12 @@ export default function ReunionesPage() {
                             style={{ background: cfg.bg, color: cfg.color }}>
                             {cfg.label}
                           </span>
+                          {r.tipo === 'cliente' && r.empresa && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
+                              style={{ background: 'rgba(5,150,105,0.1)', color: '#059669', border: '1px solid rgba(5,150,105,0.2)' }}>
+                              <Building2 size={9} />{r.empresa}
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm font-semibold truncate" style={{ color: '#0F172A' }}>{r.titulo}</p>
                         {r.participantes && (

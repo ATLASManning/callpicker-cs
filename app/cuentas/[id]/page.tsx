@@ -17,6 +17,7 @@ import CuentaInfoEditor from '@/components/CuentaInfoEditor'
 import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
 import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
+import CuentaReunionButton from '@/components/CuentaReunionButton'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 
 export const dynamic = 'force-dynamic'
@@ -79,6 +80,7 @@ export default async function CuentaDetailPage({ params }: Props) {
           </div>
 
           <div className="flex items-center gap-3">
+            <CuentaReunionButton empresa={cuenta.empresa} />
             {cuenta.zoho_link && (
               <a href={cuenta.zoho_link} target="_blank" rel="noopener noreferrer"
                 className="cp-btn cp-btn-ghost text-xs">
