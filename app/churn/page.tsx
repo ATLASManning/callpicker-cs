@@ -409,6 +409,97 @@ const REPORTE_S2_JUNIO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 8 · JUNIO 2026  (19 jun 2026)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S3_JUNIO_2026: ChurnReporte = {
+  id:      's3-junio-2026',
+  periodo: 'Semana 8 · Jun 2026',
+  fecha:   '19/06/2026',
+  notas:   'Gross Revenue Churn · Semana 8. Al 19 de junio del 2026. Churn Q2: Abril 1.9% · Mayo 2.4% (corr.). Acumulado 2026: 10.2% (corr. de 10.7%). 35 cuentas en corte · 17 canceladas · 11 suspendidas · 10 downgrades. Siguiente revisión: viernes 26 de junio.',
+  notaRemitente: 'Daniel Martínez — Solicitud: responder con información o retro de las cuentas identificadas. Se requiere retroalimentación del equipo para documentar motivos.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Abril',              pct: 1.9              },
+      { mes: 'Mayo (corregido)',   pct: 2.4, anterior: 3.0 },
+    ],
+    acumulado: 10.2,
+    anterior:  10.7,
+    notaClave: 'Churn Q2: Abril 1.9% · Mayo 2.4% (corrección). Acumulado 2026: 10.2% (corrección de 10.7%).',
+    notaEspecial: '📋 Pendiente semana anterior sin pagar ($82,256.03 · 8 cuentas): Municipio El Marqués $54,659 (31 meses) · MKG $17,230 (153 meses) · NatGas Mesa de Ayuda $2,912 · jemmoma $2,634 · Nuclea Solutions $1,684 · Nido Fertility $1,179 · la victoria dulceria $979 · World Pack $979. Requieren seguimiento urgente.',
+  },
+
+  /* En Corte — top 10 de 35 cuentas · $47,518 */
+  pendientesTotalReal:   47518,
+  pendientesCuentasReal: 35,
+  pendientes: [
+    { cliente: '🔝 SAMALAB',                          monto: 5756, mesesActivo: 26, ultimaFactura: '12/05/2026' },
+    { cliente: 'Linea de Apoyo',                       monto: 4127, mesesActivo: 36, ultimaFactura: '17/05/2026' },
+    { cliente: 'DOSATEC',                              monto: 3963, mesesActivo: 13, ultimaFactura: '15/05/2026' },
+    { cliente: "Pipolo's",                             monto: 3480, mesesActivo: 67, ultimaFactura: '15/05/2026' },
+    { cliente: 'INMOBILIARIA EL PORVENIR',             monto: 3439, mesesActivo: 61, ultimaFactura: '16/05/2026' },
+    { cliente: 'SISESCO',                              monto: 2586, mesesActivo: 15, ultimaFactura: '17/05/2026' },
+    { cliente: 'Comercial de Especialidades Medicas',  monto: 2497, mesesActivo: 53, ultimaFactura: '15/05/2026' },
+    { cliente: 'Bosque Eterno',                        monto: 2338, mesesActivo: 68, ultimaFactura: '15/05/2026' },
+    { cliente: 'VANGUARDA',                            monto: 1959, mesesActivo: 98, ultimaFactura: '13/05/2026' },
+    { cliente: 'Aceros y Metales del Norte',           monto: 1659, mesesActivo: 16, ultimaFactura: '13/05/2026' },
+    { cliente: '+ 25 cuentas adicionales',             monto: 15820,mesesActivo: 0,  ultimaFactura: 'Ver lista completa en documento' },
+  ],
+
+  /* Cancelados — 17 cuentas · $14,261.31 */
+  cancelados: [
+    { cliente: '🔝 Armonmex',                mrr: 2454,   mesesActivo: 0,   acumulado: 0 },
+    { cliente: 'Aristea',                     mrr: 2387,   mesesActivo: 5,   acumulado: 0 },
+    { cliente: 'GRUPO BC BIENES RAICES',      mrr: 1959,   mesesActivo: 36,  acumulado: 0 },
+    { cliente: 'Colegio NWL - Milenio',       mrr: 1392,   mesesActivo: 61,  acumulado: 0 },
+    { cliente: 'Bondeados Grupo Revilla',     mrr: 1389,   mesesActivo: 67,  acumulado: 0 },
+    { cliente: 'MxBoxing',                    mrr: 839,    mesesActivo: 28,  acumulado: 0 },
+    { cliente: 'Abkam',                       mrr: 679,    mesesActivo: 141, acumulado: 0 },
+    { cliente: 'KUMON LA PRADERA',            mrr: 597,    mesesActivo: 11,  acumulado: 0 },
+    { cliente: 'Comercial Regasa',            mrr: 489,    mesesActivo: 3,   acumulado: 0 },
+    { cliente: 'RESTA TOOLS',                 mrr: 489,    mesesActivo: 88,  acumulado: 0 },
+    { cliente: 'Lunah Eco-resorts CDMX',      mrr: 367,    mesesActivo: 38,  acumulado: 0 },
+    { cliente: 'Casa Santiago',               mrr: 299,    mesesActivo: 21,  acumulado: 0 },
+    { cliente: 'GRUPO REACCION GPS',          mrr: 259,    mesesActivo: 43,  acumulado: 0 },
+    { cliente: 'Persianas Marais',            mrr: 195,    mesesActivo: 1,   acumulado: 0 },
+    { cliente: 'Rodolfo Guerrero Scott',      mrr: 169,    mesesActivo: 45,  acumulado: 0 },
+    { cliente: 'Quimicos XY',                 mrr: 169,    mesesActivo: 46,  acumulado: 0 },
+    { cliente: 'SEDEMEX',                     mrr: 129.31, mesesActivo: 46,  acumulado: 0 },
+  ],
+
+  /* Downgrades — 10 clientes · desglosado $10,781.74 · real $13,351.03 */
+  downgradeTotalReal: 13351.03,
+  downgrades: [
+    { cliente: 'AJ PENNY BLINDS',     perdida: 2653,    nota: 'Redujo Agente CP Chat de $4,169 → $1,516.' },
+    { cliente: 'Dicap Desarrollos',   perdida: 2017,    nota: 'Redujo Paquete Min VyC de $2,398 → $381.' },
+    { cliente: '⚠️ GTC — 8 sucursales (Patrón corporativo)', perdida: 6111.74, nota: '~67% del downgrade total. Las 8 sucursales GTC reducen el mismo artículo "Paquete Ops Automatizaciones" de forma proporcional — decisión corporativa de ajuste de presupuesto. GTC-NAVA −$1,102.44 · GTC-CENTRO MAX −$1,102.44 · GTC-FORUM −$801.57 · GTC-BMW −$800.85 · GTC-SENDERO −$601 · GTC-CARRANZA −$601 · GTC-MG LOMAS −$551.22 · GTC-MG POLIFORUM −$551.22.' },
+  ],
+
+  downgradeArticulos: [
+    { articulo: 'Paquete Ops Automatizaciones', vecesAfectado: 8, clientes: ['GTC-NAVA', 'GTC-CENTRO MAX', 'GTC-FORUM', 'GTC-BMW', 'GTC-SENDERO', 'GTC-CARRANZA', 'GTC-MG LOMAS', 'GTC-MG POLIFORUM'] },
+    { articulo: 'Agente CP Chat',               vecesAfectado: 1, clientes: ['AJ PENNY BLINDS'] },
+    { articulo: 'Paquete Min VyC',              vecesAfectado: 1, clientes: ['Dicap Desarrollos'] },
+  ],
+
+  /* Suspendidos — 11 cuentas · $5,894 */
+  suspendidosTotalReal:   5894,
+  suspendidosCuentasReal: 11,
+  suspendidos: [
+    { cliente: '🔝 Energix',                          importe: 1021, mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Puerta del Cielo',                    importe: 889,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Llano de la Torre',                   importe: 800,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'SOJO INCENDIO',                       importe: 576,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'ELECTRONICOS INTMEX',                 importe: 489,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Master Blue',                         importe: 489,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Luber ingenieria',                    importe: 489,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Elias Calles y Karam Abogados',       importe: 489,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Track One',                           importe: 358,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Servicios técnicos y profesionales',  importe: 195,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'PlastilinaBTl',                       importe: 99,   mesesActivo: 0, estado: 'Suspendido' },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -821,16 +912,16 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s2-junio-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s3-junio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
-  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S2_JUNIO_2026
+  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026']
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S3_JUNIO_2026
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
   const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
@@ -853,7 +944,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s2-junio-2026')
+    if (selectedId === id) setSelectedId('s3-junio-2026')
     setDelConfirm(null)
   }
 
