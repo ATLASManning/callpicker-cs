@@ -319,7 +319,7 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
                       </td>
                       <td style={cell}>
                         <span style={{ fontSize: 13, fontWeight: 700, color: L_TX, fontVariantNumeric: 'tabular-nums' }}>
-                          {formatMXN(c.facturacion)}
+                          {formatMXN(c.factura_mensual_zoho ?? c.facturacion)}
                         </span>
                       </td>
                       <td style={cell}>

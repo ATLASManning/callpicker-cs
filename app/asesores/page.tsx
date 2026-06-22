@@ -1,5 +1,5 @@
 import { getCuentas, getSemaforoByAsesor } from '@/lib/supabase'
-import { getSemaforo } from '@/lib/types'
+import { enrichCuentasWithZoho } from '@/lib/zoho-enrich'
 import type { Asesor } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import AsesorCard from '@/components/AsesorCard'
@@ -11,7 +11,9 @@ export const dynamic = 'force-dynamic'
 const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 
 export default async function AsesoresPage() {
-  const [cuentas, resumenList] = await Promise.all([getCuentas(), getSemaforoByAsesor()])
+  const [cuentasRaw, resumenList] = await Promise.all([getCuentas(), getSemaforoByAsesor()])
+  // Enriquecer con Factura Mensual + MRR en vivo de Zoho (misma fuente que Facturación/Cuentas)
+  const cuentas = await enrichCuentasWithZoho(cuentasRaw)
 
   return (
     <div className="min-h-screen">
@@ -45,13 +47,17 @@ export default async function AsesoresPage() {
 
           // Resumen semáforo de este asesor
           const res = resumenList.find(r => r.asesor === asesor)
+          // Total de cartera usando Factura Mensual de Zoho (misma base que la columna y Facturación)
+          const facturacionTotal = lista
+            .filter(c => c.estado === 'activo' || c.estado === 'en_riesgo')
+            .reduce((s, c) => s + (c.factura_mensual_zoho ?? c.facturacion ?? 0), 0)
           const resumen = {
             verde:    res?.verde    ?? 0,
             azul:     res?.azul     ?? 0,
             amarillo: res?.amarillo ?? 0,
             naranja:  res?.naranja  ?? 0,
             rojo:     res?.rojo     ?? 0,
-            facturacion_total: res?.facturacion_total ?? 0,
+            facturacion_total: facturacionTotal,
           }
 
           return (
