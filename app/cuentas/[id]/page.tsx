@@ -2,8 +2,9 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Phone, Globe, MapPin, ExternalLink, Building2,
-  TrendingUp, AlertTriangle, MessageSquare, Calendar
+  TrendingUp, AlertTriangle, MessageSquare, Calendar, ClipboardCheck
 } from 'lucide-react'
+import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getCuentaById, getSeguimientos, getOportunidades, getTickets, getHealthHistorial } from '@/lib/supabase'
 import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
@@ -35,6 +36,7 @@ export default async function CuentaDetailPage({ params }: Props) {
 
   if (!cuenta) notFound()
 
+  const auditoria = findAuditoriaForConsecutivo(cuenta.consecutivo)
   const zohoTickets = getTicketsByCuenta(cuenta.cid ?? null, cuenta.empresa)
 
   const semaforo = getSemaforo(cuenta.health_score)
@@ -80,6 +82,14 @@ export default async function CuentaDetailPage({ params }: Props) {
           </div>
 
           <div className="flex items-center gap-3">
+            {auditoria && (
+              <Link href={`/auditoria?caso=${auditoria.id}`}
+                className="cp-btn text-xs font-semibold text-white"
+                style={{ background: '#1B3FCC' }}
+                title={`Ver auditoría: ${auditoria.nombre}`}>
+                <ClipboardCheck size={13} /> Auditoría
+              </Link>
+            )}
             <CuentaReunionButton empresa={cuenta.empresa} />
             {cuenta.zoho_link && (
               <a href={cuenta.zoho_link} target="_blank" rel="noopener noreferrer"

@@ -45,9 +45,11 @@ export default function AuditoriaPage() {
   const [showForm, setShowForm]         = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
-  /* Cargar casos guardados del usuario */
+  /* Cargar casos guardados del usuario + abrir caso desde ?caso= (deep-link) */
   useEffect(() => {
     setUserCases(loadFromLS())
+    const caso = new URLSearchParams(window.location.search).get('caso')
+    if (caso) setSelectedId(caso)
   }, [])
 
   /* Lista completa de casos (ARKANSAS siempre primero) */
