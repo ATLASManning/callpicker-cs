@@ -47,18 +47,30 @@ export async function getZohoMap(): Promise<Record<string, ZohoAcct>> {
   }
 }
 
-/** Busca una cuenta por nombre exacto y, si falla, por las dos primeras palabras significativas. */
+/**
+ * Busca y SUMA todas las subcuentas de Zoho que correspondan a la misma cuenta.
+ * Usa las primeras 2 palabras significativas (≥3 chars) como clave de agrupación,
+ * lo que garantiza que "Grupo Frisa" + "Grupo Frisa - ACISA" se sumen correctamente.
+ * El match exacto siempre queda incluido (sus palabras están dentro del propio key).
+ */
 export function lookupZoho(empresa: string, zmap: Record<string, ZohoAcct>): ZohoAcct | null {
   const n = normStr(empresa)
-  if (zmap[n]) return zmap[n]
-  // Fallback: coincidencia por primeras dos palabras significativas (grupos multi-subcuenta)
   const words = n.split(/\s+/).filter(w => w.length >= 3).slice(0, 2)
-  if (words.length === 0) return null
-  let mrr = 0, factura_mensual = 0
-  for (const [key, val] of Object.entries(zmap)) {
-    if (words.every(w => key.includes(w))) { mrr += val.mrr; factura_mensual += val.factura_mensual }
+
+  if (words.length > 0) {
+    let mrr = 0, factura_mensual = 0, found = false
+    for (const [key, val] of Object.entries(zmap)) {
+      if (words.every(w => key.includes(w))) {
+        mrr            += val.mrr
+        factura_mensual += val.factura_mensual
+        found = true
+      }
+    }
+    if (found) return { mrr, factura_mensual }
   }
-  return mrr > 0 ? { mrr, factura_mensual } : null
+
+  // Fallback para nombres sin palabras significativas de ≥3 chars
+  return zmap[n] ?? null
 }
 
 /** Devuelve las cuentas con `mrr_zoho` y `factura_mensual_zoho` poblados desde Zoho. */
