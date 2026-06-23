@@ -115,6 +115,7 @@ export default function ReunionesPage() {
   const [mesActivo,    setMesActivo]    = useState(() => hoy().slice(0, 7))
   const [tableExists,  setTableExists]  = useState<boolean | null>(null)
   const [migrated,     setMigrated]     = useState(false)
+  const [saveError,    setSaveError]    = useState<string | null>(null)
 
   /* ── Cargar desde Supabase ──────────────────────────────────────── */
   const loadFromServer = useCallback(async () => {
@@ -172,22 +173,37 @@ export default function ReunionesPage() {
     if (!form.titulo.trim()) return
     if (form.tipo === 'cliente' && !form.empresa?.trim()) return
     setSaving(true)
+    setSaveError(null)
     try {
       const res = await fetch('/api/reuniones', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
+
+      if (!res.ok) {
+        let msg = `Error ${res.status}`
+        try { const j = await res.json(); msg = j.error ?? msg } catch {}
+        if (res.status === 401 || res.status === 302) msg = 'Sesión expirada. Recarga la página e ingresa de nuevo.'
+        setSaveError(msg)
+        return
+      }
+
       const json = await res.json()
       if (json.row) {
         const nueva = json.row as Reunion
         setReuniones(prev => [nueva, ...prev].sort((a, b) => b.fecha.localeCompare(a.fecha)))
         setExpanded(nueva.id)
+        setMesActivo(nueva.fecha.slice(0, 7))
+        setShowForm(false)
+        setForm(emptyForm())
+      } else {
+        setSaveError('El servidor no confirmó el guardado. Recarga la página.')
       }
+    } catch {
+      setSaveError('Error de conexión. Verifica tu red y que la sesión esté activa.')
     } finally {
       setSaving(false)
-      setShowForm(false)
-      setForm(emptyForm())
     }
   }
 
@@ -246,7 +262,7 @@ export default function ReunionesPage() {
               <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             </button>
             {tableExists !== false && (
-              <button onClick={() => { setShowForm(true); setForm(emptyForm()) }}
+              <button onClick={() => { setShowForm(true); setForm(emptyForm()); setSaveError(null) }}
                 className="cp-btn cp-btn-primary">
                 <Plus size={15} /> Nueva Reunión
               </button>
@@ -358,6 +374,14 @@ export default function ReunionesPage() {
                 className="cp-input w-full resize-none" />
             </div>
 
+            {saveError && (
+              <div className="flex items-start gap-2 rounded-xl px-4 py-3"
+                style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                <AlertTriangle size={14} style={{ color: '#EF4444', flexShrink: 0, marginTop: 1 }} />
+                <p className="text-xs" style={{ color: '#B91C1C' }}>{saveError}</p>
+              </div>
+            )}
+
             <div className="flex gap-2 pt-1">
               <button onClick={guardar} disabled={saving}
                 className="cp-btn cp-btn-primary flex-1 justify-center">
@@ -366,7 +390,7 @@ export default function ReunionesPage() {
                   : <><Save size={14} /> Guardar Reunión</>
                 }
               </button>
-              <button onClick={() => setShowForm(false)} className="cp-btn cp-btn-ghost">
+              <button onClick={() => { setShowForm(false); setSaveError(null) }} className="cp-btn cp-btn-ghost">
                 Cancelar
               </button>
             </div>
@@ -400,7 +424,7 @@ export default function ReunionesPage() {
               <p className="text-sm mb-4" style={{ color: '#64748B' }}>
                 Documenta el resumen de cada meeting del equipo
               </p>
-              <button onClick={() => { setShowForm(true); setForm(emptyForm()) }}
+              <button onClick={() => { setShowForm(true); setForm(emptyForm()); setSaveError(null) }}
                 className="cp-btn cp-btn-primary mx-auto">
                 <Plus size={14} /> Registrar primera reunión
               </button>
