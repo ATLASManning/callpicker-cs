@@ -1,16 +1,21 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
+export default function CuentaFacHeaderLive({ cid, empresa, fallback, initialFactura, initialMrr }: {
   cid: string | null
   empresa: string
   fallback: number | null
+  initialFactura?: number | null
+  initialMrr?: number | null
 }) {
-  const [mrr, setMrr] = useState<number | null>(null)
-  const [factura, setFactura] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
+  const hasInitial = initialFactura != null || initialMrr != null
+  const [mrr, setMrr] = useState<number | null>(initialMrr ?? null)
+  const [factura, setFactura] = useState<number | null>(initialFactura ?? null)
+  const [loading, setLoading] = useState(!hasInitial)
 
   useEffect(() => {
+    // Si el servidor ya nos pasó los valores de Zoho, no hacemos fetch adicional
+    if (hasInitial) return
     const params = new URLSearchParams({ mode: 'by-cid' })
     if (cid) params.set('cid', cid)
     if (empresa) params.set('nombre', empresa)
@@ -24,7 +29,7 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [cid, empresa])
+  }, [cid, empresa, hasInitial])
 
   const fmt = (n: number | null) =>
     n == null ? '—' : '$' + Math.round(n).toLocaleString('es-MX')

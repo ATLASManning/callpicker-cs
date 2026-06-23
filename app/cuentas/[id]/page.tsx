@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getCuentaById, getSeguimientos, getOportunidades, getTickets, getHealthHistorial } from '@/lib/supabase'
+import { getZohoMap, lookupZoho } from '@/lib/zoho-enrich'
 import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
@@ -26,16 +27,18 @@ export const dynamic = 'force-dynamic'
 interface Props { params: { id: string } }
 
 export default async function CuentaDetailPage({ params }: Props) {
-  const [cuenta, seguimientos, oportunidades, tickets, historial] = await Promise.all([
+  const [cuenta, seguimientos, oportunidades, tickets, historial, zohoMap] = await Promise.all([
     getCuentaById(params.id),
     getSeguimientos(params.id),
     getOportunidades(params.id),
     getTickets(params.id),
     getHealthHistorial(params.id),
+    getZohoMap(),
   ])
 
   if (!cuenta) notFound()
 
+  const zoho     = lookupZoho(cuenta.empresa, zohoMap)
   const auditoria = findAuditoriaForConsecutivo(cuenta.consecutivo)
   const zohoTickets = getTicketsByCuenta(cuenta.cid ?? null, cuenta.empresa)
 
@@ -101,6 +104,8 @@ export default async function CuentaDetailPage({ params }: Props) {
               cid={cuenta.cid ?? null}
               empresa={cuenta.empresa}
               fallback={cuenta.facturacion}
+              initialFactura={zoho?.factura_mensual ?? null}
+              initialMrr={zoho?.mrr ?? null}
             />
           </div>
         </div>
