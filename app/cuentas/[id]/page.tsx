@@ -398,7 +398,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                     <form action={deleteKam} style={{ margin:0 }}>
                       <input type="hidden" name="cuenta_id" value={cuenta.id} />
                       <button type="submit"
-                        style={{ fontSize:11, color:'#DC2626', background:'none', border:'none', cursor:'pointer', fontWeight:600 }}
+                        style={{ fontSize:13, color:'#DC2626', background:'none', border:'none', cursor:'pointer', fontWeight:600 }}
                       >
                         🗑 Borrar
                       </button>
@@ -416,9 +416,9 @@ export default async function CuentaDetailPage({ params }: Props) {
                 {/* Formulario edición */}
                 <details style={{ marginTop:4 }}>
                   <summary style={{
-                    fontSize:11, fontWeight:700, color:'#1B3FCC',
+                    fontSize:13, fontWeight:700, color:'#1B3FCC',
                     background:'#EFF6FF', border:'1px solid #BFDBFE',
-                    borderRadius:6, padding:'5px 12px', cursor:'pointer',
+                    borderRadius:6, padding:'7px 14px', cursor:'pointer',
                     listStyle:'none',
                   }}>
                     ✏ {obs ? 'Editar observaciones' : 'Agregar observaciones'}
