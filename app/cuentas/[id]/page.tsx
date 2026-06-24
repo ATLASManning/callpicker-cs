@@ -20,6 +20,7 @@ import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
 import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
 import CuentaReunionButton from '@/components/CuentaReunionButton'
+import ObservacionesKamEditor from '@/components/ObservacionesKamEditor'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 
 export const dynamic = 'force-dynamic'
@@ -384,12 +385,7 @@ export default async function CuentaDetailPage({ params }: Props) {
           </div>
 
           {/* Notas KAM */}
-          {cuenta.observaciones_kam && (
-            <div className="cp-card">
-              <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide mb-2">Observaciones KAM</h3>
-              <p className="text-sm text-textMid whitespace-pre-wrap">{cuenta.observaciones_kam}</p>
-            </div>
-          )}
+          <ObservacionesKamEditor cuentaId={cuenta.id} initial={cuenta.observaciones_kam ?? null} />
 
           {/* Tickets Zoho Desk — por cuenta */}
           <CuentaTicketsPanel
