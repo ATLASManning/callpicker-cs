@@ -20,7 +20,7 @@ import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
 import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
 import CuentaReunionButton from '@/components/CuentaReunionButton'
-import { updateKam } from '@/app/actions/updateKam'
+import { updateKam, deleteKam } from '@/app/actions/updateKam'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 
 export const dynamic = 'force-dynamic'
@@ -384,13 +384,9 @@ export default async function CuentaDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Notas KAM — Server Action, funciona sin JS */}
-          {(async () => {
-            const cuentaId = cuenta.id
-            async function guardarKam(fd: FormData) { 'use server'; await updateKam(cuentaId, fd) }
-            async function borrarKam()               { 'use server'; await updateKam(cuentaId, new FormData()) }
+          {/* Notas KAM — Server Actions, build válido */}
+          {(() => {
             const obs = cuenta.observaciones_kam?.trim() || null
-
             return (
               <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:12, padding:'14px 16px' }}>
                 {/* Encabezado */}
@@ -399,10 +395,10 @@ export default async function CuentaDetailPage({ params }: Props) {
                     Observaciones KAM
                   </span>
                   {obs && (
-                    <form action={borrarKam} style={{ margin:0 }}>
+                    <form action={deleteKam} style={{ margin:0 }}>
+                      <input type="hidden" name="cuenta_id" value={cuenta.id} />
                       <button type="submit"
                         style={{ fontSize:11, color:'#DC2626', background:'none', border:'none', cursor:'pointer', fontWeight:600 }}
-                        onClick={e => { if (!confirm('¿Borrar observaciones?')) e.preventDefault() }}
                       >
                         🗑 Borrar
                       </button>
@@ -417,22 +413,23 @@ export default async function CuentaDetailPage({ params }: Props) {
                   <p style={{ fontSize:12, color:'#94A3B8', fontStyle:'italic', margin:'0 0 12px' }}>Sin observaciones registradas.</p>
                 )}
 
-                {/* Formulario de edición */}
+                {/* Formulario edición */}
                 <details style={{ marginTop:4 }}>
                   <summary style={{
                     fontSize:11, fontWeight:700, color:'#1B3FCC',
                     background:'#EFF6FF', border:'1px solid #BFDBFE',
                     borderRadius:6, padding:'5px 12px', cursor:'pointer',
-                    display:'inline-flex', alignItems:'center', gap:4, listStyle:'none',
+                    listStyle:'none',
                   }}>
                     ✏ {obs ? 'Editar observaciones' : 'Agregar observaciones'}
                   </summary>
-                  <form action={guardarKam} style={{ marginTop:10 }}>
+                  <form action={updateKam} style={{ marginTop:10 }}>
+                    <input type="hidden" name="cuenta_id" value={cuenta.id} />
                     <textarea
                       name="observaciones_kam"
                       defaultValue={obs ?? ''}
                       rows={6}
-                      placeholder="Escribe las observaciones KAM: estado de la relación, compromisos, riesgos, acuerdos..."
+                      placeholder="Estado de la relación, compromisos, riesgos, acuerdos..."
                       style={{
                         width:'100%', padding:'10px 12px', borderRadius:8,
                         border:'1px solid #CBD5E1', fontSize:13, color:'#0F172A',
@@ -440,15 +437,13 @@ export default async function CuentaDetailPage({ params }: Props) {
                         lineHeight:1.6,
                       }}
                     />
-                    <div style={{ display:'flex', gap:8, marginTop:8 }}>
-                      <button type="submit" style={{
-                        padding:'7px 18px', borderRadius:7, border:'none',
-                        background:'#1B3FCC', color:'#fff',
-                        fontSize:12, fontWeight:700, cursor:'pointer',
-                      }}>
-                        💾 Guardar
-                      </button>
-                    </div>
+                    <button type="submit" style={{
+                      marginTop:8, padding:'7px 18px', borderRadius:7, border:'none',
+                      background:'#1B3FCC', color:'#fff',
+                      fontSize:12, fontWeight:700, cursor:'pointer',
+                    }}>
+                      💾 Guardar
+                    </button>
                   </form>
                 </details>
               </div>
