@@ -98,8 +98,8 @@ function buildDescripcion(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { asesor, semana: semanaParam, sendEmail = false } = body as {
-      asesor: string; semana?: string; sendEmail?: boolean
+    const { asesor, semana: semanaParam, sendEmail = false, testEmail } = body as {
+      asesor: string; semana?: string; sendEmail?: boolean; testEmail?: string
     }
     if (!asesor) return NextResponse.json({ error: 'asesor requerido' }, { status: 400 })
 
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
           .eq('asesor', asesor)
           .eq('semana_inicio', semanaInicio)
           .order('fecha_programada', { ascending: true })
-        if (acts?.length) await sendActividadesEmail(asesor, acts as AnyAct[], semanaInicio)
+        if (acts?.length) await sendActividadesEmail(asesor, acts as AnyAct[], semanaInicio, testEmail)
       }
       return NextResponse.json({ message: 'Ya existen actividades para esta semana', semanaInicio })
     }
@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
 
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
 
-    if (sendEmail) await sendActividadesEmail(asesor, rows as AnyAct[], semanaInicio)
+    if (sendEmail) await sendActividadesEmail(asesor, rows as AnyAct[], semanaInicio, testEmail)
 
     return NextResponse.json({
       generadas:    inserted?.length ?? 0,
@@ -224,6 +224,7 @@ async function sendActividadesEmail(
   asesor:       string,
   actividades:  AnyAct[],
   semanaInicio: string,
+  testEmail?:   string,          // Si se pasa → email solo a esta dirección (sin CC)
 ) {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
@@ -320,11 +321,15 @@ async function sendActividadesEmail(
     </div>`
 
   const resend = new Resend(apiKey)
+  const isTest = Boolean(testEmail)
+
   await resend.emails.send({
     from,
-    to:      ac.email,
-    cc:      ['josel@callpicker.com', 'daniel@callpicker.com'],
-    subject: `📋 Actividades SAC — ${ac.fullName} — ${fechaLabel}`,
+    to:      isTest ? testEmail! : ac.email,
+    ...(isTest ? {} : { cc: ['josel@callpicker.com', 'daniel@callpicker.com'] }),
+    subject: isTest
+      ? `[PRUEBA] 📋 Actividades SAC — ${ac.fullName} — ${fechaLabel}`
+      : `📋 Actividades SAC — ${ac.fullName} — ${fechaLabel}`,
     html,
   })
 }
