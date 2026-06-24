@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Zap, X, CheckCircle, XCircle, Clock, AlertTriangle,
-  RefreshCw, Send, Loader2, Calendar, Phone, Users,
+  RefreshCw, Loader2, Calendar, Phone, Users,
   BarChart2, FileText, TrendingUp,
 } from 'lucide-react'
 
@@ -289,13 +289,11 @@ export default function ActividadesBtn({
   asesor:  string
   acColor: string
 }) {
-  const [open,          setOpen]          = useState(false)
-  const [actividades,   setActividades]   = useState<Actividad[]>([])
-  const [loading,       setLoading]       = useState(false)
-  const [generating,    setGenerating]    = useState(false)
-  const [sendingEmail,  setSendingEmail]  = useState(false)
-  const [emailSent,     setEmailSent]     = useState(false)
-  const [error,         setError]         = useState<string | null>(null)
+  const [open,        setOpen]        = useState(false)
+  const [actividades, setActividades] = useState<Actividad[]>([])
+  const [loading,     setLoading]     = useState(false)
+  const [generating,  setGenerating]  = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
 
   const semanaInicio = toISO(getMondayOfWeek(new Date()))
 
@@ -320,38 +318,20 @@ export default function ActividadesBtn({
 
   useEffect(() => { if (open) load() }, [open, load])
 
-  async function generar(sendEmail: boolean) {
+  async function generar() {
     setGenerating(true)
     setError(null)
     try {
       await fetch('/api/actividades/generar', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ asesor, semana: semanaInicio, sendEmail }),
+        body:    JSON.stringify({ asesor, semana: semanaInicio, sendEmail: false }),
       })
       await load()
-      if (sendEmail) setEmailSent(true)
     } catch {
       setError('Error al generar actividades')
     } finally {
       setGenerating(false)
-    }
-  }
-
-  async function enviarEmail() {
-    setSendingEmail(true)
-    setError(null)
-    try {
-      await fetch('/api/actividades/generar', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ asesor, semana: semanaInicio, sendEmail: true }),
-      })
-      setEmailSent(true)
-    } catch {
-      setError('Error al enviar email')
-    } finally {
-      setSendingEmail(false)
     }
   }
 
@@ -508,38 +488,21 @@ export default function ActividadesBtn({
                     Genera automáticamente las 10 actividades de la semana
                     (2 por día, L–V) basadas en el estado real de la cartera de <strong>{asesor}</strong>.
                   </p>
-                  <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                    <button
-                      onClick={() => generar(false)}
-                      disabled={generating}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                        padding: '10px 20px', borderRadius: 10, border: 'none',
-                        background: '#7C3AED', color: '#fff',
-                        fontSize: 13, fontWeight: 700,
-                        cursor: generating ? 'not-allowed' : 'pointer',
-                        opacity: generating ? 0.7 : 1,
-                      }}
-                    >
-                      {generating ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={14} />}
-                      {generating ? 'Generando...' : 'Generar actividades'}
-                    </button>
-                    <button
-                      onClick={() => generar(true)}
-                      disabled={generating}
-                      style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 8,
-                        padding: '10px 20px', borderRadius: 10, border: '1px solid #DDD6FE',
-                        background: '#fff', color: '#7C3AED',
-                        fontSize: 13, fontWeight: 700,
-                        cursor: generating ? 'not-allowed' : 'pointer',
-                        opacity: generating ? 0.7 : 1,
-                      }}
-                    >
-                      <Send size={14} />
-                      Generar + enviar email
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => generar()}
+                    disabled={generating}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                      padding: '10px 24px', borderRadius: 10, border: 'none',
+                      background: '#7C3AED', color: '#fff',
+                      fontSize: 13, fontWeight: 700,
+                      cursor: generating ? 'not-allowed' : 'pointer',
+                      opacity: generating ? 0.7 : 1,
+                    }}
+                  >
+                    {generating ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={14} />}
+                    {generating ? 'Generando...' : 'Generar actividades'}
+                  </button>
                 </div>
               ) : (
                 /* Lista de actividades por día */
@@ -606,23 +569,6 @@ export default function ActividadesBtn({
                   }}
                 >
                   <RefreshCw size={10} /> Actualizar
-                </button>
-                <button
-                  onClick={enviarEmail}
-                  disabled={sendingEmail || emailSent}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '6px 11px', borderRadius: 7, border: 'none',
-                    background: emailSent ? '#F0FDF4' : '#7C3AED',
-                    color: emailSent ? '#16A34A' : '#fff',
-                    fontSize: 11, fontWeight: 700,
-                    cursor: sendingEmail || emailSent ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  {sendingEmail
-                    ? <Loader2 size={10} style={{ animation: 'spin 1s linear infinite' }} />
-                    : <Send size={10} />}
-                  {emailSent ? '✓ Email enviado' : 'Enviar por email'}
                 </button>
                 <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                   <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
