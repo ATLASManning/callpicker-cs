@@ -78,6 +78,13 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
     return () => document.removeEventListener('mousedown', onOutside)
   }, [])
 
+  // Escuchar evento de KamCard para abrir el tab KAM
+  useEffect(() => {
+    function onAbrirKam() { setTab('kam'); setOpen(true) }
+    document.addEventListener('abrir-kam-editor', onAbrirKam)
+    return () => document.removeEventListener('abrir-kam-editor', onAbrirKam)
+  }, [])
+
   // Auto-migrar columnas JSONB
   useEffect(() => {
     if (migrated) return
