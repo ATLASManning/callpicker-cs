@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Pencil, X, Save, Loader2, Globe, Phone, Mail, MapPin,
   Building2, Briefcase, Users, Hash, Plus, Trash2, UserPlus,
-  Package, ChevronDown,
+  Package, ChevronDown, FileText,
 } from 'lucide-react'
 import type { Cuenta, ContactoCuenta, ServicioCuenta } from '@/lib/types'
 
@@ -17,7 +17,7 @@ const TAMANOS  = ['Micro', 'Pequeña', 'Mediana', 'Grande', 'Enterprise'] as con
 const EMPTY_CONTACTO: ContactoCuenta = { nombre: '', cargo: '', email: '', tel: '' }
 const EMPTY_SERVICIO: ServicioCuenta  = { nombre: '', descripcion: '' }
 
-type Tab = 'info' | 'contactos' | 'servicios'
+type Tab = 'info' | 'contactos' | 'servicios' | 'kam'
 
 function seedContactos(cuenta: Cuenta): ContactoCuenta[] {
   if (cuenta.contactos_json && cuenta.contactos_json.length > 0) return cuenta.contactos_json
@@ -65,6 +65,7 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
 
   const [contactos, setContactos] = useState<ContactoCuenta[]>(seedContactos(cuenta))
   const [servicios, setServicios] = useState<ServicioCuenta[]>(seedServicios(cuenta))
+  const [obsKam,    setObsKam]    = useState(cuenta.observaciones_kam ?? '')
 
   // Cerrar dropdown al click fuera
   useEffect(() => {
@@ -98,6 +99,9 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
       if (t === 'servicios') setServicios(s => [...s, { ...EMPTY_SERVICIO }])
     }
   }
+
+  // Función pública para abrir en tab KAM (usada desde page.tsx vía ref — no disponible aún; se expone como data-attr)
+  // El botón de KAM directo llama openAt('kam') a través del componente KamEditTrigger
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
   function setInfoField(field: keyof typeof info, value: string) {
@@ -142,6 +146,7 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
         ...infoPayload, ...legacyContact, ...legacyServicio,
         contactos_json: contactosClean,
         servicios_json: serviciosClean,
+        observaciones_kam: obsKam.trim() || null,
       }
 
       const res = await fetch(`/api/cuentas/${cuenta.id}`, {
@@ -168,6 +173,7 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
     { id: 'info',      label: 'Información' },
     { id: 'contactos', label: 'Contactos',  count: contactos.length },
     { id: 'servicios', label: 'Servicios',  count: servicios.length },
+    { id: 'kam',       label: 'KAM' },
   ]
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -210,6 +216,14 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
               >
                 <Package size={13} className="text-cp flex-shrink-0" />
                 Agregar servicio
+              </button>
+              <div className="border-t border-border" />
+              <button
+                onClick={() => openAt('kam')}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-textMid hover:bg-surface hover:text-cp transition-colors text-left"
+              >
+                <FileText size={13} className="text-cp flex-shrink-0" />
+                Observaciones KAM
               </button>
             </div>
           )}
@@ -434,6 +448,36 @@ export default function CuentaInfoEditor({ cuenta }: Props) {
               >
                 <Package size={14} /> Agregar servicio
               </button>
+            </div>
+          )}
+
+          {/* ── TAB: KAM ── */}
+          {tab === 'kam' && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-[10px] font-semibold text-textLow uppercase tracking-widest mb-1 pb-1.5 border-b border-border">
+                  Observaciones KAM
+                </p>
+                <p className="text-[11px] text-textLow mb-3">
+                  Notas internas sobre el estado de la relación, acuerdos, riesgos y contexto de la cuenta.
+                </p>
+                <textarea
+                  value={obsKam}
+                  onChange={e => setObsKam(e.target.value)}
+                  rows={10}
+                  placeholder="Escribe las observaciones KAM: estado de la relación, compromisos, riesgos, acuerdos importantes, contexto relevante..."
+                  className="cp-input resize-y w-full text-sm text-textHi"
+                />
+                {obsKam.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setObsKam('')}
+                    className="mt-2 text-[11px] text-rojo/70 hover:text-rojo transition-colors"
+                  >
+                    Borrar observaciones
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
