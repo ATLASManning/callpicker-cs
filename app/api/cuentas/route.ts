@@ -63,7 +63,7 @@ function getTicketStats(cid: string | null, empresa: string): TicketStats {
 export async function GET(req: NextRequest) {
   const sp  = req.nextUrl.searchParams
   const rol = req.headers.get('x-user-rol') ?? 'viewer'
-  const asesorHeader = req.headers.get('x-user-asesor') ?? ''
+  const asesorHeader = decodeURIComponent(req.headers.get('x-user-asesor') ?? '')
 
   // Si el usuario es asesor, forzar filtro por su nombre (ignora el param del frontend)
   const asesorFiltro = rol === 'asesor' ? asesorHeader : (sp.get('asesor') || undefined)

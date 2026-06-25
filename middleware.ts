@@ -50,8 +50,8 @@ export async function middleware(req: NextRequest) {
     const res = NextResponse.next()
     res.headers.set('x-user-email',  email)
     res.headers.set('x-user-rol',    rol)
-    res.headers.set('x-user-nombre', nombre)
-    res.headers.set('x-user-asesor', asesor_nombre)
+    res.headers.set('x-user-nombre', encodeURIComponent(nombre))
+    res.headers.set('x-user-asesor', encodeURIComponent(asesor_nombre))
     return res
 
   } catch {

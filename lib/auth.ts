@@ -49,11 +49,13 @@ export function getSessionFromHeaders(req: NextRequest): SessionPayload | null {
   const email = req.headers.get('x-user-email')
   const rol   = req.headers.get('x-user-rol') as Rol | null
   if (!email || !rol) return null
+  const rawNombre  = req.headers.get('x-user-nombre') ?? ''
+  const rawAsesor  = req.headers.get('x-user-asesor') ?? ''
   return {
     email,
-    nombre:        req.headers.get('x-user-nombre') ?? '',
+    nombre:        decodeURIComponent(rawNombre),
     rol,
-    asesor_nombre: req.headers.get('x-user-asesor') || null,
+    asesor_nombre: rawAsesor ? decodeURIComponent(rawAsesor) : null,
   }
 }
 
