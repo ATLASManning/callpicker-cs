@@ -13,6 +13,7 @@ import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
 import HealthScoreEditor from '@/components/HealthScoreEditor'
 import SeguimientoForm from '@/components/SeguimientoForm'
+import SeguimientoStatusSelect from '@/components/SeguimientoStatusSelect'
 import HealthHistorialChart from '@/components/charts/HealthHistorialChart'
 import AdopcionProducto from '@/components/AdopcionProducto'
 import CuentaInfoEditor from '@/components/CuentaInfoEditor'
@@ -364,14 +365,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-semibold text-textHi capitalize">{s.tipo}</span>
-                      {s.resultado && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium
-                          ${s.resultado === 'exitoso' ? 'bg-verde/10 text-verde' :
-                            s.resultado === 'sin_respuesta' ? 'bg-rojo/10 text-rojo' :
-                            'bg-surface text-textLow'}`}>
-                          {s.resultado}
-                        </span>
-                      )}
+                      <SeguimientoStatusSelect seguimientoId={s.id} resultado={s.resultado} />
                       <span className="text-[10px] text-textLow ml-auto flex-shrink-0">
                         {new Date(s.fecha).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })}
                       </span>

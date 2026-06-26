@@ -165,6 +165,14 @@ export async function getSeguimientos(cuentaId: string): Promise<Seguimiento[]> 
   return (data ?? []) as Seguimiento[]
 }
 
+export async function updateSeguimientoResultado(id: string, resultado: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('seguimientos')
+    .update({ resultado })
+    .eq('id', id)
+  if (error) throw error
+}
+
 export async function addSeguimiento(s: Omit<Seguimiento, 'id' | 'created_at'>): Promise<Seguimiento> {
   const { data, error } = await supabaseAdmin
     .from('seguimientos')
