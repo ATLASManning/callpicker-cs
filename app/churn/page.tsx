@@ -500,6 +500,74 @@ const REPORTE_S3_JUNIO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 9 · JUNIO 2026  (26 jun 2026)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S4_JUNIO_2026: ChurnReporte = {
+  id:      's4-junio-2026',
+  periodo: 'Semana 9 · Jun 2026',
+  fecha:   '26/06/2026',
+  notas:   'Gross Revenue Churn · Semana 9. Al 26 de junio del 2026. GRC Junio: 13.2% · Acumulado 2026: 10.1%. 35 cuentas en corte ($58,889.65) · 5 canceladas ($5,904) · 3 suspendidas ($11,454) · 8 downgrades. Hallazgo GTC: MRR $70,025 → $45,474 (−35.1% en 2 meses). Resumen 1er semestre: Cancelaciones $485,296 · Downgrades $150,469.',
+  notaRemitente: 'Daniel Martínez — Solicitud de retroalimentación sobre cuentas identificadas. Resumen 1er semestre 2026 disponible.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Enero',   pct: 2.0 },
+      { mes: 'Febrero', pct: 2.1 },
+      { mes: 'Marzo',   pct: 2.3 },
+      { mes: 'Abril',   pct: 1.9 },
+      { mes: 'Mayo',    pct: 1.8 },
+      { mes: 'Junio',   pct: 13.2 },
+    ],
+    acumulado: 10.1,
+    anterior:  16.5,
+    notaClave: 'GRC Junio: 13.2% — pico más alto del año. Acumulado 2026: 10.1% (anterior 16.5%). Hallazgo crítico: MRR del grupo GTC cayó de $70,025 → $45,474 (−35.1% en 2 meses). Se requiere revisión urgente del portafolio GTC.',
+    notaEspecial: '🚨 Hallazgo GTC: El MRR del grupo GTC cayó de $70,025 a $45,474 en solo 2 meses (−35.1%). 8 sucursales con reducciones coordinadas en artículos clave. Resumen 1er semestre 2026: Cancelaciones acumuladas $485,296 · Downgrades acumulados $150,469.',
+  },
+
+  /* En Corte — top 5 de 35 cuentas · total $58,889.65 */
+  pendientesTotalReal:   58889.65,
+  pendientesCuentasReal: 35,
+  pendientes: [
+    { cliente: '🔝 Blueservices',             monto: 24616.03, mesesActivo: 0, ultimaFactura: '' },
+    { cliente: 'Depósito Dental Reisix',       monto: 2878,     mesesActivo: 0, ultimaFactura: '' },
+    { cliente: 'ZD-Constructora Valcasa',      monto: 2596,     mesesActivo: 0, ultimaFactura: '' },
+    { cliente: 'Segutrends',                   monto: 2187,     mesesActivo: 0, ultimaFactura: '' },
+    { cliente: 'Novahogar',                    monto: 2166,     mesesActivo: 0, ultimaFactura: '' },
+    { cliente: '+ 30 cuentas adicionales',     monto: 24446.62, mesesActivo: 0, ultimaFactura: 'Ver detalle completo' },
+  ],
+
+  /* Cancelados — 5 cuentas · $5,904 */
+  cancelados: [
+    { cliente: 'Adim ecosistema', mrr: 1959, mesesActivo: 0,  acumulado: 0 },
+    { cliente: 'satvpafc',        mrr: 1771, mesesActivo: 30, acumulado: 0 },
+    { cliente: 'Kayrot',          mrr: 1196, mesesActivo: 23, acumulado: 0 },
+    { cliente: '+ 2 cuentas',     mrr: 978,  mesesActivo: 0,  acumulado: 0 },
+  ],
+
+  /* Downgrades — 8 clientes · total $43,425.68 */
+  downgradeTotalReal: 43425.68,
+  downgrades: [
+    { cliente: '⚠️ Pitahaya',            perdida: 11189,   nota: 'Mayor downgrade del período. Reducción significativa en artículos contratados.' },
+    { cliente: '⚠️ Bliss crédito libre', perdida: 8787,    nota: 'Reducción en artículos CP Chat y servicios complementarios.' },
+    { cliente: 'MKG',                     perdida: 5947,    nota: 'Reducción en Paquete Min VyC u otros artículos del portafolio.' },
+    { cliente: 'SAMALAB',                 perdida: 3000,    nota: '2° mes consecutivo de reducción en artículos.' },
+    { cliente: 'AGRANS',                  perdida: 2570,    nota: 'Reducción en servicios contratados.' },
+    { cliente: 'SG LOCALIZACION',         perdida: 1894,    nota: '2° mes consecutivo de reducción en artículos.' },
+    { cliente: 'Medical Hannover',        perdida: 1191,    nota: 'Reducción en artículos del portafolio.' },
+    { cliente: '⚠️ GTC — 8 sucursales (Hallazgo)', perdida: 6111.74, nota: 'Hallazgo: MRR GTC $70,025 → $45,474 (−35.1% en 2 meses). Las 8 sucursales reducen artículos clave de forma coordinada. Requiere revisión estratégica urgente.' },
+  ],
+
+  /* Suspendidos — 3 cuentas · $11,454 */
+  suspendidosTotalReal:   11454,
+  suspendidosCuentasReal: 3,
+  suspendidos: [
+    { cliente: 'SERVICIO TECNICO MORELIA', importe: 5883, mesesActivo: 91, estado: 'Suspendido' },
+    { cliente: 'Linmex',                   importe: 4592, mesesActivo: 9,  estado: 'Suspendido' },
+    { cliente: 'Arrendo Renta Fácil',      importe: 979,  mesesActivo: 18, estado: 'Suspendido' },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -912,16 +980,16 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s3-junio-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s4-junio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
-  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S3_JUNIO_2026
+  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026']
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S4_JUNIO_2026
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
   const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
@@ -944,7 +1012,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s3-junio-2026')
+    if (selectedId === id) setSelectedId('s4-junio-2026')
     setDelConfirm(null)
   }
 
@@ -1072,8 +1140,8 @@ export default function ChurnPage() {
         <KpiCard icon={ArrowDownRight} label="Ingreso Perdido Downgrade" value={fmt(totalDowngrades)}
           sub={`${downgrades.length} clientes · ${reporte.periodo}`}  color={AMBER}  />
         {grc
-          ? <KpiCard icon={TrendingDown} label="GRC Acumulado Mayo"     value={`${grc.acumulado}%`}
-              sub={`Mayo actual: ${grc.evolucion.find(e => e.mes.startsWith('Mayo'))?.pct ?? 0}%`} color={RED} />
+          ? <KpiCard icon={TrendingDown} label={`GRC Acumulado ${grc.evolucion[grc.evolucion.length - 1]?.mes ?? 'GRC'}`} value={`${grc.acumulado}%`}
+              sub={`${grc.evolucion[grc.evolucion.length - 1]?.mes ?? 'Mes'} actual: ${grc.evolucion[grc.evolucion.length - 1]?.pct ?? 0}%`} color={RED} />
           : <KpiCard icon={TrendingDown} label="Pérdida Total T1 2026"  value={fmt(TOTAL_T1)}
               sub="34.2% en 15 clientes clave"                            color={INDIGO} />
         }
