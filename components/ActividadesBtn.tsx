@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Zap, X, CheckCircle, XCircle, Clock, AlertTriangle,
   RefreshCw, Loader2, Calendar, Phone, Users,
-  BarChart2, FileText, TrendingUp,
+  BarChart2, FileText, TrendingUp, ChevronDown, History,
 } from 'lucide-react'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -31,6 +31,13 @@ interface Actividad {
   motivo_pendiente: string | null
   semaforo_cuenta:  string
   hs_cuenta:        number
+}
+
+interface SemanaResumen {
+  semana_inicio: string
+  total:         number
+  completadas:   number
+  pct:           number
 }
 
 // ── Config visual por tipo ────────────────────────────────────────────────────
@@ -67,13 +74,18 @@ function isOverdue(a: Actividad): boolean {
   return new Date(a.fecha_vencimiento + 'T23:59:59') < new Date()
 }
 
+function pctColor(pct: number): string {
+  return pct >= 80 ? '#22C55E' : pct >= 50 ? '#F59E0B' : '#EF4444'
+}
+
 // ── ActividadCard ─────────────────────────────────────────────────────────────
 
 function ActividadCard({
-  act, onUpdate,
+  act, onUpdate, readOnly = false,
 }: {
   act: Actividad
   onUpdate: (id: string, patch: Partial<Actividad>) => void
+  readOnly?: boolean
 }) {
   const [editing,   setEditing]   = useState(false)
   const [resultado, setResultado] = useState(act.resultado ?? '')
@@ -107,6 +119,37 @@ function ActividadCard({
     } finally {
       setSaving(false)
     }
+  }
+
+  // Versión compacta para el histórico (read-only)
+  if (readOnly) {
+    return (
+      <div style={{
+        padding: '7px 10px', borderRadius: 7, marginBottom: 5,
+        background: act.completada ? '#F0FDF4' : '#FFF7F7',
+        border: `1px solid ${act.completada ? '#BBF7D0' : '#FECACA'}`,
+        display: 'flex', gap: 8, alignItems: 'flex-start',
+      }}>
+        {act.completada
+          ? <CheckCircle size={11} color="#22C55E" style={{ flexShrink: 0, marginTop: 2 }} />
+          : <XCircle size={11} color="#EF4444" style={{ flexShrink: 0, marginTop: 2 }} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 2 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#0F172A' }}>{act.empresa}</span>
+            <span style={{ fontSize: 9, fontWeight: 700, color: tc.color, background: `${tc.color}15`, padding: '1px 6px', borderRadius: 99 }}>
+              {tc.label}
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: 11, color: '#64748B' }}>{act.descripcion}</p>
+          {act.completada && act.resultado && (
+            <p style={{ margin: '3px 0 0', fontSize: 10, color: '#166534' }}>✓ {act.resultado}</p>
+          )}
+          {!act.completada && act.motivo_pendiente && (
+            <p style={{ margin: '3px 0 0', fontSize: 10, color: '#92400E' }}>⚠ {act.motivo_pendiente}</p>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -174,21 +217,18 @@ function ActividadCard({
             {overdue && ' · Plazo vencido — requiere justificación'}
           </p>
 
-          {/* Resultado visible si completada */}
           {act.completada && act.resultado && (
             <div style={{ marginTop: 6, padding: '5px 10px', background: '#F0FDF4', borderRadius: 6, fontSize: 12, color: '#166534' }}>
               <strong>Resultado:</strong> {act.resultado}
             </div>
           )}
 
-          {/* Motivo si no completada y registrado */}
           {!act.completada && act.motivo_pendiente && (
             <div style={{ marginTop: 6, padding: '5px 10px', background: '#FFF7ED', borderRadius: 6, fontSize: 12, color: '#92400E', border: '1px solid #FED7AA' }}>
               <strong>Motivo:</strong> {act.motivo_pendiente}
             </div>
           )}
 
-          {/* Banner vencida sin justificación */}
           {overdue && !act.completada && !act.motivo_pendiente && !editing && (
             <div style={{ marginTop: 6, padding: '5px 10px', background: '#FEF2F2', borderRadius: 6, fontSize: 11, color: '#991B1B', border: '1px solid #FECACA' }}>
               ⛔ Actividad bloqueada para revisión. Indica el motivo para desbloquear.
@@ -295,6 +335,12 @@ export default function ActividadesBtn({
   const [generating,  setGenerating]  = useState(false)
   const [error,       setError]       = useState<string | null>(null)
 
+  // ── Histórico ──────────────────────────────────────────────────────────────
+  const [vista,       setVista]       = useState<'semana' | 'historico'>('semana')
+  const [allActs,     setAllActs]     = useState<Actividad[]>([])
+  const [loadingHist, setLoadingHist] = useState(false)
+  const [expandSem,   setExpandSem]   = useState<string | null>(null)
+
   const semanaInicio = toISO(getMondayOfWeek(new Date()))
 
   const overdueCount  = actividades.filter(a => isOverdue(a)).length
@@ -316,7 +362,41 @@ export default function ActividadesBtn({
     }
   }, [asesor, semanaInicio])
 
+  const loadAll = useCallback(async () => {
+    setLoadingHist(true)
+    try {
+      const res  = await fetch(`/api/actividades?asesor=${encodeURIComponent(asesor)}`)
+      const data = await res.json()
+      setAllActs(Array.isArray(data) ? data : [])
+    } finally {
+      setLoadingHist(false)
+    }
+  }, [asesor])
+
   useEffect(() => { if (open) load() }, [open, load])
+
+  useEffect(() => {
+    if (open && vista === 'historico' && allActs.length === 0 && !loadingHist) loadAll()
+  }, [open, vista, allActs.length, loadingHist, loadAll])
+
+  // ── Computados histórico ──────────────────────────────────────────────────
+  const histByWeek: Record<string, Actividad[]> = {}
+  for (const a of allActs) {
+    if (!histByWeek[a.semana_inicio]) histByWeek[a.semana_inicio] = []
+    histByWeek[a.semana_inicio].push(a)
+  }
+  const historico: SemanaResumen[] = Object.entries(histByWeek)
+    .filter(([s]) => s < semanaInicio)
+    .map(([s, acts]) => ({
+      semana_inicio: s,
+      total: acts.length,
+      completadas: acts.filter(a => a.completada).length,
+      pct: acts.length > 0 ? Math.round(acts.filter(a => a.completada).length / acts.length * 100) : 0,
+    }))
+    .sort((a, b) => b.semana_inicio.localeCompare(a.semana_inicio))
+  const avg4w = historico.length > 0
+    ? Math.round(historico.slice(0, 4).reduce((s, w) => s + w.pct, 0) / Math.min(historico.length, 4))
+    : null
 
   async function generar() {
     setGenerating(true)
@@ -414,14 +494,15 @@ export default function ActividadesBtn({
                   <p style={{ margin: 0, color: '#fff', fontSize: 15, fontWeight: 800 }}>Actividades SAC</p>
                 </div>
                 <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
-                  {asesor} · Semana del {fmtFecha(semanaInicio)}
+                  {asesor} · {vista === 'semana'
+                    ? `Semana del ${fmtFecha(semanaInicio)}`
+                    : `Actividad acumulada · ${historico.length} sem. registradas`}
                 </p>
               </div>
 
-              {actividades.length > 0 && (
+              {vista === 'semana' && actividades.length > 0 && (
                 <div style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {/* Progress ring (simple) */}
                     <div style={{ position: 'relative', width: 36, height: 36 }}>
                       <svg width="36" height="36" style={{ transform: 'rotate(-90deg)' }}>
                         <circle cx="18" cy="18" r="14" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="3" />
@@ -445,14 +526,49 @@ export default function ActividadesBtn({
                 </div>
               )}
 
+              {vista === 'historico' && avg4w !== null && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: pctColor(avg4w), lineHeight: 1 }}>{avg4w}%</p>
+                    <p style={{ margin: 0, color: 'rgba(255,255,255,0.45)', fontSize: 9 }}>prom. 4 sem.</p>
+                  </div>
+                </div>
+              )}
+
               <button onClick={() => setOpen(false)}
                 style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.55)', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
                 <X size={18} />
               </button>
             </div>
 
-            {/* ─ Banner vencidas ─ */}
-            {overdueCount > 0 && (
+            {/* ─ Tabs ─ */}
+            <div style={{
+              display: 'flex', borderBottom: '1px solid #E2E8F0',
+              background: '#fff', flexShrink: 0,
+            }}>
+              {([
+                { id: 'semana',   label: '⚡ Esta semana' },
+                { id: 'historico', label: '📊 Actividad acumulada' },
+              ] as const).map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setVista(t.id)}
+                  style={{
+                    flex: 1, padding: '10px 0',
+                    fontSize: 12, fontWeight: 700,
+                    color: vista === t.id ? '#7C3AED' : '#94A3B8',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    borderBottom: `2px solid ${vista === t.id ? '#7C3AED' : 'transparent'}`,
+                    marginBottom: -1,
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* ─ Banner vencidas (solo semana) ─ */}
+            {vista === 'semana' && overdueCount > 0 && (
               <div style={{ padding: '9px 20px', background: '#FEF2F2', borderBottom: '1px solid #FECACA', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 <AlertTriangle size={13} color="#DC2626" />
                 <p style={{ margin: 0, fontSize: 11, color: '#991B1B', fontWeight: 700 }}>
@@ -465,112 +581,251 @@ export default function ActividadesBtn({
             {/* ─ Body (scroll) ─ */}
             <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
 
-              {error && (
-                <div style={{ padding: '9px 14px', background: '#FEF2F2', borderRadius: 8, color: '#991B1B', fontSize: 12, marginBottom: 16, border: '1px solid #FECACA' }}>
-                  {error}
-                </div>
+              {/* ═══ VISTA: ESTA SEMANA ═══ */}
+              {vista === 'semana' && (
+                <>
+                  {error && (
+                    <div style={{ padding: '9px 14px', background: '#FEF2F2', borderRadius: 8, color: '#991B1B', fontSize: 12, marginBottom: 16, border: '1px solid #FECACA' }}>
+                      {error}
+                    </div>
+                  )}
+
+                  {loading ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 56, gap: 12, color: '#94A3B8', fontSize: 13 }}>
+                      <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando actividades...
+                    </div>
+                  ) : actividades.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 40 }}>
+                      <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <Calendar size={24} color="#7C3AED" />
+                      </div>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+                        Sin actividades esta semana
+                      </p>
+                      <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>
+                        Genera automáticamente las 10 actividades de la semana
+                        (2 por día, L–V) basadas en el estado real de la cartera de <strong>{asesor}</strong>.
+                      </p>
+                      <button
+                        onClick={() => generar()}
+                        disabled={generating}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 8,
+                          padding: '10px 24px', borderRadius: 10, border: 'none',
+                          background: '#7C3AED', color: '#fff',
+                          fontSize: 13, fontWeight: 700,
+                          cursor: generating ? 'not-allowed' : 'pointer',
+                          opacity: generating ? 0.7 : 1,
+                        }}
+                      >
+                        {generating ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={14} />}
+                        {generating ? 'Generando...' : 'Generar actividades'}
+                      </button>
+                    </div>
+                  ) : (
+                    Object.entries(byDay).map(([fecha, acts]) => {
+                      const d        = new Date(fecha + 'T12:00:00')
+                      const dayName  = DIAS[d.getDay()].toUpperCase()
+                      const hasOver  = acts.some(a => isOverdue(a))
+                      const allDone  = acts.every(a => a.completada)
+
+                      return (
+                        <div key={fecha} style={{ marginBottom: 22 }}>
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: 10,
+                            marginBottom: 10, paddingBottom: 8,
+                            borderBottom: `2px solid ${hasOver ? '#FCA5A5' : allDone ? '#86EFAC' : '#E2E8F0'}`,
+                          }}>
+                            <div style={{
+                              width: 38, height: 38, borderRadius: 8, flexShrink: 0,
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                              background: hasOver ? '#FEF2F2' : allDone ? '#F0FDF4' : '#EFF6FF',
+                              border: `1px solid ${hasOver ? '#FECACA' : allDone ? '#BBF7D0' : '#BFDBFE'}`,
+                            }}>
+                              <span style={{ fontSize: 7, fontWeight: 800, color: hasOver ? '#DC2626' : allDone ? '#16A34A' : '#1D4ED8', letterSpacing: '0.04em' }}>{dayName}</span>
+                              <span style={{ fontSize: 17, fontWeight: 900, color: hasOver ? '#DC2626' : allDone ? '#16A34A' : '#1D4ED8', lineHeight: 1 }}>{d.getDate()}</span>
+                            </div>
+                            <div>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+                                {dayName} {d.getDate()} {MESES[d.getMonth()]}
+                              </p>
+                              <p style={{ margin: 0, fontSize: 11, color: '#94A3B8' }}>
+                                {acts.filter(a => a.completada).length}/{acts.length} completadas
+                                {hasOver && <span style={{ color: '#EF4444' }}> · ⚠ Vencidas</span>}
+                              </p>
+                            </div>
+                            {allDone && <CheckCircle size={16} color="#16A34A" style={{ marginLeft: 'auto' }} />}
+                          </div>
+
+                          {acts.map(act => (
+                            <ActividadCard key={act.id} act={act} onUpdate={handleUpdate} />
+                          ))}
+                        </div>
+                      )
+                    })
+                  )}
+                </>
               )}
 
-              {loading ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 56, gap: 12, color: '#94A3B8', fontSize: 13 }}>
-                  <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando actividades...
-                </div>
-              ) : actividades.length === 0 ? (
-                /* Estado vacío — generar */
-                <div style={{ textAlign: 'center', padding: 40 }}>
-                  <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <Calendar size={24} color="#7C3AED" />
-                  </div>
-                  <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
-                    Sin actividades esta semana
-                  </p>
-                  <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>
-                    Genera automáticamente las 10 actividades de la semana
-                    (2 por día, L–V) basadas en el estado real de la cartera de <strong>{asesor}</strong>.
-                  </p>
-                  <button
-                    onClick={() => generar()}
-                    disabled={generating}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 8,
-                      padding: '10px 24px', borderRadius: 10, border: 'none',
-                      background: '#7C3AED', color: '#fff',
-                      fontSize: 13, fontWeight: 700,
-                      cursor: generating ? 'not-allowed' : 'pointer',
-                      opacity: generating ? 0.7 : 1,
-                    }}
-                  >
-                    {generating ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Zap size={14} />}
-                    {generating ? 'Generando...' : 'Generar actividades'}
-                  </button>
-                </div>
-              ) : (
-                /* Lista de actividades por día */
-                Object.entries(byDay).map(([fecha, acts]) => {
-                  const d        = new Date(fecha + 'T12:00:00')
-                  const dayName  = DIAS[d.getDay()].toUpperCase()
-                  const hasOver  = acts.some(a => isOverdue(a))
-                  const allDone  = acts.every(a => a.completada)
-
-                  return (
-                    <div key={fecha} style={{ marginBottom: 22 }}>
-                      {/* Day header */}
-                      <div style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        marginBottom: 10, paddingBottom: 8,
-                        borderBottom: `2px solid ${hasOver ? '#FCA5A5' : allDone ? '#86EFAC' : '#E2E8F0'}`,
-                      }}>
-                        <div style={{
-                          width: 38, height: 38, borderRadius: 8, flexShrink: 0,
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                          background: hasOver ? '#FEF2F2' : allDone ? '#F0FDF4' : '#EFF6FF',
-                          border: `1px solid ${hasOver ? '#FECACA' : allDone ? '#BBF7D0' : '#BFDBFE'}`,
-                        }}>
-                          <span style={{ fontSize: 7, fontWeight: 800, color: hasOver ? '#DC2626' : allDone ? '#16A34A' : '#1D4ED8', letterSpacing: '0.04em' }}>{dayName}</span>
-                          <span style={{ fontSize: 17, fontWeight: 900, color: hasOver ? '#DC2626' : allDone ? '#16A34A' : '#1D4ED8', lineHeight: 1 }}>{d.getDate()}</span>
-                        </div>
-                        <div>
-                          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
-                            {dayName} {d.getDate()} {MESES[d.getMonth()]}
-                          </p>
-                          <p style={{ margin: 0, fontSize: 11, color: '#94A3B8' }}>
-                            {acts.filter(a => a.completada).length}/{acts.length} completadas
-                            {hasOver && <span style={{ color: '#EF4444' }}> · ⚠ Vencidas</span>}
-                          </p>
-                        </div>
-                        {allDone && <CheckCircle size={16} color="#16A34A" style={{ marginLeft: 'auto' }} />}
-                      </div>
-
-                      {acts.map(act => (
-                        <ActividadCard key={act.id} act={act} onUpdate={handleUpdate} />
-                      ))}
+              {/* ═══ VISTA: ACTIVIDAD ACUMULADA ═══ */}
+              {vista === 'historico' && (
+                <>
+                  {loadingHist ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 56, gap: 12, color: '#94A3B8', fontSize: 13 }}>
+                      <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Cargando histórico...
                     </div>
-                  )
-                })
+                  ) : historico.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 40 }}>
+                      <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <History size={24} color="#64748B" />
+                      </div>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Sin semanas anteriores</p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#64748B' }}>
+                        El historial se irá acumulando semana a semana.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* KPI acumulado */}
+                      {avg4w !== null && (
+                        <div style={{
+                          padding: '14px 16px', borderRadius: 12,
+                          background: `${pctColor(avg4w)}10`,
+                          border: `1px solid ${pctColor(avg4w)}30`,
+                          marginBottom: 16,
+                          display: 'flex', gap: 16, alignItems: 'center',
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#64748B' }}>
+                              Promedio cumplimiento
+                            </p>
+                            <p style={{ margin: 0, fontSize: 32, fontWeight: 900, color: pctColor(avg4w), lineHeight: 1 }}>
+                              {avg4w}%
+                            </p>
+                            <p style={{ margin: '4px 0 0', fontSize: 10, color: '#94A3B8' }}>
+                              Últimas {Math.min(historico.length, 4)} semanas · {historico.length} sem. totales
+                            </p>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                            {historico.slice(0, 4).map(s => (
+                              <div key={s.semana_inicio} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <div style={{ width: 60, height: 4, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${s.pct}%`, background: pctColor(s.pct), borderRadius: 99 }} />
+                                </div>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: pctColor(s.pct), minWidth: 28, textAlign: 'right' }}>{s.pct}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Lista de semanas */}
+                      {historico.map(s => {
+                        const expanded   = expandSem === s.semana_inicio
+                        const actsOfWeek = histByWeek[s.semana_inicio] ?? []
+                        const byDayHist: Record<string, Actividad[]> = {}
+                        for (const a of actsOfWeek) {
+                          if (!byDayHist[a.fecha_programada]) byDayHist[a.fecha_programada] = []
+                          byDayHist[a.fecha_programada].push(a)
+                        }
+                        const col = pctColor(s.pct)
+
+                        return (
+                          <div key={s.semana_inicio} style={{
+                            marginBottom: 8,
+                            border: `1px solid ${expanded ? col + '40' : '#E2E8F0'}`,
+                            borderRadius: 10, overflow: 'hidden',
+                          }}>
+                            {/* Fila resumen de semana */}
+                            <div
+                              onClick={() => setExpandSem(expanded ? null : s.semana_inicio)}
+                              style={{
+                                padding: '11px 14px', display: 'flex',
+                                alignItems: 'center', gap: 10, cursor: 'pointer',
+                                background: expanded ? `${col}08` : '#fff',
+                              }}
+                            >
+                              <div style={{ flexShrink: 0 }}>
+                                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#0F172A' }}>
+                                  Semana del {fmtFecha(s.semana_inicio)}
+                                </p>
+                                <p style={{ margin: '2px 0 0', fontSize: 10, color: '#94A3B8' }}>
+                                  {s.completadas} completadas · {s.total - s.completadas} sin realizar
+                                </p>
+                              </div>
+                              <div style={{ flex: 1, height: 5, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${s.pct}%`, background: col, borderRadius: 99, transition: 'width 0.4s' }} />
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
+                                {s.completadas}/{s.total}
+                              </span>
+                              <span style={{
+                                fontSize: 11, fontWeight: 800,
+                                padding: '3px 9px', borderRadius: 99,
+                                background: `${col}18`, color: col,
+                                whiteSpace: 'nowrap',
+                              }}>
+                                {s.pct}%
+                              </span>
+                              <ChevronDown size={12} color="#94A3B8" style={{
+                                flexShrink: 0,
+                                transform: expanded ? 'rotate(180deg)' : 'none',
+                                transition: 'transform 0.2s',
+                              }} />
+                            </div>
+
+                            {/* Detalle expandido */}
+                            {expanded && (
+                              <div style={{ borderTop: `1px solid ${col}20`, padding: '12px 14px', background: '#FAFAFA' }}>
+                                {Object.entries(byDayHist)
+                                  .sort(([a], [b]) => a.localeCompare(b))
+                                  .map(([fecha, acts]) => (
+                                    <div key={fecha} style={{ marginBottom: 10 }}>
+                                      <p style={{ margin: '0 0 5px', fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                        {fmtFecha(fecha)} · {acts.filter(a => a.completada).length}/{acts.length}
+                                      </p>
+                                      {acts.map(act => (
+                                        <ActividadCard
+                                          key={act.id}
+                                          act={act}
+                                          onUpdate={() => {}}
+                                          readOnly
+                                        />
+                                      ))}
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </>
+                  )}
+                </>
               )}
             </div>
 
             {/* ─ Footer ─ */}
-            {actividades.length > 0 && (
-              <div style={{
-                padding: '11px 20px',
-                borderTop: '1px solid #E2E8F0',
-                background: '#F8FAFC',
-                display: 'flex', gap: 8, alignItems: 'center',
-                flexShrink: 0, flexWrap: 'wrap',
-              }}>
-                <button
-                  onClick={load}
-                  disabled={loading}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '6px 11px', borderRadius: 7, border: '1px solid #E2E8F0',
-                    background: '#fff', color: '#475569', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                  }}
-                >
-                  <RefreshCw size={10} /> Actualizar
-                </button>
-                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+            <div style={{
+              padding: '11px 20px',
+              borderTop: '1px solid #E2E8F0',
+              background: '#F8FAFC',
+              display: 'flex', gap: 8, alignItems: 'center',
+              flexShrink: 0, flexWrap: 'wrap',
+            }}>
+              <button
+                onClick={vista === 'semana' ? load : loadAll}
+                disabled={loading || loadingHist}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '6px 11px', borderRadius: 7, border: '1px solid #E2E8F0',
+                  background: '#fff', color: '#475569', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                <RefreshCw size={10} /> Actualizar
+              </button>
+              <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                {vista === 'semana' ? (
                   <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
                     {totalPend} pendiente{totalPend !== 1 ? 's' : ''}
                     {overdueCount > 0 && (
@@ -579,9 +834,13 @@ export default function ActividadesBtn({
                       </span>
                     )}
                   </p>
-                </div>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
+                    {historico.reduce((s, w) => s + w.total, 0)} actividades · {historico.length} semanas
+                  </p>
+                )}
               </div>
-            )}
+            </div>
           </div>
 
           <style>{`
