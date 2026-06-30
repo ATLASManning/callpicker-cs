@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Search, Filter, RefreshCw, Plus, ArrowUpDown, AlertCircle,
-  Ticket, AlertTriangle, ArrowUpRight, ChevronDown,
+  Ticket, AlertTriangle, ArrowUpRight, ChevronDown, Archive,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import SemaforoBadge from '@/components/SemaforoBadge'
@@ -195,6 +195,7 @@ function CuentasPageInner() {
   useEffect(() => { fetchCuentas() }, [fetchCuentas])
 
   const filtered = cuentas
+    .filter(c => getEstadoKey(c) !== '4')          // Dormidas van a su propia sección
     .filter(c => !warningFilter    || getDataWarning(c) === warningFilter)
     .filter(c => !topFilter        || isTopCustomer(c.consecutivo))
     .filter(c => !estadoFilter     || getEstadoKey(c) === estadoFilter)
@@ -285,17 +286,40 @@ function CuentasPageInner() {
     )
   }
 
+  const totalDormidas = cuentas.filter(c => getEstadoKey(c) === '4').length
+
   return (
     <div className="min-h-screen">
       <PageHeader
         title="Cuentas Estratégicas"
-        subtitle={`${sorted.length} de ${cuentas.length} cuentas`}
+        subtitle={`${sorted.length} cuentas activas`}
         actions={
           <Link href="/cuentas/nueva" className="cp-btn cp-btn-primary">
             <Plus size={14} /> Nueva cuenta
           </Link>
         }
       />
+
+      {/* Banner acceso rápido a Dormidas */}
+      {!loading && totalDormidas > 0 && (
+        <div className="mx-6 mb-3 flex items-center justify-between px-4 py-2.5 rounded-xl border"
+          style={{ background: '#94A3B808', borderColor: '#94A3B830' }}>
+          <div className="flex items-center gap-2 text-sm text-textLow">
+            <Archive size={14} className="text-textLow" />
+            <span>
+              <span className="font-bold text-textMid">{totalDormidas}</span>
+              {' '}cuentas con estado Dormido están separadas en su propia sección
+            </span>
+          </div>
+          <Link href="/cuentas/dormidas"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
+            style={{ color: '#94A3B8', borderColor: '#94A3B830' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#94A3B815' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
+            Ver Dormidas →
+          </Link>
+        </div>
+      )}
 
       {/* Filtros superiores */}
       <div className="flex flex-wrap gap-3 px-6 pb-4">
@@ -434,9 +458,11 @@ function CuentasPageInner() {
                       label="Estado"
                       filterEl={
                         <HeaderSelect value={estadoFilter} onChange={setEstadoFilter} placeholder="Todos los estados">
-                          {Object.entries(ESTADO_LABELS).map(([key, cfg]) => (
-                            <option key={key} value={key}>{cfg.label}</option>
-                          ))}
+                          {Object.entries(ESTADO_LABELS)
+                            .filter(([key]) => key !== '4')
+                            .map(([key, cfg]) => (
+                              <option key={key} value={key}>{cfg.label}</option>
+                            ))}
                         </HeaderSelect>
                       }
                     />

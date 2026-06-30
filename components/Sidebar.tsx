@@ -7,6 +7,7 @@ import {
   Settings, ChevronRight, Phone, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
+  Archive,
 } from 'lucide-react'
 import type { SessionPayload } from '@/lib/auth'
 
@@ -44,7 +45,14 @@ const NAV: NavEntry[] = [
   { href: '/auditoria',       label: 'Auditoría Cuentas', icon: ClipboardList },
   { href: '/churn',           label: 'Churn',             icon: TrendingDown },
   { href: '/facturacion',     label: 'Facturación',       icon: Receipt },
-  { href: '/cuentas',         label: 'Cuentas',           icon: Users },
+  {
+    group: 'Cuentas',
+    icon: Users,
+    children: [
+      { href: '/cuentas',          label: 'Activas',  icon: Users    },
+      { href: '/cuentas/dormidas', label: 'Dormidas', icon: Archive  },
+    ],
+  },
   { href: '/customer-tenure', label: 'Customer Tenure',   icon: Clock },
   { href: '/',                label: 'Dashboard',         icon: LayoutDashboard },
   { href: '/reuniones',       label: 'Reuniones',         icon: CalendarDays },
