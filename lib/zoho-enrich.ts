@@ -34,14 +34,16 @@ export async function getZohoMap(): Promise<Record<string, ZohoAcct>> {
       const sema = row['semaforo_actividad'] ?? ''
       const name = normStr(row['nombre_cliente'] ?? '')
       if (!name) continue
-      const mrr     = parseNum(row['mrr_limpio']?.replace(/[$,]/g, '')) ?? 0
-      const factura = parseNum(row['ticket_limpio_promedio']?.replace(/[$,]/g, '')) ?? 0
+      // Registrar semáforo para todas las filas (incluyendo dormidas)
       if (!map[name]) map[name] = { mrr: 0, factura_mensual: 0, semaforo: sema }
-      // Acumular MRR/factura para TODAS las filas (dormidas y activas)
-      map[name].mrr            += mrr
-      map[name].factura_mensual += factura
-      // Semáforo activo prevalece sobre dormido (subcuenta activa salva a la cuenta)
-      if (sema !== '4 - Dormido') map[name].semaforo = sema
+      if (sema !== '4 - Dormido') {
+        // Solo acumular MRR en filas activas — conserva la suma original de Facturación
+        const mrr     = parseNum(row['mrr_limpio']?.replace(/[$,]/g, '')) ?? 0
+        const factura = parseNum(row['ticket_limpio_promedio']?.replace(/[$,]/g, '')) ?? 0
+        map[name].mrr            += mrr
+        map[name].factura_mensual += factura
+        map[name].semaforo = sema   // semáforo activo prevalece
+      }
     }
     _zohoCache = { map, ts: Date.now() }
     return map
