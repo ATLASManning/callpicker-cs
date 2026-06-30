@@ -16,15 +16,16 @@ const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 
 // ── Motivo dormido ────────────────────────────────────────────────────────────
 function getMotivo(c: Cuenta): { label: string; color: string } {
-  if (c.estado === 'cancelado')     return { label: 'Cancelado',       color: '#EF4444' }
-  if (c.estado === 'hibernacion')   return { label: 'Hibernación',     color: '#8B5CF6' }
-  if (!c.facturacion || c.facturacion === 0)
-                                    return { label: 'Sin facturación', color: '#6366F1' }
-  if (c.health_score < 20)          return { label: 'HS Crítico',      color: '#F97316' }
-  return                                   { label: 'Dormido',         color: '#94A3B8' }
+  if (c.estado === 'cancelado')                 return { label: 'Cancelado',       color: '#EF4444' }
+  if (c.estado === 'hibernacion')               return { label: 'Hibernación',     color: '#8B5CF6' }
+  if (c.semaforo_zoho === '4 - Dormido')        return { label: 'Dormido Zoho',    color: '#64748B' }
+  if (!c.facturacion || c.facturacion === 0)    return { label: 'Sin facturación', color: '#6366F1' }
+  if (c.health_score < 20)                      return { label: 'HS Crítico',      color: '#F97316' }
+  return                                               { label: 'Dormido',         color: '#94A3B8' }
 }
 
 function getEstadoKey(c: Cuenta): string {
+  if (c.semaforo_zoho === '4 - Dormido') return '4'
   if (!c.facturacion || c.facturacion === 0) return '0'
   if (c.estado === 'hibernacion' || c.estado === 'cancelado') return '4'
   const hs = c.health_score

@@ -84,9 +84,10 @@ export async function GET(req: NextRequest) {
       const z = lookupZoho(c.empresa, zohoMap)
       return {
         ...c,
-        zoho_tickets:       getTicketStats(c.cid ?? null, c.empresa),
-        mrr_zoho:           z?.mrr            ?? null,
+        zoho_tickets:         getTicketStats(c.cid ?? null, c.empresa),
+        mrr_zoho:             z?.mrr            ?? null,
         factura_mensual_zoho: z?.factura_mensual ?? null,
+        semaforo_zoho:        z?.semaforo        ?? null,
       }
     })
 

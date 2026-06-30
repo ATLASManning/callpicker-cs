@@ -11,7 +11,7 @@
  */
 import { queryZohoView, parseNum, isZohoConfigured } from '@/lib/zoho-analytics'
 
-export interface ZohoAcct { mrr: number; factura_mensual: number }
+export interface ZohoAcct { mrr: number; factura_mensual: number; semaforo: string }
 
 const ZOHO_TTL = 15 * 60 * 1000
 let _zohoCache: { map: Record<string, ZohoAcct>; ts: number } | null = null
@@ -22,7 +22,7 @@ function normStr(s: string) {
     .replace(/[^a-z0-9\s]/g, '').trim()
 }
 
-/** Mapa { nombre normalizado → { mrr, factura_mensual } } agregando subcuentas por nombre. */
+/** Mapa { nombre normalizado → { mrr, factura_mensual, semaforo } } agregando subcuentas por nombre. */
 export async function getZohoMap(): Promise<Record<string, ZohoAcct>> {
   if (_zohoCache && Date.now() - _zohoCache.ts < ZOHO_TTL) return _zohoCache.map
   if (!isZohoConfigured()) return {}
@@ -31,14 +31,19 @@ export async function getZohoMap(): Promise<Record<string, ZohoAcct>> {
     const result = await queryZohoView({ viewId })
     const map: Record<string, ZohoAcct> = {}
     for (const row of result.rows) {
-      if ((row['semaforo_actividad'] ?? '') === '4 - Dormido') continue
+      const sema = row['semaforo_actividad'] ?? ''
       const name = normStr(row['nombre_cliente'] ?? '')
       if (!name) continue
-      const mrr     = parseNum(row['mrr_limpio']?.replace(/[$,]/g, '')) ?? 0
-      const factura = parseNum(row['ticket_limpio_promedio']?.replace(/[$,]/g, '')) ?? 0
-      if (!map[name]) map[name] = { mrr: 0, factura_mensual: 0 }
-      map[name].mrr            += mrr
-      map[name].factura_mensual += factura
+      if (!map[name]) map[name] = { mrr: 0, factura_mensual: 0, semaforo: sema }
+      // Solo acumular MRR/factura en cuentas NO dormidas
+      if (sema !== '4 - Dormido') {
+        const mrr     = parseNum(row['mrr_limpio']?.replace(/[$,]/g, '')) ?? 0
+        const factura = parseNum(row['ticket_limpio_promedio']?.replace(/[$,]/g, '')) ?? 0
+        map[name].mrr            += mrr
+        map[name].factura_mensual += factura
+        // Cualquier semáforo activo anula el dormido (subcuenta activa prevalece)
+        if (map[name].semaforo === '4 - Dormido') map[name].semaforo = sema
+      }
     }
     _zohoCache = { map, ts: Date.now() }
     return map
@@ -58,25 +63,27 @@ export function lookupZoho(empresa: string, zmap: Record<string, ZohoAcct>): Zoh
   const words = n.split(/\s+/).filter(w => w.length >= 3).slice(0, 2)
 
   if (words.length > 0) {
-    let mrr = 0, factura_mensual = 0, found = false
+    let mrr = 0, factura_mensual = 0, semaforo = '4 - Dormido', found = false
     for (const [key, val] of Object.entries(zmap)) {
       if (words.every(w => key.includes(w))) {
         mrr            += val.mrr
         factura_mensual += val.factura_mensual
         found = true
+        // Cualquier semáforo activo gana sobre dormido
+        if (val.semaforo && val.semaforo !== '4 - Dormido') semaforo = val.semaforo
       }
     }
-    if (found) return { mrr, factura_mensual }
+    if (found) return { mrr, factura_mensual, semaforo }
   }
 
   // Fallback para nombres sin palabras significativas de ≥3 chars
   return zmap[n] ?? null
 }
 
-/** Devuelve las cuentas con `mrr_zoho` y `factura_mensual_zoho` poblados desde Zoho. */
+/** Devuelve las cuentas con `mrr_zoho`, `factura_mensual_zoho` y `semaforo_zoho` desde Zoho. */
 export async function enrichCuentasWithZoho<T extends { empresa: string }>(
   cuentas: T[],
-): Promise<(T & { mrr_zoho: number | null; factura_mensual_zoho: number | null })[]> {
+): Promise<(T & { mrr_zoho: number | null; factura_mensual_zoho: number | null; semaforo_zoho: string | null })[]> {
   const zmap = await getZohoMap()
   return cuentas.map(c => {
     const z = lookupZoho(c.empresa, zmap)
@@ -84,6 +91,7 @@ export async function enrichCuentasWithZoho<T extends { empresa: string }>(
       ...c,
       mrr_zoho:             z?.mrr             ?? null,
       factura_mensual_zoho: z?.factura_mensual ?? null,
+      semaforo_zoho:        z?.semaforo        ?? null,
     }
   })
 }
