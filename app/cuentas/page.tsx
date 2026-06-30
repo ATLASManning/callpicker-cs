@@ -1,10 +1,10 @@
 'use client'
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Search, Filter, RefreshCw, Plus, ArrowUpDown, AlertCircle,
-  Ticket, AlertTriangle, ArrowUpRight,
+  Ticket, AlertTriangle, ArrowUpRight, ChevronDown,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import SemaforoBadge from '@/components/SemaforoBadge'
@@ -31,6 +31,25 @@ function getDataWarning(c: Cuenta): DataWarning {
   if (c.notas.includes('[FALTA_TC]')) return 'FALTA_TC'
   if (c.notas.includes('[FALTA_HS]')) return 'FALTA_HS'
   return null
+}
+
+// ── Estado clasificación (0–4) ────────────────────────────────────────────────
+const ESTADO_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  '0': { label: '0 - Factura Futura', color: '#6366F1', bg: '#6366F110' },
+  '1': { label: '1 - Activo',         color: '#22C55E', bg: '#22C55E10' },
+  '2': { label: '2 - Riesgo',         color: '#F59E0B', bg: '#F59E0B10' },
+  '3': { label: '3 - Alerta',         color: '#F97316', bg: '#F9731610' },
+  '4': { label: '4 - Dormido',        color: '#94A3B8', bg: '#94A3B810' },
+}
+
+function getEstadoKey(c: Cuenta): string {
+  if (!c.facturacion || c.facturacion === 0) return '0'
+  if (c.estado === 'hibernacion' || c.estado === 'cancelado') return '4'
+  const hs = c.health_score
+  if (hs >= 60) return '1'
+  if (hs >= 40) return '2'
+  if (hs >= 20) return '3'
+  return '4'
 }
 
 // ── Formatear fecha corta ────────────────────────────────────────────────────
@@ -81,10 +100,23 @@ function TicketsCell({ cuenta }: { cuenta: Cuenta }) {
   )
 }
 
-// ── Columna Días sin actividad ───────────────────────────────────────────────
-function DiasCell({ dias }: { dias: number }) {
-  const cls = dias > 30 ? 'text-rojo font-bold' : dias > 14 ? 'text-naranja font-semibold' : 'text-textMid'
-  return <span className={`text-xs ${cls}`}>{dias}d</span>
+// ── Columna Estado ───────────────────────────────────────────────────────────
+function EstadoCell({ cuenta }: { cuenta: Cuenta }) {
+  const key = getEstadoKey(cuenta)
+  const cfg = ESTADO_LABELS[key]
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '3px 8px', borderRadius: 99,
+      background: cfg.bg,
+      color: cfg.color,
+      fontSize: 10, fontWeight: 700,
+      border: `1px solid ${cfg.color}30`,
+      whiteSpace: 'nowrap',
+    }}>
+      {cfg.label}
+    </span>
+  )
 }
 
 // ── Columna Health Score ─────────────────────────────────────────────────────
@@ -93,6 +125,36 @@ function HSCell({ score }: { score: number }) {
     <div className="flex items-center gap-2">
       <HealthScoreRing score={score} size={34} strokeWidth={4} showLabel={false} />
       <span className="text-sm font-bold text-textHi tabular-nums">{score}</span>
+    </div>
+  )
+}
+
+// ── Inline select para headers ────────────────────────────────────────────────
+function HeaderSelect({
+  value, onChange, placeholder, children,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  children: ReactNode
+}) {
+  return (
+    <div
+      className="relative mt-1"
+      onClick={e => e.stopPropagation()}
+    >
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full appearance-none text-[10px] font-medium pl-2 pr-5 py-1 rounded-md
+          border border-border bg-surface text-textMid cursor-pointer outline-none
+          focus:border-cp/50 transition-colors"
+        style={{ minWidth: 0 }}
+      >
+        <option value="">{placeholder}</option>
+        {children}
+      </select>
+      <ChevronDown size={9} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-textLow pointer-events-none" />
     </div>
   )
 }
@@ -112,6 +174,12 @@ function CuentasPageInner() {
   const [sortField, setSortField]   = useState<keyof Cuenta>('facturacion')
   const [sortDir, setSortDir]       = useState<'asc' | 'desc'>('desc')
 
+  // ── Nuevos filtros de columna ─────────────────────────────────────────────
+  const [estadoFilter, setEstadoFilter]         = useState('')
+  const [facturacionFilter, setFacturacionFilter] = useState('')
+  const [hsFilter, setHsFilter]                 = useState('')
+  const [ticketsFilter, setTicketsFilter]       = useState('')
+
   const fetchCuentas = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
@@ -127,8 +195,33 @@ function CuentasPageInner() {
   useEffect(() => { fetchCuentas() }, [fetchCuentas])
 
   const filtered = cuentas
-    .filter(c => !warningFilter || getDataWarning(c) === warningFilter)
-    .filter(c => !topFilter    || isTopCustomer(c.consecutivo))
+    .filter(c => !warningFilter    || getDataWarning(c) === warningFilter)
+    .filter(c => !topFilter        || isTopCustomer(c.consecutivo))
+    .filter(c => !estadoFilter     || getEstadoKey(c) === estadoFilter)
+    .filter(c => {
+      if (!facturacionFilter) return true
+      const f = c.factura_mensual_zoho ?? c.mrr_zoho ?? c.facturacion ?? 0
+      if (facturacionFilter === 'lt5')  return f < 5000
+      if (facturacionFilter === '5-15') return f >= 5000 && f < 15000
+      if (facturacionFilter === 'gt15') return f >= 15000
+      return true
+    })
+    .filter(c => {
+      if (!hsFilter) return true
+      const hs = c.health_score
+      if (hsFilter === 'gt80')  return hs > 80
+      if (hsFilter === '60-80') return hs >= 60 && hs <= 80
+      if (hsFilter === '40-60') return hs >= 40 && hs < 60
+      if (hsFilter === 'lt40')  return hs < 40
+      return true
+    })
+    .filter(c => {
+      if (!ticketsFilter) return true
+      if (ticketsFilter === 'none')   return !c.zoho_tickets || c.zoho_tickets.total === 0
+      if (ticketsFilter === 'fallas') return (c.zoho_tickets?.fallas ?? 0) > 0
+      if (ticketsFilter === 'any')    return (c.zoho_tickets?.total ?? 0) > 0
+      return true
+    })
 
   const sorted = [...filtered].sort((a, b) => {
     const av = a[sortField] as number | string
@@ -144,20 +237,50 @@ function CuentasPageInner() {
     else { setSortField(field); setSortDir('desc') }
   }
 
-  // ── Totales rápidos ───────────────────────────────────────────────────────
-  const totalFac = sorted.reduce((s, c) => s + (c.factura_mensual_zoho ?? c.mrr_zoho ?? c.facturacion ?? 0), 0)
-  const totalTickets = sorted.reduce((s, c) => s + (c.zoho_tickets?.total ?? 0), 0)
-  const totalFallas  = sorted.reduce((s, c) => s + (c.zoho_tickets?.fallas ?? 0), 0)
+  function limpiarFiltros() {
+    setSearch(''); setAsesorFilter(''); setSemaforoFilter(''); setWarningFilter('')
+    setTopFilter(false); setEstadoFilter(''); setFacturacionFilter('')
+    setHsFilter(''); setTicketsFilter('')
+  }
 
-  // ── Header de columna ─────────────────────────────────────────────────────
-  function Th({ label, field, right }: { label: string; field?: keyof Cuenta; right?: boolean }) {
+  const hayFiltros = !!(search || asesorFilter || semaforoFilter || warningFilter ||
+    topFilter || estadoFilter || facturacionFilter || hsFilter || ticketsFilter)
+
+  // ── Totales rápidos ───────────────────────────────────────────────────────
+  const totalFac      = sorted.reduce((s, c) => s + (c.factura_mensual_zoho ?? c.mrr_zoho ?? c.facturacion ?? 0), 0)
+  const totalTickets  = sorted.reduce((s, c) => s + (c.zoho_tickets?.total ?? 0), 0)
+  const totalFallas   = sorted.reduce((s, c) => s + (c.zoho_tickets?.fallas ?? 0), 0)
+
+  // ── Header de columna con filtro inline ──────────────────────────────────
+  function Th({
+    label, field, right, filterEl,
+  }: {
+    label: string
+    field?: keyof Cuenta
+    right?: boolean
+    filterEl?: ReactNode
+  }) {
+    const active = field && sortField === field
     return (
-      <th onClick={field ? () => toggleSort(field) : undefined}
-        className={field ? 'cursor-pointer select-none' : ''}>
-        <span className={`flex items-center gap-1 ${right ? 'justify-end' : ''}`}>
-          {label}
-          {field && <ArrowUpDown size={10} className="opacity-40 flex-shrink-0" />}
-        </span>
+      <th className="align-top p-0">
+        <div className="flex flex-col">
+          <div
+            onClick={field ? () => toggleSort(field) : undefined}
+            className={`flex items-center gap-1 px-3 py-2.5 ${field ? 'cursor-pointer select-none hover:bg-white/5' : ''} ${right ? 'justify-end' : ''}`}
+          >
+            <span className={`text-[10px] font-bold uppercase tracking-wider whitespace-nowrap ${active ? 'text-cp' : 'text-textLow'}`}>
+              {label}
+            </span>
+            {field && (
+              <ArrowUpDown size={9} className={`flex-shrink-0 ${active ? 'text-cp opacity-100' : 'opacity-30'}`} />
+            )}
+          </div>
+          {filterEl && (
+            <div className="px-2 pb-2">
+              {filterEl}
+            </div>
+          )}
+        </div>
       </th>
     )
   }
@@ -174,23 +297,13 @@ function CuentasPageInner() {
         }
       />
 
-      {/* Filtros */}
+      {/* Filtros superiores */}
       <div className="flex flex-wrap gap-3 px-6 pb-4">
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-textLow" />
           <input className="cp-input pl-8 w-56" placeholder="Buscar empresa…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-
-        <select className="cp-select" value={asesorFilter} onChange={e => setAsesorFilter(e.target.value)}>
-          <option value="">Todos los asesores</option>
-          {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
-
-        <select className="cp-select" value={semaforoFilter} onChange={e => setSemaforoFilter(e.target.value)}>
-          <option value="">Todos los semáforos</option>
-          {SEMAFOROS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-        </select>
 
         <select className="cp-select" value={warningFilter} onChange={e => setWarningFilter(e.target.value as '' | 'FALTA_TC' | 'FALTA_HS')}>
           <option value="">Todas las fichas</option>
@@ -209,8 +322,8 @@ function CuentasPageInner() {
           <RefreshCw size={14} /> Actualizar
         </button>
 
-        {(search || asesorFilter || semaforoFilter || warningFilter || topFilter) && (
-          <button onClick={() => { setSearch(''); setAsesorFilter(''); setSemaforoFilter(''); setWarningFilter(''); setTopFilter(false) }}
+        {hayFiltros && (
+          <button onClick={limpiarFiltros}
             className="cp-btn cp-btn-ghost text-xs text-rojo border-rojo/30 hover:bg-rojo/10">
             Limpiar filtros
           </button>
@@ -255,26 +368,90 @@ function CuentasPageInner() {
             ) : (
               <table className="cp-table">
                 <colgroup>
-                  <col style={{ width: '70px' }} />   {/* # */}
-                  <col style={{ width: '220px' }} />  {/* Empresa */}
-                  <col style={{ width: '110px' }} />  {/* Asesor */}
-                  <col style={{ width: '120px' }} />  {/* Facturación */}
-                  <col style={{ width: '120px' }} />  {/* Health Score */}
-                  <col style={{ width: '120px' }} />  {/* Semáforo */}
-                  <col style={{ width: '100px' }} />  {/* Días sin act. */}
-                  <col style={{ width: '150px' }} />  {/* Tickets Zoho */}
-                  <col style={{ width: '80px' }} />   {/* Acción */}
+                  <col style={{ width: '70px' }} />
+                  <col style={{ width: '220px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '150px' }} />
+                  <col style={{ width: '80px' }} />
                 </colgroup>
                 <thead>
                   <tr>
-                    <Th label="#"                   field="consecutivo" />
-                    <Th label="Empresa"             field="empresa" />
-                    <Th label="Asesor"              field="asesor" />
-                    <Th label="Facturación"         field="facturacion" />
-                    <Th label="Health Score"        field="health_score" />
-                    <Th label="Semáforo" />
-                    <Th label="Días sin actividad"  field="dias_sin_actividad" />
-                    <Th label="Tickets Zoho Desk" />
+                    <Th label="#" field="consecutivo" />
+
+                    <Th label="Empresa" field="empresa" />
+
+                    <Th
+                      label="Asesor"
+                      field="asesor"
+                      filterEl={
+                        <HeaderSelect value={asesorFilter} onChange={setAsesorFilter} placeholder="Todos los asesores">
+                          {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
+                        </HeaderSelect>
+                      }
+                    />
+
+                    <Th
+                      label="Facturación"
+                      field="facturacion"
+                      filterEl={
+                        <HeaderSelect value={facturacionFilter} onChange={setFacturacionFilter} placeholder="Todos los montos">
+                          <option value="lt5">Menos de $5,000</option>
+                          <option value="5-15">$5,000 – $15,000</option>
+                          <option value="gt15">Más de $15,000</option>
+                        </HeaderSelect>
+                      }
+                    />
+
+                    <Th
+                      label="Health Score"
+                      field="health_score"
+                      filterEl={
+                        <HeaderSelect value={hsFilter} onChange={setHsFilter} placeholder="Todos los scores">
+                          <option value="gt80">Alto · &gt;80</option>
+                          <option value="60-80">Bueno · 60–80</option>
+                          <option value="40-60">Medio · 40–60</option>
+                          <option value="lt40">Bajo · &lt;40</option>
+                        </HeaderSelect>
+                      }
+                    />
+
+                    <Th
+                      label="Semáforo"
+                      filterEl={
+                        <HeaderSelect value={semaforoFilter} onChange={setSemaforoFilter} placeholder="Todos los semáforos">
+                          {SEMAFOROS.map(s => (
+                            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                          ))}
+                        </HeaderSelect>
+                      }
+                    />
+
+                    <Th
+                      label="Estado"
+                      filterEl={
+                        <HeaderSelect value={estadoFilter} onChange={setEstadoFilter} placeholder="Todos los estados">
+                          {Object.entries(ESTADO_LABELS).map(([key, cfg]) => (
+                            <option key={key} value={key}>{cfg.label}</option>
+                          ))}
+                        </HeaderSelect>
+                      }
+                    />
+
+                    <Th
+                      label="Tickets Zoho Desk"
+                      filterEl={
+                        <HeaderSelect value={ticketsFilter} onChange={setTicketsFilter} placeholder="Todos">
+                          <option value="any">Con tickets</option>
+                          <option value="fallas">Con fallas</option>
+                          <option value="none">Sin tickets</option>
+                        </HeaderSelect>
+                      }
+                    />
+
                     <th />
                   </tr>
                 </thead>
@@ -318,7 +495,7 @@ function CuentasPageInner() {
                           <AsesorBadge asesor={c.asesor} />
                         </td>
 
-                        {/* Facturación: Factura Mensual + MRR desde Zoho */}
+                        {/* Facturación */}
                         <td>
                           <div className="flex flex-col gap-0.5">
                             <div>
@@ -348,12 +525,12 @@ function CuentasPageInner() {
                           <SemaforoBadge semaforo={semaforo} size="sm" />
                         </td>
 
-                        {/* Días sin actividad */}
+                        {/* Estado */}
                         <td>
-                          <DiasCell dias={c.dias_sin_actividad} />
+                          <EstadoCell cuenta={c} />
                         </td>
 
-                        {/* Tickets Zoho Desk — datos reales */}
+                        {/* Tickets Zoho Desk */}
                         <td>
                           <TicketsCell cuenta={c} />
                         </td>
