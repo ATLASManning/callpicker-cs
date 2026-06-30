@@ -53,30 +53,54 @@ export async function getZohoMap(): Promise<Record<string, ZohoAcct>> {
 }
 
 /**
+ * Genera las siglas de un nombre normalizado (e.g. "grupo torres corzo" → "gtc").
+ * Solo considera palabras de ≥3 chars para descartar partículas ("de", "la", "sa"…).
+ */
+function getAcronym(n: string): string {
+  return n.split(/\s+/).filter(w => w.length >= 3).map(w => w[0]).join('')
+}
+
+/**
  * Busca y SUMA todas las subcuentas de Zoho que correspondan a la misma cuenta.
- * Usa las primeras 2 palabras significativas (≥3 chars) como clave de agrupación,
- * lo que garantiza que "Grupo Frisa" + "Grupo Frisa - ACISA" se sumen correctamente.
- * El match exacto siempre queda incluido (sus palabras están dentro del propio key).
+ *
+ * Estrategia en cascada:
+ *  1. Primeras 2 palabras significativas (≥3 chars): "Grupo Torres" → busca claves que
+ *     contengan AMBAS. Cubre "Grupo Frisa" + "Grupo Frisa - ACISA".
+ *  2. Si no hay match: busca por siglas (≥3 letras) como primera palabra en la clave
+ *     de Zoho. Cubre "GTC Norte", "GTC Sur" → GRUPO TORRES CORZO.
+ *  3. Fallback exact key.
  */
 export function lookupZoho(empresa: string, zmap: Record<string, ZohoAcct>): ZohoAcct | null {
   const n = normStr(empresa)
   const words = n.split(/\s+/).filter(w => w.length >= 3).slice(0, 2)
 
-  if (words.length > 0) {
+  const aggregate = (filter: (key: string) => boolean) => {
     let mrr = 0, factura_mensual = 0, semaforo = '4 - Dormido', found = false
     for (const [key, val] of Object.entries(zmap)) {
-      if (words.every(w => key.includes(w))) {
+      if (filter(key)) {
         mrr            += val.mrr
         factura_mensual += val.factura_mensual
         found = true
-        // Cualquier semáforo activo gana sobre dormido
         if (val.semaforo && val.semaforo !== '4 - Dormido') semaforo = val.semaforo
       }
     }
-    if (found) return { mrr, factura_mensual, semaforo }
+    return found ? { mrr, factura_mensual, semaforo } : null
   }
 
-  // Fallback para nombres sin palabras significativas de ≥3 chars
+  // 1) Primeras 2 palabras significativas
+  if (words.length > 0) {
+    const r = aggregate(key => words.every(w => key.includes(w)))
+    if (r) return r
+  }
+
+  // 2) Siglas como primera palabra (mínimo 3 letras para evitar falsos positivos)
+  const acronym = getAcronym(n)
+  if (acronym.length >= 3) {
+    const r = aggregate(key => key.split(/\s+/)[0] === acronym)
+    if (r) return r
+  }
+
+  // 3) Match exacto (fallback para nombres cortos sin palabras ≥3 chars)
   return zmap[n] ?? null
 }
 
