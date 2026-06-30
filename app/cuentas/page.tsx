@@ -43,7 +43,6 @@ const ESTADO_LABELS: Record<string, { label: string; color: string; bg: string }
 }
 
 function getEstadoKey(c: Cuenta): string {
-  if (c.semaforo_zoho === '4 - Dormido') return '4'
   if (!c.facturacion || c.facturacion === 0) return '0'
   if (c.estado === 'hibernacion' || c.estado === 'cancelado') return '4'
   const hs = c.health_score
