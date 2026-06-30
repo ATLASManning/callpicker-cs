@@ -227,7 +227,7 @@ export default function TicketsPage() {
               <>
                 {/* KPIs */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <KpiCard icon={Tag}           label="Total tickets"      value={stats.total.toLocaleString()}  sub="Feb–May 2026"              color={BLUE}   />
+                  <KpiCard icon={Tag}           label="Total tickets"      value={stats.total.toLocaleString()}  sub="Mar–Jun 2026"              color={BLUE}   />
                   <KpiCard icon={AlertTriangle} label="Fallas reales"      value={stats.fallas}                  sub={`${((stats.fallas/stats.total)*100).toFixed(1)}% del total`} color={RED} />
                   <KpiCard icon={Zap}           label="Producto Voz"       value={stats.byProd['Voz'] ?? 0}      sub="tickets de voz"            color={BLUE}   />
                   <KpiCard icon={Users}         label="Producto Chat"      value={stats.byProd['Chat'] ?? 0}     sub="tickets de chat"           color={INDIGO} />
