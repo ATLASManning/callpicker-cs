@@ -63,44 +63,38 @@ function getAcronym(n: string): string {
 /**
  * Busca y SUMA todas las subcuentas de Zoho que correspondan a la misma cuenta.
  *
- * Estrategia en cascada:
- *  1. Primeras 2 palabras significativas (≥3 chars): "Grupo Torres" → busca claves que
- *     contengan AMBAS. Cubre "Grupo Frisa" + "Grupo Frisa - ACISA".
- *  2. Si no hay match: busca por siglas (≥3 letras) como primera palabra en la clave
- *     de Zoho. Cubre "GTC Norte", "GTC Sur" → GRUPO TORRES CORZO.
+ * Ejecuta AMBAS estrategias y combina los resultados (sin retornar temprano):
+ *  1. Primeras 2 palabras significativas (≥3 chars): cubre "Grupo Frisa - ACISA", etc.
+ *  2. Siglas (≥3 letras) como primera palabra: cubre "GTC - MATEHUALA", "GTC - BMW", etc.
+ *     Necesario porque "Grupo Torres Corzo - GTC" es dormido en Zoho ($0), pero las
+ *     subcuentas activas viven bajo prefijo "GTC".
  *  3. Fallback exact key.
  */
 export function lookupZoho(empresa: string, zmap: Record<string, ZohoAcct>): ZohoAcct | null {
   const n = normStr(empresa)
-  const words = n.split(/\s+/).filter(w => w.length >= 3).slice(0, 2)
+  const words    = n.split(/\s+/).filter(w => w.length >= 3).slice(0, 2)
+  const acronym  = getAcronym(n)
 
-  const aggregate = (filter: (key: string) => boolean) => {
-    let mrr = 0, factura_mensual = 0, semaforo = '4 - Dormido', found = false
-    for (const [key, val] of Object.entries(zmap)) {
-      if (filter(key)) {
-        mrr            += val.mrr
-        factura_mensual += val.factura_mensual
-        found = true
-        if (val.semaforo && val.semaforo !== '4 - Dormido') semaforo = val.semaforo
-      }
+  // Colectar todas las claves que coincidan por cualquiera de las dos estrategias
+  const matched = new Set<string>()
+  for (const key of Object.keys(zmap)) {
+    const byWords   = words.length > 0 && words.every(w => key.includes(w))
+    const byAcronym = acronym.length >= 3 && key.split(/\s+/)[0] === acronym
+    if (byWords || byAcronym) matched.add(key)
+  }
+
+  if (matched.size > 0) {
+    let mrr = 0, factura_mensual = 0, semaforo = '4 - Dormido'
+    for (const key of Array.from(matched)) {
+      const val = zmap[key]
+      mrr            += val.mrr
+      factura_mensual += val.factura_mensual
+      if (val.semaforo && val.semaforo !== '4 - Dormido') semaforo = val.semaforo
     }
-    return found ? { mrr, factura_mensual, semaforo } : null
+    return { mrr, factura_mensual, semaforo }
   }
 
-  // 1) Primeras 2 palabras significativas
-  if (words.length > 0) {
-    const r = aggregate(key => words.every(w => key.includes(w)))
-    if (r) return r
-  }
-
-  // 2) Siglas como primera palabra (mínimo 3 letras para evitar falsos positivos)
-  const acronym = getAcronym(n)
-  if (acronym.length >= 3) {
-    const r = aggregate(key => key.split(/\s+/)[0] === acronym)
-    if (r) return r
-  }
-
-  // 3) Match exacto (fallback para nombres cortos sin palabras ≥3 chars)
+  // Fallback exact key
   return zmap[n] ?? null
 }
 
