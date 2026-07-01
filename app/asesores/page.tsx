@@ -5,13 +5,26 @@ import PageHeader from '@/components/PageHeader'
 import AsesorCard from '@/components/AsesorCard'
 import AutoRefresh from '@/components/AutoRefresh'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
-const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
+const ALL_ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 
 export default async function AsesoresPage() {
-  const [cuentasRaw, resumenList] = await Promise.all([getCuentas(), getSemaforoByAsesor()])
+  const h = headers()
+  const rol          = h.get('x-user-rol') ?? 'viewer'
+  const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
+  const isAsesor     = rol === 'asesor' && !!asesorHeader
+
+  const ASESORES = isAsesor
+    ? ALL_ASESORES.filter(a => a === asesorHeader)
+    : ALL_ASESORES
+
+  const [cuentasRaw, resumenList] = await Promise.all([
+    getCuentas(isAsesor ? { asesor: asesorHeader } : undefined),
+    getSemaforoByAsesor(),
+  ])
   // Enriquecer con Factura Mensual + MRR en vivo de Zoho (misma fuente que Facturación/Cuentas)
   const cuentas = await enrichCuentasWithZoho(cuentasRaw)
 

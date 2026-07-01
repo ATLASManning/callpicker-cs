@@ -9,6 +9,7 @@ import {
   ShieldAlert, TrendingUp, MonitorCheck,
 } from 'lucide-react'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -513,9 +514,16 @@ function BloqueSection({ titulo, subtitulo, colorHex, icono, cuentas: lista, get
 // ── Página ───────────────────────────────────────────────────────────────────
 
 export default async function SeguimientoPage() {
-  const cuentas = await getCuentas()
+  const h = headers()
+  const rol          = h.get('x-user-rol') ?? 'viewer'
+  const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
+  const isAsesor     = rol === 'asesor' && !!asesorHeader
 
-  const asesores: Asesor[] = ['Fátima', 'Dan', 'Claudia']
+  const cuentas = await getCuentas(isAsesor ? { asesor: asesorHeader } : undefined)
+
+  const asesores: Asesor[] = isAsesor
+    ? (['Fátima', 'Dan', 'Claudia'] as Asesor[]).filter(a => a === asesorHeader)
+    : ['Fátima', 'Dan', 'Claudia']
   const today = new Date().toLocaleDateString('es-MX', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   })

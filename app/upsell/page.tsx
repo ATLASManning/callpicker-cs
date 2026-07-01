@@ -4,11 +4,17 @@ import type { Asesor } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
 export default async function UpsellPage() {
-  const cuentas = await getCuentas()
+  const h = headers()
+  const rol          = h.get('x-user-rol') ?? 'viewer'
+  const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
+  const isAsesor     = rol === 'asesor' && !!asesorHeader
+
+  const cuentas = await getCuentas(isAsesor ? { asesor: asesorHeader } : undefined)
   const activas = cuentas.filter(c => c.estado === 'activo')
 
   const conUpsell = activas.filter(c => c.upsell_producto)
@@ -17,7 +23,9 @@ export default async function UpsellPage() {
 
   const valorUpsellTotal = activas.reduce((s, c) => s + (c.valor_upsell_estimado ?? 0), 0)
 
-  const asesores: Asesor[] = ['Fátima', 'Dan', 'Claudia']
+  const asesores: Asesor[] = isAsesor
+    ? (['Fátima', 'Dan', 'Claudia'] as Asesor[]).filter(a => a === asesorHeader)
+    : ['Fátima', 'Dan', 'Claudia']
 
   const byAsesor = asesores.map(asesor => {
     const lista = activas.filter(c => c.asesor === asesor)

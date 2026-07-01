@@ -14,6 +14,7 @@ import { formatMXN, getSemaforo } from '@/lib/types'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import Link from 'next/link'
 import rawTickets from '@/lib/tickets-data.json'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -128,8 +129,14 @@ function PanelTitle({ children }: { children: React.ReactNode }) {
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default async function DashboardPage() {
+  const h = headers()
+  const rol          = h.get('x-user-rol') ?? 'viewer'
+  const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
+  const isAsesor     = rol === 'asesor' && !!asesorHeader
+
   const [kpis, semaforoAsesor, cuentas] = await Promise.all([
-    getKPIs(), getSemaforoByAsesor(), getCuentas(),
+    getKPIs(), getSemaforoByAsesor(),
+    getCuentas(isAsesor ? { asesor: asesorHeader } : undefined),
   ])
 
   // Distribución semáforo
