@@ -340,6 +340,147 @@ function ActividadCard({
   )
 }
 
+// ── Renderizador de análisis IA ───────────────────────────────────────────────
+
+function AnalisisRenderer({ text }: { text: string }) {
+  const lines = text.split('\n')
+
+  const rendered = lines.map((line, i) => {
+    const trimmed = line.trim()
+
+    // Header principal (## ...)
+    if (trimmed.startsWith('## ')) {
+      const title = trimmed.slice(3)
+      const isWarning  = title.includes('WARNING') || title.includes('RIESGO')
+      const isUpsell   = title.includes('UPSELL') || title.includes('OPORTUNIDAD')
+      const isCoaching = title.includes('COACHING')
+      const isQuirurg  = title.includes('QUIRÚRG') || title.includes('INSTRUC')
+      const isResumen  = title.includes('RESUMEN')
+      const isTabla    = title.includes('TABLA') || title.includes('PRIORIDAD')
+      const bg    = isWarning ? '#FFF5F5' : isUpsell ? '#FFFBEB' : isCoaching ? '#F0FDF4' : isResumen ? '#EFF6FF' : isQuirurg ? '#FFF5F5' : '#F8FAFC'
+      const color = isWarning ? '#DC2626' : isUpsell ? '#D97706' : isCoaching ? '#059669' : isResumen ? '#1D4ED8' : isQuirurg ? '#DC2626' : '#334155'
+      const border = isWarning ? '#FECACA' : isUpsell ? '#FDE68A' : isCoaching ? '#BBF7D0' : isResumen ? '#BFDBFE' : isQuirurg ? '#FECACA' : '#E2E8F0'
+      return (
+        <div key={i} style={{ marginTop: i === 0 ? 0 : 20, marginBottom: 10, padding: '10px 14px', background: bg, borderRadius: 10, border: `1px solid ${border}`, borderLeft: `4px solid ${color}` }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</p>
+        </div>
+      )
+    }
+
+    // Líneas con riesgo 🔴 CRÍTICO
+    if (trimmed.includes('🔴') || trimmed.toLowerCase().includes('crítico')) {
+      return (
+        <div key={i} style={{ padding: '7px 12px', background: '#FEF2F2', borderRadius: 7, border: '1px solid #FECACA', marginBottom: 5, fontSize: 12, color: '#991B1B', borderLeft: '3px solid #EF4444' }}>
+          {renderInline(trimmed)}
+        </div>
+      )
+    }
+
+    // Líneas con alerta 🟡
+    if (trimmed.includes('🟡') || (trimmed.toLowerCase().includes('alerta') && !trimmed.startsWith('|'))) {
+      return (
+        <div key={i} style={{ padding: '7px 12px', background: '#FFFBEB', borderRadius: 7, border: '1px solid #FDE68A', marginBottom: 5, fontSize: 12, color: '#92400E', borderLeft: '3px solid #F59E0B' }}>
+          {renderInline(trimmed)}
+        </div>
+      )
+    }
+
+    // Líneas 🟢 estable
+    if (trimmed.includes('🟢')) {
+      return (
+        <div key={i} style={{ padding: '7px 12px', background: '#F0FDF4', borderRadius: 7, border: '1px solid #BBF7D0', marginBottom: 5, fontSize: 12, color: '#166534', borderLeft: '3px solid #22C55E' }}>
+          {renderInline(trimmed)}
+        </div>
+      )
+    }
+
+    // Tabla markdown (líneas con |)
+    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+      if (trimmed.includes('---')) return null // Separador de tabla
+      const cells = trimmed.split('|').slice(1, -1).map(c => c.trim())
+      const isHeader = lines[i + 1]?.trim().startsWith('|---')
+      return (
+        <div key={i} style={{
+          display: 'grid',
+          gridTemplateColumns: `repeat(${cells.length}, 1fr)`,
+          gap: 0,
+          marginBottom: 1,
+        }}>
+          {cells.map((cell, j) => (
+            <div key={j} style={{
+              padding: '5px 8px', fontSize: 11,
+              background: isHeader ? '#0A1628' : j === 0 ? '#F8FAFC' : '#fff',
+              color: isHeader ? '#fff' : cell.includes('🔴') ? '#DC2626' : cell.includes('🟡') ? '#D97706' : cell.includes('🟢') ? '#059669' : '#334155',
+              fontWeight: isHeader ? 700 : 400,
+              borderBottom: '1px solid #E2E8F0',
+              borderRight: j < cells.length - 1 ? '1px solid #E2E8F0' : 'none',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {renderInline(cell)}
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    // Bullets con iconos de coaching
+    if (trimmed.startsWith('✅') || trimmed.startsWith('❌') || trimmed.startsWith('➕') || trimmed.startsWith('📋') || trimmed.startsWith('🎯')) {
+      const icon = trimmed.slice(0, 2)
+      const content = trimmed.slice(2).trim()
+      const bg = icon === '✅' ? '#F0FDF4' : icon === '❌' ? '#FEF2F2' : icon === '➕' ? '#EFF6FF' : icon === '📋' ? '#FFFBEB' : '#F5F3FF'
+      const col = icon === '✅' ? '#166534' : icon === '❌' ? '#991B1B' : icon === '➕' ? '#1D4ED8' : icon === '📋' ? '#92400E' : '#5B21B6'
+      return (
+        <div key={i} style={{ display: 'flex', gap: 8, padding: '7px 12px', background: bg, borderRadius: 8, marginBottom: 5, fontSize: 12, color: col }}>
+          <span style={{ flexShrink: 0, fontSize: 14 }}>{icon}</span>
+          <span style={{ flex: 1 }}>{renderInline(content)}</span>
+        </div>
+      )
+    }
+
+    // Bullets normales (• o -)
+    if (trimmed.startsWith('•') || (trimmed.startsWith('- ') && trimmed.length > 2)) {
+      const content = trimmed.startsWith('•') ? trimmed.slice(1).trim() : trimmed.slice(2)
+      return (
+        <div key={i} style={{ display: 'flex', gap: 7, paddingLeft: 8, marginBottom: 4, fontSize: 12, color: '#334155' }}>
+          <span style={{ color: '#7C3AED', flexShrink: 0, marginTop: 1 }}>•</span>
+          <span>{renderInline(content)}</span>
+        </div>
+      )
+    }
+
+    // Línea horizontal ─── o ═══
+    if (trimmed.match(/^[─═]{4,}$/)) {
+      return <div key={i} style={{ height: 1, background: '#E2E8F0', margin: '10px 0' }} />
+    }
+
+    // Línea vacía
+    if (!trimmed) return <div key={i} style={{ height: 6 }} />
+
+    // Línea normal
+    return (
+      <p key={i} style={{ margin: '0 0 4px', fontSize: 12, color: '#334155', lineHeight: 1.65 }}>
+        {renderInline(trimmed)}
+      </p>
+    )
+  })
+
+  return <div style={{ fontSize: 12 }}>{rendered}</div>
+}
+
+function renderInline(text: string): React.ReactNode {
+  // Bold **text**
+  const parts = text.split(/(\*\*[^*]+\*\*)/)
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.startsWith('**') && p.endsWith('**')
+          ? <strong key={i} style={{ fontWeight: 700 }}>{p.slice(2, -2)}</strong>
+          : <span key={i}>{p}</span>
+      )}
+    </>
+  )
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function ActividadesBtn({
@@ -356,7 +497,7 @@ export default function ActividadesBtn({
   const [error,       setError]       = useState<string | null>(null)
 
   // ── Histórico ──────────────────────────────────────────────────────────────
-  const [vista,       setVista]       = useState<'semana' | 'historico' | 'diagnostico'>('semana')
+  const [vista,       setVista]       = useState<'semana' | 'historico' | 'diagnostico' | 'ia'>('semana')
   const [allActs,     setAllActs]     = useState<Actividad[]>([])
   const [loadingHist, setLoadingHist] = useState(false)
   const [expandSem,   setExpandSem]   = useState<string | null>(null)
@@ -364,6 +505,21 @@ export default function ActividadesBtn({
   // ── Diagnóstico de cartera ─────────────────────────────────────────────────
   const [diagnostico,  setDiagnostico]  = useState<DiagCuenta[]>([])
   const [loadingDiag,  setLoadingDiag]  = useState(false)
+
+  // ── Análisis IA ────────────────────────────────────────────────────────────
+  const [analisisResult, setAnalisisResult] = useState<string | null>(null)
+  const [analisisMeta,   setAnalisisMeta]   = useState<{ generado_en: string; cuentas: number } | null>(null)
+  const [loadingIA,      setLoadingIA]      = useState(false)
+  const [iaError,        setIaError]        = useState<string | null>(null)
+  const [iaStep,         setIaStep]         = useState(0)
+
+  const IA_STEPS = [
+    'Leyendo cartera y seguimientos...',
+    'Analizando señales de riesgo...',
+    'Detectando campos rotos...',
+    'Generando instrucciones quirúrgicas...',
+    'Preparando coaching al asesor...',
+  ]
 
   const semanaInicio = toISO(getMondayOfWeek(new Date()))
 
@@ -417,6 +573,37 @@ export default function ActividadesBtn({
   useEffect(() => {
     if (open && vista === 'diagnostico' && diagnostico.length === 0 && !loadingDiag) loadDiag()
   }, [open, vista, diagnostico.length, loadingDiag, loadDiag])
+
+  async function runAnalisis() {
+    setLoadingIA(true)
+    setIaError(null)
+    setIaStep(0)
+
+    // Cycla los mensajes de progreso
+    const stepTimer = setInterval(() => {
+      setIaStep(prev => (prev + 1) % IA_STEPS.length)
+    }, 5000)
+
+    try {
+      const res  = await fetch('/api/actividades/analisis', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ asesor }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setIaError(data.error ?? 'Error al ejecutar el análisis')
+      } else {
+        setAnalisisResult(data.analisis ?? '')
+        setAnalisisMeta({ generado_en: data.generado_en, cuentas: data.cuentas_analizadas })
+      }
+    } catch {
+      setIaError('Error de conexión al ejecutar el análisis')
+    } finally {
+      clearInterval(stepTimer)
+      setLoadingIA(false)
+    }
+  }
 
   // ── Computados histórico ──────────────────────────────────────────────────
   const histByWeek: Record<string, Actividad[]> = {}
@@ -537,7 +724,9 @@ export default function ActividadesBtn({
                     ? `Semana del ${fmtFecha(semanaInicio)}`
                     : vista === 'historico'
                     ? `Actividad acumulada · ${historico.length} sem. registradas`
-                    : `Diagnóstico de cartera · ${diagnostico.filter(d => d.criticos > 0).length} cuentas con datos críticos faltantes`}
+                    : vista === 'diagnostico'
+                    ? `Diagnóstico de cartera · ${diagnostico.filter(d => d.criticos > 0).length} cuentas con datos críticos faltantes`
+                    : analisisMeta ? `Análisis IA · ${analisisMeta.cuentas} cuentas · ${new Date(analisisMeta.generado_en).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}` : 'Análisis IA — Motor de inteligencia SAC'}
                 </p>
               </div>
 
@@ -588,9 +777,10 @@ export default function ActividadesBtn({
               background: '#fff', flexShrink: 0,
             }}>
               {([
-                { id: 'semana',      label: '⚡ Esta semana' },
+                { id: 'semana',      label: '⚡ Semana' },
                 { id: 'historico',   label: '📊 Historial' },
-                { id: 'diagnostico', label: '📋 Perfil cuentas' },
+                { id: 'diagnostico', label: '📋 Perfiles' },
+                { id: 'ia',          label: '🔬 Análisis IA' },
               ] as const).map(t => (
                 <button
                   key={t.id}
@@ -972,6 +1162,96 @@ export default function ActividadesBtn({
                   )}
                 </>
               )}
+
+              {/* ═══ VISTA: ANÁLISIS IA ═══ */}
+              {vista === 'ia' && (
+                <>
+                  {loadingIA ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 56, gap: 18 }}>
+                      <div style={{ position: 'relative', width: 56, height: 56 }}>
+                        <div style={{ position: 'absolute', inset: 0, border: '3px solid #E2E8F0', borderRadius: '50%' }} />
+                        <div style={{
+                          position: 'absolute', inset: 0, border: '3px solid transparent',
+                          borderTopColor: '#7C3AED', borderRadius: '50%',
+                          animation: 'spin 1s linear infinite',
+                        }} />
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🔬</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: '#0F172A' }}>Ejecutando análisis SAC...</p>
+                        <p style={{ margin: 0, fontSize: 12, color: '#64748B', fontStyle: 'italic' }}>{IA_STEPS[iaStep]}</p>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 11, color: '#94A3B8', textAlign: 'center', maxWidth: 260 }}>
+                        El motor de inteligencia analiza toda la cartera. Puede tomar 20–40 segundos.
+                      </p>
+                    </div>
+                  ) : iaError ? (
+                    <div style={{ padding: '14px 16px', background: '#FEF2F2', borderRadius: 10, border: '1px solid #FECACA', marginBottom: 16 }}>
+                      <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#991B1B' }}>Error al ejecutar el análisis</p>
+                      <p style={{ margin: '0 0 12px', fontSize: 12, color: '#DC2626' }}>{iaError}</p>
+                      <button onClick={runAnalisis} style={{ padding: '6px 14px', borderRadius: 7, background: '#7C3AED', color: '#fff', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                        Reintentar
+                      </button>
+                    </div>
+                  ) : !analisisResult ? (
+                    <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+                      <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED20 0%, #0E30CC20 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>
+                        🔬
+                      </div>
+                      <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Motor de Inteligencia SAC</p>
+                      <p style={{ margin: '0 auto 16px', fontSize: 13, color: '#475569', lineHeight: 1.6, maxWidth: 320 }}>
+                        Analiza toda la cartera de <strong>{asesor}</strong> con IA: riesgo de churn, instrucciones quirúrgicas por cuenta, oportunidades de upsell y coaching táctico al asesor.
+                      </p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '0 0 24px', textAlign: 'left', maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>
+                        {['Diagnóstico de completitud de perfiles', 'Previsión de riesgo y WARNING cards', 'Instrucciones quirúrgicas por cuenta', 'Oportunidades de upsell priorizadas', 'Coaching táctico post-análisis'].map((s, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#475569' }}>
+                            <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#7C3AED20', color: '#7C3AED', fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+                            {s}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        onClick={runAnalisis}
+                        disabled={loadingIA}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 8,
+                          padding: '11px 28px', borderRadius: 10, border: 'none',
+                          background: 'linear-gradient(135deg, #7C3AED 0%, #0E30CC 100%)',
+                          color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                          boxShadow: '0 4px 14px rgba(124,58,237,0.35)',
+                        }}
+                      >
+                        🔬 Ejecutar Análisis SAC
+                      </button>
+                      <p style={{ margin: '10px 0 0', fontSize: 10, color: '#94A3B8' }}>Powered by gpt-4o-mini · ~20–40 s</p>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Toolbar */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, padding: '10px 14px', background: '#F5F3FF', borderRadius: 10, border: '1px solid #DDD6FE' }}>
+                        <div>
+                          <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#5B21B6' }}>Análisis generado</p>
+                          {analisisMeta && (
+                            <p style={{ margin: '2px 0 0', fontSize: 10, color: '#7C3AED' }}>
+                              {analisisMeta.cuentas} cuentas · {new Date(analisisMeta.generado_en).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={runAnalisis}
+                          disabled={loadingIA}
+                          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, border: '1px solid #DDD6FE', background: '#fff', color: '#7C3AED', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          <RefreshCw size={10} /> Re-ejecutar
+                        </button>
+                      </div>
+
+                      {/* Render del análisis */}
+                      <AnalisisRenderer text={analisisResult} />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             {/* ─ Footer ─ */}
@@ -983,7 +1263,7 @@ export default function ActividadesBtn({
               flexShrink: 0, flexWrap: 'wrap',
             }}>
               <button
-                onClick={vista === 'semana' ? load : vista === 'historico' ? loadAll : loadDiag}
+                onClick={vista === 'semana' ? load : vista === 'historico' ? loadAll : vista === 'diagnostico' ? loadDiag : runAnalisis}
                 disabled={loading || loadingHist}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
@@ -1007,9 +1287,13 @@ export default function ActividadesBtn({
                   <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
                     {historico.reduce((s, w) => s + w.total, 0)} actividades · {historico.length} semanas
                   </p>
-                ) : (
+                ) : vista === 'diagnostico' ? (
                   <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
                     {diagnostico.length} cuentas analizadas · {diagnostico.filter(d => d.gaps.length === 0).length} perfiles completos
+                  </p>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
+                    {analisisMeta ? `gpt-4o-mini · ${analisisMeta.cuentas} cuentas · ${analisisMeta.generado_en.slice(0, 10)}` : 'Pulsa "Actualizar" para re-ejecutar el análisis'}
                   </p>
                 )}
               </div>
