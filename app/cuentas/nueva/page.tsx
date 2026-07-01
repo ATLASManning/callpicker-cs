@@ -242,7 +242,10 @@ export default function NuevaCuentaPage() {
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error ?? 'Error al guardar')
+        const msg = typeof err.error === 'string'
+          ? err.error
+          : (err.error?.message ?? err.message ?? 'Error al guardar')
+        throw new Error(msg)
       }
 
       const created = await res.json()

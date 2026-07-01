@@ -77,7 +77,7 @@ export async function upsertCuenta(cuenta: Partial<Cuenta>): Promise<Cuenta> {
     .upsert(cuenta, { onConflict: 'consecutivo' })
     .select()
     .single()
-  if (error) throw error
+  if (error) throw new Error(error.message ?? JSON.stringify(error))
   return data as Cuenta
 }
 
@@ -88,7 +88,7 @@ export async function updateCuenta(id: string, changes: Partial<Cuenta>): Promis
     .eq('id', id)
     .select()
     .single()
-  if (error) throw error
+  if (error) throw new Error(error.message ?? JSON.stringify(error))
   return data as Cuenta
 }
 
@@ -97,7 +97,7 @@ export async function deleteCuenta(id: string): Promise<void> {
     .from('cuentas')
     .delete()
     .eq('id', id)
-  if (error) throw error
+  if (error) throw new Error(error.message ?? JSON.stringify(error))
 }
 
 // ── KPIs / Dashboard ────────────────────────────────────────────────────────
