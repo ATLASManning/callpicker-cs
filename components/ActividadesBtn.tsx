@@ -5,11 +5,12 @@ import {
   Zap, X, CheckCircle, XCircle, Clock, AlertTriangle,
   RefreshCw, Loader2, Calendar, Phone, Users,
   BarChart2, FileText, TrendingUp, ChevronDown, History,
+  AlertCircle, ListChecks,
 } from 'lucide-react'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-type TipoActividad  = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell'
+type TipoActividad  = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell' | 'validacion'
 type EstadoAct      = 'pendiente' | 'completada' | 'vencida' | 'bloqueada'
 
 interface Actividad {
@@ -40,14 +41,33 @@ interface SemanaResumen {
   pct:           number
 }
 
+interface DataGapInfo {
+  campo: string
+  nivel: 'critico' | 'importante' | 'deseable'
+}
+
+interface DiagCuenta {
+  id:           string
+  consecutivo:  string
+  empresa:      string
+  health_score: number
+  estado:       string
+  gaps:         DataGapInfo[]
+  criticos:     number
+  importantes:  number
+  deseables:    number
+  pct_completo: number
+}
+
 // ── Config visual por tipo ────────────────────────────────────────────────────
 
 const TIPO_CFG: Record<TipoActividad, { label: string; icon: React.ReactNode; color: string }> = {
-  llamada:  { label: 'Llamada',   icon: <Phone size={10} />,    color: '#0E30CC' },
-  reunion:  { label: 'Reunión',   icon: <Users size={10} />,    color: '#7C3AED' },
-  analisis: { label: 'Análisis',  icon: <BarChart2 size={10} />,color: '#0891B2' },
-  kam:      { label: 'KAM',       icon: <FileText size={10} />, color: '#059669' },
-  upsell:   { label: 'Upsell',    icon: <TrendingUp size={10} />,color: '#D97706' },
+  llamada:    { label: 'Llamada',          icon: <Phone size={10} />,       color: '#0E30CC' },
+  reunion:    { label: 'Reunión',          icon: <Users size={10} />,       color: '#7C3AED' },
+  analisis:   { label: 'Análisis',         icon: <BarChart2 size={10} />,   color: '#0891B2' },
+  kam:        { label: 'KAM',             icon: <FileText size={10} />,    color: '#059669' },
+  upsell:     { label: 'Upsell',          icon: <TrendingUp size={10} />,  color: '#D97706' },
+  validacion: { label: 'Completar Perfil', icon: <AlertCircle size={10} />, color: '#DC2626' },
 }
 
 const DIAS  = ['dom','lun','mar','mié','jue','vie','sáb']
@@ -336,10 +356,14 @@ export default function ActividadesBtn({
   const [error,       setError]       = useState<string | null>(null)
 
   // ── Histórico ──────────────────────────────────────────────────────────────
-  const [vista,       setVista]       = useState<'semana' | 'historico'>('semana')
+  const [vista,       setVista]       = useState<'semana' | 'historico' | 'diagnostico'>('semana')
   const [allActs,     setAllActs]     = useState<Actividad[]>([])
   const [loadingHist, setLoadingHist] = useState(false)
   const [expandSem,   setExpandSem]   = useState<string | null>(null)
+
+  // ── Diagnóstico de cartera ─────────────────────────────────────────────────
+  const [diagnostico,  setDiagnostico]  = useState<DiagCuenta[]>([])
+  const [loadingDiag,  setLoadingDiag]  = useState(false)
 
   const semanaInicio = toISO(getMondayOfWeek(new Date()))
 
@@ -373,11 +397,26 @@ export default function ActividadesBtn({
     }
   }, [asesor])
 
+  const loadDiag = useCallback(async () => {
+    setLoadingDiag(true)
+    try {
+      const res  = await fetch(`/api/actividades/diagnostico?asesor=${encodeURIComponent(asesor)}`)
+      const data = await res.json()
+      setDiagnostico(Array.isArray(data) ? data : [])
+    } finally {
+      setLoadingDiag(false)
+    }
+  }, [asesor])
+
   useEffect(() => { if (open) load() }, [open, load])
 
   useEffect(() => {
     if (open && vista === 'historico' && allActs.length === 0 && !loadingHist) loadAll()
   }, [open, vista, allActs.length, loadingHist, loadAll])
+
+  useEffect(() => {
+    if (open && vista === 'diagnostico' && diagnostico.length === 0 && !loadingDiag) loadDiag()
+  }, [open, vista, diagnostico.length, loadingDiag, loadDiag])
 
   // ── Computados histórico ──────────────────────────────────────────────────
   const histByWeek: Record<string, Actividad[]> = {}
@@ -496,7 +535,9 @@ export default function ActividadesBtn({
                 <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
                   {asesor} · {vista === 'semana'
                     ? `Semana del ${fmtFecha(semanaInicio)}`
-                    : `Actividad acumulada · ${historico.length} sem. registradas`}
+                    : vista === 'historico'
+                    ? `Actividad acumulada · ${historico.length} sem. registradas`
+                    : `Diagnóstico de cartera · ${diagnostico.filter(d => d.criticos > 0).length} cuentas con datos críticos faltantes`}
                 </p>
               </div>
 
@@ -547,8 +588,9 @@ export default function ActividadesBtn({
               background: '#fff', flexShrink: 0,
             }}>
               {([
-                { id: 'semana',   label: '⚡ Esta semana' },
-                { id: 'historico', label: '📊 Actividad acumulada' },
+                { id: 'semana',      label: '⚡ Esta semana' },
+                { id: 'historico',   label: '📊 Historial' },
+                { id: 'diagnostico', label: '📋 Perfil cuentas' },
               ] as const).map(t => (
                 <button
                   key={t.id}
@@ -663,6 +705,133 @@ export default function ActividadesBtn({
                         </div>
                       )
                     })
+                  )}
+                </>
+              )}
+
+              {/* ═══ VISTA: DIAGNÓSTICO DE CARTERA ═══ */}
+              {vista === 'diagnostico' && (
+                <>
+                  {loadingDiag ? (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 56, gap: 12, color: '#94A3B8', fontSize: 13 }}>
+                      <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> Analizando perfiles...
+                    </div>
+                  ) : diagnostico.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: 40 }}>
+                      <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                        <ListChecks size={24} color="#059669" />
+                      </div>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Sin cuentas activas</p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#64748B' }}>No se encontraron cuentas para analizar.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Resumen global */}
+                      {(() => {
+                        const conCrit = diagnostico.filter(d => d.criticos > 0)
+                        const totalCrit = diagnostico.reduce((s, d) => s + d.criticos, 0)
+                        const totalImp  = diagnostico.reduce((s, d) => s + d.importantes, 0)
+                        const completas = diagnostico.filter(d => d.gaps.length === 0)
+                        return (
+                          <div style={{ padding: '14px 16px', borderRadius: 12, background: conCrit.length > 0 ? '#FFF5F5' : '#F0FDF4', border: `1px solid ${conCrit.length > 0 ? '#FECACA' : '#BBF7D0'}`, marginBottom: 16 }}>
+                            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              Resumen de perfiles — {diagnostico.length} cuentas
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                              <div style={{ textAlign: 'center', padding: '8px 6px', background: '#fff', borderRadius: 8, border: '1px solid #FECACA' }}>
+                                <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#DC2626', lineHeight: 1 }}>{totalCrit}</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 9, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>Datos críticos</p>
+                              </div>
+                              <div style={{ textAlign: 'center', padding: '8px 6px', background: '#fff', borderRadius: 8, border: '1px solid #FED7AA' }}>
+                                <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#D97706', lineHeight: 1 }}>{totalImp}</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 9, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>Datos importantes</p>
+                              </div>
+                              <div style={{ textAlign: 'center', padding: '8px 6px', background: '#fff', borderRadius: 8, border: '1px solid #BBF7D0' }}>
+                                <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#059669', lineHeight: 1 }}>{completas.length}</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 9, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>Perfiles completos</p>
+                              </div>
+                            </div>
+                            {conCrit.length > 0 && (
+                              <p style={{ margin: '10px 0 0', fontSize: 11, color: '#991B1B' }}>
+                                ⚠ <strong>{conCrit.length} cuenta{conCrit.length > 1 ? 's' : ''}</strong> sin datos de contacto. Sin estos datos no es posible predecir riesgo de churn correctamente.
+                              </p>
+                            )}
+                          </div>
+                        )
+                      })()}
+
+                      {/* Cards por cuenta */}
+                      {diagnostico.map(d => {
+                        const hs        = d.health_score
+                        const semCol    = hs >= 80 ? '#22C55E' : hs >= 60 ? '#3B82F6' : hs >= 40 ? '#EAB308' : hs >= 20 ? '#F97316' : '#EF4444'
+                        const pctBg     = d.pct_completo >= 80 ? '#F0FDF4' : d.pct_completo >= 50 ? '#FFFBEB' : '#FFF5F5'
+                        const pctBorder = d.pct_completo >= 80 ? '#BBF7D0' : d.pct_completo >= 50 ? '#FDE68A' : '#FECACA'
+                        const pctColor  = d.pct_completo >= 80 ? '#059669' : d.pct_completo >= 50 ? '#D97706' : '#DC2626'
+
+                        if (d.gaps.length === 0) {
+                          return (
+                            <div key={d.id} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #BBF7D0', background: '#F0FDF4', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <CheckCircle size={13} color="#059669" style={{ flexShrink: 0 }} />
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', flex: 1 }}>{d.empresa}</span>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#059669' }}>Perfil completo</span>
+                            </div>
+                          )
+                        }
+
+                        return (
+                          <div key={d.id} style={{ marginBottom: 8, border: '1px solid #E2E8F0', borderRadius: 10, overflow: 'hidden' }}>
+                            {/* Header de cuenta */}
+                            <div style={{ padding: '9px 12px', background: '#F8FAFC', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: semCol, padding: '2px 7px', borderRadius: 99 }}>
+                                HS {hs}
+                              </span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', flex: 1 }}>{d.empresa}</span>
+                              <a href={`/cuentas/${d.id}`} style={{ fontSize: 10, color: '#7C3AED', fontWeight: 700, textDecoration: 'none' }}>
+                                Ver cuenta →
+                              </a>
+                            </div>
+
+                            {/* Barra de completitud */}
+                            <div style={{ padding: '8px 12px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ flex: 1, height: 6, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${d.pct_completo}%`, background: pctColor, borderRadius: 99, transition: 'width 0.4s' }} />
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: pctColor, minWidth: 36, textAlign: 'right' }}>{d.pct_completo}%</span>
+                              <span style={{ fontSize: 9, color: '#94A3B8' }}>completo</span>
+                            </div>
+
+                            {/* Campos faltantes */}
+                            <div style={{ padding: '8px 12px' }}>
+                              <p style={{ margin: '0 0 6px', fontSize: 9, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                                Datos faltantes ({d.gaps.length})
+                              </p>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                {d.gaps.map((g, i) => (
+                                  <span key={i} style={{
+                                    fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                                    background: g.nivel === 'critico' ? '#FEF2F2' : g.nivel === 'importante' ? '#FFFBEB' : '#F8FAFC',
+                                    color:      g.nivel === 'critico' ? '#DC2626'  : g.nivel === 'importante' ? '#D97706'  : '#94A3B8',
+                                    border: `1px solid ${g.nivel === 'critico' ? '#FECACA' : g.nivel === 'importante' ? '#FDE68A' : '#E2E8F0'}`,
+                                  }}>
+                                    {g.nivel === 'critico' ? '🔴' : g.nivel === 'importante' ? '🟡' : '⚪'} {g.campo}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+
+                      {/* Leyenda */}
+                      <div style={{ marginTop: 12, padding: '10px 12px', background: '#F8FAFC', borderRadius: 8, border: '1px solid #E2E8F0' }}>
+                        <p style={{ margin: '0 0 5px', fontSize: 10, fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Niveles de urgencia</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          <span style={{ fontSize: 11, color: '#DC2626' }}>🔴 <strong>Crítico</strong>: bloquea análisis de riesgo y contactabilidad</span>
+                          <span style={{ fontSize: 11, color: '#D97706' }}>🟡 <strong>Importante</strong>: limita previsión de churn y oportunidades</span>
+                          <span style={{ fontSize: 11, color: '#94A3B8' }}>⚪ <strong>Deseable</strong>: enriquece el perfil del cliente B2B</span>
+                        </div>
+                      </div>
+                    </>
                   )}
                 </>
               )}
@@ -814,7 +983,7 @@ export default function ActividadesBtn({
               flexShrink: 0, flexWrap: 'wrap',
             }}>
               <button
-                onClick={vista === 'semana' ? load : loadAll}
+                onClick={vista === 'semana' ? load : vista === 'historico' ? loadAll : loadDiag}
                 disabled={loading || loadingHist}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
@@ -834,9 +1003,13 @@ export default function ActividadesBtn({
                       </span>
                     )}
                   </p>
-                ) : (
+                ) : vista === 'historico' ? (
                   <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
                     {historico.reduce((s, w) => s + w.total, 0)} actividades · {historico.length} semanas
+                  </p>
+                ) : (
+                  <p style={{ margin: 0, fontSize: 10, color: '#94A3B8' }}>
+                    {diagnostico.length} cuentas analizadas · {diagnostico.filter(d => d.gaps.length === 0).length} perfiles completos
                   </p>
                 )}
               </div>
