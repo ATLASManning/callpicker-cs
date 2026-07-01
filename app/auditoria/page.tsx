@@ -10,6 +10,9 @@ import { SALUD_Y_HOGAR }   from './salud-y-hogar-data'
 import { SAMALAB }         from './samalab-data'
 import { LABSUS }          from './labsus-data'
 import { GRUPOFRISA }      from './grupofrisa-data'
+import { ALIANZA }         from './alianza-data'
+import { ALTERNET }        from './alternet-data'
+import { AZYCO }           from './azyco-data'
 import AuditoriaDetail from './AuditoriaDetail'
 import AuditoriaForm from './AuditoriaForm'
 
@@ -53,7 +56,7 @@ export default function AuditoriaPage() {
   }, [])
 
   /* Lista completa de casos (ARKANSAS siempre primero) */
-  const allCases: AuditoriaCase[] = [ARKANSAS, FINSUS, GRUPOFRISA, AGUA_INMACULADA, SALUD_Y_HOGAR, SAMALAB, LABSUS, ...userCases]
+  const allCases: AuditoriaCase[] = [ARKANSAS, FINSUS, GRUPOFRISA, AGUA_INMACULADA, SALUD_Y_HOGAR, SAMALAB, LABSUS, ALIANZA, ALTERNET, AZYCO, ...userCases]
   const currentCase = allCases.find(c => c.id === selectedId) ?? ARKANSAS
 
   /* Guardar nuevo caso */
@@ -113,7 +116,7 @@ export default function AuditoriaPage() {
             {allCases.map(c => {
               const active  = selectedId === c.id
               const eColor  = ESTADO_COLOR[c.estado] ?? '#6366f1'
-              const isUser  = !['arkansas', 'finsus', 'grupofrisa', 'agua-inmaculada', 'salud-y-hogar', 'samalab', 'labsus'].includes(c.id)
+              const isUser  = !['arkansas', 'finsus', 'grupofrisa', 'agua-inmaculada', 'salud-y-hogar', 'samalab', 'labsus', 'alianza', 'alternet', 'azyco'].includes(c.id)
               return (
                 <div key={c.id} className="relative group flex-shrink-0">
                   <button
