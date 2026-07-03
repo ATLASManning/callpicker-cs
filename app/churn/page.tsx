@@ -568,6 +568,102 @@ const REPORTE_S4_JUNIO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE DE CIERRE — JUNIO 2026 (30 jun 2026)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_CIERRE_JUNIO_2026: ChurnReporte = {
+  id:      'cierre-junio-2026',
+  periodo: 'Cierre Junio 2026',
+  fecha:   '30/06/2026',
+  notas:   'Gross Revenue Churn · Cierre de Mes — 1er Semestre 2026. Al 30 de junio del 2026. Consolidado de semanas 7–10: corte esperando pago, suspendidos, cancelados, downgrades del período y artículos más afectados del mes. Fuente: Daniel Martínez — correo de cierre enviado 3 Jul 2026.',
+  notaRemitente: 'Daniel Martínez — Correo de cierre 1er semestre 2026. Solicita comentarios respondiendo al correo. Para análisis de downgrade por artículo: Consulta de churn y downgrade por artículo. Para casos a detalle: Documento Casos.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Abril',           pct: 1.8, anterior: 1.9 },
+      { mes: 'Mayo',            pct: 1.8 },
+      { mes: 'Junio',           pct: 7.7, anterior: 13.2 },
+    ],
+    acumulado: 17.7,
+    notaClave: 'Churn Q2: Abril 1.8% · Mayo 1.8% · Junio 7.7% (inicial 13.2%, corregido). Churn acumulado 2026: 17.7%.',
+    notaEspecial: '⚠️ Seguimiento de cuentas en corte por semana — Sem 7: $10,367 · 6 cuentas (NatGas, jemmoma, Nuclea, Nido Fertility, la victoria, World Pack). Sem 8: $9,843 · 13 cuentas (SISESCO, Aceros y Metales del Norte, Grupo GECH, Floreria Suspiros…). Sem 9: $21,451 · 23 cuentas (Segutrends, Novahogar, Grúas Gutigon…). Sem 10 actual: $49,186 · 37 cuentas. 🚨 Finsus grow: $121,500 — caso especial. La 2ª factura del mes aún no se ha generado. NO es baja real — verificar emisión pendiente urgente.',
+  },
+
+  /* En Corte Sem 10 (actual) — top 5 de 37 cuentas · total $49,186 */
+  pendientesTotalReal:   49186,
+  pendientesCuentasReal: 37,
+  pendientes: [
+    { cliente: '🔝 Embler Autopartes',    monto: 5874, mesesActivo: 7,  ultimaFactura: '25/05/2026' },
+    { cliente: 'Not Just',                monto: 5089, mesesActivo: 3,  ultimaFactura: '28/05/2026' },
+    { cliente: 'TROQUELADOS MODULARES',   monto: 4790, mesesActivo: 38, ultimaFactura: '31/05/2026' },
+    { cliente: 'TAQUERIA EL PARIENTE',    monto: 3500, mesesActivo: 83, ultimaFactura: '29/05/2026' },
+    { cliente: 'iA Solutions',            monto: 2068, mesesActivo: 14, ultimaFactura: '25/05/2026' },
+    { cliente: '+ 32 cuentas adicionales',monto: 27865,mesesActivo: 0,  ultimaFactura: 'Ver lista completa en el documento' },
+  ],
+
+  /* Cancelados — 6 cuentas · $7,365 */
+  cancelados: [
+    { cliente: '🔝 ZD - Grupo Liber',              mrr: 2355, mesesActivo: 28, acumulado: 0 },
+    { cliente: 'IT REINGENIERIAS',                  mrr: 1959, mesesActivo: 87, acumulado: 0 },
+    { cliente: 'RELIABLEGLOBALMANAGEMENTLME',        mrr: 1389, mesesActivo: 0,  acumulado: 0 },
+    { cliente: '+ 3 cuentas adicionales',           mrr: 1662, mesesActivo: 0,  acumulado: 0 },
+  ],
+
+  /* Desactivados: cancelados < 3 meses de vida — 7 cuentas · $18,440 */
+  desactivadosTotalReal:   18440,
+  desactivadosCuentasReal: 7,
+  desactivados: [
+    { cliente: '🔝 TURBODAYS',                              importe: 14018, mesesActivo: 0 },
+    { cliente: 'Adim ecosistema de cumplimiento normativo',  importe: 1959,  mesesActivo: 0 },
+    { cliente: 'RELIABLEGLOBALMANAGEMENTLME',                importe: 1389,  mesesActivo: 0 },
+    { cliente: 'Comercial Regasa',                           importe: 489,   mesesActivo: 3 },
+    { cliente: 'Persianas Marais',                           importe: 195,   mesesActivo: 1 },
+    { cliente: 'Servicios Industriales del Bajio',           importe: 195,   mesesActivo: 3 },
+    { cliente: 'Despacho Ruiz',                              importe: 195,   mesesActivo: 0 },
+  ],
+
+  /* Suspendidos — 8 cuentas · $6,292 */
+  suspendidosTotalReal:   6292,
+  suspendidosCuentasReal: 8,
+  suspendidos: [
+    { cliente: '🔝 HONDA TEZONTLE',                    importe: 1396, mesesActivo: 24, estado: 'Suspendido' },
+    { cliente: 'CF Group',                              importe: 1182, mesesActivo: 22, estado: 'Suspendido' },
+    { cliente: 'Refacciones y reparaciones del norte',  importe: 979,  mesesActivo: 16, estado: 'Suspendido' },
+    { cliente: '+ 5 cuentas adicionales',               importe: 2735, mesesActivo: 0,  estado: 'Suspendido' },
+  ],
+
+  /* Downgrades significativos del mes — $180,760.14 · 12 clientes
+     (Finsus grow excluido del total real: verificación pendiente) */
+  downgradeTotalReal: 180760.14,
+  downgrades: [
+    { cliente: '🚨 Finsus grow (VERIFICAR)',  perdida: 121500,   nota: 'CASO ESPECIAL — No confirmar como baja real. Finsus tiene 2 facturas al mes y la 2ª aún no se ha generado. Verificar emisión pendiente urgente antes de contabilizar como downgrade.' },
+    { cliente: '⚠️ Pitahaya',               perdida: 11188.97, nota: 'Eliminó Paquete Min VyC ($9,799) y DID Nacional ($1,584). Sigue activa solo con Paquete Min CE ($195).' },
+    { cliente: '⚠️ Bliss crédito libre',    perdida: 8787.24,  nota: 'Eliminó Agente CP Chat y Paquete WhatsApp API. Conserva solo Paquete Min VyC.' },
+    { cliente: 'Finsus Cobranza',           perdida: 7016,     nota: 'Redujo 3 productos: Extensión Callcenter, Agente CP Chat y Ofuscador. MRR de $11,211 → $4,195.' },
+    { cliente: 'KIVA',                      perdida: 6000,     nota: 'Eliminó Paquete Min Voicebot ($6,000 → $0). Facturación total de $7,177 → $1,177.' },
+    { cliente: 'MKG',                       perdida: 5947,     nota: 'Redujo PSTN Nacional y Extensión VyC, pero hizo upsell en Extensión Callcenter (+$899). Pérdida neta real.' },
+    { cliente: 'GBS Cuenta Maestra',        perdida: 5873.97,  nota: 'Redujo Paquete Min VyC de $15,663 → $9,790. Facturación total de $16,713 → $10,840.' },
+    { cliente: 'Polak Grupo',               perdida: 3650,     nota: 'Redujo Paquete Min CE de $30,630 → $26,980.' },
+    { cliente: 'SAMALAB',                   perdida: 3000,     nota: 'Eliminó Paquete Min Voicebot ($3,000 → $0).' },
+    { cliente: 'AJ PENNY BLINDS',           perdida: 2653,     nota: 'Redujo Agente CP Chat de $4,169 → $1,516.' },
+    { cliente: 'Salud y Hogar',             perdida: 2573.96,  nota: 'Eliminó Plan Celular y bajó DID Nacional. Pérdida bruta $4,874, compensada con upsell en Extensión VyC con SIM (+$2,301).' },
+    { cliente: 'AGRANS',                    perdida: 2570,     nota: 'Redujo Extensión VyC de $4,886 → $2,316.' },
+  ],
+
+  /* Artículos más afectados — consolidado semanas 7–10 + significativos */
+  downgradeArticulos: [
+    { articulo: 'Paquete Min VyC',          vecesAfectado: 4, clientes: ['Pitahaya', 'GBS Cuenta Maestra', 'Dicap Desarrollos', 'Akún'] },
+    { articulo: 'Agente CP Chat',           vecesAfectado: 4, clientes: ['Bliss crédito libre', 'Finsus Cobranza', 'AJ Penny Blinds', 'Akún'] },
+    { articulo: 'Paquete Min Voicebot',     vecesAfectado: 3, clientes: ['KIVA', 'SAMALAB', 'SAMALAB (sem. anterior)'] },
+    { articulo: 'Extensión VyC',            vecesAfectado: 3, clientes: ['AGRANS', 'MKG', 'Medical Hannover'] },
+    { articulo: 'DID Nacional',             vecesAfectado: 4, clientes: ['Pitahaya', 'Salud y Hogar', 'SISDASA', 'Akún'] },
+    { articulo: 'Paquete Ops Automatizaciones', vecesAfectado: 3, clientes: ['GTC - NAVA', 'GTC - CENTRO MAX', '+ 6 sucursales GTC (sem. 8)'] },
+    { articulo: 'Extensión VyC con SIM',    vecesAfectado: 2, clientes: ['Medical Hannover', 'Salud y Hogar'] },
+    { articulo: 'Plan Celular',             vecesAfectado: 2, clientes: ['Medical Hannover', 'Salud y Hogar'] },
+    { articulo: 'Paquete WhatsApp API',     vecesAfectado: 2, clientes: ['Bliss crédito libre', 'Pronto LATAM'] },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -980,16 +1076,16 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s4-junio-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('cierre-junio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
-  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S4_JUNIO_2026
+  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026']
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_CIERRE_JUNIO_2026
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
   const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
