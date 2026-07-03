@@ -40,27 +40,39 @@ export async function GET(req: NextRequest) {
   const esFalla   = sp.get('es_falla') ?? ''
   const prioridad = sp.get('prioridad') ?? ''
   const mes       = sp.get('mes') ?? ''
+  const propietario = sp.get('propietario') ?? ''
   const page      = parseInt(sp.get('page') ?? '1')
   const limit     = parseInt(sp.get('limit') ?? '50')
   const mode      = sp.get('mode') ?? 'list'
 
+  // ── Propietarios ───────────────────────────────────────────────────
+  if (mode === 'propietarios') {
+    const set = new Set<string>()
+    for (const t of ALL_TICKETS) if (t.propietario) set.add(t.propietario)
+    return NextResponse.json({ propietarios: Array.from(set).sort() })
+  }
+
   // ── Stats ──────────────────────────────────────────────────────────
   if (mode === 'stats') {
+    const base = mes ? ALL_TICKETS.filter(t => t.fecha.startsWith(mes)) : ALL_TICKETS
+
     const byMes:   Record<string, number> = {}
     const byCat:   Record<string, number> = {}
     const byProd:  Record<string, number> = {}
     const byPrior: Record<string, number> = {}
+    const byProp:  Record<string, number> = {}
     let fallas = 0
 
     const empMap: Record<string, { total: number; fallas: number; ultima: string }> = {}
 
-    for (const t of ALL_TICKETS) {
+    for (const t of base) {
       const m = t.fecha.slice(0, 7)
       byMes[m]  = (byMes[m]  || 0) + 1
       byCat[t.categoria]   = (byCat[t.categoria]   || 0) + 1
       byProd[t.producto]   = (byProd[t.producto]   || 0) + 1
       const pr = t.prioridad || 'Low'
       byPrior[pr] = (byPrior[pr] || 0) + 1
+      if (t.propietario) byProp[t.propietario] = (byProp[t.propietario] || 0) + 1
       if (t.es_falla === 'Si') fallas++
 
       if (!empMap[t.empresa]) empMap[t.empresa] = { total: 0, fallas: 0, ultima: '' }
@@ -75,7 +87,7 @@ export async function GET(req: NextRequest) {
       .slice(0, 20)
       .map(([nombre, d]) => ({ nombre, ...d }))
 
-    return NextResponse.json({ total: ALL_TICKETS.length, fallas, byMes, byCat, byProd, byPrior, topEmpresas })
+    return NextResponse.json({ total: base.length, fallas, byMes, byCat, byProd, byPrior, byProp, topEmpresas })
   }
 
   // ── Conciliación ───────────────────────────────────────────────────
@@ -124,11 +136,12 @@ export async function GET(req: NextRequest) {
       const hay = normalize(t.empresa) + ' ' + t.num + ' ' + t.ticket_id
       if (!hay.includes(normalize(q))) return false
     }
-    if (producto  && !t.producto.toLowerCase().includes(producto.toLowerCase()))   return false
-    if (categoria && !t.categoria.toLowerCase().includes(categoria.toLowerCase())) return false
-    if (esFalla   && t.es_falla !== esFalla)                                       return false
-    if (prioridad && t.prioridad.toLowerCase() !== prioridad.toLowerCase())        return false
-    if (mes       && !t.fecha.startsWith(mes))                                     return false
+    if (producto    && !t.producto.toLowerCase().includes(producto.toLowerCase()))    return false
+    if (categoria   && !t.categoria.toLowerCase().includes(categoria.toLowerCase()))  return false
+    if (esFalla     && t.es_falla !== esFalla)                                        return false
+    if (prioridad   && t.prioridad.toLowerCase() !== prioridad.toLowerCase())         return false
+    if (mes         && !t.fecha.startsWith(mes))                                      return false
+    if (propietario && t.propietario.toLowerCase() !== propietario.toLowerCase())     return false
     return true
   })
 

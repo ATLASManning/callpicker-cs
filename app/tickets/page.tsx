@@ -23,6 +23,7 @@ interface Stats {
   byCat: Record<string, number>
   byProd: Record<string, number>
   byPrior: Record<string, number>
+  byProp: Record<string, number>
   topEmpresas: { nombre: string; total: number; fallas: number; ultima: string }[]
 }
 
@@ -110,8 +111,9 @@ export default function TicketsPage() {
   const [tab, setTab] = useState<Tab>('overview')
 
   /* ── Stats ── */
-  const [stats, setStats] = useState<Stats | null>(null)
+  const [stats, setStats]       = useState<Stats | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
+  const [overviewMes, setOverviewMes]   = useState('')
 
   /* ── Explorador ── */
   const [rows, setRows]         = useState<TicketRow[]>([])
@@ -125,6 +127,8 @@ export default function TicketsPage() {
   const [filterPrior, setFilterPrior] = useState('')
   const [filterMes, setFilterMes]     = useState('')
   const [filterFalla, setFilterFalla] = useState('')
+  const [filterEjecutivo, setFilterEjecutivo] = useState('')
+  const [propietarios, setPropietarios]       = useState<string[]>([])
   const qRef = useRef(q)
 
   /* ── Conciliación ── */
@@ -143,25 +147,35 @@ export default function TicketsPage() {
   /* ── Fetch stats ── */
   useEffect(() => {
     setStatsLoading(true)
-    fetch('/api/tickets?mode=stats')
+    const p = new URLSearchParams({ mode: 'stats' })
+    if (overviewMes) p.set('mes', overviewMes)
+    fetch(`/api/tickets?${p}`)
       .then(r => r.json()).then(setStats).finally(() => setStatsLoading(false))
+  }, [overviewMes])
+
+  /* ── Fetch propietarios (una sola vez) ── */
+  useEffect(() => {
+    fetch('/api/tickets?mode=propietarios')
+      .then(r => r.json())
+      .then(d => setPropietarios(d.propietarios ?? []))
   }, [])
 
   /* ── Fetch list ── */
   const fetchList = useCallback((pg = 1) => {
     setListLoading(true)
     const params = new URLSearchParams({ page: String(pg), limit: '50' })
-    if (qRef.current)    params.set('q', qRef.current)
-    if (filterProd)      params.set('producto', filterProd)
-    if (filterCat)       params.set('categoria', filterCat)
-    if (filterPrior)     params.set('prioridad', filterPrior)
-    if (filterMes)       params.set('mes', filterMes)
-    if (filterFalla)     params.set('es_falla', filterFalla)
+    if (qRef.current)      params.set('q', qRef.current)
+    if (filterProd)        params.set('producto', filterProd)
+    if (filterCat)         params.set('categoria', filterCat)
+    if (filterPrior)       params.set('prioridad', filterPrior)
+    if (filterMes)         params.set('mes', filterMes)
+    if (filterFalla)       params.set('es_falla', filterFalla)
+    if (filterEjecutivo)   params.set('propietario', filterEjecutivo)
     fetch(`/api/tickets?${params}`)
       .then(r => r.json())
       .then(d => { setRows(d.rows); setListTotal(d.total); setListPages(d.pages); setPage(pg) })
       .finally(() => setListLoading(false))
-  }, [filterProd, filterCat, filterPrior, filterMes, filterFalla])
+  }, [filterProd, filterCat, filterPrior, filterMes, filterFalla, filterEjecutivo])
 
   useEffect(() => { if (tab === 'explorador') fetchList(1) }, [tab, fetchList])
 
@@ -221,14 +235,31 @@ export default function TicketsPage() {
         {/* ═══ OVERVIEW ════════════════════════════════════════════ */}
         {tab === 'overview' && (
           <>
+            {/* Filtro de mes */}
+            <div className="flex items-center gap-3">
+              <Calendar size={14} className="text-gray-400 flex-shrink-0" />
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Filtrar por mes</span>
+              <div className="flex flex-wrap gap-1.5">
+                {MESES.map(m => (
+                  <button key={m.val} onClick={() => setOverviewMes(m.val)}
+                    className="px-3 py-1 rounded-lg text-xs font-medium transition-all border"
+                    style={overviewMes === m.val
+                      ? { background: '#1B3FCC', color: '#fff', borderColor: '#1B3FCC' }
+                      : { background: '#fff', color: '#6b7280', borderColor: '#e5e7eb' }}>
+                    {m.val === '' ? 'Todos' : m.label.split(' ')[0]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {statsLoading ? (
               <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Cargando estadísticas…</div>
             ) : stats ? (
               <>
                 {/* KPIs */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <KpiCard icon={Tag}           label="Total tickets"      value={stats.total.toLocaleString()}  sub="Mar–Jun 2026"              color={BLUE}   />
-                  <KpiCard icon={AlertTriangle} label="Fallas reales"      value={stats.fallas}                  sub={`${((stats.fallas/stats.total)*100).toFixed(1)}% del total`} color={RED} />
+                  <KpiCard icon={Tag}           label="Total tickets"      value={stats.total.toLocaleString()}  sub={overviewMes ? MESES.find(m=>m.val===overviewMes)?.label : 'Mar–Jun 2026'} color={BLUE}   />
+                  <KpiCard icon={AlertTriangle} label="Fallas reales"      value={stats.fallas}                  sub={`${stats.total > 0 ? ((stats.fallas/stats.total)*100).toFixed(1) : 0}% del total`} color={RED} />
                   <KpiCard icon={Zap}           label="Producto Voz"       value={stats.byProd['Voz'] ?? 0}      sub="tickets de voz"            color={BLUE}   />
                   <KpiCard icon={Users}         label="Producto Chat"      value={stats.byProd['Chat'] ?? 0}     sub="tickets de chat"           color={INDIGO} />
                 </div>
@@ -280,6 +311,22 @@ export default function TicketsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* Por Ejecutivo */}
+                {stats.byProp && Object.keys(stats.byProp).length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                    <h3 className="font-semibold text-sm text-gray-900 mb-3">
+                      Tickets por Ejecutivo
+                      {overviewMes && <span className="ml-2 text-xs font-normal text-gray-400">· {MESES.find(m=>m.val===overviewMes)?.label}</span>}
+                    </h3>
+                    <div>
+                      {Object.entries(stats.byProp).sort((a,b)=>b[1]-a[1]).map(([prop, n]) => (
+                        <BarRow key={prop} label={prop} value={n}
+                          max={Math.max(...Object.values(stats.byProp))} color={INDIGO} />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Top empresas */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -358,6 +405,13 @@ export default function TicketsPage() {
                     {f.opts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
                   </select>
                 ))}
+                {/* Filtro ejecutivo — dinámico */}
+                <select value={filterEjecutivo}
+                  onChange={e => { setFilterEjecutivo(e.target.value); setTimeout(() => fetchList(1), 0) }}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
+                  <option value="">Ejecutivo (todos)</option>
+                  {propietarios.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
                 <button onClick={() => fetchList(1)}
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
                   <RefreshCw size={11} /> Actualizar
