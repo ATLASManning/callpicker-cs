@@ -5,6 +5,7 @@ import PageHeader from '@/components/PageHeader'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import Link from 'next/link'
 import { headers } from 'next/headers'
+import UpsellRegistros from './UpsellRegistros'
 
 export const dynamic = 'force-dynamic'
 
@@ -218,6 +219,9 @@ export default async function UpsellPage() {
           </div>
         </div>
       </div>
+
+      {/* Registro de Oportunidades */}
+      <UpsellRegistros />
     </div>
   )
 }
