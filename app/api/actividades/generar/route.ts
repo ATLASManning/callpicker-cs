@@ -32,7 +32,7 @@ function toISO(d: Date): string {
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-type TipoActividad = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell' | 'validacion'
+type TipoActividad = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell' | 'validacion' | 'tickets' | 'pagos'
 type Prioridad     = 'alta' | 'media' | 'baja'
 
 interface CuentaFull {
@@ -85,6 +85,8 @@ const TIPO_META: Record<TipoActividad, { label: string; emoji: string }> = {
   kam:        { label: 'Seguimiento KAM',     emoji: '📝' },
   upsell:     { label: 'Propuesta Expansión', emoji: '🚀' },
   validacion: { label: 'Completar Perfil',    emoji: '⚠️' },
+  tickets:    { label: 'Análisis de Tickets', emoji: '🎫' },
+  pagos:      { label: 'Comportamiento Pago', emoji: '💳' },
 }
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -192,6 +194,18 @@ Actualiza en: Dashboard → Cuentas → ${empresa} → Editar. Sin este perfil c
         `ACTUALIZACIÓN DE RELACIÓN — ${empresa}. Revisa compromisos de la última sesión: ¿cuáles se cumplieron? ¿cuáles están pendientes? Documenta nivel de satisfacción percibida y cualquier señal de riesgo u oportunidad. Esta información alimenta directamente el health score y la previsión de churn.${capturaStr}`,
       ][idx % 3]
 
+    case 'tickets':
+      return [
+        `REVISIÓN DE TICKETS — ${empresa}. Antes de cualquier contacto, accede a la plataforma de soporte y revisa: (1) tickets abiertos y su antigüedad, (2) categorías más frecuentes de incidencia este mes, (3) tiempo promedio de resolución vs SLA comprometido. Si hay tickets > 48h sin respuesta → escalar de inmediato y notificar al cliente con ETA de cierre. Registra hallazgos en Observaciones KAM.${capturaStr}`,
+        `ANÁLISIS DE CALIDAD EN SOPORTE — ${empresa}. Clasifica los tickets del último mes en: fallas técnicas / dudas de uso / solicitudes de configuración. Identifica la categoría dominante. Si "fallas técnicas" aparece más de 3 veces → el cliente tiene un problema de estabilidad que debe resolverse antes de proponer expansión. Genera resumen para el área técnica y documenta acuerdo de mejora con fecha.${capturaStr}`,
+      ][idx % 2]
+
+    case 'pagos':
+      return [
+        `REVISIÓN DE COMPORTAMIENTO DE PAGO — ${empresa}. Verifica en el sistema: (1) ¿pagos al corriente? (2) número de incidencias históricas, (3) mes de último pago confirmado. Si hay atraso + HS < 60 → riesgo real: coordinar con cobranza y notificar a supervisión. Si hay 2+ incidencias históricas → crear nota de alerta en KAM. Correlaciona con satisfacción percibida antes del siguiente contacto.${capturaStr}`,
+        `VALIDACIÓN DE FACTURACIÓN — ${empresa}. Confirma que la factura del período fue emitida, enviada y recibida correctamente. Si el cliente menciona discrepancias en montos, descuentos o servicios facturados → documentar y canalizar a administración el mismo día. Pregunta directa: "¿Llegó correctamente su estado de cuenta?" Registra respuesta y cualquier compromiso de pago en Observaciones KAM.${capturaStr}`,
+      ][idx % 2]
+
     case 'llamada':
     default:
       if (semaforo === 'naranja' || semaforo === 'rojo') {
@@ -286,14 +300,15 @@ export async function POST(req: NextRequest) {
     const pool: Array<{ cuenta: CuentaFull; tipo: TipoActividad }> = []
 
     let ti = 0
+    const riesgoRotation: TipoActividad[] = ['reunion', 'llamada', 'pagos']
     for (const c of enRiesgo) {
       if (!usedIds.has(c.id)) {
-        pool.push({ cuenta: c, tipo: ti++ % 2 === 0 ? 'reunion' : 'llamada' })
+        pool.push({ cuenta: c, tipo: riesgoRotation[ti++ % riesgoRotation.length] })
         usedIds.add(c.id)
       }
     }
     ti = 0
-    const obsRotation: TipoActividad[] = ['llamada', 'analisis', 'kam']
+    const obsRotation: TipoActividad[] = ['llamada', 'analisis', 'kam', 'tickets']
     for (const c of observacion) {
       if (!usedIds.has(c.id)) {
         pool.push({ cuenta: c, tipo: obsRotation[ti++ % obsRotation.length] })
@@ -301,21 +316,23 @@ export async function POST(req: NextRequest) {
       }
     }
     ti = 0
+    const sinActRotation: TipoActividad[] = ['llamada', 'reunion', 'pagos']
     for (const c of sinAct) {
       if (!usedIds.has(c.id)) {
-        pool.push({ cuenta: c, tipo: ti++ % 2 === 0 ? 'llamada' : 'reunion' })
+        pool.push({ cuenta: c, tipo: sinActRotation[ti++ % sinActRotation.length] })
         usedIds.add(c.id)
       }
     }
     ti = 0
+    const upsellRotation: TipoActividad[] = ['upsell', 'analisis', 'reunion']
     for (const c of conUpsell) {
       if (!usedIds.has(c.id)) {
-        pool.push({ cuenta: c, tipo: ti++ % 2 === 0 ? 'upsell' : 'analisis' })
+        pool.push({ cuenta: c, tipo: upsellRotation[ti++ % upsellRotation.length] })
         usedIds.add(c.id)
       }
     }
     ti = 0
-    const estabRotation: TipoActividad[] = ['analisis', 'kam', 'llamada', 'analisis', 'kam']
+    const estabRotation: TipoActividad[] = ['analisis', 'kam', 'llamada', 'tickets', 'pagos', 'analisis', 'kam']
     for (const c of estables) {
       if (!usedIds.has(c.id)) {
         pool.push({ cuenta: c, tipo: estabRotation[ti++ % estabRotation.length] })
@@ -339,7 +356,7 @@ export async function POST(req: NextRequest) {
       pool.splice(insertAt, 0, ...validacionItems)
     }
 
-    // Generar 2 actividades por día hábil (Lun–Vie = 10 actividades)
+    // Generar 3 actividades por día hábil (Lun–Vie = 15 actividades)
     const rows: ActividadRow[] = []
     let poolIdx = 0
 
@@ -347,9 +364,9 @@ export async function POST(req: NextRequest) {
       const dia = new Date(monday)
       dia.setDate(monday.getDate() + d)
       const fechaProg = toISO(dia)
-      const fechaVenc = toISO(addBusinessDays(dia, 3))
+      const fechaVenc = toISO(addBusinessDays(dia, 2))
 
-      for (let a = 0; a < 2; a++) {
+      for (let a = 0; a < 3; a++) {
         const { cuenta, tipo } = pool[poolIdx % pool.length]
         const idx = poolIdx
         poolIdx++
@@ -475,12 +492,12 @@ async function sendActividadesEmail(
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff">
       <div style="background:#0A1628;padding:24px 28px;border-radius:12px 12px 0 0;border-left:4px solid ${ac.color}">
         <p style="color:#fff;font-size:17px;font-weight:800;margin:0">📋 Actividades SAC — ${ac.fullName}</p>
-        <p style="color:rgba(255,255,255,0.55);font-size:12px;margin:5px 0 0">${fechaLabel} · 10 actividades · Lunes a viernes · 2 por día</p>
+        <p style="color:rgba(255,255,255,0.55);font-size:12px;margin:5px 0 0">${fechaLabel} · 15 actividades · Lunes a viernes · 3 por día</p>
       </div>
       <div style="padding:16px 28px;background:#EFF6FF;border-left:4px solid ${ac.color};border-bottom:1px solid #BFDBFE">
         <p style="margin:0;font-size:13px;color:#1E40AF">
           Hola <strong>${ac.fullName.split(' ')[0]}</strong>, estas son tus actividades SAC para esta semana.
-          Cada actividad tiene <strong>3 días hábiles</strong> para completarse. Las actividades <strong style="color:#DC2626">⚠️ Completar Perfil</strong> requieren actualizar datos en el sistema tras la interacción.
+          Cada actividad tiene <strong>2 días hábiles</strong> para completarse y se <strong style="color:#DC2626">bloquea automáticamente</strong> si no se registra en ese plazo. Las actividades <strong style="color:#DC2626">⚠️ Completar Perfil</strong> requieren actualizar datos en el sistema tras la interacción.
         </p>
       </div>
       <table style="width:100%;border-collapse:collapse">
@@ -488,7 +505,7 @@ async function sendActividadesEmail(
       </table>
       <div style="padding:16px 28px;background:#F8FAFC;border-top:1px solid #E2E8F0;border-radius:0 0 12px 12px">
         <p style="margin:0;color:#64748B;font-size:12px">
-          ⛔ Las actividades no completadas en plazo quedan en <strong style="color:#EF4444">rojo bloqueado</strong>.
+          ⛔ Las actividades no completadas en <strong>2 días hábiles</strong> quedan en <strong style="color:#EF4444">estado bloqueado</strong> automáticamente.
           Registra siempre el motivo en el sistema si no fue posible realizarla.
         </p>
         <p style="margin:8px 0 0;color:#94A3B8;font-size:11px">

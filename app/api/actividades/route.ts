@@ -19,6 +19,26 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Auto-bloquear actividades pendientes cuya fecha_vencimiento ya pasó
+  const today   = new Date().toISOString().split('T')[0]
+  const vencidas = (data ?? []).filter(
+    (a: Record<string, unknown>) => a.estado === 'pendiente' && typeof a.fecha_vencimiento === 'string' && a.fecha_vencimiento < today
+  )
+  if (vencidas.length > 0) {
+    const ids = vencidas.map((a: Record<string, unknown>) => a.id)
+    await supabaseAdmin
+      .from('actividades')
+      .update({ estado: 'bloqueada', actualizado_en: new Date().toISOString() })
+      .in('id', ids)
+    const bloqueadasSet = new Set(ids)
+    for (const a of data ?? []) {
+      if (bloqueadasSet.has((a as Record<string, unknown>).id)) {
+        ;(a as Record<string, unknown>).estado = 'bloqueada'
+      }
+    }
+  }
+
   return NextResponse.json(data ?? [])
 }
 

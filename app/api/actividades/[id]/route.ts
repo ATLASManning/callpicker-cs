@@ -8,6 +8,7 @@ function mapTipo(tipo: string): TipoSeguimiento {
   const m: Record<string, TipoSeguimiento> = {
     llamada: 'llamada', reunion: 'reunion',
     analisis: 'nota', kam: 'nota', upsell: 'upsell',
+    tickets: 'nota', pagos: 'nota',
   }
   return m[tipo] ?? 'nota'
 }
