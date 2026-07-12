@@ -10,6 +10,18 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 }
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
+  const rol    = req.headers.get('x-user-rol')    ?? 'viewer'
+  const asesor = decodeURIComponent(req.headers.get('x-user-asesor') ?? '')
+
+  if (rol === 'viewer')
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+
+  if (rol === 'asesor') {
+    const cuenta = await getCuentaById(params.id)
+    if (!cuenta || cuenta.asesor !== asesor)
+      return NextResponse.json({ error: 'Solo puedes editar tus propias cuentas' }, { status: 403 })
+  }
+
   try {
     const body = await req.json()
     const updated = await updateCuenta(params.id, body)
@@ -26,7 +38,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Ctx) {
+export async function DELETE(req: NextRequest, { params }: Ctx) {
+  const rol = req.headers.get('x-user-rol') ?? 'viewer'
+  if (rol !== 'admin')
+    return NextResponse.json({ error: 'Solo administradores pueden eliminar cuentas' }, { status: 403 })
   try {
     await deleteCuenta(params.id)
     return NextResponse.json({ ok: true, deleted: params.id })

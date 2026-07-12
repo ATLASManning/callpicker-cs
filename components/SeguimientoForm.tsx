@@ -3,12 +3,13 @@ import { useState } from 'react'
 import { Plus, Send } from 'lucide-react'
 import type { TipoSeguimiento, Asesor } from '@/lib/types'
 
-interface Props { cuentaId: string; asesor: Asesor }
+interface Props { cuentaId: string; asesor: Asesor; canEdit?: boolean }
 
 const TIPOS: TipoSeguimiento[] = ['llamada','whatsapp','email','reunion','ticket','nota','demo','upsell']
 const RESULTADOS = ['exitoso','sin_respuesta','escalado','interesado','no_interesado','pendiente']
 
-export default function SeguimientoForm({ cuentaId, asesor }: Props) {
+export default function SeguimientoForm({ cuentaId, asesor, canEdit = false }: Props) {
+  if (!canEdit) return null
   const [open, setOpen] = useState(false)
   const [tipo, setTipo] = useState<TipoSeguimiento>('llamada')
   const [resultado, setResultado] = useState('exitoso')

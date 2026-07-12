@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import type { Cuenta, ContactoCuenta, ServicioCuenta } from '@/lib/types'
 
-interface Props { cuenta: Cuenta }
+interface Props { cuenta: Cuenta; canEdit?: boolean }
 
 const ASESORES = ['Fátima', 'Dan', 'Claudia'] as const
 const TAMANOS  = ['Micro', 'Pequeña', 'Mediana', 'Grande', 'Enterprise'] as const
@@ -38,7 +38,8 @@ function seedServicios(cuenta: Cuenta): ServicioCuenta[] {
   return []
 }
 
-export default function CuentaInfoEditor({ cuenta }: Props) {
+export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
+  if (!canEdit) return null
   const router   = useRouter()
   const dropRef  = useRef<HTMLDivElement>(null)
 

@@ -3,9 +3,10 @@ import { useState } from 'react'
 import { Edit2, Save, X } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
 
-interface Props { cuenta: Cuenta }
+interface Props { cuenta: Cuenta; canEdit?: boolean }
 
-export default function HealthScoreEditor({ cuenta }: Props) {
+export default function HealthScoreEditor({ cuenta, canEdit = false }: Props) {
+  if (!canEdit) return null
   const [editing, setEditing] = useState(false)
   const [scores, setScores] = useState({
     score_actividad: cuenta.score_actividad,

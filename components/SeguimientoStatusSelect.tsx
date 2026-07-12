@@ -16,9 +16,11 @@ const COLOR: Record<Resultado, string> = {
 export default function SeguimientoStatusSelect({
   seguimientoId,
   resultado: initial,
+  canEdit = true,
 }: {
   seguimientoId: string
   resultado: string | null
+  canEdit?: boolean
 }) {
   const [valor, setValor] = useState<string>(initial ?? 'pendiente')
   const [saving, setSaving] = useState(false)
@@ -36,6 +38,14 @@ export default function SeguimientoStatusSelect({
   }
 
   const cls = COLOR[valor as Resultado] ?? 'bg-surface text-textLow border-border'
+
+  if (!canEdit) {
+    return (
+      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${cls}`}>
+        {valor}
+      </span>
+    )
+  }
 
   return (
     <select

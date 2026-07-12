@@ -23,6 +23,7 @@ import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
 import CuentaReunionButton from '@/components/CuentaReunionButton'
 import { updateKam, deleteKam } from '@/app/actions/updateKam'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,6 +40,11 @@ export default async function CuentaDetailPage({ params }: Props) {
   ])
 
   if (!cuenta) notFound()
+
+  const h       = headers()
+  const rol     = h.get('x-user-rol') ?? 'viewer'
+  const asesorH = decodeURIComponent(h.get('x-user-asesor') ?? '')
+  const canEdit = rol === 'admin' || (rol === 'asesor' && cuenta.asesor === asesorH)
 
   const zoho     = lookupZoho(cuenta.empresa, zohoMap)
   const auditoria = findAuditoriaForConsecutivo(cuenta.consecutivo)
@@ -163,14 +169,14 @@ export default async function CuentaDetailPage({ params }: Props) {
             </div>
 
             {/* Editor de scores */}
-            <HealthScoreEditor cuenta={cuenta} />
+            <HealthScoreEditor cuenta={cuenta} canEdit={canEdit} />
           </div>
 
           {/* Info básica */}
           <div className="cp-card space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Información</h3>
-              <CuentaInfoEditor cuenta={cuenta} />
+              <CuentaInfoEditor cuenta={cuenta} canEdit={canEdit} />
             </div>
             {/* Servicios — lista dinámica primero, fallback al campo legacy */}
             {(cuenta.servicios_json && cuenta.servicios_json.length > 0) ? (
@@ -353,7 +359,7 @@ export default async function CuentaDetailPage({ params }: Props) {
               </h3>
               <span className="text-xs text-textLow">{seguimientos.length} registros</span>
             </div>
-            <SeguimientoForm cuentaId={cuenta.id} asesor={cuenta.asesor} />
+            <SeguimientoForm cuentaId={cuenta.id} asesor={cuenta.asesor} canEdit={canEdit} />
             <div className="mt-4 space-y-3">
               {seguimientos.length === 0 ? (
                 <p className="text-xs text-textLow text-center py-6">Sin actividad registrada</p>
@@ -365,7 +371,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-xs font-semibold text-textHi capitalize">{s.tipo}</span>
-                      <SeguimientoStatusSelect seguimientoId={s.id} resultado={s.resultado} />
+                      <SeguimientoStatusSelect seguimientoId={s.id} resultado={s.resultado} canEdit={canEdit} />
                       <span className="text-[10px] text-textLow ml-auto flex-shrink-0">
                         {new Date(s.fecha).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })}
                       </span>
@@ -388,7 +394,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                   <span style={{ fontSize:11, fontWeight:700, color:'#0F172A', textTransform:'uppercase', letterSpacing:'0.06em' }}>
                     Observaciones KAM
                   </span>
-                  {obs && (
+                  {obs && canEdit && (
                     <form action={deleteKam} style={{ margin:0 }}>
                       <input type="hidden" name="cuenta_id" value={cuenta.id} />
                       <button type="submit"
@@ -407,39 +413,41 @@ export default async function CuentaDetailPage({ params }: Props) {
                   <p style={{ fontSize:12, color:'#94A3B8', fontStyle:'italic', margin:'0 0 12px' }}>Sin observaciones registradas.</p>
                 )}
 
-                {/* Formulario edición */}
-                <details style={{ marginTop:4 }}>
-                  <summary style={{
-                    fontSize:13, fontWeight:700, color:'#1B3FCC',
-                    background:'#EFF6FF', border:'1px solid #BFDBFE',
-                    borderRadius:6, padding:'7px 14px', cursor:'pointer',
-                    listStyle:'none',
-                  }}>
-                    ✏ {obs ? 'Editar observaciones' : 'Agregar observaciones'}
-                  </summary>
-                  <form action={updateKam} style={{ marginTop:10 }}>
-                    <input type="hidden" name="cuenta_id" value={cuenta.id} />
-                    <textarea
-                      name="observaciones_kam"
-                      defaultValue={obs ?? ''}
-                      rows={6}
-                      placeholder="Estado de la relación, compromisos, riesgos, acuerdos..."
-                      style={{
-                        width:'100%', padding:'10px 12px', borderRadius:8,
-                        border:'1px solid #CBD5E1', fontSize:13, color:'#0F172A',
-                        fontFamily:'inherit', resize:'vertical', boxSizing:'border-box',
-                        lineHeight:1.6,
-                      }}
-                    />
-                    <button type="submit" style={{
-                      marginTop:8, padding:'7px 18px', borderRadius:7, border:'none',
-                      background:'#1B3FCC', color:'#fff',
-                      fontSize:12, fontWeight:700, cursor:'pointer',
+                {/* Formulario edición — solo para quienes pueden editar */}
+                {canEdit && (
+                  <details style={{ marginTop:4 }}>
+                    <summary style={{
+                      fontSize:13, fontWeight:700, color:'#1B3FCC',
+                      background:'#EFF6FF', border:'1px solid #BFDBFE',
+                      borderRadius:6, padding:'7px 14px', cursor:'pointer',
+                      listStyle:'none',
                     }}>
-                      💾 Guardar
-                    </button>
-                  </form>
-                </details>
+                      ✏ {obs ? 'Editar observaciones' : 'Agregar observaciones'}
+                    </summary>
+                    <form action={updateKam} style={{ marginTop:10 }}>
+                      <input type="hidden" name="cuenta_id" value={cuenta.id} />
+                      <textarea
+                        name="observaciones_kam"
+                        defaultValue={obs ?? ''}
+                        rows={6}
+                        placeholder="Estado de la relación, compromisos, riesgos, acuerdos..."
+                        style={{
+                          width:'100%', padding:'10px 12px', borderRadius:8,
+                          border:'1px solid #CBD5E1', fontSize:13, color:'#0F172A',
+                          fontFamily:'inherit', resize:'vertical', boxSizing:'border-box',
+                          lineHeight:1.6,
+                        }}
+                      />
+                      <button type="submit" style={{
+                        marginTop:8, padding:'7px 18px', borderRadius:7, border:'none',
+                        background:'#1B3FCC', color:'#fff',
+                        fontSize:12, fontWeight:700, cursor:'pointer',
+                      }}>
+                        💾 Guardar
+                      </button>
+                    </form>
+                  </details>
+                )}
               </div>
             )
           })()}
