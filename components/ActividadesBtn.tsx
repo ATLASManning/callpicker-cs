@@ -536,6 +536,10 @@ export default function ActividadesBtn({
     try {
       const res  = await fetch(`/api/actividades?asesor=${encodeURIComponent(asesor)}&semana=${semanaInicio}`)
       const data = await res.json()
+      if (!res.ok) {
+        setError(data?.error ?? `Error ${res.status} al cargar actividades`)
+        return
+      }
       setActividades(Array.isArray(data) ? data : [])
     } catch {
       setError('No se pudieron cargar las actividades')
@@ -837,8 +841,8 @@ export default function ActividadesBtn({
                         Sin actividades esta semana
                       </p>
                       <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>
-                        Genera automáticamente las 10 actividades de la semana
-                        (2 por día, L–V) basadas en el estado real de la cartera de <strong>{asesor}</strong>.
+                        Genera automáticamente las 15 actividades de la semana
+                        (3 por día, L–V) basadas en el estado real de la cartera de <strong>{asesor}</strong>.
                       </p>
                       <button
                         onClick={() => generar()}
