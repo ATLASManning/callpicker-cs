@@ -7,7 +7,7 @@ export interface Modalidad { nombre: string; descripcion: string }
 export interface ApiItem   { nombre: string; descripcion: string }
 
 export interface Bloque {
-  tipo:    'parrafo' | 'seccion' | 'lista' | 'cita' | 'firma'
+  tipo:    'parrafo' | 'seccion' | 'lista' | 'cita' | 'firma' | 'codigo'
   titulo?: string
   texto?:  string
   items?:  string[]
@@ -15,7 +15,9 @@ export interface Bloque {
 
 export interface Articulo {
   id:             string
-  pdfUrl?:        string   // ruta relativa a /public, p.ej. "/docs/archivo.pdf"
+  pdfUrl?:        string
+  linkUrl?:       string
+  linkLabel?:     string
   titulo:         string
   descripcion:    string
   ubicacion?:     string
@@ -1055,6 +1057,44 @@ export const KB: Categoria[] = [
   {
     id: 'soporte', label: 'Soporte', color: '#F97316',
     articulos: [
+      {
+        id: 'ticket-a-nombre-cliente',
+        titulo: 'Levantar un Ticket a Nombre del Cliente',
+        badge: 'nuevo',
+        descripcion: 'Cuando el ticket se levanta desde el correo del equipo, el titular queda registrado como interno en lugar del cliente. Dos métodos para registrar al cliente como titular desde el inicio.',
+        linkUrl: 'https://forms.zohopublic.com/jadelriogdig1/form/Nuevoticket/formperma/NujUVJ5Mw5WyeXRaoEgXuEHx0OfZNBhozp_D8WfGSXs',
+        linkLabel: 'Abrir formulario Zoho',
+        bloques: [
+          {
+            tipo: 'seccion',
+            titulo: 'Método 1 — Formulario directo',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Usa el formulario habilitado para levantar el ticket directamente a nombre del cliente, sin tener que hacer ajustes posteriores en Zoho Desk. El enlace al formulario también está disponible en la sección de Marcadores.',
+          },
+          {
+            tipo: 'seccion',
+            titulo: 'Método 2 — Reenvío de correo con etiqueta',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Si recibes un correo del cliente y lo quieres reenviar a ayuda@callpicker.com para su atención, agrega la siguiente línea al inicio del cuerpo del correo antes de enviarlo:',
+          },
+          {
+            tipo: 'codigo',
+            texto: '#original_sender {correo@cliente.com}',
+          },
+          {
+            tipo: 'parrafo',
+            texto: 'Sustituye correo@cliente.com por la dirección real del cliente. Zoho Desk detecta la etiqueta automáticamente y asigna al contacto correcto como titular del ticket.',
+          },
+        ],
+        consideraciones: [
+          { texto: 'La etiqueta #original_sender debe ir en la primera línea del cuerpo del correo, antes de cualquier otro texto.', tipo: 'warning' },
+          { texto: 'El formulario también está disponible en el tab "🎫 Nuevo Ticket" dentro del módulo de Tickets del dashboard.', tipo: 'info' },
+        ],
+      },
       {
         id: 'ticket-automatico',
         titulo: 'Generación automática de Ticket al hacer/recibir una llamada',

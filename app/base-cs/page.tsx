@@ -7,7 +7,7 @@ import {
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
   ShieldCheck, Puzzle, Globe, FileText, LifeBuoy,
-  Heart,
+  Heart, ExternalLink,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
 
@@ -131,6 +131,26 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
               >
                 <FileText size={11} />
                 Ver PDF
+              </a>
+            )}
+            {art.linkUrl && (
+              <a
+                href={art.linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
+                  background: `${catColor}18`, color: catColor,
+                  border: `1px solid ${catColor}35`, textDecoration: 'none',
+                  transition: 'opacity 150ms',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                <ExternalLink size={11} />
+                {art.linkLabel ?? 'Ver enlace'}
               </a>
             )}
           </div>
@@ -318,6 +338,13 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
                 if (b.tipo === 'firma') return (
                   <div key={i} style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${BORDER}`, textAlign: 'right' }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: catColor, fontStyle: 'italic' }}>{b.texto}</span>
+                  </div>
+                )
+                if (b.tipo === 'codigo') return (
+                  <div key={i} style={{ borderRadius: 8, overflow: 'hidden', margin: '12px 0', border: `1px solid ${BORDER}` }}>
+                    <div style={{ padding: '10px 16px', background: '#0f172a' }}>
+                      <code style={{ fontSize: 14, fontFamily: 'monospace', color: '#7dd3fc' }}>{b.texto}</code>
+                    </div>
                   </div>
                 )
                 return null
