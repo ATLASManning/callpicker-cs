@@ -4,11 +4,11 @@ import PageHeader from '@/components/PageHeader'
 import {
   Search, Filter, ExternalLink, AlertTriangle, CheckCircle2,
   XCircle, Clock, BarChart3, Users, RefreshCw, ChevronLeft,
-  ChevronRight, Zap, Tag, User, Calendar,
+  ChevronRight, Zap, Tag, User, Calendar, PlusCircle, Mail, Copy, Check,
 } from 'lucide-react'
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
-type Tab = 'overview' | 'explorador' | 'conciliacion' | 'fallas'
+type Tab = 'overview' | 'explorador' | 'conciliacion' | 'fallas' | 'nuevo'
 
 interface TicketRow {
   cid: string; num: string; empresa: string; fecha: string; ticket_id: string
@@ -96,6 +96,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'explorador',   label: '🔍 Explorador' },
   { id: 'conciliacion', label: '🔗 Conciliación' },
   { id: 'fallas',       label: '⚡ Fallas' },
+  { id: 'nuevo',        label: '🎫 Nuevo Ticket' },
 ]
 
 const MESES = [
@@ -136,6 +137,15 @@ export default function TicketsPage() {
   const [concLoading, setConcLoading] = useState(false)
   const [concQ, setConcQ]   = useState('')
   const [concTab, setConcTab] = useState<'matched' | 'unmatched'>('matched')
+
+  /* ── Nuevo Ticket ── */
+  const [copied, setCopied] = useState(false)
+
+  function copySnippet() {
+    navigator.clipboard.writeText('#original_sender {correo@cliente.com}')
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   /* ── Fallas ── */
   const [fallas, setFallas]     = useState<TicketRow[]>([])
@@ -674,6 +684,98 @@ export default function TicketsPage() {
               )}
             </div>
           </>
+        )}
+
+        {/* ═══ NUEVO TICKET ══════════════════════════════════════════ */}
+        {tab === 'nuevo' && (
+          <div className="space-y-4 max-w-3xl">
+
+            {/* Banner explicativo */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm"
+              style={{ borderLeft: '4px solid #1B3FCC' }}>
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: '#1B3FCC15' }}>
+                  <PlusCircle size={18} style={{ color: '#1B3FCC' }} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900 mb-1">Levantar ticket a nombre del cliente</h2>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Cuando un ticket se levanta desde el correo del equipo, el titular queda registrado como interno
+                    en lugar del cliente. Usa el formulario de abajo para asignar directamente al cliente como titular
+                    desde el inicio — sin ajustes posteriores.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Formulario embebido */}
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-700">Formulario — Zoho Desk</span>
+                <a
+                  href="https://forms.zohopublic.com/jadelriogdig1/form/Nuevoticket/formperma/NujUVJ5Mw5WyeXRaoEgXuEHx0OfZNBhozp_D8WfGSXs"
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs font-medium"
+                  style={{ color: '#1B3FCC' }}>
+                  Abrir en nueva pestaña <ExternalLink size={11} />
+                </a>
+              </div>
+              <iframe
+                src="https://forms.zohopublic.com/jadelriogdig1/form/Nuevoticket/formperma/NujUVJ5Mw5WyeXRaoEgXuEHx0OfZNBhozp_D8WfGSXs"
+                title="Nuevo ticket a nombre del cliente"
+                width="100%"
+                height="620"
+                style={{ border: 'none', display: 'block' }}
+              />
+            </div>
+
+            {/* Tip: reenvío de correo */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: '#f59e0b15' }}>
+                  <Mail size={18} style={{ color: '#f59e0b' }} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">Reenviar un correo del cliente</h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Si recibes un correo de un cliente y quieres reenviarlo a{' '}
+                    <span className="font-semibold text-gray-800">ayuda@callpicker.com</span> para que sea atendido,
+                    agrega la siguiente línea <span className="font-semibold">al inicio del cuerpo del correo</span>{' '}
+                    antes de reenviar. El cliente será asignado automáticamente como titular del ticket.
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg overflow-hidden border border-gray-200">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100"
+                  style={{ background: '#f8fafc' }}>
+                  <span className="text-xs text-gray-500 font-mono">Agregar al inicio del cuerpo del correo</span>
+                  <button
+                    onClick={copySnippet}
+                    className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md transition-all"
+                    style={copied
+                      ? { background: '#22c55e15', color: '#16a34a' }
+                      : { background: '#f1f5f9', color: '#475569' }}>
+                    {copied ? <Check size={11} /> : <Copy size={11} />}
+                    {copied ? 'Copiado' : 'Copiar'}
+                  </button>
+                </div>
+                <div className="px-4 py-3" style={{ background: '#0f172a' }}>
+                  <code className="text-sm font-mono" style={{ color: '#7dd3fc' }}>
+                    #original_sender &#123;correo@cliente.com&#125;
+                  </code>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-400 mt-3 leading-relaxed">
+                Sustituye <span className="font-mono text-gray-600">correo@cliente.com</span> por la dirección
+                real del cliente. Zoho Desk detecta la etiqueta automáticamente y asigna al contacto correcto.
+              </p>
+            </div>
+
+          </div>
         )}
 
       </div>
