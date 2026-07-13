@@ -10,7 +10,7 @@ import {
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-type TipoActividad  = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell' | 'validacion'
+type TipoActividad  = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell' | 'validacion' | 'tickets' | 'pagos'
 type EstadoAct      = 'pendiente' | 'completada' | 'vencida' | 'bloqueada'
 
 interface Actividad {
@@ -62,12 +62,14 @@ interface DiagCuenta {
 // ── Config visual por tipo ────────────────────────────────────────────────────
 
 const TIPO_CFG: Record<TipoActividad, { label: string; icon: React.ReactNode; color: string }> = {
-  llamada:    { label: 'Llamada',          icon: <Phone size={10} />,       color: '#0E30CC' },
-  reunion:    { label: 'Reunión',          icon: <Users size={10} />,       color: '#7C3AED' },
-  analisis:   { label: 'Análisis',         icon: <BarChart2 size={10} />,   color: '#0891B2' },
-  kam:        { label: 'KAM',             icon: <FileText size={10} />,    color: '#059669' },
-  upsell:     { label: 'Upsell',          icon: <TrendingUp size={10} />,  color: '#D97706' },
-  validacion: { label: 'Completar Perfil', icon: <AlertCircle size={10} />, color: '#DC2626' },
+  llamada:    { label: 'Llamada',           icon: <Phone size={10} />,       color: '#0E30CC' },
+  reunion:    { label: 'Reunión',           icon: <Users size={10} />,       color: '#7C3AED' },
+  analisis:   { label: 'Análisis',          icon: <BarChart2 size={10} />,   color: '#0891B2' },
+  kam:        { label: 'KAM',              icon: <FileText size={10} />,    color: '#059669' },
+  upsell:     { label: 'Upsell',           icon: <TrendingUp size={10} />,  color: '#D97706' },
+  validacion: { label: 'Completar Perfil',  icon: <AlertCircle size={10} />, color: '#DC2626' },
+  tickets:    { label: 'Análisis Tickets',  icon: <ListChecks size={10} />,  color: '#0E7490' },
+  pagos:      { label: 'Comportamiento Pago', icon: <History size={10} />,   color: '#4338CA' },
 }
 
 const DIAS  = ['dom','lun','mar','mié','jue','vie','sáb']
