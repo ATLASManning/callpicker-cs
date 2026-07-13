@@ -664,6 +664,87 @@ const REPORTE_CIERRE_JUNIO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 11 · JULIO 2026  (10 jul 2026)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S1_JULIO_2026: ChurnReporte = {
+  id:      's1-julio-2026',
+  periodo: 'Semana 11 · Jul 2026',
+  fecha:   '10/07/2026',
+  notas:   'Gross Revenue Churn · Semana 11. Al 10 de julio del 2026. Primer corte de julio con estado de cuentas en corte, suspendidos, desactivados y downgrades. MRR inicial julio: $4,877,021.32 (−$194,744.89 vs junio). Siguiente revisión: viernes 17 de julio.',
+  notaRemitente: 'Daniel Martínez — Solicita comentarios u observaciones sobre el reporte respondiendo al correo.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Abril',           pct: 1.8, anterior: 1.9 },
+      { mes: 'Mayo',            pct: 1.6, anterior: 1.8 },
+      { mes: 'Junio',           pct: 3.7, anterior: 7.7 },
+    ],
+    acumulado: 13.6,
+    anterior:  17.7,
+    notaClave: 'Churn Q2 corregido: Abril 1.8% · Mayo 1.6% (corr. 1.8%) · Junio 3.7% (corr. 7.7%). Acumulado 2026: 13.6% (corr. 17.7%).',
+    notaEspecial: '⚠️ MRR inicial julio bajó $194,744.89 vs junio — la caída no refleja cancelaciones reales. Varios clientes sin factura en junio fueron clasificados automáticamente como churn y sus facturas se emitieron en julio, contabilizándose como reactivaciones (~$98,000 con MRR inicial = $0). ✅ Finsus grow: migrado a cuenta "Finsus Producto", ingreso al corriente. Pendientes de meses anteriores — Sem 7: $10,367 · Sem 8: $9,843 · Sem 9: $21,451 · Sem 10: $49,186.',
+  },
+
+  /* En Corte Sem 1 Julio — top 10 de 20 cuentas · total $59,876.50 */
+  pendientesTotalReal:   59876.50,
+  pendientesCuentasReal: 20,
+  pendientes: [
+    { cliente: '🔝 Jason de Mexico',          monto: 17225, mesesActivo: 40,  ultimaFactura: '04/06/2026' },
+    { cliente: 'Inteligencia Canina',          monto: 5568,  mesesActivo: 91,  ultimaFactura: '02/06/2026' },
+    { cliente: 'Chipotle Ads',                 monto: 4866,  mesesActivo: 47,  ultimaFactura: '02/06/2026' },
+    { cliente: 'PIXKITEC',                     monto: 4424,  mesesActivo: 78,  ultimaFactura: '04/06/2026' },
+    { cliente: 'multileads 2',                 monto: 4110,  mesesActivo: 56,  ultimaFactura: '02/06/2026' },
+    { cliente: 'AdminPlus',                    monto: 2718,  mesesActivo: 71,  ultimaFactura: '04/06/2026' },
+    { cliente: 'Skyhous',                      monto: 2497,  mesesActivo: 63,  ultimaFactura: '05/06/2026' },
+    { cliente: 'CFMOTO MONTERREY',             monto: 2398,  mesesActivo: 24,  ultimaFactura: '02/06/2026' },
+    { cliente: 'iMarz',                        monto: 2256,  mesesActivo: 16,  ultimaFactura: '06/06/2026' },
+    { cliente: 'TRIBECA HAIR STUDIO',          monto: 1767,  mesesActivo: 51,  ultimaFactura: '07/06/2026' },
+    { cliente: '+ 10 cuentas adicionales',     monto: 12048.50, mesesActivo: 0, ultimaFactura: 'Ver lista completa en el dashboard' },
+  ],
+
+  cancelados: [],
+
+  /* Downgrades Sem 1 Julio — 8 clientes · $10,851.80 */
+  downgradeTotalReal: 10851.80,
+  downgrades: [
+    { cliente: 'Corporativo Videci',      perdida: 1729,   nota: '88% de baja. Paquete Min VyC de $1,959 → $230.' },
+    { cliente: 'ROAL TRANSPORTES',        perdida: 730.80, nota: '88% de baja. Eliminó Paquete Min CE y Paquete 800. Redujo DiD Nacional de $282 → $99.' },
+    { cliente: 'MIRA DIAMANTE SOLUCLOUD', perdida: 1122,   nota: '82% de baja. Paquete Min VyC de $1,364 → $242.' },
+    { cliente: 'Probemedic Farmacias',    perdida: 747,    nota: '59% de baja. Agente CP Chat de $1,247 → $500.' },
+    { cliente: 'ZD - Midstorage',         perdida: 1571,   nota: '40% de baja. Paquete Min VyC de $2,837 → $1,959. DiD Nacional de $1,089 → $396.' },
+    { cliente: '3DX',                     perdida: 607,    nota: '23% de baja. Eliminó Agente CP Chat ($508) y DiD Nacional ($99).' },
+    { cliente: 'El Surtidor',             perdida: 880,    nota: '11% de baja. Paquete Min VyC de $7,840 → $6,960.' },
+    { cliente: 'EMPODERA SALUD',          perdida: 589.01, nota: '3% de baja. Eliminó Extensión VyC ($589).' },
+  ],
+
+  downgradeArticulos: [
+    { articulo: 'Paquete Min VyC', vecesAfectado: 4, clientes: ['Corporativo Videci', 'MIRA DIAMANTE SOLUCLOUD', 'ZD - Midstorage', 'El Surtidor'] },
+    { articulo: 'DiD Nacional',    vecesAfectado: 3, clientes: ['ZD - Midstorage', 'ROAL TRANSPORTES', '3DX'] },
+    { articulo: 'Agente CP Chat',  vecesAfectado: 2, clientes: ['Probemedic Farmacias', '3DX'] },
+  ],
+
+  /* Suspendidos Sem 1 Julio — 5 cuentas · $6,836.31 */
+  suspendidosTotalReal:   6836.31,
+  suspendidosCuentasReal: 5,
+  suspendidos: [
+    { cliente: '🔝 Custodias RJ',                 importe: 2920,   mesesActivo: 4,   estado: 'Suspendido' },
+    { cliente: 'Servitaxi Rincón de Palma Real',  importe: 979.31, mesesActivo: 2,   estado: 'Suspendido' },
+    { cliente: 'SPORTIX RL',                      importe: 979,    mesesActivo: 42,  estado: 'Suspendido' },
+    { cliente: 'Urbanelle BH Inmobiliaria',       importe: 979,    mesesActivo: 5,   estado: 'Suspendido' },
+    { cliente: 'Montebello Towers',               importe: 979,    mesesActivo: 116, estado: 'Suspendido' },
+  ],
+
+  /* Desactivados Sem 1 Julio — 3 cuentas · $6,811 */
+  desactivadosTotalReal:   6811,
+  desactivadosCuentasReal: 3,
+  desactivados: [
+    { cliente: '🔝 Contenedores Mas', importe: 2812, mesesActivo: 49  },
+    { cliente: 'PIXEL WINDOW',        importe: 2019, mesesActivo: 105 },
+    { cliente: 'TRACK SPEQ',          importe: 1980, mesesActivo: 27  },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -1076,16 +1157,16 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('cierre-junio-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s1-julio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
-  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_CIERRE_JUNIO_2026
+  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026']
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S1_JULIO_2026
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
   const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
@@ -1108,7 +1189,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s4-junio-2026')
+    if (selectedId === id) setSelectedId('s1-julio-2026')
     setDelConfirm(null)
   }
 
