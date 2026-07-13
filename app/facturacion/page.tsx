@@ -236,14 +236,16 @@ export default function FacturacionPage() {
     <div style={{ padding: '28px 32px', background: '#f1f5f9', minHeight: '100vh' }}>
 
       {/* Header */}
-      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: 0 }}>Facturación · LTV</h1>
           <p style={{ fontSize: 13, color: '#64748b', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
             {totalGeneral.toLocaleString()} clientes · {' '}
             {source === 'zoho'
               ? <><Wifi size={11} style={{ color: '#22c55e' }} /><span style={{ color: '#22c55e', fontWeight: 600 }}>Zoho en vivo</span></>
-              : <><WifiOff size={11} style={{ color: '#f59e0b' }} /><span style={{ color: '#f59e0b', fontWeight: 600 }}>Sin datos</span></>
+              : source === 'supabase'
+              ? <><WifiOff size={11} style={{ color: '#d97706' }} /><span style={{ color: '#d97706', fontWeight: 600 }}>Datos locales (Supabase)</span></>
+              : <><WifiOff size={11} style={{ color: '#ef4444' }} /><span style={{ color: '#ef4444', fontWeight: 600 }}>Sin datos</span></>
             }
           </p>
         </div>
@@ -252,6 +254,26 @@ export default function FacturacionPage() {
           <RefreshCw size={13} /> Actualizar
         </button>
       </div>
+
+      {/* Banner modo local */}
+      {source === 'supabase' && (
+        <div style={{
+          marginBottom: 20, padding: '12px 18px',
+          background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12,
+          display: 'flex', alignItems: 'flex-start', gap: 10,
+        }}>
+          <WifiOff size={15} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#92400e' }}>
+              Zoho Analytics no disponible — mostrando datos de Supabase
+            </p>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
+              MRR desde registros manuales · Sin segmentación LTV avanzada · La clasificación LTV se calcula por rango de MRR.
+              Para restaurar la conexión, renueva el <strong>ZOHO_REFRESH_TOKEN</strong> en Vercel.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Selector de actividad */}
       <div className="cp-card" style={{ borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>

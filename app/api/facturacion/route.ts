@@ -112,17 +112,78 @@ async function getZohoData(): Promise<FactRow[]> {
   return data
 }
 
-async function getData(): Promise<{ rows: FactRow[]; source: 'zoho' | 'empty' }> {
+/* ── Fallback: datos de Supabase cuando Zoho no está disponible ───── */
+async function getSupabaseData(): Promise<FactRow[]> {
+  const { data: cuentas, error } = await supabaseAdmin
+    .from('cuentas')
+    .select('cid, empresa, asesor, estado, facturacion, factura_mensual_zoho, health_score, tamano_empresa, activo_desde, dias_como_cliente')
+    .in('estado', ['activo', 'en_riesgo', 'hibernacion'])
+    .order('facturacion', { ascending: false })
+
+  if (error || !cuentas) return []
+
+  return cuentas.map(c => {
+    const mrr = (c.factura_mensual_zoho ?? c.facturacion ?? 0) as number
+    const hs  = (c.health_score ?? 50) as number
+    const dias = (c.dias_como_cliente ?? 0) as number
+
+    // Mapear estado/health → Semáforo Actividad (categorías de Zoho)
+    let semaforo: string
+    if (c.estado === 'hibernacion') semaforo = '4 - Dormido'
+    else if (hs < 40)               semaforo = '3 - Irregular'
+    else if (hs < 60)               semaforo = '2 - En riesgo'
+    else                            semaforo = '1 - Activo'
+
+    // MRR → Clasificación LTV simplificada
+    let ltv: string
+    if (mrr >= 10000)      ltv = '1 - Alto'
+    else if (mrr >= 5000)  ltv = '2 - Bueno'
+    else if (mrr >= 2000)  ltv = '3 - Medio'
+    else if (mrr >= 500)   ltv = '4 - Bajo'
+    else                   ltv = '5 - Minimo'
+
+    const meses = Math.max(1, Math.floor(dias / 30))
+
+    return {
+      CID:                          String(c.cid ?? ''),
+      'Nombre del Cliente':         String(c.empresa ?? ''),
+      'Tamaño Empresa':             String(c.tamano_empresa ?? ''),
+      'Clasificación LTV':          ltv,
+      'Clasificación Cliente':      '',
+      'Segmento Factura':           String(c.asesor ?? ''),
+      'MRR Limpio':                 mrr,
+      'Importe Acumulado Recurrente': mrr * meses,
+      'Importe Acumulado Bruto':    mrr * meses,
+      'Meses Activo':               meses,
+      'Meses con Factura':          meses,
+      'Primera Factura':            String(c.activo_desde ?? ''),
+      'Última Factura':             '',
+      'Semáforo Actividad':         semaforo,
+      'Es One Timer':               meses <= 1 ? 'Yes' : 'No',
+      'MRR por Mes Facturado':      mrr,
+      'Total Facturas':             meses,
+      'Cohorte Periodo':            '',
+      'Días sin Factura':           null,
+      'Ticket Promedio':            mrr,
+      'Rango LTV':                  ltv,
+      'RFC':                        '',
+      'Correo':                     '',
+    } satisfies FactRow
+  })
+}
+
+async function getData(): Promise<{ rows: FactRow[]; source: 'zoho' | 'supabase' | 'empty' }> {
   if (isZohoConfigured()) {
     try {
       const rows = await getZohoData()
       return { rows, source: 'zoho' }
     } catch (err) {
-      console.error('[facturacion] Zoho error:', err)
-      throw err
+      console.error('[facturacion] Zoho error (fallback a Supabase):', err)
     }
   }
-  return { rows: [], source: 'empty' }
+  // Fallback: usar datos de Supabase
+  const rows = await getSupabaseData()
+  return { rows, source: rows.length > 0 ? 'supabase' : 'empty' }
 }
 
 function normalize(s: string) {
