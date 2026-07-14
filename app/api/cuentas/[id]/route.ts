@@ -11,16 +11,9 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   const rol    = req.headers.get('x-user-rol')    ?? 'viewer'
-  const asesor = decodeURIComponent(req.headers.get('x-user-asesor') ?? '')
 
-  if (rol === 'viewer')
+  if (rol !== 'admin' && rol !== 'asesor')
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
-
-  if (rol === 'asesor') {
-    const cuenta = await getCuentaById(params.id)
-    if (!cuenta || cuenta.asesor !== asesor)
-      return NextResponse.json({ error: 'Solo puedes editar tus propias cuentas' }, { status: 403 })
-  }
 
   try {
     const body = await req.json()

@@ -43,8 +43,7 @@ export default async function CuentaDetailPage({ params }: Props) {
 
   const h       = headers()
   const rol     = h.get('x-user-rol') ?? 'viewer'
-  const asesorH = decodeURIComponent(h.get('x-user-asesor') ?? '')
-  const canEdit = rol === 'admin' || (rol === 'asesor' && cuenta.asesor === asesorH)
+  const canEdit = rol === 'admin' || rol === 'asesor'
 
   const zoho     = lookupZoho(cuenta.empresa, zohoMap)
   const auditoria = findAuditoriaForConsecutivo(cuenta.consecutivo)
