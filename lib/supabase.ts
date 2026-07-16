@@ -71,10 +71,31 @@ export async function getCuentaByConsecutivo(consecutivo: string): Promise<Cuent
   return data as Cuenta
 }
 
+// Campos que NO existen en la tabla DB (computed por la API o pendientes de migración)
+const NON_DB_FIELDS = [
+  'health_score',          // GENERATED ALWAYS — Supabase lo rechaza si se envía
+  'zoho_tickets',          // enriched por la API, no almacenado
+  'mrr_zoho',              // enriched por la API
+  'factura_mensual_zoho',  // enriched por la API
+  'semaforo_zoho',         // enriched por la API
+  'segmento_zoho',         // enriched por la API
+  // Columnas pendientes de migración — eliminar de aquí una vez ejecutada
+  // supabase/migrations/20260716_add_json_columns.sql
+  'contactos_json',
+  'servicios_json',
+] as const
+
+function stripNonDbFields(obj: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...obj }
+  for (const f of NON_DB_FIELDS) delete out[f]
+  return out
+}
+
 export async function upsertCuenta(cuenta: Partial<Cuenta>): Promise<Cuenta> {
+  const payload = stripNonDbFields(cuenta as Record<string, unknown>)
   const { data, error } = await supabaseAdmin
     .from('cuentas')
-    .upsert(cuenta, { onConflict: 'consecutivo' })
+    .upsert(payload, { onConflict: 'consecutivo' })
     .select()
     .single()
   if (error) throw new Error(error.message ?? JSON.stringify(error))
@@ -82,9 +103,10 @@ export async function upsertCuenta(cuenta: Partial<Cuenta>): Promise<Cuenta> {
 }
 
 export async function updateCuenta(id: string, changes: Partial<Cuenta>): Promise<Cuenta> {
+  const payload = stripNonDbFields(changes as Record<string, unknown>)
   const { data, error } = await supabaseAdmin
     .from('cuentas')
-    .update(changes)
+    .update(payload)
     .eq('id', id)
     .select()
     .single()
