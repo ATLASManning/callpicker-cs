@@ -12,7 +12,7 @@ import {
    TIPOS
 ═══════════════════════════════════════════════════════════════════════ */
 type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
-type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho'
+type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho' | 'aaa'
 
 interface ChurnPendiente   { cliente: string; monto: number; mesesActivo: number; ultimaFactura: string }
 interface ChurnCancelado   { cliente: string; mrr: number;   mesesActivo: number; acumulado: number    }
@@ -50,6 +50,24 @@ interface ChurnReporte {
   desactivadosTotalReal?:  number
   desactivadosCuentasReal?: number
   downgradeTotalReal?:     number
+}
+
+/* ─── Tipos GRC Detalle AAA ───────────────────────────────────────── */
+type AAAClienteRow = {
+  mes: string; cliente: string; clasificacion: string; fecha: string
+  facturas: number; mesesActivo: number; importeAcumulado: number
+  mrrInicio: number; mrrFin: number; ingresoPerdido: number
+  ingresoGanado: number; movimiento: string; cid: string
+}
+type AAAMes = {
+  mes: string; clientes: AAAClienteRow[]
+  totalPerdido: number; totalGanado: number; totalMrrInicio: number; totalMrrFin: number; count: number
+}
+type AAAData = {
+  clasificacion: string
+  meses: AAAMes[]
+  totales: { clientes: number; registros: number; perdido: number; ganado: number; mrrInicioSum: number }
+  cols: string[]
 }
 
 /* ─── Tipos Zoho Dormidos ─────────────────────────────────────────── */
@@ -1163,6 +1181,7 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
   }
   tabs.push({ id: 't1',   label: 'Resumen T1 2026',                                   color: INDIGO })
   tabs.push({ id: 'zoho', label: '🔴 Zoho · Dormidos',                               color: '#dc2626' })
+  tabs.push({ id: 'aaa',  label: '⭐ GRC · AAA H1',                                  color: '#7c3aed' })
   return tabs
 }
 
@@ -1177,6 +1196,9 @@ export default function ChurnPage() {
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
   const [zohoLoading,  setZohoLoading]  = useState(false)
   const [zohoData,     setZohoData]     = useState<ZohoDormido | null>(null)
+  const [aaaLoading,   setAaaLoading]   = useState(false)
+  const [aaaData,      setAaaData]      = useState<AAAData | null>(null)
+  const [aaaOpenMes,   setAaaOpenMes]   = useState<Record<string, boolean>>({})
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
@@ -1189,6 +1211,22 @@ export default function ChurnPage() {
       .catch(() => {})
       .finally(() => setZohoLoading(false))
   }, [tab, zohoData, zohoLoading])
+
+  useEffect(() => {
+    if (tab !== 'aaa' || aaaData !== null || aaaLoading) return
+    setAaaLoading(true)
+    fetch('/api/churn?mode=detalle-mes&clasificacion=AAA')
+      .then(r => r.json())
+      .then((d: AAAData) => {
+        setAaaData(d)
+        // Expandir el primer mes con datos por defecto
+        if (d.meses?.length) {
+          setAaaOpenMes({ [d.meses[0].mes]: true })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setAaaLoading(false))
+  }, [tab, aaaData, aaaLoading])
 
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026']
   const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, ...userReportes]
@@ -1922,6 +1960,178 @@ export default function ChurnPage() {
               </div>
             </div>
           </>
+        )}
+
+        {/* ── GRC · AAA H1 2026 ────────────────────────────────────── */}
+        {tab === 'aaa' && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: '#7c3aed15' }}>
+                <BarChart3 size={16} style={{ color: '#7c3aed' }} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900 text-sm">GRC · Clientes AAA — Enero a Junio 2026</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Vista de detalle por mes · Fuente: Zoho Analytics</p>
+              </div>
+              <button
+                onClick={() => { setAaaData(null); setAaaLoading(false); setAaaOpenMes({}) }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 border border-gray-200 transition-colors"
+              >
+                <RefreshCw size={12} /> Actualizar
+              </button>
+            </div>
+
+            {aaaLoading && (
+              <div className="bg-white rounded-xl border border-gray-200 p-10 shadow-sm text-center">
+                <div className="w-8 h-8 rounded-full border-2 border-purple-500 border-t-transparent animate-spin mx-auto mb-3" />
+                <p className="text-sm text-gray-500">Consultando Zoho Analytics — Vista GRC Detalle…</p>
+              </div>
+            )}
+
+            {aaaData?.meses?.length === 0 && !aaaLoading && (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm text-center text-sm text-gray-400">
+                Sin datos AAA H1 en Zoho Analytics.
+              </div>
+            )}
+
+            {!aaaLoading && aaaData && aaaData.meses?.length > 0 && (
+              <>
+                {/* KPIs totales */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <KpiCard icon={CalendarDays}  label="Meses con movimiento"  value={String(aaaData.meses.length)}         sub="Ene–Jun 2026"             color="#7c3aed" />
+                  <KpiCard icon={XCircle}       label="Registros AAA"         value={String(aaaData.totales.registros)}    sub="total filas"              color={RED}    />
+                  <KpiCard icon={DollarSign}    label="Ingreso perdido H1"     value={fmt(aaaData.totales.perdido)}         sub="suma acumulada"           color={ORANGE} />
+                  <KpiCard icon={TrendingDown}  label="Ingreso ganado H1"      value={fmt(aaaData.totales.ganado)}          sub="expansión / recuperación" color={GREEN}  />
+                </div>
+
+                {/* Sección por mes */}
+                {aaaData.meses.map((mesData) => {
+                  const open = aaaOpenMes[mesData.mes] ?? false
+                  const netMov = mesData.totalMrrFin - mesData.totalMrrInicio
+                  return (
+                    <div key={mesData.mes} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                      {/* Encabezado colapsable */}
+                      <button
+                        className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors text-left"
+                        onClick={() => setAaaOpenMes(prev => ({ ...prev, [mesData.mes]: !open }))}
+                      >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
+                          style={{ background: '#7c3aed' }}>
+                          {mesData.mes.slice(0, 3).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-gray-900 text-sm">{mesData.mes} 2026</span>
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
+                              {mesData.count} cliente{mesData.count !== 1 ? 's' : ''}
+                            </span>
+                            {mesData.totalPerdido > 0 && (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                                −{fmt(mesData.totalPerdido)} perdido
+                              </span>
+                            )}
+                            {mesData.totalGanado > 0 && (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                +{fmt(mesData.totalGanado)} ganado
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex gap-4 mt-0.5 text-[11px] text-gray-500">
+                            <span>MRR inicio: {fmt(mesData.totalMrrInicio)}</span>
+                            <span>MRR fin: {fmt(mesData.totalMrrFin)}</span>
+                            <span className={netMov < 0 ? 'text-red-600 font-semibold' : netMov > 0 ? 'text-green-600 font-semibold' : ''}>
+                              Neto: {netMov >= 0 ? '+' : ''}{fmt(netMov)}
+                            </span>
+                          </div>
+                        </div>
+                        {open ? <ChevronUp size={16} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />}
+                      </button>
+
+                      {/* Tabla de clientes */}
+                      {open && (
+                        <div className="border-t border-gray-100">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                              <thead>
+                                <tr className="bg-gray-50/80 border-b border-gray-100">
+                                  <th className="text-left py-2.5 px-4 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Cliente</th>
+                                  <th className="text-center py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Movimiento</th>
+                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">MRR Inicio</th>
+                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">MRR Fin</th>
+                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Ing. Perdido</th>
+                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Ing. Ganado</th>
+                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Acumulado</th>
+                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Meses</th>
+                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Facturas</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {mesData.clientes.map((c, i) => {
+                                  const movLow = c.movimiento.toLowerCase()
+                                  const esChurn = movLow.includes('churn')
+                                  const esDowngrade = movLow.includes('downgrade')
+                                  return (
+                                    <tr key={i} className={`border-b border-gray-100 transition-colors ${
+                                      esChurn     ? 'bg-red-50/30 hover:bg-red-50/50' :
+                                      esDowngrade ? 'bg-amber-50/30 hover:bg-amber-50/50' :
+                                      'hover:bg-gray-50/40'
+                                    }`}>
+                                      <td className="py-3 px-4">
+                                        <div className="font-semibold text-gray-900">{c.cliente}</div>
+                                        {c.cid && <div className="text-[10px] text-gray-400">CID {c.cid}</div>}
+                                      </td>
+                                      <td className="py-3 px-3 text-center">
+                                        {c.movimiento ? (
+                                          <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                            esChurn     ? 'bg-red-100 text-red-700' :
+                                            esDowngrade ? 'bg-amber-100 text-amber-700' :
+                                            'bg-gray-100 text-gray-600'
+                                          }`}>{c.movimiento}</span>
+                                        ) : <span className="text-gray-300">—</span>}
+                                      </td>
+                                      <td className="py-3 px-3 text-right font-medium text-gray-700">{c.mrrInicio > 0 ? fmt(c.mrrInicio) : '—'}</td>
+                                      <td className="py-3 px-3 text-right font-medium text-gray-700">{c.mrrFin > 0 ? fmt(c.mrrFin) : '—'}</td>
+                                      <td className="py-3 px-3 text-right font-semibold" style={{ color: c.ingresoPerdido > 0 ? RED : '#9ca3af' }}>
+                                        {c.ingresoPerdido > 0 ? `−${fmt(c.ingresoPerdido)}` : '—'}
+                                      </td>
+                                      <td className="py-3 px-3 text-right font-semibold" style={{ color: c.ingresoGanado > 0 ? GREEN : '#9ca3af' }}>
+                                        {c.ingresoGanado > 0 ? `+${fmt(c.ingresoGanado)}` : '—'}
+                                      </td>
+                                      <td className="py-3 px-3 text-right text-gray-600">{c.importeAcumulado > 0 ? fmt(c.importeAcumulado) : '—'}</td>
+                                      <td className="py-3 px-3 text-right text-gray-500">{c.mesesActivo > 0 ? c.mesesActivo : '—'}</td>
+                                      <td className="py-3 px-3 text-right text-gray-500">{c.facturas > 0 ? c.facturas : '—'}</td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                              {/* Totales del mes */}
+                              <tfoot>
+                                <tr className="bg-purple-50/60 border-t-2 border-purple-100">
+                                  <td className="py-2.5 px-4 font-bold text-purple-800 text-[10px]" colSpan={2}>TOTAL {mesData.mes.toUpperCase()}</td>
+                                  <td className="py-2.5 px-3 text-right font-bold text-purple-800 text-[10px]">{fmt(mesData.totalMrrInicio)}</td>
+                                  <td className="py-2.5 px-3 text-right font-bold text-purple-800 text-[10px]">{fmt(mesData.totalMrrFin)}</td>
+                                  <td className="py-2.5 px-3 text-right font-bold text-red-700 text-[10px]">{mesData.totalPerdido > 0 ? `−${fmt(mesData.totalPerdido)}` : '—'}</td>
+                                  <td className="py-2.5 px-3 text-right font-bold text-green-700 text-[10px]">{mesData.totalGanado > 0 ? `+${fmt(mesData.totalGanado)}` : '—'}</td>
+                                  <td className="py-2.5 px-3" colSpan={3} />
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* Nota de pie */}
+                <p className="text-[11px] text-gray-400 text-center">
+                  Fuente: Zoho Analytics · Vista {aaaData?.cols?.length ? `(${aaaData.cols.length} columnas detectadas)` : ''} · Clasificación AAA · H1 Enero–Junio 2026
+                </p>
+              </>
+            )}
+          </div>
         )}
 
         {/* ── ZOHO · DORMIDOS EN VIVO ──────────────────────────────── */}
