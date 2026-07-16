@@ -14,6 +14,38 @@ import { getSemaforo, formatMXN } from '@/lib/types'
 
 const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 
+// ── Segmento badge ────────────────────────────────────────────────────────────
+const SEG_COLOR: Record<string, string> = {
+  Enterprise: '#1B3FCC',
+  Large:      '#6366f1',
+  'Mid-Market': '#f59e0b',
+  SMB:        '#f97316',
+  Micro:      '#ef4444',
+}
+function SegmentoBadge({ seg }: { seg: string | null | undefined }) {
+  if (!seg) return <span className="text-[10px] text-textLow">—</span>
+  const color = SEG_COLOR[seg] ?? '#94a3b8'
+  return (
+    <span style={{
+      background: `${color}15`, color, padding: '2px 8px', borderRadius: 99,
+      fontSize: 10, fontWeight: 700, border: `1px solid ${color}30`, whiteSpace: 'nowrap',
+    }}>{seg}</span>
+  )
+}
+
+// ── Semáforo Zoho badge ───────────────────────────────────────────────────────
+function ZohoSemaforoBadge({ val }: { val: string | null | undefined }) {
+  if (!val) return <span className="text-[10px] text-textLow">Sin datos</span>
+  const n = parseInt(val)
+  const c = n === 1 ? '#22c55e' : n === 2 ? '#f97316' : n === 3 ? '#f59e0b' : '#64748b'
+  return (
+    <span style={{
+      background: `${c}18`, color: c, padding: '2px 8px', borderRadius: 99,
+      fontSize: 10, fontWeight: 700, border: `1px solid ${c}30`, whiteSpace: 'nowrap',
+    }}>{val}</span>
+  )
+}
+
 // ── Motivo dormido ────────────────────────────────────────────────────────────
 function getMotivo(c: Cuenta): { label: string; color: string } {
   if (c.estado === 'cancelado')                 return { label: 'Cancelado',       color: '#EF4444' }
@@ -68,8 +100,13 @@ function DormidasPageInner() {
     if (asesorFilter) params.set('asesor', asesorFilter)
     const res  = await fetch(`/api/cuentas?${params}`)
     const data = await res.json()
-    // Solo las dormidas
-    const dormidas = (data as Cuenta[]).filter(c => getEstadoKey(c) === '4')
+    // Solo las dormidas Enterprise o Large (o sin segmento Zoho aún — mantener hasta confirmar)
+    const dormidas = (data as Cuenta[]).filter(c => {
+      if (getEstadoKey(c) !== '4') return false
+      const seg = c.segmento_zoho
+      if (!seg) return true  // Sin match Zoho: mantener hasta que se confirme
+      return seg === 'Enterprise' || seg === 'Large'
+    })
     setCuentas(dormidas)
     setLoading(false)
   }, [search, asesorFilter])
@@ -203,26 +240,30 @@ function DormidasPageInner() {
             ) : (
               <table className="cp-table">
                 <colgroup>
-                  <col style={{ width: '70px' }} />
-                  <col style={{ width: '210px' }} />
+                  <col style={{ width: '60px' }} />
+                  <col style={{ width: '190px' }} />
+                  <col style={{ width: '95px' }} />
+                  <col style={{ width: '100px' }} />
                   <col style={{ width: '110px' }} />
-                  <col style={{ width: '120px' }} />
-                  <col style={{ width: '115px' }} />
-                  <col style={{ width: '115px' }} />
-                  <col style={{ width: '130px' }} />
                   <col style={{ width: '110px' }} />
-                  <col style={{ width: '75px' }} />
+                  <col style={{ width: '105px' }} />
+                  <col style={{ width: '125px' }} />
+                  <col style={{ width: '110px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '65px' }} />
                 </colgroup>
                 <thead>
                   <tr>
-                    <Th label="#"             field="consecutivo" />
-                    <Th label="Empresa"       field="empresa"     />
-                    <Th label="Asesor"        field="asesor"      />
-                    <Th label="Facturación"   field="facturacion" />
-                    <Th label="Health Score"  field="health_score"/>
-                    <Th label="Semáforo"                          />
-                    <Th label="Motivo"                            />
-                    <Th label="Tickets Zoho"                      />
+                    <Th label="#"              field="consecutivo" />
+                    <Th label="Empresa"        field="empresa"     />
+                    <Th label="Segmento"                           />
+                    <Th label="Asesor"         field="asesor"      />
+                    <Th label="Facturación"    field="facturacion" />
+                    <Th label="Health Score"   field="health_score"/>
+                    <Th label="Semáforo HS"                        />
+                    <Th label="Motivo"                             />
+                    <Th label="Semáforo Zoho"                      />
+                    <Th label="Tickets Zoho"                       />
                     <th />
                   </tr>
                 </thead>
@@ -247,9 +288,12 @@ function DormidasPageInner() {
                             {c.empresa}
                           </Link>
                           {c.giro && (
-                            <p className="text-[11px] text-textLow truncate max-w-[190px] mt-0.5">{c.giro}</p>
+                            <p className="text-[11px] text-textLow truncate max-w-[170px] mt-0.5">{c.giro}</p>
                           )}
                         </td>
+
+                        {/* Segmento Zoho */}
+                        <td><SegmentoBadge seg={c.segmento_zoho} /></td>
 
                         {/* Asesor */}
                         <td><AsesorBadge asesor={c.asesor} /></td>
@@ -273,7 +317,7 @@ function DormidasPageInner() {
                           </div>
                         </td>
 
-                        {/* Semáforo */}
+                        {/* Semáforo HS */}
                         <td><SemaforoBadge semaforo={semaforo} size="sm" /></td>
 
                         {/* Motivo */}
@@ -291,6 +335,9 @@ function DormidasPageInner() {
                             {motivo.label}
                           </span>
                         </td>
+
+                        {/* Semáforo Zoho */}
+                        <td><ZohoSemaforoBadge val={c.semaforo_zoho} /></td>
 
                         {/* Tickets */}
                         <td><TicketsCell cuenta={c} /></td>

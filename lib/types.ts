@@ -39,6 +39,7 @@ export interface Cuenta {
   mrr_zoho?: number | null
   factura_mensual_zoho?: number | null
   semaforo_zoho?: string | null
+  segmento_zoho?: string | null
   servicio: string | null
   activo_desde: string | null
 

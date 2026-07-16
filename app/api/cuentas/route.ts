@@ -88,6 +88,7 @@ export async function GET(req: NextRequest) {
         mrr_zoho:             z?.mrr            ?? null,
         factura_mensual_zoho: z?.factura_mensual ?? null,
         semaforo_zoho:        z?.semaforo        ?? null,
+        segmento_zoho:        z?.segmento        ?? null,
       }
     })
 

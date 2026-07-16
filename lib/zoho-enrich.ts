@@ -11,7 +11,9 @@
  */
 import { queryZohoView, parseNum, isZohoConfigured } from '@/lib/zoho-analytics'
 
-export interface ZohoAcct { mrr: number; factura_mensual: number; semaforo: string }
+export interface ZohoAcct { mrr: number; factura_mensual: number; semaforo: string; segmento: string }
+
+const SEG_RANK: Record<string, number> = { Enterprise: 5, Large: 4, 'Mid-Market': 3, SMB: 2, Micro: 1 }
 
 const ZOHO_TTL = 15 * 60 * 1000
 let _zohoCache: { map: Record<string, ZohoAcct>; ts: number } | null = null
@@ -32,10 +34,13 @@ export async function getZohoMap(): Promise<Record<string, ZohoAcct>> {
     const map: Record<string, ZohoAcct> = {}
     for (const row of result.rows) {
       const sema = row['semaforo_actividad'] ?? ''
+      const seg  = row['segmento_factura']   ?? ''
       const name = normStr(row['nombre_cliente'] ?? '')
       if (!name) continue
       // Registrar semáforo para todas las filas (incluyendo dormidas)
-      if (!map[name]) map[name] = { mrr: 0, factura_mensual: 0, semaforo: sema }
+      if (!map[name]) map[name] = { mrr: 0, factura_mensual: 0, semaforo: sema, segmento: seg }
+      // Acumular segmento más alto (Enterprise > Large > Mid-Market > SMB > Micro)
+      if ((SEG_RANK[seg] ?? 0) > (SEG_RANK[map[name].segmento] ?? 0)) map[name].segmento = seg
       if (sema !== '4 - Dormido') {
         // Solo acumular MRR en filas activas — conserva la suma original de Facturación
         const mrr     = parseNum(row['mrr_limpio']?.replace(/[$,]/g, '')) ?? 0
@@ -84,18 +89,19 @@ export function lookupZoho(empresa: string, zmap: Record<string, ZohoAcct>): Zoh
   }
 
   if (matched.size > 0) {
-    let mrr = 0, factura_mensual = 0, semaforo = '4 - Dormido'
+    let mrr = 0, factura_mensual = 0, semaforo = '4 - Dormido', segmento = ''
     for (const key of Array.from(matched)) {
       const val = zmap[key]
       mrr            += val.mrr
       factura_mensual += val.factura_mensual
       if (val.semaforo && val.semaforo !== '4 - Dormido') semaforo = val.semaforo
+      if ((SEG_RANK[val.segmento] ?? 0) > (SEG_RANK[segmento] ?? 0)) segmento = val.segmento
     }
-    return { mrr, factura_mensual, semaforo }
+    return { mrr, factura_mensual, semaforo, segmento }
   }
 
   // Fallback exact key
-  return zmap[n] ?? null
+  return zmap[n] ? { ...zmap[n] } : null
 }
 
 /** Devuelve las cuentas con `mrr_zoho`, `factura_mensual_zoho` y `semaforo_zoho` desde Zoho. */
