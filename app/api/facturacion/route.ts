@@ -255,14 +255,19 @@ export async function GET(req: NextRequest) {
     const periodos = Object.entries(semaforos)
       .sort((a, b) => b[1].mrr - a[1].mrr)
       .map(([fecha, v]) => ({ fecha, count: v.count, mrr: Math.round(v.mrr * 100) / 100 }))
-    return NextResponse.json({ periodos, total: rows.length, source })
+    const totalActivo = rows.filter(r => !r['Semáforo Actividad']?.includes('Dormido')).length
+    return NextResponse.json({ periodos, total: totalActivo, source })
   }
 
-  /* ── Filtrar por semáforo (en lugar de fecha) ─────────────────── */
+  /* ── Filtrar dormidas + semáforo ─────────────────────────────── */
   const semaforo = sp.get('fecha') ?? ''
-  const filtered = semaforo && semaforo !== '__all__'
-    ? rows.filter(r => r['Semáforo Actividad'] === semaforo)
-    : rows
+  const modoIncluirDormidas = semaforo === '4 - Dormido' || (sp.get('sema') ?? '') === '4 - Dormido'
+  const baseRows = modoIncluirDormidas
+    ? rows
+    : rows.filter(r => !r['Semáforo Actividad']?.includes('Dormido'))
+  const filtered = (semaforo && semaforo !== '__all__')
+    ? baseRows.filter(r => r['Semáforo Actividad'] === semaforo)
+    : baseRows
 
   /* ── MODO: stats ────────────────────────────────────────────────── */
   if (mode === 'stats') {

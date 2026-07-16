@@ -62,16 +62,19 @@ const SEMAFORO_COLOR: Record<string, string> = {
   '4 - Dormido':   '#94a3b8',
 }
 
-const LTV_COLOR: Record<string, string> = {
-  '1 - Alto':   '#1B3FCC',
-  '2 - Bueno':  '#6366f1',
-  '3 - Medio':  '#f59e0b',
-  '4 - Bajo':   '#f97316',
-  '5 - Minimo': '#ef4444',
+// Color por prefijo numérico — funciona con cualquier etiqueta que Zoho devuelva (VIP, Alto, etc.)
+function getLtvColor(val: string): string {
+  const n = parseInt(val)
+  if (n === 1) return '#1B3FCC'
+  if (n === 2) return '#6366f1'
+  if (n === 3) return '#f59e0b'
+  if (n === 4) return '#f97316'
+  if (n === 5) return '#ef4444'
+  return '#94a3b8'
 }
 
-function getBadgeStyle(val: string, map: Record<string, string>) {
-  const color = map[val] ?? '#94a3b8'
+function getBadgeStyle(val: string, map: Record<string, string>, colorFn?: (v: string) => string) {
+  const color = colorFn ? colorFn(val) : (map[val] ?? '#94a3b8')
   return { background: color + '18', color, fontWeight: 700 as const, fontSize: 10, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' as const }
 }
 
@@ -92,10 +95,11 @@ function KpiCard({ icon: Icon, label, value, sub, color }: {
   )
 }
 
-function BarGroup({ title, data, colorMap, mrr }: {
+function BarGroup({ title, data, colorMap, colorFn, mrr }: {
   title: string
   data: Record<string, { count: number; mrr: number } | number>
   colorMap?: Record<string, string>
+  colorFn?: (key: string) => string
   mrr?: boolean
 }) {
   const entries = Object.entries(data).sort((a, b) => {
@@ -116,7 +120,7 @@ function BarGroup({ title, data, colorMap, mrr }: {
           const val = typeof v === 'number' ? v : (mrr ? v.mrr : v.count)
           const count = typeof v === 'number' ? v : v.count
           const pct = Math.round((val / max) * 100)
-          const color = colorMap?.[key] ?? '#1B3FCC'
+          const color = colorFn ? colorFn(key) : (colorMap?.[key] ?? '#1B3FCC')
           return (
             <div key={key}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
@@ -310,8 +314,8 @@ export default function FacturacionPage() {
       {stats && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
           <KpiCard icon={DollarSign} label="MRR Total (limpio)" value={fmt$(stats.totalMrr)} sub={`Promedio ${fmt$(stats.avgMrr)} / cliente`} color="#1B3FCC" />
-          <KpiCard icon={Users} label="Clientes activos" value={String(stats.activos)} sub={`${stats.dormidos} dormidos`} color="#22c55e" />
-          <KpiCard icon={TrendingUp} label="Clientes filtrados" value={String(stats.total)} sub={filtroActivo === '__all__' ? 'Base completa' : filtroActivo} color="#6366f1" />
+          <KpiCard icon={Users} label="Clientes activos" value={String(stats.activos)} color="#22c55e" />
+          <KpiCard icon={TrendingUp} label="Clientes filtrados" value={String(stats.total)} sub={filtroActivo === '__all__' ? 'Base activa' : filtroActivo} color="#6366f1" />
           <KpiCard icon={AlertCircle} label="One Timers" value={String(stats.onTimers)} sub={`${stats.total ? ((stats.onTimers / stats.total) * 100).toFixed(1) : 0}% del total`} color="#f59e0b" />
         </div>
       )}
@@ -334,7 +338,7 @@ export default function FacturacionPage() {
       {tab === 'resumen' && stats && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <BarGroup title="MRR por Segmento" data={stats.bySegmento} mrr />
-          <BarGroup title="Clientes por Clasificación LTV" data={stats.byLTV} colorMap={LTV_COLOR} mrr />
+          <BarGroup title="Clientes por Clasificación LTV" data={stats.byLTV} colorFn={getLtvColor} mrr />
           <BarGroup title="Distribución por Rango LTV" data={stats.byRango} mrr />
           <BarGroup title="Semáforo de Actividad" data={stats.bySemaforo} colorMap={SEMAFORO_COLOR} />
         </div>
@@ -361,7 +365,7 @@ export default function FacturacionPage() {
                   <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{c.nombre}</td>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(c.mrr)}</td>
                   <td style={{ padding: '10px 14px' }}><span style={getBadgeStyle(c.rango, {})}>{c.rango || '—'}</span></td>
-                  <td style={{ padding: '10px 14px' }}><span style={getBadgeStyle(c.clas, LTV_COLOR)}>{c.clas || '—'}</span></td>
+                  <td style={{ padding: '10px 14px' }}><span style={getBadgeStyle(c.clas, {}, getLtvColor)}>{c.clas || '—'}</span></td>
                   <td style={{ padding: '10px 14px' }}><span style={getBadgeStyle(c.semaforo, SEMAFORO_COLOR)}>{c.semaforo || '—'}</span></td>
                 </tr>
               ))}
@@ -464,7 +468,7 @@ export default function FacturacionPage() {
                           <td style={{ padding: '9px 12px', fontWeight: 700, color: '#0f172a' }}>{fmt$(r['Ticket Promedio'])}</td>
                           <td style={{ padding: '9px 12px', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(r['MRR Limpio'])}</td>
                           <td style={{ padding: '9px 12px', color: '#374151' }}>{fmt$(r['Importe Acumulado Recurrente'])}</td>
-                          <td style={{ padding: '9px 12px' }}><span style={getBadgeStyle(r['Clasificación LTV'], LTV_COLOR)}>{r['Clasificación LTV'] || '—'}</span></td>
+                          <td style={{ padding: '9px 12px' }}><span style={getBadgeStyle(r['Clasificación LTV'], {}, getLtvColor)}>{r['Clasificación LTV'] || '—'}</span></td>
                           <td style={{ padding: '9px 12px' }}><span style={getBadgeStyle(r['Semáforo Actividad'], SEMAFORO_COLOR)}>{r['Semáforo Actividad'] || '—'}</span></td>
                           <td style={{ padding: '9px 12px', color: '#374151', textAlign: 'center' }}>{r['Meses Activo'] ?? '—'}</td>
                           <td style={{ padding: '9px 12px', color: '#64748b' }}>{r['Última Factura'] || '—'}</td>
