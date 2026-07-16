@@ -83,6 +83,12 @@ function TicketsCell({ cuenta }: { cuenta: Cuenta }) {
   )
 }
 
+// ── Tipo para dormidas de Zoho Facturación ───────────────────────────────────
+interface ZohoDormida {
+  cid: string; nombre: string; segmento: string
+  mrr: number; ltv: string; ultimaFactura: string
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 function DormidasPageInner() {
   const [cuentas, setCuentas]   = useState<Cuenta[]>([])
@@ -92,6 +98,30 @@ function DormidasPageInner() {
   const [motivoFilter, setMotivoFilter] = useState('')
   const [sortField, setSortField] = useState<keyof Cuenta>('health_score')
   const [sortDir, setSortDir]   = useState<'asc' | 'desc'>('asc')
+  const [zohoRows, setZohoRows] = useState<ZohoDormida[]>([])
+  const [zohoLoading, setZohoLoading] = useState(true)
+
+  // Cargar Enterprise+Large dormidas desde Facturación (Zoho)
+  useEffect(() => {
+    const p = new URLSearchParams({ mode: 'list', sema: '4 - Dormido', size: '500' })
+    fetch(`/api/facturacion?${p}`)
+      .then(r => r.json())
+      .then((d: { rows?: Record<string, unknown>[] }) => {
+        const rows = (d.rows ?? [])
+          .filter(r => r['Segmento Factura'] === 'Enterprise' || r['Segmento Factura'] === 'Large')
+          .map(r => ({
+            cid:           String(r['CID'] ?? ''),
+            nombre:        String(r['Nombre del Cliente'] ?? ''),
+            segmento:      String(r['Segmento Factura'] ?? ''),
+            mrr:           Number(r['MRR Limpio'] ?? 0),
+            ltv:           String(r['Clasificación LTV'] ?? ''),
+            ultimaFactura: String(r['Última Factura'] ?? ''),
+          }))
+        setZohoRows(rows)
+      })
+      .catch(() => setZohoRows([]))
+      .finally(() => setZohoLoading(false))
+  }, [])
 
   const fetchCuentas = useCallback(async () => {
     setLoading(true)
@@ -100,13 +130,8 @@ function DormidasPageInner() {
     if (asesorFilter) params.set('asesor', asesorFilter)
     const res  = await fetch(`/api/cuentas?${params}`)
     const data = await res.json()
-    // Solo las dormidas Enterprise o Large (o sin segmento Zoho aún — mantener hasta confirmar)
-    const dormidas = (data as Cuenta[]).filter(c => {
-      if (getEstadoKey(c) !== '4') return false
-      const seg = c.segmento_zoho
-      if (!seg) return true  // Sin match Zoho: mantener hasta que se confirme
-      return seg === 'Enterprise' || seg === 'Large'
-    })
+    // Todas las dormidas marcadas por asesores (sin filtrar por segmento)
+    const dormidas = (data as Cuenta[]).filter(c => getEstadoKey(c) === '4')
     setCuentas(dormidas)
     setLoading(false)
   }, [search, asesorFilter])
@@ -370,6 +395,95 @@ function DormidasPageInner() {
               <Link href="/cuentas" className="flex items-center gap-1 hover:text-textHi transition-colors">
                 <ChevronLeft size={11} /> Volver a Cuentas Activas
               </Link>
+            </div>
+          )}
+        </div>
+      {/* ── Dormidas Enterprise & Large en Facturación (Zoho) ─────────────── */}
+      <div className="px-6 pb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Archive size={14} className="text-textLow" />
+          <h2 className="text-sm font-bold text-textHi">
+            Enterprise &amp; Large — Dormidas en Facturación Zoho
+          </h2>
+          {!zohoLoading && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: '#1B3FCC15', color: '#1B3FCC' }}>
+              {zohoRows.length} cuentas
+            </span>
+          )}
+        </div>
+        <div className="cp-card p-0 overflow-hidden" style={{ borderColor: '#1B3FCC20' }}>
+          {zohoLoading ? (
+            <div className="flex items-center justify-center h-24 gap-2 text-textLow text-sm">
+              <RefreshCw size={14} className="animate-spin" /> Cargando Zoho…
+            </div>
+          ) : zohoRows.length === 0 ? (
+            <div className="flex items-center justify-center h-24 text-textLow text-sm">
+              Sin cuentas Enterprise o Large dormidas en Zoho
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="cp-table">
+                <colgroup>
+                  <col style={{ width: '90px' }} />
+                  <col style={{ width: '240px' }} />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '110px' }} />
+                  <col style={{ width: '120px' }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className="px-3 py-2.5 text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-textLow">CID</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-textLow">Cliente</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-textLow">Segmento</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-textLow">MRR Limpio</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-textLow">Clasif. LTV</span>
+                    </th>
+                    <th className="px-3 py-2.5 text-left">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-textLow">Última Factura</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {zohoRows.map((r, i) => (
+                    <tr key={`${r.cid}-${i}`}>
+                      <td>
+                        <span className="font-mono text-xs font-bold text-textLow">{r.cid || '—'}</span>
+                      </td>
+                      <td>
+                        <span className="text-sm font-semibold text-textHi">{r.nombre}</span>
+                      </td>
+                      <td><SegmentoBadge seg={r.segmento} /></td>
+                      <td>
+                        <span className="text-sm font-bold tabular-nums" style={{ color: '#1B3FCC' }}>
+                          {r.mrr > 0 ? formatMXN(r.mrr) : '—'}
+                        </span>
+                      </td>
+                      <td><ZohoSemaforoBadge val={r.ltv} /></td>
+                      <td>
+                        <span className="text-xs text-textMid">{r.ultimaFactura || '—'}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {!zohoLoading && zohoRows.length > 0 && (
+            <div className="border-t px-5 py-2.5 text-xs text-textLow flex items-center gap-1.5"
+              style={{ borderColor: '#1B3FCC15', background: '#1B3FCC05' }}>
+              <Archive size={11} />
+              {zohoRows.length} cuentas Enterprise &amp; Large con semáforo 4 - Dormido en Zoho Analytics
             </div>
           )}
         </div>
