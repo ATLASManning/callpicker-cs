@@ -130,8 +130,10 @@ function DormidasPageInner() {
     if (asesorFilter) params.set('asesor', asesorFilter)
     const res  = await fetch(`/api/cuentas?${params}`)
     const data = await res.json()
-    // Todas las dormidas marcadas por asesores (sin filtrar por segmento)
-    const dormidas = (data as Cuenta[]).filter(c => getEstadoKey(c) === '4')
+    // Todas las dormidas: estado cancelado/hibernacion OR health score bajo
+    const dormidas = (data as Cuenta[]).filter(c =>
+      c.estado === 'cancelado' || c.estado === 'hibernacion' || getEstadoKey(c) === '4'
+    )
     setCuentas(dormidas)
     setLoading(false)
   }, [search, asesorFilter])
