@@ -131,7 +131,9 @@ function DormidasPageInner() {
     const data = await res.json()
     // Todas las dormidas: estado cancelado/hibernacion OR health score bajo
     const dormidas = (data as Cuenta[]).filter(c =>
-      c.estado === 'cancelado' || c.estado === 'hibernacion' || getEstadoKey(c) === '4'
+      c.estado === 'cancelado' || c.estado === 'hibernacion' ||
+      (!c.facturacion || c.facturacion === 0) ||
+      getEstadoKey(c) === '4'
     )
     setCuentas(dormidas)
     setLoading(false)
