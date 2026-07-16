@@ -108,7 +108,6 @@ function DormidasPageInner() {
       .then(r => r.json())
       .then((d: { rows?: Record<string, unknown>[] }) => {
         const rows = (d.rows ?? [])
-          .filter(r => r['Segmento Factura'] === 'Enterprise' || r['Segmento Factura'] === 'Large')
           .map(r => ({
             cid:           String(r['CID'] ?? ''),
             nombre:        String(r['Nombre del Cliente'] ?? ''),
@@ -405,7 +404,7 @@ function DormidasPageInner() {
         <div className="flex items-center gap-2 mb-3">
           <Archive size={14} className="text-textLow" />
           <h2 className="text-sm font-bold text-textHi">
-            Enterprise &amp; Large — Dormidas en Facturación Zoho
+            Dormidas en Facturación Zoho
           </h2>
           {!zohoLoading && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
@@ -485,7 +484,7 @@ function DormidasPageInner() {
             <div className="border-t px-5 py-2.5 text-xs text-textLow flex items-center gap-1.5"
               style={{ borderColor: '#1B3FCC15', background: '#1B3FCC05' }}>
               <Archive size={11} />
-              {zohoRows.length} cuentas Enterprise &amp; Large con semáforo 4 - Dormido en Zoho Analytics
+              {zohoRows.length} cuentas con semáforo 4 - Dormido en Zoho Analytics
             </div>
           )}
         </div>

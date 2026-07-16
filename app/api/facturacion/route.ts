@@ -340,7 +340,7 @@ export async function GET(req: NextRequest) {
   if (mode === 'list') {
     const q         = (sp.get('q') ?? '').toLowerCase()
     const page      = Math.max(1, parseInt(sp.get('page') ?? '1'))
-    const size      = Math.min(100, parseInt(sp.get('size') ?? '50'))
+    const size      = Math.min(500, parseInt(sp.get('size') ?? '50'))
     const ltv       = sp.get('ltv') ?? ''
     const seg       = sp.get('seg') ?? ''
     const tamano    = sp.get('tamano') ?? ''
