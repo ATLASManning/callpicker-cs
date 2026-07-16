@@ -399,7 +399,8 @@ function DormidasPageInner() {
             </div>
           )}
         </div>
-      {/* ── Dormidas Enterprise & Large en Facturación (Zoho) ─────────────── */}
+      </div>
+      {/* ── Dormidas en Facturación Zoho ────────────────────────────────────── */}
       <div className="px-6 pb-8">
         <div className="flex items-center gap-2 mb-3">
           <Archive size={14} className="text-textLow" />
