@@ -261,12 +261,15 @@ export async function GET(req: NextRequest) {
 
   /* ── Filtrar dormidas + semáforo ─────────────────────────────── */
   const semaforo = sp.get('fecha') ?? ''
-  const modoIncluirDormidas = semaforo === '4 - Dormido' || (sp.get('sema') ?? '') === '4 - Dormido'
+  const isDorm = (s: string) => s.toLowerCase().includes('dormido')
+  const modoIncluirDormidas = isDorm(semaforo) || isDorm(sp.get('sema') ?? '')
   const baseRows = modoIncluirDormidas
     ? rows
-    : rows.filter(r => !r['Semáforo Actividad']?.includes('Dormido'))
+    : rows.filter(r => !isDorm(r['Semáforo Actividad'] ?? ''))
   const filtered = (semaforo && semaforo !== '__all__')
-    ? baseRows.filter(r => r['Semáforo Actividad'] === semaforo)
+    ? baseRows.filter(r => isDorm(semaforo)
+        ? isDorm(r['Semáforo Actividad'] ?? '')
+        : (r['Semáforo Actividad'] ?? '').toLowerCase() === semaforo.toLowerCase())
     : baseRows
 
   /* ── MODO: stats ────────────────────────────────────────────────── */
@@ -357,7 +360,9 @@ export async function GET(req: NextRequest) {
     if (seg)    list = list.filter(r => r['Segmento Factura'] === seg)
     if (tamano) list = list.filter(r => r['Tamaño Empresa'] === tamano)
     if (mes)    list = list.filter(r => r['Cohorte Periodo'] === mes)
-    if (sema)   list = list.filter(r => r['Semáforo Actividad'] === sema)
+    if (sema)   list = list.filter(r => isDorm(sema)
+      ? isDorm(r['Semáforo Actividad'] ?? '')
+      : (r['Semáforo Actividad'] ?? '').toLowerCase() === sema.toLowerCase())
 
     const total  = list.length
     const offset = (page - 1) * size
