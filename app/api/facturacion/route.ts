@@ -412,6 +412,50 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ total: result.length, matched, unmatched, rows: result, source })
   }
 
+  /* ── MODO: dormidos — Zoho 4-Dormido cruzado con CS ────────────── */
+  if (mode === 'dormidos') {
+    const dormRows = rows.filter(r => isDorm(r['Semáforo Actividad'] ?? ''))
+
+    type CsRow = { id: number; empresa: string; estado: string; asesor: string; consecutivo: string; cid: string | null }
+    const { data: cuentas } = await supabaseAdmin
+      .from('cuentas')
+      .select('id, empresa, estado, asesor, consecutivo, cid')
+
+    const mapCid:    Record<string, CsRow> = {}
+    const mapNombre: Record<string, CsRow> = {}
+    for (const c of ((cuentas ?? []) as CsRow[])) {
+      if (c.cid) mapCid[String(c.cid)] = c
+      mapNombre[normalize(c.empresa ?? '')] = c
+    }
+
+    const result = dormRows.map(r => {
+      const cuenta    = mapCid[r.CID] ?? mapNombre[normalize(r['Nombre del Cliente'] ?? '')] ?? null
+      const estado_cs = cuenta?.estado ?? null
+      return {
+        cid:            r.CID,
+        nombre:         r['Nombre del Cliente'],
+        segmento:       r['Segmento Factura'],
+        ltv:            r['Clasificación LTV'],
+        mrr:            r['MRR Limpio'] ?? 0,
+        ultimaFactura:  r['Última Factura'],
+        diasSinFactura: r['Días sin Factura'],
+        semaforo:       r['Semáforo Actividad'],
+        matched:        !!cuenta,
+        cuenta_id:      cuenta?.id ?? null,
+        estado_cs,
+        asesor_cs:      cuenta?.asesor ?? null,
+        consecutivo:    cuenta?.consecutivo ?? null,
+        alerta:         !!cuenta && estado_cs === 'activo',
+      }
+    }).sort((a, b) => b.mrr - a.mrr)
+
+    const totalMrr = result.reduce((s, r) => s + r.mrr, 0)
+    const alertas  = result.filter(r => r.alerta).length
+    const matched  = result.filter(r => r.matched).length
+
+    return NextResponse.json({ total: result.length, totalMrr: Math.round(totalMrr), alertas, matched, rows: result, source })
+  }
+
   /* ── MODO: by-cid ────────────────────────────────────────────────── */
   if (mode === 'by-cid') {
     const cid    = sp.get('cid') ?? ''

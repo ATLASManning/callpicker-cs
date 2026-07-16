@@ -5,13 +5,14 @@ import {
   TrendingDown, AlertTriangle, XCircle, ArrowDownRight,
   Clock, DollarSign, BarChart3, CalendarDays, ChevronDown, ChevronUp,
   Plus, Trash2, X, ChevronLeft, ChevronRight, Check, Database, FileBarChart2,
+  RefreshCw,
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════════════════
    TIPOS
 ═══════════════════════════════════════════════════════════════════════ */
 type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
-type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1'
+type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho'
 
 interface ChurnPendiente   { cliente: string; monto: number; mesesActivo: number; ultimaFactura: string }
 interface ChurnCancelado   { cliente: string; mrr: number;   mesesActivo: number; acumulado: number    }
@@ -49,6 +50,18 @@ interface ChurnReporte {
   desactivadosTotalReal?:  number
   desactivadosCuentasReal?: number
   downgradeTotalReal?:     number
+}
+
+/* ─── Tipos Zoho Dormidos ─────────────────────────────────────────── */
+type ZohoDormidoRow = {
+  cid: string; nombre: string; segmento: string; ltv: string; mrr: number
+  ultimaFactura: string; diasSinFactura: number | null; semaforo: string
+  matched: boolean; cuenta_id: number | null; estado_cs: string | null
+  asesor_cs: string | null; consecutivo: string | null; alerta: boolean
+}
+type ZohoDormido = {
+  total: number; totalMrr: number; alertas: number; matched: number
+  rows: ZohoDormidoRow[]; source: string
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1148,7 +1161,8 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
   if (r.desactivados && r.desactivados.length > 0) {
     tabs.push({ id: 'desactivados', label: `🟣 Desactivados (${r.desactivadosCuentasReal ?? r.desactivados.length})`, color: '#7C3AED' })
   }
-  tabs.push({ id: 't1', label: 'Resumen T1 2026',                                     color: INDIGO })
+  tabs.push({ id: 't1',   label: 'Resumen T1 2026',                                   color: INDIGO })
+  tabs.push({ id: 'zoho', label: '🔴 Zoho · Dormidos',                               color: '#dc2626' })
   return tabs
 }
 
@@ -1161,8 +1175,20 @@ export default function ChurnPage() {
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
+  const [zohoLoading,  setZohoLoading]  = useState(false)
+  const [zohoData,     setZohoData]     = useState<ZohoDormido | null>(null)
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
+
+  useEffect(() => {
+    if (tab !== 'zoho' || zohoData !== null || zohoLoading) return
+    setZohoLoading(true)
+    fetch('/api/facturacion?mode=dormidos')
+      .then(r => r.json())
+      .then((d: ZohoDormido) => setZohoData(d))
+      .catch(() => {})
+      .finally(() => setZohoLoading(false))
+  }, [tab, zohoData, zohoLoading])
 
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026']
   const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, ...userReportes]
@@ -1896,6 +1922,148 @@ export default function ChurnPage() {
               </div>
             </div>
           </>
+        )}
+
+        {/* ── ZOHO · DORMIDOS EN VIVO ──────────────────────────────── */}
+        {tab === 'zoho' && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: '#dc262615' }}>
+                <TrendingDown size={16} style={{ color: '#dc2626' }} />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-900 text-sm">Zoho · Cuentas 4-Dormido en vivo</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Semáforo Actividad = 4-Dormido · Fuente: {zohoData?.source ?? 'cargando…'}
+                </p>
+              </div>
+              <button
+                onClick={() => { setZohoData(null); setZohoLoading(false) }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 border border-gray-200 transition-colors"
+              >
+                <RefreshCw size={12} /> Actualizar
+              </button>
+            </div>
+
+            {zohoLoading && (
+              <div className="bg-white rounded-xl border border-gray-200 p-10 shadow-sm text-center">
+                <div className="w-8 h-8 rounded-full border-2 border-red-500 border-t-transparent animate-spin mx-auto mb-3" />
+                <p className="text-sm text-gray-500">Consultando Zoho Analytics…</p>
+              </div>
+            )}
+
+            {!zohoLoading && zohoData && (
+              <>
+                {/* KPIs */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <KpiCard icon={XCircle}       label="Cuentas 4-Dormido"        value={String(zohoData.total)}
+                    sub="en Zoho Facturación" color="#dc2626" />
+                  <KpiCard icon={DollarSign}    label="MRR en riesgo"             value={fmt(zohoData.totalMrr)}
+                    sub="suma dormidas" color={ORANGE} />
+                  <KpiCard icon={AlertTriangle} label="Alertas — activas en CS"   value={String(zohoData.alertas)}
+                    sub="dormidas Zoho, activas CS" color={RED} />
+                  <KpiCard icon={BarChart3}     label="Cruzadas con CS"           value={String(zohoData.matched)}
+                    sub={`de ${zohoData.total} total`} color={GREEN} />
+                </div>
+
+                {/* Alerta crítica */}
+                {zohoData.alertas > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 flex gap-3">
+                    <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-red-800">
+                        {zohoData.alertas} cuenta{zohoData.alertas !== 1 ? 's' : ''} con semáforo 4-Dormido en Zoho pero estado &quot;activo&quot; en Callpicker CS
+                      </p>
+                      <p className="text-xs text-red-600 mt-1">
+                        Revisar y actualizar en la plataforma para mantener consistencia entre sistemas.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tabla */}
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-gray-100" style={{ background: '#dc262608' }}>
+                    <h3 className="font-semibold text-sm text-gray-900">{zohoData.total} cuentas dormidas — Zoho Facturación</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">MRR total: {fmt(zohoData.totalMrr)}</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50/70">
+                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Segmento</th>
+                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">LTV</th>
+                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">MRR</th>
+                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Días s/F</th>
+                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Últ. Factura</th>
+                          <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado CS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {zohoData.rows.map((r, i) => (
+                          <tr key={i}
+                            className={`border-b border-gray-100 transition-colors ${r.alerta ? 'bg-red-50/40 hover:bg-red-50/70' : 'hover:bg-gray-50/50'}`}>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2">
+                                {r.alerta && <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />}
+                                <span className="font-medium text-gray-900 text-xs">{r.nombre}</span>
+                              </div>
+                              {r.cid && <span className="text-[10px] text-gray-400 ml-3.5">CID {r.cid}</span>}
+                            </td>
+                            <td className="py-3 px-4 text-xs text-gray-600">{r.segmento || '—'}</td>
+                            <td className="py-3 px-4">
+                              {r.ltv ? (
+                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                  r.ltv.startsWith('1') ? 'bg-green-100 text-green-700' :
+                                  r.ltv.startsWith('2') ? 'bg-blue-100 text-blue-700' :
+                                  'bg-gray-100 text-gray-500'
+                                }`}>{r.ltv}</span>
+                              ) : <span className="text-xs text-gray-400">—</span>}
+                            </td>
+                            <td className="py-3 px-4 text-right font-semibold text-xs"
+                              style={{ color: r.mrr > 0 ? ORANGE : '#9ca3af' }}>
+                              {r.mrr > 0 ? fmt(r.mrr) : '—'}
+                            </td>
+                            <td className="py-3 px-4 text-right text-xs">
+                              {r.diasSinFactura != null ? (
+                                <span className={`font-semibold ${
+                                  r.diasSinFactura > 90 ? 'text-red-600' :
+                                  r.diasSinFactura > 45 ? 'text-amber-600' : 'text-gray-600'
+                                }`}>{r.diasSinFactura}d</span>
+                              ) : <span className="text-gray-400">—</span>}
+                            </td>
+                            <td className="py-3 px-4 text-xs text-gray-500">{r.ultimaFactura || '—'}</td>
+                            <td className="py-3 px-4 text-center">
+                              {r.matched ? (
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                                  r.alerta
+                                    ? 'bg-red-100 text-red-700 border-red-200'
+                                    : r.estado_cs === 'cancelado'
+                                      ? 'bg-gray-100 text-gray-500 border-gray-200'
+                                      : 'bg-amber-100 text-amber-700 border-amber-200'
+                                }`}>
+                                  <span className={`w-1 h-1 rounded-full ${r.alerta ? 'bg-red-500' : r.estado_cs === 'cancelado' ? 'bg-gray-400' : 'bg-amber-500'}`} />
+                                  {r.alerta ? '⚠ activo en CS' : (r.estado_cs ?? '—')}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-gray-300">sin match</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="px-5 py-3 text-[11px] text-gray-400 border-t border-gray-100">
+                    Filas en rojo: semáforo 4-Dormido en Zoho pero estado &quot;activo&quot; en Callpicker CS — requieren actualización.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
       </div>
