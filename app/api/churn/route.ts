@@ -4,7 +4,8 @@ import { isZohoConfigured, queryZohoView, parseNum } from '@/lib/zoho-analytics'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55
 
-const CHURN_VIEW_ID = process.env.ZOHO_VIEW_ID_CHURN_DETAIL ?? '245443000011222902'
+// CONOBJID del drill-down: tabla fuente subyacente del reporte GRC
+const CHURN_VIEW_ID = process.env.ZOHO_VIEW_ID_CHURN_DETAIL ?? '245443000007933295'
 const FACT_VIEW_ID  = process.env.ZOHO_VIEW_ID_FACTURACION  ?? ''
 
 let _cache: { rows: ChurnRow[]; cols: string[]; ts: number } | null = null
