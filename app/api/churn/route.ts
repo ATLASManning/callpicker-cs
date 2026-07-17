@@ -168,6 +168,7 @@ export async function GET(req: NextRequest) {
     // Debug: qué hay en la vista antes de filtrar
     const debugClasificaciones = Array.from(new Set(rows.map(r => r.clasificacion).filter(Boolean))).slice(0, 20)
     const debugMeses = Array.from(new Set(rows.map(r => r.mes).filter(Boolean))).slice(0, 20)
+    const debugSampleRaw = rows[0]?._raw ?? {}
 
     let data = rows.filter(r => r.clasificacion.toUpperCase().trim() === clsFiltro)
     if (movFiltro) data = data.filter(r => r.movimiento.toLowerCase().includes(movFiltro))
@@ -217,10 +218,13 @@ export async function GET(req: NextRequest) {
       cols,
       // Debug: qué hay en la vista (para ajustar filtros si sale vacío)
       _debug: mesesResult.length === 0 ? {
-        totalRows:        rows.length,
-        clasificaciones:  debugClasificaciones,
-        mesesDisponibles: debugMeses,
-        hint: 'Si clasificaciones/meses están vacíos, el mapeo de columnas no encontró los campos',
+        totalRows:          rows.length,
+        clasificaciones:    debugClasificaciones,
+        mesesDisponibles:   debugMeses,
+        colsRaw:            cols,                           // nombres exactos que devuelve Zoho
+        sampleRawKeys:      Object.keys(debugSampleRaw),   // keys del primer row
+        sampleRawRow:       debugSampleRaw,                 // valores del primer row
+        hint: 'Revisar colsRaw/sampleRawKeys para ver nombres exactos de columnas en esta vista',
       } : undefined,
     })
   }

@@ -73,6 +73,9 @@ type AAAData = {
     totalRows: number
     clasificaciones: string[]
     mesesDisponibles: string[]
+    colsRaw: string[]
+    sampleRawKeys: string[]
+    sampleRawRow: Record<string, string>
     hint: string
   }
 }
@@ -2003,12 +2006,26 @@ export default function ChurnPage() {
                   {aaaData.error ? `Error: ${aaaData.error}` : 'Sin datos AAA H1 en Zoho Analytics.'}
                 </p>
                 {aaaData._debug && (
-                  <div className="bg-gray-50 rounded-lg p-4 text-xs font-mono space-y-1 border border-gray-100">
-                    <p className="font-semibold text-gray-700 mb-2">Debug — respuesta de Zoho:</p>
-                    <p><span className="text-gray-500">totalRows:</span> {aaaData._debug.totalRows}</p>
+                  <div className="bg-gray-50 rounded-lg p-4 text-xs font-mono space-y-1.5 border border-gray-100 overflow-x-auto">
+                    <p className="font-semibold text-gray-700 mb-2">Debug — respuesta de Zoho (vista {process.env.NEXT_PUBLIC_CHURN_VIEW_ID ?? '245443000011222902'}):</p>
+                    <p><span className="text-gray-500">totalRows:</span> <span className="text-blue-700 font-bold">{aaaData._debug.totalRows}</span></p>
                     <p><span className="text-gray-500">clasificaciones:</span> [{aaaData._debug.clasificaciones.join(', ') || '(vacío)'}]</p>
                     <p><span className="text-gray-500">meses disponibles:</span> [{aaaData._debug.mesesDisponibles.join(', ') || '(vacío)'}]</p>
-                    <p className="text-amber-600 mt-1">{aaaData._debug.hint}</p>
+                    <div className="mt-2 border-t border-gray-200 pt-2">
+                      <p className="font-semibold text-gray-600 mb-1">Columnas reales de la vista (colsRaw):</p>
+                      <p className="text-purple-700 break-all">[{(aaaData._debug.colsRaw ?? []).join(' | ')}]</p>
+                    </div>
+                    {aaaData._debug.sampleRawKeys?.length > 0 && (
+                      <div className="mt-2 border-t border-gray-200 pt-2">
+                        <p className="font-semibold text-gray-600 mb-1">Keys del primer row:</p>
+                        <p className="text-indigo-700 break-all">[{aaaData._debug.sampleRawKeys.join(' | ')}]</p>
+                        <p className="font-semibold text-gray-600 mb-1 mt-1.5">Valores del primer row:</p>
+                        {Object.entries(aaaData._debug.sampleRawRow).map(([k, v]) => (
+                          <p key={k}><span className="text-gray-500">{k}:</span> <span className="text-green-700">{String(v)}</span></p>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-amber-600 mt-2 border-t border-gray-200 pt-2">{aaaData._debug.hint}</p>
                   </div>
                 )}
               </div>
