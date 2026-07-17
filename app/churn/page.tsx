@@ -785,6 +785,87 @@ const REPORTE_S1_JULIO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 12 · JULIO 2026  (17 jul 2026)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S2_JULIO_2026: ChurnReporte = {
+  id:      's2-julio-2026',
+  periodo: 'Semana 12 · Jul 2026',
+  fecha:   '17/07/2026',
+  notas:   'Gross Revenue Churn · Semana 12. Al 17 de julio del 2026. Segundo corte de julio con consolidado de cuentas en corte, suspendidos, desactivados, cancelados y downgrades. Siguiente revisión: viernes 24 de julio.',
+  notaRemitente: 'Daniel Martínez — Siguiente revisión: viernes 24 de julio.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Abril', pct: 1.8, anterior: 1.9 },
+      { mes: 'Mayo',  pct: 1.6, anterior: 1.8 },
+      { mes: 'Junio', pct: 3.4, anterior: 3.7 },
+    ],
+    acumulado: 13.3,
+    anterior:  13.6,
+    notaClave: 'Churn Q2 cierre final definitivo: Abril 1.8% · Mayo 1.6% · Junio 3.4% (corr. 3.7%). Acumulado 2026: 13.3% (corr. 13.6%).',
+    notaEspecial: 'Seguimiento pendientes Jun S9 y S10 — Suspendido $21,170 · Desactivado $979 · Cancelado $689. Clientes en amarillo en el documento de casos ya facturaron en julio y se contabilizan como reactivaciones. Consulta de churn y downgrade por artículo disponible en el dashboard.',
+  },
+
+  /* En Corte Sem 2 Julio — 3 cuentas · $2,937.31 */
+  pendientesTotalReal:   2937.31,
+  pendientesCuentasReal: 3,
+  pendientes: [
+    { cliente: 'Servitaxi Rincón de Palma Real', monto: 979.31, mesesActivo: 2,   ultimaFactura: '05/06/2026' },
+    { cliente: 'Urbanelle BH Inmobiliaria',      monto: 979,    mesesActivo: 5,   ultimaFactura: '03/06/2026' },
+    { cliente: 'Montebello Towers',              monto: 979,    mesesActivo: 116, ultimaFactura: '01/06/2026' },
+  ],
+
+  /* Cancelados Sem 2 Julio — 6 cuentas · $5,868 */
+  cancelados: [
+    { cliente: '🔝 Yapp',                   mrr: 1996, mesesActivo: 12, acumulado: 0 },
+    { cliente: 'Houses Land',               mrr: 1959, mesesActivo: 14, acumulado: 0 },
+    { cliente: 'Grupo Taneg',               mrr: 786,  mesesActivo: 20, acumulado: 0 },
+    { cliente: 'Grupo CBCA',               mrr: 489,  mesesActivo: 40, acumulado: 0 },
+    { cliente: 'GROW Real Estate',          mrr: 489,  mesesActivo: 29, acumulado: 0 },
+    { cliente: 'Dinosaurio Hosting Mexico', mrr: 149,  mesesActivo: 52, acumulado: 0 },
+  ],
+
+  /* Downgrades Sem 2 Julio — 6 clientes · $9,911.81 */
+  downgradeTotalReal: 9911.81,
+  downgrades: [
+    { cliente: '🔝 Latinx Revops',   perdida: 5129.01, nota: '74% de baja. Redujo Extensión VyC y DiD Nacional. Eliminó DiD Internacional. Adquirió Agente CP Chat ($1,953).' },
+    { cliente: 'DOSATEC',            perdida: 1581,    nota: '52% de baja. Redujo Agente CP Chat y eliminó Extensión VyC. Adquirió Paquete Min CE ($489).' },
+    { cliente: 'labsus lab',         perdida: 1053,    nota: '18% de baja. Redujo Paquete Min CE de $2,500 → $1,447.' },
+    { cliente: 'DRENVIO',            perdida: 729,     nota: '37% de baja. Redujo Paquete Min VyC de $1,959 → $1,230.' },
+    { cliente: 'ROAL TRANSPORTES',   perdida: 730.80,  nota: '88% de baja. Eliminó Paquete Min CE y Paquete 800. Redujo DiD Nacional de $282 → $99.' },
+    { cliente: 'SAMALAB',            perdida: 689,     nota: '25% de baja. Redujo Extensión VyC de $2,756 → $2,067.' },
+  ],
+
+  downgradeArticulos: [
+    { articulo: 'Extensión VyC', vecesAfectado: 3, clientes: ['Latinx Revops', 'DOSATEC', 'SAMALAB'] },
+    { articulo: 'DiD Nacional',  vecesAfectado: 2, clientes: ['Latinx Revops', 'ROAL TRANSPORTES'] },
+  ],
+
+  /* Suspendidos Sem 2 Julio — 5 cuentas · $16,302 */
+  suspendidosTotalReal:   16302,
+  suspendidosCuentasReal: 5,
+  suspendidos: [
+    { cliente: '🔝 Travelling',            importe: 12922, mesesActivo: 8,  estado: 'Suspendido' },
+    { cliente: 'REMAX DREAMS',             importe: 2157,  mesesActivo: 67, estado: 'Suspendido' },
+    { cliente: 'EMPRESAS BASGON Y BASANT', importe: 885,   mesesActivo: 80, estado: 'Suspendido' },
+    { cliente: 'Terrabionic',              importe: 169,   mesesActivo: 49, estado: 'Suspendido' },
+    { cliente: 'Electraton',               importe: 169,   mesesActivo: 47, estado: 'Suspendido' },
+  ],
+
+  /* Desactivados Sem 2 Julio — 18 cuentas · $18,214.31 (top 5) */
+  desactivadosTotalReal:   18214.31,
+  desactivadosCuentasReal: 18,
+  desactivados: [
+    { cliente: '🔝 AJ PENNY BLINDS',                importe: 6194,    mesesActivo: 89 },
+    { cliente: 'O.F. FLETES Y LOGISTICA DE MEXICO', importe: 3189,    mesesActivo: 8  },
+    { cliente: 'Superpass',                         importe: 1959,    mesesActivo: 25 },
+    { cliente: 'Casablanca Juriquilla',             importe: 849,     mesesActivo: 87 },
+    { cliente: 'Protección Juridica',               importe: 799,     mesesActivo: 51 },
+    { cliente: '+ 13 cuentas adicionales',          importe: 5224.31, mesesActivo: 0  },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -1199,7 +1280,7 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s1-julio-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s2-julio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
@@ -1221,9 +1302,9 @@ export default function ChurnPage() {
   }, [tab, zohoData, zohoLoading])
 
 
-  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S1_JULIO_2026
+  const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026', 's2-julio-2026']
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S2_JULIO_2026
 
   const sortedZohoRows = zohoData?.rows
     ? [...zohoData.rows].sort((a, b) => {
@@ -1262,7 +1343,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s1-julio-2026')
+    if (selectedId === id) setSelectedId('s2-julio-2026')
     setDelConfirm(null)
   }
 
