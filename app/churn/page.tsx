@@ -68,6 +68,13 @@ type AAAData = {
   meses: AAAMes[]
   totales: { clientes: number; registros: number; perdido: number; ganado: number; mrrInicioSum: number }
   cols: string[]
+  error?: string
+  _debug?: {
+    totalRows: number
+    clasificaciones: string[]
+    mesesDisponibles: string[]
+    hint: string
+  }
 }
 
 /* ─── Tipos Zoho Dormidos ─────────────────────────────────────────── */
@@ -1990,9 +1997,20 @@ export default function ChurnPage() {
               </div>
             )}
 
-            {aaaData?.meses?.length === 0 && !aaaLoading && (
-              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm text-center text-sm text-gray-400">
-                Sin datos AAA H1 en Zoho Analytics.
+            {!aaaLoading && aaaData && (aaaData.error || (aaaData.meses?.length === 0)) && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-3">
+                <p className="text-sm font-medium text-gray-500 text-center">
+                  {aaaData.error ? `Error: ${aaaData.error}` : 'Sin datos AAA H1 en Zoho Analytics.'}
+                </p>
+                {aaaData._debug && (
+                  <div className="bg-gray-50 rounded-lg p-4 text-xs font-mono space-y-1 border border-gray-100">
+                    <p className="font-semibold text-gray-700 mb-2">Debug — respuesta de Zoho:</p>
+                    <p><span className="text-gray-500">totalRows:</span> {aaaData._debug.totalRows}</p>
+                    <p><span className="text-gray-500">clasificaciones:</span> [{aaaData._debug.clasificaciones.join(', ') || '(vacío)'}]</p>
+                    <p><span className="text-gray-500">meses disponibles:</span> [{aaaData._debug.mesesDisponibles.join(', ') || '(vacío)'}]</p>
+                    <p className="text-amber-600 mt-1">{aaaData._debug.hint}</p>
+                  </div>
+                )}
               </div>
             )}
 

@@ -162,23 +162,32 @@ export async function GET(req: NextRequest) {
 
   /* ── MODO: detalle-mes — agrupado Ene–Jun por cliente ────────── */
   if (mode === 'detalle-mes') {
-    // Siempre H1 y siempre AAA cuando se usa este modo, a menos que se indique lo contrario
     const clsFiltro = clasificacion || 'AAA'
-    const mesesFiltro = soloH1 ? MESES_H1 : MESES_H1  // por defecto H1
+    const MESES_H1_LC = MESES_H1.map(m => m.toLowerCase())
 
-    let data = rows.filter(r => r.clasificacion.toUpperCase() === clsFiltro)
+    // Debug: qué hay en la vista antes de filtrar
+    const debugClasificaciones = Array.from(new Set(rows.map(r => r.clasificacion).filter(Boolean))).slice(0, 20)
+    const debugMeses = Array.from(new Set(rows.map(r => r.mes).filter(Boolean))).slice(0, 20)
+
+    let data = rows.filter(r => r.clasificacion.toUpperCase().trim() === clsFiltro)
     if (movFiltro) data = data.filter(r => r.movimiento.toLowerCase().includes(movFiltro))
-    data = data.filter(r => mesesFiltro.includes(r.mes))
+    // Comparación case-insensitive para los meses
+    data = data.filter(r => MESES_H1_LC.includes(r.mes.toLowerCase().trim()))
 
-    // Agrupar por mes
+    // Agrupar por mes — normalizar key a Title Case con MESES_H1 como referencia
+    const mesCanonico = (m: string): string => {
+      const ml = m.toLowerCase().trim()
+      return MESES_H1.find(h => h.toLowerCase() === ml) ?? m
+    }
     const porMes: Record<string, ChurnRow[]> = {}
     for (const r of data) {
-      if (!porMes[r.mes]) porMes[r.mes] = []
-      porMes[r.mes].push(r)
+      const key = mesCanonico(r.mes)
+      if (!porMes[key]) porMes[key] = []
+      porMes[key].push(r)
     }
 
     // Construir ChurnMes ordenado
-    const mesesResult: ChurnMes[] = mesesFiltro
+    const mesesResult: ChurnMes[] = MESES_H1
       .filter(m => porMes[m])
       .map(mes => {
         const clientes = porMes[mes].sort((a, b) => b.ingresoPerdido - a.ingresoPerdido || b.mrrInicio - a.mrrInicio)
@@ -201,7 +210,19 @@ export async function GET(req: NextRequest) {
       mrrInicioSum: Math.round(data.reduce((s, r) => s + r.mrrInicio, 0)),
     }
 
-    return NextResponse.json({ clasificacion: clsFiltro, meses: mesesResult, totales, cols })
+    return NextResponse.json({
+      clasificacion: clsFiltro,
+      meses:         mesesResult,
+      totales,
+      cols,
+      // Debug: qué hay en la vista (para ajustar filtros si sale vacío)
+      _debug: mesesResult.length === 0 ? {
+        totalRows:        rows.length,
+        clasificaciones:  debugClasificaciones,
+        mesesDisponibles: debugMeses,
+        hint: 'Si clasificaciones/meses están vacíos, el mapeo de columnas no encontró los campos',
+      } : undefined,
+    })
   }
 
   /* ── MODO: cruzado — GRC + Facturación ───────────────────────── */
