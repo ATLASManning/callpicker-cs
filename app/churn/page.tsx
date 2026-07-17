@@ -54,28 +54,26 @@ interface ChurnReporte {
 
 /* ─── Tipos GRC Detalle AAA ───────────────────────────────────────── */
 type AAAClienteRow = {
-  mes: string; cliente: string; clasificacion: string; fecha: string
-  facturas: number; mesesActivo: number; importeAcumulado: number
-  mrrInicio: number; mrrFin: number; ingresoPerdido: number
-  ingresoGanado: number; movimiento: string; cid: string
+  cid: string; nombre: string; clasificacion: string; segmento: string
+  mrr: number; mrrInicio: number; acumulado: number; mesesActivo: number
+  ultimaFactura: string; semaforo: string; movimiento: string
+  diasSinFactura: number; totalFacturas: number
 }
 type AAAMes = {
   mes: string; clientes: AAAClienteRow[]
-  totalPerdido: number; totalGanado: number; totalMrrInicio: number; totalMrrFin: number; count: number
+  count: number; totalMrr: number; totalAcumulado: number
 }
 type AAAData = {
   clasificacion: string
   meses: AAAMes[]
-  totales: { clientes: number; registros: number; perdido: number; ganado: number; mrrInicioSum: number }
-  cols: string[]
+  totales: { clientesAAA: number; clientesEnMes: number; totalMrr: number; mesesConData: number }
   error?: string
   _debug?: {
-    totalRows: number
+    totalFactRows: number
+    totalAAA: number
     clasificaciones: string[]
-    mesesDisponibles: string[]
-    colsRaw: string[]
-    sampleRawKeys: string[]
-    sampleRawRow: Record<string, string>
+    semaforosEnAAA: string[]
+    muestraFechasAAA: string[]
     hint: string
   }
 }
@@ -2007,24 +2005,12 @@ export default function ChurnPage() {
                 </p>
                 {aaaData._debug && (
                   <div className="bg-gray-50 rounded-lg p-4 text-xs font-mono space-y-1.5 border border-gray-100 overflow-x-auto">
-                    <p className="font-semibold text-gray-700 mb-2">Debug — respuesta de Zoho (vista {process.env.NEXT_PUBLIC_CHURN_VIEW_ID ?? '245443000011222902'}):</p>
-                    <p><span className="text-gray-500">totalRows:</span> <span className="text-blue-700 font-bold">{aaaData._debug.totalRows}</span></p>
+                    <p className="font-semibold text-gray-700 mb-2">Debug — vista Facturación:</p>
+                    <p><span className="text-gray-500">totalFactRows:</span> <span className="text-blue-700 font-bold">{aaaData._debug.totalFactRows}</span></p>
+                    <p><span className="text-gray-500">totalAAA:</span> <span className="text-purple-700 font-bold">{aaaData._debug.totalAAA}</span></p>
                     <p><span className="text-gray-500">clasificaciones:</span> [{aaaData._debug.clasificaciones.join(', ') || '(vacío)'}]</p>
-                    <p><span className="text-gray-500">meses disponibles:</span> [{aaaData._debug.mesesDisponibles.join(', ') || '(vacío)'}]</p>
-                    <div className="mt-2 border-t border-gray-200 pt-2">
-                      <p className="font-semibold text-gray-600 mb-1">Columnas reales de la vista (colsRaw):</p>
-                      <p className="text-purple-700 break-all">[{(aaaData._debug.colsRaw ?? []).join(' | ')}]</p>
-                    </div>
-                    {aaaData._debug.sampleRawKeys?.length > 0 && (
-                      <div className="mt-2 border-t border-gray-200 pt-2">
-                        <p className="font-semibold text-gray-600 mb-1">Keys del primer row:</p>
-                        <p className="text-indigo-700 break-all">[{aaaData._debug.sampleRawKeys.join(' | ')}]</p>
-                        <p className="font-semibold text-gray-600 mb-1 mt-1.5">Valores del primer row:</p>
-                        {Object.entries(aaaData._debug.sampleRawRow).map(([k, v]) => (
-                          <p key={k}><span className="text-gray-500">{k}:</span> <span className="text-green-700">{String(v)}</span></p>
-                        ))}
-                      </div>
-                    )}
+                    <p><span className="text-gray-500">semáforos en AAA:</span> [{aaaData._debug.semaforosEnAAA.join(', ') || '(vacío)'}]</p>
+                    <p><span className="text-gray-500">muestra fechas AAA:</span> [{aaaData._debug.muestraFechasAAA.join(', ') || '(vacío)'}]</p>
                     <p className="text-amber-600 mt-2 border-t border-gray-200 pt-2">{aaaData._debug.hint}</p>
                   </div>
                 )}
@@ -2035,16 +2021,15 @@ export default function ChurnPage() {
               <>
                 {/* KPIs totales */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <KpiCard icon={CalendarDays}  label="Meses con movimiento"  value={String(aaaData.meses.length)}         sub="Ene–Jun 2026"             color="#7c3aed" />
-                  <KpiCard icon={XCircle}       label="Registros AAA"         value={String(aaaData.totales.registros)}    sub="total filas"              color={RED}    />
-                  <KpiCard icon={DollarSign}    label="Ingreso perdido H1"     value={fmt(aaaData.totales.perdido)}         sub="suma acumulada"           color={ORANGE} />
-                  <KpiCard icon={TrendingDown}  label="Ingreso ganado H1"      value={fmt(aaaData.totales.ganado)}          sub="expansión / recuperación" color={GREEN}  />
+                  <KpiCard icon={CalendarDays}  label="Meses con datos"    value={String(aaaData.totales.mesesConData)}  sub="Ene–Jun 2026"          color="#7c3aed" />
+                  <KpiCard icon={XCircle}       label="Clientes AAA total" value={String(aaaData.totales.clientesAAA)}   sub="en vista facturación"  color={RED}    />
+                  <KpiCard icon={DollarSign}    label="MRR clientes en mes" value={fmt(aaaData.totales.totalMrr)}        sub="suma MRR actual"       color={ORANGE} />
+                  <KpiCard icon={BarChart3}     label="Registros en H1"    value={String(aaaData.totales.clientesEnMes)} sub="filas con fecha H1"    color={GREEN}  />
                 </div>
 
                 {/* Sección por mes */}
                 {aaaData.meses.map((mesData) => {
                   const open = aaaOpenMes[mesData.mes] ?? false
-                  const netMov = mesData.totalMrrFin - mesData.totalMrrInicio
                   return (
                     <div key={mesData.mes} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                       {/* Encabezado colapsable */}
@@ -2062,24 +2047,16 @@ export default function ChurnPage() {
                             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
                               {mesData.count} cliente{mesData.count !== 1 ? 's' : ''}
                             </span>
-                            {mesData.totalPerdido > 0 && (
-                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                                −{fmt(mesData.totalPerdido)} perdido
-                              </span>
-                            )}
-                            {mesData.totalGanado > 0 && (
-                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                                +{fmt(mesData.totalGanado)} ganado
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex gap-4 mt-0.5 text-[11px] text-gray-500">
-                            <span>MRR inicio: {fmt(mesData.totalMrrInicio)}</span>
-                            <span>MRR fin: {fmt(mesData.totalMrrFin)}</span>
-                            <span className={netMov < 0 ? 'text-red-600 font-semibold' : netMov > 0 ? 'text-green-600 font-semibold' : ''}>
-                              Neto: {netMov >= 0 ? '+' : ''}{fmt(netMov)}
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
+                              MRR {fmt(mesData.totalMrr)}
                             </span>
+                            {mesData.totalAcumulado > 0 && (
+                              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                                Acum. {fmt(mesData.totalAcumulado)}
+                              </span>
+                            )}
                           </div>
+                          <p className="text-[11px] text-gray-400 mt-0.5">Última factura en {mesData.mes} 2026</p>
                         </div>
                         {open ? <ChevronUp size={16} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />}
                       </button>
@@ -2092,63 +2069,62 @@ export default function ChurnPage() {
                               <thead>
                                 <tr className="bg-gray-50/80 border-b border-gray-100">
                                   <th className="text-left py-2.5 px-4 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Cliente</th>
-                                  <th className="text-center py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Movimiento</th>
-                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">MRR Inicio</th>
-                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">MRR Fin</th>
-                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Ing. Perdido</th>
-                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Ing. Ganado</th>
+                                  <th className="text-left py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Semáforo</th>
+                                  <th className="text-left py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Segmento</th>
+                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">MRR</th>
                                   <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Acumulado</th>
                                   <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Meses</th>
-                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Facturas</th>
+                                  <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Días s/F</th>
+                                  <th className="text-left py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Últ. Factura</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {mesData.clientes.map((c, i) => {
                                   const movLow = c.movimiento.toLowerCase()
-                                  const esChurn = movLow.includes('churn')
-                                  const esDowngrade = movLow.includes('downgrade')
+                                  const esChurn  = movLow.includes('churn') || movLow.includes('baja')
+                                  const esRiesgo = movLow.includes('riesgo')
                                   return (
                                     <tr key={i} className={`border-b border-gray-100 transition-colors ${
-                                      esChurn     ? 'bg-red-50/30 hover:bg-red-50/50' :
-                                      esDowngrade ? 'bg-amber-50/30 hover:bg-amber-50/50' :
+                                      esChurn  ? 'bg-red-50/30 hover:bg-red-50/50' :
+                                      esRiesgo ? 'bg-amber-50/30 hover:bg-amber-50/50' :
                                       'hover:bg-gray-50/40'
                                     }`}>
                                       <td className="py-3 px-4">
-                                        <div className="font-semibold text-gray-900">{c.cliente}</div>
+                                        <div className="font-semibold text-gray-900">{c.nombre}</div>
                                         {c.cid && <div className="text-[10px] text-gray-400">CID {c.cid}</div>}
                                       </td>
-                                      <td className="py-3 px-3 text-center">
-                                        {c.movimiento ? (
+                                      <td className="py-3 px-3">
+                                        {c.semaforo ? (
                                           <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                                            esChurn     ? 'bg-red-100 text-red-700' :
-                                            esDowngrade ? 'bg-amber-100 text-amber-700' :
+                                            esChurn  ? 'bg-red-100 text-red-700' :
+                                            esRiesgo ? 'bg-amber-100 text-amber-700' :
                                             'bg-gray-100 text-gray-600'
-                                          }`}>{c.movimiento}</span>
+                                          }`}>{c.semaforo}</span>
                                         ) : <span className="text-gray-300">—</span>}
                                       </td>
-                                      <td className="py-3 px-3 text-right font-medium text-gray-700">{c.mrrInicio > 0 ? fmt(c.mrrInicio) : '—'}</td>
-                                      <td className="py-3 px-3 text-right font-medium text-gray-700">{c.mrrFin > 0 ? fmt(c.mrrFin) : '—'}</td>
-                                      <td className="py-3 px-3 text-right font-semibold" style={{ color: c.ingresoPerdido > 0 ? RED : '#9ca3af' }}>
-                                        {c.ingresoPerdido > 0 ? `−${fmt(c.ingresoPerdido)}` : '—'}
+                                      <td className="py-3 px-3 text-gray-600">{c.segmento || '—'}</td>
+                                      <td className="py-3 px-3 text-right font-semibold" style={{ color: c.mrr > 0 ? ORANGE : '#9ca3af' }}>
+                                        {c.mrr > 0 ? fmt(c.mrr) : '—'}
                                       </td>
-                                      <td className="py-3 px-3 text-right font-semibold" style={{ color: c.ingresoGanado > 0 ? GREEN : '#9ca3af' }}>
-                                        {c.ingresoGanado > 0 ? `+${fmt(c.ingresoGanado)}` : '—'}
-                                      </td>
-                                      <td className="py-3 px-3 text-right text-gray-600">{c.importeAcumulado > 0 ? fmt(c.importeAcumulado) : '—'}</td>
+                                      <td className="py-3 px-3 text-right text-gray-600">{c.acumulado > 0 ? fmt(c.acumulado) : '—'}</td>
                                       <td className="py-3 px-3 text-right text-gray-500">{c.mesesActivo > 0 ? c.mesesActivo : '—'}</td>
-                                      <td className="py-3 px-3 text-right text-gray-500">{c.facturas > 0 ? c.facturas : '—'}</td>
+                                      <td className="py-3 px-3 text-right">
+                                        {c.diasSinFactura > 0 ? (
+                                          <span className={`font-semibold ${c.diasSinFactura > 90 ? 'text-red-600' : c.diasSinFactura > 45 ? 'text-amber-600' : 'text-gray-600'}`}>
+                                            {c.diasSinFactura}d
+                                          </span>
+                                        ) : <span className="text-gray-400">—</span>}
+                                      </td>
+                                      <td className="py-3 px-3 text-gray-500">{c.ultimaFactura || '—'}</td>
                                     </tr>
                                   )
                                 })}
                               </tbody>
-                              {/* Totales del mes */}
                               <tfoot>
                                 <tr className="bg-purple-50/60 border-t-2 border-purple-100">
-                                  <td className="py-2.5 px-4 font-bold text-purple-800 text-[10px]" colSpan={2}>TOTAL {mesData.mes.toUpperCase()}</td>
-                                  <td className="py-2.5 px-3 text-right font-bold text-purple-800 text-[10px]">{fmt(mesData.totalMrrInicio)}</td>
-                                  <td className="py-2.5 px-3 text-right font-bold text-purple-800 text-[10px]">{fmt(mesData.totalMrrFin)}</td>
-                                  <td className="py-2.5 px-3 text-right font-bold text-red-700 text-[10px]">{mesData.totalPerdido > 0 ? `−${fmt(mesData.totalPerdido)}` : '—'}</td>
-                                  <td className="py-2.5 px-3 text-right font-bold text-green-700 text-[10px]">{mesData.totalGanado > 0 ? `+${fmt(mesData.totalGanado)}` : '—'}</td>
+                                  <td className="py-2.5 px-4 font-bold text-purple-800 text-[10px]" colSpan={3}>TOTAL {mesData.mes.toUpperCase()}</td>
+                                  <td className="py-2.5 px-3 text-right font-bold text-orange-700 text-[10px]">{fmt(mesData.totalMrr)}</td>
+                                  <td className="py-2.5 px-3 text-right font-bold text-purple-800 text-[10px]">{fmt(mesData.totalAcumulado)}</td>
                                   <td className="py-2.5 px-3" colSpan={3} />
                                 </tr>
                               </tfoot>
@@ -2162,7 +2138,7 @@ export default function ChurnPage() {
 
                 {/* Nota de pie */}
                 <p className="text-[11px] text-gray-400 text-center">
-                  Fuente: Zoho Analytics · Vista {aaaData?.cols?.length ? `(${aaaData.cols.length} columnas detectadas)` : ''} · Clasificación AAA · H1 Enero–Junio 2026
+                  Fuente: Zoho Facturación · Clasificación AAA · Agrupado por mes de Última Factura · H1 Enero–Junio 2026
                 </p>
               </>
             )}
