@@ -1357,8 +1357,48 @@ export default function ChurnPage() {
         subtitle="Análisis de pérdida de clientes · DATA → Dirección de Satisfacción al Cliente"
       />
 
-      {/* ── Botón Zoho GRC ──────────────────────────────────────────────── */}
-      <div className="px-6 pt-4">
+      {/* ── Botones de acceso rápido ─────────────────────────────────────── */}
+      <div className="px-6 pt-4 flex flex-wrap gap-3">
+
+        {/* Zoho · Dormidos */}
+        <button
+          onClick={() => setTab('zoho')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            background: '#7f1d1d', color: '#FFFFFF',
+            padding: '14px 28px', borderRadius: 12,
+            fontWeight: 800, fontSize: 16, letterSpacing: '0.04em',
+            border: '1.5px solid rgba(255,255,255,0.12)',
+            boxShadow: '0 4px 18px rgba(220,38,38,0.30)',
+            transition: 'opacity 150ms', cursor: 'pointer',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block', flexShrink: 0 }} />
+          ZOHO · DORMIDOS
+        </button>
+
+        {/* GRC · AAA 2026 */}
+        <button
+          onClick={() => setTab('aaa')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            background: '#4c1d95', color: '#FFFFFF',
+            padding: '14px 28px', borderRadius: 12,
+            fontWeight: 800, fontSize: 16, letterSpacing: '0.04em',
+            border: '1.5px solid rgba(255,255,255,0.12)',
+            boxShadow: '0 4px 18px rgba(124,58,237,0.30)',
+            transition: 'opacity 150ms', cursor: 'pointer',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
+          <span style={{ fontSize: 18, lineHeight: 1 }}>⭐</span>
+          GRC · AAA 2026
+        </button>
+
+        {/* Gross Revenue Churn — link externo Zoho */}
         <a
           href="https://marketingplus.zoho.com/reports/open-view/245443000007094051"
           target="_blank"
@@ -1378,6 +1418,7 @@ export default function ChurnPage() {
           <BarChart3 size={20} style={{ opacity: 0.85 }} />
           GROSS REVENUE CHURN
         </a>
+
       </div>
 
       {/* ── Selector de períodos ─────────────────────────────────────── */}
