@@ -1303,7 +1303,7 @@ export default function ChurnPage() {
           </div>
 
           <div className="flex overflow-x-auto gap-1 p-2">
-            {allReportes.map(r => {
+            {[...allReportes].reverse().map(r => {
               const active   = selectedId === r.id
               const isBase    = BASE_IDS.includes(r.id)
               const totImpact = (r.pendientesTotalReal ?? r.pendientes.reduce((s, x) => s + (Number(x.monto) || 0), 0))
