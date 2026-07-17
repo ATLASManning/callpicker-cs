@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import PageHeader from '@/components/PageHeader'
-import { AAA_GRC_H1_2026 } from './aaa-grc-data'
+import { AAA_GRC_2026 } from './aaa-grc-data'
 import {
   TrendingDown, AlertTriangle, XCircle, ArrowDownRight,
   Clock, DollarSign, BarChart3, CalendarDays, ChevronDown, ChevronUp,
@@ -1190,7 +1190,7 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
   }
   tabs.push({ id: 't1',   label: 'Resumen T1 2026',                                   color: INDIGO })
   tabs.push({ id: 'zoho', label: '🔴 Zoho · Dormidos',                               color: '#dc2626' })
-  tabs.push({ id: 'aaa',  label: '⭐ GRC · AAA H1',                                  color: '#7c3aed' })
+  tabs.push({ id: 'aaa',  label: '⭐ GRC · AAA 2026',                                 color: '#7c3aed' })
   return tabs
 }
 
@@ -1954,11 +1954,11 @@ export default function ChurnPage() {
           </>
         )}
 
-        {/* ── GRC · AAA H1 2026 ────────────────────────────────────── */}
+        {/* ── GRC · AAA 2026 (Ene–Jul, corte 15 Jul) ─────────────── */}
         {tab === 'aaa' && (() => {
-          const totalClientes  = AAA_GRC_H1_2026.reduce((s, m) => s + m.clientes.length, 0)
-          const totalPerdidoH1 = AAA_GRC_H1_2026.reduce((s, m) => s + m.clientes.reduce((ss, c) => ss + c.perdido + c.perdido2, 0), 0)
-          const totalChurns    = AAA_GRC_H1_2026.reduce((s, m) => s + m.clientes.filter(c => c.movimiento.includes('Churn')).length, 0)
+          const totalClientes  = AAA_GRC_2026.reduce((s, m) => s + m.clientes.length, 0)
+          const totalPerdido2026 = AAA_GRC_2026.reduce((s, m) => s + m.clientes.reduce((ss, c) => ss + c.perdido + c.perdido2, 0), 0)
+          const totalChurns    = AAA_GRC_2026.reduce((s, m) => s + m.clientes.filter(c => c.movimiento.includes('Churn')).length, 0)
           return (
             <div className="space-y-4">
               {/* Header */}
@@ -1975,14 +1975,14 @@ export default function ChurnPage() {
 
               {/* KPIs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <KpiCard icon={CalendarDays} label="Meses H1"          value="6"                      sub="Ene–Jun 2026"            color="#7c3aed" />
-                <KpiCard icon={XCircle}      label="Registros AAA"     value={String(totalClientes)}  sub="filas en el período"     color={RED}     />
-                <KpiCard icon={DollarSign}   label="Ingreso Perdido"   value={fmt(totalPerdidoH1)}    sub="downgrade + churn H1"    color={ORANGE}  />
-                <KpiCard icon={AlertTriangle} label="Churns Confirmados" value={String(totalChurns)} sub="bajas reales en el período" color={RED}   />
+                <KpiCard icon={CalendarDays} label="Meses 2026"         value="7"                       sub="Ene–Jul (corte 15 Jul)"  color="#7c3aed" />
+                <KpiCard icon={XCircle}      label="Registros AAA"     value={String(totalClientes)}   sub="filas en el período"     color={RED}     />
+                <KpiCard icon={DollarSign}   label="Ingreso Perdido"   value={fmt(totalPerdido2026)}   sub="downgrade + churn 2026"  color={ORANGE}  />
+                <KpiCard icon={AlertTriangle} label="Churns Confirmados" value={String(totalChurns)}  sub="bajas reales en el período" color={RED}   />
               </div>
 
               {/* Sección por mes */}
-              {AAA_GRC_H1_2026.map((mesData) => {
+              {AAA_GRC_2026.map((mesData) => {
                 const open           = aaaOpenMes[mesData.mes] ?? false
                 const totalPerd      = mesData.clientes.reduce((s, c) => s + c.perdido + c.perdido2, 0)
                 const totalMrrInicio = mesData.clientes.reduce((s, c) => s + c.mrrInicio, 0)
@@ -2092,7 +2092,7 @@ export default function ChurnPage() {
               })}
 
               <p className="text-[11px] text-gray-400 text-center">
-                Fuente: Zoho Analytics — Pérdida: Downgrade + Churn · Filtro: clasificacion_cliente = AAA · H1 Enero–Junio 2026
+                Fuente: Excel GRC Confirmado — Pérdida: Downgrade + Churn · Filtro: clasificacion_cliente = AAA · Enero–Julio 2026 (corte 15 Jul)
               </p>
             </div>
           )
