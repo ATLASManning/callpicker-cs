@@ -1205,6 +1205,7 @@ export default function ChurnPage() {
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
   const [zohoLoading,  setZohoLoading]  = useState(false)
   const [zohoData,     setZohoData]     = useState<ZohoDormido | null>(null)
+  const [zohoSort,     setZohoSort]     = useState<{col: string; dir: 'asc'|'desc'}>({ col: 'diasSinFactura', dir: 'desc' })
   const [aaaOpenMes,   setAaaOpenMes]   = useState<Record<string, boolean>>({})
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
@@ -1223,6 +1224,22 @@ export default function ChurnPage() {
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026']
   const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, ...userReportes]
   const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S1_JULIO_2026
+
+  const sortedZohoRows = zohoData?.rows
+    ? [...zohoData.rows].sort((a, b) => {
+        const d = zohoSort.dir === 'asc' ? 1 : -1
+        if (zohoSort.col === 'nombre')         return d * a.nombre.localeCompare(b.nombre)
+        if (zohoSort.col === 'segmento')       return d * (a.segmento || '').localeCompare(b.segmento || '')
+        if (zohoSort.col === 'ltv')            return d * (a.ltv || '').localeCompare(b.ltv || '')
+        if (zohoSort.col === 'mrr')            return d * (a.mrr - b.mrr)
+        if (zohoSort.col === 'diasSinFactura') return d * ((a.diasSinFactura ?? -1) - (b.diasSinFactura ?? -1))
+        if (zohoSort.col === 'ultimaFactura')  return d * (a.ultimaFactura || '').localeCompare(b.ultimaFactura || '')
+        if (zohoSort.col === 'estado_cs')      return d * ((+!!a.alerta) - (+!!b.alerta) || (a.estado_cs || '').localeCompare(b.estado_cs || ''))
+        return 0
+      })
+    : []
+  const toggleZohoSort = (col: string) =>
+    setZohoSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
   const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
@@ -2167,17 +2184,32 @@ export default function ChurnPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50/70">
-                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
-                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Segmento</th>
-                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">LTV</th>
-                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">MRR</th>
-                          <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Días s/F</th>
-                          <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Últ. Factura</th>
-                          <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Estado CS</th>
+                          {([
+                            { col: 'nombre',         label: 'Cliente',      align: 'left'   },
+                            { col: 'segmento',       label: 'Segmento',     align: 'left'   },
+                            { col: 'ltv',            label: 'LTV',          align: 'left'   },
+                            { col: 'mrr',            label: 'MRR',          align: 'right'  },
+                            { col: 'diasSinFactura', label: 'Días s/F',     align: 'right'  },
+                            { col: 'ultimaFactura',  label: 'Últ. Factura', align: 'left'   },
+                            { col: 'estado_cs',      label: 'Estado CS',    align: 'center' },
+                          ] as const).map(({ col, label, align }) => {
+                            const active = zohoSort.col === col
+                            const Icon = active && zohoSort.dir === 'asc' ? ChevronUp : ChevronDown
+                            return (
+                              <th key={col}
+                                className={`py-3 px-4 text-xs font-semibold uppercase tracking-wide cursor-pointer select-none whitespace-nowrap text-${align} ${active ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                onClick={() => toggleZohoSort(col)}>
+                                <span className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''} w-full`}>
+                                  {label}
+                                  <Icon size={11} className={active ? 'text-blue-500' : 'text-gray-300'} />
+                                </span>
+                              </th>
+                            )
+                          })}
                         </tr>
                       </thead>
                       <tbody>
-                        {zohoData.rows.map((r, i) => (
+                        {sortedZohoRows.map((r, i) => (
                           <tr key={i}
                             className={`border-b border-gray-100 transition-colors ${r.alerta ? 'bg-red-50/40 hover:bg-red-50/70' : 'hover:bg-gray-50/50'}`}>
                             <td className="py-3 px-4">
