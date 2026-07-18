@@ -2,8 +2,12 @@
  * Funciones server-side para obtener tickets y facturación por cuenta.
  * Se leen los JSON directamente — sin fetch, sin API round-trip.
  */
-import { readFileSync, existsSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
+// Static import ensures tickets-data.json is included in every route's
+// Vercel serverless bundle — prevents ENOENT on cold starts for routes
+// that don't have their own `import rawTickets from './tickets-data.json'`
+import _ticketsJson from './tickets-data.json'
 
 /* ── Tipos ─────────────────────────────────────────────────────────── */
 export interface TicketRow {
@@ -34,7 +38,7 @@ let _fact: FactRow[] | null = null
 
 function getTickets(): TicketRow[] {
   if (_tickets) return _tickets
-  _tickets = JSON.parse(readFileSync(join(process.cwd(), 'lib', 'tickets-data.json'), 'utf-8'))
+  _tickets = _ticketsJson as unknown as TicketRow[]
   return _tickets!
 }
 
