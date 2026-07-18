@@ -56,6 +56,7 @@ function getEstadoKey(c: Cuenta): string {
 function fmtFecha(iso: string | null) {
   if (!iso) return '—'
   const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
 }
 

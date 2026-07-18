@@ -131,7 +131,9 @@ export default function AdminUsuariosPage() {
 
   function fmtDate(d: string | null) {
     if (!d) return '—'
-    return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
+    const dt = new Date(d)
+    if (isNaN(dt.getTime())) return d
+    return dt.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit' })
   }
 
   /* Usuarios con contraseña próxima a vencer o vencida */
