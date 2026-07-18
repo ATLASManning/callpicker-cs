@@ -56,7 +56,9 @@ const SEMAFORO_META = [
 
 function fmtFecha(iso: string | null | undefined) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
 }
 
 function TicketCellLight({ zt }: { zt: ZohoStats }) {

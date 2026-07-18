@@ -41,7 +41,10 @@ const ESTADO_OPP: Record<string, { label: string; color: string }> = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtFecha(iso: string) {
-  return new Date(iso).toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
 }
 
 function Badge({ label, color }: { label: string; color: string }) {
