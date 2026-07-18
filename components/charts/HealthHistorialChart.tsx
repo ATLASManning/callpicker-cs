@@ -6,10 +6,13 @@ interface Props {
 }
 
 export default function HealthHistorialChart({ data }: Props) {
-  const chartData = data.map(d => ({
-    fecha: new Date(d.fecha).toLocaleDateString('es-MX', { month:'short', day:'numeric' }),
-    score: d.health_score,
-  }))
+  const chartData = data.map(d => {
+    const dt = new Date(d.fecha)
+    return {
+      fecha: isNaN(dt.getTime()) ? d.fecha : dt.toLocaleDateString('es-MX', { month:'short', day:'numeric' }),
+      score: d.health_score,
+    }
+  })
 
   return (
     <ResponsiveContainer width="100%" height={100}>

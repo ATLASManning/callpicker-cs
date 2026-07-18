@@ -372,7 +372,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                       <span className="text-xs font-semibold text-textHi capitalize">{s.tipo}</span>
                       <SeguimientoStatusSelect seguimientoId={s.id} resultado={s.resultado} canEdit={canEdit} />
                       <span className="text-[10px] text-textLow ml-auto flex-shrink-0">
-                        {new Date(s.fecha).toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' })}
+                        {(() => { const d = new Date(s.fecha); return isNaN(d.getTime()) ? s.fecha : d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) })()}
                       </span>
                     </div>
                     {s.descripcion && <p className="text-xs text-textMid">{s.descripcion}</p>}
