@@ -50,7 +50,9 @@ const globalTickets = {
 
 function fmtFecha(iso: string) {
   if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
 }
 
 // ── KPI Card oscura ───────────────────────────────────────────────────────────
