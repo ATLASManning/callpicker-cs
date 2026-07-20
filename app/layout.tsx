@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Sidebar from '@/components/Sidebar'
+import PageTracker from '@/components/PageTracker'
 
 export const metadata: Metadata = {
   title: 'Callpicker Customer Success',
@@ -40,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <style dangerouslySetInnerHTML={{ __html: FORCE_LIGHT }} />
       </head>
       <body className="flex h-screen overflow-hidden" style={{ background: '#EFF6FF', color: '#0F172A' }}>
+        <PageTracker />
         <Sidebar />
         <main className="flex-1 overflow-y-auto" style={{ background: '#EFF6FF' }}>
           {children}

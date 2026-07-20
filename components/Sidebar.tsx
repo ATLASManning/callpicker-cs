@@ -222,9 +222,12 @@ export default function Sidebar() {
             ? <NavGroupItem key={entry.group} {...entry} />
             : <NavLink key={(entry as NavItem).href} {...(entry as NavItem)} />
         )}
-        {/* Admin: enlace a gestión de usuarios */}
+        {/* Admin: gestión de usuarios + reporte de uso */}
         {me?.rol === 'admin' && (
-          <NavLink href="/admin/usuarios" label="Usuarios" icon={Users} />
+          <>
+            <NavLink href="/admin/usuarios" label="Usuarios"       icon={Users} />
+            <NavLink href="/admin/uso"      label="Uso Dashboard"  icon={Activity} />
+          </>
         )}
       </nav>
 
