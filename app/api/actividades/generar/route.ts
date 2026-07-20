@@ -45,6 +45,7 @@ interface CuentaFull {
   upsell_producto: string | null
   crossell_producto: string | null
   dias_sin_actividad: number
+  activo_desde: string | null
   contacto_nombre: string | null
   contacto_cargo: string | null
   contacto_tel: string | null
@@ -102,6 +103,7 @@ interface DataGap {
 
 function detectDataGaps(c: CuentaFull): DataGap[] {
   const gaps: DataGap[] = []
+  if (!c.activo_desde)      gaps.push({ campo: 'Fecha de inicio',         pregunta: '¿Desde cuándo son clientes de Callpicker? (mes y año aproximado)',              nivel: 'critico' })
   if (!c.contacto_nombre)   gaps.push({ campo: 'Contacto principal',     pregunta: '¿Con quién hablas normalmente sobre el servicio? (nombre completo)',              nivel: 'critico' })
   if (!c.contacto_cargo)    gaps.push({ campo: 'Cargo del contacto',     pregunta: '¿Cuál es el cargo o puesto del responsable de la cuenta?',                        nivel: 'critico' })
   if (!c.contacto_tel)      gaps.push({ campo: 'Teléfono directo',       pregunta: '¿Me puedes compartir tu número directo para seguimientos urgentes?',               nivel: 'critico' })
@@ -273,7 +275,7 @@ export async function POST(req: NextRequest) {
       .from('cuentas')
       .select(`
         id, consecutivo, cid, empresa, health_score, estado,
-        upsell_producto, crossell_producto, dias_sin_actividad,
+        upsell_producto, crossell_producto, dias_sin_actividad, activo_desde,
         contacto_nombre, contacto_cargo, contacto_tel,
         giro, pagina_web, total_empleados, num_oficinas,
         nps_score, notas, observaciones_kam,

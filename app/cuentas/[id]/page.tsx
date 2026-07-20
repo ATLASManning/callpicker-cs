@@ -118,6 +118,19 @@ export default async function CuentaDetailPage({ params }: Props) {
         </div>
       </div>
 
+      {/* Banner: perfil incompleto (cuenta sin activo_desde, contacto ni giro) */}
+      {!cuenta.activo_desde && !cuenta.contacto_nombre && !cuenta.giro && (
+        <div className="mx-6 mt-4 px-4 py-3 rounded-lg bg-amarillo/10 border border-amarillo/30 flex items-start gap-3">
+          <AlertTriangle size={16} className="text-amarillo mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-textHi">Perfil incompleto — se requiere captura de datos</p>
+            <p className="text-xs text-textMid mt-0.5">
+              Solicita al cliente: <strong>fecha de inicio</strong> · <strong>contacto principal</strong> · <strong>giro de negocio</strong> · <strong>servicios contratados</strong> · <strong>MRR</strong>
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-5">
 
         {/* LEFT COL — Health Score + info */}
