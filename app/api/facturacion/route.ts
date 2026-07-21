@@ -480,8 +480,22 @@ export async function GET(req: NextRequest) {
     // Buscar todas las sub-cuentas relacionadas
     let found: FactRow[] = []
 
-    // 1. CID exacto primero
-    if (cid) found = rows.filter(r => (r.CID ?? '').trim() === cid.trim())
+    // 1. CID exacto primero — pero solo si el nombre devuelto es coherente
+    // (un CID puede apuntar a una empresa diferente en Zoho Analytics)
+    if (cid) {
+      const byCid = rows.filter(r => (r.CID ?? '').trim() === cid.trim())
+      if (byCid.length > 0 && keywords.length > 0) {
+        // Validar que al menos una fila comparta una keyword con el nombre solicitado
+        const nameCoherent = byCid.some(r => {
+          const n = normalize(r['Nombre del Cliente'] ?? '')
+          return keywords.some(kw => n.includes(kw))
+        })
+        if (nameCoherent) found = byCid
+        // Si el CID apunta a otra empresa, lo ignoramos y solo usamos keywords
+      } else if (byCid.length > 0) {
+        found = byCid
+      }
+    }
 
     const cidsSeen = new Set(found.map(r => r.CID))
 
