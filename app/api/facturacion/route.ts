@@ -461,37 +461,34 @@ export async function GET(req: NextRequest) {
     const cid    = sp.get('cid') ?? ''
     const nombre = sp.get('nombre') ?? ''
 
-    // Extraer palabras clave significativas del nombre (>= 3 chars, no stopwords)
+    const normNombre = normalize(nombre)
+
+    // Palabras clave (fallback final — las keywords individuales son imprecisas
+    // y pueden capturar empresas no relacionadas, ej. "rizo" → 4 empresas distintas)
     const STOP = new Set(['de','del','la','el','los','las','en','y','a','s','sa','cv','sapi','grupo','the','and'])
-    const keywords = normalize(nombre)
+    const keywords = normNombre
       .split(/\s+/)
       .filter(w => w.length >= 3 && !STOP.has(w))
       .slice(0, 3)
 
-    // Generar acrónimo con la primera letra de cada palabra >= 2 chars
-    // Ej: "GRUPO TORRES CORZO" → "GTC", "GRUPO NACIONAL PROVINCIAL" → "GNP"
+    // Acrónimo: "GRUPO TORRES CORZO" → "GTC", "GNP" → "GNP"
     const acronym = nombre.trim().split(/\s+/)
       .filter(w => w.length >= 2)
       .map(w => normalize(w)[0] ?? '')
       .join('')
-    // Solo usar si tiene ≥ 3 chars (evitar falsos positivos con SA, CV, etc.)
     const useAcronym = acronym.length >= 3
 
-    // Buscar todas las sub-cuentas relacionadas
     let found: FactRow[] = []
 
-    // 1. CID exacto primero — pero solo si el nombre devuelto es coherente
-    // (un CID puede apuntar a una empresa diferente en Zoho Analytics)
+    // 1. CID exacto — validando coherencia de nombre para evitar cross-contaminación
     if (cid) {
       const byCid = rows.filter(r => (r.CID ?? '').trim() === cid.trim())
       if (byCid.length > 0 && keywords.length > 0) {
-        // Validar que al menos una fila comparta una keyword con el nombre solicitado
         const nameCoherent = byCid.some(r => {
           const n = normalize(r['Nombre del Cliente'] ?? '')
           return keywords.some(kw => n.includes(kw))
         })
         if (nameCoherent) found = byCid
-        // Si el CID apunta a otra empresa, lo ignoramos y solo usamos keywords
       } else if (byCid.length > 0) {
         found = byCid
       }
@@ -499,25 +496,39 @@ export async function GET(req: NextRequest) {
 
     const cidsSeen = new Set(found.map(r => r.CID))
 
-    // 2. Ampliar con keywords: cualquier cuenta cuyo nombre contenga alguna keyword
-    if (keywords.length > 0) {
-      const byKeyword = rows.filter(r => {
+    // 2. Frase completa: igual que el modo list ─ misma precisión, mismos resultados.
+    // Detecta sub-cuentas con nombres derivados ("GRUPO RIZO NORTE" contiene "grupo rizo").
+    // Dirección inversa (query ⊃ rowName) captura variantes SA/CV ("gdl corp" ⊂ "gdl corp sa de cv").
+    if (normNombre.length >= 4) {
+      const byPhrase = rows.filter(r => {
         const n = normalize(r['Nombre del Cliente'] ?? '')
-        return keywords.some(kw => n.includes(kw))
+        return n.includes(normNombre) ||
+               (normNombre.includes(n) && n.length >= 6)
       })
-      for (const r of byKeyword) {
+      for (const r of byPhrase) {
         if (!cidsSeen.has(r.CID)) { found.push(r); cidsSeen.add(r.CID) }
       }
     }
 
-    // 3. Buscar por acrónimo: cuentas cuyo nombre empiece con "GTC - " o "GTC-" o "GTC "
-    if (useAcronym) {
+    // 3. Acrónimo (fallback): "GNP Seguros" cuando la cuenta dice "GNP"
+    if (found.length === 0 && useAcronym) {
       const acr = acronym.toLowerCase()
       const byAcronym = rows.filter(r => {
         const n = normalize(r['Nombre del Cliente'] ?? '')
         return n.startsWith(acr + ' ') || n.startsWith(acr + '-') || n === acr
       })
       for (const r of byAcronym) {
+        if (!cidsSeen.has(r.CID)) { found.push(r); cidsSeen.add(r.CID) }
+      }
+    }
+
+    // 4. Keywords como último recurso (solo si nada anterior funcionó)
+    if (found.length === 0 && keywords.length > 0) {
+      const byKeyword = rows.filter(r => {
+        const n = normalize(r['Nombre del Cliente'] ?? '')
+        return keywords.some(kw => n.includes(kw))
+      })
+      for (const r of byKeyword) {
         if (!cidsSeen.has(r.CID)) { found.push(r); cidsSeen.add(r.CID) }
       }
     }
