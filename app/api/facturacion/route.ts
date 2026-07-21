@@ -539,19 +539,26 @@ export async function GET(req: NextRequest) {
 
     const mesReciente = sortedFechas[0]?.parsed ?? ''
 
-    // Filtrar solo las cuentas del mes más reciente
-    const cuentasMesReciente = mesReciente
-      ? found.filter(r => parseMesAnio(r['Última Factura']) === mesReciente)
-      : found
+    // MRR = suma de TODAS las sub-cuentas encontradas.
+    // Cada fila Zoho LTV es una sub-cuenta única; filtrar por "mes reciente" excluía
+    // sub-cuentas activas cuya última factura cayó en un mes diferente al más nuevo
+    // del grupo (ej. una sub-cuenta facturada en mayo queda fuera si otra facturó en julio).
+    const mrrGrupo = found.reduce((s, r) => s + (r['MRR Limpio'] ?? 0), 0)
 
-    // Suma del MRR del mes reciente
-    const mrrGrupo = cuentasMesReciente.reduce((s, r) => s + (r['MRR Limpio'] ?? 0), 0)
+    // Ordenar por Última Factura descendente para mostrar las más recientes primero
+    const cuentasMesReciente = [...found].sort((a, b) => {
+      const [mA, yA] = parseMesAnio(a['Última Factura']).split(' ')
+      const [mB, yB] = parseMesAnio(b['Última Factura']).split(' ')
+      const yearDiff = parseInt(yB ?? '0') - parseInt(yA ?? '0')
+      if (yearDiff !== 0) return yearDiff
+      return (MESES_ORDEN[mB ?? ''] ?? 0) - (MESES_ORDEN[mA ?? ''] ?? 0)
+    })
 
     return NextResponse.json({
-      rows: found,                    // todas las sub-cuentas encontradas
-      cuentasMesReciente,             // solo las del mes reciente
+      rows: found,
+      cuentasMesReciente,             // todas las sub-cuentas, ordenadas por Última Factura
       mrrGrupo: Math.round(mrrGrupo),
-      mesReciente,
+      mesReciente,                    // informativo: mes de la factura más reciente del grupo
       subCuentas: found.length,
       source,
     })

@@ -129,15 +129,15 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-[10px] text-textLow font-semibold uppercase tracking-wide mb-0.5">
-                  MRR Grupo · {data!.mesReciente}
+                  MRR Grupo · Actual
                 </p>
                 <p style={{ fontSize: 22, fontWeight: 800, color: '#1B3FCC', lineHeight: 1 }}>
                   {fmt$(data!.mrrGrupo)}
                 </p>
                 <p className="text-[10px] text-textLow mt-1">
-                  {data!.cuentasMesReciente.length} sub-cuenta{data!.cuentasMesReciente.length !== 1 ? 's' : ''} activas en {data!.mesReciente}
-                  {data!.subCuentas > data!.cuentasMesReciente.length && (
-                    <span className="text-textLow/60"> · {data!.subCuentas - data!.cuentasMesReciente.length} inactivas no incluidas</span>
+                  {data!.subCuentas} sub-cuenta{data!.subCuentas !== 1 ? 's' : ''}
+                  {data!.mesReciente && (
+                    <span className="text-textLow/60"> · última factura: {data!.mesReciente}</span>
                   )}
                 </p>
               </div>
@@ -148,14 +148,14 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
             </div>
           </div>
 
-          {/* Sub-cuentas del mes reciente */}
+          {/* Sub-cuentas */}
           {data!.cuentasMesReciente.length > 0 && (
             <div>
               <button
                 onClick={() => setExpanded(v => !v)}
                 className="w-full flex items-center justify-between text-[11px] text-textMid font-semibold mb-1.5 hover:text-textHi"
               >
-                <span>Sub-cuentas del mes ({data!.mesReciente})</span>
+                <span>Sub-cuentas ({data!.subCuentas})</span>
                 {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               </button>
 
@@ -165,31 +165,26 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
                     <thead>
                       <tr className="border-b border-border">
                         <th className="pb-1.5 text-left text-textLow font-medium text-[10px]">Cuenta</th>
-                        <th className="pb-1.5 text-right text-textLow font-medium text-[10px]">Factura Mensual</th>
+                        <th className="pb-1.5 text-right text-textLow font-medium text-[10px]">Últ. Factura</th>
                         <th className="pb-1.5 text-right text-textLow font-medium text-[10px]">MRR</th>
                         <th className="pb-1.5 text-center text-textLow font-medium text-[10px]">LTV</th>
                         <th className="pb-1.5 text-center text-textLow font-medium text-[10px]">Semáforo</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {data!.cuentasMesReciente
-                        .sort((a, b) => (b['MRR Limpio'] ?? 0) - (a['MRR Limpio'] ?? 0))
-                        .map((r, i) => (
-                          <tr key={i} className="border-b border-border/30 hover:bg-surface/50">
-                            <td className="py-1.5 text-textMid max-w-[140px] truncate font-medium">{r['Nombre del Cliente']}</td>
-                            <td className="py-1.5 text-right font-semibold text-textHi tabular-nums">{fmt$(r['Ticket Promedio'])}</td>
-                            <td className="py-1.5 text-right font-bold text-cp tabular-nums">{fmt$(r['MRR Limpio'])}</td>
-                            <td className="py-1.5 text-center"><Badge val={r['Clasificación LTV']} map={LTV_COLOR} /></td>
-                            <td className="py-1.5 text-center"><Badge val={r['Semáforo Actividad']} map={SEM_COLOR} /></td>
-                          </tr>
-                        ))}
+                      {data!.cuentasMesReciente.map((r, i) => (
+                        <tr key={i} className="border-b border-border/30 hover:bg-surface/50">
+                          <td className="py-1.5 text-textMid max-w-[130px] truncate font-medium">{r['Nombre del Cliente']}</td>
+                          <td className="py-1.5 text-right text-textLow tabular-nums">{r['Última Factura'] || '—'}</td>
+                          <td className="py-1.5 text-right font-bold text-cp tabular-nums">{fmt$(r['MRR Limpio'])}</td>
+                          <td className="py-1.5 text-center"><Badge val={r['Clasificación LTV']} map={LTV_COLOR} /></td>
+                          <td className="py-1.5 text-center"><Badge val={r['Semáforo Actividad']} map={SEM_COLOR} /></td>
+                        </tr>
+                      ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t border-border">
-                        <td className="pt-1.5 text-[10px] font-bold text-textMid">TOTAL</td>
-                        <td className="pt-1.5 text-right font-bold text-textHi tabular-nums">
-                          {fmt$(data!.cuentasMesReciente.reduce((s, r) => s + (r['Ticket Promedio'] ?? 0), 0))}
-                        </td>
+                        <td className="pt-1.5 text-[10px] font-bold text-textMid" colSpan={2}>TOTAL</td>
                         <td className="pt-1.5 text-right font-bold text-cp tabular-nums">{fmt$(data!.mrrGrupo)}</td>
                         <td colSpan={2} />
                       </tr>
@@ -198,13 +193,6 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
                 </div>
               )}
             </div>
-          )}
-
-          {/* Cuentas inactivas (no en mes reciente) */}
-          {!expanded && data!.subCuentas > data!.cuentasMesReciente.length && (
-            <p className="text-[10px] text-textLow/50 text-center mt-1 italic">
-              {data!.subCuentas - data!.cuentasMesReciente.length} sub-cuenta(s) sin factura en {data!.mesReciente} — no incluidas en el total
-            </p>
           )}
         </>
       )}
