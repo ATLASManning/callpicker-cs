@@ -496,14 +496,15 @@ export async function GET(req: NextRequest) {
 
     const cidsSeen = new Set(found.map(r => r.CID))
 
-    // 2. Frase completa: igual que el modo list ─ misma precisión, mismos resultados.
-    // Detecta sub-cuentas con nombres derivados ("GRUPO RIZO NORTE" contiene "grupo rizo").
-    // Dirección inversa (query ⊃ rowName) captura variantes SA/CV ("gdl corp" ⊂ "gdl corp sa de cv").
+    // 2. Frase completa (SOLO dirección forward: el nombre Zoho contiene nuestra frase).
+    // La dirección inversa (query ⊃ rowName) causaba over-match con palabras cortas:
+    // "company is brandgroup mexico" ⊃ "mexico" → 275 falsos positivos.
+    // Forward-only detecta sub-cuentas correctamente ("grupo rizo norte" ⊃ "grupo rizo").
+    // Se ejecuta siempre para añadir sub-cuentas con distinto CID al grupo.
     if (normNombre.length >= 4) {
       const byPhrase = rows.filter(r => {
         const n = normalize(r['Nombre del Cliente'] ?? '')
-        return n.includes(normNombre) ||
-               (normNombre.includes(n) && n.length >= 6)
+        return n.includes(normNombre)
       })
       for (const r of byPhrase) {
         if (!cidsSeen.has(r.CID)) { found.push(r); cidsSeen.add(r.CID) }
