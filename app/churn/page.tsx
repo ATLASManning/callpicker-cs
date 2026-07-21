@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import PageHeader from '@/components/PageHeader'
 import { AAA_GRC_2026 } from './aaa-grc-data'
 import {
@@ -1284,10 +1284,13 @@ export default function ChurnPage() {
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
-  const [zohoLoading,  setZohoLoading]  = useState(false)
-  const [zohoData,     setZohoData]     = useState<ZohoDormido | null>(null)
-  const [zohoSort,     setZohoSort]     = useState<{col: string; dir: 'asc'|'desc'}>({ col: 'diasSinFactura', dir: 'desc' })
-  const [aaaOpenMes,   setAaaOpenMes]   = useState<Record<string, boolean>>({})
+  const [zohoLoading,    setZohoLoading]    = useState(false)
+  const [zohoData,       setZohoData]       = useState<ZohoDormido | null>(null)
+  const [zohoSort,       setZohoSort]       = useState<{col: string; dir: 'asc'|'desc'}>({ col: 'ultimaFactura', dir: 'desc' })
+  const [zohoFilters,    setZohoFilters]    = useState<Record<string, string[]>>({})
+  const [zohoFilterOpen, setZohoFilterOpen] = useState<string | null>(null)
+  const zohoDropRef = useRef<HTMLDivElement>(null)
+  const [aaaOpenMes,     setAaaOpenMes]     = useState<Record<string, boolean>>({})
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
@@ -1306,21 +1309,93 @@ export default function ChurnPage() {
   const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, ...userReportes]
   const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S2_JULIO_2026
 
-  const sortedZohoRows = zohoData?.rows
-    ? [...zohoData.rows].sort((a, b) => {
-        const d = zohoSort.dir === 'asc' ? 1 : -1
-        if (zohoSort.col === 'nombre')         return d * a.nombre.localeCompare(b.nombre)
-        if (zohoSort.col === 'segmento')       return d * (a.segmento || '').localeCompare(b.segmento || '')
-        if (zohoSort.col === 'ltv')            return d * (a.ltv || '').localeCompare(b.ltv || '')
-        if (zohoSort.col === 'mrr')            return d * (a.mrr - b.mrr)
-        if (zohoSort.col === 'diasSinFactura') return d * ((a.diasSinFactura ?? -1) - (b.diasSinFactura ?? -1))
-        if (zohoSort.col === 'ultimaFactura')  return d * (a.ultimaFactura || '').localeCompare(b.ultimaFactura || '')
-        if (zohoSort.col === 'estado_cs')      return d * ((+!!a.alerta) - (+!!b.alerta) || (a.estado_cs || '').localeCompare(b.estado_cs || ''))
-        return 0
-      })
-    : []
-  const toggleZohoSort = (col: string) =>
-    setZohoSort(s => ({ col, dir: s.col === col && s.dir === 'asc' ? 'desc' : 'asc' }))
+  // Pre-filtrar a Enterprise y Large cuando llegan los datos
+  useEffect(() => {
+    if (!zohoData?.rows || Object.keys(zohoFilters).length > 0) return
+    const segs = Array.from(new Set(zohoData.rows.map(r => r.segmento || '').filter(Boolean)))
+    const presel = segs.filter(s => s === 'Enterprise' || s === 'Large')
+    setZohoFilters({ segmento: presel.length > 0 ? presel : [] })
+  }, [zohoData]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cerrar dropdown al hacer clic fuera
+  useEffect(() => {
+    if (!zohoFilterOpen) return
+    const handler = (e: MouseEvent) => {
+      if (zohoDropRef.current && !zohoDropRef.current.contains(e.target as Node))
+        setZohoFilterOpen(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [zohoFilterOpen])
+
+  // Valores únicos por columna (de todos los rows, no los filtrados)
+  const zohoUnique = useMemo<Record<string, string[]>>(() => {
+    if (!zohoData?.rows) return {}
+    const get = (r: ZohoDormidoRow, col: string) => {
+      if (col === 'nombre')         return r.nombre || ''
+      if (col === 'segmento')       return r.segmento || ''
+      if (col === 'ltv')            return r.ltv || ''
+      if (col === 'mrr')            return r.mrr > 0 ? String(Math.round(r.mrr)) : '0'
+      if (col === 'diasSinFactura') return r.diasSinFactura != null ? String(r.diasSinFactura) : ''
+      if (col === 'ultimaFactura')  return r.ultimaFactura || ''
+      return ''
+    }
+    const cols = ['nombre', 'segmento', 'ltv', 'mrr', 'diasSinFactura', 'ultimaFactura']
+    const out: Record<string, string[]> = {}
+    for (const col of cols) {
+      out[col] = Array.from(new Set(zohoData.rows.map(r => get(r, col)))).filter(Boolean).sort()
+    }
+    return out
+  }, [zohoData])
+
+  // Filtrar rows
+  const filteredZohoRows = useMemo(() => {
+    if (!zohoData?.rows) return []
+    return zohoData.rows.filter(r => {
+      for (const [col, selected] of Object.entries(zohoFilters)) {
+        if (!selected || selected.length === 0) continue
+        const get = (c: string) => {
+          if (c === 'nombre')         return r.nombre || ''
+          if (c === 'segmento')       return r.segmento || ''
+          if (c === 'ltv')            return r.ltv || ''
+          if (c === 'mrr')            return r.mrr > 0 ? String(Math.round(r.mrr)) : '0'
+          if (c === 'diasSinFactura') return r.diasSinFactura != null ? String(r.diasSinFactura) : ''
+          if (c === 'ultimaFactura')  return r.ultimaFactura || ''
+          return ''
+        }
+        if (!selected.includes(get(col))) return false
+      }
+      return true
+    })
+  }, [zohoData, zohoFilters])
+
+  // Ordenar rows filtrados
+  const sortedZohoRows = useMemo(() => {
+    return [...filteredZohoRows].sort((a, b) => {
+      const d = zohoSort.dir === 'asc' ? 1 : -1
+      if (zohoSort.col === 'nombre')         return d * a.nombre.localeCompare(b.nombre)
+      if (zohoSort.col === 'segmento')       return d * (a.segmento || '').localeCompare(b.segmento || '')
+      if (zohoSort.col === 'ltv')            return d * (a.ltv || '').localeCompare(b.ltv || '')
+      if (zohoSort.col === 'mrr')            return d * (a.mrr - b.mrr)
+      if (zohoSort.col === 'diasSinFactura') return d * ((a.diasSinFactura ?? -1) - (b.diasSinFactura ?? -1))
+      if (zohoSort.col === 'ultimaFactura')  return d * (a.ultimaFactura || '').localeCompare(b.ultimaFactura || '')
+      return 0
+    })
+  }, [filteredZohoRows, zohoSort])
+
+  const toggleZohoFilter = (col: string, val: string) => {
+    setZohoFilters(prev => {
+      const all = zohoUnique[col] ?? []
+      const cur = prev[col] ?? all
+      const next = cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val]
+      return { ...prev, [col]: next }
+    })
+  }
+  const isZohoFiltered = (col: string) => {
+    const all = zohoUnique[col] ?? []
+    const cur = zohoFilters[col]
+    return cur !== undefined && cur.length !== all.length
+  }
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
   const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
@@ -2297,34 +2372,109 @@ export default function ChurnPage() {
                 )}
 
                 {/* Tabla */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  <div className="px-5 py-4 border-b border-gray-100" style={{ background: '#dc262608' }}>
-                    <h3 className="font-semibold text-sm text-gray-900">{zohoData.total} cuentas dormidas — Zoho Facturación</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">MRR total: {fmt(zohoData.totalMrr)}</p>
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden" ref={zohoDropRef}>
+                  <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between" style={{ background: '#dc262608' }}>
+                    <div>
+                      <h3 className="font-semibold text-sm text-gray-900">
+                        {sortedZohoRows.length} cuentas
+                        {sortedZohoRows.length !== zohoData.total && (
+                          <span className="text-gray-400 font-normal"> de {zohoData.total} total</span>
+                        )}
+                        {' '}— Zoho Facturación
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">MRR total: {fmt(zohoData.totalMrr)}</p>
+                    </div>
+                    {Object.values(zohoFilters).some(v => v && v.length < (zohoUnique[Object.keys(zohoFilters)[0]] ?? []).length) && (
+                      <button
+                        onClick={() => setZohoFilters({})}
+                        className="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
+                        <X size={11} /> Limpiar filtros
+                      </button>
+                    )}
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50/70">
                           {([
-                            { col: 'nombre',         label: 'Cliente',      align: 'left'   },
-                            { col: 'segmento',       label: 'Segmento',     align: 'left'   },
-                            { col: 'ltv',            label: 'LTV',          align: 'left'   },
-                            { col: 'mrr',            label: 'MRR',          align: 'right'  },
-                            { col: 'diasSinFactura', label: 'Días s/F',     align: 'right'  },
-                            { col: 'ultimaFactura',  label: 'Últ. Factura', align: 'left'   },
-                            { col: 'estado_cs',      label: 'Estado CS',    align: 'center' },
+                            { col: 'nombre',         label: 'Cliente',      align: 'left'  },
+                            { col: 'segmento',       label: 'Segmento',     align: 'left'  },
+                            { col: 'ltv',            label: 'LTV',          align: 'left'  },
+                            { col: 'mrr',            label: 'MRR',          align: 'right' },
+                            { col: 'diasSinFactura', label: 'Días S/F',     align: 'right' },
+                            { col: 'ultimaFactura',  label: 'Últ. Factura', align: 'left'  },
                           ] as const).map(({ col, label, align }) => {
-                            const active = zohoSort.col === col
-                            const Icon = active && zohoSort.dir === 'asc' ? ChevronUp : ChevronDown
+                            const sorted  = zohoSort.col === col
+                            const filtered = isZohoFiltered(col)
+                            const open    = zohoFilterOpen === col
+                            const uniqueVals = zohoUnique[col] ?? []
+                            const selected   = zohoFilters[col] ?? uniqueVals
+                            const allSelected = selected.length === uniqueVals.length
+
                             return (
-                              <th key={col}
-                                className={`py-3 px-4 text-xs font-semibold uppercase tracking-wide cursor-pointer select-none whitespace-nowrap text-${align} ${active ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                onClick={() => toggleZohoSort(col)}>
-                                <span className={`inline-flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : ''} w-full`}>
+                              <th key={col} className="py-0 px-0" style={{ position: 'relative' }}>
+                                <button
+                                  onClick={() => setZohoFilterOpen(open ? null : col)}
+                                  className={`w-full py-3 px-4 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide whitespace-nowrap
+                                    ${align === 'right' ? 'justify-end' : ''}
+                                    ${sorted || filtered ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
+                                  {filtered && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                                  )}
                                   {label}
-                                  <Icon size={11} className={active ? 'text-blue-500' : 'text-gray-300'} />
-                                </span>
+                                  {sorted
+                                    ? (zohoSort.dir === 'asc' ? <ChevronUp size={11} className="text-blue-500" /> : <ChevronDown size={11} className="text-blue-500" />)
+                                    : <ChevronDown size={11} className="text-gray-300" />}
+                                </button>
+
+                                {open && (
+                                  <div
+                                    className="absolute z-50 bg-white border border-gray-200 rounded-xl shadow-lg min-w-[180px] py-1 text-xs"
+                                    style={{ top: '100%', [align === 'right' ? 'right' : 'left']: 0 }}>
+
+                                    {/* Opciones de ordenación */}
+                                    <button
+                                      onClick={() => { setZohoSort({ col, dir: 'asc' }); setZohoFilterOpen(null) }}
+                                      className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 ${zohoSort.col === col && zohoSort.dir === 'asc' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}>
+                                      <ChevronUp size={12} /> Ordenar ascendente
+                                    </button>
+                                    <button
+                                      onClick={() => { setZohoSort({ col, dir: 'desc' }); setZohoFilterOpen(null) }}
+                                      className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 ${zohoSort.col === col && zohoSort.dir === 'desc' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}>
+                                      <ChevronDown size={12} /> Ordenar descendente
+                                    </button>
+
+                                    {/* Filtros de valores (solo columnas categóricas) */}
+                                    {(col === 'segmento' || col === 'ltv' || col === 'nombre' || col === 'ultimaFactura') && uniqueVals.length > 0 && (
+                                      <>
+                                        <div className="border-t border-gray-100 mx-2 my-1" />
+                                        <div className="px-3 py-1">
+                                          <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 py-1 cursor-pointer">
+                                            <input type="checkbox"
+                                              className="rounded"
+                                              checked={allSelected}
+                                              onChange={() => setZohoFilters(prev => ({
+                                                ...prev,
+                                                [col]: allSelected ? [] : uniqueVals,
+                                              }))} />
+                                            Seleccionar todo
+                                          </label>
+                                          <div className="max-h-48 overflow-y-auto space-y-0.5 mt-1">
+                                            {uniqueVals.map(val => (
+                                              <label key={val} className="flex items-center gap-2 py-1 px-1 cursor-pointer hover:bg-gray-50 rounded text-[11px] text-gray-700">
+                                                <input type="checkbox"
+                                                  className="rounded"
+                                                  checked={selected.includes(val)}
+                                                  onChange={() => toggleZohoFilter(col, val)} />
+                                                {val || '(vacío)'}
+                                              </label>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
                               </th>
                             )
                           })}
@@ -2364,30 +2514,16 @@ export default function ChurnPage() {
                               ) : <span className="text-gray-400">—</span>}
                             </td>
                             <td className="py-3 px-4 text-xs text-gray-500">{r.ultimaFactura || '—'}</td>
-                            <td className="py-3 px-4 text-center">
-                              {r.matched ? (
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
-                                  r.alerta
-                                    ? 'bg-red-100 text-red-700 border-red-200'
-                                    : r.estado_cs === 'cancelado'
-                                      ? 'bg-gray-100 text-gray-500 border-gray-200'
-                                      : 'bg-amber-100 text-amber-700 border-amber-200'
-                                }`}>
-                                  <span className={`w-1 h-1 rounded-full ${r.alerta ? 'bg-red-500' : r.estado_cs === 'cancelado' ? 'bg-gray-400' : 'bg-amber-500'}`} />
-                                  {r.alerta ? '⚠ activo en CS' : (r.estado_cs ?? '—')}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] text-gray-300">sin match</span>
-                              )}
-                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                  <p className="px-5 py-3 text-[11px] text-gray-400 border-t border-gray-100">
-                    Filas en rojo: semáforo 4-Dormido en Zoho pero estado &quot;activo&quot; en Callpicker CS — requieren actualización.
-                  </p>
+                  {zohoData.alertas > 0 && (
+                    <p className="px-5 py-3 text-[11px] text-gray-400 border-t border-gray-100">
+                      Filas en rojo: semáforo 4-Dormido en Zoho pero estado &quot;activo&quot; en Callpicker CS — requieren actualización.
+                    </p>
+                  )}
                 </div>
               </>
             )}
