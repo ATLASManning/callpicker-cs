@@ -166,7 +166,7 @@ function KpiCard({ label, value, sub, icon: Icon, accent }: {
         <div style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${accent}18`, border: `1px solid ${accent}30` }}>
           <Icon size={15} style={{ color: accent }} />
         </div>
-        <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: TX_LOW }}>{label}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: TX_LOW }}>{label}</span>
       </div>
       <p style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em', color: TX_HI, marginBottom: 6 }}>{value}</p>
       <p style={{ fontSize: 11, color: TX_MID, lineHeight: 1.4 }}>{sub}</p>
@@ -184,7 +184,7 @@ function Panel({ children, className = '' }: { children: React.ReactNode; classN
 
 function PanelTitle({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID, marginBottom: 16 }}>
+    <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID, marginBottom: 16 }}>
       {children}
     </p>
   )
@@ -295,7 +295,7 @@ function GaugeCard({ st }: { st: AsesorStats }) {
           <div style={{ width: 10, height: 10, borderRadius: '50%', background: st.color, boxShadow: `0 0 8px ${st.color}` }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: TX_HI }}>{st.asesor}</span>
         </div>
-        <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: `${semColor}20`, color: semColor, border: `1px solid ${semColor}40` }}>
+        <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: `${semColor}20`, color: semColor, border: `1px solid ${semColor}40` }}>
           {SEM_LABEL[semLabel]}
         </span>
       </div>
@@ -307,15 +307,15 @@ function GaugeCard({ st }: { st: AsesorStats }) {
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 10px' }}>
           <p style={{ fontSize: 16, fontWeight: 800, color: TX_HI, lineHeight: 1 }}>{st.cuentas.length}</p>
-          <p style={{ fontSize: 9, color: TX_LOW, marginTop: 2 }}>cuentas</p>
+          <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>cuentas</p>
         </div>
         <div style={{ flex: 2, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 10px' }}>
           <p style={{ fontSize: 15, fontWeight: 800, color: TX_HI, lineHeight: 1 }}>{formatMXN(st.totalFac)}</p>
-          <p style={{ fontSize: 9, color: TX_LOW, marginTop: 2 }}>MRR total</p>
+          <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>MRR total</p>
         </div>
         <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 10px' }}>
           <p style={{ fontSize: 16, fontWeight: 800, color: '#A855F7', lineHeight: 1 }}>{st.upsellCount}</p>
-          <p style={{ fontSize: 9, color: TX_LOW, marginTop: 2 }}>oportunidades</p>
+          <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>oportunidades</p>
         </div>
       </div>
 
@@ -325,7 +325,7 @@ function GaugeCard({ st }: { st: AsesorStats }) {
           const n = st.semDist[s]
           if (!n) return null
           return (
-            <span key={s} style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: `${SEM_COLOR[s]}20`, color: SEM_COLOR[s], border: `1px solid ${SEM_COLOR[s]}30` }}>
+            <span key={s} style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: `${SEM_COLOR[s]}20`, color: SEM_COLOR[s], border: `1px solid ${SEM_COLOR[s]}30` }}>
               {n} {SEM_LABEL[s]}
             </span>
           )
@@ -335,14 +335,14 @@ function GaugeCard({ st }: { st: AsesorStats }) {
       {/* Cobertura auditoría */}
       <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${BORDER2}` }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-          <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: TX_LOW }}>
+          <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: TX_LOW }}>
             Cobertura análisis
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 12, fontWeight: 800, color: st.auditPct >= 30 ? '#22C55E' : st.auditPct >= 15 ? '#EAB308' : '#EF4444' }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: st.auditPct >= 30 ? '#22C55E' : st.auditPct >= 15 ? '#EAB308' : '#EF4444' }}>
               {st.auditCount}/{st.cuentas.length}
             </span>
-            <span style={{ fontSize: 9, color: TX_LOW }}>auditadas</span>
+            <span style={{ fontSize: 11, color: TX_LOW }}>auditadas</span>
           </div>
         </div>
         <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
@@ -353,7 +353,7 @@ function GaugeCard({ st }: { st: AsesorStats }) {
           }} />
         </div>
         {st.cuentas.length - st.auditCount > 0 && (
-          <p style={{ fontSize: 9, color: '#F97316', marginTop: 3 }}>
+          <p style={{ fontSize: 11, color: '#F97316', marginTop: 3 }}>
             {st.cuentas.length - st.auditCount} sin analizar · punto ciego de churn
           </p>
         )}
@@ -361,8 +361,8 @@ function GaugeCard({ st }: { st: AsesorStats }) {
 
       {/* Facturación en riesgo */}
       {st.facEnRiesgo > 0 && (
-        <div style={{ marginTop: 6, fontSize: 10, color: '#F97316', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <AlertTriangle size={10} />
+        <div style={{ marginTop: 6, fontSize: 12, color: '#F97316', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <AlertTriangle size={12} />
           <span>{formatMXN(st.facEnRiesgo)} en riesgo</span>
         </div>
       )}
@@ -386,21 +386,21 @@ function AsesorDetailCard({ st }: { st: AsesorStats }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ width: 8, height: 8, borderRadius: '50%', background: st.color }} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: TX_HI }}>{st.asesor}</span>
-        <span style={{ fontSize: 10, color: TX_LOW, marginLeft: 'auto' }}>{st.cuentas.length} cuentas</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: TX_HI }}>{st.asesor}</span>
+        <span style={{ fontSize: 12, color: TX_LOW, marginLeft: 'auto' }}>{st.cuentas.length} cuentas</span>
       </div>
 
       {/* Sub-scores */}
       <div>
-        <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: TX_LOW, marginBottom: 8 }}>Sub-scores promedio</p>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: TX_LOW, marginBottom: 8 }}>Sub-scores promedio</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {subEntries.map(e => {
             const c = e.val >= 80 ? '#22C55E' : e.val >= 60 ? '#3B82F6' : e.val >= 40 ? '#EAB308' : '#EF4444'
             return (
               <div key={e.key}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                  <span style={{ fontSize: 10, color: TX_MID }}>{e.label}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: c }}>{Math.round(e.val)}</span>
+                  <span style={{ fontSize: 12, color: TX_MID }}>{e.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: c }}>{Math.round(e.val)}</span>
                 </div>
                 <MiniBar pct={e.val} color={c} />
               </div>
@@ -411,16 +411,16 @@ function AsesorDetailCard({ st }: { st: AsesorStats }) {
 
       {/* Adopción de features */}
       <div>
-        <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: TX_LOW, marginBottom: 8 }}>Adopción de producto</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: TX_LOW, marginBottom: 8 }}>Adopción de producto</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {ADOPT_FEATURES.map(f => {
             const pct = st.adoptRates[f.key as string] ?? 0
             const c = pct >= 60 ? '#22C55E' : pct >= 30 ? '#EAB308' : '#EF4444'
             return (
               <div key={f.key as string} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 10, color: TX_MID, width: 62, flexShrink: 0 }}>{f.label}</span>
+                <span style={{ fontSize: 12, color: TX_MID, width: 72, flexShrink: 0 }}>{f.label}</span>
                 <MiniBar pct={pct} color={c} />
-                <span style={{ fontSize: 10, fontWeight: 700, color: c, width: 30, textAlign: 'right' as const }}>{Math.round(pct)}%</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: c, width: 34, textAlign: 'right' as const }}>{Math.round(pct)}%</span>
               </div>
             )
           })}
@@ -430,26 +430,26 @@ function AsesorDetailCard({ st }: { st: AsesorStats }) {
       {/* Completitud de info */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: TX_LOW }}>Completitud de fichas</p>
-          <span style={{ fontSize: 11, fontWeight: 800, color: st.profilePct >= 70 ? '#22C55E' : st.profilePct >= 40 ? '#EAB308' : '#EF4444' }}>
+          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: TX_LOW }}>Completitud de fichas</p>
+          <span style={{ fontSize: 13, fontWeight: 800, color: st.profilePct >= 70 ? '#22C55E' : st.profilePct >= 40 ? '#EAB308' : '#EF4444' }}>
             {Math.round(st.profilePct)}%
           </span>
         </div>
         <MiniBar pct={st.profilePct} color={st.profilePct >= 70 ? '#22C55E' : st.profilePct >= 40 ? '#EAB308' : '#EF4444'} />
-        <p style={{ fontSize: 9, color: TX_LOW, marginTop: 4 }}>Contacto · Giro · Antigüedad · Obs. KAM · Web</p>
+        <p style={{ fontSize: 11, color: TX_LOW, marginTop: 4 }}>Contacto · Giro · Antigüedad · Obs. KAM · Web</p>
       </div>
 
       {/* Áreas a replicar / de seguimiento */}
       <div style={{ display: 'flex', gap: 6 }}>
         <div style={{ flex: 1, background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10, padding: '8px 10px' }}>
-          <p style={{ fontSize: 9, color: '#22C55E', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 3 }}>Replicar</p>
-          <p style={{ fontSize: 11, fontWeight: 700, color: TX_HI }}>{bestSub.label}</p>
-          <p style={{ fontSize: 10, color: '#22C55E' }}>{Math.round(bestSub.val)}</p>
+          <p style={{ fontSize: 11, color: '#22C55E', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 3 }}>Replicar</p>
+          <p style={{ fontSize: 13, fontWeight: 700, color: TX_HI }}>{bestSub.label}</p>
+          <p style={{ fontSize: 12, color: '#22C55E' }}>{Math.round(bestSub.val)}</p>
         </div>
         <div style={{ flex: 1, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '8px 10px' }}>
-          <p style={{ fontSize: 9, color: '#F97316', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 3 }}>Seguimiento</p>
-          <p style={{ fontSize: 11, fontWeight: 700, color: TX_HI }}>{worstSub.label}</p>
-          <p style={{ fontSize: 10, color: '#F97316' }}>{Math.round(worstSub.val)}</p>
+          <p style={{ fontSize: 11, color: '#F97316', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 3 }}>Seguimiento</p>
+          <p style={{ fontSize: 13, fontWeight: 700, color: TX_HI }}>{worstSub.label}</p>
+          <p style={{ fontSize: 12, color: '#F97316' }}>{Math.round(worstSub.val)}</p>
         </div>
       </div>
 
@@ -458,20 +458,20 @@ function AsesorDetailCard({ st }: { st: AsesorStats }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
           {st.topRisk && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 9, color: '#EF4444', fontWeight: 700, width: 56, flexShrink: 0 }}>Mayor riesgo</span>
-              <Link href={`/cuentas/${st.topRisk.id}`} style={{ fontSize: 10, color: TX_MID, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }} className="hover:underline">
+              <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, width: 68, flexShrink: 0 }}>Mayor riesgo</span>
+              <Link href={`/cuentas/${st.topRisk.id}`} style={{ fontSize: 12, color: TX_MID, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }} className="hover:underline">
                 {st.topRisk.empresa}
               </Link>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#EF4444', flexShrink: 0 }}>{st.topRisk.health_score}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#EF4444', flexShrink: 0 }}>{st.topRisk.health_score}</span>
             </div>
           )}
           {st.topSaludable && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 9, color: '#22C55E', fontWeight: 700, width: 56, flexShrink: 0 }}>Más saludable</span>
-              <Link href={`/cuentas/${st.topSaludable.id}`} style={{ fontSize: 10, color: TX_MID, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }} className="hover:underline">
+              <span style={{ fontSize: 11, color: '#22C55E', fontWeight: 700, width: 68, flexShrink: 0 }}>Más saludable</span>
+              <Link href={`/cuentas/${st.topSaludable.id}`} style={{ fontSize: 12, color: TX_MID, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }} className="hover:underline">
                 {st.topSaludable.empresa}
               </Link>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E', flexShrink: 0 }}>{st.topSaludable.health_score}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#22C55E', flexShrink: 0 }}>{st.topSaludable.health_score}</span>
             </div>
           )}
         </div>
@@ -487,13 +487,13 @@ function AdopcionMatrix({ asesores }: { asesores: AsesorStats[] }) {
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
           <tr>
-            <th style={{ padding: '8px 12px', textAlign: 'left' as const, fontSize: 10, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase' as const, letterSpacing: '0.08em', borderBottom: `1px solid ${BORDER2}` }}>Feature</th>
+            <th style={{ padding: '10px 14px', textAlign: 'left' as const, fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase' as const, letterSpacing: '0.08em', borderBottom: `1px solid ${BORDER2}` }}>Feature</th>
             {asesores.map(a => (
-              <th key={a.asesor} style={{ padding: '8px 12px', textAlign: 'center' as const, fontSize: 11, fontWeight: 700, color: a.color, borderBottom: `1px solid ${BORDER2}` }}>
+              <th key={a.asesor} style={{ padding: '10px 14px', textAlign: 'center' as const, fontSize: 13, fontWeight: 700, color: a.color, borderBottom: `1px solid ${BORDER2}` }}>
                 {a.asesor}
               </th>
             ))}
-            <th style={{ padding: '8px 12px', textAlign: 'center' as const, fontSize: 10, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase' as const, letterSpacing: '0.06em', borderBottom: `1px solid ${BORDER2}` }}>Global</th>
+            <th style={{ padding: '10px 14px', textAlign: 'center' as const, fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase' as const, letterSpacing: '0.06em', borderBottom: `1px solid ${BORDER2}` }}>Global</th>
           </tr>
         </thead>
         <tbody>
@@ -502,35 +502,35 @@ function AdopcionMatrix({ asesores }: { asesores: AsesorStats[] }) {
               ? avg(asesores.map(a => a.adoptRates[f.key as string] ?? 0)) : 0
             return (
               <tr key={f.key as string} style={{ background: fi % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
-                <td style={{ padding: '8px 12px', fontSize: 11, color: TX_MID }}>{f.label}</td>
+                <td style={{ padding: '10px 14px', fontSize: 13, color: TX_MID }}>{f.label}</td>
                 {asesores.map(a => {
                   const pct = a.adoptRates[f.key as string] ?? 0
                   const c = pct >= 60 ? '#22C55E' : pct >= 30 ? '#EAB308' : '#EF4444'
                   return (
-                    <td key={a.asesor} style={{ padding: '8px 12px', textAlign: 'center' as const }}>
+                    <td key={a.asesor} style={{ padding: '10px 14px', textAlign: 'center' as const }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: c }}>{Math.round(pct)}%</span>
-                        <div style={{ width: 40, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: c }}>{Math.round(pct)}%</span>
+                        <div style={{ width: 44, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${pct}%`, background: c, borderRadius: 99 }} />
                         </div>
                       </div>
                     </td>
                   )
                 })}
-                <td style={{ padding: '8px 12px', textAlign: 'center' as const }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: TX_MID }}>{Math.round(globalPct)}%</span>
+                <td style={{ padding: '10px 14px', textAlign: 'center' as const }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: TX_MID }}>{Math.round(globalPct)}%</span>
                 </td>
               </tr>
             )
           })}
           {/* Profile completeness row */}
           <tr style={{ borderTop: `1px solid ${BORDER2}`, background: 'rgba(255,255,255,0.03)' }}>
-            <td style={{ padding: '8px 12px', fontSize: 11, color: TX_MID, fontStyle: 'italic' }}>Completitud fichas</td>
+            <td style={{ padding: '10px 14px', fontSize: 13, color: TX_MID, fontStyle: 'italic' }}>Completitud fichas</td>
             {asesores.map(a => {
               const c = a.profilePct >= 70 ? '#22C55E' : a.profilePct >= 40 ? '#EAB308' : '#EF4444'
               return (
-                <td key={a.asesor} style={{ padding: '8px 12px', textAlign: 'center' as const }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: c }}>{Math.round(a.profilePct)}%</span>
+                <td key={a.asesor} style={{ padding: '10px 14px', textAlign: 'center' as const }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: c }}>{Math.round(a.profilePct)}%</span>
                 </td>
               )
             })}
@@ -556,14 +556,14 @@ function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
     <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
+        <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
           Diagnóstico de Perfiles · {totalCuentas} cuentas
         </p>
-        <div style={{ display: 'flex', gap: 6, fontSize: 9, color: TX_LOW }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} />Sin contacto</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#F97316', display: 'inline-block' }} />2 campos</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#EAB308', display: 'inline-block' }} />1 campo</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />Completo</span>
+        <div style={{ display: 'flex', gap: 8, fontSize: 11, color: TX_LOW }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} />Sin contacto</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F97316', display: 'inline-block' }} />2 campos</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EAB308', display: 'inline-block' }} />1 campo</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />Completo</span>
         </div>
       </div>
 
@@ -577,7 +577,7 @@ function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
         ].map((item, i) => (
           <div key={i} style={{ flex: 1, background: `${item.color}10`, border: `1px solid ${item.color}25`, borderRadius: 10, padding: '10px 12px', textAlign: 'center' as const }}>
             <p style={{ fontSize: 22, fontWeight: 900, color: item.color, lineHeight: 1 }}>{item.val}</p>
-            <p style={{ fontSize: 9, color: TX_LOW, marginTop: 4, lineHeight: 1.3 }}>{item.label}</p>
+            <p style={{ fontSize: 11, color: TX_LOW, marginTop: 4, lineHeight: 1.3 }}>{item.label}</p>
           </div>
         ))}
       </div>
@@ -600,9 +600,9 @@ function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: a.color }} />
                   <span style={{ fontSize: 12, fontWeight: 700, color: TX_HI }}>{a.asesor}</span>
-                  <span style={{ fontSize: 10, color: TX_LOW }}>{total} cuentas</span>
+                  <span style={{ fontSize: 12, color: TX_LOW }}>{total} cuentas</span>
                 </div>
-                <div style={{ display: 'flex', gap: 10, fontSize: 10 }}>
+                <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
                   <span style={{ color: '#EF4444' }}>{a.criticosFaltantes} críticos</span>
                   <span style={{ color: '#EAB308' }}>{a.importantesFaltantes} importantes</span>
                   <span style={{ color: colorPct, fontWeight: 700 }}>{pctCriticos}% críticos cubiertos</span>
@@ -616,11 +616,11 @@ function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
                 {d.verde    > 0 && <div style={{ flex: d.verde,    background: '#22C55E' }} title={`${d.verde} críticos completos`} />}
               </div>
               {/* Labels */}
-              <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 9, color: TX_LOW }}>
-                {d.rojo     > 0 && <span style={{ color: '#EF4444' }}>{d.rojo} sin contacto</span>}
-                {d.naranja  > 0 && <span style={{ color: '#F97316' }}>{d.naranja} críticos ×2</span>}
-                {d.amarillo > 0 && <span style={{ color: '#EAB308' }}>{d.amarillo} crítico ×1</span>}
-                {d.verde    > 0 && <span style={{ color: '#22C55E' }}>{d.verde} ok</span>}
+              <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, color: TX_LOW }}>
+                {d.rojo     > 0 && <span style={{ fontSize: 11, color: '#EF4444' }}>{d.rojo} sin contacto</span>}
+                {d.naranja  > 0 && <span style={{ fontSize: 11, color: '#F97316' }}>{d.naranja} críticos ×2</span>}
+                {d.amarillo > 0 && <span style={{ fontSize: 11, color: '#EAB308' }}>{d.amarillo} crítico ×1</span>}
+                {d.verde    > 0 && <span style={{ fontSize: 11, color: '#22C55E' }}>{d.verde} ok</span>}
               </div>
             </div>
           )
@@ -629,15 +629,15 @@ function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
 
       {/* Campos más faltantes */}
       <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${BORDER2}` }}>
-        <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_LOW, marginBottom: 8 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_LOW, marginBottom: 8 }}>
           Campos más faltantes
         </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6 }}>
           {CRITICAL_FIELDS.map(f => {
             const n = asesores.reduce((s, a) => s + a.cuentas.filter(c => !isFieldFilled(c[f])).length, 0)
             if (!n) return null
             return (
-              <span key={String(f)} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.25)', fontWeight: 600 }}>
+              <span key={String(f)} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.25)', fontWeight: 600 }}>
                 {CRITICAL_LABELS[String(f)]} ({n})
               </span>
             )
@@ -646,7 +646,7 @@ function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
             const n = asesores.reduce((s, a) => s + a.cuentas.filter(c => !isFieldFilled(c[f])).length, 0)
             if (!n) return null
             return (
-              <span key={String(f)} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 99, background: 'rgba(234,179,8,0.10)', color: '#EAB308', border: '1px solid rgba(234,179,8,0.25)', fontWeight: 600 }}>
+              <span key={String(f)} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 99, background: 'rgba(234,179,8,0.10)', color: '#EAB308', border: '1px solid rgba(234,179,8,0.25)', fontWeight: 600 }}>
                 {IMPORTANT_LABELS[String(f)]} ({n})
               </span>
             )
@@ -662,10 +662,10 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
   return (
     <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
+        <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
           Cumplimiento SAC Semanal
         </p>
-        <span style={{ fontSize: 10, color: TX_LOW }}>Meta: {SAC_WEEKLY_TARGET} actividades/semana · 3/día × 5 días</span>
+        <span style={{ fontSize: 12, color: TX_LOW }}>Meta: {SAC_WEEKLY_TARGET} actividades/semana · 3/día × 5 días</span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
@@ -693,24 +693,24 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
                 label={String(thisWeek)}
               />
 
-              <p style={{ fontSize: 10, color: TX_MID, textAlign: 'center' as const, marginTop: -4 }}>
-                <span style={{ fontWeight: 800, fontSize: 13, color: gaugeColor }}>{thisWeek}</span>
+              <p style={{ fontSize: 12, color: TX_MID, textAlign: 'center' as const, marginTop: -4 }}>
+                <span style={{ fontWeight: 800, fontSize: 15, color: gaugeColor }}>{thisWeek}</span>
                 {' '}<span style={{ color: TX_LOW }}>/ {SAC_WEEKLY_TARGET}</span>
                 {' '}<span style={{ color: TX_LOW }}>actividades esta semana</span>
               </p>
 
               {/* Tendencia: últimas 3 semanas */}
               <div style={{ width: '100%' }}>
-                <p style={{ fontSize: 9, color: TX_LOW, marginBottom: 5 }}>Semanas anteriores</p>
-                <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 40 }}>
+                <p style={{ fontSize: 11, color: TX_LOW, marginBottom: 5 }}>Semanas anteriores</p>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 44 }}>
                   {weeks.slice(1).map((w, i) => {
-                    const h = Math.max(Math.round((w / Math.max(maxPrev, SAC_WEEKLY_TARGET)) * 36), 3)
+                    const h = Math.max(Math.round((w / Math.max(maxPrev, SAC_WEEKLY_TARGET)) * 40), 3)
                     const bc = (w / SAC_WEEKLY_TARGET) >= 0.8 ? '#22C55E' : (w / SAC_WEEKLY_TARGET) >= 0.5 ? '#EAB308' : '#EF4444'
                     return (
                       <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                         <div style={{ height: `${h}px`, width: '100%', borderRadius: 3, background: bc }} />
-                        <span style={{ fontSize: 8, color: TX_LOW }}>{w}</span>
-                        <span style={{ fontSize: 7, color: TX_LOW }}>{weekLabel[i]}</span>
+                        <span style={{ fontSize: 11, color: TX_LOW }}>{w}</span>
+                        <span style={{ fontSize: 10, color: TX_LOW }}>{weekLabel[i]}</span>
                       </div>
                     )
                   })}
@@ -876,7 +876,7 @@ export default async function DashboardPage() {
             <div style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${auditCovPct >= 30 ? '#22C55E' : '#EF4444'}18`, border: `1px solid ${auditCovPct >= 30 ? '#22C55E' : '#EF4444'}30` }}>
               <Target size={15} style={{ color: auditCovPct >= 30 ? '#22C55E' : '#EF4444' }} />
             </div>
-            <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: TX_LOW }}>Cobertura Auditoría</span>
+            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: TX_LOW }}>Cobertura Auditoría</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
             <p style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em', color: TX_HI }}>
@@ -889,14 +889,14 @@ export default async function DashboardPage() {
           <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: 6 }}>
             <div style={{ height: '100%', borderRadius: 99, width: `${auditCovPct}%`, background: auditCovPct >= 30 ? '#22C55E' : auditCovPct >= 15 ? '#EAB308' : '#EF4444', boxShadow: `0 0 6px ${auditCovPct >= 30 ? '#22C55E' : '#EF4444'}60` }} />
           </div>
-          <p style={{ fontSize: 10, color: TX_MID, lineHeight: 1.5 }}>
+          <p style={{ fontSize: 12, color: TX_MID, lineHeight: 1.5 }}>
             {cuentasSinAudit > 0
               ? <><span style={{ color: '#F97316', fontWeight: 700 }}>{cuentasSinAudit} sin analizar</span> · {formatMXN(facSinAudit)} punto ciego</>
               : <span style={{ color: '#22C55E' }}>Cartera totalmente cubierta</span>
             }
           </p>
-          <Link href="/auditoria" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 10, color: CYAN, fontWeight: 600, textDecoration: 'none' }} className="hover:underline">
-            Ver auditorías <ArrowUpRight size={10} />
+          <Link href="/auditoria" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 12, color: CYAN, fontWeight: 600, textDecoration: 'none' }} className="hover:underline">
+            Ver auditorías <ArrowUpRight size={12} />
           </Link>
         </div>
 
@@ -912,7 +912,7 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-2">
           <Ticket size={13} style={{ color: CYAN }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: TX_MID }}>Tickets Zoho Desk</span>
-          <span style={{ fontSize: 10, color: TX_LOW }}>· datos al {fmtFecha(globalTickets.ultima)}</span>
+          <span style={{ fontSize: 12, color: TX_LOW }}>· datos al {fmtFecha(globalTickets.ultima)}</span>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-1">
           <span style={{ fontSize: 12 }}>
@@ -928,7 +928,7 @@ export default async function DashboardPage() {
               <span style={{ fontSize: 14, fontWeight: 800, color: '#F97316' }}>{topRiesgoTix}</span>
               <span style={{ color: TX_LOW, marginLeft: 4 }}>en top 10 riesgo</span>
               {topRiesgoFallas > 0 && (
-                <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444', fontSize: 10, fontWeight: 700 }}>
+                <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444', fontSize: 12, fontWeight: 700 }}>
                   {topRiesgoFallas} fallas
                 </span>
               )}
@@ -947,10 +947,10 @@ export default async function DashboardPage() {
       {/* ══ §3 Tacómetros por Asesor ═══════════════════════════════════════ */}
       <div className="px-6 pb-2">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_LOW }}>
+          <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_LOW }}>
             Salud Promedio por Asesor
           </p>
-          <span style={{ fontSize: 10, color: TX_LOW }}>— Health Score promedio de toda la cartera</span>
+          <span style={{ fontSize: 12, color: TX_LOW }}>— Health Score promedio de toda la cartera</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {asesorStats.map(st => <GaugeCard key={st.asesor} st={st} />)}
@@ -960,10 +960,10 @@ export default async function DashboardPage() {
       {/* ══ §4 Análisis detallado por Asesor ══════════════════════════════ */}
       <div className="px-6 pb-5">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_LOW }}>
+          <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_LOW }}>
             Análisis por Asesor
           </p>
-          <span style={{ fontSize: 10, color: TX_LOW }}>— sub-scores, adopción de producto, completitud de fichas</span>
+          <span style={{ fontSize: 12, color: TX_LOW }}>— sub-scores, adopción de producto, completitud de fichas</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {asesorStats.map(st => <AsesorDetailCard key={st.asesor} st={st} />)}
@@ -975,7 +975,7 @@ export default async function DashboardPage() {
         <Panel>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <PanelTitle>Matriz de Adopción · Resumen comparativo</PanelTitle>
-            <div style={{ display: 'flex', gap: 12, fontSize: 10, color: TX_LOW }}>
+            <div style={{ display: 'flex', gap: 12, fontSize: 12, color: TX_LOW }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} /> ≥60% Bueno</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EAB308', display: 'inline-block' }} /> ≥30% Parcial</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} /> &lt;30% Alerta</span>
@@ -1026,7 +1026,7 @@ export default async function DashboardPage() {
                   <span style={{ fontSize: 12, fontWeight: 600, color: TX_MID }}>{a.asesor}</span>
                   <span style={{ fontSize: 12, fontWeight: 800, color: TX_HI }}>{formatMXN(a.facturacion_total)}</span>
                 </div>
-                <p style={{ fontSize: 10, color: TX_LOW }}>{a.total} cuentas · {formatMXN(a.facturacion_en_riesgo)} en riesgo</p>
+                <p style={{ fontSize: 12, color: TX_LOW }}>{a.total} cuentas · {formatMXN(a.facturacion_en_riesgo)} en riesgo</p>
               </div>
             ))}
           </div>
