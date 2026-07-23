@@ -26,6 +26,7 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'brandgroup',      nombre: 'Brand-Kern-Liebers México (Brandgroup)', consecutivos: ['C15'] },
   { id: 'cintascove',      nombre: 'Cintas Cove S.A. de C.V.',              consecutivos: ['D14'] },
   { id: 'clickbalance',    nombre: 'ClickBalance ERP',                       consecutivos: ['C43'] },
+  { id: 'elerybrands',     nombre: 'Elery Brands · Clínicas del Hombre',      consecutivos: ['C22'] },
 ]
 
 /** Devuelve la auditoría asociada a un consecutivo de cuenta, o null si no existe. */
