@@ -5,6 +5,7 @@ import {
   TrendingUp, AlertTriangle, MessageSquare, Calendar, ClipboardCheck
 } from 'lucide-react'
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
+import { getAuditCaseById }           from '@/app/auditoria/cases'
 import { getCuentaById, getSeguimientos, getOportunidades, getTickets, getHealthHistorial } from '@/lib/supabase'
 import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
@@ -43,8 +44,9 @@ export default async function CuentaDetailPage({ params }: Props) {
   const rol     = h.get('x-user-rol') ?? 'viewer'
   const canEdit = rol === 'admin' || rol === 'asesor'
 
-  const auditoria = findAuditoriaForConsecutivo(cuenta.consecutivo)
-  const zohoTickets = getTicketsByCuenta(cuenta.cid ?? null, cuenta.empresa)
+  const auditoria     = findAuditoriaForConsecutivo(cuenta.consecutivo)
+  const auditoriaCase = auditoria ? getAuditCaseById(auditoria.id) : null
+  const zohoTickets   = getTicketsByCuenta(cuenta.cid ?? null, cuenta.empresa)
 
   const semaforo = getSemaforo(cuenta.health_score)
   const cfg = SEMAFORO_CONFIG[semaforo]
@@ -455,6 +457,120 @@ export default async function CuentaDetailPage({ params }: Props) {
                     </form>
                   </details>
                 )}
+              </div>
+            )
+          })()}
+
+          {/* Observaciones Auditoría */}
+          {auditoriaCase && (() => {
+            const ACOLOR: Record<string, string> = {
+              en_riesgo:'#ef4444', rescatable:'#22c55e',
+              activo:'#6366f1', recuperado:'#3b82f6', perdido:'#6b7280',
+            }
+            const ALABEL: Record<string, string> = {
+              en_riesgo:'En Riesgo', rescatable:'Rescatable',
+              activo:'Activo', recuperado:'Recuperado', perdido:'Perdido',
+            }
+            const stColor  = ACOLOR[auditoriaCase.estado] ?? '#6366f1'
+            const stLabel  = ALABEL[auditoriaCase.estado] ?? auditoriaCase.estado
+            const top3h    = auditoriaCase.hallazgos.slice(0, 3)
+            const top2p    = auditoriaCase.plan_inmediato.slice(0, 2)
+            const rec      = auditoriaCase.recomendacion_central
+            const truncRec = rec.length > 220 ? rec.slice(0, 220) + '…' : rec
+            return (
+              <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:12, padding:'14px 16px' }}>
+                {/* Header */}
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#0F172A', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                      Observaciones Auditoría
+                    </span>
+                    <span style={{ fontSize:9, fontWeight:700, color:stColor, background:`${stColor}18`, padding:'2px 8px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                      {stLabel}
+                    </span>
+                  </div>
+                  <Link href={`/auditoria?caso=${auditoriaCase.id}`}
+                    style={{ fontSize:11, fontWeight:700, color:'#1B3FCC', background:'#EFF6FF', border:'1px solid #BFDBFE', borderRadius:6, padding:'4px 12px', display:'flex', alignItems:'center', gap:4, textDecoration:'none' }}>
+                    <ClipboardCheck size={11} /> Ver auditoría completa →
+                  </Link>
+                </div>
+
+                {/* Meta */}
+                <p style={{ fontSize:11, color:'#94A3B8', margin:'0 0 10px' }}>
+                  {auditoriaCase.fecha_periodo} · v{auditoriaCase.version} · Auditado: {auditoriaCase.fecha_auditoria}
+                </p>
+
+                {/* KPIs */}
+                {auditoriaCase.kpis.length > 0 && (
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:12 }}>
+                    {auditoriaCase.kpis.map((k, i) => (
+                      <div key={i} style={{ background:`${k.color}10`, border:`1px solid ${k.color}30`, borderRadius:8, padding:'4px 10px' }}>
+                        <p style={{ fontSize:9, color:k.color, fontWeight:700, textTransform:'uppercase', margin:0 }}>{k.label}</p>
+                        <p style={{ fontSize:11, color:'#0F172A', fontWeight:600, margin:0 }}>{k.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Problema raíz */}
+                <div style={{ marginBottom:10 }}>
+                  <p style={{ fontSize:10, fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 3px' }}>⚡ Problema Raíz</p>
+                  <p style={{ fontSize:12, color:'#0F172A', lineHeight:1.55, margin:0 }}>{auditoriaCase.problema_raiz}</p>
+                </div>
+
+                {/* Señal de alarma */}
+                {auditoriaCase.senal_alarma && (
+                  <div style={{ background:'#FFF7ED', border:'1px solid #FED7AA', borderRadius:8, padding:'8px 12px', marginBottom:10 }}>
+                    <p style={{ fontSize:10, fontWeight:700, color:'#C2410C', margin:'0 0 2px', textTransform:'uppercase' }}>⚠ Señal de Alarma</p>
+                    <p style={{ fontSize:11, color:'#7C2D12', lineHeight:1.5, margin:0 }}>
+                      {auditoriaCase.senal_alarma.length > 200 ? auditoriaCase.senal_alarma.slice(0, 200) + '…' : auditoriaCase.senal_alarma}
+                    </p>
+                  </div>
+                )}
+
+                {/* Hallazgos clave */}
+                {top3h.length > 0 && (
+                  <div style={{ marginBottom:10 }}>
+                    <p style={{ fontSize:10, fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 5px' }}>
+                      🔍 Hallazgos clave · {auditoriaCase.hallazgos.length} en total
+                    </p>
+                    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                      {top3h.map((h, i) => (
+                        <div key={i} style={{ display:'flex', gap:6, alignItems:'flex-start' }}>
+                          <span style={{ color:'#94A3B8', fontSize:13, flexShrink:0, lineHeight:1.4 }}>·</span>
+                          <p style={{ fontSize:11, color:'#334155', lineHeight:1.5, margin:0 }}>
+                            {h.length > 140 ? h.slice(0, 140) + '…' : h}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Plan inmediato */}
+                {top2p.length > 0 && (
+                  <div style={{ marginBottom:12 }}>
+                    <p style={{ fontSize:10, fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 5px' }}>
+                      📋 Próximos pasos
+                    </p>
+                    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                      {top2p.map((pl, i) => (
+                        <div key={i} style={{ display:'flex', gap:6, alignItems:'flex-start' }}>
+                          <span style={{ color:'#1B3FCC', fontSize:11, flexShrink:0, fontWeight:700, lineHeight:1.5 }}>{i + 1}.</span>
+                          <p style={{ fontSize:11, color:'#334155', lineHeight:1.5, margin:0 }}>
+                            {pl.accion.length > 130 ? pl.accion.slice(0, 130) + '…' : pl.accion}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recomendación central */}
+                <div style={{ background:'#F8FAFC', borderRadius:8, padding:'8px 12px', borderLeft:'3px solid #1B3FCC' }}>
+                  <p style={{ fontSize:10, fontWeight:700, color:'#1B3FCC', margin:'0 0 3px', textTransform:'uppercase' }}>💡 Recomendación central</p>
+                  <p style={{ fontSize:11, color:'#0F172A', lineHeight:1.6, margin:0 }}>{truncRec}</p>
+                </div>
               </div>
             )
           })()}

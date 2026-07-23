@@ -1,37 +1,32 @@
 'use client'
 import { useState, useEffect } from 'react'
 import PageHeader from '@/components/PageHeader'
-import { Plus, Trash2, FolderOpen } from 'lucide-react'
-import type { AuditoriaCase } from './types'
-import { ARKANSAS }         from './arkansas-data'
-import { FINSUS }           from './finsus-data'
-import { AGUA_INMACULADA }  from './agua-inmaculada-data'
-import { SALUD_Y_HOGAR }   from './salud-y-hogar-data'
-import { SAMALAB }         from './samalab-data'
-import { LABSUS }          from './labsus-data'
-import { GRUPOFRISA }      from './grupofrisa-data'
-import { ALIANZA }         from './alianza-data'
-import { ALTERNET }        from './alternet-data'
-import { AZYCO }           from './azyco-data'
-import { BRANDGROUP }     from './brandgroup-data'
-import { CINTAS_COVE }   from './cintascove-data'
-import { CLICKBALANCE }  from './clickbalance-data'
-import { ELERY_BRANDS }  from './elerybrands-data'
+import { Plus, Trash2, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react'
+import type { AuditoriaCase, EstadoAuditoria } from './types'
+import { STATIC_CASES, STATIC_CASE_IDS } from './cases'
 import AuditoriaDetail from './AuditoriaDetail'
 import AuditoriaForm from './AuditoriaForm'
 
-/* ─── Constantes ─────────────────────────────────────────────────────── */
 const LS_KEY = 'auditoria_casos'
 
 const ESTADO_COLOR: Record<string, string> = {
-  rescatable: '#22c55e',
   en_riesgo:  '#ef4444',
+  rescatable: '#22c55e',
+  activo:     '#6366f1',
   recuperado: '#3b82f6',
   perdido:    '#6b7280',
-  activo:     '#6366f1',
 }
 
-/* ─── Helpers de localStorage ────────────────────────────────────────── */
+const ESTADO_LABEL: Record<string, string> = {
+  en_riesgo:  'En Riesgo',
+  rescatable: 'Rescatable',
+  activo:     'Activo',
+  recuperado: 'Recuperado',
+  perdido:    'Perdido',
+}
+
+const ESTADO_ORDER: EstadoAuditoria[] = ['en_riesgo', 'rescatable', 'activo', 'recuperado', 'perdido']
+
 function loadFromLS(): AuditoriaCase[] {
   try {
     const raw = localStorage.getItem(LS_KEY)
@@ -45,27 +40,55 @@ function saveToLS(cases: AuditoriaCase[]) {
   localStorage.setItem(LS_KEY, JSON.stringify(cases))
 }
 
-/* ─── Página principal ───────────────────────────────────────────────── */
 export default function AuditoriaPage() {
-  const [userCases, setUserCases]       = useState<AuditoriaCase[]>([])
-  const [selectedId, setSelectedId]     = useState<string>('arkansas')
-  const [showForm, setShowForm]         = useState(false)
+  const [userCases, setUserCases]         = useState<AuditoriaCase[]>([])
+  const [selectedId, setSelectedId]       = useState<string>(STATIC_CASES[0].id)
+  const [showForm, setShowForm]           = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [closedFolders, setClosedFolders] = useState<Set<string>>(new Set())
 
-  /* Cargar casos guardados del usuario + abrir caso desde ?caso= (deep-link) */
   useEffect(() => {
     setUserCases(loadFromLS())
     const caso = new URLSearchParams(window.location.search).get('caso')
     if (caso) setSelectedId(caso)
   }, [])
 
-  /* Lista completa de casos (ARKANSAS siempre primero) */
-  const allCases: AuditoriaCase[] = [ARKANSAS, FINSUS, GRUPOFRISA, AGUA_INMACULADA, SALUD_Y_HOGAR, SAMALAB, LABSUS, ALIANZA, ALTERNET, AZYCO, BRANDGROUP, CINTAS_COVE, CLICKBALANCE, ELERY_BRANDS, ...userCases]
-  const currentCase = allCases.find(c => c.id === selectedId) ?? ARKANSAS
+  const allCases: AuditoriaCase[] = [...STATIC_CASES, ...userCases]
+  const currentCase = allCases.find(c => c.id === selectedId) ?? STATIC_CASES[0]
 
-  /* Guardar nuevo caso */
+  /* Auto-expand la carpeta del caso seleccionado */
+  useEffect(() => {
+    const estado = allCases.find(c => c.id === selectedId)?.estado
+    if (estado) {
+      setClosedFolders(prev => {
+        if (!prev.has(estado)) return prev
+        const next = new Set(prev)
+        next.delete(estado)
+        return next
+      })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId])
+
+  const toggleFolder = (estado: string) => {
+    setClosedFolders(prev => {
+      const next = new Set(prev)
+      if (next.has(estado)) next.delete(estado)
+      else next.add(estado)
+      return next
+    })
+  }
+
+  /* Agrupar por estado y ordenar alfabéticamente dentro de cada carpeta */
+  const grouped = ESTADO_ORDER.reduce<{ estado: EstadoAuditoria; cases: AuditoriaCase[] }[]>((acc, estado) => {
+    const grp = allCases
+      .filter(c => c.estado === estado)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
+    if (grp.length > 0) acc.push({ estado, cases: grp })
+    return acc
+  }, [])
+
   const handleSave = (newCase: AuditoriaCase) => {
-    // Evitar ID duplicados
     const id = userCases.some(c => c.id === newCase.id)
       ? `${newCase.id}-${Date.now()}`
       : newCase.id
@@ -76,12 +99,11 @@ export default function AuditoriaPage() {
     setShowForm(false)
   }
 
-  /* Eliminar caso de usuario */
   const handleDelete = (id: string) => {
     const updated = userCases.filter(c => c.id !== id)
     setUserCases(updated)
     saveToLS(updated)
-    if (selectedId === id) setSelectedId('arkansas')
+    if (selectedId === id) setSelectedId(STATIC_CASES[0].id)
     setDeleteConfirm(null)
   }
 
@@ -92,9 +114,11 @@ export default function AuditoriaPage() {
         subtitle="Análisis estratégico de cuentas complejas · Uso exclusivo Dirección General"
       />
 
-      {/* ── Barra de selección de casos ──────────────────────────────── */}
+      {/* ── Navegador de casos ─────────────────────────────────────── */}
       <div className="px-6 pt-4 pb-0">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+
+          {/* Barra superior */}
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
             <FolderOpen size={15} className="text-gray-400" />
             <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
@@ -115,75 +139,98 @@ export default function AuditoriaPage() {
             </div>
           </div>
 
-          {/* Tabs de casos */}
-          <div className="flex overflow-x-auto gap-1 p-2">
-            {allCases.map(c => {
-              const active  = selectedId === c.id
-              const eColor  = ESTADO_COLOR[c.estado] ?? '#6366f1'
-              const isUser  = !['arkansas', 'finsus', 'grupofrisa', 'agua-inmaculada', 'salud-y-hogar', 'samalab', 'labsus', 'alianza', 'alternet', 'azyco', 'brandgroup', 'cintascove', 'clickbalance', 'elerybrands'].includes(c.id)
+          {/* Carpetas por estado */}
+          <div>
+            {grouped.map(({ estado, cases }) => {
+              const isOpen = !closedFolders.has(estado)
+              const color  = ESTADO_COLOR[estado] ?? '#6366f1'
+              const label  = ESTADO_LABEL[estado]  ?? estado
+
               return (
-                <div key={c.id} className="relative group flex-shrink-0">
+                <div key={estado} className="border-b border-gray-50 last:border-b-0">
+                  {/* Encabezado de carpeta */}
                   <button
-                    onClick={() => setSelectedId(c.id)}
-                    className="flex flex-col items-start px-4 py-2.5 rounded-lg transition-all min-w-[160px] max-w-[220px] text-left"
-                    style={active
-                      ? { background: '#1B3FCC10', border: '1px solid #1B3FCC40' }
-                      : { border: '1px solid transparent' }
-                    }
+                    onClick={() => toggleFolder(estado)}
+                    className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50/80 transition-colors text-left"
                   >
-                    {/* Dot de estado */}
-                    <div className="flex items-center gap-2 w-full">
-                      <div className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ background: eColor }} />
-                      <p className="text-xs font-semibold text-gray-800 truncate flex-1"
-                        style={{ color: active ? '#1B3FCC' : undefined }}>
-                        {c.nombre.length > 24 ? c.nombre.slice(0, 24) + '…' : c.nombre}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 w-full pl-4">
-                      <span className="text-[10px] text-gray-400 truncate">{c.fecha_auditoria}</span>
-                      <span className="text-[9px] font-semibold uppercase px-1 py-0.5 rounded"
-                        style={{ background: `${eColor}20`, color: eColor }}>
-                        {c.estado}
+                    {isOpen
+                      ? <ChevronDown  size={12} className="text-gray-300 flex-shrink-0" />
+                      : <ChevronRight size={12} className="text-gray-300 flex-shrink-0" />
+                    }
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
+                    <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color }}>
+                      {label}
+                    </span>
+                    <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                      {cases.length}
+                    </span>
+                    {/* Vista previa cuando está cerrada */}
+                    {!isOpen && (
+                      <span className="ml-1 text-[10px] text-gray-400 truncate flex-1">
+                        {cases.slice(0, 5).map(c => c.nombre.split(/[\s·/]/)[0]).join(' · ')}
+                        {cases.length > 5 ? ` · +${cases.length - 5} más` : ''}
                       </span>
-                    </div>
+                    )}
                   </button>
 
-                  {/* Botón de eliminar — solo para casos de usuario */}
-                  {isUser && (
-                    <button
-                      onClick={e => { e.stopPropagation(); setDeleteConfirm(c.id) }}
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 p-0.5 rounded"
+                  {/* Chips de casos dentro de la carpeta */}
+                  {isOpen && (
+                    <div
+                      className="flex overflow-x-auto gap-1 px-4 pb-2.5 pt-1"
+                      style={{ background: `${color}06` }}
                     >
-                      <Trash2 size={11} />
-                    </button>
+                      {cases.map(c => {
+                        const active  = selectedId === c.id
+                        const isUser  = !STATIC_CASE_IDS.has(c.id)
+                        return (
+                          <div key={c.id} className="relative group flex-shrink-0">
+                            <button
+                              onClick={() => setSelectedId(c.id)}
+                              className="flex flex-col items-start px-3 py-2 rounded-lg transition-all min-w-[150px] max-w-[210px] text-left"
+                              style={active
+                                ? { background: '#1B3FCC10', border: '1px solid #1B3FCC40' }
+                                : { border: '1px solid transparent', background: 'white' }
+                              }
+                            >
+                              <p
+                                className="text-xs font-semibold text-gray-800 truncate w-full"
+                                style={{ color: active ? '#1B3FCC' : undefined }}
+                              >
+                                {c.nombre.length > 24 ? c.nombre.slice(0, 24) + '…' : c.nombre}
+                              </p>
+                              <span className="text-[10px] text-gray-400 mt-0.5">{c.fecha_auditoria}</span>
+                            </button>
+
+                            {/* Eliminar — solo casos de usuario */}
+                            {isUser && (
+                              <button
+                                onClick={e => { e.stopPropagation(); setDeleteConfirm(c.id) }}
+                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 p-0.5 rounded"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
                   )}
                 </div>
               )
             })}
-
-            {/* Placeholder si solo hay ARKANSAS */}
-            {allCases.length === 1 && (
-              <div className="flex items-center gap-2 px-4 py-2.5 text-xs text-gray-400">
-                <span>↑ Crea tu primera auditoría con el botón</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      {/* ── Vista detalle del caso seleccionado ──────────────────────── */}
+      {/* ── Vista detalle ─────────────────────────────────────────── */}
       <AuditoriaDetail caso={currentCase} />
 
-      {/* ── Modal: formulario de nueva auditoría ─────────────────────── */}
+      {/* ── Modal: nueva auditoría ────────────────────────────────── */}
       {showForm && (
-        <AuditoriaForm
-          onClose={() => setShowForm(false)}
-          onSave={handleSave}
-        />
+        <AuditoriaForm onClose={() => setShowForm(false)} onSave={handleSave} />
       )}
 
-      {/* ── Modal: confirmar eliminación ─────────────────────────────── */}
+      {/* ── Modal: confirmar eliminación ──────────────────────────── */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.4)' }}>
