@@ -23,6 +23,7 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'salud-y-hogar',   nombre: 'Salud y Hogar',                    consecutivos: ['D3']  },
   { id: 'samalab',         nombre: 'SAMALAB',                          consecutivos: ['F14'] },
   { id: 'labsus',          nombre: 'LABSUS Centro Diagnóstico',        consecutivos: ['C37'] },
+  { id: 'brandgroup',      nombre: 'Brand-Kern-Liebers México (Brandgroup)', consecutivos: ['C15'] },
 ]
 
 /** Devuelve la auditoría asociada a un consecutivo de cuenta, o null si no existe. */
