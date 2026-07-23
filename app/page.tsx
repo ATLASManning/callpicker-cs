@@ -9,8 +9,8 @@ import AsesorLineasChart from '@/components/charts/AsesorLineasChart'
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
 import DashMetricasSection from '@/components/DashMetricasSection'
-import { getKPIs, getSemaforoByAsesor, getCuentas } from '@/lib/supabase'
-import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor } from '@/lib/types'
+import { getKPIs, getSemaforoByAsesor, getCuentas, getSeguimientosRango } from '@/lib/supabase'
+import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor, type Seguimiento } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import Link from 'next/link'
@@ -58,9 +58,32 @@ function fmtFecha(iso: string) {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
 }
 
+// ── Diagnóstico de perfiles ───────────────────────────────────────────────────
+const CRITICAL_FIELDS: (keyof Cuenta)[] = ['contacto_nombre', 'contacto_cargo', 'contacto_tel']
+const IMPORTANT_FIELDS: (keyof Cuenta)[] = ['giro', 'nps_score', 'observaciones_kam', 'total_empleados', 'num_oficinas', 'pagina_web']
+const CRITICAL_LABELS: Record<string, string> = {
+  contacto_nombre: 'Contacto principal', contacto_cargo: 'Cargo', contacto_tel: 'Teléfono',
+}
+const IMPORTANT_LABELS: Record<string, string> = {
+  giro: 'Giro', nps_score: 'NPS', observaciones_kam: 'Obs. KAM',
+  total_empleados: 'No. empleados', num_oficinas: 'No. sitios', pagina_web: 'Sitio web',
+}
+
+const isFieldFilled = (v: unknown) => v !== null && v !== undefined && v !== ''
+
+function profileSemaforoForCuenta(c: Cuenta): 'verde' | 'amarillo' | 'naranja' | 'rojo' {
+  const missing = CRITICAL_FIELDS.filter(f => !isFieldFilled(c[f])).length
+  if (missing === 0) return 'verde'
+  if (missing === 1) return 'amarillo'
+  if (missing === 2) return 'naranja'
+  return 'rojo'
+}
+
+const SAC_WEEKLY_TARGET = 15 // 3 actividades/día × 5 días hábiles
+
 // ── Gauge SVG ─────────────────────────────────────────────────────────────────
 // Semicircle: 270° (left/9 o'clock) → 90° (right/3 o'clock) via top, 180° sweep
-function Gauge({ score, color, gid }: { score: number; color: string; gid: string }) {
+function Gauge({ score, color, gid, label }: { score: number; color: string; gid: string; label?: string }) {
   const W = 180, H = 100
   const cx = 90, cy = 92, r = 74
 
@@ -120,7 +143,7 @@ function Gauge({ score, color, gid }: { score: number; color: string; gid: strin
       {/* Score text */}
       <text x={cx} y={cy - 28} textAnchor="middle" dominantBaseline="middle"
         fill="white" fontSize="28" fontWeight="900">
-        {Math.round(score)}
+        {label ?? Math.round(score)}
       </text>
     </svg>
   )
@@ -192,6 +215,9 @@ interface AsesorStats {
   upsellCount: number
   auditCount: number
   auditPct: number
+  profileDist: { verde: number; amarillo: number; naranja: number; rojo: number }
+  criticosFaltantes: number
+  importantesFaltantes: number
 }
 
 function computeAsesorStats(asesor: string, cuentas: Cuenta[], auditSet: Set<string>): AsesorStats {
@@ -237,12 +263,21 @@ function computeAsesorStats(asesor: string, cuentas: Cuenta[], auditSet: Set<str
   const auditCount = cuentas.filter(c => c.consecutivo && auditSet.has(c.consecutivo.toUpperCase())).length
   const auditPct   = cuentas.length > 0 ? (auditCount / cuentas.length) * 100 : 0
 
+  const profileDist = { verde: 0, amarillo: 0, naranja: 0, rojo: 0 }
+  let criticosFaltantes = 0, importantesFaltantes = 0
+  cuentas.forEach(c => {
+    profileDist[profileSemaforoForCuenta(c)]++
+    criticosFaltantes    += CRITICAL_FIELDS.filter(f => !isFieldFilled(c[f])).length
+    importantesFaltantes += IMPORTANT_FIELDS.filter(f => !isFieldFilled(c[f])).length
+  })
+
   return {
     asesor, color, cuentas, totalFac, facEnRiesgo, avgHealth, semDist,
     adoptRates, profilePct, subScores,
     topRisk: sorted[0] ?? null,
     topSaludable: sorted[sorted.length - 1] ?? null,
     upsellCount, auditCount, auditPct,
+    profileDist, criticosFaltantes, importantesFaltantes,
   }
 }
 
@@ -509,6 +544,186 @@ function AdopcionMatrix({ asesores }: { asesores: AsesorStats[] }) {
   )
 }
 
+// ── Diagnóstico de Perfiles ───────────────────────────────────────────────────
+function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
+  const totalCriticos    = asesores.reduce((s, a) => s + a.criticosFaltantes, 0)
+  const totalImportantes = asesores.reduce((s, a) => s + a.importantesFaltantes, 0)
+  const totalCuentas     = asesores.reduce((s, a) => s + a.cuentas.length, 0)
+  const totalVerdes      = asesores.reduce((s, a) => s + a.profileDist.verde, 0)
+  const totalSinContacto = asesores.reduce((s, a) => s + a.profileDist.rojo, 0)
+
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
+          Diagnóstico de Perfiles · {totalCuentas} cuentas
+        </p>
+        <div style={{ display: 'flex', gap: 6, fontSize: 9, color: TX_LOW }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} />Sin contacto</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#F97316', display: 'inline-block' }} />2 campos</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#EAB308', display: 'inline-block' }} />1 campo</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />Completo</span>
+        </div>
+      </div>
+
+      {/* KPI resumen */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {[
+          { val: totalCriticos,    label: 'datos críticos faltantes',    color: '#EF4444' },
+          { val: totalImportantes, label: 'datos importantes faltantes', color: '#EAB308' },
+          { val: totalSinContacto, label: 'cuentas sin contacto',        color: '#F97316' },
+          { val: totalVerdes,      label: `de ${totalCuentas} perfiles completos`, color: '#22C55E' },
+        ].map((item, i) => (
+          <div key={i} style={{ flex: 1, background: `${item.color}10`, border: `1px solid ${item.color}25`, borderRadius: 10, padding: '10px 12px', textAlign: 'center' as const }}>
+            <p style={{ fontSize: 22, fontWeight: 900, color: item.color, lineHeight: 1 }}>{item.val}</p>
+            <p style={{ fontSize: 9, color: TX_LOW, marginTop: 4, lineHeight: 1.3 }}>{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Stacked bars por asesor */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {asesores.map(a => {
+          const total = a.cuentas.length
+          if (!total) return null
+          const d = a.profileDist
+          // % de campos críticos cubiertos (no cuentas, sino campos totales)
+          const maxCriticos = total * CRITICAL_FIELDS.length
+          const filledCriticos = maxCriticos - a.criticosFaltantes
+          const pctCriticos = Math.round((filledCriticos / maxCriticos) * 100)
+          const colorPct = pctCriticos >= 80 ? '#22C55E' : pctCriticos >= 50 ? '#EAB308' : '#EF4444'
+
+          return (
+            <div key={a.asesor}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: a.color }} />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: TX_HI }}>{a.asesor}</span>
+                  <span style={{ fontSize: 10, color: TX_LOW }}>{total} cuentas</span>
+                </div>
+                <div style={{ display: 'flex', gap: 10, fontSize: 10 }}>
+                  <span style={{ color: '#EF4444' }}>{a.criticosFaltantes} críticos</span>
+                  <span style={{ color: '#EAB308' }}>{a.importantesFaltantes} importantes</span>
+                  <span style={{ color: colorPct, fontWeight: 700 }}>{pctCriticos}% críticos cubiertos</span>
+                </div>
+              </div>
+              {/* Stacked bar */}
+              <div style={{ display: 'flex', height: 16, borderRadius: 8, overflow: 'hidden', gap: 1 }}>
+                {d.rojo     > 0 && <div style={{ flex: d.rojo,     background: '#EF4444' }} title={`${d.rojo} sin contacto`} />}
+                {d.naranja  > 0 && <div style={{ flex: d.naranja,  background: '#F97316' }} title={`${d.naranja} con 2 críticos faltantes`} />}
+                {d.amarillo > 0 && <div style={{ flex: d.amarillo, background: '#EAB308' }} title={`${d.amarillo} con 1 crítico faltante`} />}
+                {d.verde    > 0 && <div style={{ flex: d.verde,    background: '#22C55E' }} title={`${d.verde} críticos completos`} />}
+              </div>
+              {/* Labels */}
+              <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 9, color: TX_LOW }}>
+                {d.rojo     > 0 && <span style={{ color: '#EF4444' }}>{d.rojo} sin contacto</span>}
+                {d.naranja  > 0 && <span style={{ color: '#F97316' }}>{d.naranja} críticos ×2</span>}
+                {d.amarillo > 0 && <span style={{ color: '#EAB308' }}>{d.amarillo} crítico ×1</span>}
+                {d.verde    > 0 && <span style={{ color: '#22C55E' }}>{d.verde} ok</span>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Campos más faltantes */}
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${BORDER2}` }}>
+        <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_LOW, marginBottom: 8 }}>
+          Campos más faltantes
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
+          {CRITICAL_FIELDS.map(f => {
+            const n = asesores.reduce((s, a) => s + a.cuentas.filter(c => !isFieldFilled(c[f])).length, 0)
+            if (!n) return null
+            return (
+              <span key={String(f)} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.25)', fontWeight: 600 }}>
+                {CRITICAL_LABELS[String(f)]} ({n})
+              </span>
+            )
+          })}
+          {IMPORTANT_FIELDS.map(f => {
+            const n = asesores.reduce((s, a) => s + a.cuentas.filter(c => !isFieldFilled(c[f])).length, 0)
+            if (!n) return null
+            return (
+              <span key={String(f)} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 99, background: 'rgba(234,179,8,0.10)', color: '#EAB308', border: '1px solid rgba(234,179,8,0.25)', fontWeight: 600 }}>
+                {IMPORTANT_LABELS[String(f)]} ({n})
+              </span>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── SAC Cumplimiento Semanal ──────────────────────────────────────────────────
+function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMap: Record<string, number[]> }) {
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
+          Cumplimiento SAC Semanal
+        </p>
+        <span style={{ fontSize: 10, color: TX_LOW }}>Meta: {SAC_WEEKLY_TARGET} actividades/semana · 3/día × 5 días</span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+        {asesores.map(a => {
+          const weeks = segsMap[a.asesor] ?? [0, 0, 0, 0]
+          const thisWeek = weeks[0]
+          const score = Math.min((thisWeek / SAC_WEEKLY_TARGET) * 100, 100)
+          const gaugeColor = score >= 80 ? '#22C55E' : score >= 50 ? '#EAB308' : '#EF4444'
+          const maxPrev = Math.max(...weeks.slice(1), 1)
+          const weekLabel = ['S-2', 'S-3', 'S-4']
+
+          return (
+            <div key={a.asesor} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: a.color }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: TX_HI }}>{a.asesor}</span>
+              </div>
+
+              {/* Gauge — muestra el nro real de actividades */}
+              <Gauge
+                score={score}
+                color={gaugeColor}
+                gid={`sac-${a.asesor.replace(/[^a-z]/gi, '')}`}
+                label={String(thisWeek)}
+              />
+
+              <p style={{ fontSize: 10, color: TX_MID, textAlign: 'center' as const, marginTop: -4 }}>
+                <span style={{ fontWeight: 800, fontSize: 13, color: gaugeColor }}>{thisWeek}</span>
+                {' '}<span style={{ color: TX_LOW }}>/ {SAC_WEEKLY_TARGET}</span>
+                {' '}<span style={{ color: TX_LOW }}>actividades esta semana</span>
+              </p>
+
+              {/* Tendencia: últimas 3 semanas */}
+              <div style={{ width: '100%' }}>
+                <p style={{ fontSize: 9, color: TX_LOW, marginBottom: 5 }}>Semanas anteriores</p>
+                <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 40 }}>
+                  {weeks.slice(1).map((w, i) => {
+                    const h = Math.max(Math.round((w / Math.max(maxPrev, SAC_WEEKLY_TARGET)) * 36), 3)
+                    const bc = (w / SAC_WEEKLY_TARGET) >= 0.8 ? '#22C55E' : (w / SAC_WEEKLY_TARGET) >= 0.5 ? '#EAB308' : '#EF4444'
+                    return (
+                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <div style={{ height: `${h}px`, width: '100%', borderRadius: 3, background: bc }} />
+                        <span style={{ fontSize: 8, color: TX_LOW }}>{w}</span>
+                        <span style={{ fontSize: 7, color: TX_LOW }}>{weekLabel[i]}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Tickets globales ──────────────────────────────────────────────────────────
 interface TicketRaw { es_falla: string; fecha: string }
 const _allTickets = rawTickets as TicketRaw[]
@@ -525,9 +740,12 @@ export default async function DashboardPage() {
   const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
   const isAsesor     = rol === 'asesor' && !!asesorHeader
 
-  const [kpis, semaforoAsesor, allCuentas] = await Promise.all([
+  const hoy   = new Date()
+  const hace28 = new Date(hoy); hace28.setDate(hoy.getDate() - 28)
+  const [kpis, semaforoAsesor, allCuentas, segsRaw] = await Promise.all([
     getKPIs(), getSemaforoByAsesor(),
     getCuentas(isAsesor ? { asesor: asesorHeader } : undefined),
+    getSeguimientosRango(hace28.toISOString().slice(0, 10), hoy.toISOString().slice(0, 10)),
   ])
 
   // Solo activas + en_riesgo para análisis
@@ -548,6 +766,35 @@ export default async function DashboardPage() {
   const facSinAudit       = cuentas
     .filter(c => !(c.consecutivo && auditSet.has(c.consecutivo.toUpperCase())))
     .reduce((s, c) => s + (c.facturacion ?? 0), 0)
+
+  // SAC semanal — agrupa seguimientos de las últimas 4 semanas por asesor
+  const cuentaAsesorMap = new Map<string, string>()
+  // (llenado después, cuando tengamos cuentas filtradas — se re-usa allCuentas antes de filtrar)
+  allCuentas.forEach(c => { if (c.asesor) cuentaAsesorMap.set(c.id, c.asesor) })
+  const startOfWeek = (offset: number): Date => {
+    const d = new Date(); d.setHours(0,0,0,0)
+    d.setDate(d.getDate() - d.getDay() + 1 - offset * 7)
+    return d
+  }
+  // weeks[0]=esta semana, [1]=hace 1, [2]=hace 2, [3]=hace 3
+  const segsMap: Record<string, number[]> = {}
+  const weekStarts = [0,1,2,3].map(i => startOfWeek(i))
+  const ASESORES_LIST: Asesor[] = ['Fátima', 'Dan', 'Claudia']
+  ASESORES_LIST.forEach(a => { segsMap[a] = [0, 0, 0, 0] })
+  segsRaw.forEach((seg: Seguimiento) => {
+    const asesor = seg.asesor ?? cuentaAsesorMap.get(seg.cuenta_id ?? '') ?? null
+    if (!asesor) return
+    const d = new Date(seg.fecha ?? seg.created_at ?? '')
+    if (isNaN(d.getTime())) return
+    for (let i = 0; i < 4; i++) {
+      const ws = weekStarts[i]
+      const we = new Date(ws); we.setDate(ws.getDate() + 7)
+      if (d >= ws && d < we) {
+        if (segsMap[asesor]) segsMap[asesor][i]++
+        break
+      }
+    }
+  })
 
   // Stats por asesor
   const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
@@ -745,6 +992,16 @@ export default async function DashboardPage() {
           </div>
           <AdopcionMatrix asesores={asesorStats} />
         </Panel>
+      </div>
+
+      {/* ══ §5-A Diagnóstico de Perfiles ══════════════════════════════════ */}
+      <div className="px-6 pb-5">
+        <PerfilDistPanel asesores={asesorStats} />
+      </div>
+
+      {/* ══ §5-B Cumplimiento SAC Semanal ══════════════════════════════════ */}
+      <div className="px-6 pb-5">
+        <SACWeeklyPanel asesores={asesorStats} segsMap={segsMap} />
       </div>
 
       {/* ══ §6 Semáforo + Distribución ════════════════════════════════════ */}
