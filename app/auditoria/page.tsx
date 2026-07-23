@@ -14,6 +14,7 @@ import { ALIANZA }         from './alianza-data'
 import { ALTERNET }        from './alternet-data'
 import { AZYCO }           from './azyco-data'
 import { BRANDGROUP }     from './brandgroup-data'
+import { CINTAS_COVE }   from './cintascove-data'
 import AuditoriaDetail from './AuditoriaDetail'
 import AuditoriaForm from './AuditoriaForm'
 
@@ -57,7 +58,7 @@ export default function AuditoriaPage() {
   }, [])
 
   /* Lista completa de casos (ARKANSAS siempre primero) */
-  const allCases: AuditoriaCase[] = [ARKANSAS, FINSUS, GRUPOFRISA, AGUA_INMACULADA, SALUD_Y_HOGAR, SAMALAB, LABSUS, ALIANZA, ALTERNET, AZYCO, BRANDGROUP, ...userCases]
+  const allCases: AuditoriaCase[] = [ARKANSAS, FINSUS, GRUPOFRISA, AGUA_INMACULADA, SALUD_Y_HOGAR, SAMALAB, LABSUS, ALIANZA, ALTERNET, AZYCO, BRANDGROUP, CINTAS_COVE, ...userCases]
   const currentCase = allCases.find(c => c.id === selectedId) ?? ARKANSAS
 
   /* Guardar nuevo caso */
