@@ -299,6 +299,16 @@ export async function getSeguimientosRango(desde: string, hasta: string): Promis
   return (data ?? []) as Seguimiento[]
 }
 
+// Actividades SAC — conteo semanal por asesor (tabla `actividades`)
+export async function getActividadesSAC(desdeSemanainicio: string): Promise<{ asesor: string; semana_inicio: string; completada: boolean }[]> {
+  const { data, error } = await supabaseAdmin
+    .from('actividades')
+    .select('asesor, semana_inicio, completada')
+    .gte('semana_inicio', desdeSemanainicio)
+  if (error) throw error
+  return (data ?? []) as { asesor: string; semana_inicio: string; completada: boolean }[]
+}
+
 export async function getOportunidadesActivasRaw(): Promise<Oportunidad[]> {
   const { data, error } = await supabaseAdmin
     .from('oportunidades')

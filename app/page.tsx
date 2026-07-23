@@ -9,8 +9,8 @@ import AsesorLineasChart from '@/components/charts/AsesorLineasChart'
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
 import DashMetricasSection from '@/components/DashMetricasSection'
-import { getKPIs, getSemaforoByAsesor, getCuentas, getSeguimientosRango } from '@/lib/supabase'
-import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor, type Seguimiento } from '@/lib/types'
+import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC } from '@/lib/supabase'
+import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import Link from 'next/link'
@@ -740,12 +740,19 @@ export default async function DashboardPage() {
   const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
   const isAsesor     = rol === 'asesor' && !!asesorHeader
 
-  const hoy   = new Date()
-  const hace28 = new Date(hoy); hace28.setDate(hoy.getDate() - 28)
-  const [kpis, semaforoAsesor, allCuentas, segsRaw] = await Promise.all([
+  // semana_inicio de hace 3 semanas (para traer 4 semanas de actividades SAC)
+  const getMondayOffset = (offsetWeeks: number): string => {
+    const d = new Date(); d.setHours(0,0,0,0)
+    const dow = d.getDay()
+    d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow) - offsetWeeks * 7)
+    return d.toISOString().slice(0, 10)
+  }
+  const semana3back = getMondayOffset(3)
+
+  const [kpis, semaforoAsesor, allCuentas, actsRaw] = await Promise.all([
     getKPIs(), getSemaforoByAsesor(),
     getCuentas(isAsesor ? { asesor: asesorHeader } : undefined),
-    getSeguimientosRango(hace28.toISOString().slice(0, 10), hoy.toISOString().slice(0, 10)),
+    getActividadesSAC(semana3back),
   ])
 
   // Solo activas + en_riesgo para análisis
@@ -767,33 +774,17 @@ export default async function DashboardPage() {
     .filter(c => !(c.consecutivo && auditSet.has(c.consecutivo.toUpperCase())))
     .reduce((s, c) => s + (c.facturacion ?? 0), 0)
 
-  // SAC semanal — agrupa seguimientos de las últimas 4 semanas por asesor
-  const cuentaAsesorMap = new Map<string, string>()
-  // (llenado después, cuando tengamos cuentas filtradas — se re-usa allCuentas antes de filtrar)
-  allCuentas.forEach(c => { if (c.asesor) cuentaAsesorMap.set(c.id, c.asesor) })
-  const startOfWeek = (offset: number): Date => {
-    const d = new Date(); d.setHours(0,0,0,0)
-    d.setDate(d.getDate() - d.getDay() + 1 - offset * 7)
-    return d
-  }
-  // weeks[0]=esta semana, [1]=hace 1, [2]=hace 2, [3]=hace 3
+  // SAC semanal — agrupa ACTIVIDADES completadas de la tabla `actividades`
+  // weekKeys[0]=esta semana (lunes), [1]=hace 1 sem, [2]=hace 2 sem, [3]=hace 3 sem
+  const weekKeys = [0, 1, 2, 3].map(i => getMondayOffset(i))
   const segsMap: Record<string, number[]> = {}
-  const weekStarts = [0,1,2,3].map(i => startOfWeek(i))
   const ASESORES_LIST: Asesor[] = ['Fátima', 'Dan', 'Claudia']
   ASESORES_LIST.forEach(a => { segsMap[a] = [0, 0, 0, 0] })
-  segsRaw.forEach((seg: Seguimiento) => {
-    const asesor = seg.asesor ?? cuentaAsesorMap.get(seg.cuenta_id ?? '') ?? null
-    if (!asesor) return
-    const d = new Date(seg.fecha ?? seg.created_at ?? '')
-    if (isNaN(d.getTime())) return
-    for (let i = 0; i < 4; i++) {
-      const ws = weekStarts[i]
-      const we = new Date(ws); we.setDate(ws.getDate() + 7)
-      if (d >= ws && d < we) {
-        if (segsMap[asesor]) segsMap[asesor][i]++
-        break
-      }
-    }
+  actsRaw.forEach(act => {
+    if (!act.completada) return
+    const idx = weekKeys.indexOf(act.semana_inicio)
+    if (idx === -1) return
+    if (segsMap[act.asesor]) segsMap[act.asesor][idx]++
   })
 
   // Stats por asesor
