@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import PageHeader from '@/components/PageHeader'
-import { Plus, Trash2, FolderOpen, ChevronRight, ChevronDown } from 'lucide-react'
+import { Plus, Trash2, FolderOpen, ChevronDown, ChevronRight } from 'lucide-react'
 import type { AuditoriaCase, EstadoAuditoria } from './types'
 import { STATIC_CASES, STATIC_CASE_IDS } from './cases'
 import AuditoriaDetail from './AuditoriaDetail'
@@ -45,41 +45,26 @@ export default function AuditoriaPage() {
   const [selectedId, setSelectedId]       = useState<string>(STATIC_CASES[0].id)
   const [showForm, setShowForm]           = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [closedFolders, setClosedFolders] = useState<Set<string>>(new Set())
+  /* null = todo contraído (estado inicial) */
+  const [openFolder, setOpenFolder]       = useState<string | null>(null)
 
   useEffect(() => {
-    setUserCases(loadFromLS())
+    const loaded = loadFromLS()
+    setUserCases(loaded)
     const caso = new URLSearchParams(window.location.search).get('caso')
-    if (caso) setSelectedId(caso)
+    if (caso) {
+      setSelectedId(caso)
+      /* Auto-abrir la carpeta del caso enlazado via URL */
+      const allLoaded = [...STATIC_CASES, ...loaded]
+      const target = allLoaded.find(c => c.id === caso)
+      if (target) setOpenFolder(target.estado)
+    }
   }, [])
 
   const allCases: AuditoriaCase[] = [...STATIC_CASES, ...userCases]
   const currentCase = allCases.find(c => c.id === selectedId) ?? STATIC_CASES[0]
 
-  /* Auto-expand la carpeta del caso seleccionado */
-  useEffect(() => {
-    const estado = allCases.find(c => c.id === selectedId)?.estado
-    if (estado) {
-      setClosedFolders(prev => {
-        if (!prev.has(estado)) return prev
-        const next = new Set(prev)
-        next.delete(estado)
-        return next
-      })
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId])
-
-  const toggleFolder = (estado: string) => {
-    setClosedFolders(prev => {
-      const next = new Set(prev)
-      if (next.has(estado)) next.delete(estado)
-      else next.add(estado)
-      return next
-    })
-  }
-
-  /* Agrupar por estado y ordenar alfabéticamente dentro de cada carpeta */
+  /* Agrupar por estado y ordenar alfabéticamente */
   const grouped = ESTADO_ORDER.reduce<{ estado: EstadoAuditoria; cases: AuditoriaCase[] }[]>((acc, estado) => {
     const grp = allCases
       .filter(c => c.estado === estado)
@@ -87,6 +72,10 @@ export default function AuditoriaPage() {
     if (grp.length > 0) acc.push({ estado, cases: grp })
     return acc
   }, [])
+
+  const toggleFolder = (estado: string) => {
+    setOpenFolder(prev => (prev === estado ? null : estado))
+  }
 
   const handleSave = (newCase: AuditoriaCase) => {
     const id = userCases.some(c => c.id === newCase.id)
@@ -96,6 +85,7 @@ export default function AuditoriaPage() {
     setUserCases(updated)
     saveToLS(updated)
     setSelectedId(id)
+    setOpenFolder(newCase.estado)
     setShowForm(false)
   }
 
@@ -106,6 +96,9 @@ export default function AuditoriaPage() {
     if (selectedId === id) setSelectedId(STATIC_CASES[0].id)
     setDeleteConfirm(null)
   }
+
+  /* Casos del folder actualmente abierto */
+  const openGroup = grouped.find(g => g.estado === openFolder) ?? null
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gray-50">
@@ -139,86 +132,84 @@ export default function AuditoriaPage() {
             </div>
           </div>
 
-          {/* Carpetas por estado */}
-          <div>
+          {/* Botones de estado — horizontales, coloridos */}
+          <div className="flex flex-wrap gap-2.5 px-4 py-3">
             {grouped.map(({ estado, cases }) => {
-              const isOpen = !closedFolders.has(estado)
+              const isOpen = openFolder === estado
               const color  = ESTADO_COLOR[estado] ?? '#6366f1'
               const label  = ESTADO_LABEL[estado]  ?? estado
 
               return (
-                <div key={estado} className="border-b border-gray-50 last:border-b-0">
-                  {/* Encabezado de carpeta */}
-                  <button
-                    onClick={() => toggleFolder(estado)}
-                    className="flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-50/80 transition-colors text-left"
+                <button
+                  key={estado}
+                  onClick={() => toggleFolder(estado)}
+                  className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-bold text-white text-sm transition-all hover:opacity-90 active:scale-95"
+                  style={{
+                    background:  color,
+                    boxShadow:   isOpen ? `0 4px 16px ${color}55` : '0 1px 3px rgba(0,0,0,0.12)',
+                    transform:   isOpen ? 'translateY(-1px)' : undefined,
+                  }}
+                >
+                  <span className="uppercase tracking-wide">{label}</span>
+                  <span
+                    className="flex items-center justify-center rounded-lg font-extrabold text-sm min-w-[26px] h-6 px-1.5"
+                    style={{ background: 'rgba(255,255,255,0.28)', color: 'white' }}
                   >
-                    {isOpen
-                      ? <ChevronDown  size={12} className="text-gray-300 flex-shrink-0" />
-                      : <ChevronRight size={12} className="text-gray-300 flex-shrink-0" />
-                    }
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />
-                    <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color }}>
-                      {label}
-                    </span>
-                    <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
-                      {cases.length}
-                    </span>
-                    {/* Vista previa cuando está cerrada */}
-                    {!isOpen && (
-                      <span className="ml-1 text-[10px] text-gray-400 truncate flex-1">
-                        {cases.slice(0, 5).map(c => c.nombre.split(/[\s·/]/)[0]).join(' · ')}
-                        {cases.length > 5 ? ` · +${cases.length - 5} más` : ''}
-                      </span>
-                    )}
-                  </button>
-
-                  {/* Chips de casos dentro de la carpeta */}
-                  {isOpen && (
-                    <div
-                      className="flex overflow-x-auto gap-1 px-4 pb-2.5 pt-1"
-                      style={{ background: `${color}06` }}
-                    >
-                      {cases.map(c => {
-                        const active  = selectedId === c.id
-                        const isUser  = !STATIC_CASE_IDS.has(c.id)
-                        return (
-                          <div key={c.id} className="relative group flex-shrink-0">
-                            <button
-                              onClick={() => setSelectedId(c.id)}
-                              className="flex flex-col items-start px-3 py-2 rounded-lg transition-all min-w-[150px] max-w-[210px] text-left"
-                              style={active
-                                ? { background: '#1B3FCC10', border: '1px solid #1B3FCC40' }
-                                : { border: '1px solid transparent', background: 'white' }
-                              }
-                            >
-                              <p
-                                className="text-xs font-semibold text-gray-800 truncate w-full"
-                                style={{ color: active ? '#1B3FCC' : undefined }}
-                              >
-                                {c.nombre.length > 24 ? c.nombre.slice(0, 24) + '…' : c.nombre}
-                              </p>
-                              <span className="text-[10px] text-gray-400 mt-0.5">{c.fecha_auditoria}</span>
-                            </button>
-
-                            {/* Eliminar — solo casos de usuario */}
-                            {isUser && (
-                              <button
-                                onClick={e => { e.stopPropagation(); setDeleteConfirm(c.id) }}
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 p-0.5 rounded"
-                              >
-                                <Trash2 size={11} />
-                              </button>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
+                    {cases.length}
+                  </span>
+                  {isOpen
+                    ? <ChevronDown  size={15} className="opacity-80" />
+                    : <ChevronRight size={15} className="opacity-80" />
+                  }
+                </button>
               )
             })}
           </div>
+
+          {/* Panel de casos del folder abierto */}
+          {openGroup && (
+            <div
+              className="border-t border-gray-100 px-4 pb-3 pt-2.5"
+              style={{ background: `${ESTADO_COLOR[openGroup.estado] ?? '#6366f1'}07` }}
+            >
+              <div className="flex overflow-x-auto gap-1.5 pb-0.5">
+                {openGroup.cases.map(c => {
+                  const active = selectedId === c.id
+                  const isUser = !STATIC_CASE_IDS.has(c.id)
+                  return (
+                    <div key={c.id} className="relative group flex-shrink-0">
+                      <button
+                        onClick={() => setSelectedId(c.id)}
+                        className="flex flex-col items-start px-3 py-2 rounded-lg transition-all min-w-[155px] max-w-[215px] text-left"
+                        style={active
+                          ? { background: '#1B3FCC10', border: '1px solid #1B3FCC40' }
+                          : { border: '1px solid #E5E7EB', background: 'white' }
+                        }
+                      >
+                        <p
+                          className="text-xs font-semibold truncate w-full"
+                          style={{ color: active ? '#1B3FCC' : '#1e293b' }}
+                        >
+                          {c.nombre.length > 26 ? c.nombre.slice(0, 26) + '…' : c.nombre}
+                        </p>
+                        <span className="text-[10px] text-gray-400 mt-0.5">{c.fecha_auditoria}</span>
+                      </button>
+
+                      {/* Eliminar — solo casos de usuario */}
+                      {isUser && (
+                        <button
+                          onClick={e => { e.stopPropagation(); setDeleteConfirm(c.id) }}
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 p-0.5 rounded"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
