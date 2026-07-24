@@ -15,13 +15,14 @@ import { ELERY_BRANDS }          from './elerybrands-data'
 import { HOSPITAL_SANTA_ROSA }   from './hospital-santa-rosa-data'
 import { TRAVELLING }            from './travelling-data'
 import { POLAK_GRUPO }           from './polak-grupo-data'
+import { PUBSA }                 from './pubsa-data'
 import type { AuditoriaCase } from './types'
 
 export const STATIC_CASES: AuditoriaCase[] = [
   ARKANSAS, FINSUS, GRUPOFRISA, AGUA_INMACULADA, SALUD_Y_HOGAR,
   SAMALAB, LABSUS, ALIANZA, ALTERNET, AZYCO,
   BRANDGROUP, CINTAS_COVE, CLICKBALANCE, ELERY_BRANDS,
-  HOSPITAL_SANTA_ROSA, TRAVELLING, POLAK_GRUPO,
+  HOSPITAL_SANTA_ROSA, TRAVELLING, POLAK_GRUPO, PUBSA,
 ]
 
 export const STATIC_CASE_IDS: ReadonlySet<string> = new Set(STATIC_CASES.map(c => c.id))
