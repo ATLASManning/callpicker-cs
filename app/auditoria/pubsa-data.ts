@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const PUBSA: AuditoriaCase = {
   id:                    'pubsa',
-  asesor:                null,
+  asesor:                'Fátima',
   nombre:                'Publicidad en Buscadores (PUBSA / AdCentral)',
   sector:                'Agencia SEM/SEO · Call Tracking Multi-Cliente',
   fecha_periodo:         'Enero – Julio 2026',

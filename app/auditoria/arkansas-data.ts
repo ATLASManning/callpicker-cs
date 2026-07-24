@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const ARKANSAS: AuditoriaCase = {
   id: 'arkansas',
-  asesor: null,
+  asesor: 'Fátima',
   nombre: 'Arkansas State University Campus Querétaro',
   sector: 'Educación Superior – Universidad Privada',
   fecha_periodo: 'Marzo – Abril 2026',

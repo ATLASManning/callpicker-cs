@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const FINSUS: AuditoriaCase = {
   id: 'finsus',
-  asesor: null,
+  asesor: 'Fátima',
   nombre: 'FINSUS – Economía Móvil Inteligente S.A. de C.V.',
   sector: 'Fintech – Sector Financiero / Economía Móvil',
   fecha_periodo: 'Junio 2023 – Junio 2026',
