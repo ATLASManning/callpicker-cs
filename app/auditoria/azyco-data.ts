@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const AZYCO: AuditoriaCase = {
   id: 'azyco',
+  asesor: 'Fátima',
   nombre: 'Azyco Guadalajara',
   sector: 'Comercio · Venta de Loseta y Accesorios para Baño',
   fecha_periodo: 'Enero – Junio 2026',

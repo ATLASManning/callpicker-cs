@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const SAMALAB: AuditoriaCase = {
   id: 'samalab',
+  asesor: 'Fátima',
   nombre: 'SAMALAB',
   sector: 'Salud – Centro Radiológico / Estudios de Imagen',
   fecha_periodo: 'Marzo 2024 – Junio 2026',

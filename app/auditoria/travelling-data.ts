@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const TRAVELLING: AuditoriaCase = {
   id:                    'travelling',
+  asesor:                'Claudia',
   nombre:                'Travelling (Grupo Mundo Joven)',
   sector:                'Agencias de Viajes / Travel Arrangements',
   fecha_periodo:         'Enero – Julio 2026',

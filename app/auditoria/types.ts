@@ -14,6 +14,7 @@ export interface AuditoriaCase {
   estado:              EstadoAuditoria
   clasificacion:       string   // "CONFIDENCIAL"
   version:             string   // "1.0"
+  asesor?:             'Fátima' | 'Dan' | 'Claudia' | null
 
   /* ── KPIs de crisis (max 4) ──────────────────────────────────── */
   kpis: { label: string; value: string; color: string }[]
@@ -93,7 +94,7 @@ export function emptyCase(): AuditoriaCase {
     id: '',
     nombre: '', sector: '', fecha_periodo: '', fecha_auditoria: '',
     tipo_cliente: '', descripcion_contexto: '', estado: 'en_riesgo',
-    clasificacion: 'CONFIDENCIAL', version: '1.0',
+    clasificacion: 'CONFIDENCIAL', version: '1.0', asesor: null,
     kpis: [
       { label: 'Duración de la crisis', value: '', color: '#ef4444' },
       { label: 'Pivotes técnicos',      value: '', color: '#f59e0b' },

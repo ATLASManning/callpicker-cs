@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const SALUD_Y_HOGAR: AuditoriaCase = {
   id: 'salud-y-hogar',
+  asesor: 'Dan',
   nombre: 'Salud y Hogar',
   sector: 'Salud – Equipos Médicos / Franquicias Nacionales',
   fecha_periodo: 'Enero – Junio 2026',

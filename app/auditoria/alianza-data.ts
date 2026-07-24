@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const ALIANZA: AuditoriaCase = {
   id: 'alianza',
+  asesor: 'Dan',
   nombre: 'Alianza Multimarca',
   sector: 'Sector Financiero · Seguros y Servicios',
   fecha_periodo: 'Enero – Junio 2026',

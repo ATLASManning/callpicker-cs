@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
   id:                    'hospital-santa-rosa',
+  asesor:                'Claudia',
   nombre:                'Hospital Santa Rosa',
   sector:                'Salud / Hospitales Privados',
   fecha_periodo:         'Enero – Julio 2026',

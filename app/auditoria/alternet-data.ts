@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const ALTERNET: AuditoriaCase = {
   id: 'alternet',
+  asesor: 'Claudia',
   nombre: 'ALTERNET',
   sector: 'Telecomunicaciones · ISP Fibra Óptica · Comunidades Rurales',
   fecha_periodo: 'Enero – Junio 2026',

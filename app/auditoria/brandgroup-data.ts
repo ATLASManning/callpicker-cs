@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const BRANDGROUP: AuditoriaCase = {
   id: 'brandgroup',
+  asesor: 'Claudia',
   nombre: 'Brand-Kern-Liebers México, S.A. de C.V.',
   sector: 'Manufactura – Automotriz / Metalmecánica',
   fecha_periodo: 'Enero – Julio 2026',

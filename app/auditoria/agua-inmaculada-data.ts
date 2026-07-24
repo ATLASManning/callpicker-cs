@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const AGUA_INMACULADA: AuditoriaCase = {
   id: 'agua-inmaculada',
+  asesor: 'Claudia',
   nombre: 'Agua Inmaculada',
   sector: 'Franquicias – Distribución de Agua / Red Nacional',
   fecha_periodo: 'Enero – Mayo 2026',

@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const POLAK_GRUPO: AuditoriaCase = {
   id:                    'polak-grupo',
+  asesor:                'Fátima',
   nombre:                'Polak Grupo',
   sector:                'Industria Química Industrial / Grupo Empresarial',
   fecha_periodo:         'Enero – Julio 2026',

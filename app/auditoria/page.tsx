@@ -27,6 +27,12 @@ const ESTADO_LABEL: Record<string, string> = {
 
 const ESTADO_ORDER: EstadoAuditoria[] = ['en_riesgo', 'rescatable', 'activo', 'recuperado', 'perdido']
 
+const ASESOR_COLORS: Record<string, string> = {
+  'Fátima':  '#A855F7',
+  'Dan':     '#0EA5E9',
+  'Claudia': '#F97316',
+}
+
 function loadFromLS(): AuditoriaCase[] {
   try {
     const raw = localStorage.getItem(LS_KEY)
@@ -180,19 +186,29 @@ export default function AuditoriaPage() {
                     <div key={c.id} className="relative group flex-shrink-0">
                       <button
                         onClick={() => setSelectedId(c.id)}
-                        className="flex flex-col items-start px-3 py-2 rounded-lg transition-all min-w-[155px] max-w-[215px] text-left"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all min-w-[165px] max-w-[230px] text-left"
                         style={active
                           ? { background: '#1B3FCC10', border: '1px solid #1B3FCC40' }
                           : { border: '1px solid #E5E7EB', background: 'white' }
                         }
                       >
-                        <p
-                          className="text-xs font-semibold truncate w-full"
-                          style={{ color: active ? '#1B3FCC' : '#1e293b' }}
-                        >
-                          {c.nombre.length > 26 ? c.nombre.slice(0, 26) + '…' : c.nombre}
-                        </p>
-                        <span className="text-[10px] text-gray-400 mt-0.5">{c.fecha_auditoria}</span>
+                        {c.asesor && (
+                          <div
+                            className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold"
+                            style={{ background: '#0A1628', color: ASESOR_COLORS[c.asesor] ?? '#fff' }}
+                          >
+                            {c.asesor[0]}
+                          </div>
+                        )}
+                        <div className="flex flex-col min-w-0">
+                          <p
+                            className="text-xs font-semibold truncate w-full"
+                            style={{ color: active ? '#1B3FCC' : '#1e293b' }}
+                          >
+                            {c.nombre.length > 22 ? c.nombre.slice(0, 22) + '…' : c.nombre}
+                          </p>
+                          <span className="text-[10px] text-gray-400 mt-0.5">{c.fecha_auditoria}</span>
+                        </div>
                       </button>
 
                       {/* Eliminar — solo casos de usuario */}

@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const LABSUS: AuditoriaCase = {
   id: 'labsus',
+  asesor: 'Claudia',
   nombre: 'LABSUS Centro Diagnóstico',
   sector: 'Salud – Laboratorio Clínico / Imagenología Regional',
   fecha_periodo: '15 Feb – Jun 2026',

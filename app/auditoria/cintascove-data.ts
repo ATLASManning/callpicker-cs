@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const CINTAS_COVE: AuditoriaCase = {
   id: 'cintascove',
+  asesor: 'Claudia',
   nombre: 'Cintas Cove S.A. de C.V.',
   sector: 'Fabricación y Comercialización de Cintas Adhesivas Industriales — B2B',
   fecha_periodo: '02 Ene – 02 Jul 2026',

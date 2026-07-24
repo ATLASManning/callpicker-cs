@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const ELERY_BRANDS: AuditoriaCase = {
   id: 'elerybrands',
+  asesor: null,
   nombre: 'Elery Brands · Clínicas del Hombre',
   sector: 'HealthTech · Salud Masculina · Urología y Cirugía Electiva · O2O',
   fecha_periodo: '13 Ene – 12 Jun 2026',

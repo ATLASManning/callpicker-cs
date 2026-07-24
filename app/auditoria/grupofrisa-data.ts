@@ -2,6 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const GRUPOFRISA: AuditoriaCase = {
   id: 'grupofrisa',
+  asesor: 'Fátima',
   nombre: 'Grupo FRISA / ACISA',
   sector: 'Desarrollo Inmobiliario — Comercial, Industrial, Residencial, Turístico',
   fecha_periodo: 'Marzo 2025 – Julio 2026',
