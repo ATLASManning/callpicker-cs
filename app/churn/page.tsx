@@ -1385,7 +1385,7 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s2-julio-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s3-julio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
@@ -1509,6 +1509,41 @@ export default function ChurnPage() {
   const totalSuspendidos = reporte.suspendidosTotalReal ?? (suspendidos ?? []).reduce((s, c) => s + (Number(c.importe) || 0), 0)
   const TABS = buildTabs(reporte)
 
+  const isAcumulado = selectedId === 'acumulado'
+
+  const acumuladoCancelados = useMemo<Array<ChurnCancelado & { periodo: string }>>(() => {
+    const items: Array<ChurnCancelado & { periodo: string }> = []
+    for (const r of allReportes) {
+      for (const c of r.cancelados) {
+        items.push({ ...c, periodo: r.periodo })
+      }
+    }
+    return items.sort((a, b) => Number(b.mrr) - Number(a.mrr))
+  }, [allReportes])
+
+  const acumuladoDowngrades = useMemo<Array<ChurnDowngrade & { periodo: string }>>(() => {
+    const items: Array<ChurnDowngrade & { periodo: string }> = []
+    for (const r of allReportes) {
+      for (const d of r.downgrades) {
+        items.push({ ...d, periodo: r.periodo })
+      }
+    }
+    return items.sort((a, b) => Number(b.perdida) - Number(a.perdida))
+  }, [allReportes])
+
+  const totalAcumCancelados = useMemo(() =>
+    acumuladoCancelados.reduce((s, c) => s + (Number(c.mrr) || 0), 0),
+    [acumuladoCancelados])
+
+  const totalAcumDowngrades = useMemo(() =>
+    acumuladoDowngrades.reduce((s, d) => s + (Number(d.perdida) || 0), 0),
+    [acumuladoDowngrades])
+
+  const ACUM_TABS = [
+    { id: 'cancelados' as Tab, label: `🔴 Cancelados (${acumuladoCancelados.length})`, color: RED   },
+    { id: 'downgrades' as Tab, label: `🟡 Downgrades (${acumuladoDowngrades.length})`, color: AMBER },
+  ]
+
   const handleSave = (r: ChurnReporte) => {
     const id = userReportes.some(x => x.id === r.id) ? `${r.id}-${Date.now()}` : r.id
     const updated = [...userReportes, { ...r, id }]
@@ -1523,7 +1558,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s2-julio-2026')
+    if (selectedId === id) setSelectedId('s3-julio-2026')
     setDelConfirm(null)
   }
 
@@ -1622,6 +1657,31 @@ export default function ChurnPage() {
           </div>
 
           <div className="flex overflow-x-auto gap-1 p-2">
+            {/* Botón ACUMULADO */}
+            <div className="flex-shrink-0 mr-1">
+              <button
+                onClick={() => { setSelectedId('acumulado'); setTab('cancelados') }}
+                className="flex flex-col items-start px-4 py-2.5 rounded-lg transition-all min-w-[140px] text-left"
+                style={{
+                  background: '#0A1628',
+                  border: isAcumulado ? '2px solid #4B7BF5' : '2px solid rgba(75,123,245,0.25)',
+                }}
+              >
+                <p className="text-[11px] font-bold text-white tracking-widest">ACUMULADO</p>
+                <p className="text-[9px] text-blue-300 font-medium mt-0.5">Desde Abr 2026</p>
+                <div className="flex gap-1 mt-1.5">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
+                    style={{ background: 'rgba(239,68,68,0.30)', color: '#fca5a5' }}>
+                    {acumuladoCancelados.length} canc.
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
+                    style={{ background: 'rgba(245,158,11,0.30)', color: '#fcd34d' }}>
+                    {acumuladoDowngrades.length} dg.
+                  </span>
+                </div>
+              </button>
+            </div>
+
             {[...allReportes].reverse().map(r => {
               const active   = selectedId === r.id
               const isBase    = BASE_IDS.includes(r.id)
@@ -1680,29 +1740,42 @@ export default function ChurnPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="px-6 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={Clock}          label="Pendiente de Facturar"    value={fmt(totalPendiente)}
-          sub={`${reporte.pendientesCuentasReal ?? pendientes.length} cuentas · ${reporte.periodo}`}  color={ORANGE} />
-        {cancelados.length > 0
-          ? <KpiCard icon={XCircle}    label="MRR Cancelado"            value={fmt(totalCancelados)}
-              sub={`${cancelados.length} clientes · ${reporte.periodo}`} color={RED} />
-          : <KpiCard icon={BarChart3}  label="Suspendidos / Inactivos"  value={fmt(totalSuspendidos)}
-              sub={`${reporte.suspendidosCuentasReal ?? (suspendidos?.length ?? 0)} cuentas pausadas`} color={BLUE} />
-        }
-        <KpiCard icon={ArrowDownRight} label="Ingreso Perdido Downgrade" value={fmt(totalDowngrades)}
-          sub={`${downgrades.length} clientes · ${reporte.periodo}`}  color={AMBER}  />
-        {grc
-          ? <KpiCard icon={TrendingDown} label={`GRC Acumulado ${grc.evolucion[grc.evolucion.length - 1]?.mes ?? 'GRC'}`} value={`${grc.acumulado}%`}
-              sub={`${grc.evolucion[grc.evolucion.length - 1]?.mes ?? 'Mes'} actual: ${grc.evolucion[grc.evolucion.length - 1]?.pct ?? 0}%`} color={RED} />
-          : <KpiCard icon={TrendingDown} label="Pérdida Total T1 2026"  value={fmt(TOTAL_T1)}
-              sub="34.2% en 15 clientes clave"                            color={INDIGO} />
-        }
-      </div>
+      {isAcumulado ? (
+        <div className="px-6 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiCard icon={XCircle}        label="MRR Cancelado · Acumulado"    value={fmt(totalAcumCancelados)}
+            sub={`${acumuladoCancelados.length} cancelaciones · Abr–Jul 2026`} color={RED}    />
+          <KpiCard icon={ArrowDownRight} label="Downgrades · Acumulado"       value={fmt(totalAcumDowngrades)}
+            sub={`${acumuladoDowngrades.length} eventos · Abr–Jul 2026`}       color={AMBER}  />
+          <KpiCard icon={TrendingDown}   label="Impacto Total Acumulado"      value={fmt(totalAcumCancelados + totalAcumDowngrades)}
+            sub="Cancelados + Downgrades desde abr 2026"                        color={INDIGO} />
+          <KpiCard icon={CalendarDays}   label="Reportes Analizados"          value={String(allReportes.length)}
+            sub={`${allReportes.length} cortes semanales`}                      color={BLUE}   />
+        </div>
+      ) : (
+        <div className="px-6 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiCard icon={Clock}          label="Pendiente de Facturar"    value={fmt(totalPendiente)}
+            sub={`${reporte.pendientesCuentasReal ?? pendientes.length} cuentas · ${reporte.periodo}`}  color={ORANGE} />
+          {cancelados.length > 0
+            ? <KpiCard icon={XCircle}    label="MRR Cancelado"            value={fmt(totalCancelados)}
+                sub={`${cancelados.length} clientes · ${reporte.periodo}`} color={RED} />
+            : <KpiCard icon={BarChart3}  label="Suspendidos / Inactivos"  value={fmt(totalSuspendidos)}
+                sub={`${reporte.suspendidosCuentasReal ?? (suspendidos?.length ?? 0)} cuentas pausadas`} color={BLUE} />
+          }
+          <KpiCard icon={ArrowDownRight} label="Ingreso Perdido Downgrade" value={fmt(totalDowngrades)}
+            sub={`${downgrades.length} clientes · ${reporte.periodo}`}  color={AMBER}  />
+          {grc
+            ? <KpiCard icon={TrendingDown} label={`GRC Acumulado ${grc.evolucion[grc.evolucion.length - 1]?.mes ?? 'GRC'}`} value={`${grc.acumulado}%`}
+                sub={`${grc.evolucion[grc.evolucion.length - 1]?.mes ?? 'Mes'} actual: ${grc.evolucion[grc.evolucion.length - 1]?.pct ?? 0}%`} color={RED} />
+            : <KpiCard icon={TrendingDown} label="Pérdida Total T1 2026"  value={fmt(TOTAL_T1)}
+                sub="34.2% en 15 clientes clave"                            color={INDIGO} />
+          }
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="px-6 pt-4">
         <div className="flex gap-1 bg-white rounded-xl border border-gray-200 p-1 overflow-x-auto shadow-sm">
-          {TABS.map(t => (
+          {(isAcumulado ? ACUM_TABS : TABS).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
               style={tab === t.id ? { background: t.color, color: '#fff' } : { color: '#6b7280' }}>
@@ -1866,7 +1939,7 @@ export default function ChurnPage() {
         )}
 
         {/* ── CANCELADOS ───────────────────────────────────────────── */}
-        {tab === 'cancelados' && (
+        {!isAcumulado && tab === 'cancelados' && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2"
               style={{ background: `${RED}08` }}>
@@ -1914,7 +1987,7 @@ export default function ChurnPage() {
         )}
 
         {/* ── DOWNGRADES ───────────────────────────────────────────── */}
-        {tab === 'downgrades' && (
+        {!isAcumulado && tab === 'downgrades' && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2"
               style={{ background: `${AMBER}08` }}>
@@ -1950,8 +2023,103 @@ export default function ChurnPage() {
           </div>
         )}
 
+        {/* ── ACUMULADO · CANCELADOS ───────────────────────────────── */}
+        {isAcumulado && tab === 'cancelados' && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2"
+              style={{ background: `${RED}08` }}>
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">Cancelados · Acumulado — Desde Abr 2026</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  MRR total perdido: <strong>{fmt(totalAcumCancelados)}</strong> · {acumuladoCancelados.length} cancelaciones en {allReportes.length} reportes
+                </p>
+              </div>
+              <SemaforoDot tipo="cancelado" />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/70">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">MRR Perdido</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Meses Activo</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Acumulado</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Período</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {acumuladoCancelados.map((c, i) => (
+                    <tr key={i} className="border-b border-gray-100 hover:bg-red-50/30 transition-colors">
+                      <td className="py-3 px-4 font-medium text-gray-900">{c.cliente}</td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: RED }}>{fmt(Number(c.mrr))}</td>
+                      <td className="py-3 px-4 text-right">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          c.mesesActivo >= 40 ? 'bg-green-100 text-green-700' :
+                          c.mesesActivo >= 12 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+                        }`}>{c.mesesActivo} meses</span>
+                      </td>
+                      <td className="py-3 px-4 text-right text-xs text-gray-500">
+                        {Number(c.acumulado) > 0 ? fmt(Number(c.acumulado)) : '—'}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-gray-400 whitespace-nowrap">{c.periodo}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-red-50/60 font-bold">
+                    <td className="py-3 px-4 text-gray-900">TOTAL ACUMULADO</td>
+                    <td className="py-3 px-4 text-right" style={{ color: RED }}>{fmt(totalAcumCancelados)}</td>
+                    <td colSpan={3} />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── ACUMULADO · DOWNGRADES ───────────────────────────────── */}
+        {isAcumulado && tab === 'downgrades' && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2"
+              style={{ background: `${AMBER}08` }}>
+              <div>
+                <h3 className="font-semibold text-sm text-gray-900">Downgrades · Acumulado — Desde Abr 2026</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Ingreso perdido total: <strong>{fmt(totalAcumDowngrades)}</strong> · {acumuladoDowngrades.length} eventos en {allReportes.length} reportes
+                </p>
+              </div>
+              <SemaforoDot tipo="downgrade" />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/70">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ingreso Perdido</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Período</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Detalle</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {acumuladoDowngrades.map((d, i) => (
+                    <tr key={i} className="border-b border-gray-100 hover:bg-amber-50/30 transition-colors">
+                      <td className="py-3 px-4 font-medium text-gray-900">{d.cliente}</td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: AMBER }}>{fmt(Number(d.perdida))}</td>
+                      <td className="py-3 px-4 text-xs text-gray-400 whitespace-nowrap">{d.periodo}</td>
+                      <td className="py-3 px-4 text-xs text-gray-500 max-w-xs truncate">{d.nota}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-amber-50/60 font-bold">
+                    <td className="py-3 px-4 text-gray-900">TOTAL ACUMULADO</td>
+                    <td className="py-3 px-4 text-right" style={{ color: AMBER }}>{fmt(totalAcumDowngrades)}</td>
+                    <td colSpan={2} />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* ── ARTÍCULOS MÁS AFECTADOS EN DOWNGRADES ──────────────── */}
-        {tab === 'downgrades' && reporte.downgradeArticulos && reporte.downgradeArticulos.length > 0 && (
+        {!isAcumulado && tab === 'downgrades' && reporte.downgradeArticulos && reporte.downgradeArticulos.length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mt-4">
             <div className="px-5 py-4 border-b border-gray-100" style={{ background: `${AMBER}06` }}>
               <h3 className="font-semibold text-sm text-gray-900">Artículos más afectados en downgrades</h3>
