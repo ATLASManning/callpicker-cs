@@ -1388,6 +1388,8 @@ export default function ChurnPage() {
   const [selectedId,   setSelectedId]   = useState<string>('s3-julio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
+  const [acumCancelSort, setAcumCancelSort] = useState<{ col: 'cliente' | 'mrr' | 'mesesActivo' | 'acumulado' | 'periodo'; dir: 'asc' | 'desc' }>({ col: 'mrr', dir: 'desc' })
+  const [acumDgSort,     setAcumDgSort]     = useState<{ col: 'cliente' | 'perdida' | 'periodo' | 'nota'; dir: 'asc' | 'desc' }>({ col: 'perdida', dir: 'desc' })
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
   const [zohoLoading,    setZohoLoading]    = useState(false)
   const [zohoData,       setZohoData]       = useState<ZohoDormido | null>(null)
@@ -1538,6 +1540,37 @@ export default function ChurnPage() {
   const totalAcumDowngrades = useMemo(() =>
     acumuladoDowngrades.reduce((s, d) => s + (Number(d.perdida) || 0), 0),
     [acumuladoDowngrades])
+
+  const sortedAcumCancelados = useMemo(() => {
+    const arr = [...acumuladoCancelados]
+    const { col, dir } = acumCancelSort
+    arr.sort((a, b) => {
+      let va: string | number, vb: string | number
+      if (col === 'mrr')        { va = Number(a.mrr);        vb = Number(b.mrr) }
+      else if (col === 'mesesActivo') { va = a.mesesActivo;  vb = b.mesesActivo }
+      else if (col === 'acumulado')   { va = Number(a.acumulado); vb = Number(b.acumulado) }
+      else if (col === 'periodo')     { va = a.periodo;       vb = b.periodo }
+      else                            { va = a.cliente;       vb = b.cliente }
+      if (typeof va === 'string') return dir === 'asc' ? va.localeCompare(vb as string) : (vb as string).localeCompare(va)
+      return dir === 'asc' ? va - (vb as number) : (vb as number) - va
+    })
+    return arr
+  }, [acumuladoCancelados, acumCancelSort])
+
+  const sortedAcumDowngrades = useMemo(() => {
+    const arr = [...acumuladoDowngrades]
+    const { col, dir } = acumDgSort
+    arr.sort((a, b) => {
+      let va: string | number, vb: string | number
+      if (col === 'perdida')  { va = Number(a.perdida); vb = Number(b.perdida) }
+      else if (col === 'periodo') { va = a.periodo;     vb = b.periodo }
+      else if (col === 'nota')    { va = a.nota;        vb = b.nota }
+      else                        { va = a.cliente;     vb = b.cliente }
+      if (typeof va === 'string') return dir === 'asc' ? va.localeCompare(vb as string) : (vb as string).localeCompare(va)
+      return dir === 'asc' ? va - (vb as number) : (vb as number) - va
+    })
+    return arr
+  }, [acumuladoDowngrades, acumDgSort])
 
   const ACUM_TABS = [
     { id: 'cancelados' as Tab, label: `🔴 Cancelados (${acumuladoCancelados.length})`, color: RED   },
@@ -2040,15 +2073,23 @@ export default function ChurnPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/70">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">MRR Perdido</th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Meses Activo</th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Acumulado</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Período</th>
+                    {([ ['cliente','Cliente','left'], ['mrr','MRR Perdido','right'], ['mesesActivo','Meses Activo','right'], ['acumulado','Acumulado','right'], ['periodo','Período','left'] ] as [typeof acumCancelSort['col'], string, string][]).map(([col, label, align]) => (
+                      <th key={col}
+                        className={`py-3 px-4 text-xs font-semibold uppercase tracking-wide cursor-pointer select-none group whitespace-nowrap text-${align}`}
+                        style={{ color: acumCancelSort.col === col ? RED : undefined }}
+                        onClick={() => setAcumCancelSort(s => ({ col, dir: s.col === col && s.dir === 'desc' ? 'asc' : 'desc' }))}>
+                        <span className="inline-flex items-center gap-1">
+                          {label}
+                          <span className="text-[10px] opacity-50 group-hover:opacity-100">
+                            {acumCancelSort.col === col ? (acumCancelSort.dir === 'asc' ? '▲' : '▼') : '⇅'}
+                          </span>
+                        </span>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {acumuladoCancelados.map((c, i) => (
+                  {sortedAcumCancelados.map((c, i) => (
                     <tr key={i} className="border-b border-gray-100 hover:bg-red-50/30 transition-colors">
                       <td className="py-3 px-4 font-medium text-gray-900">{c.cliente}</td>
                       <td className="py-3 px-4 text-right font-semibold" style={{ color: RED }}>{fmt(Number(c.mrr))}</td>
@@ -2092,14 +2133,23 @@ export default function ChurnPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50/70">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente</th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Ingreso Perdido</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Período</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Detalle</th>
+                    {([ ['cliente','Cliente','left'], ['perdida','Ingreso Perdido','right'], ['periodo','Período','left'], ['nota','Detalle','left'] ] as [typeof acumDgSort['col'], string, string][]).map(([col, label, align]) => (
+                      <th key={col}
+                        className={`py-3 px-4 text-xs font-semibold uppercase tracking-wide cursor-pointer select-none group whitespace-nowrap text-${align}`}
+                        style={{ color: acumDgSort.col === col ? AMBER : undefined }}
+                        onClick={() => setAcumDgSort(s => ({ col, dir: s.col === col && s.dir === 'desc' ? 'asc' : 'desc' }))}>
+                        <span className="inline-flex items-center gap-1">
+                          {label}
+                          <span className="text-[10px] opacity-50 group-hover:opacity-100">
+                            {acumDgSort.col === col ? (acumDgSort.dir === 'asc' ? '▲' : '▼') : '⇅'}
+                          </span>
+                        </span>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {acumuladoDowngrades.map((d, i) => (
+                  {sortedAcumDowngrades.map((d, i) => (
                     <tr key={i} className="border-b border-gray-100 hover:bg-amber-50/30 transition-colors">
                       <td className="py-3 px-4 font-medium text-gray-900">{d.cliente}</td>
                       <td className="py-3 px-4 text-right font-semibold" style={{ color: AMBER }}>{fmt(Number(d.perdida))}</td>
