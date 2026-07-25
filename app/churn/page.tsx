@@ -866,6 +866,111 @@ const REPORTE_S2_JULIO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 13 · JULIO 2026
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S3_JULIO_2026: ChurnReporte = {
+  id:      's3-julio-2026',
+  periodo: 'Semana 13 · Jul 2026',
+  fecha:   '23/07/2026',
+  notas:   'Gross Revenue Churn · Semana 13. Al 23 de julio del 2026. Tercer corte de julio con seguimiento de cuentas pendientes, nuevos casos de la semana, downgrades y análisis especial de patrones de cancelación y cuentas de largo plazo. Siguiente revisión: viernes 31 de julio.',
+  notaRemitente: 'Daniel Martínez — Siguiente revisión: viernes 31 de julio.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Abril', pct: 1.7, anterior: 1.8 },
+      { mes: 'Mayo',  pct: 1.5, anterior: 1.6 },
+      { mes: 'Junio', pct: 3.4 },
+    ],
+    acumulado: 13.1,
+    anterior:  13.3,
+    notaClave: 'Q2 cierre final actualizado: Abril 1.7% (corr. 1.8%) · Mayo 1.5% (corr. 1.6%) · Junio 3.4%. Acumulado 2026: 13.1% (corr. 13.3%). Julio en curso: 17.4% — mes corriendo, solo monitoreo, no definitivo.',
+    notaEspecial: 'Seguimiento Sem 1: AdminPlus suspendido · syndeX ✓ activo (facturó jul). Seguimiento Sem 2: 3 cuentas sin resolver ($2,937.31). Análisis especial: 21 cancelados con ≤2 meses activo ($33,115 acumulado) · 23 cancelados con >60 meses activo ($2,485,288 MRR acumulado). Caso destacado JAD Suministros: 75 meses activo · $552,266 acumulado · 2 downgrades consecutivos previos a su cancelación.',
+  },
+
+  /* En Corte Sem 3 — ~42 cuentas · $52,821.67 · top 10 */
+  pendientesTotalReal:   52821.67,
+  pendientesCuentasReal: 42,
+  pendientes: [
+    { cliente: '🔝 Biolaboratorio Sadat',                   monto: 7184,    mesesActivo: 53,  ultimaFactura: '20/06/2026' },
+    { cliente: 'Bufette del Migrante ATC',                  monto: 6882.40, mesesActivo: 59,  ultimaFactura: '19/06/2026' },
+    { cliente: 'FERS MED',                                  monto: 3912,    mesesActivo: 4,   ultimaFactura: '19/06/2026' },
+    { cliente: 'CENTRO DE DIAGNOSTICO NEUROFISIOLOGICO',    monto: 3486,    mesesActivo: 60,  ultimaFactura: '19/06/2026' },
+    { cliente: 'enMazatlan',                                monto: 3480,    mesesActivo: 70,  ultimaFactura: '21/06/2026' },
+    { cliente: 'Médica El Marqués',                         monto: 2485,    mesesActivo: 31,  ultimaFactura: '20/06/2026' },
+    { cliente: 'Meds for Pets',                             monto: 1938,    mesesActivo: 80,  ultimaFactura: '15/06/2026' },
+    { cliente: 'Garantía de renta',                         monto: 1288,    mesesActivo: 55,  ultimaFactura: '18/06/2026' },
+    { cliente: 'K13 Inmobiliaria',                          monto: 1276,    mesesActivo: 132, ultimaFactura: '19/06/2026' },
+    { cliente: 'MultiEmpaques del Norte',                   monto: 1119,    mesesActivo: 69,  ultimaFactura: '21/06/2026' },
+    { cliente: '+ ~32 cuentas adicionales',                 monto: 20771.27,mesesActivo: 0,   ultimaFactura: 'Ver dashboard' },
+  ],
+
+  /* Cancelados Sem 3 (6 cuentas · $26,823.28) + Suspendidos→Cancelados Jun S9/S10 (8 cuentas) */
+  cancelados: [
+    { cliente: '🔝 Bliss crédito libre',              mrr: 16799.97, mesesActivo: 24,  acumulado: 242183.09 },
+    { cliente: 'GRUPO GEVHE',                         mrr: 3817,     mesesActivo: 1,   acumulado: 0         },
+    { cliente: 'INVEXIO',                             mrr: 2779,     mesesActivo: 24,  acumulado: 0         },
+    { cliente: 'Alamo Seguros',                       mrr: 1959,     mesesActivo: 0,   acumulado: 0         },
+    { cliente: 'Servitaxi Rincón de Palma Real',      mrr: 979.31,   mesesActivo: 2,   acumulado: 0         },
+    { cliente: 'Grupo Sirob',                         mrr: 489,      mesesActivo: 0,   acumulado: 0         },
+    { cliente: '— Suspendido→Cancelado · Grúas Gutigon',         mrr: 2094, mesesActivo: 23, acumulado: 0 },
+    { cliente: '— Suspendido→Cancelado · Xelbor Transfer',       mrr: 1959, mesesActivo: 25, acumulado: 0 },
+    { cliente: '— Suspendido→Cancelado · CORRUBOX MEXICO',       mrr: 979,  mesesActivo: 10, acumulado: 0 },
+    { cliente: '— Suspendido→Cancelado · Globovista',            mrr: 689,  mesesActivo: 13, acumulado: 0 },
+    { cliente: '— Suspendido→Cancelado · DISTRIB. MEDICA ONCOPHARMAX', mrr: 489, mesesActivo: 28, acumulado: 0 },
+    { cliente: '— Suspendido→Cancelado · Taxis Unidos Camargo',  mrr: 489,  mesesActivo: 1,  acumulado: 0 },
+    { cliente: '— Suspendido→Cancelado · WALT AND MACON',        mrr: 489,  mesesActivo: 0,  acumulado: 0 },
+    { cliente: '— Suspendido→Cancelado · Roal Travel',           mrr: 195,  mesesActivo: 5,  acumulado: 0 },
+  ],
+
+  /* Downgrades Sem 3 — 6 clientes · $4,551 */
+  downgradeTotalReal: 4551,
+  downgrades: [
+    { cliente: '🔝 DOSATEC',          perdida: 1581,  nota: '39% de baja. Redujo Agente CP Chat y eliminó Extensión VyC. Adquirió Paquete Min CE ($489).' },
+    { cliente: 'labsus lab',          perdida: 1053,  nota: '18% de baja. Paquete Min CE de $2,500 → $1,447.' },
+    { cliente: 'ValueSearch',         perdida: 450,   nota: '21% de baja. DiD Internacional de $700 → $250.' },
+    { cliente: 'Corporativo Vegamas', perdida: 489,   nota: '83% de baja. Eliminó Paquete Min CE ($489).' },
+    { cliente: 'THL INMOBILIARIA',    perdida: 489,   nota: '49% de baja. Paquete Min VyC de $979 → $490.' },
+    { cliente: 'Servisco',            perdida: 489,   nota: '41% de baja. Paquete Min VyC de $979 → $490.' },
+  ],
+
+  downgradeArticulos: [
+    { articulo: 'Paquete Min VyC', vecesAfectado: 2, clientes: ['THL INMOBILIARIA', 'Servisco'] },
+    { articulo: 'Paquete Min CE',  vecesAfectado: 2, clientes: ['Corporativo Vegamas', 'DOSATEC'] },
+  ],
+
+  /* Suspendidos Sem 3 — 5 cuentas · $4,991 */
+  suspendidosTotalReal:   4991,
+  suspendidosCuentasReal: 5,
+  suspendidos: [
+    { cliente: '🔝 ELAM FAW',              importe: 1797, mesesActivo: 29,  estado: 'Suspendido' },
+    { cliente: 'Montebello Towers',        importe: 979,  mesesActivo: 116, estado: 'Suspendido' },
+    { cliente: 'Urbanelle BH Inmobiliaria',importe: 979,  mesesActivo: 5,   estado: 'Suspendido' },
+    { cliente: 'Sheep',                    importe: 747,  mesesActivo: 111, estado: 'Suspendido' },
+    { cliente: 'MARQUEZ VARGAS ABOGADOS',  importe: 489,  mesesActivo: 67,  estado: 'Suspendido' },
+  ],
+
+  /* Desactivados Sem 3 (8 cuentas · $10,034 top 5) + Activos→Desactivados (8 cuentas · $3,448) */
+  desactivadosTotalReal:   13482,
+  desactivadosCuentasReal: 16,
+  desactivados: [
+    { cliente: '🔝 AdminPlus',               importe: 2718, mesesActivo: 71  },
+    { cliente: 'Jarvis Holding',             importe: 2500, mesesActivo: 4   },
+    { cliente: 'C21 PREMIUM LIFE',           importe: 1344, mesesActivo: 16  },
+    { cliente: 'JOINLIST',                   importe: 1187, mesesActivo: 84  },
+    { cliente: 'Traveltrustee',              importe: 889,  mesesActivo: 66  },
+    { cliente: '+ 3 desactivados adicionales',importe: 1396, mesesActivo: 0  },
+    { cliente: '— Act→Desact · NOVAGAS',     importe: 979,  mesesActivo: 28  },
+    { cliente: '— Act→Desact · Tropicalia',  importe: 489,  mesesActivo: 52  },
+    { cliente: '— Act→Desact · Anhela Fertilidad', importe: 489, mesesActivo: 17 },
+    { cliente: '— Act→Desact · KR33 SOLUTIONS',    importe: 489, mesesActivo: 36 },
+    { cliente: '— Act→Desact · RED MAGISTERIAL',   importe: 489, mesesActivo: 0  },
+    { cliente: '— Act→Desact · Molina Market',     importe: 195, mesesActivo: 0  },
+    { cliente: '— Act→Desact · Ethics Real Estate',importe: 169, mesesActivo: 0  },
+    { cliente: '— Act→Desact · Comercializadora Hook', importe: 149, mesesActivo: 0 },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -1306,8 +1411,8 @@ export default function ChurnPage() {
 
 
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026', 's2-julio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S2_JULIO_2026
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S3_JULIO_2026
 
   // Pre-filtrar a Enterprise y Large cuando llegan los datos
   useEffect(() => {
