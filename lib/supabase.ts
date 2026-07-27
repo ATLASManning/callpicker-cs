@@ -71,7 +71,7 @@ export async function getCuentaByConsecutivo(consecutivo: string): Promise<Cuent
   return data as Cuenta
 }
 
-// Campos que NO existen en la tabla DB (computed por la API o pendientes de migración)
+// Campos que NO existen en la tabla DB (computed por la API o enriquecidos en runtime)
 const NON_DB_FIELDS = [
   'health_score',          // GENERATED ALWAYS — Supabase lo rechaza si se envía
   'zoho_tickets',          // enriched por la API, no almacenado
@@ -79,10 +79,6 @@ const NON_DB_FIELDS = [
   'factura_mensual_zoho',  // enriched por la API
   'semaforo_zoho',         // enriched por la API
   'segmento_zoho',         // enriched por la API
-  // Columnas pendientes de migración — eliminar de aquí una vez ejecutada
-  // supabase/migrations/20260716_add_json_columns.sql
-  'contactos_json',
-  'servicios_json',
 ] as const
 
 function stripNonDbFields(obj: Record<string, unknown>): Record<string, unknown> {
