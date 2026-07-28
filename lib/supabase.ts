@@ -81,9 +81,19 @@ const NON_DB_FIELDS = [
   'segmento_zoho',         // enriched por la API
 ] as const
 
+// Columnas JSONB que pueden no existir si la migración 20260716 aún no se ejecutó en Supabase.
+// updateCuenta las incluye por defecto y hace fallback automático si el schema las rechaza.
+const JSON_MIGRATION_FIELDS = ['contactos_json', 'servicios_json'] as const
+
 function stripNonDbFields(obj: Record<string, unknown>): Record<string, unknown> {
   const out = { ...obj }
   for (const f of NON_DB_FIELDS) delete out[f]
+  return out
+}
+
+function stripJsonMigrationFields(obj: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...obj }
+  for (const f of JSON_MIGRATION_FIELDS) delete out[f]
   return out
 }
 
@@ -100,13 +110,32 @@ export async function upsertCuenta(cuenta: Partial<Cuenta>): Promise<Cuenta> {
 
 export async function updateCuenta(id: string, changes: Partial<Cuenta>): Promise<Cuenta> {
   const payload = stripNonDbFields(changes as Record<string, unknown>)
+
   const { data, error } = await supabaseAdmin
     .from('cuentas')
     .update(payload)
     .eq('id', id)
     .select()
     .single()
-  if (error) throw new Error(error.message ?? JSON.stringify(error))
+
+  // Si el error es por columnas JSONB que aún no existen (migración pendiente),
+  // reintenta sin ellas para no bloquear al usuario.
+  if (error) {
+    const msg = error.message ?? JSON.stringify(error)
+    const isMissingJsonCol = JSON_MIGRATION_FIELDS.some(f => msg.includes(f))
+    if (isMissingJsonCol) {
+      const fallback = stripJsonMigrationFields(payload)
+      const { data: d2, error: e2 } = await supabaseAdmin
+        .from('cuentas')
+        .update(fallback)
+        .eq('id', id)
+        .select()
+        .single()
+      if (e2) throw new Error(e2.message ?? JSON.stringify(e2))
+      return d2 as Cuenta
+    }
+    throw new Error(msg)
+  }
   return data as Cuenta
 }
 
