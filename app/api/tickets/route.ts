@@ -19,6 +19,7 @@ export interface TicketRow {
   apertura: string
   cierre: string
   duracion: string
+  duracion_hrs: number
   prioridad: string
 }
 
@@ -88,6 +89,67 @@ export async function GET(req: NextRequest) {
       .map(([nombre, d]) => ({ nombre, ...d }))
 
     return NextResponse.json({ total: base.length, fallas, byMes, byCat, byProd, byPrior, byProp, topEmpresas })
+  }
+
+  // ── Charts ─────────────────────────────────────────────────────────
+  if (mode === 'charts') {
+    let base = ALL_TICKETS
+    if (mes)         base = base.filter(t => t.fecha.startsWith(mes))
+    if (propietario) base = base.filter(t => t.propietario.toLowerCase() === propietario.toLowerCase())
+    if (producto)    base = base.filter(t => t.producto.toLowerCase().includes(producto.toLowerCase()))
+    if (prioridad)   base = base.filter(t => t.prioridad.toLowerCase() === prioridad.toLowerCase())
+
+    const total  = base.length
+    const fallas = base.filter(t => t.es_falla === 'Si').length
+    const durSum = base.reduce((s, t) => s + (t.duracion_hrs ?? 0), 0)
+    const avgDuracion = total > 0 ? Math.round(durSum / total * 10) / 10 : 0
+
+    const propMap: Record<string, { tickets: number; fallas: number; durSum: number }> = {}
+    const mesMap:  Record<string, { tickets: number; fallas: number }> = {}
+    const prodMap: Record<string, number> = {}
+    const priorMap: Record<string, number> = {}
+    const durBuckets: Record<string, number> = { '< 1h': 0, '1–4h': 0, '4–8h': 0, '8–24h': 0, '1–3d': 0, '3–7d': 0, '+7d': 0 }
+
+    for (const t of base) {
+      const pr = t.propietario || 'Sin propietario'
+      if (!propMap[pr]) propMap[pr] = { tickets: 0, fallas: 0, durSum: 0 }
+      propMap[pr].tickets++
+      if (t.es_falla === 'Si') propMap[pr].fallas++
+      propMap[pr].durSum += t.duracion_hrs ?? 0
+
+      if (!mesMap[t.fecha]) mesMap[t.fecha] = { tickets: 0, fallas: 0 }
+      mesMap[t.fecha].tickets++
+      if (t.es_falla === 'Si') mesMap[t.fecha].fallas++
+
+      prodMap[t.producto || 'Sin producto'] = (prodMap[t.producto || 'Sin producto'] || 0) + 1
+
+      const pKey = t.prioridad || 'Low'
+      priorMap[pKey] = (priorMap[pKey] || 0) + 1
+
+      const h = t.duracion_hrs ?? 0
+      if (h < 1)   durBuckets['< 1h']++
+      else if (h < 4)  durBuckets['1–4h']++
+      else if (h < 8)  durBuckets['4–8h']++
+      else if (h < 24) durBuckets['8–24h']++
+      else if (h < 72) durBuckets['1–3d']++
+      else if (h < 168) durBuckets['3–7d']++
+      else             durBuckets['+7d']++
+    }
+
+    const byPropietario = Object.entries(propMap)
+      .map(([name, d]) => ({ name, tickets: d.tickets, fallas: d.fallas, avgDuracion: d.tickets > 0 ? Math.round(d.durSum / d.tickets * 10) / 10 : 0 }))
+      .sort((a, b) => b.tickets - a.tickets)
+
+    const byMesArr = Object.entries(mesMap).sort().map(([m, d]) => ({ mes: m, ...d }))
+    const byProducto = Object.entries(prodMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+    const byPrioridad = Object.entries(priorMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+    const byDuracion = Object.entries(durBuckets).map(([bucket, count]) => ({ bucket, count }))
+
+    return NextResponse.json({
+      total, fallas, avgDuracion,
+      topPropietario: byPropietario[0]?.name ?? '—',
+      byPropietario, byMes: byMesArr, byProducto, byPrioridad, byDuracion,
+    })
   }
 
   // ── Conciliación ───────────────────────────────────────────────────

@@ -6,9 +6,13 @@ import {
   XCircle, Clock, BarChart3, Users, RefreshCw, ChevronLeft,
   ChevronRight, Zap, Tag, User, Calendar, PlusCircle, Mail, Copy, Check,
 } from 'lucide-react'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, Cell,
+} from 'recharts'
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
-type Tab = 'overview' | 'explorador' | 'conciliacion' | 'fallas' | 'nuevo'
+type Tab = 'overview' | 'explorador' | 'conciliacion' | 'fallas' | 'nuevo' | 'graficos'
 
 interface TicketRow {
   cid: string; num: string; empresa: string; fecha: string; ticket_id: string
@@ -25,6 +29,18 @@ interface Stats {
   byPrior: Record<string, number>
   byProp: Record<string, number>
   topEmpresas: { nombre: string; total: number; fallas: number; ultima: string }[]
+}
+
+interface ChartData {
+  total: number
+  fallas: number
+  avgDuracion: number
+  topPropietario: string
+  byPropietario: { name: string; tickets: number; fallas: number; avgDuracion: number }[]
+  byMes: { mes: string; tickets: number; fallas: number }[]
+  byProducto: { name: string; value: number }[]
+  byPrioridad: { name: string; value: number }[]
+  byDuracion: { bucket: string; count: number }[]
 }
 
 interface ConcRow {
@@ -46,6 +62,13 @@ function prioColor(p: string) {
 }
 function prodColor(p: string) {
   return PRODUCTO_COLOR[p?.toLowerCase()] ?? '#9ca3af'
+}
+function mesLabel(m: string) {
+  const map: Record<string, string> = {
+    '2026-02': 'Feb', '2026-03': 'Mar', '2026-04': 'Abr',
+    '2026-05': 'May', '2026-06': 'Jun', '2026-07': 'Jul',
+  }
+  return map[m] ?? m
 }
 
 /* ─── Mini-componentes ──────────────────────────────────────────── */
@@ -93,6 +116,7 @@ function BarRow({ label, value, max, color }: { label: string; value: number; ma
 /* ─── Página ─────────────────────────────────────────────────────── */
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview',     label: '📊 Overview' },
+  { id: 'graficos',     label: '📈 Gráficos' },
   { id: 'explorador',   label: '🔍 Explorador' },
   { id: 'conciliacion', label: '🔗 Conciliación' },
   { id: 'fallas',       label: '⚡ Fallas' },
@@ -101,11 +125,11 @@ const TABS: { id: Tab; label: string }[] = [
 
 const MESES = [
   { val: '', label: 'Todos los meses' },
-  { val: '2026-02', label: 'Febrero 2026' },
   { val: '2026-03', label: 'Marzo 2026' },
   { val: '2026-04', label: 'Abril 2026' },
   { val: '2026-05', label: 'Mayo 2026' },
   { val: '2026-06', label: 'Junio 2026' },
+  { val: '2026-07', label: 'Julio 2026' },
 ]
 
 export default function TicketsPage() {
@@ -140,6 +164,14 @@ export default function TicketsPage() {
 
   /* ── Nuevo Ticket ── */
   const [copied, setCopied] = useState(false)
+
+  /* ── Gráficos ── */
+  const [chartMes, setChartMes]         = useState('')
+  const [chartProp, setChartProp]       = useState('')
+  const [chartProd, setChartProd]       = useState('')
+  const [chartPrior, setChartPrior]     = useState('')
+  const [chartData, setChartData]       = useState<ChartData | null>(null)
+  const [chartLoading, setChartLoading] = useState(false)
 
   function copySnippet() {
     navigator.clipboard.writeText('#original_sender {correo@cliente.com}')
@@ -210,6 +242,19 @@ export default function TicketsPage() {
 
   useEffect(() => { if (tab === 'fallas') fetchFallas(1) }, [tab, fetchFallas])
 
+  /* ── Fetch charts ── */
+  useEffect(() => {
+    if (tab !== 'graficos') return
+    setChartLoading(true)
+    const p = new URLSearchParams({ mode: 'charts' })
+    if (chartMes)   p.set('mes', chartMes)
+    if (chartProp)  p.set('propietario', chartProp)
+    if (chartProd)  p.set('producto', chartProd)
+    if (chartPrior) p.set('prioridad', chartPrior)
+    fetch(`/api/tickets?${p}`)
+      .then(r => r.json()).then(setChartData).finally(() => setChartLoading(false))
+  }, [tab, chartMes, chartProp, chartProd, chartPrior])
+
   /* ── Helpers ── */
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -279,7 +324,7 @@ export default function TicketsPage() {
                   <h3 className="font-semibold text-sm text-gray-900 mb-4">Volumen por Mes</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {Object.entries(stats.byMes).sort().map(([mes, n]) => {
-                      const labels: Record<string,string> = { '2026-02':'Feb','2026-03':'Mar','2026-04':'Abr','2026-05':'May' }
+                      const labels: Record<string,string> = { '2026-02':'Feb','2026-03':'Mar','2026-04':'Abr','2026-05':'May','2026-06':'Jun','2026-07':'Jul' }
                       const colors = ['#3b82f6','#6366f1','#8b5cf6','#a855f7']
                       const idx = Object.keys(stats.byMes).sort().indexOf(mes)
                       return (
@@ -683,6 +728,141 @@ export default function TicketsPage() {
                 </div>
               )}
             </div>
+          </>
+        )}
+
+        {/* ═══ GRÁFICOS ══════════════════════════════════════════════ */}
+        {tab === 'graficos' && (
+          <>
+            {/* Filtros */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <Filter size={14} className="text-gray-400 flex-shrink-0" />
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Filtrar</span>
+                <select value={chartMes} onChange={e => setChartMes(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
+                  {MESES.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+                </select>
+                <select value={chartProp} onChange={e => setChartProp(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
+                  <option value="">Ejecutivo (todos)</option>
+                  {propietarios.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                <select value={chartProd} onChange={e => setChartProd(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
+                  <option value="">Producto (todos)</option>
+                  <option value="Voz">Voz</option>
+                  <option value="Chat">Chat</option>
+                  <option value="Sin producto">Sin producto</option>
+                </select>
+                <select value={chartPrior} onChange={e => setChartPrior(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
+                  <option value="">Prioridad (todas)</option>
+                  <option value="Urgent">Urgente</option>
+                  <option value="High">Alta</option>
+                  <option value="Medium">Media</option>
+                  <option value="Low">Baja</option>
+                </select>
+                {(chartMes || chartProp || chartProd || chartPrior) && (
+                  <button onClick={() => { setChartMes(''); setChartProp(''); setChartProd(''); setChartPrior('') }}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
+                    Limpiar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {chartLoading ? (
+              <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Cargando gráficos…</div>
+            ) : chartData ? (
+              <>
+                {/* KPIs */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <KpiCard icon={Tag}           label="Total tickets"     value={chartData.total.toLocaleString('es-MX')} color={BLUE}   />
+                  <KpiCard icon={AlertTriangle} label="Fallas reales"     value={chartData.fallas} sub={`${chartData.total > 0 ? ((chartData.fallas / chartData.total) * 100).toFixed(1) : 0}% del total`} color={RED} />
+                  <KpiCard icon={Clock}         label="Duración promedio" value={`${chartData.avgDuracion}h`} sub="horas por ticket" color={AMBER} />
+                  <KpiCard icon={User}          label="Top ejecutivo"     value={chartData.topPropietario} color={INDIGO} />
+                </div>
+
+                {/* Tickets por Ejecutivo — horizontal */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                  <h3 className="font-semibold text-sm text-gray-900 mb-4">Tickets por Ejecutivo</h3>
+                  <ResponsiveContainer width="100%" height={Math.min(520, Math.max(200, chartData.byPropietario.length * 30))}>
+                    <BarChart data={chartData.byPropietario} layout="vertical" margin={{ left: 10, right: 30, top: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="name" width={105} tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number, n: string) => [v, n === 'tickets' ? 'Tickets' : 'Fallas']} />
+                      <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="tickets" name="Tickets" fill={BLUE} radius={[0, 3, 3, 0]} />
+                      <Bar dataKey="fallas"  name="Fallas"  fill={RED}  radius={[0, 3, 3, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Volumen por Mes */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                  <h3 className="font-semibold text-sm text-gray-900 mb-4">Volumen por Mes</h3>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={chartData.byMes.map(d => ({ ...d, label: mesLabel(d.mes) }))} margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number, n: string) => [v, n === 'tickets' ? 'Tickets' : 'Fallas']} />
+                      <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="tickets" name="Tickets" fill={BLUE} radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="fallas"  name="Fallas"  fill={RED}  radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Producto y Prioridad */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                    <h3 className="font-semibold text-sm text-gray-900 mb-4">Por Producto</h3>
+                    <ResponsiveContainer width="100%" height={190}>
+                      <BarChart data={chartData.byProducto} margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number) => [v, 'Tickets']} />
+                        <Bar dataKey="value" name="Tickets" radius={[3, 3, 0, 0]}>
+                          {chartData.byProducto.map((e, i) => <Cell key={i} fill={prodColor(e.name)} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                    <h3 className="font-semibold text-sm text-gray-900 mb-4">Por Prioridad</h3>
+                    <ResponsiveContainer width="100%" height={190}>
+                      <BarChart data={chartData.byPrioridad} margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number) => [v, 'Tickets']} />
+                        <Bar dataKey="value" name="Tickets" radius={[3, 3, 0, 0]}>
+                          {chartData.byPrioridad.map((e, i) => <Cell key={i} fill={prioColor(e.name)} />)}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Distribución por duración */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                  <h3 className="font-semibold text-sm text-gray-900 mb-4">Distribución por Tiempo de Resolución</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={chartData.byDuracion} margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number) => [v, 'Tickets']} />
+                      <Bar dataKey="count" name="Tickets" fill={INDIGO} radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            ) : null}
           </>
         )}
 
