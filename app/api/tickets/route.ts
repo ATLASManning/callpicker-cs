@@ -34,23 +34,36 @@ function normalize(s: string) {
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams
-  const q         = sp.get('q')?.toLowerCase() ?? ''
-  const cidExact  = sp.get('cid') ?? ''          // match exacto por CID de cuenta
-  const producto  = sp.get('producto') ?? ''
-  const categoria = sp.get('categoria') ?? ''
-  const esFalla   = sp.get('es_falla') ?? ''
-  const prioridad = sp.get('prioridad') ?? ''
-  const mes       = sp.get('mes') ?? ''
+  const q           = sp.get('q')?.toLowerCase() ?? ''
+  const cidExact    = sp.get('cid') ?? ''
+  const producto    = sp.get('producto') ?? ''
+  const categoria   = sp.get('categoria') ?? ''
+  const subcategoria = sp.get('subcategoria') ?? ''
+  const esFalla     = sp.get('es_falla') ?? ''
+  const prioridad   = sp.get('prioridad') ?? ''
+  const mes         = sp.get('mes') ?? ''
   const propietario = sp.get('propietario') ?? ''
-  const page      = parseInt(sp.get('page') ?? '1')
-  const limit     = parseInt(sp.get('limit') ?? '50')
-  const mode      = sp.get('mode') ?? 'list'
+  const sortBy      = sp.get('sortBy') ?? ''
+  const sortDir     = sp.get('sortDir') ?? 'asc'
+  const page        = parseInt(sp.get('page') ?? '1')
+  const limit       = parseInt(sp.get('limit') ?? '50')
+  const mode        = sp.get('mode') ?? 'list'
 
   // ── Propietarios ───────────────────────────────────────────────────
   if (mode === 'propietarios') {
     const set = new Set<string>()
     for (const t of ALL_TICKETS) if (t.propietario) set.add(t.propietario)
     return NextResponse.json({ propietarios: Array.from(set).sort() })
+  }
+
+  // ── Subcategorías ──────────────────────────────────────────────────
+  if (mode === 'subcategorias') {
+    const base = categoria
+      ? ALL_TICKETS.filter(t => t.categoria.toLowerCase().includes(categoria.toLowerCase()))
+      : ALL_TICKETS
+    const set = new Set<string>()
+    for (const t of base) if (t.subcategoria && t.subcategoria !== 'Sin subcategoría') set.add(t.subcategoria)
+    return NextResponse.json({ subcategorias: Array.from(set).sort() })
   }
 
   // ── Stats ──────────────────────────────────────────────────────────
@@ -94,11 +107,13 @@ export async function GET(req: NextRequest) {
   // ── Charts ─────────────────────────────────────────────────────────
   if (mode === 'charts') {
     let base = ALL_TICKETS
-    if (mes)         base = base.filter(t => t.fecha.startsWith(mes))
-    if (propietario) base = base.filter(t => t.propietario.toLowerCase() === propietario.toLowerCase())
-    if (producto)    base = base.filter(t => t.producto.toLowerCase().includes(producto.toLowerCase()))
-    if (prioridad)   base = base.filter(t => t.prioridad.toLowerCase() === prioridad.toLowerCase())
-    if (esFalla)     base = base.filter(t => t.es_falla === esFalla)
+    if (mes)          base = base.filter(t => t.fecha.startsWith(mes))
+    if (propietario)  base = base.filter(t => t.propietario.toLowerCase() === propietario.toLowerCase())
+    if (producto)     base = base.filter(t => t.producto.toLowerCase().includes(producto.toLowerCase()))
+    if (prioridad)    base = base.filter(t => t.prioridad.toLowerCase() === prioridad.toLowerCase())
+    if (esFalla)      base = base.filter(t => t.es_falla === esFalla)
+    if (categoria)    base = base.filter(t => t.categoria.toLowerCase().includes(categoria.toLowerCase()))
+    if (subcategoria) base = base.filter(t => t.subcategoria.toLowerCase().includes(subcategoria.toLowerCase()))
 
     const total  = base.length
     const fallas = base.filter(t => t.es_falla === 'Si').length
@@ -198,19 +213,43 @@ export async function GET(req: NextRequest) {
 
   // ── List (default) ─────────────────────────────────────────────────
   let filtered = ALL_TICKETS.filter(t => {
-    if (cidExact && t.cid !== cidExact) return false   // filtro exacto por CID
+    if (cidExact && t.cid !== cidExact) return false
     if (q) {
       const hay = normalize(t.empresa) + ' ' + t.num + ' ' + t.ticket_id
       if (!hay.includes(normalize(q))) return false
     }
-    if (producto    && !t.producto.toLowerCase().includes(producto.toLowerCase()))    return false
-    if (categoria   && !t.categoria.toLowerCase().includes(categoria.toLowerCase()))  return false
-    if (esFalla     && t.es_falla !== esFalla)                                        return false
-    if (prioridad   && t.prioridad.toLowerCase() !== prioridad.toLowerCase())         return false
-    if (mes         && !t.fecha.startsWith(mes))                                      return false
-    if (propietario && t.propietario.toLowerCase() !== propietario.toLowerCase())     return false
+    if (producto     && !t.producto.toLowerCase().includes(producto.toLowerCase()))      return false
+    if (categoria    && !t.categoria.toLowerCase().includes(categoria.toLowerCase()))    return false
+    if (subcategoria && !t.subcategoria.toLowerCase().includes(subcategoria.toLowerCase())) return false
+    if (esFalla      && t.es_falla !== esFalla)                                          return false
+    if (prioridad    && t.prioridad.toLowerCase() !== prioridad.toLowerCase())           return false
+    if (mes          && !t.fecha.startsWith(mes))                                        return false
+    if (propietario  && t.propietario.toLowerCase() !== propietario.toLowerCase())       return false
     return true
   })
+
+  // ── Sort ────────────────────────────────────────────────────────────
+  if (sortBy) {
+    const prioOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
+    filtered.sort((a, b) => {
+      let av: string | number = ''
+      let bv: string | number = ''
+      if (sortBy === 'empresa')      { av = a.empresa;      bv = b.empresa }
+      else if (sortBy === 'categoria')    { av = a.categoria;    bv = b.categoria }
+      else if (sortBy === 'subcategoria') { av = a.subcategoria; bv = b.subcategoria }
+      else if (sortBy === 'producto')     { av = a.producto;     bv = b.producto }
+      else if (sortBy === 'prioridad') {
+        av = prioOrder[a.prioridad?.toLowerCase()] ?? 9
+        bv = prioOrder[b.prioridad?.toLowerCase()] ?? 9
+      }
+      else if (sortBy === 'falla')       { av = a.es_falla;    bv = b.es_falla }
+      else if (sortBy === 'propietario') { av = a.propietario; bv = b.propietario }
+      else if (sortBy === 'fecha')       { av = a.fecha;       bv = b.fecha }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1
+      if (av > bv) return sortDir === 'asc' ?  1 : -1
+      return 0
+    })
+  }
 
   const total = filtered.length
   const rows  = filtered.slice((page - 1) * limit, page * limit)

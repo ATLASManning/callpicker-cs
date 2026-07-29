@@ -101,6 +101,25 @@ function KpiCard({ icon: Icon, label, value, sub, color }:
   )
 }
 
+type SortDir = 'asc' | 'desc'
+function SortableTh({ label, col, sortCol, sortDir, onSort }: {
+  label: string; col: string; sortCol: string; sortDir: SortDir; onSort: (c: string) => void
+}) {
+  const active = sortCol === col
+  return (
+    <th onClick={() => onSort(col)}
+      className="text-left py-2.5 px-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap cursor-pointer select-none group"
+      style={{ color: active ? '#1B3FCC' : '#6b7280' }}>
+      <span className="flex items-center gap-1">
+        {label}
+        <span className="text-[9px] opacity-60 group-hover:opacity-100">
+          {active ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
+        </span>
+      </span>
+    </th>
+  )
+}
+
 function BarRow({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0
   return (
@@ -152,9 +171,13 @@ export default function TicketsPage() {
   const [filterCat, setFilterCat]     = useState('')
   const [filterPrior, setFilterPrior] = useState('')
   const [filterMes, setFilterMes]     = useState('')
-  const [filterFalla, setFilterFalla] = useState('')
+  const [filterFalla, setFilterFalla]         = useState('')
   const [filterEjecutivo, setFilterEjecutivo] = useState('')
+  const [filterSubcat, setFilterSubcat]       = useState('')
   const [propietarios, setPropietarios]       = useState<string[]>([])
+  const [subcategorias, setSubcategorias]     = useState<string[]>([])
+  const [sortCol, setSortCol]                 = useState('fecha')
+  const [sortDir, setSortDir]                 = useState<SortDir>('desc')
   const qRef = useRef(q)
 
   /* ── Conciliación ── */
@@ -181,6 +204,8 @@ export default function TicketsPage() {
     if (filterProd)      p.set('producto', filterProd)
     if (filterPrior)     p.set('prioridad', filterPrior)
     if (filterFalla)     p.set('es_falla', filterFalla)
+    if (filterCat)       p.set('categoria', filterCat)
+    if (filterSubcat)    p.set('subcategoria', filterSubcat)
     fetch(`/api/tickets?${p}`)
       .then(r => r.json()).then(setModalData).finally(() => setModalLoading(false))
   }
@@ -222,22 +247,45 @@ export default function TicketsPage() {
       .then(d => setPropietarios(d.propietarios ?? []))
   }, [])
 
+  /* ── Fetch subcategorías (cambia si cambia categoria) ── */
+  useEffect(() => {
+    const p = new URLSearchParams({ mode: 'subcategorias' })
+    if (filterCat) p.set('categoria', filterCat)
+    fetch(`/api/tickets?${p}`)
+      .then(r => r.json())
+      .then(d => setSubcategorias(d.subcategorias ?? []))
+    setFilterSubcat('')
+  }, [filterCat])
+
+  /* ── Handler sort ── */
+  function handleSort(col: string) {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortCol(col)
+      setSortDir('asc')
+    }
+  }
+
   /* ── Fetch list ── */
   const fetchList = useCallback((pg = 1) => {
     setListLoading(true)
     const params = new URLSearchParams({ page: String(pg), limit: '50' })
-    if (qRef.current)      params.set('q', qRef.current)
-    if (filterProd)        params.set('producto', filterProd)
-    if (filterCat)         params.set('categoria', filterCat)
-    if (filterPrior)       params.set('prioridad', filterPrior)
-    if (filterMes)         params.set('mes', filterMes)
-    if (filterFalla)       params.set('es_falla', filterFalla)
-    if (filterEjecutivo)   params.set('propietario', filterEjecutivo)
+    if (qRef.current)    params.set('q', qRef.current)
+    if (filterProd)      params.set('producto', filterProd)
+    if (filterCat)       params.set('categoria', filterCat)
+    if (filterSubcat)    params.set('subcategoria', filterSubcat)
+    if (filterPrior)     params.set('prioridad', filterPrior)
+    if (filterMes)       params.set('mes', filterMes)
+    if (filterFalla)     params.set('es_falla', filterFalla)
+    if (filterEjecutivo) params.set('propietario', filterEjecutivo)
+    params.set('sortBy', sortCol)
+    params.set('sortDir', sortDir)
     fetch(`/api/tickets?${params}`)
       .then(r => r.json())
       .then(d => { setRows(d.rows); setListTotal(d.total); setListPages(d.pages); setPage(pg) })
       .finally(() => setListLoading(false))
-  }, [filterProd, filterCat, filterPrior, filterMes, filterFalla, filterEjecutivo])
+  }, [filterProd, filterCat, filterSubcat, filterPrior, filterMes, filterFalla, filterEjecutivo, sortCol, sortDir])
 
   useEffect(() => { if (tab === 'explorador') fetchList(1) }, [tab, fetchList])
 
@@ -487,6 +535,13 @@ export default function TicketsPage() {
                   <option value="">Ejecutivo (todos)</option>
                   {propietarios.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
+                {/* Filtro subcategoría — dinámico */}
+                <select value={filterSubcat}
+                  onChange={e => { setFilterSubcat(e.target.value); setTimeout(() => fetchList(1), 0) }}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
+                  <option value="">Subcategoría (todas)</option>
+                  {subcategorias.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
                 <button onClick={() => fetchList(1)}
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
                   <RefreshCw size={11} /> Actualizar
@@ -509,9 +564,16 @@ export default function TicketsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/70">
-                      {['#', 'Empresa', 'Categoría', 'Subcategoría', 'Producto', 'Prioridad', 'Falla', 'Propietario', 'Fecha', 'Enlace'].map(h => (
-                        <th key={h} className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
-                      ))}
+                      <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">#</th>
+                      <SortableTh label="Empresa"      col="empresa"      sortCol={sortCol} sortDir={sortDir} onSort={c => { handleSort(c); setTimeout(() => fetchList(1), 0) }} />
+                      <SortableTh label="Categoría"    col="categoria"    sortCol={sortCol} sortDir={sortDir} onSort={c => { handleSort(c); setTimeout(() => fetchList(1), 0) }} />
+                      <SortableTh label="Subcategoría" col="subcategoria" sortCol={sortCol} sortDir={sortDir} onSort={c => { handleSort(c); setTimeout(() => fetchList(1), 0) }} />
+                      <SortableTh label="Producto"     col="producto"     sortCol={sortCol} sortDir={sortDir} onSort={c => { handleSort(c); setTimeout(() => fetchList(1), 0) }} />
+                      <SortableTh label="Prioridad"    col="prioridad"    sortCol={sortCol} sortDir={sortDir} onSort={c => { handleSort(c); setTimeout(() => fetchList(1), 0) }} />
+                      <SortableTh label="Falla"        col="falla"        sortCol={sortCol} sortDir={sortDir} onSort={c => { handleSort(c); setTimeout(() => fetchList(1), 0) }} />
+                      <SortableTh label="Propietario"  col="propietario"  sortCol={sortCol} sortDir={sortDir} onSort={c => { handleSort(c); setTimeout(() => fetchList(1), 0) }} />
+                      <SortableTh label="Fecha"        col="fecha"        sortCol={sortCol} sortDir={sortDir} onSort={c => { handleSort(c); setTimeout(() => fetchList(1), 0) }} />
+                      <th className="text-left py-2.5 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">Enlace</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -999,11 +1061,13 @@ export default function TicketsPage() {
                 <h2 className="font-bold text-gray-900 text-sm">Gráfica del filtro actual</h2>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {listTotal.toLocaleString('es-MX')} tickets
-                  {filterMes           && ` · ${MESES.find(m => m.val === filterMes)?.label}`}
-                  {filterEjecutivo     && ` · ${filterEjecutivo}`}
-                  {filterProd          && ` · ${filterProd}`}
-                  {filterPrior         && ` · Prioridad ${filterPrior}`}
-                  {filterFalla === 'Si' && ` · Solo fallas`}
+                  {filterMes            && ` · ${MESES.find(m => m.val === filterMes)?.label}`}
+                  {filterEjecutivo      && ` · ${filterEjecutivo}`}
+                  {filterProd           && ` · ${filterProd}`}
+                  {filterCat            && ` · ${filterCat}`}
+                  {filterSubcat         && ` · ${filterSubcat}`}
+                  {filterPrior          && ` · Prioridad ${filterPrior}`}
+                  {filterFalla === 'Si'  && ` · Solo fallas`}
                 </p>
               </div>
               <button onClick={() => setShowModal(false)}
