@@ -98,6 +98,7 @@ export async function GET(req: NextRequest) {
     if (propietario) base = base.filter(t => t.propietario.toLowerCase() === propietario.toLowerCase())
     if (producto)    base = base.filter(t => t.producto.toLowerCase().includes(producto.toLowerCase()))
     if (prioridad)   base = base.filter(t => t.prioridad.toLowerCase() === prioridad.toLowerCase())
+    if (esFalla)     base = base.filter(t => t.es_falla === esFalla)
 
     const total  = base.length
     const fallas = base.filter(t => t.es_falla === 'Si').length
@@ -108,6 +109,7 @@ export async function GET(req: NextRequest) {
     const mesMap:  Record<string, { tickets: number; fallas: number }> = {}
     const prodMap: Record<string, number> = {}
     const priorMap: Record<string, number> = {}
+    const catMap:  Record<string, number> = {}
     const durBuckets: Record<string, number> = { '< 1h': 0, '1–4h': 0, '4–8h': 0, '8–24h': 0, '1–3d': 0, '3–7d': 0, '+7d': 0 }
 
     for (const t of base) {
@@ -126,29 +128,32 @@ export async function GET(req: NextRequest) {
       const pKey = t.prioridad || 'Low'
       priorMap[pKey] = (priorMap[pKey] || 0) + 1
 
+      catMap[t.categoria || 'Sin categoría'] = (catMap[t.categoria || 'Sin categoría'] || 0) + 1
+
       const h = t.duracion_hrs ?? 0
-      if (h < 1)   durBuckets['< 1h']++
-      else if (h < 4)  durBuckets['1–4h']++
-      else if (h < 8)  durBuckets['4–8h']++
-      else if (h < 24) durBuckets['8–24h']++
-      else if (h < 72) durBuckets['1–3d']++
+      if (h < 1)    durBuckets['< 1h']++
+      else if (h < 4)   durBuckets['1–4h']++
+      else if (h < 8)   durBuckets['4–8h']++
+      else if (h < 24)  durBuckets['8–24h']++
+      else if (h < 72)  durBuckets['1–3d']++
       else if (h < 168) durBuckets['3–7d']++
-      else             durBuckets['+7d']++
+      else              durBuckets['+7d']++
     }
 
     const byPropietario = Object.entries(propMap)
       .map(([name, d]) => ({ name, tickets: d.tickets, fallas: d.fallas, avgDuracion: d.tickets > 0 ? Math.round(d.durSum / d.tickets * 10) / 10 : 0 }))
       .sort((a, b) => b.tickets - a.tickets)
 
-    const byMesArr = Object.entries(mesMap).sort().map(([m, d]) => ({ mes: m, ...d }))
-    const byProducto = Object.entries(prodMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+    const byMesArr    = Object.entries(mesMap).sort().map(([m, d]) => ({ mes: m, ...d }))
+    const byProducto  = Object.entries(prodMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
     const byPrioridad = Object.entries(priorMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-    const byDuracion = Object.entries(durBuckets).map(([bucket, count]) => ({ bucket, count }))
+    const byCat       = Object.entries(catMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+    const byDuracion  = Object.entries(durBuckets).map(([bucket, count]) => ({ bucket, count }))
 
     return NextResponse.json({
       total, fallas, avgDuracion,
       topPropietario: byPropietario[0]?.name ?? '—',
-      byPropietario, byMes: byMesArr, byProducto, byPrioridad, byDuracion,
+      byPropietario, byMes: byMesArr, byProducto, byPrioridad, byCat, byDuracion,
     })
   }
 

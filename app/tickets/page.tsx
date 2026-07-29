@@ -40,6 +40,7 @@ interface ChartData {
   byMes: { mes: string; tickets: number; fallas: number }[]
   byProducto: { name: string; value: number }[]
   byPrioridad: { name: string; value: number }[]
+  byCat: { name: string; value: number }[]
   byDuracion: { bucket: string; count: number }[]
 }
 
@@ -164,6 +165,25 @@ export default function TicketsPage() {
 
   /* ── Nuevo Ticket ── */
   const [copied, setCopied] = useState(false)
+
+  /* ── Modal gráfica Explorador ── */
+  const [showModal, setShowModal]         = useState(false)
+  const [modalData, setModalData]         = useState<ChartData | null>(null)
+  const [modalLoading, setModalLoading]   = useState(false)
+
+  function openExplModal() {
+    setShowModal(true)
+    setModalLoading(true)
+    setModalData(null)
+    const p = new URLSearchParams({ mode: 'charts' })
+    if (filterMes)       p.set('mes', filterMes)
+    if (filterEjecutivo) p.set('propietario', filterEjecutivo)
+    if (filterProd)      p.set('producto', filterProd)
+    if (filterPrior)     p.set('prioridad', filterPrior)
+    if (filterFalla)     p.set('es_falla', filterFalla)
+    fetch(`/api/tickets?${p}`)
+      .then(r => r.json()).then(setModalData).finally(() => setModalLoading(false))
+  }
 
   /* ── Gráficos ── */
   const [chartMes, setChartMes]         = useState('')
@@ -470,6 +490,11 @@ export default function TicketsPage() {
                 <button onClick={() => fetchList(1)}
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
                   <RefreshCw size={11} /> Actualizar
+                </button>
+                <button onClick={openExplModal}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg text-white font-medium"
+                  style={{ background: INDIGO }}>
+                  <BarChart3 size={11} /> Ver gráfica
                 </button>
               </div>
             </div>
@@ -959,6 +984,118 @@ export default function TicketsPage() {
         )}
 
       </div>
+
+      {/* ─── MODAL GRÁFICA EXPLORADOR ─────────────────────────────── */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={() => setShowModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+            onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+              <div>
+                <h2 className="font-bold text-gray-900 text-sm">Gráfica del filtro actual</h2>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {listTotal.toLocaleString('es-MX')} tickets
+                  {filterMes           && ` · ${MESES.find(m => m.val === filterMes)?.label}`}
+                  {filterEjecutivo     && ` · ${filterEjecutivo}`}
+                  {filterProd          && ` · ${filterProd}`}
+                  {filterPrior         && ` · Prioridad ${filterPrior}`}
+                  {filterFalla === 'Si' && ` · Solo fallas`}
+                </p>
+              </div>
+              <button onClick={() => setShowModal(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+                <XCircle size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              {modalLoading ? (
+                <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Calculando gráficas…</div>
+              ) : modalData ? (
+                <>
+                  {/* KPIs */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <KpiCard icon={Tag}           label="Tickets filtrados" value={modalData.total.toLocaleString('es-MX')} color={BLUE}   />
+                    <KpiCard icon={AlertTriangle} label="Fallas reales"     value={modalData.fallas} sub={`${modalData.total > 0 ? ((modalData.fallas / modalData.total) * 100).toFixed(1) : 0}%`} color={RED} />
+                    <KpiCard icon={Clock}         label="Duración promedio" value={`${modalData.avgDuracion}h`} sub="horas por ticket" color={AMBER} />
+                  </div>
+
+                  {/* Categoría — horizontal */}
+                  {modalData.byCat?.length > 0 && (
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-xs text-gray-700 uppercase tracking-wide mb-3">Por Categoría</h3>
+                      <ResponsiveContainer width="100%" height={Math.min(380, modalData.byCat.length * 32 + 20)}>
+                        <BarChart data={modalData.byCat} layout="vertical" margin={{ left: 10, right: 30, top: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                          <XAxis type="number" tick={{ fontSize: 11 }} />
+                          <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number) => [v, 'Tickets']} />
+                          <Bar dataKey="value" name="Tickets" fill={BLUE} radius={[0, 3, 3, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
+                  {/* Prioridad + Producto */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-xs text-gray-700 uppercase tracking-wide mb-3">Por Prioridad</h3>
+                      <ResponsiveContainer width="100%" height={160}>
+                        <BarChart data={modalData.byPrioridad} margin={{ left: 0, right: 15, top: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                          <YAxis tick={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number) => [v, 'Tickets']} />
+                          <Bar dataKey="value" name="Tickets" radius={[3, 3, 0, 0]}>
+                            {modalData.byPrioridad.map((e, i) => <Cell key={i} fill={prioColor(e.name)} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-xs text-gray-700 uppercase tracking-wide mb-3">Por Producto</h3>
+                      <ResponsiveContainer width="100%" height={160}>
+                        <BarChart data={modalData.byProducto} margin={{ left: 0, right: 15, top: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                          <YAxis tick={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number) => [v, 'Tickets']} />
+                          <Bar dataKey="value" name="Tickets" radius={[3, 3, 0, 0]}>
+                            {modalData.byProducto.map((e, i) => <Cell key={i} fill={prodColor(e.name)} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Por ejecutivo — solo si no hay filtro por uno */}
+                  {!filterEjecutivo && modalData.byPropietario.length > 1 && (
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <h3 className="font-semibold text-xs text-gray-700 uppercase tracking-wide mb-3">Por Ejecutivo</h3>
+                      <ResponsiveContainer width="100%" height={Math.min(440, modalData.byPropietario.length * 30 + 20)}>
+                        <BarChart data={modalData.byPropietario} layout="vertical" margin={{ left: 10, right: 30, top: 0, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                          <XAxis type="number" tick={{ fontSize: 11 }} />
+                          <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ fontSize: 12 }} />
+                          <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+                          <Bar dataKey="tickets" name="Tickets" fill={BLUE} radius={[0, 3, 3, 0]} />
+                          <Bar dataKey="fallas"  name="Fallas"  fill={RED}  radius={[0, 3, 3, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
