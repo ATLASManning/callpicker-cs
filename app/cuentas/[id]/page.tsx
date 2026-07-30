@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getAuditCaseById }           from '@/app/auditoria/cases'
-import { getCuentaById, getSeguimientos, getOportunidades, getTickets, getHealthHistorial } from '@/lib/supabase'
+import { getCuentaById, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta } from '@/lib/supabase'
 import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
@@ -19,6 +19,7 @@ import AdopcionProducto from '@/components/AdopcionProducto'
 import CuentaInfoEditor from '@/components/CuentaInfoEditor'
 import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
+import CuentaActividadesSAC from '@/components/CuentaActividadesSAC'
 import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
 import CuentaReunionButton from '@/components/CuentaReunionButton'
 import { updateKam, deleteKam } from '@/app/actions/updateKam'
@@ -30,12 +31,13 @@ export const dynamic = 'force-dynamic'
 interface Props { params: { id: string } }
 
 export default async function CuentaDetailPage({ params }: Props) {
-  const [cuenta, seguimientos, oportunidades, tickets, historial] = await Promise.all([
+  const [cuenta, seguimientos, oportunidades, tickets, historial, actividades] = await Promise.all([
     getCuentaById(params.id),
     getSeguimientos(params.id),
     getOportunidades(params.id),
     getTickets(params.id),
     getHealthHistorial(params.id),
+    getActividadesByCuenta(params.id),
   ])
 
   if (!cuenta) notFound()
@@ -583,6 +585,9 @@ export default async function CuentaDetailPage({ params }: Props) {
             cid={cuenta.cid ?? null}
             empresa={cuenta.empresa}
           />
+
+          {/* Actividades SAC */}
+          <CuentaActividadesSAC actividades={actividades} canEdit={canEdit} />
 
           {/* Facturación LTV — datos desde Zoho Analytics */}
           <CuentaFacturacionPanel

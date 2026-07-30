@@ -334,6 +334,34 @@ export async function getActividadesSAC(desdeSemanainicio: string): Promise<{ as
   return (data ?? []) as { asesor: string; semana_inicio: string; completada: boolean }[]
 }
 
+// Actividades SAC por cuenta — para el panel de historial en /cuentas/[id]
+export interface ActividadSAC {
+  id:               string
+  tipo:             string
+  descripcion:      string
+  prioridad:        string
+  fecha_programada: string
+  fecha_vencimiento:string
+  semana_inicio:    string
+  estado:           string
+  completada:       boolean
+  resultado:        string | null
+  asesor:           string
+  hs_cuenta:        number
+  semaforo_cuenta:  string
+}
+
+export async function getActividadesByCuenta(cuentaId: string): Promise<ActividadSAC[]> {
+  const { data, error } = await supabaseAdmin
+    .from('actividades')
+    .select('id, tipo, descripcion, prioridad, fecha_programada, fecha_vencimiento, semana_inicio, estado, completada, resultado, asesor, hs_cuenta, semaforo_cuenta')
+    .eq('cuenta_id', cuentaId)
+    .order('fecha_programada', { ascending: false })
+    .limit(100)
+  if (error) throw error
+  return (data ?? []) as ActividadSAC[]
+}
+
 export async function getOportunidadesActivasRaw(): Promise<Oportunidad[]> {
   const { data, error } = await supabaseAdmin
     .from('oportunidades')
