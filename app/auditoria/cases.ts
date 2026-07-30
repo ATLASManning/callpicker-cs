@@ -18,6 +18,7 @@ import { POLAK_GRUPO }           from './polak-grupo-data'
 import { PUBSA }                 from './pubsa-data'
 import { DENTAL_DISTRICT }       from './dental-district-data'
 import { MEDICALL_EXPERT }       from './medicall-expert-data'
+import { VAEO_BUSINESS_CLUB }    from './vaeo-business-club-data'
 import type { AuditoriaCase } from './types'
 
 export const STATIC_CASES: AuditoriaCase[] = [
@@ -25,7 +26,7 @@ export const STATIC_CASES: AuditoriaCase[] = [
   SAMALAB, LABSUS, ALIANZA, ALTERNET, AZYCO,
   BRANDGROUP, CINTAS_COVE, CLICKBALANCE, ELERY_BRANDS,
   HOSPITAL_SANTA_ROSA, TRAVELLING, POLAK_GRUPO, PUBSA,
-  DENTAL_DISTRICT, MEDICALL_EXPERT,
+  DENTAL_DISTRICT, MEDICALL_EXPERT, VAEO_BUSINESS_CLUB,
 ]
 
 export const STATIC_CASE_IDS: ReadonlySet<string> = new Set(STATIC_CASES.map(c => c.id))
