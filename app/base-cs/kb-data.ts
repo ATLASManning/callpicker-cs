@@ -1210,4 +1210,178 @@ export const KB: Categoria[] = [
       },
     ],
   },
+
+  // ── ASISTENTE VIRTUAL — REPORTERÍA ───────────────────────────────────────
+  {
+    id: 'asistente-virtual', label: 'Asistente Virtual', color: '#0D9488',
+    articulos: [
+
+      // ── 1. ¿Qué es? ──────────────────────────────────────────────────────
+      {
+        id: 'av-que-es',
+        titulo: '¿Qué son los Reportes Semanales de Agentes Virtuales de Voz?',
+        descripcion: 'Automatización que genera cada lunes un reporte de desempeño semanal (lun–dom, Ciudad de México) para cada agente virtual activo, considerando hasta 300 llamadas por reporte.',
+        bloques: [
+          {
+            tipo: 'parrafo',
+            texto: 'El sistema corre solo, sin intervención manual. Los reportes aparecen en el dashboard del agente y pueden compartirse con un enlace público.',
+          },
+          { tipo: 'seccion', titulo: 'Secciones de métricas que incluye' },
+          {
+            tipo: 'lista',
+            items: [
+              '🤖 Insights (Avanzado) — Las intenciones y desenlaces más frecuentes.',
+              '📞 Disposición (Básico) — Indicadores operativos: duración, latencia, uso de herramientas.',
+              '🤖 Calidad de las Conversaciones (Avanzado) — Sentimiento, resolución, adherencia al prompt, entre otras.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'Tipos de reporte' },
+        ],
+        modalidades: [
+          {
+            nombre: 'Básico 📞 — Sin costo ($)',
+            descripcion: 'Resumen general + indicadores operativos de los sistemas. Sin evaluación de IA.',
+          },
+          {
+            nombre: 'Avanzado 🤖 — Con costo ($)',
+            descripcion: 'Todo lo del Básico + calidad de conversación e Insights generados por IA.',
+          },
+        ],
+        consideraciones: [
+          { texto: 'URL de ejemplo de un reporte: https://connectors.callpicker.com/integrations/virtual_agents_reports/r/{id-del-reporte}/', tipo: 'info' },
+          { texto: 'Revisar que la URL contenga /integrations, /r y el identificador del reporte escrito correctamente.', tipo: 'warning' },
+        ],
+      },
+
+      // ── 2. Alta de agente ─────────────────────────────────────────────────
+      {
+        id: 'av-alta',
+        titulo: 'Dar de Alta un Agente en Reportería',
+        descripcion: 'Proceso para que un agente comience a generar reportes semanales. Se hace desde un formulario interno de dos pasos a prueba de errores.',
+        linkUrl: 'https://n8nw.connectors.callpicker.com/form/a8e04b74-e62b-47fb-aca9-d4c3beceb1bb',
+        linkLabel: 'Abrir formulario de alta',
+        funcionamiento: [
+          'Ingresar el Customer ID → el sistema lista los agentes de la cuenta que aún NO tienen reportería activa (los ya dados de alta no aparecen para evitar duplicados).',
+          'Elegir el Agente del desplegable (formato "ID - Nombre", ej. "1203 - AV Ventas") y el Tipo de reporte (Básico / Avanzado).',
+          'Enviar el formulario.',
+        ],
+        subtitulos: [
+          {
+            titulo: 'Verificación tras el alta',
+            items: [
+              'Abrir la vista de credenciales: https://connectors.callpicker.com/integrations/virtual_agents_reports/credentials',
+              'Iniciar sesión con las credenciales del cliente (Client ID y Secret ID de la API de Callpicker).',
+              'Confirmar que el agente recién dado de alta aparece en el listado de Agentes con reportería semanal activa.',
+              'Si aún no ha corrido ningún corte, es normal que no haya datos: se verá poblado tras el próximo corte semanal o tras lanzar un reporte manual.',
+            ],
+          },
+        ],
+      },
+
+      // ── 3. Reporte manual ─────────────────────────────────────────────────
+      {
+        id: 'av-reporte-manual',
+        titulo: 'Lanzar un Reporte Manual o Histórico',
+        descripcion: 'Para casos como "quiero el reporte de las semanas de febrero 2026" o "reprocesa la semana pasada". Se hace desde un formulario interno.',
+        linkUrl: 'https://n8nw.connectors.callpicker.com/form/1d42a863-1a3f-4858-a1ac-06f3d26b4066',
+        linkLabel: 'Abrir formulario de reporte manual',
+        funcionamiento: [
+          'Ingresar el Customer ID.',
+          'El sistema busca los agentes de esa cuenta con reportería activa.',
+          'Elegir el Agente del desplegable (formato "ID - Nombre"; solo aparecen los agentes con reportería activa).',
+          'Ingresar la Fecha de Inicio y la Fecha de Fin del periodo que se quiere cubrir.',
+          'Enviar: aparecerá una confirmación en segundos.',
+        ],
+        consideraciones: [
+          { texto: 'El reporte siempre cierra en domingo. Si el rango incluye varios domingos, se genera un reporte por cada uno.', tipo: 'info' },
+          { texto: 'Ejemplo: del 1 al 28 de febrero 2026 genera ~4 reportes (uno por semana). Para una sola semana, pon cualquier rango que incluya un único domingo.', tipo: 'info' },
+          { texto: 'El rango no puede exceder 31 días y debe incluir al menos un domingo.', tipo: 'warning' },
+          { texto: 'Cada reporte puede tardar entre 1 y 35 minutos en generarse en segundo plano (depende del número de llamadas). No es necesario mantener la ventana abierta.', tipo: 'info' },
+          { texto: 'Es seguro reprocesar: volver a correr una semana sobrescribe el reporte anterior, no lo duplica.', tipo: 'info' },
+        ],
+      },
+
+      // ── 4. Leer el dashboard ──────────────────────────────────────────────
+      {
+        id: 'av-dashboard',
+        titulo: 'Cómo leer el Dashboard de un Reporte',
+        descripcion: 'El reporte abre con un encabezado y una barra de totales siempre visible, seguidos de contenedores desplegables. Un reporte Básico muestra solo Resumen General; uno Avanzado añade Insights y Calidad de Conversaciones.',
+        subtitulos: [
+          {
+            titulo: '💼 Encabezado del reporte',
+            items: [
+              'Agente y modelo evaluado.',
+              'Periodo de la semana (lunes–domingo).',
+              'Tipo de reporte (Básico / Avanzado) y arquitectura del agente.',
+            ],
+          },
+          {
+            titulo: '📅 Barra de fechas (línea del tiempo)',
+            items: [
+              'Cada punto es una semana, marcado con su fecha y agrupado por mes; el punto resaltado es la semana activa.',
+              'Las flechas llevan a semanas más recientes o más antiguas.',
+              'Al hacer clic en una semana, todo el reporte se actualiza a ese periodo.',
+            ],
+          },
+          {
+            titulo: '📊 Barra de totales (fija al hacer scroll)',
+            items: [
+              'Total llamadas — todas las del periodo.',
+              'Atendidas — con interacción real; es la base para calidad e insights.',
+              'Sin interacción — buzón de voz, contestadora o sin audio captado.',
+              'Duración prom. — de las llamadas atendidas.',
+            ],
+          },
+          {
+            titulo: '💡 Insights — Hallazgos (solo Avanzado)',
+            items: [
+              'Motivos de Llamada: ranking de por qué llamó la gente, con % y nivel de resolución (al pasar el cursor por la "i").',
+              '¿Qué lograron las llamadas?: ranking de desenlaces (cotización entregada, cita agendada, transferencia a asesor, etc.).',
+              'Aspectos destacados: lo más relevante del periodo, redactado para el cliente.',
+            ],
+          },
+          {
+            titulo: '📊 Resumen General (siempre visible)',
+            items: [
+              'Procesamiento de Llamadas — Disposición: Contenidas (el Agente las llevó hasta el final), Transferidas (en vivo a persona) y Abandonadas (cortadas por inactividad).',
+              'Duración: promedio general, promedio de atendidas y la más larga.',
+              'Latencia del agente: TTFA (qué tan rápido empieza a hablar), LLM p50 y ejecución de herramientas en ms (más bajo es mejor).',
+              'Uso de herramientas: cuántas usa por llamada y, por herramienta, % de conversaciones en que se usó y veces en promedio.',
+            ],
+          },
+          {
+            titulo: '💬 Calidad de Conversaciones (solo Avanzado)',
+            items: [
+              'Puntajes: Adherencia al prompt (1–5) y Calidad de Conversación (1–5).',
+              'Tasas de desempeño: Flujo correcto, Intención resuelta e Información no verificable.',
+              'Sentimiento y resolución: Trayectoria de sentimiento (mejoró / se mantuvo / se deterioró) y Resolución (Resuelto / No resuelto / Inconcluso).',
+              'Casi cada métrica tiene un ícono "i": pásale el cursor para ver su definición dentro del propio dashboard.',
+            ],
+          },
+        ],
+        consideraciones: [
+          { texto: 'La evaluación de Calidad es generada por IA: los indicadores son orientativos para una lectura cualitativa, complementables con auditoría manual.', tipo: 'warning' },
+        ],
+      },
+
+      // ── 5. FAQ ────────────────────────────────────────────────────────────
+      {
+        id: 'av-faq',
+        titulo: 'Preguntas Frecuentes',
+        descripcion: 'Respuestas a las dudas más comunes sobre la reportería de Agentes Virtuales de Voz.',
+        subtitulos: [
+          {
+            titulo: 'Preguntas y respuestas',
+            items: [
+              '¿Qué tan atrás puedo pedir histórico? → Hasta donde haya datos en Retell y Callpicker. Si una semana muy antigua sale vacía, probablemente ya no hay registro de esas llamadas.',
+              'Una semana salió con 0 llamadas, ¿es un error? → No. Una semana sin llamadas se guarda igual y el dashboard muestra "sin llamadas en el periodo". Es un resultado válido, no una falla.',
+              'Reprocesé una semana y cambiaron algunos números. ¿Por qué? → Normal: la evaluación de IA puede variar ligeramente entre corridas, y un reproceso puede capturar más llamadas. El reporte se sobrescribe con el más reciente.',
+              '¿A quién acudo si un reporte no aparece tras ~15 minutos? → Al equipo técnico, con el Customer ID, Agent ID y el domingo (fecha de cierre) del reporte.',
+            ],
+          },
+        ],
+      },
+
+    ],
+  },
 ]

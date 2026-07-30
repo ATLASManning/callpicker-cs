@@ -7,7 +7,7 @@ import {
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
   ShieldCheck, Puzzle, Globe, FileText, LifeBuoy,
-  Heart, ExternalLink,
+  Heart, ExternalLink, Cpu,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
 
@@ -43,7 +43,8 @@ const CAT_ICONS: Record<string, React.ElementType> = {
   integraciones:  Puzzle,
   cobertura:      Globe,
   soporte:        LifeBuoy,
-  'callpicker-sac': Heart,
+  'callpicker-sac':     Heart,
+  'asistente-virtual':  Cpu,
 }
 
 // ── KB ordenado alfabéticamente (Callpicker SAC siempre al inicio) ────────────
