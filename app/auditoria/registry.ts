@@ -40,6 +40,7 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'alianza',         nombre: 'Alianza Multimarca',               consecutivos: ['D4']  },
   { id: 'medicall-expert', nombre: 'Medicall Expert',                  consecutivos: ['C31'] },
   { id: 'vaeo-business-club', nombre: 'VAEO Business Club',           consecutivos: ['C51'] },
+  { id: 'kombitec',           nombre: 'KOMBITEC S.A. DE C.V.',        consecutivos: ['D22'] },
 ]
 
 /** Devuelve la auditoría asociada a un consecutivo de cuenta, o null si no existe. */
