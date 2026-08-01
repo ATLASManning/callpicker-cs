@@ -971,6 +971,91 @@ const REPORTE_S3_JULIO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 14 · JULIO 2026  (30 jul 2026)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S4_JULIO_2026: ChurnReporte = {
+  id:      's4-julio-2026',
+  periodo: 'Semana 14 · Jul 2026',
+  fecha:   '30/07/2026',
+  notas:   'Gross Revenue Churn · Semana 14. Al 30 de julio del 2026. Cuarto y último corte de julio. Q2: Mayo 1.5% · Junio 3.4% · Julio 4.8% (en curso, NO DEFINITIVO). Acumulado 2026: 17.9%. Próxima revisión: viernes 7 de agosto.',
+  notaRemitente: 'Daniel Martínez — Próxima revisión: viernes 7 de agosto.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Abril',           pct: 1.7, anterior: 1.8 },
+      { mes: 'Mayo',            pct: 1.5, anterior: 1.6 },
+      { mes: 'Junio',           pct: 3.4 },
+      { mes: 'Julio (en curso)',pct: 4.8 },
+    ],
+    acumulado: 17.9,
+    anterior:  13.1,
+    notaClave: 'Q2 final: Abril 1.7% · Mayo 1.5% · Junio 3.4%. Julio en curso: 4.8% — NO DEFINITIVO. Acumulado 2026: 17.9% (ant. 13.1%).',
+    notaEspecial: '🚨 Alerta "Churn Silencioso": 3 de 5 clientes con downgrade presentaron reducciones >40% — CiberZion −86%, Soluciones Textiles −68%, H2 business club −51%. Reducciones de esta magnitud representan riesgo de cancelación total en los próximos 30–60 días. Seguimiento acumulado semanas: S1 AdminPlus desactivado · S2 Servitaxi cancelado / Urbanelle cancelado / Montebello suspendido · S3 8 desactivados $10,034.',
+  },
+
+  /* En Corte Sem 4 — top 5 de ~20 cuentas · total $69,581 */
+  pendientesTotalReal:   69581,
+  pendientesCuentasReal: 20,
+  pendientes: [
+    { cliente: '🔝 Gas Economico Metropolitano', monto: 18659, mesesActivo: 0, ultimaFactura: '' },
+    { cliente: 'GRUPO RIZO',                     monto: 9211,  mesesActivo: 0, ultimaFactura: '' },
+    { cliente: 'Grupo Suma',                     monto: 7190,  mesesActivo: 0, ultimaFactura: '' },
+    { cliente: 'Mexico Asistencia',              monto: 3380,  mesesActivo: 0, ultimaFactura: '' },
+    { cliente: 'Nano Care',                      monto: 2357,  mesesActivo: 0, ultimaFactura: '' },
+    { cliente: '+ ~15 cuentas adicionales',      monto: 28784, mesesActivo: 0, ultimaFactura: 'Ver lista completa en el dashboard' },
+  ],
+
+  /* Cancelados Sem 4 — 8 cuentas · $8,378 */
+  cancelados: [
+    { cliente: '🔝 HostPal',     mrr: 2695, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'Reactor',        mrr: 1659, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'Pasteur Soft',   mrr: 1177, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'PAN AMERICAN',   mrr: 944,  mesesActivo: 0, acumulado: 0 },
+    { cliente: 'QuikPeso',       mrr: 730,  mesesActivo: 0, acumulado: 0 },
+    { cliente: 'Torre Himalaya', mrr: 489,  mesesActivo: 0, acumulado: 0 },
+    { cliente: 'ENVIRONET',      mrr: 489,  mesesActivo: 0, acumulado: 0 },
+    { cliente: 'Creativa',       mrr: 195,  mesesActivo: 0, acumulado: 0 },
+  ],
+
+  /* Downgrades Sem 4 — 5 clientes · $5,308.87 */
+  downgradeTotalReal: 5308.87,
+  downgrades: [
+    { cliente: '🚨 H2 business club',    perdida: 2277,   nota: '51% de baja. Reducción crítica. Riesgo alto de cancelación total en los próximos 30–60 días.' },
+    { cliente: '🚨 Soluciones Textiles', perdida: 1350,   nota: '68% de baja. Reducción crítica. Riesgo de churn silencioso inminente.' },
+    { cliente: 'Servisco',              perdida: 489,    nota: '41% de baja. Reducción en artículos contratados.' },
+    { cliente: '🚨 CiberZion',           perdida: 421.87, nota: '86% de baja — mayor porcentaje del período. Riesgo de cancelación total en siguiente ciclo.' },
+    { cliente: 'Dicap Desarrollos',     perdida: 381,    nota: '12% de baja. Reducción menor en artículos contratados.' },
+  ],
+
+  downgradeArticulos: [
+    { articulo: 'Reducción >40% (churn silencioso)', vecesAfectado: 3, clientes: ['CiberZion −86%', 'Soluciones Textiles −68%', 'H2 business club −51%'] },
+    { articulo: 'Reducción ≤41%',                    vecesAfectado: 2, clientes: ['Servisco −41%', 'Dicap Desarrollos −12%'] },
+  ],
+
+  /* Suspendidos Sem 4 — 4 cuentas · $4,685 */
+  suspendidosTotalReal:   4685,
+  suspendidosCuentasReal: 4,
+  suspendidos: [
+    { cliente: '🔝 Pizzall',    importe: 1870, mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'WTC Querétaro', importe: 1469, mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Flexzone',      importe: 979,  mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Lunah',         importe: 367,  mesesActivo: 0, estado: 'Suspendido' },
+  ],
+
+  /* Desactivados Sem 4 — 17 cuentas · $14,415.26 · top 5 */
+  desactivadosTotalReal:   14415.26,
+  desactivadosCuentasReal: 17,
+  desactivados: [
+    { cliente: '🔝 Depósito Dental Reisix', importe: 2878,    mesesActivo: 0 },
+    { cliente: 'Quiero Flores',             importe: 1869,    mesesActivo: 0 },
+    { cliente: 'Uno Suministros',           importe: 1759,    mesesActivo: 0 },
+    { cliente: 'Clear Intelligence',        importe: 1177.26, mesesActivo: 0 },
+    { cliente: 'MRT',                       importe: 979,     mesesActivo: 0 },
+    { cliente: '+ 12 cuentas adicionales',  importe: 5753,    mesesActivo: 0 },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -1385,7 +1470,7 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s3-julio-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s4-julio-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [acumCancelSort, setAcumCancelSort] = useState<{ col: 'cliente' | 'mrr' | 'mesesActivo' | 'acumulado' | 'periodo'; dir: 'asc' | 'desc' }>({ col: 'mrr', dir: 'desc' })
@@ -1413,8 +1498,8 @@ export default function ChurnPage() {
 
 
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026', 's2-julio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S3_JULIO_2026
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S4_JULIO_2026
 
   // Pre-filtrar a Enterprise y Large cuando llegan los datos
   useEffect(() => {
@@ -1591,7 +1676,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s3-julio-2026')
+    if (selectedId === id) setSelectedId('s4-julio-2026')
     setDelConfirm(null)
   }
 
