@@ -6,6 +6,7 @@ import {
 import PageHeader from '@/components/PageHeader'
 import SemaforoDashChart from '@/components/charts/SemaforoDashChart'
 import AsesorLineasChart from '@/components/charts/AsesorLineasChart'
+import TicketsAnalyticsChart, { type TicketsAnalyticsData } from '@/components/charts/TicketsAnalyticsChart'
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
 import DashMetricasSection from '@/components/DashMetricasSection'
@@ -725,13 +726,85 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
 }
 
 // ── Tickets globales ──────────────────────────────────────────────────────────
-interface TicketRaw { es_falla: string; fecha: string }
+interface TicketRaw { es_falla: string; fecha: string; empresa: string; categoria: string; mes: string }
 const _allTickets = rawTickets as TicketRaw[]
 const globalTickets = {
   total:  _allTickets.length,
   fallas: _allTickets.filter(t => t.es_falla === 'Si').length,
   ultima: _allTickets.reduce((acc, t) => t.fecha > acc ? t.fecha : acc, ''),
 }
+
+// ── Tickets analytics (server-side, static) ───────────────────────────────────
+const ticketsAnalytics: TicketsAnalyticsData = (() => {
+  const INTERNAL = new Set(['Callpicker', 'sin cuenta', ''])
+
+  // Top clientes
+  const cliMap: Record<string, { total: number; fallas: number }> = {}
+  for (const t of _allTickets) {
+    if (INTERNAL.has(t.empresa)) continue
+    if (!cliMap[t.empresa]) cliMap[t.empresa] = { total: 0, fallas: 0 }
+    cliMap[t.empresa].total++
+    if (t.es_falla === 'Si') cliMap[t.empresa].fallas++
+  }
+  const topClientes = Object.entries(cliMap)
+    .map(([empresa, v]) => ({ empresa, ...v }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10)
+
+  // Por categoría
+  const catMap: Record<string, { total: number; fallas: number }> = {}
+  for (const t of _allTickets) {
+    const cat = t.categoria || 'Sin categorizar'
+    if (!catMap[cat]) catMap[cat] = { total: 0, fallas: 0 }
+    catMap[cat].total++
+    if (t.es_falla === 'Si') catMap[cat].fallas++
+  }
+  const porCategoria = Object.entries(catMap)
+    .map(([categoria, v]) => ({ categoria, ...v }))
+    .sort((a, b) => b.total - a.total)
+
+  // Reincidencia (empresa × categoría)
+  const reinMap: Record<string, { empresa: string; categoria: string; count: number; fallas: number }> = {}
+  for (const t of _allTickets) {
+    if (INTERNAL.has(t.empresa)) continue
+    const cat = t.categoria || 'Sin categorizar'
+    const k = `${t.empresa}||${cat}`
+    if (!reinMap[k]) reinMap[k] = { empresa: t.empresa, categoria: cat, count: 0, fallas: 0 }
+    reinMap[k].count++
+    if (t.es_falla === 'Si') reinMap[k].fallas++
+  }
+  const reincidentes = Object.values(reinMap)
+    .filter(x => x.count >= 3)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12)
+
+  // Tendencia mensual
+  const mesMap: Record<string, { total: number; fallas: number }> = {}
+  for (const t of _allTickets) {
+    if (!t.mes) continue
+    if (!mesMap[t.mes]) mesMap[t.mes] = { total: 0, fallas: 0 }
+    mesMap[t.mes].total++
+    if (t.es_falla === 'Si') mesMap[t.mes].fallas++
+  }
+  const tendencia = Object.entries(mesMap)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([mes, v]) => ({
+      mes,
+      label: new Date(mes + '-15').toLocaleDateString('es-MX', { month: 'short', year: '2-digit' }),
+      total: v.total,
+      fallas: v.fallas,
+      otros: v.total - v.fallas,
+    }))
+
+  return {
+    topClientes,
+    porCategoria,
+    reincidentes,
+    tendencia,
+    totalTickets: _allTickets.length,
+    totalFallas:  _allTickets.filter(t => t.es_falla === 'Si').length,
+  }
+})()
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default async function DashboardPage() {
@@ -942,6 +1015,11 @@ export default async function DashboardPage() {
             <LifeBuoy size={13} /> Centro de Ayuda
           </a>
         </div>
+      </div>
+
+      {/* ══ §2b Tickets Analytics ══════════════════════════════════════════ */}
+      <div className="px-6 mb-5">
+        <TicketsAnalyticsChart data={ticketsAnalytics} />
       </div>
 
       {/* ══ §3 Tacómetros por Asesor ═══════════════════════════════════════ */}
