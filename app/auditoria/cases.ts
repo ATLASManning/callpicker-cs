@@ -20,6 +20,7 @@ import { DENTAL_DISTRICT }       from './dental-district-data'
 import { MEDICALL_EXPERT }       from './medicall-expert-data'
 import { VAEO_BUSINESS_CLUB }    from './vaeo-business-club-data'
 import { KOMBITEC }              from './kombitec-data'
+import { NERUC_SEDE_CENTRAL }   from './neruc-sede-central-data'
 import type { AuditoriaCase } from './types'
 
 export const STATIC_CASES: AuditoriaCase[] = [
@@ -28,6 +29,7 @@ export const STATIC_CASES: AuditoriaCase[] = [
   BRANDGROUP, CINTAS_COVE, CLICKBALANCE, ELERY_BRANDS,
   HOSPITAL_SANTA_ROSA, TRAVELLING, POLAK_GRUPO, PUBSA,
   DENTAL_DISTRICT, MEDICALL_EXPERT, VAEO_BUSINESS_CLUB, KOMBITEC,
+  NERUC_SEDE_CENTRAL,
 ]
 
 export const STATIC_CASE_IDS: ReadonlySet<string> = new Set(STATIC_CASES.map(c => c.id))
