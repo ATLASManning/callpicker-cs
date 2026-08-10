@@ -10566,7 +10566,7 @@
   {
     "cid": "17668",
     "num": "2177",
-    "empresa": 5,
+    "empresa": "5",
     "fecha": "2026-02",
     "ticket_id": "1119960000001960000",
     "categoria": "Administrativo (voz)",
@@ -11516,7 +11516,7 @@
   {
     "cid": "10844",
     "num": "104679",
-    "empresa": 9,
+    "empresa": "9",
     "fecha": "2026-03",
     "ticket_id": "1119960000019040000",
     "categoria": "Asistencia (voz)",
@@ -17957,7 +17957,7 @@
   {
     "cid": "38042",
     "num": "105418",
-    "empresa": 5567701000,
+    "empresa": "5567701000",
     "fecha": "2026-04",
     "ticket_id": "1119960000019610000",
     "categoria": "Asistencia (voz)",
@@ -36197,7 +36197,7 @@
   {
     "cid": "5211",
     "num": "106041",
-    "empresa": 1089,
+    "empresa": "1089",
     "fecha": "2026-05",
     "ticket_id": "1119960000019890000",
     "categoria": "Administrativo (voz)",
@@ -42030,7 +42030,7 @@
   {
     "cid": "181224",
     "num": "108201",
-    "empresa": 181224,
+    "empresa": "181224",
     "fecha": "2026-06",
     "ticket_id": "1119960000021170000",
     "categoria": "Administrativo (voz)",
