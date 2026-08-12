@@ -1,5 +1,6 @@
 import path from 'path'
 import ActivacionesCharts, { RegistroItem } from '@/components/charts/ActivacionesCharts'
+import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,18 +60,22 @@ async function getRegistros(): Promise<RegistroItem[]> {
     return raw
       .filter(r => r['ID'] && r['Cliente'])
       .map(r => ({
-        id:           String(r['ID']),
-        cliente:      String(r['Cliente']).trim(),
-        primerPago:   typeof r['1er Pago'] === 'number' ? r['1er Pago'] : parseFloat(String(r['1er Pago']).replace(/[$,]/g, '')) || 0,
-        tamano:       normTamano(String(r['Tamaño'])),
-        ejecutivo:    normEjecutivo(String(r['Ejecutivo'])),
-        mes:          String(r['Mes 1er Pago']).trim(),      // January … December
-        ano:          typeof r['Año'] === 'number' ? r['Año'] : parseInt(String(r['Año'])) || 0,
-        vendedor:     normVendedor(String(r['Vendedor'])),
-        giro:         normGiro(String(r['Giro'])),
-        tipo:         normTipo(String(r['Tipo'])),           // pagada / demo / convertida
+        id:             String(r['ID']),
+        cliente:        String(r['Cliente']).trim(),
+        primerPago:     typeof r['1er Pago'] === 'number' ? r['1er Pago'] : parseFloat(String(r['1er Pago']).replace(/[$,]/g, '')) || 0,
+        tamano:         normTamano(String(r['Tamaño'])),
+        ejecutivo:      normEjecutivo(String(r['Ejecutivo'])),
+        mes:            String(r['Mes 1er Pago']).trim(),
+        ano:            typeof r['Año'] === 'number' ? r['Año'] : parseInt(String(r['Año'])) || 0,
+        vendedor:       normVendedor(String(r['Vendedor'])),
+        giro:           normGiro(String(r['Giro'])),
+        tipo:           normTipo(String(r['Tipo'])),
+        diasActivacion: typeof r['Dias activacion'] === 'number' && r['Dias activacion'] > 0 ? r['Dias activacion'] : null,
+        contacto:       String(r['¿Se tuvo contacto?'] ?? '').trim() || 'N/A',
+        encuesta:       String(r['Encuesta Satisfaccion al cliente'] ?? '').trim() || 'N/A',
+        complejidad:    String(r['Complejidad'] ?? '').trim().toLowerCase() || 'N/A',
       }))
-      .filter(r => r.ano >= 2020)   // excluir filas con año inválido
+      .filter(r => r.ano >= 2020)
 
   } catch (err) {
     console.error('[activaciones] Error leyendo Excel:', err)
@@ -139,6 +144,7 @@ export default async function ActivacionesPage() {
       {/* Charts */}
       <div style={{ padding: '28px 32px 64px' }}>
         <ActivacionesCharts registros={registros} anos={anos} />
+        <ActivacionesDiagnostico registros={registros} />
       </div>
     </div>
   )

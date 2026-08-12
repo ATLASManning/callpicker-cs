@@ -84,6 +84,10 @@ const TT_STYLE = {
 export interface RegistroItem {
   id:string; cliente:string; primerPago:number; tamano:string
   ejecutivo:string; mes:string; ano:number; vendedor:string; giro:string; tipo:string
+  diasActivacion: number | null
+  contacto:       string
+  encuesta:       string
+  complejidad:    string
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
