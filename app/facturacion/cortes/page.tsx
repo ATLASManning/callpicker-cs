@@ -153,11 +153,12 @@ export default function InformeCortesPage() {
   const [tab,        setTab]        = useState<'resumen' | 'consumo' | 'tendencia' | 'detalle'>('resumen')
   const [loading,    setLoading]    = useState(true)
   const [loadingList, setLoadingList] = useState(false)
-  const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(
-    new Set(ALL_COLS.map(c => c.key))
-  )
-  const [showColMenu, setShowColMenu] = useState(false)
-  const colMenuRef = useRef<HTMLDivElement>(null)
+  const [visibleCols,  setVisibleCols]  = useState<Set<ColKey>>(new Set(ALL_COLS.map(c => c.key)))
+  const [colOrder,     setColOrder]     = useState<ColKey[]>(ALL_COLS.map(c => c.key))
+  const [showColMenu,  setShowColMenu]  = useState(false)
+  const [dragOverIdx,  setDragOverIdx]  = useState<number | null>(null)
+  const colMenuRef  = useRef<HTMLDivElement>(null)
+  const dragItemIdx = useRef<number | null>(null)
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -168,6 +169,29 @@ export default function InformeCortesPage() {
     if (showColMenu) document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [showColMenu])
+
+  function handleDragStart(idx: number) {
+    dragItemIdx.current = idx
+  }
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault()
+    setDragOverIdx(idx)
+  }
+  function handleDrop(e: React.DragEvent, idx: number) {
+    e.preventDefault()
+    const from = dragItemIdx.current
+    if (from === null || from === idx) { setDragOverIdx(null); return }
+    const next = Array.from(colOrder)
+    const [moved] = next.splice(from, 1)
+    next.splice(idx, 0, moved)
+    setColOrder(next)
+    dragItemIdx.current = null
+    setDragOverIdx(null)
+  }
+  function handleDragEnd() {
+    dragItemIdx.current = null
+    setDragOverIdx(null)
+  }
 
   /* ── Cargar filtros y stats iniciales ─────────────────────────────── */
   useEffect(() => {
@@ -645,49 +669,88 @@ export default function InformeCortesPage() {
                   position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50,
                   background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 12,
                   boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 4px',
-                  minWidth: 200,
+                  minWidth: 220,
                 }}>
-                  <div style={{ padding: '4px 12px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Columnas visibles</span>
-                    <button
-                      onClick={() => setVisibleCols(new Set(ALL_COLS.map(c => c.key)))}
-                      style={{ fontSize: 10, color: '#1B3FCC', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
-                    >
-                      Todas
-                    </button>
+                  {/* Cabecera */}
+                  <div style={{ padding: '4px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Columnas
+                      </span>
+                      <p style={{ fontSize: 10, color: '#94a3b8', margin: '1px 0 0' }}>Arrastra para reordenar</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => setVisibleCols(new Set(ALL_COLS.map(c => c.key)))}
+                        style={{ fontSize: 10, color: '#1B3FCC', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>
+                        Todas
+                      </button>
+                      <button onClick={() => setColOrder(ALL_COLS.map(c => c.key))}
+                        style={{ fontSize: 10, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
+                        Reset orden
+                      </button>
+                    </div>
                   </div>
-                  {ALL_COLS.map(col => {
-                    const checked = visibleCols.has(col.key)
+                  <div style={{ height: 1, background: '#f1f5f9', margin: '4px 8px 6px' }} />
+
+                  {/* Lista draggable */}
+                  {colOrder.map((key, idx) => {
+                    const col    = ALL_COLS.find(c => c.key === key)!
+                    const checked = visibleCols.has(key)
+                    const isTarget = dragOverIdx === idx
+                    const fromAbove = isTarget && dragItemIdx.current !== null && dragItemIdx.current > idx
+                    const fromBelow = isTarget && dragItemIdx.current !== null && dragItemIdx.current < idx
                     return (
-                      <label key={col.key} style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '7px 14px', cursor: 'pointer',
-                        borderRadius: 8, margin: '1px 4px',
-                        background: checked ? '#1B3FCC08' : 'transparent',
-                      }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#f1f5f9')}
-                        onMouseLeave={e => (e.currentTarget.style.background = checked ? '#1B3FCC08' : 'transparent')}
+                      <div
+                        key={key}
+                        draggable
+                        onDragStart={() => handleDragStart(idx)}
+                        onDragOver={e => handleDragOver(e, idx)}
+                        onDragLeave={() => setDragOverIdx(null)}
+                        onDrop={e => handleDrop(e, idx)}
+                        onDragEnd={handleDragEnd}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          padding: '7px 10px',
+                          borderRadius: 8, margin: '1px 4px',
+                          background: isTarget ? '#EFF6FF' : 'transparent',
+                          borderTop:    fromAbove ? '2px solid #1B3FCC' : '2px solid transparent',
+                          borderBottom: fromBelow ? '2px solid #1B3FCC' : '2px solid transparent',
+                          opacity: dragItemIdx.current === idx ? 0.35 : 1,
+                          cursor: 'grab',
+                          transition: 'background 0.1s, opacity 0.15s',
+                          userSelect: 'none',
+                        }}
                       >
+                        {/* Handle */}
+                        <span style={{ color: '#cbd5e1', fontSize: 15, lineHeight: 1, flexShrink: 0 }}>⠿</span>
+
+                        {/* Checkbox */}
                         <input
                           type="checkbox"
                           checked={checked}
-                          onChange={() => {
+                          onChange={e => {
+                            e.stopPropagation()
                             setVisibleCols(prev => {
                               const next = new Set(prev)
-                              if (next.has(col.key)) {
-                                if (next.size > 1) next.delete(col.key)
-                              } else {
-                                next.add(col.key)
-                              }
+                              if (next.has(key)) { if (next.size > 1) next.delete(key) }
+                              else next.add(key)
                               return next
                             })
                           }}
-                          style={{ accentColor: '#1B3FCC', width: 14, height: 14, cursor: 'pointer' }}
+                          onClick={e => e.stopPropagation()}
+                          style={{ accentColor: '#1B3FCC', width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }}
                         />
-                        <span style={{ fontSize: 13, color: checked ? '#0f172a' : '#94a3b8', fontWeight: checked ? 600 : 400 }}>
+
+                        {/* Etiqueta */}
+                        <span style={{ fontSize: 13, color: checked ? '#0f172a' : '#94a3b8', fontWeight: checked ? 600 : 400, flex: 1 }}>
                           {col.label}
                         </span>
-                      </label>
+
+                        {/* Número de posición */}
+                        <span style={{ fontSize: 10, color: '#cbd5e1', fontWeight: 700, minWidth: 16, textAlign: 'right' }}>
+                          {idx + 1}
+                        </span>
+                      </div>
                     )
                   })}
                 </div>
@@ -704,33 +767,51 @@ export default function InformeCortesPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: '#f8fafc' }}>
-                    {ALL_COLS.filter(c => visibleCols.has(c.key)).map(c => (
-                      <th key={c.key} style={{ padding: '10px 10px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontSize: 11 }}>
-                        {c.label}
-                      </th>
-                    ))}
+                    {colOrder.filter(k => visibleCols.has(k)).map(k => {
+                      const col = ALL_COLS.find(c => c.key === k)!
+                      const isNum = ['minutosIncl','minutosConsum','pctConsumo','monto'].includes(k)
+                      return (
+                        <th key={k} style={{ padding: '10px 10px', textAlign: isNum ? 'right' : 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontSize: 11 }}>
+                          {col.label}
+                        </th>
+                      )
+                    })}
                   </tr>
                 </thead>
                 <tbody>
                   {list.rows.map((r, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      {visibleCols.has('cid')           && <td style={{ padding: '8px 10px', color: '#94a3b8', fontWeight: 600, fontSize: 11 }}>{r.cid}</td>}
-                      {visibleCols.has('cliente')        && <td style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.cliente}</td>}
-                      {visibleCols.has('periodo')        && <td style={{ padding: '8px 10px', color: '#64748b', whiteSpace: 'nowrap', fontSize: 11 }}>{r.periodo}</td>}
-                      {visibleCols.has('plan')           && <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>}
-                      {visibleCols.has('minutosIncl')    && <td style={{ padding: '8px 10px', color: '#374151', textAlign: 'right' }}>{r.minutosIncl.toLocaleString()}</td>}
-                      {visibleCols.has('minutosConsum')  && <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#0f172a' }}>{r.minutosConsum.toLocaleString()}</td>}
-                      {visibleCols.has('pctConsumo')     && <td style={{ padding: '8px 10px', textAlign: 'right' }}><span style={{ fontWeight: 700, color: pctConsumoColor(r.pctConsumo) }}>{r.pctConsumo.toFixed(1)}%</span></td>}
-                      {visibleCols.has('monto')          && <td style={{ padding: '8px 10px', fontWeight: 700, color: '#1B3FCC', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>}
-                      {visibleCols.has('clasificacion')  && <td style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR)}>{r.clasificacion || '—'}</span></td>}
-                      {visibleCols.has('uso')            && <td style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR)}>{r.usoPrincipal || '—'}</span></td>}
-                      {visibleCols.has('eventos')        && (
-                        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                          {r.eventosAnal === 'Si'
-                            ? <CheckCircle size={13} style={{ color: '#22c55e' }} />
-                            : <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>}
-                        </td>
-                      )}
+                      {colOrder.filter(k => visibleCols.has(k)).map(k => {
+                        if (k === 'cid')
+                          return <td key={k} style={{ padding: '8px 10px', color: '#94a3b8', fontWeight: 600, fontSize: 11 }}>{r.cid}</td>
+                        if (k === 'cliente')
+                          return <td key={k} style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.cliente}</td>
+                        if (k === 'periodo')
+                          return <td key={k} style={{ padding: '8px 10px', color: '#64748b', whiteSpace: 'nowrap', fontSize: 11 }}>{r.periodo}</td>
+                        if (k === 'plan')
+                          return <td key={k} style={{ padding: '8px 10px', color: '#374151', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
+                        if (k === 'minutosIncl')
+                          return <td key={k} style={{ padding: '8px 10px', color: '#374151', textAlign: 'right' }}>{r.minutosIncl.toLocaleString()}</td>
+                        if (k === 'minutosConsum')
+                          return <td key={k} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#0f172a' }}>{r.minutosConsum.toLocaleString()}</td>
+                        if (k === 'pctConsumo')
+                          return <td key={k} style={{ padding: '8px 10px', textAlign: 'right' }}><span style={{ fontWeight: 700, color: pctConsumoColor(r.pctConsumo) }}>{r.pctConsumo.toFixed(1)}%</span></td>
+                        if (k === 'monto')
+                          return <td key={k} style={{ padding: '8px 10px', fontWeight: 700, color: '#1B3FCC', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>
+                        if (k === 'clasificacion')
+                          return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR)}>{r.clasificacion || '—'}</span></td>
+                        if (k === 'uso')
+                          return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR)}>{r.usoPrincipal || '—'}</span></td>
+                        if (k === 'eventos')
+                          return (
+                            <td key={k} style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              {r.eventosAnal === 'Si'
+                                ? <CheckCircle size={13} style={{ color: '#22c55e' }} />
+                                : <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>}
+                            </td>
+                          )
+                        return null
+                      })}
                     </tr>
                   ))}
                 </tbody>
