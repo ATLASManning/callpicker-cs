@@ -1,9 +1,9 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   BarChart2, Phone, PhoneIncoming, PhoneOutgoing, TrendingUp,
   AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, Search,
-  Calendar, Zap, Filter, CheckCircle,
+  Zap, Filter, CheckCircle, Columns,
 } from 'lucide-react'
 
 /* ── Tipos ─────────────────────────────────────────────────────────────────── */
@@ -27,6 +27,23 @@ interface CorteRow {
 
 interface Filtros { fechas: string[]; planes: string[]; clases: string[]; usos: string[] }
 interface ListRes  { total: number; page: number; size: number; rows: CorteRow[] }
+
+/* ── Definición de columnas de la tabla Detalle ────────────────────────────── */
+const ALL_COLS = [
+  { key: 'cid',           label: 'CID'           },
+  { key: 'cliente',       label: 'Cliente'        },
+  { key: 'periodo',       label: 'Periodo'        },
+  { key: 'plan',          label: 'Plan'           },
+  { key: 'minutosIncl',   label: 'Min. Inc.'      },
+  { key: 'minutosConsum', label: 'Min. Cons.'     },
+  { key: 'pctConsumo',    label: '% Consumo'      },
+  { key: 'monto',         label: 'Monto'          },
+  { key: 'clasificacion', label: 'Clasificación'  },
+  { key: 'uso',           label: 'Uso'            },
+  { key: 'eventos',       label: 'Eventos'        },
+] as const
+
+type ColKey = typeof ALL_COLS[number]['key']
 
 /* ── Helpers ───────────────────────────────────────────────────────────────── */
 const fmt$ = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
@@ -136,6 +153,21 @@ export default function InformeCortesPage() {
   const [tab,        setTab]        = useState<'resumen' | 'consumo' | 'tendencia' | 'detalle'>('resumen')
   const [loading,    setLoading]    = useState(true)
   const [loadingList, setLoadingList] = useState(false)
+  const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(
+    new Set(ALL_COLS.map(c => c.key))
+  )
+  const [showColMenu, setShowColMenu] = useState(false)
+  const colMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) {
+        setShowColMenu(false)
+      }
+    }
+    if (showColMenu) document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [showColMenu])
 
   /* ── Cargar filtros y stats iniciales ─────────────────────────────── */
   useEffect(() => {
@@ -569,7 +601,7 @@ export default function InformeCortesPage() {
       {tab === 'detalle' && (
         <div className="cp-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
 
-          {/* Buscador */}
+          {/* Buscador + selector de columnas */}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 10, alignItems: 'center', background: '#f8fafc' }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
@@ -583,6 +615,85 @@ export default function InformeCortesPage() {
               style={{ padding: '8px 14px', borderRadius: 8, background: '#1B3FCC', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
               Buscar
             </button>
+
+            {/* Selector de columnas */}
+            <div ref={colMenuRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowColMenu(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0',
+                  background: showColMenu ? '#1B3FCC' : '#fff',
+                  color: showColMenu ? '#fff' : '#374151',
+                  cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                }}
+              >
+                <Columns size={13} />
+                Columnas
+                <span style={{
+                  fontSize: 10, fontWeight: 700,
+                  background: showColMenu ? 'rgba(255,255,255,0.25)' : '#1B3FCC18',
+                  color: showColMenu ? '#fff' : '#1B3FCC',
+                  padding: '1px 5px', borderRadius: 99,
+                }}>
+                  {visibleCols.size}/{ALL_COLS.length}
+                </span>
+              </button>
+
+              {showColMenu && (
+                <div style={{
+                  position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50,
+                  background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 12,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 4px',
+                  minWidth: 200,
+                }}>
+                  <div style={{ padding: '4px 12px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Columnas visibles</span>
+                    <button
+                      onClick={() => setVisibleCols(new Set(ALL_COLS.map(c => c.key)))}
+                      style={{ fontSize: 10, color: '#1B3FCC', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                      Todas
+                    </button>
+                  </div>
+                  {ALL_COLS.map(col => {
+                    const checked = visibleCols.has(col.key)
+                    return (
+                      <label key={col.key} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '7px 14px', cursor: 'pointer',
+                        borderRadius: 8, margin: '1px 4px',
+                        background: checked ? '#1B3FCC08' : 'transparent',
+                      }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f1f5f9')}
+                        onMouseLeave={e => (e.currentTarget.style.background = checked ? '#1B3FCC08' : 'transparent')}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => {
+                            setVisibleCols(prev => {
+                              const next = new Set(prev)
+                              if (next.has(col.key)) {
+                                if (next.size > 1) next.delete(col.key)
+                              } else {
+                                next.add(col.key)
+                              }
+                              return next
+                            })
+                          }}
+                          style={{ accentColor: '#1B3FCC', width: 14, height: 14, cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: 13, color: checked ? '#0f172a' : '#94a3b8', fontWeight: checked ? 600 : 400 }}>
+                          {col.label}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
             {list && <span style={{ fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>{list.total.toLocaleString('es-MX')} registros</span>}
           </div>
 
@@ -593,31 +704,33 @@ export default function InformeCortesPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: '#f8fafc' }}>
-                    {['CID', 'Cliente', 'Periodo', 'Plan', 'Min. Inc.', 'Min. Cons.', '% Consumo', 'Monto', 'Clasificación', 'Uso', 'Eventos'].map(h => (
-                      <th key={h} style={{ padding: '10px 10px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontSize: 11 }}>{h}</th>
+                    {ALL_COLS.filter(c => visibleCols.has(c.key)).map(c => (
+                      <th key={c.key} style={{ padding: '10px 10px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontSize: 11 }}>
+                        {c.label}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {list.rows.map((r, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '8px 10px', color: '#94a3b8', fontWeight: 600, fontSize: 11 }}>{r.cid}</td>
-                      <td style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.cliente}</td>
-                      <td style={{ padding: '8px 10px', color: '#64748b', whiteSpace: 'nowrap', fontSize: 11 }}>{r.periodo}</td>
-                      <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
-                      <td style={{ padding: '8px 10px', color: '#374151', textAlign: 'right' }}>{r.minutosIncl.toLocaleString()}</td>
-                      <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#0f172a' }}>{r.minutosConsum.toLocaleString()}</td>
-                      <td style={{ padding: '8px 10px', textAlign: 'right' }}>
-                        <span style={{ fontWeight: 700, color: pctConsumoColor(r.pctConsumo) }}>{r.pctConsumo.toFixed(1)}%</span>
-                      </td>
-                      <td style={{ padding: '8px 10px', fontWeight: 700, color: '#1B3FCC', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>
-                      <td style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR)}>{r.clasificacion || '—'}</span></td>
-                      <td style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR)}>{r.usoPrincipal || '—'}</span></td>
-                      <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                        {r.eventosAnal === 'Si'
-                          ? <CheckCircle size={13} style={{ color: '#22c55e' }} />
-                          : <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>}
-                      </td>
+                      {visibleCols.has('cid')           && <td style={{ padding: '8px 10px', color: '#94a3b8', fontWeight: 600, fontSize: 11 }}>{r.cid}</td>}
+                      {visibleCols.has('cliente')        && <td style={{ padding: '8px 10px', fontWeight: 600, color: '#0f172a', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.cliente}</td>}
+                      {visibleCols.has('periodo')        && <td style={{ padding: '8px 10px', color: '#64748b', whiteSpace: 'nowrap', fontSize: 11 }}>{r.periodo}</td>}
+                      {visibleCols.has('plan')           && <td style={{ padding: '8px 10px', color: '#374151', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>}
+                      {visibleCols.has('minutosIncl')    && <td style={{ padding: '8px 10px', color: '#374151', textAlign: 'right' }}>{r.minutosIncl.toLocaleString()}</td>}
+                      {visibleCols.has('minutosConsum')  && <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#0f172a' }}>{r.minutosConsum.toLocaleString()}</td>}
+                      {visibleCols.has('pctConsumo')     && <td style={{ padding: '8px 10px', textAlign: 'right' }}><span style={{ fontWeight: 700, color: pctConsumoColor(r.pctConsumo) }}>{r.pctConsumo.toFixed(1)}%</span></td>}
+                      {visibleCols.has('monto')          && <td style={{ padding: '8px 10px', fontWeight: 700, color: '#1B3FCC', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>}
+                      {visibleCols.has('clasificacion')  && <td style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR)}>{r.clasificacion || '—'}</span></td>}
+                      {visibleCols.has('uso')            && <td style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR)}>{r.usoPrincipal || '—'}</span></td>}
+                      {visibleCols.has('eventos')        && (
+                        <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                          {r.eventosAnal === 'Si'
+                            ? <CheckCircle size={13} style={{ color: '#22c55e' }} />
+                            : <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
