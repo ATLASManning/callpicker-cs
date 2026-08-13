@@ -20,6 +20,7 @@ import CuentaInfoEditor from '@/components/CuentaInfoEditor'
 import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
 import CuentaActividadesSAC from '@/components/CuentaActividadesSAC'
+import CuentaCortesPanel from '@/components/CuentaCortesPanel'
 import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
 import CuentaReunionButton from '@/components/CuentaReunionButton'
 import { updateKam, deleteKam } from '@/app/actions/updateKam'
@@ -591,6 +592,12 @@ export default async function CuentaDetailPage({ params }: Props) {
 
           {/* Facturación LTV — datos desde Zoho Analytics */}
           <CuentaFacturacionPanel
+            cid={cuenta.cid ?? null}
+            empresa={cuenta.empresa}
+          />
+
+          {/* Cortes de facturación — consumo por periodo */}
+          <CuentaCortesPanel
             cid={cuenta.cid ?? null}
             empresa={cuenta.empresa}
           />
