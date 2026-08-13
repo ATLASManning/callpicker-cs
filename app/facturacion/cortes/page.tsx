@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   BarChart2, Phone, PhoneIncoming, PhoneOutgoing, TrendingUp,
   AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, Search,
-  Zap, Filter, CheckCircle, Columns,
+  Zap, Filter, CheckCircle, Columns, ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react'
 
 /* ── Tipos ─────────────────────────────────────────────────────────────────── */
@@ -153,6 +153,8 @@ export default function InformeCortesPage() {
   const [tab,        setTab]        = useState<'resumen' | 'consumo' | 'tendencia' | 'detalle'>('resumen')
   const [loading,    setLoading]    = useState(true)
   const [loadingList, setLoadingList] = useState(false)
+  const [sortBy,     setSortBy]     = useState<ColKey | ''>('')
+  const [sortDir,    setSortDir]    = useState<'asc' | 'desc'>('asc')
   const [visibleCols,  setVisibleCols]  = useState<Set<ColKey>>(new Set(ALL_COLS.map(c => c.key)))
   const [colOrder,     setColOrder]     = useState<ColKey[]>(ALL_COLS.map(c => c.key))
   const [showColMenu,  setShowColMenu]  = useState(false)
@@ -193,6 +195,18 @@ export default function InformeCortesPage() {
     setDragOverIdx(null)
   }
 
+  function handleSort(key: ColKey) {
+    if (key === 'cid' || key === 'eventos') return  // sin sort en CID ni Eventos
+    if (sortBy === key) {
+      if (sortDir === 'asc')  { setSortDir('desc') }
+      else                    { setSortBy(''); setSortDir('asc') }
+    } else {
+      setSortBy(key)
+      setSortDir('asc')
+    }
+    setPage(1)
+  }
+
   /* ── Cargar filtros y stats iniciales ─────────────────────────────── */
   useEffect(() => {
     Promise.all([
@@ -219,15 +233,16 @@ export default function InformeCortesPage() {
   const fetchList = useCallback(() => {
     setLoadingList(true)
     const p = new URLSearchParams({ mode: 'list', page: String(page), size: '30' })
-    if (filtFecha) p.set('fecha', filtFecha)
-    if (filtPlan)  p.set('plan',  filtPlan)
-    if (filtClas)  p.set('clas',  filtClas)
-    if (filtUso)   p.set('uso',   filtUso)
-    if (q)         p.set('q',     q)
+    if (filtFecha) p.set('fecha',   filtFecha)
+    if (filtPlan)  p.set('plan',    filtPlan)
+    if (filtClas)  p.set('clas',    filtClas)
+    if (filtUso)   p.set('uso',     filtUso)
+    if (q)         p.set('q',       q)
+    if (sortBy)  { p.set('sortBy',  sortBy); p.set('sortDir', sortDir) }
     fetch(`/api/cortes?${p}`).then(r => r.json()).then(d => {
       if (!d.error) setList(d)
     }).finally(() => setLoadingList(false))
-  }, [filtFecha, filtPlan, filtClas, filtUso, q, page])
+  }, [filtFecha, filtPlan, filtClas, filtUso, q, page, sortBy, sortDir])
 
   useEffect(() => { if (tab === 'detalle') fetchList() }, [tab, fetchList])
 
@@ -768,11 +783,37 @@ export default function InformeCortesPage() {
                 <thead>
                   <tr style={{ background: '#f8fafc' }}>
                     {colOrder.filter(k => visibleCols.has(k)).map(k => {
-                      const col = ALL_COLS.find(c => c.key === k)!
-                      const isNum = ['minutosIncl','minutosConsum','pctConsumo','monto'].includes(k)
+                      const col     = ALL_COLS.find(c => c.key === k)!
+                      const isNum   = ['minutosIncl','minutosConsum','pctConsumo','monto'].includes(k)
+                      const noSort  = k === 'cid' || k === 'eventos'
+                      const active  = sortBy === k
+                      const SortIcon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
                       return (
-                        <th key={k} style={{ padding: '10px 10px', textAlign: isNum ? 'right' : 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontSize: 11 }}>
-                          {col.label}
+                        <th
+                          key={k}
+                          onClick={() => handleSort(k as ColKey)}
+                          style={{
+                            padding: '10px 10px',
+                            textAlign: isNum ? 'right' : 'left',
+                            fontWeight: 700,
+                            color: active ? '#1B3FCC' : '#374151',
+                            borderBottom: '1px solid #e2e8f0',
+                            whiteSpace: 'nowrap',
+                            fontSize: 11,
+                            cursor: noSort ? 'default' : 'pointer',
+                            userSelect: 'none',
+                            background: active ? '#EFF6FF' : undefined,
+                          }}
+                        >
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            {col.label}
+                            {!noSort && (
+                              <SortIcon
+                                size={11}
+                                style={{ color: active ? '#1B3FCC' : '#cbd5e1', flexShrink: 0 }}
+                              />
+                            )}
+                          </span>
                         </th>
                       )
                     })}

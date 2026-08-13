@@ -211,9 +211,35 @@ export async function GET(req: NextRequest) {
 
     /* ── Lista paginada ──────────────────────────────────────────────── */
     if (mode === 'list') {
-      const data = applyFilters(allData, params)
+      let data   = applyFilters(allData, params)
       const page = parseInt(params.get('page') ?? '1')
       const size = parseInt(params.get('size') ?? '30')
+      const sortBy  = params.get('sortBy') ?? ''
+      const sortDir = params.get('sortDir') ?? 'asc'
+      const asc = sortDir === 'asc'
+
+      if (sortBy) {
+        data = Array.from(data).sort((a, b) => {
+          let av: string | number = ''
+          let bv: string | number = ''
+          switch (sortBy) {
+            case 'cliente':       av = a.cliente;       bv = b.cliente;       break
+            case 'periodo':       av = a.periodo;       bv = b.periodo;       break
+            case 'plan':          av = a.plan;          bv = b.plan;          break
+            case 'minutosIncl':   av = a.minutosIncl;   bv = b.minutosIncl;   break
+            case 'minutosConsum': av = a.minutosConsum; bv = b.minutosConsum; break
+            case 'pctConsumo':    av = a.pctConsumo;    bv = b.pctConsumo;    break
+            case 'monto':         av = a.monto;         bv = b.monto;         break
+            case 'clasificacion': av = a.clasificacion; bv = b.clasificacion; break
+            case 'uso':           av = a.usoPrincipal;  bv = b.usoPrincipal;  break
+          }
+          if (typeof av === 'number' && typeof bv === 'number') return asc ? av - bv : bv - av
+          return asc
+            ? String(av).localeCompare(String(bv), 'es')
+            : String(bv).localeCompare(String(av), 'es')
+        })
+      }
+
       const start = (page - 1) * size
       return NextResponse.json({
         total: data.length,
