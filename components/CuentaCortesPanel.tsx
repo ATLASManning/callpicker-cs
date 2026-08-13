@@ -17,6 +17,7 @@ interface ByMes {
 interface CortesResult { rows: CorteRow[]; byMes: ByMes; total: number }
 
 const fmt$   = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
+const fmtNum = (n: number) => n.toLocaleString('es-MX')
 const fmtMes = (ym: string) => {
   if (!ym) return ym
   const [y, m] = ym.split('-')
@@ -32,14 +33,25 @@ function pctColor(p: number) {
   return '#6366f1'
 }
 
+const CLAS_COLOR: Record<string, string> = {
+  'AAA': '#1B3FCC', 'Grande': '#6366f1', 'Mediana': '#f59e0b',
+  'Pequeña': '#22c55e', 'Micro': '#94a3b8',
+}
+const USO_COLOR: Record<string, string> = {
+  'entrantes': '#1B3FCC', 'salientes': '#f59e0b', 'mixtas': '#6366f1',
+}
+
 export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null; empresa: string }) {
-  const [data,    setData]    = useState<CortesResult | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [open,    setOpen]    = useState(false)
+  const [data,        setData]        = useState<CortesResult | null>(null)
+  const [loading,     setLoading]     = useState(true)
+  const [openDetalle, setOpenDetalle] = useState(false)
+  const [openMes,     setOpenMes]     = useState(false)
+
+  const informeHref = `/facturacion/cortes?q=${encodeURIComponent(cid || empresa)}&tab=detalle`
 
   useEffect(() => {
     const p = new URLSearchParams({ mode: 'by-cid' })
-    if (cid)    p.set('cid',    cid)
+    if (cid)     p.set('cid',    cid)
     if (empresa) p.set('nombre', empresa)
     fetch(`/api/cortes?${p}`)
       .then(r => r.json())
@@ -57,15 +69,15 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
     </div>
   )
 
-  const noData = !data || data.total === 0
-  const meses  = Object.entries(data?.byMes ?? {}).sort((a, b) => b[0].localeCompare(a[0]))
-  const ultimo = meses[0]
-  const promConsumo = ultimo
-    ? (ultimo[1].consumo / Math.max(ultimo[1].count, 1))
-    : null
-  const montoTotal = meses.reduce((s, [, v]) => s + v.monto, 0)
-  const planActual = data?.rows?.[0]?.plan ?? ''
+  const noData      = !data || data.total === 0
+  const meses       = Object.entries(data?.byMes ?? {}).sort((a, b) => b[0].localeCompare(a[0]))
+  const ultimo      = meses[0]
+  const promConsumo = ultimo ? (ultimo[1].consumo / Math.max(ultimo[1].count, 1)) : null
+  const montoTotal  = meses.reduce((s, [, v]) => s + v.monto, 0)
+  const planActual  = data?.rows?.[0]?.plan ?? ''
   const usoPrincipal = data?.rows?.[0]?.usoPrincipal ?? ''
+
+  const filas = Array.from(data?.rows ?? []).sort((a, b) => b.fechaCorte.localeCompare(a.fechaCorte))
 
   return (
     <div className="cp-card">
@@ -82,7 +94,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
             </span>
           )}
         </div>
-        <a href="/facturacion/cortes" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#1B3FCC', textDecoration: 'none' }}>
+        <a href={informeHref} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#1B3FCC', textDecoration: 'none' }}>
           Ver informe <ExternalLink size={10} />
         </a>
       </div>
@@ -134,19 +146,73 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
             </div>
           )}
 
-          {/* Historial de meses */}
+          {/* Detalle de cortes individuales */}
           <button
-            onClick={() => setOpen(v => !v)}
-            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: '#64748b', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: open ? 8 : 0, padding: 0 }}>
-            {open ? '▴' : '▾'} Historial por mes ({meses.length} periodos)
+            onClick={() => setOpenDetalle(v => !v)}
+            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: '#64748b', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openDetalle ? 8 : 4, padding: 0 }}>
+            {openDetalle ? '▴' : '▾'} Detalle de cortes ({filas.length} registros)
           </button>
 
-          {open && (
+          {openDetalle && (
+            <div style={{ overflowX: 'auto', marginBottom: 10, border: '1px solid #f1f5f9', borderRadius: 8 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '6px 8px', textAlign: 'left',   color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Periodo</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'left',   color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Plan</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Min. Inc.</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Min. Cons.</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>% Consumo</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Monto</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'center', color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Clasif.</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'center', color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Uso</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filas.map((r, i) => {
+                    const clasColor = CLAS_COLOR[r.clasificacion] ?? '#94a3b8'
+                    const usoColor  = USO_COLOR[r.usoPrincipal]   ?? '#6366f1'
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <td style={{ padding: '5px 8px', color: '#374151', whiteSpace: 'nowrap' }}>{r.periodo}</td>
+                        <td style={{ padding: '5px 8px', color: '#64748b', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
+                        <td style={{ padding: '5px 8px', textAlign: 'right', color: '#374151', fontWeight: 600 }}>{fmtNum(r.minutosIncl)}</td>
+                        <td style={{ padding: '5px 8px', textAlign: 'right', color: '#374151', fontWeight: 600 }}>{fmtNum(r.minutosConsum)}</td>
+                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 800, color: pctColor(r.pctConsumo) }}>{r.pctConsumo.toFixed(1)}%</td>
+                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(r.monto)}</td>
+                        <td style={{ padding: '5px 8px', textAlign: 'center' }}>
+                          <span style={{ background: clasColor + '18', color: clasColor, fontWeight: 700, padding: '2px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontSize: 9 }}>
+                            {r.clasificacion || '—'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '5px 8px', textAlign: 'center' }}>
+                          <span style={{ background: usoColor + '18', color: usoColor, fontWeight: 700, padding: '2px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontSize: 9 }}>
+                            {r.usoPrincipal || '—'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Historial de meses */}
+          <button
+            onClick={() => setOpenMes(v => !v)}
+            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: '#64748b', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openMes ? 8 : 0, padding: 0 }}>
+            {openMes ? '▴' : '▾'} Historial por mes ({meses.length} periodos)
+          </button>
+
+          {openMes && (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <th style={{ padding: '6px 8px', textAlign: 'left', color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Mes</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'left',  color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Mes</th>
                     <th style={{ padding: '6px 8px', textAlign: 'right', color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Cortes</th>
                     <th style={{ padding: '6px 8px', textAlign: 'right', color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Monto</th>
                     <th style={{ padding: '6px 8px', textAlign: 'right', color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>% Consumo</th>

@@ -209,6 +209,14 @@ export default function InformeCortesPage() {
 
   /* ── Cargar filtros y stats iniciales ─────────────────────────────── */
   useEffect(() => {
+    const sp     = new URLSearchParams(window.location.search)
+    const urlTab = sp.get('tab')
+    const urlQ   = sp.get('q')
+    if (urlTab === 'detalle' || urlTab === 'resumen' || urlTab === 'consumo' || urlTab === 'tendencia') {
+      setTab(urlTab as 'detalle' | 'resumen' | 'consumo' | 'tendencia')
+    }
+    if (urlQ) setQ(urlQ)
+
     Promise.all([
       fetch('/api/cortes?mode=filters').then(r => r.json()),
       fetch('/api/cortes?mode=stats').then(r => r.json()),
