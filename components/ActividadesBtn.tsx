@@ -157,12 +157,12 @@ function ActividadCard({
           : <XCircle size={11} color="#EF4444" style={{ flexShrink: 0, marginTop: 2 }} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 2 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{act.empresa}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#1F2937' }}>{act.empresa}</span>
             <span style={{ fontSize: 9, fontWeight: 700, color: tc.color, background: `${tc.color}15`, padding: '1px 6px', borderRadius: 99 }}>
               {tc.label}
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{act.descripcion}</p>
+          <p style={{ margin: 0, fontSize: 11, color: '#6B7280' }}>{act.descripcion}</p>
           {act.completada && act.resultado && (
             <p style={{ margin: '3px 0 0', fontSize: 10, color: '#166534' }}>✓ {act.resultado}</p>
           )}
@@ -228,10 +228,10 @@ function ActividadCard({
             )}
           </div>
 
-          <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>
+          <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 700, color: '#1F2937', lineHeight: 1.3 }}>
             {act.empresa}
           </p>
-          <p style={{ margin: 0, fontSize: 12, color: '#475569', lineHeight: 1.55 }}>
+          <p style={{ margin: 0, fontSize: 12, color: '#6B7280', lineHeight: 1.55 }}>
             {act.descripcion}
           </p>
           <p style={{ margin: '5px 0 0', fontSize: 11, color: overdue ? '#DC2626' : '#94A3B8' }}>
@@ -837,7 +837,7 @@ export default function ActividadesBtn({
                       <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                         <Calendar size={24} color="#7C3AED" />
                       </div>
-                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#fff' }}>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#1F2937' }}>
                         Sin actividades esta semana
                       </p>
                       <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
@@ -917,7 +917,7 @@ export default function ActividadesBtn({
                       <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                         <ListChecks size={24} color="#059669" />
                       </div>
-                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#fff' }}>Sin cuentas activas</p>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#1F2937' }}>Sin cuentas activas</p>
                       <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>No se encontraron cuentas para analizar.</p>
                     </div>
                   ) : (
@@ -968,7 +968,7 @@ export default function ActividadesBtn({
                           return (
                             <div key={d.id} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #BBF7D0', background: '#F0FDF4', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
                               <CheckCircle size={13} color="#059669" style={{ flexShrink: 0 }} />
-                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', flex: 1 }}>{d.empresa}</span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#1F2937', flex: 1 }}>{d.empresa}</span>
                               <span style={{ fontSize: 10, fontWeight: 700, color: '#059669' }}>Perfil completo</span>
                             </div>
                           )
@@ -981,7 +981,7 @@ export default function ActividadesBtn({
                               <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: semCol, padding: '2px 7px', borderRadius: 99 }}>
                                 HS {hs}
                               </span>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', flex: 1 }}>{d.empresa}</span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#1F2937', flex: 1 }}>{d.empresa}</span>
                               <a href={`/cuentas/${d.id}`} style={{ fontSize: 10, color: '#7C3AED', fontWeight: 700, textDecoration: 'none' }}>
                                 Ver cuenta →
                               </a>
@@ -1044,7 +1044,7 @@ export default function ActividadesBtn({
                       <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                         <History size={24} color="#64748B" />
                       </div>
-                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#fff' }}>Sin semanas anteriores</p>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#1F2937' }}>Sin semanas anteriores</p>
                       <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
                         El historial se irá acumulando semana a semana.
                       </p>
@@ -1111,7 +1111,7 @@ export default function ActividadesBtn({
                               }}
                             >
                               <div style={{ flexShrink: 0 }}>
-                                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#1F2937' }}>
                                   Semana del {fmtFecha(s.semana_inicio)}
                                 </p>
                                 <p style={{ margin: '2px 0 0', fontSize: 10, color: '#94A3B8' }}>
@@ -1121,7 +1121,7 @@ export default function ActividadesBtn({
                               <div style={{ flex: 1, height: 5, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
                                 <div style={{ height: '100%', width: `${s.pct}%`, background: col, borderRadius: 99, transition: 'width 0.4s' }} />
                               </div>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#1F2937', whiteSpace: 'nowrap' }}>
                                 {s.completadas}/{s.total}
                               </span>
                               <span style={{
