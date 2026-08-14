@@ -131,13 +131,15 @@ export default async function CuentaDetailPage({ params }: Props) {
         {/* LEFT COL — Health Score + info */}
         <div className="space-y-5">
 
-          {/* Health Score — Diagnóstico automático 5 dimensiones */}
+          {/* Health Score — Diagnóstico automático 6 dimensiones */}
           <HealthScoreDiagnostico
             cuenta={cuenta}
             seguimientos={seguimientos}
             ticketRows={zohoTickets.rows}
             diasCliente={diasCliente}
             canEdit={canEdit}
+            auditoriaEstado={auditoriaCase?.estado ?? null}
+            auditoriaNombre={auditoriaCase?.nombre ?? null}
           />
 
           {/* Info básica */}
