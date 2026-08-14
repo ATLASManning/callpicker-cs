@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useMemo } from 'react'
 import {
   Timer, Phone, Wifi, Wrench, GitBranch, Zap,
@@ -310,7 +310,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
                   </div>
                 )
                 if (b.tipo === 'parrafo') return (
-                  <p key={i} style={{ fontSize: 15, color: '#374151', lineHeight: 1.85, textAlign: 'justify', marginBottom: 16 }}>
+                  <p key={i} style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', lineHeight: 1.85, textAlign: 'justify', marginBottom: 16 }}>
                     {b.texto}
                   </p>
                 )
@@ -331,7 +331,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
                     {b.items?.map((item, ii) => (
                       <li key={ii} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
                         <span style={{ width: 7, height: 7, borderRadius: '50%', background: catColor, flexShrink: 0, marginTop: 8 }} />
-                        <span style={{ fontSize: 15, color: '#374151', lineHeight: 1.75, textAlign: 'justify', flex: 1 }}>{item}</span>
+                        <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', lineHeight: 1.75, textAlign: 'justify', flex: 1 }}>{item}</span>
                       </li>
                     ))}
                   </ul>

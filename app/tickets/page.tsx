@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import PageHeader from '@/components/PageHeader'
 import {
@@ -623,7 +623,7 @@ export default function TicketsPage() {
                       return (
                         <button key={p} onClick={() => fetchList(p)}
                           className="w-7 h-7 rounded text-xs font-medium"
-                          style={p === page ? { background: '#1B3FCC', color: '#fff' } : { color: '#374151' }}>
+                          style={p === page ? { background: '#1B3FCC', color: '#fff' } : { color: 'rgba(255,255,255,0.75)' }}>
                           {p}
                         </button>
                       )
@@ -1017,14 +1017,14 @@ export default function TicketsPage() {
 
               <div className="rounded-lg overflow-hidden border border-gray-200">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100"
-                  style={{ background: '#f8fafc' }}>
+                  style={{ background: 'rgba(255,255,255,0.04)' }}>
                   <span className="text-xs text-gray-500 font-mono">Agregar al inicio del cuerpo del correo</span>
                   <button
                     onClick={copySnippet}
                     className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md transition-all"
                     style={copied
                       ? { background: '#22c55e15', color: '#16a34a' }
-                      : { background: '#f1f5f9', color: '#475569' }}>
+                      : { background: 'rgba(255,255,255,0.04)', color: '#475569' }}>
                     {copied ? <Check size={11} /> : <Copy size={11} />}
                     {copied ? 'Copiado' : 'Copiar'}
                   </button>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState } from 'react'
 import Link from 'next/link'
 import {
@@ -18,7 +18,7 @@ const TIPO_SEG: Record<TipoSeguimiento, { label: string; color: string; Icon: Re
   email:    { label: 'Email',    color: '#6366F1', Icon: Mail },
   reunion:  { label: 'Reunión',  color: '#F97316', Icon: Users },
   ticket:   { label: 'Ticket',   color: '#EF4444', Icon: AlertCircle },
-  nota:     { label: 'Nota',     color: '#64748B', Icon: FileText },
+  nota:     { label: 'Nota',     color: 'rgba(255,255,255,0.45)', Icon: FileText },
   demo:     { label: 'Demo',     color: '#0EA5E9', Icon: Monitor },
   upsell:   { label: 'Upsell',   color: '#A855F7', Icon: TrendingUp },
 }
@@ -27,7 +27,7 @@ const PRIORIDAD: Record<string, { label: string; color: string }> = {
   critica: { label: 'Crítica', color: '#EF4444' },
   alta:    { label: 'Alta',    color: '#F97316' },
   normal:  { label: 'Normal',  color: '#EAB308' },
-  baja:    { label: 'Baja',    color: '#64748B' },
+  baja:    { label: 'Baja',    color: 'rgba(255,255,255,0.45)' },
 }
 
 const ESTADO_OPP: Record<string, { label: string; color: string }> = {
@@ -35,7 +35,7 @@ const ESTADO_OPP: Record<string, { label: string; color: string }> = {
   en_proceso:   { label: 'En Proceso',   color: '#F97316' },
   ganada:       { label: 'Ganada',       color: '#22C55E' },
   perdida:      { label: 'Perdida',      color: '#EF4444' },
-  descartada:   { label: 'Descartada',   color: '#64748B' },
+  descartada:   { label: 'Descartada',   color: 'rgba(255,255,255,0.45)' },
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -190,7 +190,7 @@ export default function JuntaAsesorPanel({
                   })}
                   {seguimientos.length > 0 && (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium"
-                      style={{ background: '#EFF6FF', borderColor: '#BFDBFE', color: '#0057FF' }}>
+                      style={{ background: '#0A0F1C', borderColor: '#BFDBFE', color: '#0057FF' }}>
                       <Clock size={13} />
                       {seguimientos.reduce((s, x) => s + (x.duracion_min ?? 0), 0)} min totales
                     </div>

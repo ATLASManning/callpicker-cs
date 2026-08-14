@@ -1,4 +1,4 @@
-import path from 'path'
+﻿import path from 'path'
 import ActivacionesCharts, { RegistroItem } from '@/components/charts/ActivacionesCharts'
 import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico'
 
@@ -92,7 +92,7 @@ export default async function ActivacionesPage() {
       <div style={{ minHeight: '100%', background: BG, padding: '48px 32px' }}>
         <div style={{
           maxWidth: 500, margin: '0 auto', padding: '40px 32px', borderRadius: 16,
-          background: '#FFFFFF', border: '1px solid #BFDBFE',
+          background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.1)',
           textAlign: 'center',
         }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
@@ -100,9 +100,9 @@ export default async function ActivacionesPage() {
             Archivo no encontrado
           </h2>
           <p style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>
-            Coloca el archivo <code style={{ background: '#F0F7FF', padding: '2px 6px', borderRadius: 4 }}>
+            Coloca el archivo <code style={{ background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: 4 }}>
               activaciones.xlsx
-            </code> en la carpeta <code style={{ background: '#F0F7FF', padding: '2px 6px', borderRadius: 4 }}>
+            </code> en la carpeta <code style={{ background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: 4 }}>
               /data
             </code> del proyecto y reinicia el servidor.
           </p>
@@ -120,7 +120,7 @@ export default async function ActivacionesPage() {
       {/* Header */}
       <div style={{
         padding: '28px 32px 24px',
-        borderBottom: '1px solid #BFDBFE',
+        borderBottom: '1px solid rgba(255,255,255,0.09)',
         background: 'linear-gradient(180deg, rgba(0,87,255,0.05) 0%, #EFF6FF 100%)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>

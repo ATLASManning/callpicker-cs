@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useEffect, useState } from 'react'
 import { BarChart2, Loader2, AlertTriangle, Zap, TrendingUp, ExternalLink } from 'lucide-react'
 
@@ -85,7 +85,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <BarChart2 size={13} className="text-textMid" />
-          <h3 style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+          <h3 style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
             Cortes de Facturación
           </h3>
           {!noData && (
@@ -131,7 +131,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
             ].map(({ icon: Icon, label, value, color, sub }) => (
               <div key={label} style={{ padding: '10px 12px', borderRadius: 10, background: color + '08', border: `1px solid ${color}18` }}>
                 <Icon size={11} style={{ color, marginBottom: 4 }} />
-                <p style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>{label}</p>
+                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>{label}</p>
                 <p style={{ fontSize: 14, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
                 <p style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{sub}</p>
               </div>
@@ -140,24 +140,24 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
 
           {/* Plan actual */}
           {planActual && (
-            <div style={{ padding: '8px 10px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: 10 }}>
+            <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 10 }}>
               <p style={{ fontSize: 9, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Plan vigente</p>
-              <p style={{ fontSize: 12, color: '#374151', fontWeight: 600 }}>{planActual}</p>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{planActual}</p>
             </div>
           )}
 
           {/* Detalle de cortes individuales */}
           <button
             onClick={() => setOpenDetalle(v => !v)}
-            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: '#64748b', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openDetalle ? 8 : 4, padding: 0 }}>
+            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openDetalle ? 8 : 4, padding: 0 }}>
             {openDetalle ? '▴' : '▾'} Detalle de cortes ({filas.length} registros)
           </button>
 
           {openDetalle && (
-            <div style={{ overflowX: 'auto', marginBottom: 10, border: '1px solid #f1f5f9', borderRadius: 8 }}>
+            <div style={{ overflowX: 'auto', marginBottom: 10, border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
                     <th style={{ padding: '6px 8px', textAlign: 'left',   color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Periodo</th>
                     <th style={{ padding: '6px 8px', textAlign: 'left',   color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Plan</th>
                     <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Min. Inc.</th>
@@ -173,13 +173,13 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                     const clasColor = CLAS_COLOR[r.clasificacion] ?? '#94a3b8'
                     const usoColor  = USO_COLOR[r.usoPrincipal]   ?? '#6366f1'
                     return (
-                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                      <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                        <td style={{ padding: '5px 8px', color: '#374151', whiteSpace: 'nowrap' }}>{r.periodo}</td>
-                        <td style={{ padding: '5px 8px', color: '#64748b', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
-                        <td style={{ padding: '5px 8px', textAlign: 'right', color: '#374151', fontWeight: 600 }}>{fmtNum(r.minutosIncl)}</td>
-                        <td style={{ padding: '5px 8px', textAlign: 'right', color: '#374151', fontWeight: 600 }}>{fmtNum(r.minutosConsum)}</td>
+                        <td style={{ padding: '5px 8px', color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' }}>{r.periodo}</td>
+                        <td style={{ padding: '5px 8px', color: 'rgba(255,255,255,0.45)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
+                        <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtNum(r.minutosIncl)}</td>
+                        <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtNum(r.minutosConsum)}</td>
                         <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 800, color: pctColor(r.pctConsumo) }}>{r.pctConsumo.toFixed(1)}%</td>
                         <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(r.monto)}</td>
                         <td style={{ padding: '5px 8px', textAlign: 'center' }}>
@@ -203,7 +203,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
           {/* Historial de meses */}
           <button
             onClick={() => setOpenMes(v => !v)}
-            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: '#64748b', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openMes ? 8 : 0, padding: 0 }}>
+            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openMes ? 8 : 0, padding: 0 }}>
             {openMes ? '▴' : '▾'} Historial por mes ({meses.length} periodos)
           </button>
 
@@ -211,7 +211,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     <th style={{ padding: '6px 8px', textAlign: 'left',  color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Mes</th>
                     <th style={{ padding: '6px 8px', textAlign: 'right', color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Cortes</th>
                     <th style={{ padding: '6px 8px', textAlign: 'right', color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Monto</th>
@@ -222,9 +222,9 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                   {meses.map(([mes, v]) => {
                     const avg = v.count ? v.consumo / v.count : 0
                     return (
-                      <tr key={mes} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '6px 8px', color: '#374151', fontWeight: 600 }}>{fmtMes(mes)}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', color: '#64748b' }}>{v.count}</td>
+                      <tr key={mes} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtMes(mes)}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.45)' }}>{v.count}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(v.monto)}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: pctColor(avg) }}>{avg.toFixed(1)}%</td>
                       </tr>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import {
@@ -157,12 +157,12 @@ function ActividadCard({
           : <XCircle size={11} color="#EF4444" style={{ flexShrink: 0, marginTop: 2 }} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 2 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#0F172A' }}>{act.empresa}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>{act.empresa}</span>
             <span style={{ fontSize: 9, fontWeight: 700, color: tc.color, background: `${tc.color}15`, padding: '1px 6px', borderRadius: 99 }}>
               {tc.label}
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: 11, color: '#64748B' }}>{act.descripcion}</p>
+          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>{act.descripcion}</p>
           {act.completada && act.resultado && (
             <p style={{ margin: '3px 0 0', fontSize: 10, color: '#166534' }}>✓ {act.resultado}</p>
           )}
@@ -205,14 +205,14 @@ function ActividadCard({
               {tc.icon} {tc.label}
             </span>
             <span style={{
-              background: '#EFF6FF', color: '#1B3FCC',
+              background: '#0A0F1C', color: '#1B3FCC',
               fontSize: 10, fontWeight: 700, padding: '2px 7px',
               borderRadius: 99, fontFamily: 'monospace',
             }}>
               {act.consecutivo}
             </span>
             {act.cid && (
-              <span style={{ background: '#F8FAFC', color: '#64748B', fontSize: 10, padding: '2px 7px', borderRadius: 99 }}>
+              <span style={{ background: '#F8FAFC', color: 'rgba(255,255,255,0.45)', fontSize: 10, padding: '2px 7px', borderRadius: 99 }}>
                 CID: {act.cid}
               </span>
             )}
@@ -228,7 +228,7 @@ function ActividadCard({
             )}
           </div>
 
-          <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 700, color: '#0F172A', lineHeight: 1.3 }}>
+          <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 700, color: '#fff', lineHeight: 1.3 }}>
             {act.empresa}
           </p>
           <p style={{ margin: 0, fontSize: 12, color: '#475569', lineHeight: 1.55 }}>
@@ -288,7 +288,7 @@ function ActividadCard({
                 onChange={e => setResultado(e.target.value)}
                 placeholder="Resultado (si se completó)..."
                 rows={2}
-                style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #BFDBFE', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
               <textarea
                 value={motivo}
@@ -329,7 +329,7 @@ function ActividadCard({
                 )}
                 <button onClick={() => setEditing(false)} style={{
                   padding: '5px 10px', borderRadius: 6, background: '#F1F5F9',
-                  color: '#64748B', fontSize: 11, cursor: 'pointer', border: 'none',
+                  color: 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer', border: 'none',
                 }}>
                   Cancelar
                 </button>
@@ -443,7 +443,7 @@ function AnalisisRenderer({ text }: { text: string }) {
     if (trimmed.startsWith('•') || (trimmed.startsWith('- ') && trimmed.length > 2)) {
       const content = trimmed.startsWith('•') ? trimmed.slice(1).trim() : trimmed.slice(2)
       return (
-        <div key={i} style={{ display: 'flex', gap: 7, paddingLeft: 8, marginBottom: 4, fontSize: 12, color: '#334155' }}>
+        <div key={i} style={{ display: 'flex', gap: 7, paddingLeft: 8, marginBottom: 4, fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>
           <span style={{ color: '#7C3AED', flexShrink: 0, marginTop: 1 }}>•</span>
           <span>{renderInline(content)}</span>
         </div>
@@ -460,7 +460,7 @@ function AnalisisRenderer({ text }: { text: string }) {
 
     // Línea normal
     return (
-      <p key={i} style={{ margin: '0 0 4px', fontSize: 12, color: '#334155', lineHeight: 1.65 }}>
+      <p key={i} style={{ margin: '0 0 4px', fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.65 }}>
         {renderInline(trimmed)}
       </p>
     )
@@ -837,10 +837,10 @@ export default function ActividadesBtn({
                       <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                         <Calendar size={24} color="#7C3AED" />
                       </div>
-                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#fff' }}>
                         Sin actividades esta semana
                       </p>
-                      <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748B', lineHeight: 1.6 }}>
+                      <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
                         Genera automáticamente las 15 actividades de la semana
                         (3 por día, L–V) basadas en el estado real de la cartera de <strong>{asesor}</strong>.
                       </p>
@@ -884,7 +884,7 @@ export default function ActividadesBtn({
                               <span style={{ fontSize: 17, fontWeight: 900, color: hasOver ? '#DC2626' : allDone ? '#16A34A' : '#1D4ED8', lineHeight: 1 }}>{d.getDate()}</span>
                             </div>
                             <div>
-                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff' }}>
                                 {dayName} {d.getDate()} {MESES[d.getMonth()]}
                               </p>
                               <p style={{ margin: 0, fontSize: 11, color: '#94A3B8' }}>
@@ -917,8 +917,8 @@ export default function ActividadesBtn({
                       <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                         <ListChecks size={24} color="#059669" />
                       </div>
-                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Sin cuentas activas</p>
-                      <p style={{ margin: 0, fontSize: 13, color: '#64748B' }}>No se encontraron cuentas para analizar.</p>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#fff' }}>Sin cuentas activas</p>
+                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>No se encontraron cuentas para analizar.</p>
                     </div>
                   ) : (
                     <>
@@ -930,21 +930,21 @@ export default function ActividadesBtn({
                         const completas = diagnostico.filter(d => d.gaps.length === 0)
                         return (
                           <div style={{ padding: '14px 16px', borderRadius: 12, background: conCrit.length > 0 ? '#FFF5F5' : '#F0FDF4', border: `1px solid ${conCrit.length > 0 ? '#FECACA' : '#BBF7D0'}`, marginBottom: 16 }}>
-                            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                               Resumen de perfiles — {diagnostico.length} cuentas
                             </p>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                               <div style={{ textAlign: 'center', padding: '8px 6px', background: '#fff', borderRadius: 8, border: '1px solid #FECACA' }}>
                                 <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#DC2626', lineHeight: 1 }}>{totalCrit}</p>
-                                <p style={{ margin: '3px 0 0', fontSize: 9, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>Datos críticos</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', fontWeight: 700 }}>Datos críticos</p>
                               </div>
                               <div style={{ textAlign: 'center', padding: '8px 6px', background: '#fff', borderRadius: 8, border: '1px solid #FED7AA' }}>
                                 <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#D97706', lineHeight: 1 }}>{totalImp}</p>
-                                <p style={{ margin: '3px 0 0', fontSize: 9, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>Datos importantes</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', fontWeight: 700 }}>Datos importantes</p>
                               </div>
                               <div style={{ textAlign: 'center', padding: '8px 6px', background: '#fff', borderRadius: 8, border: '1px solid #BBF7D0' }}>
                                 <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#059669', lineHeight: 1 }}>{completas.length}</p>
-                                <p style={{ margin: '3px 0 0', fontSize: 9, color: '#64748B', textTransform: 'uppercase', fontWeight: 700 }}>Perfiles completos</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', fontWeight: 700 }}>Perfiles completos</p>
                               </div>
                             </div>
                             {conCrit.length > 0 && (
@@ -968,7 +968,7 @@ export default function ActividadesBtn({
                           return (
                             <div key={d.id} style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #BBF7D0', background: '#F0FDF4', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 10 }}>
                               <CheckCircle size={13} color="#059669" style={{ flexShrink: 0 }} />
-                              <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', flex: 1 }}>{d.empresa}</span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', flex: 1 }}>{d.empresa}</span>
                               <span style={{ fontSize: 10, fontWeight: 700, color: '#059669' }}>Perfil completo</span>
                             </div>
                           )
@@ -981,7 +981,7 @@ export default function ActividadesBtn({
                               <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: semCol, padding: '2px 7px', borderRadius: 99 }}>
                                 HS {hs}
                               </span>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', flex: 1 }}>{d.empresa}</span>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', flex: 1 }}>{d.empresa}</span>
                               <a href={`/cuentas/${d.id}`} style={{ fontSize: 10, color: '#7C3AED', fontWeight: 700, textDecoration: 'none' }}>
                                 Ver cuenta →
                               </a>
@@ -1020,7 +1020,7 @@ export default function ActividadesBtn({
 
                       {/* Leyenda */}
                       <div style={{ marginTop: 12, padding: '10px 12px', background: '#F8FAFC', borderRadius: 8, border: '1px solid #E2E8F0' }}>
-                        <p style={{ margin: '0 0 5px', fontSize: 10, fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Niveles de urgencia</p>
+                        <p style={{ margin: '0 0 5px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>Niveles de urgencia</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                           <span style={{ fontSize: 11, color: '#DC2626' }}>🔴 <strong>Crítico</strong>: bloquea análisis de riesgo y contactabilidad</span>
                           <span style={{ fontSize: 11, color: '#D97706' }}>🟡 <strong>Importante</strong>: limita previsión de churn y oportunidades</span>
@@ -1044,8 +1044,8 @@ export default function ActividadesBtn({
                       <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
                         <History size={24} color="#64748B" />
                       </div>
-                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>Sin semanas anteriores</p>
-                      <p style={{ margin: 0, fontSize: 13, color: '#64748B' }}>
+                      <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#fff' }}>Sin semanas anteriores</p>
+                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
                         El historial se irá acumulando semana a semana.
                       </p>
                     </div>
@@ -1061,7 +1061,7 @@ export default function ActividadesBtn({
                           display: 'flex', gap: 16, alignItems: 'center',
                         }}>
                           <div style={{ flex: 1 }}>
-                            <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#64748B' }}>
+                            <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>
                               Promedio cumplimiento
                             </p>
                             <p style={{ margin: 0, fontSize: 32, fontWeight: 900, color: pctColor(avg4w), lineHeight: 1 }}>
@@ -1111,7 +1111,7 @@ export default function ActividadesBtn({
                               }}
                             >
                               <div style={{ flexShrink: 0 }}>
-                                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#0F172A' }}>
+                                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: '#fff' }}>
                                   Semana del {fmtFecha(s.semana_inicio)}
                                 </p>
                                 <p style={{ margin: '2px 0 0', fontSize: 10, color: '#94A3B8' }}>
@@ -1121,7 +1121,7 @@ export default function ActividadesBtn({
                               <div style={{ flex: 1, height: 5, background: '#E2E8F0', borderRadius: 99, overflow: 'hidden' }}>
                                 <div style={{ height: '100%', width: `${s.pct}%`, background: col, borderRadius: 99, transition: 'width 0.4s' }} />
                               </div>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>
                                 {s.completadas}/{s.total}
                               </span>
                               <span style={{
@@ -1184,8 +1184,8 @@ export default function ActividadesBtn({
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🔬</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: '#0F172A' }}>Ejecutando análisis SAC...</p>
-                        <p style={{ margin: 0, fontSize: 12, color: '#64748B', fontStyle: 'italic' }}>{IA_STEPS[iaStep]}</p>
+                        <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: '#fff' }}>Ejecutando análisis SAC...</p>
+                        <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.45)', fontStyle: 'italic' }}>{IA_STEPS[iaStep]}</p>
                       </div>
                       <p style={{ margin: 0, fontSize: 11, color: '#94A3B8', textAlign: 'center', maxWidth: 260 }}>
                         El motor de inteligencia analiza toda la cartera. Puede tomar 20–40 segundos.
@@ -1204,7 +1204,7 @@ export default function ActividadesBtn({
                       <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED20 0%, #0E30CC20 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>
                         🔬
                       </div>
-                      <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Motor de Inteligencia SAC</p>
+                      <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 800, color: '#fff' }}>Motor de Inteligencia SAC</p>
                       <p style={{ margin: '0 auto 16px', fontSize: 13, color: '#475569', lineHeight: 1.6, maxWidth: 320 }}>
                         Analiza toda la cartera de <strong>{asesor}</strong> con IA: riesgo de churn, instrucciones quirúrgicas por cuenta, oportunidades de upsell y coaching táctico al asesor.
                       </p>

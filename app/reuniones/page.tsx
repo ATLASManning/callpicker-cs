@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useCallback } from 'react'
 import {
   Calendar, Plus, X, Save, ChevronDown, Users, FileText,
@@ -232,16 +232,16 @@ export default function ReunionesPage() {
 
   /* ── Render ─────────────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen" style={{ background: '#EFF6FF' }}>
+    <div className="min-h-screen" style={{ background: '#0A0F1C' }}>
       <div className="px-6 pt-5 pb-0">
         <Link href="/" className="inline-flex items-center gap-1.5 text-xs mb-4"
-          style={{ color: '#64748B' }}>
+          style={{ color: 'rgba(255,255,255,0.45)' }}>
           <ArrowLeft size={13} /> Volver al Dashboard
         </Link>
         <div className="flex items-center justify-between pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold" style={{ color: '#0F172A', letterSpacing: '-0.02em' }}>
+              <h1 className="text-2xl font-extrabold" style={{ color: '#fff', letterSpacing: '-0.02em' }}>
                 Reuniones
               </h1>
               {tableExists === true && (
@@ -286,10 +286,10 @@ export default function ReunionesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-2xl rounded-2xl p-6 space-y-4"
-            style={{ background: '#ffffff', border: '1px solid #BFDBFE', boxShadow: '0 20px 60px rgba(0,87,255,0.15)' }}>
+            style={{ background: '#ffffff', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 60px rgba(0,87,255,0.15)' }}>
 
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>Nueva Reunión</h2>
+              <h2 className="text-base font-bold" style={{ color: '#fff' }}>Nueva Reunión</h2>
               <button onClick={() => setShowForm(false)} className="cp-icon-btn">
                 <X size={16} />
               </button>
@@ -409,7 +409,7 @@ export default function ReunionesPage() {
                   className="cp-btn text-xs"
                   style={mesActivo === m
                     ? { background: '#0057FF', color: '#fff', border: '1px solid #003db3', boxShadow: '0 2px 8px rgba(0,87,255,0.3)' }
-                    : { background: '#fff', color: '#334155', border: '1px solid #BFDBFE' }}>
+                    : { background: '#fff', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.1)' }}>
                   {formatMes(m)}
                 </button>
               ))}
@@ -420,8 +420,8 @@ export default function ReunionesPage() {
           {tableExists !== false && reuniones.length === 0 && (
             <div className="cp-card text-center py-16">
               <Calendar size={40} className="mx-auto mb-3" style={{ color: '#BFDBFE' }} />
-              <p className="font-semibold mb-1" style={{ color: '#0F172A' }}>Sin reuniones registradas</p>
-              <p className="text-sm mb-4" style={{ color: '#64748B' }}>
+              <p className="font-semibold mb-1" style={{ color: '#fff' }}>Sin reuniones registradas</p>
+              <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.45)' }}>
                 Documenta el resumen de cada meeting del equipo
               </p>
               <button onClick={() => { setShowForm(true); setForm(emptyForm()); setSaveError(null) }}
@@ -435,7 +435,7 @@ export default function ReunionesPage() {
           {reunionesMes.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-3">
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#64748B' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.45)' }}>
                   {formatMes(mesActivo)} · {reunionesMes.length} reunión{reunionesMes.length !== 1 ? 'es' : ''}
                 </p>
                 {tableExists && (
@@ -477,9 +477,9 @@ export default function ReunionesPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm font-semibold truncate" style={{ color: '#0F172A' }}>{r.titulo}</p>
+                        <p className="text-sm font-semibold truncate" style={{ color: '#fff' }}>{r.titulo}</p>
                         {r.participantes && (
-                          <p className="text-xs truncate mt-0.5" style={{ color: '#64748B' }}>
+                          <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
                             <Users size={10} className="inline mr-1" />{r.participantes}
                           </p>
                         )}
@@ -501,8 +501,8 @@ export default function ReunionesPage() {
 
                         {r.resumen && (
                           <div className="mb-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#64748B' }}>Resumen</p>
-                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#334155' }}>{r.resumen}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: 'rgba(255,255,255,0.45)' }}>Resumen</p>
+                            <p className="text-sm whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r.resumen}</p>
                           </div>
                         )}
 
@@ -510,7 +510,7 @@ export default function ReunionesPage() {
                           <div className="mb-3 p-3 rounded-xl"
                             style={{ background: 'rgba(0,87,255,0.04)', border: '1px solid rgba(0,87,255,0.1)' }}>
                             <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#0057FF' }}>Acuerdos</p>
-                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#334155' }}>{r.acuerdos}</p>
+                            <p className="text-sm whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r.acuerdos}</p>
                           </div>
                         )}
 
@@ -518,7 +518,7 @@ export default function ReunionesPage() {
                           <div className="mb-3 p-3 rounded-xl"
                             style={{ background: 'rgba(5,150,105,0.04)', border: '1px solid rgba(5,150,105,0.12)' }}>
                             <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#059669' }}>Próximos Pasos</p>
-                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#334155' }}>{r.proximos_pasos}</p>
+                            <p className="text-sm whitespace-pre-wrap" style={{ color: 'rgba(255,255,255,0.75)' }}>{r.proximos_pasos}</p>
                           </div>
                         )}
 

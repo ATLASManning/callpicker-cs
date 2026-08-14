@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/PageHeader'
 import type { SemaforoKey } from '@/lib/zoho-ltv'
@@ -779,7 +779,7 @@ export default function CustomerTenurePage() {
                           className="w-7 h-7 rounded-lg text-xs font-medium border transition-colors"
                           style={page === pg
                             ? { background: '#1B3FCC', color: '#fff', borderColor: '#1B3FCC' }
-                            : { background: '#fff', color: '#374151', borderColor: '#e5e7eb' }}>
+                            : { background: '#fff', color: 'rgba(255,255,255,0.75)', borderColor: '#e5e7eb' }}>
                           {pg}
                         </button>
                       )

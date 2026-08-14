@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
@@ -15,7 +15,7 @@ interface Props {
 }
 
 const SEM_COLORS = { verde:'#22C55E', azul:'#3B82F6', amarillo:'#EAB308', naranja:'#F97316', rojo:'#EF4444' }
-const TT_STYLE = { background: '#FFFFFF', border: '1px solid #BFDBFE', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 12px rgba(0,87,255,0.1)' }
+const TT_STYLE = { background: '#FFFFFF', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12, boxShadow: '0 4px 12px rgba(0,87,255,0.1)' }
 
 export default function MetricasCharts({ data }: Props) {
   const pieData = Object.entries(data.dist).map(([k, v]) => ({
@@ -52,7 +52,7 @@ export default function MetricasCharts({ data }: Props) {
             <YAxis type="category" dataKey="empresa" width={110}
               tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false}
               tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 14) + '…' : v} />
-            <Tooltip contentStyle={TT_STYLE} formatter={(v: number) => [formatMXN(v)]} labelStyle={{ color: '#0F172A' }} />
+            <Tooltip contentStyle={TT_STYLE} formatter={(v: number) => [formatMXN(v)]} labelStyle={{ color: '#fff' }} />
             <Bar dataKey="facturacion" fill="#0057FF" radius={[0,4,4,0]} />
           </BarChart>
         </ResponsiveContainer>

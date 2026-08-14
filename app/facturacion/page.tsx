@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useCallback } from 'react'
 import {
   DollarSign, Users, TrendingUp, AlertCircle, RefreshCw,
@@ -87,8 +87,8 @@ function KpiCard({ icon: Icon, label, value, sub, color }: {
         <Icon size={17} style={{ color }} />
       </div>
       <div>
-        <p style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 2 }}>{label}</p>
-        <p style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{value}</p>
+        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 600, marginBottom: 2 }}>{label}</p>
+        <p style={{ fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{value}</p>
         {sub && <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>{sub}</p>}
       </div>
     </div>
@@ -114,7 +114,7 @@ function BarGroup({ title, data, colorMap, colorFn, mrr }: {
 
   return (
     <div className="cp-card" style={{ borderRadius: 14, padding: 20 }}>
-      <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 14 }}>{title}</p>
+      <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>{title}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
         {entries.map(([key, v]) => {
           const val = typeof v === 'number' ? v : (mrr ? v.mrr : v.count)
@@ -124,12 +124,12 @@ function BarGroup({ title, data, colorMap, colorFn, mrr }: {
           return (
             <div key={key}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{key || 'Sin datos'}</span>
-                <span style={{ fontSize: 12, color: '#64748b' }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>{key || 'Sin datos'}</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
                   {mrr && typeof v !== 'number' ? fmt$(v.mrr) + ' · ' : ''}{count} ctas
                 </span>
               </div>
-              <div style={{ height: 5, background: '#f1f5f9', borderRadius: 99 }}>
+              <div style={{ height: 5, background: 'rgba(255,255,255,0.04)', borderRadius: 99 }}>
                 <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 99 }} />
               </div>
             </div>
@@ -215,7 +215,7 @@ export default function FacturacionPage() {
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', flexDirection: 'column', gap: 12 }}>
       <RefreshCw size={28} style={{ color: '#1B3FCC', animation: 'spin 1s linear infinite' }} />
-      <p style={{ color: '#64748b', fontSize: 14 }}>Cargando datos de Zoho Analytics…</p>
+      <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14 }}>Cargando datos de Zoho Analytics…</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
@@ -237,13 +237,13 @@ export default function FacturacionPage() {
   )
 
   return (
-    <div style={{ padding: '28px 32px', background: '#f1f5f9', minHeight: '100vh' }}>
+    <div style={{ padding: '28px 32px', background: 'rgba(255,255,255,0.04)', minHeight: '100vh' }}>
 
       {/* Header */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: 0 }}>Facturación · LTV</h1>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', margin: 0 }}>Facturación · LTV</h1>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
             {totalGeneral.toLocaleString()} clientes · {' '}
             {source === 'zoho'
               ? <><Wifi size={11} style={{ color: '#22c55e' }} /><span style={{ color: '#22c55e', fontWeight: 600 }}>Zoho en vivo</span></>
@@ -254,7 +254,7 @@ export default function FacturacionPage() {
           </p>
         </div>
         <button onClick={() => window.location.reload()}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#374151', fontWeight: 600 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: '#fff', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
           <RefreshCw size={13} /> Actualizar
         </button>
       </div>
@@ -281,7 +281,7 @@ export default function FacturacionPage() {
 
       {/* Selector de actividad */}
       <div className="cp-card" style={{ borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Filtrar por Semáforo de Actividad
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -347,22 +347,22 @@ export default function FacturacionPage() {
       {/* ── Tab: Top MRR ─────────────────────────────────────── */}
       {tab === 'top' && stats && (
         <div className="cp-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
-            <p style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>Top 10 clientes por MRR</p>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <p style={{ fontWeight: 700, fontSize: 13, color: '#fff' }}>Top 10 clientes por MRR</p>
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: '#f8fafc' }}>
+              <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
                 {['#', 'Cliente', 'MRR', 'Rango LTV', 'Clasificación', 'Semáforo'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'rgba(255,255,255,0.75)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {stats.topClientes.map((c, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                   <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>#{i + 1}</td>
-                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#0f172a' }}>{c.nombre}</td>
+                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#fff' }}>{c.nombre}</td>
                   <td style={{ padding: '10px 14px', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(c.mrr)}</td>
                   <td style={{ padding: '10px 14px' }}><span style={getBadgeStyle(c.rango, {})}>{c.rango || '—'}</span></td>
                   <td style={{ padding: '10px 14px' }}><span style={getBadgeStyle(c.clas, {}, getLtvColor)}>{c.clas || '—'}</span></td>
@@ -379,7 +379,7 @@ export default function FacturacionPage() {
         <div className="cp-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
 
           {/* ── Barra de filtros ──────────────────────────────────── */}
-          <div style={{ padding: '16px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', background: '#f8fafc' }}>
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', background: 'rgba(255,255,255,0.04)' }}>
             {([
               { label: 'MES',           placeholder: 'Todos los meses',          opts: filterOpts.meses,     val: filtroMes,      set: setFiltroMes },
               { label: 'CLASIFICACIÓN', placeholder: 'Todas las clasificaciones', opts: filterOpts.ltvs,      val: filtroLtv,      set: setFiltroLtv },
@@ -429,7 +429,7 @@ export default function FacturacionPage() {
           </div>
 
           {/* ── Buscador ──────────────────────────────────────────── */}
-          <div style={{ padding: '12px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input value={q} onChange={e => { setQ(e.target.value); setPage(1) }}
@@ -441,7 +441,7 @@ export default function FacturacionPage() {
             <button onClick={fetchList} style={{ padding: '8px 14px', borderRadius: 8, background: '#1B3FCC', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
               Buscar
             </button>
-            {list && <span style={{ fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>{list.total.toLocaleString()} clientes</span>}
+            {list && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>{list.total.toLocaleString()} clientes</span>}
           </div>
 
           {loadingList
@@ -451,27 +451,27 @@ export default function FacturacionPage() {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc' }}>
+                      <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
                         {['Cliente', 'Segmento', 'Factura Mensual', 'MRR', 'Acumulado Rec.', 'Clasif. LTV', 'Semáforo', 'Meses Activo', 'Última Factura'].map(h => (
-                          <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
+                          <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: 'rgba(255,255,255,0.75)', borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {list.rows.map((r, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                           <td style={{ padding: '9px 12px', maxWidth: 200 }}>
-                            <div style={{ fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Nombre del Cliente'] || '—'}</div>
+                            <div style={{ fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Nombre del Cliente'] || '—'}</div>
                             <div style={{ fontSize: 10, color: '#94a3b8' }}>{r['Tamaño Empresa']}</div>
                           </td>
-                          <td style={{ padding: '9px 12px', color: '#374151' }}>{r['Segmento Factura'] || '—'}</td>
-                          <td style={{ padding: '9px 12px', fontWeight: 700, color: '#0f172a' }}>{fmt$(r['Ticket Promedio'])}</td>
+                          <td style={{ padding: '9px 12px', color: 'rgba(255,255,255,0.75)' }}>{r['Segmento Factura'] || '—'}</td>
+                          <td style={{ padding: '9px 12px', fontWeight: 700, color: '#fff' }}>{fmt$(r['Ticket Promedio'])}</td>
                           <td style={{ padding: '9px 12px', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(r['MRR Limpio'])}</td>
-                          <td style={{ padding: '9px 12px', color: '#374151' }}>{fmt$(r['Importe Acumulado Recurrente'])}</td>
+                          <td style={{ padding: '9px 12px', color: 'rgba(255,255,255,0.75)' }}>{fmt$(r['Importe Acumulado Recurrente'])}</td>
                           <td style={{ padding: '9px 12px' }}><span style={getBadgeStyle(r['Clasificación LTV'], {}, getLtvColor)}>{r['Clasificación LTV'] || '—'}</span></td>
                           <td style={{ padding: '9px 12px' }}><span style={getBadgeStyle(r['Semáforo Actividad'], SEMAFORO_COLOR)}>{r['Semáforo Actividad'] || '—'}</span></td>
-                          <td style={{ padding: '9px 12px', color: '#374151', textAlign: 'center' }}>{r['Meses Activo'] ?? '—'}</td>
-                          <td style={{ padding: '9px 12px', color: '#64748b' }}>{r['Última Factura'] || '—'}</td>
+                          <td style={{ padding: '9px 12px', color: 'rgba(255,255,255,0.75)', textAlign: 'center' }}>{r['Meses Activo'] ?? '—'}</td>
+                          <td style={{ padding: '9px 12px', color: 'rgba(255,255,255,0.45)' }}>{r['Última Factura'] || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -482,15 +482,15 @@ export default function FacturacionPage() {
           }
 
           {list && totalPages > 1 && (
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Página {page} de {totalPages}</span>
+            <div style={{ padding: '12px 18px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Página {page} de {totalPages}</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>
+                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: '#fff', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>
                   <ChevronLeft size={13} />
                 </button>
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}>
+                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: '#fff', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}>
                   <ChevronRight size={13} />
                 </button>
               </div>
