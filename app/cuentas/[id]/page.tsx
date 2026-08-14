@@ -11,7 +11,6 @@ import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
-import HealthScoreEditor from '@/components/HealthScoreEditor'
 import HealthScoreDiagnostico from '@/components/HealthScoreDiagnostico'
 import SeguimientoForm from '@/components/SeguimientoForm'
 import SeguimientoStatusSelect from '@/components/SeguimientoStatusSelect'
@@ -137,7 +136,6 @@ export default async function CuentaDetailPage({ params }: Props) {
             seguimientos={seguimientos}
             ticketRows={zohoTickets.rows}
             diasCliente={diasCliente}
-            canEdit={canEdit}
             auditoriaEstado={auditoriaCase?.estado ?? null}
             auditoriaNombre={auditoriaCase?.nombre ?? null}
           />
