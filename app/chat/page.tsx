@@ -60,7 +60,7 @@ function TipoBadge({ tipo, confianza }: { tipo: TipoRespuesta; confianza?: Confi
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
       fontSize: 10, fontWeight: 700, padding: '2px 8px',
-      borderRadius: 20, background: '#F1F5F9', color: 'rgba(255,255,255,0.45)',
+      borderRadius: 20, background: '#F1F5F9', color: '#64748b',
       border: '1px solid #E2E8F0', marginTop: 6,
     }}>
       Información aproximada — validar con el equipo
@@ -120,7 +120,7 @@ function BitacoraPanel({ open, onClose }: { open: boolean; onClose: () => void }
             <div style={{ fontWeight: 800, color: '#fff', fontSize: 15 }}>
               Bitácora del día
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+            <div style={{ fontSize: 11, color: '#64748b' }}>
               {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
           </div>
@@ -130,7 +130,7 @@ function BitacoraPanel({ open, onClose }: { open: boolean; onClose: () => void }
         {/* Content */}
         <div style={{ flex: 1, padding: '16px 20px' }}>
           {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 13 }}>
               <Loader2 size={14} className="animate-spin" /> Cargando bitácora…
             </div>
           )}
@@ -162,7 +162,7 @@ function BitacoraPanel({ open, onClose }: { open: boolean; onClose: () => void }
                       {new Date(e.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {e.usuario_nombre && (
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>— {e.usuario_nombre}</span>
+                      <span style={{ fontSize: 11, color: '#64748b' }}>— {e.usuario_nombre}</span>
                     )}
                   </div>
                   <div style={{ fontSize: 13, color: '#1E3A5F', fontWeight: 600, lineHeight: 1.4 }}>
@@ -261,19 +261,19 @@ export default function ChatPage() {
 
       {/* Barra de acciones */}
       <div style={{
-        padding: '8px 24px', borderBottom: '1px solid rgba(255,255,255,0.09)',
+        padding: '8px 24px', borderBottom: '1px solid #BFDBFE',
         background: '#F8FAFF', display: 'flex', alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+        <div style={{ fontSize: 12, color: '#64748b' }}>
           Contexto: Cuentas · Tickets · Auditoría · Activaciones · Seguimientos · Base de Conocimiento · Reuniones
         </div>
         <button
           onClick={() => setBitacoraOpen(true)}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)',
-            background: '#0A0F1C', color: '#1D4ED8', fontSize: 12, fontWeight: 600,
+            padding: '5px 12px', borderRadius: 20, border: '1px solid #BFDBFE',
+            background: '#EFF6FF', color: '#1D4ED8', fontSize: 12, fontWeight: 600,
             cursor: 'pointer',
           }}
         >

@@ -50,7 +50,7 @@ function ZohoSemaforoBadge({ val }: { val: string | null | undefined }) {
 function getMotivo(c: Cuenta): { label: string; color: string } {
   if (c.estado === 'cancelado')                 return { label: 'Cancelado',       color: '#EF4444' }
   if (c.estado === 'hibernacion')               return { label: 'Hibernación',     color: '#8B5CF6' }
-  if (c.semaforo_zoho === '4 - Dormido')        return { label: 'Dormido Zoho',    color: 'rgba(255,255,255,0.45)' }
+  if (c.semaforo_zoho === '4 - Dormido')        return { label: 'Dormido Zoho',    color: '#64748b' }
   if (!c.facturacion || c.facturacion === 0)    return { label: 'Sin facturación', color: '#6366F1' }
   if (c.health_score < 20)                      return { label: 'HS Crítico',      color: '#F97316' }
   return                                               { label: 'Dormido',         color: '#94A3B8' }

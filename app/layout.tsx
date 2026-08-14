@@ -19,19 +19,18 @@ export const metadata: Metadata = {
   },
 }
 
-const FORCE_DARK = `
-  :root { color-scheme: dark !important; }
-  html, body { background: #0A0F1C !important; color: #ffffff !important; color-scheme: dark !important; }
-  main { background: #0A0F1C !important; }
-  main > div { background: #0A0F1C !important; }
-  .cp-card { background: #0D1829 !important; color: #ffffff !important; }
+const FORCE_THEME = `
+  :root { color-scheme: only light !important; }
+  html, body { background: #EFF6FF !important; color: #0F172A !important; color-scheme: only light !important; }
+  main { background: #EFF6FF !important; }
+  .cp-card { background: #0D1829 !important; color: #ffffff !important; border: 1px solid rgba(255,255,255,0.08) !important; }
 `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" suppressHydrationWarning style={{ background: '#0A0F1C', colorScheme: 'dark' }}>
+    <html lang="es" suppressHydrationWarning style={{ background: '#EFF6FF', colorScheme: 'only light' }}>
       <head>
-        <meta name="color-scheme" content="dark" />
+        <meta name="color-scheme" content="only light" />
         <meta name="theme-color" content="#1B3FCC" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -39,12 +38,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-title" content="Callpicker CS" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <style dangerouslySetInnerHTML={{ __html: FORCE_DARK }} />
+        <style dangerouslySetInnerHTML={{ __html: FORCE_THEME }} />
       </head>
-      <body className="flex h-screen overflow-hidden" style={{ background: '#0A0F1C', color: '#ffffff' }}>
+      <body className="flex h-screen overflow-hidden" style={{ background: '#EFF6FF', color: '#0F172A' }}>
         <PageTracker />
         <Sidebar />
-        <main className="flex-1 overflow-y-auto" style={{ background: '#0A0F1C' }}>
+        <main className="flex-1 overflow-y-auto" style={{ background: '#EFF6FF' }}>
           {children}
         </main>
       </body>

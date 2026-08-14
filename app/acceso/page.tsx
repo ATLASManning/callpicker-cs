@@ -78,7 +78,7 @@ export default function AccesoPage() {
           </div>
           <div>
             <p style={{ fontWeight: 700, fontSize: 16, color: '#fff', margin: 0 }}>Callpicker</p>
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+            <p style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
               Customer Success
             </p>
           </div>
@@ -94,7 +94,7 @@ export default function AccesoPage() {
                   Acceso al dashboard
                 </h1>
               </div>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', margin: 0 }}>
+              <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
                 Ingresa con tu correo y la contraseña que te asignó el administrador.
               </p>
             </div>
@@ -102,7 +102,7 @@ export default function AccesoPage() {
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Email */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 6 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                   Correo electrónico
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -118,7 +118,7 @@ export default function AccesoPage() {
 
               {/* Password */}
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', marginBottom: 6 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
                   Contraseña
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -160,7 +160,7 @@ export default function AccesoPage() {
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 10 }}>
               Contraseña expirada
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+            <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
               Tu contraseña de acceso venció.<br />
               Contacta al administrador para que te asigne una nueva.
             </p>
@@ -170,7 +170,7 @@ export default function AccesoPage() {
               </p>
             </div>
             <button onClick={() => { setEstado('login'); setPassword('') }}
-              style={{ ...BTN, marginTop: 20, background: '#0A0F1C', color: '#1B3FCC' }}>
+              style={{ ...BTN, marginTop: 20, background: '#EFF6FF', color: '#1B3FCC' }}>
               Volver
             </button>
           </div>
@@ -179,23 +179,23 @@ export default function AccesoPage() {
         {/* ── SIN CONTRASEÑA CONFIGURADA ──────────────────────────────── */}
         {estado === 'sin_password' && (
           <div style={{ textAlign: 'center', padding: '8px 0' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#0A0F1C', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Lock size={24} color="#1B3FCC" />
             </div>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 10 }}>
               Acceso pendiente
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+            <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
               Tu cuenta aún no tiene contraseña asignada.<br />
               Contacta al administrador para activar tu acceso.
             </p>
-            <div style={{ marginTop: 20, background: '#0A0F1C', borderRadius: 10, padding: '12px 16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ marginTop: 20, background: '#EFF6FF', borderRadius: 10, padding: '12px 16px', border: '1px solid #BFDBFE' }}>
               <p style={{ color: '#1E40AF', fontSize: 13, fontWeight: 600, margin: 0 }}>
                 📱 josel@callpicker.com
               </p>
             </div>
             <button onClick={() => { setEstado('login'); setPassword('') }}
-              style={{ ...BTN, marginTop: 20, background: '#0A0F1C', color: '#1B3FCC' }}>
+              style={{ ...BTN, marginTop: 20, background: '#EFF6FF', color: '#1B3FCC' }}>
               Volver
             </button>
           </div>
@@ -210,7 +210,7 @@ export default function AccesoPage() {
             <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 10 }}>
               Acceso suspendido
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+            <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
               Tu cuenta está inactiva o el correo no está registrado.<br />
               Contacta al administrador.
             </p>
