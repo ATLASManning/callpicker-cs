@@ -110,9 +110,9 @@ body {
 /* Botones: NO se fuerzan — usan sus propios colores inline */
 
 /* ── Sección con fondo claro dentro de cp-card (clase de escape) ──────────
-   Aplica className="cp-light" en el div contenedor + color oscuro via style.
-   Todos los descendientes heredan ese color en lugar del blanco forzado.   */
-.cp-card .cp-light,
+   Aplica className="cp-light" + style={{ color:'#dark' }} en el contenedor.
+   El div conserva su inline color; los hijos lo heredan en lugar del blanco.
+   IMPORTANTE: NO incluir .cp-card .cp-light (solo los hijos).              */
 .cp-card .cp-light p,
 .cp-card .cp-light span,
 .cp-card .cp-light strong,

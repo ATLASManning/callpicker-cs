@@ -281,34 +281,34 @@ export default function CuentaActividadesSAC({ actividades, canEdit }: Props) {
       {/* ── KPI cards con fondo claro ─────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 16px 4px' }}>
 
-        {/* Completadas — verde */}
+        {/* Completadas — verde · cp-light: p hereda #15803D del div */}
         <div className="cp-light" style={{
           textAlign: 'center', borderRadius: 10, padding: '10px 6px',
           background: '#F0FDF4', border: '1.5px solid #86EFAC',
-          color: '#14532D',
+          color: '#15803D',
         }}>
-          <p style={{ fontSize: 24, fontWeight: 900, margin: 0, lineHeight: 1, color: '#15803D' }}>{completadas}</p>
-          <p style={{ fontSize: 9, fontWeight: 800, margin: '4px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#166534' }}>Completadas</p>
+          <p style={{ fontSize: 24, fontWeight: 900, margin: 0, lineHeight: 1 }}>{completadas}</p>
+          <p style={{ fontSize: 9, fontWeight: 800, margin: '4px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Completadas</p>
         </div>
 
-        {/* Pendientes — ámbar */}
+        {/* Pendientes — ámbar · cp-light: p hereda #B45309 del div */}
         <div className="cp-light" style={{
           textAlign: 'center', borderRadius: 10, padding: '10px 6px',
           background: '#FFFBEB', border: '1.5px solid #FCD34D',
-          color: '#78350F',
+          color: '#B45309',
         }}>
-          <p style={{ fontSize: 24, fontWeight: 900, margin: 0, lineHeight: 1, color: '#D97706' }}>{pendientes}</p>
-          <p style={{ fontSize: 9, fontWeight: 800, margin: '4px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#92400E' }}>Pendientes</p>
+          <p style={{ fontSize: 24, fontWeight: 900, margin: 0, lineHeight: 1 }}>{pendientes}</p>
+          <p style={{ fontSize: 9, fontWeight: 800, margin: '4px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pendientes</p>
         </div>
 
-        {/* Bloqueadas — rojo */}
+        {/* Bloqueadas — rojo · cp-light: p hereda #B91C1C del div */}
         <div className="cp-light" style={{
           textAlign: 'center', borderRadius: 10, padding: '10px 6px',
           background: '#FFF1F2', border: '1.5px solid #FCA5A5',
-          color: '#7F1D1D',
+          color: '#B91C1C',
         }}>
-          <p style={{ fontSize: 24, fontWeight: 900, margin: 0, lineHeight: 1, color: '#DC2626' }}>{bloqueadas}</p>
-          <p style={{ fontSize: 9, fontWeight: 800, margin: '4px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#991B1B' }}>Bloqueadas</p>
+          <p style={{ fontSize: 24, fontWeight: 900, margin: 0, lineHeight: 1 }}>{bloqueadas}</p>
+          <p style={{ fontSize: 9, fontWeight: 800, margin: '4px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Bloqueadas</p>
         </div>
       </div>
 
