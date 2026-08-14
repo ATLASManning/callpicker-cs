@@ -76,13 +76,20 @@ body {
   color: #ffffff !important;
 }
 
-/* Todo el texto dentro de una card oscura es blanco — vence inline styles */
-.cp-card p, .cp-card span, .cp-card label,
+/* Texto de contenido dentro de card oscura — vence inline styles oscuros */
+.cp-card p, .cp-card label,
 .cp-card h1, .cp-card h2, .cp-card h3, .cp-card h4, .cp-card h5,
 .cp-card strong, .cp-card em, .cp-card small,
-.cp-card td, .cp-card th, .cp-card button, .cp-card a {
+.cp-card td, .cp-card th {
   color: rgba(255,255,255,0.88) !important;
 }
+/* Spans sin background propio (texto suelto) */
+.cp-card span:not([style*="background"]) {
+  color: rgba(255,255,255,0.88) !important;
+}
+/* Links en card oscura → azul claro legible */
+.cp-card a:not([class]) { color: #60A5FA !important; }
+/* Botones: NO se fuerzan — usan sus propios colores inline */
 
 /* ── Título de sección ────────────────────────────── */
 .cp-section-title {
