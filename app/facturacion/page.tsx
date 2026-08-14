@@ -429,7 +429,7 @@ export default function FacturacionPage() {
           </div>
 
           {/* ── Buscador ──────────────────────────────────────────── */}
-          <div style={{ padding: '12px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1 }}>
               <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input value={q} onChange={e => { setQ(e.target.value); setPage(1) }}
