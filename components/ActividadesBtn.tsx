@@ -212,7 +212,7 @@ function ActividadCard({
               {act.consecutivo}
             </span>
             {act.cid && (
-              <span style={{ background: '#F8FAFC', color: 'rgba(255,255,255,0.45)', fontSize: 10, padding: '2px 7px', borderRadius: 99 }}>
+              <span style={{ background: '#F8FAFC', color: '#4B5563', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, border: '1px solid #E2E8F0' }}>
                 CID: {act.cid}
               </span>
             )}
