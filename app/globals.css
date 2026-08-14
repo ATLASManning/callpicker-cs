@@ -109,6 +109,21 @@ body {
 .cp-card a:not([class]) { color: #60A5FA !important; }
 /* Botones: NO se fuerzan — usan sus propios colores inline */
 
+/* ── Sección con fondo claro dentro de cp-card (clase de escape) ──────────
+   Aplica className="cp-light" en el div contenedor + color oscuro via style.
+   Todos los descendientes heredan ese color en lugar del blanco forzado.   */
+.cp-card .cp-light,
+.cp-card .cp-light p,
+.cp-card .cp-light span,
+.cp-card .cp-light strong,
+.cp-card .cp-light em,
+.cp-card .cp-light small,
+.cp-card .cp-light label,
+.cp-card .cp-light h1, .cp-card .cp-light h2,
+.cp-card .cp-light h3, .cp-card .cp-light h4, .cp-card .cp-light h5 {
+  color: inherit !important;
+}
+
 /* ── Título de sección ────────────────────────────── */
 .cp-section-title {
   font-size: 15px;
