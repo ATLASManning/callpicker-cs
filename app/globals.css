@@ -66,6 +66,24 @@ body {
 }
 .cp-card .cp-table tbody tr:hover { background: rgba(255,255,255,0.04); }
 
+/* ── Tailwind tokens dentro de card oscura ──────────── */
+/* Clases bg-surface / bg-surfaceAlt → fondos oscuros sutiles */
+.cp-card .bg-surface    { background-color: rgba(255,255,255,0.07) !important; }
+.cp-card .bg-surfaceAlt { background-color: rgba(255,255,255,0.04) !important; }
+.cp-card .hover\:bg-surface:hover { background-color: rgba(255,255,255,0.06) !important; }
+/* Clases de texto → blancos legibles */
+.cp-card .text-textHi  { color: rgba(255,255,255,0.92) !important; }
+.cp-card .text-textMid { color: rgba(255,255,255,0.75) !important; }
+.cp-card .text-textLow { color: rgba(255,255,255,0.50) !important; }
+/* Bordes */
+.cp-card .border-border { border-color: rgba(255,255,255,0.08) !important; }
+
+/* ── Filas de tabla con fondo inline claro dentro de card ── */
+/* !important vence estilos inline sin !important            */
+.cp-card table tr             { background: transparent !important; }
+.cp-card table thead tr       { background: rgba(255,255,255,0.05) !important; }
+.cp-card table tbody tr:hover { background: rgba(255,255,255,0.04) !important; }
+
 /* ── Card — dark navy ─────────────────────────────── */
 .cp-card {
   background: #0D1829 !important;

@@ -379,7 +379,7 @@ export default function FacturacionPage() {
         <div className="cp-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
 
           {/* ── Barra de filtros ──────────────────────────────────── */}
-          <div style={{ padding: '16px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', background: '#f8fafc' }}>
+          <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', background: 'rgba(255,255,255,0.04)' }}>
             {([
               { label: 'MES',           placeholder: 'Todos los meses',          opts: filterOpts.meses,     val: filtroMes,      set: setFiltroMes },
               { label: 'CLASIFICACIÓN', placeholder: 'Todas las clasificaciones', opts: filterOpts.ltvs,      val: filtroLtv,      set: setFiltroLtv },
@@ -486,11 +486,11 @@ export default function FacturacionPage() {
               <span style={{ fontSize: 12, color: '#64748b' }}>Página {page} de {totalPages}</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>
+                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>
                   <ChevronLeft size={13} />
                 </button>
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}>
+                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}>
                   <ChevronRight size={13} />
                 </button>
               </div>

@@ -1,4 +1,4 @@
-import {
+﻿import {
   DollarSign, AlertTriangle, TrendingUp,
   CalendarDays, CheckCircle2, AlertCircle, Ticket, LifeBuoy,
   ArrowUpRight, Target, RefreshCw,
@@ -306,15 +306,15 @@ function GaugeCard({ st }: { st: AsesorStats }) {
 
       {/* Stats row */}
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-        <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 10px' }}>
+        <div style={{ flex: 1, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 10px' }}>
           <p style={{ fontSize: 16, fontWeight: 800, color: TX_HI, lineHeight: 1 }}>{st.cuentas.length}</p>
           <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>cuentas</p>
         </div>
-        <div style={{ flex: 2, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 10px' }}>
+        <div style={{ flex: 2, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 10px' }}>
           <p style={{ fontSize: 15, fontWeight: 800, color: TX_HI, lineHeight: 1 }}>{formatMXN(st.totalFac)}</p>
           <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>MRR total</p>
         </div>
-        <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '8px 10px' }}>
+        <div style={{ flex: 1, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 10px' }}>
           <p style={{ fontSize: 16, fontWeight: 800, color: '#A855F7', lineHeight: 1 }}>{st.upsellCount}</p>
           <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>oportunidades</p>
         </div>
@@ -1090,7 +1090,7 @@ export default async function DashboardPage() {
                     <span style={{ fontSize: 11, fontWeight: 600, color: SEM_COLOR[key] }}>{SEM_LABEL[key]}</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: TX_HI }}>{count} <span style={{ fontWeight: 400, color: TX_LOW }}>({pct}%)</span></span>
                   </div>
-                  <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                  <div style={{ height: 5, borderRadius: 99, background: '#e2e8f0', overflow: 'hidden' }}>
                     <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: SEM_COLOR[key], boxShadow: `0 0 6px ${SEM_COLOR[key]}60` }} />
                   </div>
                 </div>

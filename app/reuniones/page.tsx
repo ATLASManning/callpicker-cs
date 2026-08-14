@@ -289,7 +289,7 @@ export default function ReunionesPage() {
             style={{ background: '#ffffff', border: '1px solid #BFDBFE', boxShadow: '0 20px 60px rgba(0,87,255,0.15)' }}>
 
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold" style={{ color: '#fff' }}>Nueva Reunión</h2>
+              <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>Nueva Reunión</h2>
               <button onClick={() => setShowForm(false)} className="cp-icon-btn">
                 <X size={16} />
               </button>

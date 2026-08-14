@@ -327,7 +327,7 @@ export default function InformeCortesPage() {
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>Análisis de consumo y comportamiento por periodo de corte</p>
         </div>
         <button onClick={() => { setStats(null); setLoading(true); setTimeout(() => window.location.reload(), 100) }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.08)', background: '#fff', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
           <RefreshCw size={13} /> Actualizar
         </button>
       </div>
@@ -422,15 +422,15 @@ export default function InformeCortesPage() {
                 <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50, background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 4px', minWidth: 220 }}>
                   <div style={{ padding: '4px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Columnas</span>
-                      <p style={{ fontSize: 10, color: '#94a3b8', margin: '1px 0 0' }}>Arrastra para reordenar</p>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Columnas</span>
+                      <p style={{ fontSize: 10, color: '#64748B', margin: '1px 0 0' }}>Arrastra para reordenar</p>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => setVisibleCols(new Set(ALL_COLS.map(c => c.key)))} style={{ fontSize: 10, color: '#1B3FCC', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Todas</button>
                       <button onClick={() => setColOrder(ALL_COLS.map(c => c.key))} style={{ fontSize: 10, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Reset orden</button>
                     </div>
                   </div>
-                  <div style={{ height: 1, background: 'rgba(255,255,255,0.04)', margin: '4px 8px 6px' }} />
+                  <div style={{ height: 1, background: '#E2E8F0', margin: '4px 8px 6px' }} />
                   {colOrder.map((key, idx) => {
                     const col      = ALL_COLS.find(c => c.key === key)!
                     const checked  = visibleCols.has(key)
@@ -515,12 +515,12 @@ export default function InformeCortesPage() {
             <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Página {page} de {totalPages}</span>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: '#fff', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}><ChevronLeft size={13} /></button>
+                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}><ChevronLeft size={13} /></button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
                   const p = Math.max(1, Math.min(page - 2, totalPages - 4)) + idx
-                  return <button key={p} onClick={() => setPage(p)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: p === page ? '#1B3FCC' : '#fff', color: p === page ? '#fff' : '#374151', cursor: 'pointer', fontSize: 12, fontWeight: p === page ? 700 : 400 }}>{p}</button>
+                  return <button key={p} onClick={() => setPage(p)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: p === page ? '#1B3FCC' : 'rgba(255,255,255,0.08)', color: p === page ? '#fff' : 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 12, fontWeight: p === page ? 700 : 400 }}>{p}</button>
                 })}
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.08)', background: '#fff', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}><ChevronRight size={13} /></button>
+                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}><ChevronRight size={13} /></button>
               </div>
             </div>
           )}
