@@ -1056,6 +1056,98 @@ const REPORTE_S4_JULIO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 2 · AGOSTO 2026  (14 ago 2026)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S2_AGOSTO_2026: ChurnReporte = {
+  id:      's2-agosto-2026',
+  periodo: 'Semana 2 · Ago 2026',
+  fecha:   '14/08/2026',
+  notas:   'Gross Revenue Churn · Semana 2. Al 14 de agosto del 2026. Segundo corte de agosto incluyendo cierre definitivo de julio y alerta crítica sobre patrón de conversión suspendidos→cancelados. Siguiente revisión: viernes 21 de agosto.',
+  notaRemitente: 'Daniel Martínez — Siguiente revisión: viernes 21 de agosto.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Mayo',              pct: 1.5             },
+      { mes: 'Junio',             pct: 3.4             },
+      { mes: 'Julio',             pct: 2.3, anterior: 4.8 },
+      { mes: 'Agosto (en curso)', pct: 40.7            },
+    ],
+    acumulado: 15.3,
+    anterior:  17.9,
+    notaClave: 'GRC Julio cerró en 2.3% (corr. 4.8%). Agosto en curso: 40.7% — NO DEFINITIVO. Acumulado hasta julio 2026: 15.3% (corr. 17.9%).',
+    notaEspecial: '🚨 ALERTA PATRÓN CONVERSIÓN: En julio, el 83% de Suspendidos cancelaron (15/18 cuentas = $12,550.31). El 63% de Desactivados pasaron a Suspendidos y el 100% de esos terminó en Cancelados. Proyección agosto sem 2: $9,128.34 desde suspendidos + $17,715.29 desde desactivados = $26,843.63 en riesgo total. ¿Existe protocolo de prevención para clientes suspendidos y desactivados? · Cierre Julio: $59,737.59 · 41 cancelaciones · $28,142.94 downgrades · 13 clientes. Nota GTC: 4 downgrades consecutivos mar–ago en "Paquete Ops Automatizaciones" — pérdida acumulada $38,414.31 en todas sus subcuentas.',
+  },
+
+  /* En Corte Sem 2 Agosto — top 5 de 29 cuentas · $37,968.50
+     Sem 1 previa: $27,349.50 · 26 cuentas — incluida en fila adicional */
+  pendientesTotalReal:   37968.50,
+  pendientesCuentasReal: 29,
+  pendientes: [
+    { cliente: '🔝 Linden',                    monto: 6522,     mesesActivo: 72, ultimaFactura: '10/07/2026' },
+    { cliente: 'TRANSPORTES FEMA',             monto: 5349,     mesesActivo: 16, ultimaFactura: '13/07/2026' },
+    { cliente: 'AS CONSULTING',                monto: 4745,     mesesActivo: 0,  ultimaFactura: '12/07/2026' },
+    { cliente: 'Ikan experience',              monto: 3049,     mesesActivo: 45, ultimaFactura: '09/07/2026' },
+    { cliente: 'Ashkenazi',                    monto: 1945,     mesesActivo: 18, ultimaFactura: '08/07/2026' },
+    { cliente: '+ 24 cuentas adicionales sem 2 · Sem 1 ($27,349.50 · 26 cuentas): Vecinos Comprometidos $3,948 (29m) · PROSESO CONSULTORES $2,729 (74m) · transportes BPG $2,447 (39m) · Su Perro Limpio $2,387 (58m) · FLETES ESPECIALIZADOS TOFRA $2,387 (9m) + 21 más', monto: 16358.50, mesesActivo: 0, ultimaFactura: 'Ver documento' },
+  ],
+
+  /* Cancelados Sem 2 Agosto — 4 cuentas · $3,153 */
+  cancelados: [
+    { cliente: '🔝 Torre 2 - Via Montejo',      mrr: 1890, mesesActivo: 29,  acumulado: 52920 },
+    { cliente: 'COESPRO',                       mrr: 579,  mesesActivo: 55,  acumulado: 25702 },
+    { cliente: 'Quality Lema',                  mrr: 489,  mesesActivo: 158, acumulado: 97821 },
+    { cliente: 'ESG Servicios Migratorios',     mrr: 195,  mesesActivo: 11,  acumulado: 2340  },
+  ],
+
+  /* Downgrades Sem 2 Agosto — 6 clientes · desglosado $29,242.58 · real $35,330.06 */
+  downgradeTotalReal: 35330.06,
+  downgrades: [
+    { cliente: '⚠️ Universidad UniverMilenium', perdida: 17914,   nota: '49% de baja. Extensión Callcenter de $35,828 → $17,914. Mayor downgrade absoluto de la semana.' },
+    { cliente: '🚨 INBROTEK SERVICIOS',          perdida: 6915.96, nota: '71% de baja. Eliminó: Canales concurrentes, DiD Nacional, Extensión VyC, Ofuscador y Paquete Min VyC. Mayor % de reducción de la semana.' },
+    { cliente: 'GTC - CENTRO MAX',              perdida: 1277.71, nota: '3% de baja. Paquete Ops Automatizaciones de $8,415.06 → $7,076.84.' },
+    { cliente: 'GTC - NAVA',                    perdida: 1277.71, nota: '3% de baja. Paquete Ops Automatizaciones de $8,415.06 → $7,076.84. Upsell en DiD Nacional.' },
+    { cliente: 'GTC - FORUM',                   perdida: 929.02,  nota: '3% de baja. Paquete Ops Automatizaciones de $8,415.06 → $7,076.84.' },
+    { cliente: 'GTC - BMW',                     perdida: 928.18,  nota: '3% de baja. Paquete Ops Automatizaciones de $6,113.03 → $5,140.90.' },
+  ],
+
+  downgradeArticulos: [
+    { articulo: 'Paquete Ops Automatizaciones', vecesAfectado: 4, clientes: ['GTC-CENTRO MAX', 'GTC-NAVA', 'GTC-FORUM', 'GTC-BMW'] },
+    { articulo: 'Extensión Callcenter',          vecesAfectado: 1, clientes: ['Universidad UniverMilenium'] },
+    { articulo: 'Paquete Min VyC',              vecesAfectado: 1, clientes: ['INBROTEK SERVICIOS'] },
+    { articulo: 'DiD Nacional',                 vecesAfectado: 1, clientes: ['INBROTEK SERVICIOS'] },
+    { articulo: 'Extensión VyC',                vecesAfectado: 1, clientes: ['INBROTEK SERVICIOS'] },
+    { articulo: 'Ofuscador',                    vecesAfectado: 1, clientes: ['INBROTEK SERVICIOS'] },
+    { articulo: 'Canales concurrentes',          vecesAfectado: 1, clientes: ['INBROTEK SERVICIOS'] },
+  ],
+
+  /* Suspendidos Sem 2 Agosto — 9 cuentas · $10,998
+     Riesgo de cancelación: 83% → $9,128.34 proyectado */
+  suspendidosTotalReal:   10998,
+  suspendidosCuentasReal: 9,
+  suspendidos: [
+    { cliente: '🔝 Centro Mexicano de Psicología Integrativa CEMEPI', importe: 2921, mesesActivo: 77, estado: 'Suspendido' },
+    { cliente: 'Custodias RJ',                                        importe: 2920, mesesActivo: 5,  estado: 'Suspendido' },
+    { cliente: 'AVILA HERRERA GRUPO INMOBILIARIO',                    importe: 1959, mesesActivo: 33, estado: 'Suspendido' },
+    { cliente: 'Ferjer soluciones',                                   importe: 989,  mesesActivo: 3,  estado: 'Suspendido' },
+    { cliente: 'eBoss',                                               importe: 588,  mesesActivo: 65, estado: 'Suspendido' },
+    { cliente: '+ 4 cuentas · FERCO $578 · APEX Capital México $489 · A reservar $359 · Gestory $195', importe: 1621, mesesActivo: 0, estado: 'Suspendido' },
+  ],
+
+  /* Desactivados Sem 2 Agosto — 19 cuentas · $28,119.50
+     Riesgo cadena Desactivado→Suspendido→Cancelado: $17,715.29 proyectado */
+  desactivadosTotalReal:   28119.50,
+  desactivadosCuentasReal: 19,
+  desactivados: [
+    { cliente: '🔝 SOBERANI',            importe: 5235,    mesesActivo: 6  },
+    { cliente: 'SYCA',                   importe: 4152,    mesesActivo: 72 },
+    { cliente: 'multileads 2',           importe: 4110,    mesesActivo: 57 },
+    { cliente: 'Skyhous',               importe: 2497,    mesesActivo: 64 },
+    { cliente: 'GS Trackme',            importe: 2488,    mesesActivo: 68 },
+    { cliente: '+ 14 cuentas adicionales', importe: 9637.50, mesesActivo: 0 },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -1470,7 +1562,7 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s4-julio-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s2-agosto-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [acumCancelSort, setAcumCancelSort] = useState<{ col: 'cliente' | 'mrr' | 'mesesActivo' | 'acumulado' | 'periodo'; dir: 'asc' | 'desc' }>({ col: 'mrr', dir: 'desc' })
@@ -1498,8 +1590,8 @@ export default function ChurnPage() {
 
 
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026', 's2-julio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S4_JULIO_2026
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, REPORTE_S2_AGOSTO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S2_AGOSTO_2026
 
   // Pre-filtrar a Enterprise y Large cuando llegan los datos
   useEffect(() => {
@@ -1676,7 +1768,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s4-julio-2026')
+    if (selectedId === id) setSelectedId('s2-agosto-2026')
     setDelConfirm(null)
   }
 
