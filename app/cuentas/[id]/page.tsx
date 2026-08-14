@@ -12,6 +12,7 @@ import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
 import HealthScoreEditor from '@/components/HealthScoreEditor'
+import HealthScoreDiagnostico from '@/components/HealthScoreDiagnostico'
 import SeguimientoForm from '@/components/SeguimientoForm'
 import SeguimientoStatusSelect from '@/components/SeguimientoStatusSelect'
 import HealthHistorialChart from '@/components/charts/HealthHistorialChart'
@@ -57,12 +58,6 @@ export default async function CuentaDetailPage({ params }: Props) {
     ? Math.floor((Date.now() - new Date(cuenta.activo_desde).getTime()) / 86400000)
     : cuenta.dias_como_cliente
 
-  const blocks = [
-    { label: 'Actividad (35%)',   score: cuenta.score_actividad,  color: '#3B82F6' },
-    { label: 'Adopción (30%)',    score: cuenta.score_adopcion,   color: '#A855F7' },
-    { label: 'Pago (20%)',        score: cuenta.score_pago,       color: '#22C55E' },
-    { label: 'Relacional (15%)',  score: cuenta.score_relacional, color: '#F97316' },
-  ]
 
   return (
     <div className="min-h-screen">
@@ -136,53 +131,14 @@ export default async function CuentaDetailPage({ params }: Props) {
         {/* LEFT COL — Health Score + info */}
         <div className="space-y-5">
 
-          {/* Health Score Card */}
-          <div className="cp-card">
-            <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide mb-4">Health Score</h3>
-            <div className="flex items-center gap-5">
-              <HealthScoreRing score={cuenta.health_score} size={90} strokeWidth={9} />
-              <div className="flex-1 space-y-3">
-                {blocks.map(b => (
-                  <div key={b.label}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-textMid">{b.label}</span>
-                      <span className="font-semibold text-textHi">{b.score}</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-surface overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${b.score}%`, background: b.color }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Alertas */}
-            <div className="mt-4 space-y-2">
-              {cuenta.dias_sin_actividad > 7 && (
-                <div className="flex items-center gap-2 text-xs bg-rojo/10 text-rojo p-2 rounded-lg border border-rojo/20">
-                  <AlertTriangle size={13} /> {cuenta.dias_sin_actividad} días sin actividad en plataforma
-                </div>
-              )}
-              {!cuenta.pagos_al_corriente && (
-                <div className="flex items-center gap-2 text-xs bg-naranja/10 text-naranja p-2 rounded-lg border border-naranja/20">
-                  <AlertTriangle size={13} /> Pago pendiente — contactar hoy
-                </div>
-              )}
-              {cuenta.tickets_abiertos > 0 && (
-                <div className="flex items-center gap-2 text-xs bg-amarillo/10 text-amarillo p-2 rounded-lg border border-amarillo/20">
-                  <AlertTriangle size={13} /> {cuenta.tickets_abiertos} ticket{cuenta.tickets_abiertos > 1 ? 's' : ''} abierto{cuenta.tickets_abiertos > 1 ? 's' : ''}
-                </div>
-              )}
-              {cuenta.llamadas_cambio_pct < -30 && (
-                <div className="flex items-center gap-2 text-xs bg-rojo/10 text-rojo p-2 rounded-lg border border-rojo/20">
-                  <TrendingUp size={13} className="rotate-180" /> Caída de llamadas: {cuenta.llamadas_cambio_pct.toFixed(0)}% vs mes anterior
-                </div>
-              )}
-            </div>
-
-            {/* Editor de scores */}
-            <HealthScoreEditor cuenta={cuenta} canEdit={canEdit} />
-          </div>
+          {/* Health Score — Diagnóstico automático 5 dimensiones */}
+          <HealthScoreDiagnostico
+            cuenta={cuenta}
+            seguimientos={seguimientos}
+            ticketRows={zohoTickets.rows}
+            diasCliente={diasCliente}
+            canEdit={canEdit}
+          />
 
           {/* Info básica */}
           <div className="cp-card space-y-3">
