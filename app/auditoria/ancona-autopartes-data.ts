@@ -10,7 +10,7 @@ export const ANCONA_AUTOPARTES: AuditoriaCase = {
   fecha_auditoria:      'Ago 2026',
   tipo_cliente:         'VIP · CID 24924 · Cadena 14 sucursales · MRR $15,543',
   descripcion_contexto: 'Reporte de Análisis Forense de Llamadas · 12,335 registros (12,104 entrantes + 231 salientes) · Incidente crítico identificado 20 jul 2026',
-  estado:               'activo',
+  estado:               'en_recuperacion',
   clasificacion:        'CONFIDENCIAL',
   version:              '1.0',
 

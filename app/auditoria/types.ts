@@ -1,4 +1,4 @@
-export type EstadoAuditoria = 'rescatable' | 'en_riesgo' | 'recuperado' | 'perdido' | 'activo'
+export type EstadoAuditoria = 'rescatable' | 'en_riesgo' | 'recuperado' | 'perdido' | 'activo' | 'en_recuperacion'
 export type TipoEvento     = 'problema' | 'pivote' | 'ok' | 'neutral'
 
 export interface AuditoriaCase {

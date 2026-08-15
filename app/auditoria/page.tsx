@@ -10,22 +10,24 @@ import AuditoriaForm from './AuditoriaForm'
 const LS_KEY = 'auditoria_casos'
 
 const ESTADO_COLOR: Record<string, string> = {
-  en_riesgo:  '#ef4444',
-  rescatable: '#22c55e',
-  activo:     '#6366f1',
-  recuperado: '#3b82f6',
-  perdido:    '#6b7280',
+  en_riesgo:      '#ef4444',
+  en_recuperacion:'#f59e0b',
+  rescatable:     '#22c55e',
+  activo:         '#6366f1',
+  recuperado:     '#3b82f6',
+  perdido:        '#6b7280',
 }
 
 const ESTADO_LABEL: Record<string, string> = {
-  en_riesgo:  'En Riesgo',
-  rescatable: 'Rescatable',
-  activo:     'Activo',
-  recuperado: 'Recuperado',
-  perdido:    'Perdido',
+  en_riesgo:      'En Riesgo',
+  en_recuperacion:'En Recuperación',
+  rescatable:     'Rescatable',
+  activo:         'Activo',
+  recuperado:     'Recuperado',
+  perdido:        'Perdido',
 }
 
-const ESTADO_ORDER: EstadoAuditoria[] = ['en_riesgo', 'rescatable', 'activo', 'recuperado', 'perdido']
+const ESTADO_ORDER: EstadoAuditoria[] = ['en_riesgo', 'en_recuperacion', 'rescatable', 'activo', 'recuperado', 'perdido']
 
 const ASESOR_COLORS: Record<string, string> = {
   'Fátima':  '#A855F7',
