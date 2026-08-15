@@ -105,6 +105,89 @@ export const ANCONA_AUTOPARTES: AuditoriaCase = {
 
   /* ── Problema Raíz ───────────────────────────────────────────── */
   problema_raiz: 'Falta de visibilidad y monitoreo proactivo. El cliente (Ancona) tiene cero módulos de panel/reportes adoptados tras 6 años. Callpicker tiene alertas disponibles pero no configuradas para esta cuenta. Resultado: incidente de 15 días pasó desapercibido hasta este análisis.',
+  problema_raiz_detalle: 'La estructura operativa de Ancona es reactiva, no preventiva. Sin adopción de módulos de visibilidad (Panel Admin, IA de Voz), no hay detección automática de anomalías. El incidente de julio fue un cambio brusco de ruteo que debería haber generado alerta en horas; en su lugar, se descubrió mediante análisis externo 15 días después. El riesgo residual persiste en 5 sucursales donde la pérdida oscila entre 20%–41%, sin evidencia de corrección pendiente.',
+
+  flujo_real: [
+    { fase: 'Pre-incidente (5–19 jul)', area: 'Operaciones', accion: 'Ruteo de CAM Talleres sin destino de enrutamiento asignado', resultado: '73.5% pérdida, 3,522 llamadas perdidas' },
+    { fase: 'Incidente detectado', area: 'Técnica', accion: 'Cambio de ruteo: nuevo destino "Jorge QROO" activado', resultado: 'Pérdida cae a 3.9%, pero riesgo de punto único de falla' },
+    { fase: 'Post-corrección (20 jul–4 ago)', area: 'Operaciones', accion: 'Operación con destino activo, pero 5 sucursales sin corrección', resultado: '20%–41% pérdida residual en Progreso, CD Carmen, Lakin, Playa1, Valladolid' },
+  ],
+  comparativo: [
+    { metrica: 'Tasa de pérdida pre-corrección', real: '62.8%', ideal: '<5%' },
+    { metrica: 'Tasa de pérdida post-corrección', real: '3.9%', ideal: '<2%' },
+    { metrica: 'Concentración de tráfico', real: '81% en 2 sucursales', ideal: 'Distribuido <30% por sucursal' },
+    { metrica: 'Recuperación de contacto perdido', real: '4.1% (94 de 2,282)', ideal: '>90%' },
+    { metrica: 'Módulos digitales adoptados', real: '0 de 6', ideal: '≥3 (Panel, IA Voz, IA Chat)' },
+  ],
+
+  plan_inmediato: [
+    { accion: 'Confirmar naturaleza de "Jorge QROO" (extensión vs. grupo de timbrado) y mitigar riesgo de punto único de falla', responsable: 'Fátima + Técnica', criterio: 'Confirmación documentada y plan de respaldo implementado' },
+    { accion: 'Auditar configuración de ruteo en 5 sucursales con pérdida residual (Progreso, CD Carmen, Lakin, Playa1, Valladolid)', responsable: 'Técnica', criterio: 'Auditoría completada, correcciones aplicadas' },
+    { accion: 'Establecer alerta de umbral >15% pérdida diaria por sucursal', responsable: 'Configuración', criterio: 'Alerta activa, al menos 2 incidentes detectados en <24h' },
+  ],
+  plan_mediano: [
+    { accion: 'Presentar caso de negocio de IA de Voz para sucursales de menor volumen (piloto en Lakin, Progreso, CD Carmen)', responsable: 'Ventas', criterio: 'Propuesta aceptada, SOW firmado' },
+    { accion: 'Activar recuperación de contacto perdido (sistema automático o manual de devolución de llamadas)', responsable: 'Operaciones', criterio: 'Tasa de recuperación >50%' },
+    { accion: 'Reactivar seguimiento KAM formal — check-in mensual documentado', responsable: 'Fátima', criterio: 'Mínimo 3 check-ins completados con actas' },
+  ],
+  plan_estrategico: [
+    { accion: 'Expansión de IA de Voz a toda la cadena (14 sucursales) como red de contención y canal de atención', responsable: 'Ventas + Implementación', criterio: 'Solución en producción en todas las sucursales' },
+    { accion: 'Integración API con catálogo de Ancona para resolución automática de consultas de precio/existencia (80% del volumen)', responsable: 'Integraciones', criterio: 'API integrada, automatización de cotizaciones en marcha' },
+    { accion: 'Implementación de Panel Administrador con reportería propia de Ancona', responsable: 'Implementación', criterio: 'Cliente con acceso autónomo a dashboards, alertas configuradas' },
+  ],
+  areas_oportunidad: [
+    { area: 'IA de Voz (Asistente Virtual)', impacto: 'Muy Alto — puede responder 80% de las consultas de cotización/existencia automáticamente, liberando agentes', responsable: 'Ventas' },
+    { area: 'Integración API con catálogo', impacto: 'Alto — cierra el 80% de la consulta sin intervención humana', responsable: 'Integraciones' },
+    { area: 'Panel Administrador con visibilidad', impacto: 'Alto — permite a Ancona detectar incidentes en horas, no días', responsable: 'Implementación' },
+    { area: 'Chat como canal complementario', impacto: 'Medio — alternativa para clientes que prefieren texto a voz', responsable: 'Producto' },
+  ],
+
+  perfiles: [
+    { nombre: 'Fátima (KAM Callpicker)', rol: 'Gestor de cuenta y relación comercial', color: '#6366f1', campos: [ { label: 'Responsable de', value: 'Seguimiento de cuenta, identificación de oportunidades, cierre de nuevos módulos' } ] },
+    { nombre: 'Gerente Operativo Ancona', rol: 'Propietario de la operación telefónica y toma de decisiones técnicas', color: '#f59e0b', campos: [ { label: 'Responsable de', value: 'Aprobación de cambios de ruteo, adopción de soluciones, inversión en módulos digitales' } ] },
+    { nombre: 'Técnico responsable (CAM Talleres)', rol: 'Ejecución de configuraciones, soporte de incidentes', color: '#22c55e', campos: [ { label: 'Responsable de', value: 'Cambio de ruteo del 20 jul (correctivo sin comunicación previa)' } ] },
+  ],
+
+  foda: {
+    fortalezas: [
+      'Cliente de 6 años con relación estable y pagos al día',
+      'MRR significativo ($15,543) — inversión justificada en soluciones personalizadas',
+      'Operación concentrada (81% en 2 sucursales) facilita pilotos controlados',
+      'Motivo de llamada altamente estructurado (80% cotización) — ideal para automatización con IA',
+    ],
+    oportunidades: [
+      'IA de Voz como red de contención inmediata en sucursales de bajo volumen (piloto de bajo riesgo)',
+      'Integración API para automatización de 80% de las consultas de precio/existencia',
+      'Panel Administrador para que Ancona recupere visibilidad de su propia operación',
+      'Expansión a toda la cadena post-piloto exitoso en Lakin/Progreso',
+    ],
+    debilidades: [
+      'Cero adopción de módulos digitales tras 6 años — dependencia total de agentes humanos',
+      'Operación reactiva, no preventiva — no hay alertas ni monitoreo automático configurados',
+      'Incidente de 15 días pasó desapercibido por ambos lados (cliente y Callpicker)',
+      'Riesgo de punto único de falla nuevo en CAM Talleres (destino "Jorge QROO" sin respaldo)',
+    ],
+    amenazas: [
+      'Punto único de falla: si "Jorge QROO" falla, CAM Talleres (66.7% del tráfico) perdería el 98% de llamadas',
+      'Pérdida de contacto sin recuperación: 95.9% de números con llamada perdida nunca son recontactados',
+      'Concentración extrema: cambio en CAM Talleres o CAM YUCAM afecta la operación completa',
+      'Competencia o cambio de proveedor en telecomunicaciones podría reducir dependencia de Callpicker si las soluciones digitales no se implementan',
+    ],
+  },
+
+  conclusion: 'Ancona Autopartes es cliente de alto valor ($15,543 MRR, 6 años de relación) con operación estructuralmente vulnerable: 81% del tráfico en 2 sucursales, cero módulos digitales, incidentes no detectados, recuperación de contacto casi nula. El incidente de julio es una oportunidad para reactivar la relación y proponer IA de Voz como red de contención. Piloto en sucursales de bajo riesgo (Lakin, Progreso) debe cerrase en 90 días antes de expansión a toda la cadena.',
+  pierde: [
+    'Tráfico de 3,522 llamadas en 15 días (CAM Talleres, pre-corrección)',
+    'Contacto con 2,282 clientes/talleres por llamadas perdidas (95.9% sin devolución)',
+    'Eficiencia operativa: 80% de consultas de precio/existencia requieren agente humano (automatizable)',
+  ],
+  gana: [
+    'Reducción de pérdida de 62.8% a 3.9% (post-corrección) + mitigación de sucursales residuales',
+    'IA de Voz para respuesta automática a cotización/existencia (liberación de agentes)',
+    'Recuperación de contacto perdido mediante llamadas automáticas o chat',
+    'Panel Administrador con visibilidad propia — detección de incidentes en horas, no días',
+  ],
+  recomendacion_central: 'Cerrar IA de Voz en piloto de 90 días en Lakin + Progreso + CD Carmen como red de contención de pérdida y canal de cotización automática. Paralelo: auditar ruteo en 5 sucursales residuales. Meta: demostrar ROI en bajo riesgo antes de expansión a CAM Talleres + YUCAM (81% del volumen). Reactivar KAM mensual para asegurar adopción.',
 
   /* ── Contenido completo del reporte de auditoría ───────────────*/
   contenido_auditoria: `CALLPICKER · EXPERIENCIA AL CLIENTE
