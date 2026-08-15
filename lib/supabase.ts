@@ -376,7 +376,8 @@ export async function getActividadesByCuenta(cuentaId: string): Promise<Activida
     .eq('cuenta_id', cuentaId)
     .order('fecha_programada', { ascending: false })
     .limit(100)
-  if (error) throw error
+  // Si la tabla no existe, retornar array vacío en lugar de fallar
+  if (error) return []
   return (data ?? []) as ActividadSAC[]
 }
 
