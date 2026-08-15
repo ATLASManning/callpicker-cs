@@ -3,6 +3,7 @@ import { ARKANSAS }              from './arkansas-data'
 import { FINSUS }                from './finsus-data'
 import { GRUPOFRISA }            from './grupofrisa-data'
 import { AGUA_INMACULADA }       from './agua-inmaculada-data'
+import { LINEACEL }              from './lineacel-data'
 import { SALUD_Y_HOGAR }         from './salud-y-hogar-data'
 import { SAMALAB }               from './samalab-data'
 import { LABSUS }                from './labsus-data'
@@ -26,7 +27,7 @@ import { JASON_DE_MEXICO }      from './jason-de-mexico-data'
 import type { AuditoriaCase } from './types'
 
 export const STATIC_CASES: AuditoriaCase[] = [
-  ANCONA_AUTOPARTES, ARKANSAS, FINSUS, GRUPOFRISA, AGUA_INMACULADA, SALUD_Y_HOGAR,
+  ANCONA_AUTOPARTES, ARKANSAS, FINSUS, GRUPOFRISA, AGUA_INMACULADA, LINEACEL, SALUD_Y_HOGAR,
   SAMALAB, LABSUS, ALIANZA, ALTERNET, AZYCO,
   BRANDGROUP, CINTAS_COVE, CLICKBALANCE, ELERY_BRANDS,
   HOSPITAL_SANTA_ROSA, TRAVELLING, POLAK_GRUPO, PUBSA,
