@@ -226,7 +226,7 @@ export async function getSeguimientos(cuentaId: string): Promise<Seguimiento[]> 
     .eq('cuenta_id', cuentaId)
     .order('fecha', { ascending: false })
     .limit(50)
-  if (error) throw error
+  if (error) return []
   return (data ?? []) as Seguimiento[]
 }
 
@@ -256,7 +256,7 @@ export async function getOportunidades(cuentaId: string): Promise<Oportunidad[]>
     .select('*')
     .eq('cuenta_id', cuentaId)
     .order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) return []
   return (data ?? []) as Oportunidad[]
 }
 
@@ -278,7 +278,7 @@ export async function getTickets(cuentaId: string): Promise<Ticket[]> {
     .select('*')
     .eq('cuenta_id', cuentaId)
     .order('created_at', { ascending: false })
-  if (error) throw error
+  if (error) return []
   return (data ?? []) as Ticket[]
 }
 
@@ -307,13 +307,18 @@ export async function saveHealthSnapshot(cuentaId: string, cuenta: Cuenta) {
 }
 
 export async function getHealthHistorial(cuentaId: string) {
-  const { data } = await supabaseAdmin
-    .from('health_score_historial')
-    .select('fecha, health_score, semaforo')
-    .eq('cuenta_id', cuentaId)
-    .order('fecha', { ascending: true })
-    .limit(12)
-  return data ?? []
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('health_score_historial')
+      .select('fecha, health_score, semaforo')
+      .eq('cuenta_id', cuentaId)
+      .order('fecha', { ascending: true })
+      .limit(12)
+    if (error) return []
+    return data ?? []
+  } catch {
+    return []
+  }
 }
 
 // ── Junta Semanal — tipos extendidos ─────────────────────────────────────────
