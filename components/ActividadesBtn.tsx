@@ -329,7 +329,7 @@ function ActividadCard({
                 )}
                 <button onClick={() => setEditing(false)} style={{
                   padding: '5px 10px', borderRadius: 6, background: '#F1F5F9',
-                  color: 'rgba(255,255,255,0.45)', fontSize: 11, cursor: 'pointer', border: 'none',
+                  color: '#4B5563', fontSize: 11, cursor: 'pointer', border: 'none',
                 }}>
                   Cancelar
                 </button>
@@ -840,7 +840,7 @@ export default function ActividadesBtn({
                       <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#1F2937' }}>
                         Sin actividades esta semana
                       </p>
-                      <p style={{ margin: '0 0 20px', fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>
+                      <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
                         Genera automáticamente las 15 actividades de la semana
                         (3 por día, L–V) basadas en el estado real de la cartera de <strong>{asesor}</strong>.
                       </p>
@@ -918,7 +918,7 @@ export default function ActividadesBtn({
                         <ListChecks size={24} color="#059669" />
                       </div>
                       <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#1F2937' }}>Sin cuentas activas</p>
-                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>No se encontraron cuentas para analizar.</p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#6B7280' }}>No se encontraron cuentas para analizar.</p>
                     </div>
                   ) : (
                     <>
@@ -930,21 +930,21 @@ export default function ActividadesBtn({
                         const completas = diagnostico.filter(d => d.gaps.length === 0)
                         return (
                           <div style={{ padding: '14px 16px', borderRadius: 12, background: conCrit.length > 0 ? '#FFF5F5' : '#F0FDF4', border: `1px solid ${conCrit.length > 0 ? '#FECACA' : '#BBF7D0'}`, marginBottom: 16 }}>
-                            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                               Resumen de perfiles — {diagnostico.length} cuentas
                             </p>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                               <div style={{ textAlign: 'center', padding: '8px 6px', background: '#fff', borderRadius: 8, border: '1px solid #FECACA' }}>
                                 <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#DC2626', lineHeight: 1 }}>{totalCrit}</p>
-                                <p style={{ margin: '3px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', fontWeight: 700 }}>Datos críticos</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 9, color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Datos críticos</p>
                               </div>
                               <div style={{ textAlign: 'center', padding: '8px 6px', background: '#fff', borderRadius: 8, border: '1px solid #FED7AA' }}>
                                 <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#D97706', lineHeight: 1 }}>{totalImp}</p>
-                                <p style={{ margin: '3px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', fontWeight: 700 }}>Datos importantes</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 9, color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Datos importantes</p>
                               </div>
                               <div style={{ textAlign: 'center', padding: '8px 6px', background: '#fff', borderRadius: 8, border: '1px solid #BBF7D0' }}>
                                 <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#059669', lineHeight: 1 }}>{completas.length}</p>
-                                <p style={{ margin: '3px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', fontWeight: 700 }}>Perfiles completos</p>
+                                <p style={{ margin: '3px 0 0', fontSize: 9, color: '#6B7280', textTransform: 'uppercase', fontWeight: 700 }}>Perfiles completos</p>
                               </div>
                             </div>
                             {conCrit.length > 0 && (
@@ -1020,7 +1020,7 @@ export default function ActividadesBtn({
 
                       {/* Leyenda */}
                       <div style={{ marginTop: 12, padding: '10px 12px', background: '#F8FAFC', borderRadius: 8, border: '1px solid #E2E8F0' }}>
-                        <p style={{ margin: '0 0 5px', fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase' }}>Niveles de urgencia</p>
+                        <p style={{ margin: '0 0 5px', fontSize: 10, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase' }}>Niveles de urgencia</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                           <span style={{ fontSize: 11, color: '#DC2626' }}>🔴 <strong>Crítico</strong>: bloquea análisis de riesgo y contactabilidad</span>
                           <span style={{ fontSize: 11, color: '#D97706' }}>🟡 <strong>Importante</strong>: limita previsión de churn y oportunidades</span>
@@ -1045,7 +1045,7 @@ export default function ActividadesBtn({
                         <History size={24} color="#64748B" />
                       </div>
                       <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#1F2937' }}>Sin semanas anteriores</p>
-                      <p style={{ margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>
+                      <p style={{ margin: 0, fontSize: 13, color: '#6B7280' }}>
                         El historial se irá acumulando semana a semana.
                       </p>
                     </div>
@@ -1061,7 +1061,7 @@ export default function ActividadesBtn({
                           display: 'flex', gap: 16, alignItems: 'center',
                         }}>
                           <div style={{ flex: 1 }}>
-                            <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>
+                            <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, color: '#6B7280' }}>
                               Promedio cumplimiento
                             </p>
                             <p style={{ margin: 0, fontSize: 32, fontWeight: 900, color: pctColor(avg4w), lineHeight: 1 }}>
