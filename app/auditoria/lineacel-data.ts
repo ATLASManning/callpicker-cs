@@ -99,6 +99,74 @@ export const LINEACEL: AuditoriaCase = {
 
   /* ── Problema Raíz ───────────────────────────────────────────── */
   problema_raiz: 'Dependencia de base de datos externa (Movistar/BAIT) para modelo de outreach. Una vez que el registro nacional de números restrinja esa base, el cliente necesitará modelo alternativo: base interna, Chat API para retención, integraciones con CRM.',
+  problema_raiz_detalle: 'El ciclo de vida operativo de LINEACEL está vinculado al registro nacional de números. Sin una alternativa de retención (Chat API, CRM propio), el cliente enfrenta churn post-registro.',
+
+  flujo_real: [
+    { fase: 'Implementación', area: 'Operaciones', accion: 'Configurar extensiones y softphone', resultado: '8 extensiones activas, capacitación completada' },
+    { fase: 'Campañas activas', area: 'Ventas', accion: 'Ejecutar outreach a base BAIT/Movistar', resultado: '950 llamadas salientes en 3.3 meses' },
+    { fase: 'Post-registro', area: 'Estrategia', accion: 'Transitar a modelo de base propia + Chat API', resultado: 'Pendiente de negociación' },
+  ],
+  comparativo: [
+    { metrica: 'Llamadas salientes', real: '950', ideal: '1,200+ con Chat API activo' },
+    { metrica: 'Adopción plataforma', real: 'Avanzada (autónomo)', ideal: 'Seguir igual' },
+    { metrica: 'Riesgo de churn', real: 'Alto (post-registro)', ideal: 'Mitigado con propuesta Chat API' },
+  ],
+
+  plan_inmediato: [
+    { accion: 'Validar propuesta Chat API con Perfilamiento', responsable: 'Claudia / Enrique', criterio: 'Propuesta presentada y aprobada' },
+    { accion: 'Check-in mensual sobre expansión de POS', responsable: 'Claudia', criterio: 'Hito de apertura de nueva sucursal registrado' },
+  ],
+  plan_mediano: [
+    { accion: 'Cierre de Chat API + integración de seguimiento', responsable: 'Ventas + Implementación', criterio: '$32,572 facturado y en producción' },
+    { accion: 'Propuesta de infraestructura telefónica para sucursales', responsable: 'Consultoría', criterio: 'Propuesta de SD-WAN/Peplink enviada' },
+  ],
+  plan_estrategico: [
+    { accion: 'Solución integral multisucursal (SD-WAN + seguridad)', responsable: 'Dir. Ventas Empresarial', criterio: 'RFP recibido y propuesta en marcha' },
+    { accion: 'Dashboard de análisis de ROI por región/POS', responsable: 'BI/Integraciones', criterio: 'Prototipo funcionando' },
+  ],
+  areas_oportunidad: [
+    { area: 'Chat API + SMS/WhatsApp', impacto: 'Alto — complemento natural para outreach', responsable: 'Enrique / Perfilamiento' },
+    { area: 'Conectividad centralizada (SD-WAN)', impacto: 'Muy Alto — conforme expandan POS', responsable: 'Dir. Empresarial' },
+    { area: 'Seguridad de endpoint', impacto: 'Medio — si manejan datos transaccionales', responsable: 'Consultoría Seguridad' },
+  ],
+
+  perfiles: [
+    { nombre: 'Gerente Operaciones LINEACEL', rol: 'Contacto principal — toma decisiones operativas', color: '#6366f1', campos: [ { label: 'Responsable de', value: 'Administrador de plataforma, configuración diaria' } ] },
+    { nombre: 'Director Comercial', rol: 'Stakeholder estratégico — decisions de inversión IT', color: '#f59e0b', campos: [ { label: 'Responsable de', value: 'Aprobación de presupuesto Chat API / infraestructura' } ] },
+  ],
+
+  foda: {
+    fortalezas: [
+      'Cliente muy autónomo y técnico — requiere soporte mínimo',
+      'Tasa de adopción rápida — conocimiento avanzado de plataforma',
+      'Modelo de negocio alineado con nuestras capacidades (outreach masivo)',
+    ],
+    oportunidades: [
+      'Chat API $32,572 identificada y canalizada',
+      'Expansión a múltiples POS = oportunidad de infraestructura centralizada',
+      'Patrocinio de Club Necaxa mejora perfil corporativo',
+    ],
+    debilidades: [
+      'Ciclo de vida potencialmente corto (dependencia de registro nacional)',
+      'MRR actual bajo $13,802 — alto valor si se cierra propuesta Chat API',
+    ],
+    amenazas: [
+      'Registro Nacional de Números reducirá base de contactos público',
+      'Sin propuesta post-registro, riesgo de churn antes de fin 2026',
+    ],
+  },
+
+  conclusion: 'LINEACEL es cliente nuevo con implementación exitosa y adopción avanzada. El riesgo operativo es real pero manejable: propuesta de Chat API en marcha, y plan de contingencia multisucursal identificado. Monitoreo continuo recomendado.',
+  pierde: [
+    'Acceso a base de contactos público (post-registro nacional)',
+    'Capacidad de outreach masivo sin segmentación propia',
+  ],
+  gana: [
+    'Chat API para retención de usuarios post-llamada',
+    'Infraestructura telefónica/conectividad centralizada conforme expanda POS',
+    'Dashboard de análisis de ROI por región',
+  ],
+  recomendacion_central: 'Cerrar propuesta Chat API en próximas 2 semanas. Establecer check-in mensual sobre expansión de POS. Preparar plan B post-registro nacional: migración a modelo de base interna + retención vía Chat/SMS.',
 
   /* ── Observaciones operativas ────────────────────────────────── */
   contenido_auditoria: `LINEACEL — FICHA DE CLIENTE NUEVO
