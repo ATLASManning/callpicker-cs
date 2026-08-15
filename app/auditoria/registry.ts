@@ -17,6 +17,7 @@ export interface AuditoriaRef {
 
 export const AUDITORIA_REFS: AuditoriaRef[] = [
   // ── Fátima ────────────────────────────────────────────────────────────────
+  { id: 'ancona-autopartes', nombre: 'Ancona Autopartes',               consecutivos: ['F24'] },
   { id: 'arkansas',        nombre: 'Arkansas State University (ASUQ)', consecutivos: ['F45'] },
   { id: 'finsus',          nombre: 'FINSUS – Economía Móvil',          consecutivos: ['F1']  },
   { id: 'grupofrisa',      nombre: 'Grupo FRISA / ACISA',              consecutivos: ['F16'] },
