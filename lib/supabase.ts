@@ -52,13 +52,24 @@ export async function getCuentas(filters?: {
 }
 
 export async function getCuentaById(id: string): Promise<Cuenta | null> {
+  // Intentar primero por UUID id
   const { data, error } = await supabaseAdmin
     .from('cuentas')
     .select('*')
     .eq('id', id)
     .single()
-  if (error) return null
-  return data as Cuenta
+
+  if (!error && data) return data as Cuenta
+
+  // Si no existe por UUID, intentar por consecutivo (para URLs tipo /cuentas/C52)
+  const { data: data2, error: error2 } = await supabaseAdmin
+    .from('cuentas')
+    .select('*')
+    .eq('consecutivo', id)
+    .single()
+
+  if (error2) return null
+  return data2 as Cuenta
 }
 
 export async function getCuentaByConsecutivo(consecutivo: string): Promise<Cuenta | null> {
@@ -69,6 +80,13 @@ export async function getCuentaByConsecutivo(consecutivo: string): Promise<Cuent
     .single()
   if (error) return null
   return data as Cuenta
+}
+
+// Helper: normaliza cualquier id (UUID o consecutivo) al UUID real
+export async function normalizeCuentaId(id: string): Promise<string | null> {
+  const cuenta = await getCuentaById(id)
+  if (!cuenta) return null
+  return cuenta.id
 }
 
 // Campos que NO existen en la tabla DB (computed por la API o enriquecidos en runtime)

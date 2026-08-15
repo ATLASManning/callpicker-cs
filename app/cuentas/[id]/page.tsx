@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getAuditCaseById }           from '@/app/auditoria/cases'
-import { getCuentaById, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta } from '@/lib/supabase'
+import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta } from '@/lib/supabase'
 import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
@@ -32,16 +32,20 @@ export const dynamic = 'force-dynamic'
 interface Props { params: { id: string } }
 
 export default async function CuentaDetailPage({ params }: Props) {
-  const [cuenta, seguimientos, oportunidades, tickets, historial, actividades] = await Promise.all([
-    getCuentaById(params.id),
-    getSeguimientos(params.id),
-    getOportunidades(params.id),
-    getTickets(params.id),
-    getHealthHistorial(params.id),
-    getActividadesByCuenta(params.id),
-  ])
-
+  // Obtener la cuenta primero (función getCuentaById ahora soporta UUID o consecutivo)
+  const cuenta = await getCuentaById(params.id)
   if (!cuenta) notFound()
+
+  // Usar el UUID real para las demás queries
+  const cuentaUUID = cuenta.id
+
+  const [seguimientos, oportunidades, tickets, historial, actividades] = await Promise.all([
+    getSeguimientos(cuentaUUID),
+    getOportunidades(cuentaUUID),
+    getTickets(cuentaUUID),
+    getHealthHistorial(cuentaUUID),
+    getActividadesByCuenta(cuentaUUID),
+  ])
 
   const h       = headers()
   const rol     = h.get('x-user-rol') ?? 'viewer'
