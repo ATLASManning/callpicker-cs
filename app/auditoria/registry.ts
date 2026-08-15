@@ -26,7 +26,6 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'polak-grupo',     nombre: 'Polak Grupo',                      consecutivos: ['F5']  },
   { id: 'pubsa',           nombre: 'Publicidad en Buscadores (AdCentral)', consecutivos: ['F17'] },
   // ── Claudia ───────────────────────────────────────────────────────────────
-  { id: 'lineacel',        nombre: 'LINEACEL · Distribuidor BAIT',     consecutivos: ['C52'] },
   { id: 'agua-inmaculada', nombre: 'Agua Inmaculada',                  consecutivos: ['C17'] },
   { id: 'labsus',          nombre: 'LABSUS Centro Diagnóstico',        consecutivos: ['C37'] },
   { id: 'brandgroup',      nombre: 'Brand-Kern-Liebers México (Brandgroup)', consecutivos: ['C15'] },
