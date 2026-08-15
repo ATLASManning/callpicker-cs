@@ -224,4 +224,12 @@ RECOMENDACIONES PRIORITARIAS:
 5. Reactivar seguimiento KAM formal — la cuenta no tiene ningún registro de actividad comercial en 6 años.
 
 [Contenido completo del reporte disponible en: D:\\Proyectos\\Reportes\\Ancona_Autopartes_Reporte_Llamadas_1.docx]`,
+
+  documentos: [
+    {
+      nombre: 'Ancona Autopartes - Reporte de Análisis de Llamadas',
+      ruta: '/auditorias/Ancona_Autopartes_Reporte_Llamadas_1.docx',
+      descripcion: 'Análisis forense de 12,335 registros de llamadas (5 jul - 4 ago 2026). Identificación de incidente de ruteo y oportunidades de expansión con IA de Voz.',
+    },
+  ],
 }

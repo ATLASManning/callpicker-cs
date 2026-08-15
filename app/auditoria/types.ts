@@ -86,6 +86,9 @@ export interface AuditoriaCase {
   pierde:               string[]
   gana:                 string[]
   recomendacion_central:string
+
+  /* ── Documentos adjuntos ─────────────────────────────────────── */
+  documentos?: { nombre: string; ruta: string; descripcion?: string }[]
 }
 
 /* ─── Valor inicial vacío para el formulario ────────────────────── */

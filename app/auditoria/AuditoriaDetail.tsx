@@ -4,11 +4,11 @@ import type { AuditoriaCase } from './types'
 import {
   AlertTriangle, CheckCircle2, Clock, TrendingUp,
   User, Users, Zap, Target, Shield, ChevronDown, ChevronUp,
-  FileText, BarChart3, Lightbulb, Search, AlertCircle, Printer,
+  FileText, BarChart3, Lightbulb, Search, AlertCircle, Printer, Download,
 } from 'lucide-react'
 
 /* ─── Tipos locales ──────────────────────────────────────────────────── */
-type Tab = 'resumen' | 'comportamiento' | 'raiz' | 'soluciones' | 'perfiles' | 'foda'
+type Tab = 'resumen' | 'comportamiento' | 'raiz' | 'soluciones' | 'perfiles' | 'foda' | 'documentos'
 
 /* ─── Colores base ───────────────────────────────────────────────────── */
 const RED    = '#ef4444'
@@ -114,6 +114,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'soluciones',     label: 'Soluciones',           icon: Lightbulb },
   { id: 'perfiles',       label: 'Perfiles de Actores',  icon: Users },
   { id: 'foda',           label: 'FODA Estratégico',     icon: BarChart3 },
+  { id: 'documentos',     label: 'Documentos',           icon: Download },
 ]
 
 /* ─── Componente principal ───────────────────────────────────────────── */
@@ -609,6 +610,45 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                 </div>
               )}
             </SectionCard>
+          </>
+        )}
+
+        {/* ── DOCUMENTOS ─────────────────────────────────────────────── */}
+        {activeTab === 'documentos' && (
+          <>
+            {caso.documentos && caso.documentos.length > 0 ? (
+              <div className="space-y-3">
+                {caso.documentos.map((doc, i) => (
+                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: '#dbeafe' }}>
+                        <FileText size={20} className="text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 text-sm">{doc.nombre}</h3>
+                        {doc.descripcion && (
+                          <p className="text-xs text-gray-600 mt-1">{doc.descripcion}</p>
+                        )}
+                      </div>
+                      <a
+                        href={doc.ruta}
+                        download
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors flex-shrink-0"
+                      >
+                        <Download size={13} />
+                        Descargar
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-gray-50 rounded-xl border border-gray-200 p-8 text-center">
+                <FileText size={32} className="mx-auto text-gray-400 mb-3" />
+                <p className="text-sm text-gray-600">No hay documentos adjuntos para esta auditoría</p>
+              </div>
+            )}
           </>
         )}
 
