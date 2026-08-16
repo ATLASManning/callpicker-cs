@@ -318,13 +318,13 @@ export default function InformeCortesPage() {
   const DS = { fontSize: 11, color: 'rgba(255,255,255,0.45)',                   marginBottom: 16 }
 
   return (
-    <div style={{ padding: '28px 32px', background: 'rgba(255,255,255,0.04)', minHeight: '100vh' }}>
+    <div style={{ padding: '28px 32px', background: '#f8fafc', minHeight: '100vh' }}>
 
       {/* ── Header */}
       <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 }}>Informe de Cortes</h1>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>Análisis de consumo y comportamiento por periodo de corte</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', margin: 0 }}>Informe de Cortes</h1>
+          <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Análisis de consumo y comportamiento por periodo de corte</p>
         </div>
         <button onClick={() => { setStats(null); setLoading(true); setTimeout(() => window.location.reload(), 100) }}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
