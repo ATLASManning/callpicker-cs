@@ -4,13 +4,15 @@ import crypto from 'crypto'
 
 export const dynamic = 'force-dynamic'
 
-// ENDPOINT DE EMERGENCIA - NO requiere autenticación
-export const revalidate = 0
-
-
+/**
+ * POST /api/reset-password
+ * Endpoint de emergencia sin autenticación - para resetear contraseñas expiradas
+ * Body: { email: string, newPassword: string }
+ */
 export async function POST(request: Request) {
   try {
-    const { email, newPassword } = await request.json()
+    const body = await request.json()
+    const { email, newPassword } = body
 
     if (!email || !newPassword) {
       return NextResponse.json({ error: 'Email y newPassword requeridos' }, { status: 400 })
@@ -24,7 +26,11 @@ export async function POST(request: Request) {
       .single()
 
     if (findError || !usuario) {
-      return NextResponse.json({ error: 'Usuario no encontrado' }, { status: 404 })
+      return NextResponse.json({
+        success: false,
+        error: 'Usuario no encontrado',
+        debug: findError?.message
+      }, { status: 404 })
     }
 
     // Generar hash de contraseña
@@ -46,7 +52,11 @@ export async function POST(request: Request) {
       .eq('id', usuario.id)
 
     if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
+      return NextResponse.json({
+        success: false,
+        error: 'Error al actualizar',
+        debug: updateError.message
+      }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -57,6 +67,9 @@ export async function POST(request: Request) {
       message: 'Contraseña actualizada exitosamente'
     })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({
+      success: false,
+      error: error.message
+    }, { status: 500 })
   }
 }
