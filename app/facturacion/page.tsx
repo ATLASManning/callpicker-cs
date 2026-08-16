@@ -114,7 +114,7 @@ function BarGroup({ title, data, colorMap, colorFn, mrr }: {
 
   return (
     <div className="cp-card" style={{ borderRadius: 14, padding: 20 }}>
-      <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 14 }}>{title}</p>
+      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 14 }}>{title}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
         {entries.map(([key, v]) => {
           const val = typeof v === 'number' ? v : (mrr ? v.mrr : v.count)
@@ -124,12 +124,12 @@ function BarGroup({ title, data, colorMap, colorFn, mrr }: {
           return (
             <div key={key}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span style={{ fontSize: 12, color: '#374151', fontWeight: 500 }}>{key || 'Sin datos'}</span>
-                <span style={{ fontSize: 12, color: '#64748b' }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>{key || 'Sin datos'}</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
                   {mrr && typeof v !== 'number' ? fmt$(v.mrr) + ' · ' : ''}{count} ctas
                 </span>
               </div>
-              <div style={{ height: 5, background: '#f8fafc', borderRadius: 99 }}>
+              <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 99 }}>
                 <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 99 }} />
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function FacturacionPage() {
       {/* Header */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', margin: 0 }}>Facturación · LTV</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', margin: 0 }}>Facturación · LTV</h1>
           <p style={{ fontSize: 13, color: '#64748b', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
             {totalGeneral.toLocaleString()} clientes · {' '}
             {source === 'zoho'

@@ -884,7 +884,7 @@ export default function ActividadesBtn({
                               <span style={{ fontSize: 17, fontWeight: 900, color: hasOver ? '#DC2626' : allDone ? '#16A34A' : '#1D4ED8', lineHeight: 1 }}>{d.getDate()}</span>
                             </div>
                             <div>
-                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1F2937' }}>
                                 {dayName} {d.getDate()} {MESES[d.getMonth()]}
                               </p>
                               <p style={{ margin: 0, fontSize: 11, color: '#94A3B8' }}>
@@ -1205,12 +1205,12 @@ export default function ActividadesBtn({
                         🔬
                       </div>
                       <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 800, color: '#fff' }}>Motor de Inteligencia SAC</p>
-                      <p style={{ margin: '0 auto 16px', fontSize: 13, color: '#475569', lineHeight: 1.6, maxWidth: 320 }}>
+                      <p style={{ margin: '0 auto 16px', fontSize: 13, color: '#6B7280', lineHeight: 1.6, maxWidth: 320 }}>
                         Analiza toda la cartera de <strong>{asesor}</strong> con IA: riesgo de churn, instrucciones quirúrgicas por cuenta, oportunidades de upsell y coaching táctico al asesor.
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '0 0 24px', textAlign: 'left', maxWidth: 300, marginLeft: 'auto', marginRight: 'auto' }}>
                         {['Diagnóstico de completitud de perfiles', 'Previsión de riesgo y WARNING cards', 'Instrucciones quirúrgicas por cuenta', 'Oportunidades de upsell priorizadas', 'Coaching táctico post-análisis'].map((s, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#475569' }}>
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#6B7280' }}>
                             <span style={{ width: 20, height: 20, borderRadius: '50%', background: '#7C3AED20', color: '#7C3AED', fontSize: 10, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
                             {s}
                           </div>
