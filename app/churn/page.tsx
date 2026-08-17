@@ -2,18 +2,23 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import PageHeader from '@/components/PageHeader'
 import { AAA_GRC_2026 } from './aaa-grc-data'
+import { ALERTAS_CANCELACION, LOTES_ALERTAS_CANCELACION, type CuentaAlertaCancelacion } from './alertas-cancelacion-data'
+import CustomSelect from '@/components/CustomSelect'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+} from 'recharts'
 import {
   TrendingDown, AlertTriangle, XCircle, ArrowDownRight,
   Clock, DollarSign, BarChart3, CalendarDays, ChevronDown, ChevronUp,
   Plus, Trash2, X, ChevronLeft, ChevronRight, Check, Database, FileBarChart2,
-  RefreshCw,
+  RefreshCw, ShieldAlert, ExternalLink,
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════════════════
    TIPOS
 ═══════════════════════════════════════════════════════════════════════ */
 type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
-type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho' | 'aaa'
+type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho' | 'aaa' | 'alertas'
 
 interface ChurnPendiente   { cliente: string; monto: number; mesesActivo: number; ultimaFactura: string }
 interface ChurnCancelado   { cliente: string; mrr: number;   mesesActivo: number; acumulado: number    }
@@ -1235,6 +1240,169 @@ function SemaforoLeyenda() {
   )
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   ALERTAS · CUENTAS CANCELACIÓN
+   Reporte manual (canal de alertas) — ver app/churn/alertas-cancelacion-data.ts
+═══════════════════════════════════════════════════════════════════════ */
+type MetricaAlerta = 'ltv' | 'ultimoPago' | 'meses'
+
+const METRICA_ALERTA_CFG: Record<MetricaAlerta, {
+  label: string
+  getValue: (c: CuentaAlertaCancelacion) => number | null
+  fmtValue: (n: number) => string
+  color: string
+}> = {
+  ltv:        { label: 'LTV',                    getValue: c => c.ltv,               fmtValue: fmt,             color: '#7c2d12' },
+  ultimoPago: { label: 'Último Pago ($)',         getValue: c => c.ultimoPagoMonto,   fmtValue: fmt,             color: '#ea580c' },
+  meses:      { label: 'Meses en Callpicker',     getValue: c => c.mesesEnCallpicker, fmtValue: n => `${n} meses`, color: '#f97316' },
+}
+
+function AlertasCancelacionSection() {
+  const [metrica, setMetrica] = useState<MetricaAlerta>('ltv')
+  const cfg = METRICA_ALERTA_CFG[metrica]
+
+  const chartData = useMemo(() => {
+    return ALERTAS_CANCELACION
+      .map(c => ({ name: c.cliente, value: cfg.getValue(c) }))
+      .filter((d): d is { name: string; value: number } => d.value !== null)
+      .sort((a, b) => b.value - a.value)
+  }, [metrica, cfg])
+
+  const totalLtv        = ALERTAS_CANCELACION.reduce((s, c) => s + (c.ltv ?? 0), 0)
+  const totalUltimoPago = ALERTAS_CANCELACION.reduce((s, c) => s + (c.ultimoPagoMonto ?? 0), 0)
+  const conDatosFaltantes = ALERTAS_CANCELACION.filter(c => c.ltv === null || c.mesesEnCallpicker === null).length
+  const ultimoLote = LOTES_ALERTAS_CANCELACION[LOTES_ALERTAS_CANCELACION.length - 1]
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#7c2d1215' }}>
+          <ShieldAlert size={16} style={{ color: '#7c2d12' }} />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-gray-900 text-sm">Alertas · Cuentas en riesgo de cancelación</h3>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Reporte manual, actualizado conforme se comparten nuevas cuentas · {LOTES_ALERTAS_CANCELACION.length} lote{LOTES_ALERTAS_CANCELACION.length !== 1 ? 's' : ''} registrado{LOTES_ALERTAS_CANCELACION.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCard icon={ShieldAlert}   label="Cuentas en alerta"   value={String(ALERTAS_CANCELACION.length)} sub={`último lote ${ultimoLote?.fechaCorte ?? '—'}`} color="#7c2d12" />
+        <KpiCard icon={DollarSign}    label="LTV total en riesgo" value={fmt(totalLtv)}         sub="suma de LTV conocido"  color={ORANGE} />
+        <KpiCard icon={Clock}         label="Último pago (total)" value={fmt(totalUltimoPago)}  sub="suma de últimos pagos" color={AMBER}  />
+        <KpiCard icon={AlertTriangle} label="Con datos faltantes" value={String(conDatosFaltantes)} sub="sin LTV o meses"    color={RED}    />
+      </div>
+
+      {/* Gráfico + selector de métrica */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+          <div>
+            <h4 className="font-bold text-gray-900 text-sm">Comparativa por cuenta</h4>
+            <p className="text-xs text-gray-500 mt-0.5">Elige qué dato analizar en el gráfico</p>
+          </div>
+          <div style={{ minWidth: 220 }}>
+            <CustomSelect
+              value={metrica}
+              onChange={v => setMetrica(v as MetricaAlerta)}
+              options={[
+                { value: 'ltv', label: 'LTV' },
+                { value: 'ultimoPago', label: 'Último Pago ($)' },
+                { value: 'meses', label: 'Meses en Callpicker' },
+              ]}
+              className="cp-select text-xs"
+            />
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={Math.max(220, chartData.length * 32)}>
+          <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 60, left: 10, bottom: 0 }}>
+            <CartesianGrid horizontal={false} stroke="#F3E8DD" />
+            <XAxis type="number" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="name" tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} width={170} />
+            <Tooltip formatter={(v: number) => cfg.fmtValue(v)} cursor={{ fill: 'rgba(124,45,18,0.06)' }} />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={18} fill={cfg.color} />
+          </BarChart>
+        </ResponsiveContainer>
+        {chartData.length < ALERTAS_CANCELACION.length && (
+          <p className="text-[11px] text-gray-400 mt-2">
+            {ALERTAS_CANCELACION.length - chartData.length} cuenta(s) sin dato de &quot;{cfg.label}&quot; — no se muestran en el gráfico.
+          </p>
+        )}
+      </div>
+
+      {/* Tabla de cuentas */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100">
+          <h4 className="font-bold text-gray-900 text-sm">Detalle de cuentas</h4>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-100">
+                <th className="text-left  py-2.5 px-4 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Cliente</th>
+                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">CID</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Último Pago</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Meses CP</th>
+                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Primer Pago</th>
+                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">LTV</th>
+                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Servicio</th>
+                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Ticket</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ALERTAS_CANCELACION.map((c, i) => (
+                <tr key={`${c.cid}-${i}`} className="border-b border-gray-100 hover:bg-gray-50/40 transition-colors align-top">
+                  <td className="py-2.5 px-4 font-semibold text-gray-900">
+                    {c.cliente}
+                    {c.notaEspecial && (
+                      <div className="flex items-start gap-1 mt-1 text-[10px] text-amber-600 font-normal max-w-[220px]">
+                        <AlertTriangle size={10} className="flex-shrink-0 mt-0.5" /> {c.notaEspecial}
+                      </div>
+                    )}
+                  </td>
+                  <td className="py-2.5 px-3 text-gray-500 font-mono">{c.cid}</td>
+                  <td className="py-2.5 px-3 text-right text-gray-700">
+                    {c.ultimoPagoMonto != null ? (
+                      <>
+                        {fmt(c.ultimoPagoMonto)}
+                        {c.ultimoPagoFecha && <span className="block text-[10px] text-gray-400">{c.ultimoPagoFecha}</span>}
+                      </>
+                    ) : <span className="text-gray-300">sin registro</span>}
+                  </td>
+                  <td className="py-2.5 px-3 text-right text-gray-700">
+                    {c.mesesEnCallpicker ?? <span className="text-gray-300">—</span>}
+                  </td>
+                  <td className="py-2.5 px-3 text-gray-500">
+                    {c.primerPagoFecha ?? <span className="text-gray-300">sin dato</span>}
+                  </td>
+                  <td className="py-2.5 px-3 text-right font-semibold" style={{ color: c.ltv != null ? '#7c2d12' : '#D1D5DB' }}>
+                    {c.ltv != null ? fmt(c.ltv) : 'sin dato'}
+                  </td>
+                  <td className="py-2.5 px-3 text-gray-600 max-w-[200px]">{c.servicio}</td>
+                  <td className="py-2.5 px-3">
+                    {c.ticketUrl ? (
+                      <a href={c.ticketUrl} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-cp hover:underline">
+                        <ExternalLink size={11} /> Ver
+                      </a>
+                    ) : <span className="text-gray-300">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p className="text-[11px] text-gray-400 text-center">
+        Fuente: reporte manual compartido en sesión de trabajo · Último lote: {ultimoLote?.fechaCorte ?? '—'}
+      </p>
+    </div>
+  )
+}
+
 function DowngradeRow({ d }: { d: ChurnDowngrade }) {
   const [open, setOpen] = useState(false)
   return (
@@ -1821,6 +1989,31 @@ export default function ChurnPage() {
         >
           <span style={{ fontSize: 18, lineHeight: 1 }}>⭐</span>
           GRC · AAA 2026
+        </button>
+
+        {/* Alertas · Cuentas Cancelación */}
+        <button
+          onClick={() => setTab('alertas')}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            background: '#7c2d12', color: '#FFFFFF',
+            padding: '14px 28px', borderRadius: 12,
+            fontWeight: 800, fontSize: 16, letterSpacing: '0.04em',
+            border: '1.5px solid rgba(255,255,255,0.12)',
+            boxShadow: '0 4px 18px rgba(234,88,12,0.30)',
+            transition: 'opacity 150ms', cursor: 'pointer',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+        >
+          <ShieldAlert size={20} style={{ opacity: 0.9 }} />
+          ALERTAS · CUENTAS CANCELACIÓN
+          <span style={{
+            background: 'rgba(255,255,255,0.18)', borderRadius: 999,
+            padding: '2px 8px', fontSize: 12, fontWeight: 700,
+          }}>
+            {ALERTAS_CANCELACION.length}
+          </span>
         </button>
 
         {/* Gross Revenue Churn — link externo Zoho */}
@@ -2811,6 +3004,9 @@ export default function ChurnPage() {
             </div>
           )
         })()}
+
+        {/* ── ALERTAS · CUENTAS CANCELACIÓN ────────────────────────── */}
+        {tab === 'alertas' && <AlertasCancelacionSection />}
 
         {/* ── ZOHO · DORMIDOS EN VIVO ──────────────────────────────── */}
         {tab === 'zoho' && (
