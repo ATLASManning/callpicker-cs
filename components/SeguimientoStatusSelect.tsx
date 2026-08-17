@@ -38,6 +38,7 @@ export default function SeguimientoStatusSelect({
   }
 
   const cls = COLOR[valor as Resultado] ?? 'bg-surface text-textLow border-border'
+  const clsNoText = cls.replace(/text-\S+\s*/g, '')
 
   if (!canEdit) {
     return (
@@ -53,7 +54,7 @@ export default function SeguimientoStatusSelect({
       onChange={handleChange}
       disabled={saving}
       className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer
-        appearance-none outline-none transition-opacity ${cls} ${saving ? 'opacity-50' : ''}`}
+        appearance-none outline-none transition-opacity ${clsNoText} ${saving ? 'opacity-50' : ''}`}
       style={{ paddingRight: '14px', backgroundImage: 'none', color: '#0F172A' }}
     >
       {RESULTADOS.map(r => (
