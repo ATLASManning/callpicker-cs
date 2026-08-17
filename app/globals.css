@@ -196,6 +196,17 @@ body {
   border-color: rgba(255,255,255,0.15) !important;
 }
 .cp-card input:not(.cp-input)::placeholder { color: rgba(255,255,255,0.35) !important; }
+.cp-card select:not(.cp-select) {
+  background: rgba(255,255,255,0.08) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+.cp-card textarea:not(.cp-input) {
+  background: rgba(255,255,255,0.08) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+.cp-card textarea:not(.cp-input)::placeholder { color: rgba(255,255,255,0.35) !important; }
 
 /* ── Botones ──────────────────────────────────────── */
 .cp-btn {
