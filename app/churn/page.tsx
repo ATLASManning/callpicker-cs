@@ -1725,6 +1725,54 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
   return tabs
 }
 
+/* ── Botón compacto de acceso rápido — sidebar lateral ─────────────────── */
+function SidebarAccesoBtn({ active, onClick, icon, label, bg, badge, href }: {
+  active: boolean
+  onClick?: () => void
+  icon: React.ReactNode
+  label: string
+  bg: string
+  badge?: number
+  href?: string
+}) {
+  const style: React.CSSProperties = {
+    background: active ? bg : `${bg}12`,
+    color: active ? '#fff' : bg,
+    padding: '10px 11px',
+    fontSize: 11.5,
+    fontWeight: 700,
+    letterSpacing: '0.01em',
+    lineHeight: 1.25,
+    border: active ? '1.5px solid rgba(255,255,255,0.15)' : `1.5px solid ${bg}25`,
+  }
+  const content = (
+    <>
+      <span className="flex-shrink-0 flex items-center justify-center" style={{ width: 16 }}>{icon}</span>
+      <span className="flex-1">{label}</span>
+      {badge != null && (
+        <span style={{
+          background: active ? 'rgba(255,255,255,0.22)' : `${bg}20`,
+          color: active ? '#fff' : bg,
+          borderRadius: 999, padding: '1px 6px', fontSize: 10, fontWeight: 800, flexShrink: 0,
+        }}>{badge}</span>
+      )}
+    </>
+  )
+  const className = 'w-full flex items-center gap-2 rounded-lg text-left transition-all'
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className} style={style}>
+        {content}
+      </a>
+    )
+  }
+  return (
+    <button onClick={onClick} className={className} style={style}>
+      {content}
+    </button>
+  )
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    PÁGINA PRINCIPAL
 ═══════════════════════════════════════════════════════════════════════ */
@@ -1950,94 +1998,45 @@ export default function ChurnPage() {
         subtitle="Análisis de pérdida de clientes · DATA → Dirección de Satisfacción al Cliente"
       />
 
-      {/* ── Botones de acceso rápido ─────────────────────────────────────── */}
-      <div className="px-6 pt-4 flex flex-wrap gap-3">
+      <div className="flex-1 flex overflow-hidden">
 
-        {/* Zoho · Dormidos */}
-        <button
-          onClick={() => setTab('zoho')}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            background: '#7f1d1d', color: '#FFFFFF',
-            padding: '14px 28px', borderRadius: 12,
-            fontWeight: 800, fontSize: 16, letterSpacing: '0.04em',
-            border: '1.5px solid rgba(255,255,255,0.12)',
-            boxShadow: '0 4px 18px rgba(220,38,38,0.30)',
-            transition: 'opacity 150ms', cursor: 'pointer',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block', flexShrink: 0 }} />
-          ZOHO · DORMIDOS
-        </button>
+        {/* ── Sidebar · Accesos rápidos ────────────────────────────────── */}
+        <aside className="w-[184px] flex-shrink-0 border-r border-gray-200 bg-white px-3 py-4 space-y-1.5 overflow-y-auto">
+          <p className="px-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Accesos rápidos</p>
 
-        {/* GRC · AAA 2026 */}
-        <button
-          onClick={() => setTab('aaa')}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            background: '#4c1d95', color: '#FFFFFF',
-            padding: '14px 28px', borderRadius: 12,
-            fontWeight: 800, fontSize: 16, letterSpacing: '0.04em',
-            border: '1.5px solid rgba(255,255,255,0.12)',
-            boxShadow: '0 4px 18px rgba(124,58,237,0.30)',
-            transition: 'opacity 150ms', cursor: 'pointer',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          <span style={{ fontSize: 18, lineHeight: 1 }}>⭐</span>
-          GRC · AAA 2026
-        </button>
+          <SidebarAccesoBtn
+            active={tab === 'zoho'}
+            onClick={() => setTab('zoho')}
+            icon={<span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />}
+            label="Zoho · Dormidos"
+            bg="#7f1d1d"
+          />
+          <SidebarAccesoBtn
+            active={tab === 'aaa'}
+            onClick={() => setTab('aaa')}
+            icon={<span style={{ fontSize: 13, lineHeight: 1 }}>⭐</span>}
+            label="GRC · AAA 2026"
+            bg="#4c1d95"
+          />
+          <SidebarAccesoBtn
+            active={tab === 'alertas'}
+            onClick={() => setTab('alertas')}
+            icon={<ShieldAlert size={14} />}
+            label="Alertas · Cancelación"
+            bg="#7c2d12"
+            badge={ALERTAS_CANCELACION.length}
+          />
+          <SidebarAccesoBtn
+            active={false}
+            href="https://marketingplus.zoho.com/reports/open-view/245443000007094051"
+            icon={<BarChart3 size={14} />}
+            label="Gross Revenue Churn"
+            bg="#0E2354"
+          />
+        </aside>
 
-        {/* Alertas · Cuentas Cancelación */}
-        <button
-          onClick={() => setTab('alertas')}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            background: '#7c2d12', color: '#FFFFFF',
-            padding: '14px 28px', borderRadius: 12,
-            fontWeight: 800, fontSize: 16, letterSpacing: '0.04em',
-            border: '1.5px solid rgba(255,255,255,0.12)',
-            boxShadow: '0 4px 18px rgba(234,88,12,0.30)',
-            transition: 'opacity 150ms', cursor: 'pointer',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          <ShieldAlert size={20} style={{ opacity: 0.9 }} />
-          ALERTAS · CUENTAS CANCELACIÓN
-          <span style={{
-            background: 'rgba(255,255,255,0.18)', borderRadius: 999,
-            padding: '2px 8px', fontSize: 12, fontWeight: 700,
-          }}>
-            {ALERTAS_CANCELACION.length}
-          </span>
-        </button>
-
-        {/* Gross Revenue Churn — link externo Zoho */}
-        <a
-          href="https://marketingplus.zoho.com/reports/open-view/245443000007094051"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            background: '#0E2354', color: '#FFFFFF',
-            padding: '14px 28px', borderRadius: 12,
-            fontWeight: 800, fontSize: 16, letterSpacing: '0.04em',
-            textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.12)',
-            boxShadow: '0 4px 18px rgba(14,35,84,0.35)',
-            transition: 'opacity 150ms',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
-          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-        >
-          <BarChart3 size={20} style={{ opacity: 0.85 }} />
-          GROSS REVENUE CHURN
-        </a>
-
-      </div>
+        {/* ── Columna principal ────────────────────────────────────────── */}
+        <div className="flex-1 flex flex-col overflow-hidden">
 
       {/* ── Selector de períodos ─────────────────────────────────────── */}
       <div className="px-6 pt-4 pb-0">
@@ -3227,6 +3226,12 @@ export default function ChurnPage() {
         )}
 
       </div>
+
+        </div>
+        {/* /Columna principal */}
+
+      </div>
+      {/* /Sidebar + Columna principal */}
 
       {/* Modal: formulario */}
       {showForm && <ChurnForm onClose={() => setShowForm(false)} onSave={handleSave} />}
