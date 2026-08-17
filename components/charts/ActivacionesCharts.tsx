@@ -5,6 +5,7 @@ import {
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, BarChart,
 } from 'recharts'
 import { formatMXN } from '@/lib/types'
+import CustomSelect from '@/components/CustomSelect'
 
 // ── Paleta clara ──────────────────────────────────────────────────────────────
 const BG      = '#EFF6FF'
@@ -195,26 +196,18 @@ function FilterSelect({
       <label style={{fontSize:10,fontWeight:700,color:TX_LOW,textTransform:'uppercase',letterSpacing:'0.08em'}}>
         {label}
       </label>
-      <select
+      <CustomSelect
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={onChange}
+        options={options}
         style={{
           padding:'7px 10px', borderRadius:8, fontSize:12, fontWeight:600,
           background: active ? `${ACCENT}18` : '#F0F7FF',
           color: active ? ACCENT : TX_MID,
           border: `1px solid ${active ? ACCENT : BORDER}`,
-          cursor:'pointer', outline:'none', appearance:'none',
-          backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%230057FF' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
-          backgroundRepeat:'no-repeat', backgroundPosition:'right 8px center',
-          paddingRight:28,
+          outline:'none',
         }}
-      >
-        {options.map(o => (
-          <option key={o.value} value={o.value} style={{background:'#ffffff',color:'#0F172A'}}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      />
     </div>
   )
 }

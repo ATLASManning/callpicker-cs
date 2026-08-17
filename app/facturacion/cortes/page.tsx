@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, Search, Zap, Filter,
   CheckCircle, Columns, ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 /* ── Tipos */
 interface Stats {
@@ -166,23 +167,22 @@ function FiltroSelect({ label, value, options, onChange, placeholder }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: '0.07em' }}>{label}</span>
-      <div style={{ position: 'relative' }}>
-        <select value={value} onChange={e => onChange(e.target.value)} style={{
-          appearance: 'none', WebkitAppearance: 'none',
+      <CustomSelect
+        value={value}
+        onChange={onChange}
+        options={[
+          { value: '', label: placeholder },
+          ...options.map(o => ({ value: o, label: label === 'FECHA CORTE' ? fmtMes(o) : o })),
+        ]}
+        style={{
           padding: '7px 28px 7px 10px', borderRadius: 8,
           border: value ? '1.5px solid #1B3FCC' : '1.5px solid #e2e8f0',
           fontSize: 12, background: '#fff',
           color: value ? '#1B3FCC' : '#374151',
-          fontWeight: value ? 700 : 400, cursor: 'pointer', outline: 'none',
+          fontWeight: value ? 700 : 400, outline: 'none',
           minWidth: 160, maxWidth: 240,
-        }}>
-          <option value="">{placeholder}</option>
-          {options.map(o => <option key={o} value={o}>{label === 'FECHA CORTE' ? fmtMes(o) : o}</option>)}
-        </select>
-        <svg viewBox="0 0 10 6" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', width: 9, height: 9, pointerEvents: 'none', fill: value ? '#1B3FCC' : '#94a3b8' }}>
-          <path d="M0 0l5 6 5-6z" />
-        </svg>
-      </div>
+        }}
+      />
     </div>
   )
 }

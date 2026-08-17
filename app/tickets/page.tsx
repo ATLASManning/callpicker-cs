@@ -1,6 +1,7 @@
 ﻿'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import PageHeader from '@/components/PageHeader'
+import CustomSelect from '@/components/CustomSelect'
 import {
   Search, Filter, ExternalLink, AlertTriangle, CheckCircle2,
   XCircle, Clock, BarChart3, Users, RefreshCw, ChevronLeft,
@@ -522,26 +523,21 @@ export default function TicketsPage() {
                   { label: 'Falla', value: filterFalla, setter: setFilterFalla,
                     opts: [{ v: '', l: 'Todas' }, { v: 'Si', l: 'Solo fallas' }, { v: 'No', l: 'No fallas' }] },
                 ].map(f => (
-                  <select key={f.label} value={f.value}
-                    onChange={e => { f.setter(e.target.value); setTimeout(() => fetchList(1), 0) }}
-                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
-                    {f.opts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
-                  </select>
+                  <CustomSelect key={f.label} value={f.value}
+                    onChange={v => { f.setter(v); setTimeout(() => fetchList(1), 0) }}
+                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    options={f.opts.map(o => ({ value: o.v, label: o.l }))} />
                 ))}
                 {/* Filtro ejecutivo — dinámico */}
-                <select value={filterEjecutivo}
-                  onChange={e => { setFilterEjecutivo(e.target.value); setTimeout(() => fetchList(1), 0) }}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
-                  <option value="">Ejecutivo (todos)</option>
-                  {propietarios.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
+                <CustomSelect value={filterEjecutivo}
+                  onChange={v => { setFilterEjecutivo(v); setTimeout(() => fetchList(1), 0) }}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  options={[{ value: '', label: 'Ejecutivo (todos)' }, ...propietarios.map(p => ({ value: p, label: p }))]} />
                 {/* Filtro subcategoría — dinámico */}
-                <select value={filterSubcat}
-                  onChange={e => { setFilterSubcat(e.target.value); setTimeout(() => fetchList(1), 0) }}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
-                  <option value="">Subcategoría (todas)</option>
-                  {subcategorias.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <CustomSelect value={filterSubcat}
+                  onChange={v => { setFilterSubcat(v); setTimeout(() => fetchList(1), 0) }}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  options={[{ value: '', label: 'Subcategoría (todas)' }, ...subcategorias.map(s => ({ value: s, label: s }))]} />
                 <button onClick={() => fetchList(1)}
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
                   <RefreshCw size={11} /> Actualizar
@@ -826,30 +822,29 @@ export default function TicketsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <Filter size={14} className="text-gray-400 flex-shrink-0" />
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Filtrar</span>
-                <select value={chartMes} onChange={e => setChartMes(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
-                  {MESES.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
-                </select>
-                <select value={chartProp} onChange={e => setChartProp(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
-                  <option value="">Ejecutivo (todos)</option>
-                  {propietarios.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-                <select value={chartProd} onChange={e => setChartProd(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
-                  <option value="">Producto (todos)</option>
-                  <option value="Voz">Voz</option>
-                  <option value="Chat">Chat</option>
-                  <option value="Sin producto">Sin producto</option>
-                </select>
-                <select value={chartPrior} onChange={e => setChartPrior(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white">
-                  <option value="">Prioridad (todas)</option>
-                  <option value="Urgent">Urgente</option>
-                  <option value="High">Alta</option>
-                  <option value="Medium">Media</option>
-                  <option value="Low">Baja</option>
-                </select>
+                <CustomSelect value={chartMes} onChange={setChartMes}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  options={MESES.map(m => ({ value: m.val, label: m.label }))} />
+                <CustomSelect value={chartProp} onChange={setChartProp}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  options={[{ value: '', label: 'Ejecutivo (todos)' }, ...propietarios.map(p => ({ value: p, label: p }))]} />
+                <CustomSelect value={chartProd} onChange={setChartProd}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  options={[
+                    { value: '', label: 'Producto (todos)' },
+                    { value: 'Voz', label: 'Voz' },
+                    { value: 'Chat', label: 'Chat' },
+                    { value: 'Sin producto', label: 'Sin producto' },
+                  ]} />
+                <CustomSelect value={chartPrior} onChange={setChartPrior}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  options={[
+                    { value: '', label: 'Prioridad (todas)' },
+                    { value: 'Urgent', label: 'Urgente' },
+                    { value: 'High', label: 'Alta' },
+                    { value: 'Medium', label: 'Media' },
+                    { value: 'Low', label: 'Baja' },
+                  ]} />
                 {(chartMes || chartProp || chartProd || chartPrior) && (
                   <button onClick={() => { setChartMes(''); setChartProp(''); setChartProd(''); setChartPrior('') }}
                     className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">

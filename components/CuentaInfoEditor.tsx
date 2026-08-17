@@ -8,6 +8,7 @@ import {
   Package, ChevronDown, FileText,
 } from 'lucide-react'
 import type { Cuenta, ContactoCuenta, ServicioCuenta } from '@/lib/types'
+import CustomSelect from './CustomSelect'
 
 interface Props { cuenta: Cuenta; canEdit?: boolean }
 
@@ -300,10 +301,8 @@ export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Asesor">
-                    <select value={info.asesor} onChange={e => setInfoField('asesor', e.target.value)} className="cp-input">
-                      <option value="">— Sin asignar —</option>
-                      {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
+                    <CustomSelect value={info.asesor} onChange={v => setInfoField('asesor', v)} className="cp-input"
+                      options={[{ value: '', label: '— Sin asignar —' }, ...ASESORES.map(a => ({ value: a, label: a }))]} />
                   </Field>
                   <Field label="CID (Zoho)">
                     <input value={info.cid} onChange={e => setInfoField('cid', e.target.value)}
@@ -316,10 +315,8 @@ export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
                       className="cp-input" placeholder="Automotriz, Tech…" />
                   </Field>
                   <Field label="Tamaño">
-                    <select value={info.tamano_empresa} onChange={e => setInfoField('tamano_empresa', e.target.value)} className="cp-input">
-                      <option value="">— Seleccionar —</option>
-                      {TAMANOS.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                    <CustomSelect value={info.tamano_empresa} onChange={v => setInfoField('tamano_empresa', v)} className="cp-input"
+                      options={[{ value: '', label: '— Seleccionar —' }, ...TAMANOS.map(t => ({ value: t, label: t }))]} />
                   </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-3">

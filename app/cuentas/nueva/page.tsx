@@ -8,6 +8,7 @@ import {
   Activity, Save, RefreshCw,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import CustomSelect from '@/components/CustomSelect'
 import type { Asesor, EstadoCuenta } from '@/lib/types'
 import { formatMXN } from '@/lib/types'
 
@@ -290,11 +291,9 @@ export default function NuevaCuentaPage() {
             </Field>
 
             <Field label="Asesor" required>
-              <select className="cp-select" value={form.asesor}
-                onChange={e => handleAsesor(e.target.value as Asesor | '')}>
-                <option value="">Seleccionar asesor...</option>
-                {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
-              </select>
+              <CustomSelect className="cp-select" value={form.asesor}
+                onChange={v => handleAsesor(v as Asesor | '')}
+                options={[{ value: '', label: 'Seleccionar asesor...' }, ...ASESORES.map(a => ({ value: a, label: a }))]} />
             </Field>
 
             <Field label="Consecutivo" required>
@@ -316,13 +315,14 @@ export default function NuevaCuentaPage() {
             </Field>
 
             <Field label="Estado">
-              <select className="cp-select" value={form.estado}
-                onChange={e => set('estado', e.target.value as EstadoCuenta)}>
-                <option value="activo">Activo</option>
-                <option value="en_riesgo">En riesgo</option>
-                <option value="hibernacion">Hibernación</option>
-                <option value="cancelado">Cancelado</option>
-              </select>
+              <CustomSelect className="cp-select" value={form.estado}
+                onChange={v => set('estado', v as EstadoCuenta)}
+                options={[
+                  { value: 'activo', label: 'Activo' },
+                  { value: 'en_riesgo', label: 'En riesgo' },
+                  { value: 'hibernacion', label: 'Hibernación' },
+                  { value: 'cancelado', label: 'Cancelado' },
+                ]} />
             </Field>
 
             <Field label="Activo desde">
@@ -400,14 +400,15 @@ export default function NuevaCuentaPage() {
             </Field>
 
             <Field label="Tamaño de Empresa">
-              <select className="cp-select" value={form.tamano_empresa}
-                onChange={e => set('tamano_empresa', e.target.value)}>
-                <option value="">Seleccionar...</option>
-                <option value="micro">Micro (1–10)</option>
-                <option value="pequena">Pequeña (11–50)</option>
-                <option value="mediana">Mediana (51–250)</option>
-                <option value="grande">Grande (250+)</option>
-              </select>
+              <CustomSelect className="cp-select" value={form.tamano_empresa}
+                onChange={v => set('tamano_empresa', v)}
+                options={[
+                  { value: '', label: 'Seleccionar...' },
+                  { value: 'micro', label: 'Micro (1–10)' },
+                  { value: 'pequena', label: 'Pequeña (11–50)' },
+                  { value: 'mediana', label: 'Mediana (51–250)' },
+                  { value: 'grande', label: 'Grande (250+)' },
+                ]} />
             </Field>
 
             <Field label="Total de Empleados">

@@ -4,6 +4,7 @@ import {
   DollarSign, Users, TrendingUp, AlertCircle, RefreshCw,
   Search, ChevronLeft, ChevronRight, Wifi, WifiOff,
 } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 /* ── Tipos ─────────────────────────────────────────────────────────────────── */
 interface FactRow {
@@ -389,28 +390,19 @@ export default function FacturacionPage() {
             ] as { label: string; placeholder: string; opts: string[]; val: string; set: (v: string) => void }[]).map(f => (
               <div key={f.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{f.label}</span>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={f.val}
-                    onChange={e => { f.set(e.target.value); setPage(1) }}
-                    style={{
-                      appearance: 'none', WebkitAppearance: 'none',
-                      padding: '7px 32px 7px 12px', borderRadius: 8,
-                      border: f.val ? '1.5px solid #1B3FCC' : '1.5px solid #e2e8f0',
-                      fontSize: 13, background: '#fff',
-                      color: f.val ? '#1B3FCC' : '#374151',
-                      fontWeight: f.val ? 600 : 400,
-                      cursor: 'pointer', outline: 'none',
-                      minWidth: 170, maxWidth: 220,
-                    }}
-                  >
-                    <option value="">{f.placeholder}</option>
-                    {f.opts.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                  <svg viewBox="0 0 10 6" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', width: 10, height: 10, pointerEvents: 'none', fill: f.val ? '#1B3FCC' : '#94a3b8' }}>
-                    <path d="M0 0l5 6 5-6z" />
-                  </svg>
-                </div>
+                <CustomSelect
+                  value={f.val}
+                  onChange={v => { f.set(v); setPage(1) }}
+                  options={[{ value: '', label: f.placeholder }, ...f.opts.map(o => ({ value: o, label: o }))]}
+                  style={{
+                    padding: '7px 32px 7px 12px', borderRadius: 8,
+                    border: f.val ? '1.5px solid #1B3FCC' : '1.5px solid #e2e8f0',
+                    fontSize: 13, background: '#fff',
+                    color: f.val ? '#1B3FCC' : '#374151',
+                    fontWeight: f.val ? 600 : 400, outline: 'none',
+                    minWidth: 170, maxWidth: 220,
+                  }}
+                />
               </div>
             ))}
 

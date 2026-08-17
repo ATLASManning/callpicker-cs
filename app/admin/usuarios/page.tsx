@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { Users, Plus, Trash2, RefreshCw, ShieldCheck, Eye, UserCheck,
          ToggleLeft, ToggleRight, X, Save, KeyRound, Copy, Check, AlertTriangle } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import CustomSelect from '@/components/CustomSelect'
 
 type Rol = 'admin' | 'asesor' | 'viewer'
 type Usuario = {
@@ -213,13 +214,14 @@ export default function AdminUsuariosPage() {
                         <p className="text-[11px] text-gray-400">{u.email}</p>
                       </td>
                       <td className="py-3 px-4">
-                        <select value={u.rol} onChange={e => changeRol(u, e.target.value as Rol)}
-                          className="text-[11px] font-semibold px-2 py-1 rounded-lg border-0 outline-none cursor-pointer"
-                          style={{ background: `${rc.color}15`, color: rc.color }}>
-                          <option value="admin">Admin</option>
-                          <option value="asesor">Asesor</option>
-                          <option value="viewer">Viewer</option>
-                        </select>
+                        <CustomSelect value={u.rol} onChange={v => changeRol(u, v as Rol)}
+                          className="text-[11px] font-semibold px-2 py-1 rounded-lg border-0 outline-none"
+                          style={{ background: `${rc.color}15`, color: rc.color }}
+                          options={[
+                            { value: 'admin', label: 'Admin' },
+                            { value: 'asesor', label: 'Asesor' },
+                            { value: 'viewer', label: 'Viewer' },
+                          ]} />
                       </td>
                       <td className="py-3 px-4 text-xs text-gray-500">{u.asesor_nombre ?? '—'}</td>
                       <td className="py-3 px-4">
@@ -275,19 +277,18 @@ export default function AdminUsuariosPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 mb-1 block">Rol</label>
-                <select value={form.rol} onChange={e => setForm(f => ({ ...f, rol: e.target.value as Rol }))} className="cp-select w-full">
-                  <option value="admin">Admin — ve todo</option>
-                  <option value="asesor">Asesor — solo sus cuentas</option>
-                  <option value="viewer">Viewer — solo lectura</option>
-                </select>
+                <CustomSelect value={form.rol} onChange={v => setForm(f => ({ ...f, rol: v as Rol }))} className="cp-select w-full"
+                  options={[
+                    { value: 'admin', label: 'Admin — ve todo' },
+                    { value: 'asesor', label: 'Asesor — solo sus cuentas' },
+                    { value: 'viewer', label: 'Viewer — solo lectura' },
+                  ]} />
               </div>
               {form.rol === 'asesor' && (
                 <div>
                   <label className="text-xs font-semibold text-gray-500 mb-1 block">Asesor asignado</label>
-                  <select value={form.asesor_nombre} onChange={e => setForm(f => ({ ...f, asesor_nombre: e.target.value }))} className="cp-select w-full">
-                    <option value="">Seleccionar…</option>
-                    {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
-                  </select>
+                  <CustomSelect value={form.asesor_nombre} onChange={v => setForm(f => ({ ...f, asesor_nombre: v }))} className="cp-select w-full"
+                    options={[{ value: '', label: 'Seleccionar…' }, ...ASESORES.map(a => ({ value: a, label: a }))]} />
                 </div>
               )}
               <div className="flex items-center gap-3">

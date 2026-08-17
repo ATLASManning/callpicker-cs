@@ -6,6 +6,7 @@ import {
   Database, Building2,
 } from 'lucide-react'
 import Link from 'next/link'
+import CustomSelect from '@/components/CustomSelect'
 
 type TipoReunion = 'junta_semanal' | 'one_on_one' | 'cliente' | 'estrategia' | 'otro'
 
@@ -304,13 +305,10 @@ export default function ReunionesPage() {
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Tipo</label>
-                <select value={form.tipo}
-                  onChange={e => setForm(p => ({ ...p, tipo: e.target.value as TipoReunion }))}
-                  className="cp-select w-full">
-                  {Object.entries(TIPOS).map(([k, v]) => (
-                    <option key={k} value={k}>{v.label}</option>
-                  ))}
-                </select>
+                <CustomSelect value={form.tipo}
+                  onChange={v => setForm(p => ({ ...p, tipo: v as TipoReunion }))}
+                  className="cp-select w-full"
+                  options={Object.entries(TIPOS).map(([k, v]) => ({ value: k, label: v.label }))} />
               </div>
             </div>
 

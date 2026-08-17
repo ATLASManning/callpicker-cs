@@ -1,6 +1,7 @@
 ﻿'use client'
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/PageHeader'
+import CustomSelect from '@/components/CustomSelect'
 import type { SemaforoKey } from '@/lib/zoho-ltv'
 import {
   Users, DollarSign, TrendingUp, Clock, Search,
@@ -645,29 +646,24 @@ export default function CustomerTenurePage() {
                     placeholder="Buscar por nombre o ID…"
                     className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-300" />
                 </div>
-                <select value={fSem} onChange={e => setFSem(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700">
-                  <option value="">Todos los semáforos</option>
-                  <option value="nuevo">🔵 Nuevo</option>
-                  <option value="activo">🟢 Activo</option>
-                  <option value="riesgo">🟡 En Riesgo</option>
-                  <option value="inactivo">🟠 Inactivo</option>
-                  <option value="dormido">🔴 Dormido</option>
-                </select>
-                <select value={fTamano} onChange={e => setFTamano(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700">
-                  <option value="">Todos los tamaños</option>
-                  {['Micro','SMB','Mid-Market','Large','Enterprise'].map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                <select value={fBucket} onChange={e => setFBucket(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700">
-                  <option value="">Todos los buckets</option>
-                  {['Sin Actividad','Nuevos','Jóvenes','Activos','Maduros','Veteranos'].map(b => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
+                <CustomSelect value={fSem} onChange={setFSem}
+                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700"
+                  options={[
+                    { value: '', label: 'Todos los semáforos' },
+                    { value: 'nuevo', label: '🔵 Nuevo' },
+                    { value: 'activo', label: '🟢 Activo' },
+                    { value: 'riesgo', label: '🟡 En Riesgo' },
+                    { value: 'inactivo', label: '🟠 Inactivo' },
+                    { value: 'dormido', label: '🔴 Dormido' },
+                  ]} />
+                <CustomSelect value={fTamano} onChange={setFTamano}
+                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700"
+                  options={[{ value: '', label: 'Todos los tamaños' },
+                    ...['Micro','SMB','Mid-Market','Large','Enterprise'].map(t => ({ value: t, label: t }))]} />
+                <CustomSelect value={fBucket} onChange={setFBucket}
+                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700"
+                  options={[{ value: '', label: 'Todos los buckets' },
+                    ...['Sin Actividad','Nuevos','Jóvenes','Activos','Maduros','Veteranos'].map(b => ({ value: b, label: b }))]} />
                 <span className="text-xs text-gray-400 ml-auto">{fmtN(total)} clientes</span>
               </div>
             </div>

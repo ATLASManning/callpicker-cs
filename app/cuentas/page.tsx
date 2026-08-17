@@ -1,15 +1,16 @@
 'use client'
-import { useState, useEffect, useCallback, Suspense, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import {
   Search, Filter, RefreshCw, Plus, ArrowUpDown, AlertCircle,
-  Ticket, AlertTriangle, ArrowUpRight, ChevronDown, Archive,
+  Ticket, AlertTriangle, ArrowUpRight, Archive,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
+import CustomSelect, { type SelectOption } from '@/components/CustomSelect'
 import type { Cuenta, Asesor, Semaforo } from '@/lib/types'
 import { getSemaforo, formatMXN } from '@/lib/types'
 
@@ -132,30 +133,26 @@ function HSCell({ score }: { score: number }) {
 
 // ── Inline select para headers ────────────────────────────────────────────────
 function HeaderSelect({
-  value, onChange, placeholder, children,
+  value, onChange, placeholder, options,
 }: {
   value: string
   onChange: (v: string) => void
   placeholder: string
-  children: ReactNode
+  options: SelectOption[]
 }) {
   return (
     <div
       className="relative mt-1"
       onClick={e => e.stopPropagation()}
     >
-      <select
+      <CustomSelect
         value={value}
-        onChange={e => onChange(e.target.value)}
-        className="w-full appearance-none text-[10px] font-medium pl-2 pr-5 py-1 rounded-md
-          border border-border bg-surface text-textMid cursor-pointer outline-none
+        onChange={onChange}
+        options={[{ value: '', label: placeholder }, ...options]}
+        className="w-full text-[10px] font-medium pl-2 pr-5 py-1 rounded-md
+          border border-border bg-surface text-textMid outline-none
           focus:border-cp/50 transition-colors"
-        style={{ minWidth: 0 }}
-      >
-        <option value="">{placeholder}</option>
-        {children}
-      </select>
-      <ChevronDown size={9} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-textLow pointer-events-none" />
+      />
     </div>
   )
 }
@@ -330,11 +327,13 @@ function CuentasPageInner() {
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        <select className="cp-select" value={warningFilter} onChange={e => setWarningFilter(e.target.value as '' | 'FALTA_TC' | 'FALTA_HS')}>
-          <option value="">Todas las fichas</option>
-          <option value="FALTA_TC">⚠ Falta ficha Top Customer</option>
-          <option value="FALTA_HS">⚠ Falta Health Score Callpicker</option>
-        </select>
+        <CustomSelect className="cp-select" value={warningFilter}
+          onChange={v => setWarningFilter(v as '' | 'FALTA_TC' | 'FALTA_HS')}
+          options={[
+            { value: '', label: 'Todas las fichas' },
+            { value: 'FALTA_TC', label: '⚠ Falta ficha Top Customer' },
+            { value: 'FALTA_HS', label: '⚠ Falta Health Score Callpicker' },
+          ]} />
 
         <button onClick={() => setTopFilter(t => !t)}
           className={`cp-btn text-xs font-semibold border transition-colors ${
@@ -413,9 +412,8 @@ function CuentasPageInner() {
                       label="Asesor"
                       field="asesor"
                       filterEl={
-                        <HeaderSelect value={asesorFilter} onChange={setAsesorFilter} placeholder="Todos los asesores">
-                          {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
-                        </HeaderSelect>
+                        <HeaderSelect value={asesorFilter} onChange={setAsesorFilter} placeholder="Todos los asesores"
+                          options={ASESORES.map(a => ({ value: a, label: a }))} />
                       }
                     />
 
@@ -423,11 +421,12 @@ function CuentasPageInner() {
                       label="Facturación"
                       field="facturacion"
                       filterEl={
-                        <HeaderSelect value={facturacionFilter} onChange={setFacturacionFilter} placeholder="Todos los montos">
-                          <option value="lt5">Menos de $5,000</option>
-                          <option value="5-15">$5,000 – $15,000</option>
-                          <option value="gt15">Más de $15,000</option>
-                        </HeaderSelect>
+                        <HeaderSelect value={facturacionFilter} onChange={setFacturacionFilter} placeholder="Todos los montos"
+                          options={[
+                            { value: 'lt5', label: 'Menos de $5,000' },
+                            { value: '5-15', label: '$5,000 – $15,000' },
+                            { value: 'gt15', label: 'Más de $15,000' },
+                          ]} />
                       }
                     />
 
@@ -435,47 +434,43 @@ function CuentasPageInner() {
                       label="Health Score"
                       field="health_score"
                       filterEl={
-                        <HeaderSelect value={hsFilter} onChange={setHsFilter} placeholder="Todos los scores">
-                          <option value="gt80">Alto · &gt;80</option>
-                          <option value="60-80">Bueno · 60–80</option>
-                          <option value="40-60">Medio · 40–60</option>
-                          <option value="lt40">Bajo · &lt;40</option>
-                        </HeaderSelect>
+                        <HeaderSelect value={hsFilter} onChange={setHsFilter} placeholder="Todos los scores"
+                          options={[
+                            { value: 'gt80', label: 'Alto · >80' },
+                            { value: '60-80', label: 'Bueno · 60–80' },
+                            { value: '40-60', label: 'Medio · 40–60' },
+                            { value: 'lt40', label: 'Bajo · <40' },
+                          ]} />
                       }
                     />
 
                     <Th
                       label="Semáforo"
                       filterEl={
-                        <HeaderSelect value={semaforoFilter} onChange={setSemaforoFilter} placeholder="Todos los semáforos">
-                          {SEMAFOROS.map(s => (
-                            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                          ))}
-                        </HeaderSelect>
+                        <HeaderSelect value={semaforoFilter} onChange={setSemaforoFilter} placeholder="Todos los semáforos"
+                          options={SEMAFOROS.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))} />
                       }
                     />
 
                     <Th
                       label="Estado"
                       filterEl={
-                        <HeaderSelect value={estadoFilter} onChange={setEstadoFilter} placeholder="Todos los estados">
-                          {Object.entries(ESTADO_LABELS)
+                        <HeaderSelect value={estadoFilter} onChange={setEstadoFilter} placeholder="Todos los estados"
+                          options={Object.entries(ESTADO_LABELS)
                             .filter(([key]) => key !== '4')
-                            .map(([key, cfg]) => (
-                              <option key={key} value={key}>{cfg.label}</option>
-                            ))}
-                        </HeaderSelect>
+                            .map(([key, cfg]) => ({ value: key, label: cfg.label }))} />
                       }
                     />
 
                     <Th
                       label="Tickets Zoho Desk"
                       filterEl={
-                        <HeaderSelect value={ticketsFilter} onChange={setTicketsFilter} placeholder="Todos">
-                          <option value="any">Con tickets</option>
-                          <option value="fallas">Con fallas</option>
-                          <option value="none">Sin tickets</option>
-                        </HeaderSelect>
+                        <HeaderSelect value={ticketsFilter} onChange={setTicketsFilter} placeholder="Todos"
+                          options={[
+                            { value: 'any', label: 'Con tickets' },
+                            { value: 'fallas', label: 'Con fallas' },
+                            { value: 'none', label: 'Sin tickets' },
+                          ]} />
                       }
                     />
 

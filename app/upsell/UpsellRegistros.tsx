@@ -4,6 +4,7 @@ import {
   Plus, X, Trash2, ChevronDown, ChevronUp,
   TrendingUp, CheckCircle2, XCircle, Clock, BarChart3,
 } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 /* ─── Tipos ──────────────────────────────────────────────── */
 type Estado = 'nuevo' | 'seguimiento' | 'propuesta' | 'ganado' | 'perdido'
@@ -233,19 +234,14 @@ export default function UpsellRegistros() {
                         <td className="py-3 px-4 text-xs text-textMid">{r.asesor}</td>
                         <td className="py-3 px-4 text-xs text-textMid max-w-[140px] truncate">{r.producto || '—'}</td>
                         <td className="py-3 px-4 text-xs font-semibold text-cpTeal">{fmt(r.valor_estimado)}</td>
-                        <td className="py-3 px-4">
-                          <select
+                        <td className="py-3 px-4" onClick={e => e.stopPropagation()}>
+                          <CustomSelect
                             value={r.estado}
-                            onClick={e => e.stopPropagation()}
-                            onChange={e => { e.stopPropagation(); changeEstado(r.id, e.target.value as Estado) }}
-                            className="text-[10px] font-semibold px-2 py-1 rounded-lg border cursor-pointer bg-transparent focus:outline-none"
-                            style={{ color: cfg.color, borderColor: `${cfg.color}40`, background: `${cfg.color}12` }}>
-                            {ESTADOS.map(e => (
-                              <option key={e} value={e} style={{ background: '#1a1a2e', color: '#fff' }}>
-                                {ESTADO_CFG[e].dot} {ESTADO_CFG[e].label}
-                              </option>
-                            ))}
-                          </select>
+                            onChange={v => changeEstado(r.id, v as Estado)}
+                            className="text-[10px] font-semibold px-2 py-1 rounded-lg border bg-transparent focus:outline-none"
+                            style={{ color: cfg.color, borderColor: `${cfg.color}40`, background: `${cfg.color}12` }}
+                            options={ESTADOS.map(e => ({ value: e, label: `${ESTADO_CFG[e].dot} ${ESTADO_CFG[e].label}` }))}
+                          />
                         </td>
                         <td className="py-3 px-4 text-xs text-textLow whitespace-nowrap">{r.fecha}</td>
                         <td className="py-3 px-4">
@@ -330,16 +326,16 @@ export default function UpsellRegistros() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Tipo de Lead</label>
-                  <select value={form.tipo} onChange={e => set('tipo', e.target.value as TipoLead)} className={inputCls}>
-                    <option value="nuevo">Lead nuevo</option>
-                    <option value="activo">Cuenta activa</option>
-                  </select>
+                  <CustomSelect value={form.tipo} onChange={v => set('tipo', v as TipoLead)} className={inputCls}
+                    options={[
+                      { value: 'nuevo', label: 'Lead nuevo' },
+                      { value: 'activo', label: 'Cuenta activa' },
+                    ]} />
                 </div>
                 <div>
                   <label className={labelCls}>Asesor</label>
-                  <select value={form.asesor} onChange={e => set('asesor', e.target.value)} className={inputCls}>
-                    {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
-                  </select>
+                  <CustomSelect value={form.asesor} onChange={v => set('asesor', v)} className={inputCls}
+                    options={ASESORES.map(a => ({ value: a, label: a }))} />
                 </div>
               </div>
 
@@ -372,11 +368,8 @@ export default function UpsellRegistros() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelCls}>Estado</label>
-                  <select value={form.estado} onChange={e => set('estado', e.target.value as Estado)} className={inputCls}>
-                    {ESTADOS.map(e => (
-                      <option key={e} value={e}>{ESTADO_CFG[e].dot} {ESTADO_CFG[e].label}</option>
-                    ))}
-                  </select>
+                  <CustomSelect value={form.estado} onChange={v => set('estado', v as Estado)} className={inputCls}
+                    options={ESTADOS.map(e => ({ value: e, label: `${ESTADO_CFG[e].dot} ${ESTADO_CFG[e].label}` }))} />
                 </div>
                 <div>
                   <label className={labelCls}>Fecha</label>

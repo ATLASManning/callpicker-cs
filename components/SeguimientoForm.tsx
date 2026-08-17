@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Plus, Send } from 'lucide-react'
 import type { TipoSeguimiento, Asesor } from '@/lib/types'
+import CustomSelect from './CustomSelect'
 
 interface Props { cuentaId: string; asesor: Asesor; canEdit?: boolean }
 
@@ -40,14 +41,10 @@ export default function SeguimientoForm({ cuentaId, asesor, canEdit = false }: P
   return (
     <form onSubmit={submit} className="bg-surface rounded-lg border border-border p-3 space-y-3">
       <div className="flex gap-2">
-        <select value={tipo} onChange={e => setTipo(e.target.value as TipoSeguimiento)}
-          className="cp-select text-xs flex-1 capitalize">
-          {TIPOS.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        <select value={resultado} onChange={e => setResultado(e.target.value)}
-          className="cp-select text-xs flex-1">
-          {RESULTADOS.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
+        <CustomSelect value={tipo} onChange={v => setTipo(v as TipoSeguimiento)}
+          options={TIPOS} className="cp-select text-xs flex-1 capitalize" />
+        <CustomSelect value={resultado} onChange={setResultado}
+          options={RESULTADOS} className="cp-select text-xs flex-1" />
       </div>
       <textarea
         value={descripcion}

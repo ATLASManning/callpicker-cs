@@ -9,6 +9,7 @@ import PageHeader from '@/components/PageHeader'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
+import CustomSelect from '@/components/CustomSelect'
 import type { Cuenta, Asesor } from '@/lib/types'
 import { getSemaforo, formatMXN } from '@/lib/types'
 
@@ -240,11 +241,9 @@ function DormidasPageInner() {
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        <select className="cp-select" value={asesorFilter}
-          onChange={e => setAsesorFilter(e.target.value)}>
-          <option value="">Todos los asesores</option>
-          {ASESORES.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
+        <CustomSelect className="cp-select" value={asesorFilter}
+          onChange={setAsesorFilter}
+          options={[{ value: '', label: 'Todos los asesores' }, ...ASESORES.map(a => ({ value: a, label: a }))]} />
 
         <button onClick={fetchCuentas} className="cp-btn cp-btn-ghost">
           <RefreshCw size={14} /> Actualizar

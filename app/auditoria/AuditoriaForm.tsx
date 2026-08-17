@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { AuditoriaCase, TipoEvento, EstadoAuditoria } from './types'
 import { emptyCase } from './types'
 import { X, Plus, Trash2, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import CustomSelect from '@/components/CustomSelect'
 
 /* ─── Tipos ──────────────────────────────────────────────────────────── */
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -134,13 +135,14 @@ export default function AuditoriaForm({ onClose, onSave }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Estado del caso</label>
-              <select value={data.estado} onChange={e => set('estado', e.target.value as EstadoAuditoria)} className={inputCls}>
-                <option value="en_riesgo">En Riesgo</option>
-                <option value="rescatable">Rescatable</option>
-                <option value="recuperado">Recuperado</option>
-                <option value="perdido">Perdido</option>
-                <option value="activo">Activo</option>
-              </select>
+              <CustomSelect value={data.estado} onChange={v => set('estado', v as EstadoAuditoria)} className={inputCls}
+                options={[
+                  { value: 'en_riesgo', label: 'En Riesgo' },
+                  { value: 'rescatable', label: 'Rescatable' },
+                  { value: 'recuperado', label: 'Recuperado' },
+                  { value: 'perdido', label: 'Perdido' },
+                  { value: 'activo', label: 'Activo' },
+                ]} />
             </div>
             <div>
               <label className={labelCls}>Versión del informe</label>
@@ -221,14 +223,15 @@ export default function AuditoriaForm({ onClose, onSave }: Props) {
                 </div>
                 <div>
                   <label className={labelCls}>Tipo de evento</label>
-                  <select value={e.tipo}
-                    onChange={ev => setRow('cronologia', i, { tipo: ev.target.value as TipoEvento })}
-                    className={inputCls}>
-                    <option value="neutral">Neutral</option>
-                    <option value="problema">Problema</option>
-                    <option value="pivote">Pivote</option>
-                    <option value="ok">OK / Resolución</option>
-                  </select>
+                  <CustomSelect value={e.tipo}
+                    onChange={v => setRow('cronologia', i, { tipo: v as TipoEvento })}
+                    className={inputCls}
+                    options={[
+                      { value: 'neutral', label: 'Neutral' },
+                      { value: 'problema', label: 'Problema' },
+                      { value: 'pivote', label: 'Pivote' },
+                      { value: 'ok', label: 'OK / Resolución' },
+                    ]} />
                 </div>
               </div>
               <div>
