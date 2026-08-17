@@ -54,10 +54,10 @@ export default function SeguimientoStatusSelect({
       disabled={saving}
       className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer
         appearance-none outline-none transition-opacity ${cls} ${saving ? 'opacity-50' : ''}`}
-      style={{ paddingRight: '14px', backgroundImage: 'none' }}
+      style={{ paddingRight: '14px', backgroundImage: 'none', color: '#0F172A' }}
     >
       {RESULTADOS.map(r => (
-        <option key={r} value={r}>{r}</option>
+        <option key={r} value={r} style={{ color: '#0F172A' }}>{r}</option>
       ))}
     </select>
   )
