@@ -1,5 +1,5 @@
 ﻿'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Phone, Mail, Lock, ArrowRight, RefreshCw, AlertCircle, Eye, EyeOff } from 'lucide-react'
 
@@ -21,7 +21,7 @@ export default function AccesoPage() {
   const router = useRouter()
   const [estado,       setEstado]       = useState<Estado>('login')
 
-  React.useEffect(() => {
+  useEffect(() => {
     const style = document.createElement('style')
     style.textContent = `
       [data-acceso-input]::placeholder {
@@ -89,7 +89,7 @@ export default function AccesoPage() {
             <Phone size={20} color="#fff" />
           </div>
           <div>
-            <p style={{ fontWeight: 700, fontSize: 16, color: '#fff', margin: 0 }}>Callpicker</p>
+            <p style={{ fontWeight: 700, fontSize: 16, color: '#0F172A', margin: 0 }}>Callpicker</p>
             <p style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
               Customer Success
             </p>
@@ -102,7 +102,7 @@ export default function AccesoPage() {
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <Lock size={15} color="#1B3FCC" />
-                <h1 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: 0 }}>
+                <h1 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>
                   Acceso al dashboard
                 </h1>
               </div>
@@ -171,7 +171,7 @@ export default function AccesoPage() {
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#FEF9C3', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Lock size={24} color="#CA8A04" />
             </div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 10 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 10 }}>
               Contraseña expirada
             </h2>
             <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
@@ -196,7 +196,7 @@ export default function AccesoPage() {
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Lock size={24} color="#1B3FCC" />
             </div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 10 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 10 }}>
               Acceso pendiente
             </h2>
             <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
@@ -221,7 +221,7 @@ export default function AccesoPage() {
             <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Lock size={24} color="#EF4444" />
             </div>
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 10 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 10 }}>
               Acceso suspendido
             </h2>
             <p style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
