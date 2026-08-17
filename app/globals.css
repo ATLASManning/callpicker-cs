@@ -119,9 +119,25 @@ body {
 .cp-card .cp-light em,
 .cp-card .cp-light small,
 .cp-card .cp-light label,
+.cp-card .cp-light td, .cp-card .cp-light th,
 .cp-card .cp-light h1, .cp-card .cp-light h2,
 .cp-card .cp-light h3, .cp-card .cp-light h4, .cp-card .cp-light h5 {
   color: inherit !important;
+}
+/* Modales/secciones claras dentro de cp-card también necesitan sus propios
+   inputs/textareas/selects claros — las reglas catch-all de arriba (pensadas
+   para el card oscuro) no deben "filtrarse" a un modal fixed con bg-white,
+   ya que position:fixed no cambia su posición en el árbol DOM/cascada CSS. */
+.cp-card .cp-light input:not(.cp-input),
+.cp-card .cp-light textarea:not(.cp-input),
+.cp-card .cp-light select:not(.cp-select) {
+  background: #ffffff !important;
+  color: #0F172A !important;
+  border-color: #E2E8F0 !important;
+}
+.cp-card .cp-light input:not(.cp-input)::placeholder,
+.cp-card .cp-light textarea:not(.cp-input)::placeholder {
+  color: #94A3B8 !important;
 }
 
 /* ── Título de sección ────────────────────────────── */

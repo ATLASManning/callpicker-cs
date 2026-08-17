@@ -248,7 +248,7 @@ export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
       )}
 
       {/* Slide-over */}
-      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-md bg-card border-l border-border shadow-2xl
+      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white border-l border-border shadow-2xl
         flex flex-col transition-transform duration-300 ease-in-out
         ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >

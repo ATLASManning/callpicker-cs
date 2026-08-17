@@ -601,7 +601,7 @@ export default async function SeguimientoPage() {
               style={{
                 border: `1px solid ${ac.color}30`,
                 borderLeft: `4px solid ${ac.color}`,
-                background: 'var(--card)',
+                background: '#ffffff',
               }}>
 
               {/* ── Header del asesor ── */}
