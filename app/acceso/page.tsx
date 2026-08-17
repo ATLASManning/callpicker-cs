@@ -13,13 +13,25 @@ const BTN: React.CSSProperties = {
 }
 const INPUT: React.CSSProperties = {
   width: '100%', padding: '11px 14px', borderRadius: 10,
-  border: '1.5px solid #BFDBFE', fontSize: 14, color: '#fff',
+  border: '1.5px solid #BFDBFE', fontSize: 14, color: '#0F172A',
   outline: 'none', boxSizing: 'border-box', background: '#fff',
 }
 
 export default function AccesoPage() {
   const router = useRouter()
   const [estado,       setEstado]       = useState<Estado>('login')
+
+  React.useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = `
+      [data-acceso-input]::placeholder {
+        color: #64748b !important;
+        opacity: 1 !important;
+      }
+    `
+    document.head.appendChild(style)
+    return () => style.remove()
+  }, [])
   const [email,        setEmail]        = useState('')
   const [password,     setPassword]     = useState('')
   const [showPass,     setShowPass]     = useState(false)
@@ -111,6 +123,7 @@ export default function AccesoPage() {
                     type="email" required value={email}
                     onChange={e => setEmail(e.target.value)}
                     placeholder="tu@callpicker.com"
+                    data-acceso-input
                     style={{ ...INPUT, paddingLeft: 36 }}
                   />
                 </div>
@@ -127,6 +140,7 @@ export default function AccesoPage() {
                     type={showPass ? 'text' : 'password'} required value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="Contraseña asignada por el admin"
+                    data-acceso-input
                     style={{ ...INPUT, paddingLeft: 36, paddingRight: 40 }}
                   />
                   <button type="button" onClick={() => setShowPass(v => !v)}
