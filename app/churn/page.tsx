@@ -11,7 +11,7 @@ import {
   TrendingDown, AlertTriangle, XCircle, ArrowDownRight,
   Clock, DollarSign, BarChart3, CalendarDays, ChevronDown, ChevronUp,
   Plus, Trash2, X, ChevronLeft, ChevronRight, Check, Database, FileBarChart2,
-  RefreshCw, ShieldAlert, ExternalLink, Ticket,
+  RefreshCw, ShieldAlert, ExternalLink, Ticket, Search, ArrowUpDown,
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1275,10 +1275,59 @@ const fmtFechaCorta = (iso: string) => {
   return `${d} ${MES[Number(m) - 1]}`
 }
 
+/** Columnas ordenables de la tabla de detalle */
+type ColAlerta = 'fechaCancelacion' | 'cliente' | 'cid' | 'ultimoPagoMonto' | 'mesesEnCallpicker' | 'primerPagoFecha' | 'ltv' | 'servicio'
+
+const COLS_ALERTA: Array<{ col: ColAlerta; label: string; align: 'left' | 'right' }> = [
+  { col: 'fechaCancelacion',  label: 'Cancelación', align: 'left'  },
+  { col: 'cliente',           label: 'Cliente',     align: 'left'  },
+  { col: 'cid',               label: 'CID',         align: 'left'  },
+  { col: 'ultimoPagoMonto',   label: 'Último Pago', align: 'right' },
+  { col: 'mesesEnCallpicker', label: 'Meses CP',    align: 'right' },
+  { col: 'primerPagoFecha',   label: 'Primer Pago', align: 'left'  },
+  { col: 'ltv',               label: 'LTV',         align: 'right' },
+  { col: 'servicio',          label: 'Servicio',    align: 'left'  },
+]
+
 function AlertasCancelacionSection() {
   const [metrica, setMetrica] = useState<MetricaAlerta>('ltv')
+  const [busqueda, setBusqueda] = useState('')
+  const [sort, setSort] = useState<{ col: ColAlerta; dir: 'asc' | 'desc' }>({ col: 'fechaCancelacion', dir: 'desc' })
   const esPorFecha = ES_METRICA_FECHA(metrica)
   const cfg = esPorFecha ? METRICA_FECHA_CFG[metrica] : METRICA_ALERTA_CFG[metrica]
+
+  // Click en encabezado: alterna dirección si ya está activa, si no la activa
+  // en el sentido más útil por tipo de dato (numérico/fecha desc, texto asc).
+  const toggleSort = (col: ColAlerta) => setSort(prev =>
+    prev.col === col
+      ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      : { col, dir: (col === 'cliente' || col === 'servicio' || col === 'cid') ? 'asc' : 'desc' }
+  )
+
+  const filasTabla = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const filtradas = q
+      ? ALERTAS_CANCELACION.filter(c =>
+          norm(c.cliente).includes(norm(q)) ||
+          c.cid.toLowerCase().includes(q) ||
+          norm(c.servicio).includes(norm(q)) ||
+          c.fechaCancelacion.includes(q) ||
+          fmtFechaCorta(c.fechaCancelacion).toLowerCase().includes(norm(q)))
+      : [...ALERTAS_CANCELACION]
+
+    const d = sort.dir === 'asc' ? 1 : -1
+    return filtradas.sort((a, b) => {
+      const va = a[sort.col]
+      const vb = b[sort.col]
+      // Los nulos siempre al final, sin importar la dirección
+      if (va == null && vb == null) return 0
+      if (va == null) return 1
+      if (vb == null) return -1
+      if (typeof va === 'number' && typeof vb === 'number') return d * (va - vb)
+      return d * String(va).localeCompare(String(vb), 'es')
+    })
+  }, [busqueda, sort])
 
   // Agregado por fecha de cancelación — usa las cuentas únicas para no
   // duplicar el LTV de una cuenta reportada en dos cortes distintos.
@@ -1379,29 +1428,72 @@ function AlertasCancelacionSection() {
 
       {/* Tabla de cuentas */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100">
-          <h4 className="font-bold text-gray-900 text-sm">Detalle de cuentas</h4>
-          <p className="text-[11px] text-gray-400 mt-0.5">Ordenadas por fecha de cancelación (más reciente primero)</p>
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h4 className="font-bold text-gray-900 text-sm">Detalle de cuentas</h4>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              Haz clic en un encabezado para ordenar · {filasTabla.length} de {ALERTAS_CANCELACION.length} cuenta{ALERTAS_CANCELACION.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          {/* Buscador */}
+          <div className="relative" style={{ minWidth: 260 }}>
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <input
+              value={busqueda}
+              onChange={e => setBusqueda(e.target.value)}
+              placeholder="Buscar cliente, CID, servicio o fecha…"
+              className="w-full text-xs rounded-lg border border-gray-200 bg-white py-2 pl-8 pr-8
+                         focus:outline-none focus:ring-2 focus:ring-orange-500/25 focus:border-orange-400"
+              style={{ color: '#0F172A' }}
+            />
+            {busqueda && (
+              <button
+                onClick={() => setBusqueda('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                aria-label="Limpiar búsqueda"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100">
-                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Cancelación</th>
-                <th className="text-left  py-2.5 px-4 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Cliente</th>
-                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">CID</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Último Pago</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Meses CP</th>
-                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Primer Pago</th>
-                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">LTV</th>
-                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Servicio</th>
-                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Ticket</th>
+                {COLS_ALERTA.map(({ col, label, align }) => {
+                  const activa = sort.col === col
+                  return (
+                    <th key={col} className="p-0">
+                      <button
+                        onClick={() => toggleSort(col)}
+                        className={`w-full flex items-center gap-1 py-2.5 px-3 font-semibold uppercase tracking-wide text-[10px]
+                          transition-colors whitespace-nowrap ${align === 'right' ? 'justify-end' : ''}
+                          ${activa ? '' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/70'}`}
+                        style={activa ? { background: '#7c2d1212', color: '#7c2d12' } : undefined}
+                      >
+                        {label}
+                        {activa
+                          ? (sort.dir === 'asc'
+                              ? <ChevronUp size={11} style={{ color: '#7c2d12' }} />
+                              : <ChevronDown size={11} style={{ color: '#7c2d12' }} />)
+                          : <ArrowUpDown size={9} className="text-gray-300" />}
+                      </button>
+                    </th>
+                  )
+                })}
+                <th className="text-left py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Ticket</th>
               </tr>
             </thead>
             <tbody>
-              {[...ALERTAS_CANCELACION]
-                .sort((a, b) => b.fechaCancelacion.localeCompare(a.fechaCancelacion) || (b.ltv ?? 0) - (a.ltv ?? 0))
-                .map((c, i) => (
+              {filasTabla.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="py-10 text-center text-gray-400 text-xs">
+                    Sin resultados para &quot;{busqueda}&quot;
+                  </td>
+                </tr>
+              )}
+              {filasTabla.map((c, i) => (
                 <tr key={`${c.cid}-${i}`} className="border-b border-gray-100 hover:bg-gray-50/40 transition-colors align-top">
                   <td className="py-2.5 px-3 whitespace-nowrap">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold"
@@ -1409,7 +1501,7 @@ function AlertasCancelacionSection() {
                       {fmtFechaCorta(c.fechaCancelacion)}
                     </span>
                   </td>
-                  <td className="py-2.5 px-4 font-semibold text-gray-900">
+                  <td className="py-2.5 px-3 font-semibold text-gray-900">
                     {c.cliente}
                     {c.notaEspecial && (
                       <div className="flex items-start gap-1 mt-1 text-[10px] text-amber-600 font-normal max-w-[220px]">
