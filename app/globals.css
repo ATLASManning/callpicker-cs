@@ -153,6 +153,26 @@ body {
 .cp-card .cp-light .bg-surfaceAlt { background-color: #F0F7FF !important; }
 .cp-card .cp-light .hover\:bg-surface:hover { background-color: #F0F7FF !important; }
 .cp-card .cp-light .border-border { border-color: #BFDBFE !important; }
+/* .cp-section-title es una clase (no un tag), así que el escape genérico
+   de h1-h5 de arriba no la cubre — necesita su propia regla. */
+.cp-card .cp-light .cp-section-title { color: #0F172A !important; }
+/* Tabla .cp-table y tabla genérica <table> — mismo problema que el resto:
+   sus reglas ".cp-card .cp-table th/td" y ".cp-card table tr" de arriba
+   asumen fondo oscuro y no deben aplicar dentro de una sección cp-light. */
+.cp-card .cp-light .cp-table th {
+  background: #F0F7FF !important;
+  color: #64748B !important;
+  border-bottom: 1px solid #BFDBFE !important;
+}
+.cp-card .cp-light .cp-table th:hover { color: #0F172A !important; }
+.cp-card .cp-light .cp-table td {
+  color: #334155 !important;
+  border-bottom: 1px solid #E0EDFF !important;
+}
+.cp-card .cp-light .cp-table tbody tr:hover { background: #F0F7FF !important; }
+.cp-card .cp-light table tr             { background: transparent !important; }
+.cp-card .cp-light table thead tr       { background: #F0F7FF !important; }
+.cp-card .cp-light table tbody tr:hover { background: #F0F7FF !important; }
 
 /* ── Título de sección ────────────────────────────── */
 .cp-section-title {
@@ -219,6 +239,20 @@ body {
   color: #fff;
   box-shadow: none;
 }
+/* .cp-input/.cp-select DENTRO de .cp-light — la regla de arriba
+   (.cp-card .cp-input) tiene más especificidad que .cp-input sola y gana
+   incluso sin !important, así que un formulario claro anidado en un card
+   oscuro (ej. slide-over de edición) queda con inputs oscuros aunque su
+   contenedor tenga cp-light. Se necesita !important explícito aquí porque
+   la regla de arriba puede aparecer después en la cascada. */
+.cp-card .cp-light .cp-input,
+.cp-card .cp-light .cp-select {
+  background: #FFFFFF !important;
+  border-color: #BFDBFE !important;
+  color: #0F172A !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04) inset !important;
+}
+.cp-card .cp-light .cp-input::placeholder { color: #94A3B8 !important; }
 /* Inputs / selects sin clase cp-* dentro de card oscura */
 .cp-card input:not(.cp-input) {
   background: rgba(255,255,255,0.08) !important;
