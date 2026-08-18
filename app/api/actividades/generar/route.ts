@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ASESOR_CONFIG } from '@/lib/types'
+import { ALERTAS_CANCELACION } from '@/app/churn/alertas-cancelacion-data'
 import { Resend } from 'resend'
 
 export const dynamic   = 'force-dynamic'
-export const maxDuration = 30
+// 55s (antes 30s) — deja margen al fetch interno a /api/facturacion?mode=dormidos
+// (que en sí misma corre con maxDuration=55 por la consulta a Zoho Analytics)
+// más el resto del procesamiento y el envío de correo opcional.
+export const maxDuration = 55
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
 
@@ -28,6 +32,33 @@ function addBusinessDays(date: Date, days: number): Date {
 
 function toISO(d: Date): string {
   return d.toISOString().split('T')[0]
+}
+
+// ── Conciliación con Churn (Zoho dormidas en vivo) ────────────────────────────
+// El campo `estado` de Supabase puede quedar desactualizado respecto a Zoho
+// (ver incidente Campus Residencias/Trustworthy, 10 Jul 2026: cuentas ya
+// dormidas en Zoho seguían con estado "activo"/"en_riesgo" y recibieron
+// actividades). Antes de generar, se cruza contra la misma fuente que usa
+// el módulo Churn → Zoho · Dormidos en vivo (/api/facturacion?mode=dormidos)
+// y se excluye cualquier cuenta que Zoho marque como dormida (semáforo
+// "4-Dormido"), sin importar lo que diga `estado` en Supabase. Si Zoho no
+// está disponible o la consulta falla, no bloquea la generación — se
+// continúa solo con el filtro de Supabase (fail-open, con warning).
+async function getDormidasEnZoho(origin: string): Promise<Set<string>> {
+  const dormidas = new Set<string>()
+  try {
+    const res = await fetch(`${origin}/api/facturacion?mode=dormidos`, {
+      signal: AbortSignal.timeout(15000),
+    })
+    if (!res.ok) return dormidas
+    const data = await res.json() as { rows?: Array<{ cuenta_id: number | string | null; matched: boolean }> }
+    for (const r of data.rows ?? []) {
+      if (r.matched && r.cuenta_id != null) dormidas.add(String(r.cuenta_id))
+    }
+  } catch (e) {
+    console.warn('[Actividades] No se pudo conciliar con Zoho dormidas — se continúa solo con filtro de Supabase:', e)
+  }
+  return dormidas
 }
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -334,7 +365,23 @@ export async function POST(req: NextRequest) {
     if (cErr || !cuentas?.length)
       return NextResponse.json({ error: 'No se encontraron cuentas para este asesor' }, { status: 404 })
 
-    const todas = cuentas as CuentaFull[]
+    // Conciliar con Churn — dos fuentes:
+    // 1. Zoho · Dormidas en vivo (ver getDormidasEnZoho arriba)
+    // 2. Alertas · Cuentas Cancelación (reporte manual, app/churn/alertas-cancelacion-data.ts),
+    //    cruzado por CID ya que esas cuentas aún no tienen cuenta_id de Supabase vinculado.
+    const dormidasZoho    = await getDormidasEnZoho(req.nextUrl.origin)
+    const cidsEnAlerta    = new Set(ALERTAS_CANCELACION.map(a => a.cid).filter(Boolean))
+    const candidatas      = cuentas as CuentaFull[]
+    const todas           = candidatas.filter(c =>
+      !dormidasZoho.has(String(c.id)) && !(c.cid && cidsEnAlerta.has(c.cid))
+    )
+    const excluidasPorChurn = candidatas.length - todas.length
+
+    if (!todas.length)
+      return NextResponse.json({
+        error: 'Todas las cuentas de este asesor están marcadas como dormidas/en alerta de cancelación en Churn — revisar/actualizar su estado en Supabase antes de generar',
+        excluidasPorChurn,
+      }, { status: 404 })
 
     // Clasificar cuentas por prioridad
     const enRiesgo   = todas.filter(c => c.health_score < 40)
@@ -456,6 +503,7 @@ export async function POST(req: NextRequest) {
       semanaInicio,
       emailEnviado: sendEmail,
       actividades:  inserted,
+      excluidasPorChurn, // cuentas activas/en_riesgo en Supabase pero dormidas en Zoho o en alerta de cancelación — no recibieron actividades
     })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
