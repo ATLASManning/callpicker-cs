@@ -1720,8 +1720,9 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
     tabs.push({ id: 'desactivados', label: `🟣 Desactivados (${r.desactivadosCuentasReal ?? r.desactivados.length})`, color: '#7C3AED' })
   }
   tabs.push({ id: 't1',   label: 'Resumen T1 2026',                                   color: INDIGO })
-  tabs.push({ id: 'zoho', label: '🔴 Zoho · Dormidos',                               color: '#dc2626' })
-  tabs.push({ id: 'aaa',  label: '⭐ GRC · AAA 2026',                                 color: '#7c3aed' })
+  // NOTA: 'zoho' y 'aaa' NO van aquí — son secciones independientes del submenú
+  // lateral, no tabs del Análisis DATA. Mezclarlos hacía que el selector de
+  // períodos y los KPIs del análisis siguieran visibles sobre su contenido.
   return tabs
 }
 
@@ -1906,6 +1907,13 @@ export default function ChurnPage() {
 
   const isAcumulado = selectedId === 'acumulado'
 
+  // Secciones independientes del submenú lateral. Cuando una está activa, el
+  // Análisis DATA (selector de períodos + KPIs + su tab-bar) se oculta por
+  // completo para que el contenido de la sección se despliegue solo, sin
+  // mezclarse con datos de otro contexto.
+  const SECCIONES_SUBMENU: Tab[] = ['zoho', 'aaa', 'alertas']
+  const enSeccionSubmenu = SECCIONES_SUBMENU.includes(tab)
+
   const acumuladoCancelados = useMemo<Array<ChurnCancelado & { periodo: string }>>(() => {
     const items: Array<ChurnCancelado & { periodo: string }> = []
     for (const r of allReportes) {
@@ -2000,9 +2008,20 @@ export default function ChurnPage() {
 
       <div className="flex-1 flex overflow-hidden">
 
-        {/* ── Sidebar · Accesos rápidos ────────────────────────────────── */}
+        {/* ── Sidebar · Submenú de Churn ───────────────────────────────── */}
         <aside className="w-[184px] flex-shrink-0 border-r border-gray-200 bg-white px-3 py-4 space-y-1.5 overflow-y-auto">
-          <p className="px-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Accesos rápidos</p>
+          <p className="px-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Churn</p>
+
+          <SidebarAccesoBtn
+            active={!enSeccionSubmenu}
+            onClick={() => setTab('resumen')}
+            icon={<FileBarChart2 size={14} />}
+            label="Análisis DATA"
+            bg="#1B3FCC"
+            badge={allReportes.length}
+          />
+
+          <div className="border-t border-gray-100 my-2" />
 
           <SidebarAccesoBtn
             active={tab === 'zoho'}
@@ -2038,6 +2057,10 @@ export default function ChurnPage() {
         {/* ── Columna principal ────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden">
 
+      {/* ── ANÁLISIS DATA — selector de períodos + KPIs + tabs.
+             Solo visible cuando NO hay una sección del submenú activa. ── */}
+      {!enSeccionSubmenu && (
+      <>
       {/* ── Selector de períodos ─────────────────────────────────────── */}
       <div className="px-6 pt-4 pb-0">
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -2186,6 +2209,8 @@ export default function ChurnPage() {
           ))}
         </div>
       </div>
+      </>
+      )}
 
       {/* Contenido */}
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
