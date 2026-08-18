@@ -45,6 +45,27 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+
+    // Validar que el asesor de la actividad sea el dueño real de la cuenta.
+    // Sin esta guarda se podía crear una actividad para un asesor sobre una
+    // cuenta de otro (incidente Medicall Expert, 18 Ago 2026 — ahí el origen
+    // fue un duplicado en `cuentas`, pero este endpoint permitía el mismo
+    // error de forma directa al insertar el body sin comprobar nada).
+    const filas = Array.isArray(body) ? body : [body]
+    for (const f of filas) {
+      if (!f?.cuenta_id || !f?.asesor) continue
+      const { data: cuenta } = await supabaseAdmin
+        .from('cuentas')
+        .select('asesor, empresa, consecutivo')
+        .eq('id', f.cuenta_id)
+        .single()
+      if (cuenta && cuenta.asesor !== f.asesor) {
+        return NextResponse.json({
+          error: `La cuenta ${cuenta.consecutivo} (${cuenta.empresa}) está asignada a ${cuenta.asesor}, no a ${f.asesor}. Corrige el asesor de la cuenta en Supabase o asigna la actividad al asesor correcto.`,
+        }, { status: 409 })
+      }
+    }
+
     const { data, error } = await supabaseAdmin
       .from('actividades')
       .insert(body)

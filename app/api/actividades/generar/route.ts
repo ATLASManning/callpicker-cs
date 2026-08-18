@@ -383,12 +383,68 @@ export async function POST(req: NextRequest) {
         excluidasPorChurn,
       }, { status: 404 })
 
+    // ── Guardas de integridad de cartera ──────────────────────────────────
+    // Incidente 18 Ago 2026: "Medicall Expert" existía DUPLICADA en Supabase
+    // (mismo CID 162474) con dos consecutivos y dos asesores distintos —
+    // Z56/Claudia y C31/Dan — y ambas pasaban el filtro .eq('asesor'),
+    // por lo que Claudia recibió actividades de una cuenta que atiende Dan.
+    // El filtro por asesor es correcto; el dato es el que estaba duplicado.
+    const { data: todasCuentasRaw } = await supabaseAdmin
+      .from('cuentas')
+      .select('id, cid, asesor, empresa, consecutivo')
+      .in('estado', ['activo', 'en_riesgo'])
+
+    const asesoresPorCid = new Map<string, Set<string>>()
+    for (const c of (todasCuentasRaw ?? []) as Array<{ cid: string | null; asesor: string | null }>) {
+      if (!c.cid || !c.asesor) continue
+      const k = String(c.cid).trim()
+      if (!asesoresPorCid.has(k)) asesoresPorCid.set(k, new Set())
+      asesoresPorCid.get(k)!.add(c.asesor)
+    }
+
+    // (a) CID compartido con OTRO asesor → conflicto no resoluble automáticamente.
+    //     Se excluye y se reporta: generar para ambos garantiza un error de asignación.
+    const conflictosDeAsignacion: Array<{ consecutivo: string; empresa: string; cid: string; asesores: string[] }> = []
+    const sinConflicto = todas.filter(c => {
+      const a = c.cid ? asesoresPorCid.get(String(c.cid).trim()) : undefined
+      if (a && a.size > 1) {
+        conflictosDeAsignacion.push({
+          consecutivo: c.consecutivo, empresa: c.empresa,
+          cid: String(c.cid), asesores: Array.from(a),
+        })
+        return false
+      }
+      return true
+    })
+
+    // (b) CID repetido DENTRO del mismo asesor → misma cuenta real dada de alta
+    //     dos veces; se conserva una sola (la primera, que por el ORDER BY
+    //     health_score asc es la más urgente) para no duplicar actividades.
+    const cidsVistos = new Set<string>()
+    const duplicadasMismoAsesor: Array<{ consecutivo: string; empresa: string; cid: string }> = []
+    const elegibles = sinConflicto.filter(c => {
+      if (!c.cid) return true
+      const k = String(c.cid).trim()
+      if (cidsVistos.has(k)) {
+        duplicadasMismoAsesor.push({ consecutivo: c.consecutivo, empresa: c.empresa, cid: k })
+        return false
+      }
+      cidsVistos.add(k)
+      return true
+    })
+
+    if (!elegibles.length)
+      return NextResponse.json({
+        error: 'No quedaron cuentas elegibles tras validar la integridad de la cartera — revisar duplicados y conflictos de asignación en Supabase',
+        conflictosDeAsignacion, duplicadasMismoAsesor,
+      }, { status: 409 })
+
     // Clasificar cuentas por prioridad
-    const enRiesgo   = todas.filter(c => c.health_score < 40)
-    const observacion = todas.filter(c => c.health_score >= 40 && c.health_score < 60)
-    const sinAct     = todas.filter(c => c.health_score >= 60 && c.dias_sin_actividad > 30)
-    const conUpsell  = todas.filter(c => c.health_score >= 60 && (c.upsell_producto || c.crossell_producto) && c.dias_sin_actividad <= 30)
-    const estables   = todas.filter(c => c.health_score >= 60 && !c.upsell_producto && !c.crossell_producto && c.dias_sin_actividad <= 30)
+    const enRiesgo   = elegibles.filter(c => c.health_score < 40)
+    const observacion = elegibles.filter(c => c.health_score >= 40 && c.health_score < 60)
+    const sinAct     = elegibles.filter(c => c.health_score >= 60 && c.dias_sin_actividad > 30)
+    const conUpsell  = elegibles.filter(c => c.health_score >= 60 && (c.upsell_producto || c.crossell_producto) && c.dias_sin_actividad <= 30)
+    const estables   = elegibles.filter(c => c.health_score >= 60 && !c.upsell_producto && !c.crossell_producto && c.dias_sin_actividad <= 30)
 
     // Pool ordenado sin duplicados
     const usedIds = new Set<string>()
@@ -439,7 +495,7 @@ export async function POST(req: NextRequest) {
 
     // Inyectar actividades de validación de datos en el miércoles (posición 4-5 del pool)
     // Solo para cuentas con datos críticos faltantes (score ≥ 2 = 1 crítico o 2 importantes)
-    const conGaps = Array.from(todas)
+    const conGaps = Array.from(elegibles)
       .map(c => ({ cuenta: c, score: gapScore(c) }))
       .filter(x => x.score >= 2)
       .sort((a, b) => b.score - a.score)
@@ -504,6 +560,9 @@ export async function POST(req: NextRequest) {
       emailEnviado: sendEmail,
       actividades:  inserted,
       excluidasPorChurn, // cuentas activas/en_riesgo en Supabase pero dormidas en Zoho o en alerta de cancelación — no recibieron actividades
+      // Integridad de cartera — si vienen con elementos, hay datos que corregir en Supabase:
+      conflictosDeAsignacion, // mismo CID con 2+ asesores: nadie recibió actividad, requiere decidir el dueño real
+      duplicadasMismoAsesor,  // mismo CID repetido en el mismo asesor: se generó solo una vez
     })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
