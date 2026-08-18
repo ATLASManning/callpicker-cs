@@ -210,7 +210,8 @@ export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
           </button>
 
           {dropOpen && (
-            <div className="absolute right-0 top-full mt-1 w-44 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
+            <div className="cp-light absolute right-0 top-full mt-1 w-44 bg-white border border-border rounded-xl shadow-xl z-50 overflow-hidden"
+              style={{ color: '#0F172A' }}>
               <button
                 onClick={() => openAt('contactos', true)}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-textMid hover:bg-surface hover:text-cp transition-colors text-left"
@@ -248,9 +249,10 @@ export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
       )}
 
       {/* Slide-over */}
-      <div className={`fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white border-l border-border shadow-2xl
+      <div className={`cp-light fixed top-0 right-0 z-50 h-full w-full max-w-md bg-white border-l border-border shadow-2xl
         flex flex-col transition-transform duration-300 ease-in-out
         ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        style={{ color: '#0F172A' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0">

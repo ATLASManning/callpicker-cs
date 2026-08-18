@@ -139,6 +139,20 @@ body {
 .cp-card .cp-light textarea:not(.cp-input)::placeholder {
   color: #94A3B8 !important;
 }
+/* Tokens Tailwind custom (text-textHi/Mid/Low, bg-surface*, border-border) —
+   .cp-card los fuerza a blanco/oscuro-invertido más arriba (líneas 71-79).
+   Dentro de .cp-light deben volver a sus valores reales de tailwind.config
+   (fondo claro), con valor EXPLÍCITO — no "inherit" — porque estas clases
+   ya traen su propio color de Tailwind con menor especificidad que el
+   !important de arriba; "inherit" dependería de que el contenedor padre
+   tenga el color puesto inline, lo cual no siempre es cierto. */
+.cp-card .cp-light .text-textHi  { color: #0F172A !important; }
+.cp-card .cp-light .text-textMid { color: #334155 !important; }
+.cp-card .cp-light .text-textLow { color: #64748B !important; }
+.cp-card .cp-light .bg-surface    { background-color: #FFFFFF !important; }
+.cp-card .cp-light .bg-surfaceAlt { background-color: #F0F7FF !important; }
+.cp-card .cp-light .hover\:bg-surface:hover { background-color: #F0F7FF !important; }
+.cp-card .cp-light .border-border { border-color: #BFDBFE !important; }
 
 /* ── Título de sección ────────────────────────────── */
 .cp-section-title {
