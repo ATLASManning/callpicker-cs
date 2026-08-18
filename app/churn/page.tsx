@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import PageHeader from '@/components/PageHeader'
 import { AAA_GRC_2026 } from './aaa-grc-data'
-import { ALERTAS_CANCELACION, LOTES_ALERTAS_CANCELACION, type CuentaAlertaCancelacion } from './alertas-cancelacion-data'
+import { ALERTAS_CANCELACION, REPORTES_CANCELACION, TICKETS_SIN_IDENTIFICAR, type CuentaAlertaCancelacion } from './alertas-cancelacion-data'
 import CustomSelect from '@/components/CustomSelect'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -11,7 +11,7 @@ import {
   TrendingDown, AlertTriangle, XCircle, ArrowDownRight,
   Clock, DollarSign, BarChart3, CalendarDays, ChevronDown, ChevronUp,
   Plus, Trash2, X, ChevronLeft, ChevronRight, Check, Database, FileBarChart2,
-  RefreshCw, ShieldAlert, ExternalLink,
+  RefreshCw, ShieldAlert, ExternalLink, Ticket,
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1244,9 +1244,10 @@ function SemaforoLeyenda() {
    ALERTAS · CUENTAS CANCELACIÓN
    Reporte manual (canal de alertas) — ver app/churn/alertas-cancelacion-data.ts
 ═══════════════════════════════════════════════════════════════════════ */
-type MetricaAlerta = 'ltv' | 'ultimoPago' | 'meses'
+type MetricaAlerta = 'ltv' | 'ultimoPago' | 'meses' | 'ltvPorFecha' | 'cuentasPorFecha'
 
-const METRICA_ALERTA_CFG: Record<MetricaAlerta, {
+/** Métricas por cuenta (una barra por cliente) */
+const METRICA_ALERTA_CFG: Record<'ltv' | 'ultimoPago' | 'meses', {
   label: string
   getValue: (c: CuentaAlertaCancelacion) => number | null
   fmtValue: (n: number) => string
@@ -1257,21 +1258,60 @@ const METRICA_ALERTA_CFG: Record<MetricaAlerta, {
   meses:      { label: 'Meses en Callpicker',     getValue: c => c.mesesEnCallpicker, fmtValue: n => `${n} meses`, color: '#f97316' },
 }
 
+/** Métricas agregadas por fecha de cancelación (una barra por día) */
+const METRICA_FECHA_CFG: Record<'ltvPorFecha' | 'cuentasPorFecha', {
+  label: string; fmtValue: (n: number) => string; color: string
+}> = {
+  ltvPorFecha:     { label: 'LTV perdido por fecha',   fmtValue: fmt,                            color: '#b91c1c' },
+  cuentasPorFecha: { label: 'Cuentas por fecha',       fmtValue: n => `${n} cuenta${n !== 1 ? 's' : ''}`, color: '#c2410c' },
+}
+
+const ES_METRICA_FECHA = (m: MetricaAlerta): m is 'ltvPorFecha' | 'cuentasPorFecha' =>
+  m === 'ltvPorFecha' || m === 'cuentasPorFecha'
+
+const fmtFechaCorta = (iso: string) => {
+  const [y, m, d] = iso.split('-')
+  const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+  return `${d} ${MES[Number(m) - 1]}`
+}
+
 function AlertasCancelacionSection() {
   const [metrica, setMetrica] = useState<MetricaAlerta>('ltv')
-  const cfg = METRICA_ALERTA_CFG[metrica]
+  const esPorFecha = ES_METRICA_FECHA(metrica)
+  const cfg = esPorFecha ? METRICA_FECHA_CFG[metrica] : METRICA_ALERTA_CFG[metrica]
+
+  // Agregado por fecha de cancelación — usa las cuentas únicas para no
+  // duplicar el LTV de una cuenta reportada en dos cortes distintos.
+  const porFecha = useMemo(() => {
+    const map = new Map<string, { ltv: number; cuentas: number }>()
+    for (const c of ALERTAS_CANCELACION) {
+      const cur = map.get(c.fechaCancelacion) ?? { ltv: 0, cuentas: 0 }
+      cur.ltv += c.ltv ?? 0
+      cur.cuentas += 1
+      map.set(c.fechaCancelacion, cur)
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  }, [])
 
   const chartData = useMemo(() => {
+    if (metrica === 'ltvPorFecha')
+      return porFecha.map(([f, v]) => ({ name: fmtFechaCorta(f), value: v.ltv }))
+    if (metrica === 'cuentasPorFecha')
+      return porFecha.map(([f, v]) => ({ name: fmtFechaCorta(f), value: v.cuentas }))
+    const get = METRICA_ALERTA_CFG[metrica].getValue
     return ALERTAS_CANCELACION
-      .map(c => ({ name: c.cliente, value: cfg.getValue(c) }))
+      .map(c => ({ name: c.cliente, value: get(c) }))
       .filter((d): d is { name: string; value: number } => d.value !== null)
       .sort((a, b) => b.value - a.value)
-  }, [metrica, cfg])
+  }, [metrica, porFecha])
 
   const totalLtv        = ALERTAS_CANCELACION.reduce((s, c) => s + (c.ltv ?? 0), 0)
-  const totalUltimoPago = ALERTAS_CANCELACION.reduce((s, c) => s + (c.ultimoPagoMonto ?? 0), 0)
   const conDatosFaltantes = ALERTAS_CANCELACION.filter(c => c.ltv === null || c.mesesEnCallpicker === null).length
-  const ultimoLote = LOTES_ALERTAS_CANCELACION[LOTES_ALERTAS_CANCELACION.length - 1]
+  const fechas          = porFecha.map(([f]) => f)
+  const rangoFechas     = fechas.length
+    ? `${fmtFechaCorta(fechas[0])} – ${fmtFechaCorta(fechas[fechas.length - 1])}`
+    : '—'
+  const repeticiones = REPORTES_CANCELACION.reduce((s, r) => s + r.cuentas.length, 0) - ALERTAS_CANCELACION.length
 
   return (
     <div className="space-y-4">
@@ -1281,36 +1321,41 @@ function AlertasCancelacionSection() {
           <ShieldAlert size={16} style={{ color: '#7c2d12' }} />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-gray-900 text-sm">Alertas · Cuentas en riesgo de cancelación</h3>
+          <h3 className="font-bold text-gray-900 text-sm">Alertas · Cuentas Canceladas</h3>
           <p className="text-xs text-gray-500 mt-0.5">
-            Reporte manual, actualizado conforme se comparten nuevas cuentas · {LOTES_ALERTAS_CANCELACION.length} lote{LOTES_ALERTAS_CANCELACION.length !== 1 ? 's' : ''} registrado{LOTES_ALERTAS_CANCELACION.length !== 1 ? 's' : ''}
+            Canal #alertas-cuentas-canceladas · {REPORTES_CANCELACION.length} reportes · {rangoFechas}
+            {repeticiones > 0 && ` · ${repeticiones} repetición(es) descontada(s)`}
           </p>
         </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={ShieldAlert}   label="Cuentas en alerta"   value={String(ALERTAS_CANCELACION.length)} sub={`último lote ${ultimoLote?.fechaCorte ?? '—'}`} color="#7c2d12" />
-        <KpiCard icon={DollarSign}    label="LTV total en riesgo" value={fmt(totalLtv)}         sub="suma de LTV conocido"  color={ORANGE} />
-        <KpiCard icon={Clock}         label="Último pago (total)" value={fmt(totalUltimoPago)}  sub="suma de últimos pagos" color={AMBER}  />
-        <KpiCard icon={AlertTriangle} label="Con datos faltantes" value={String(conDatosFaltantes)} sub="sin LTV o meses"    color={RED}    />
+        <KpiCard icon={ShieldAlert}   label="Cuentas canceladas"  value={String(ALERTAS_CANCELACION.length)} sub={`${rangoFechas} · sin duplicados`} color="#7c2d12" />
+        <KpiCard icon={DollarSign}    label="LTV total perdido"   value={fmt(totalLtv)}         sub="suma de LTV conocido"  color={ORANGE} />
+        <KpiCard icon={AlertTriangle} label="Con datos faltantes" value={String(conDatosFaltantes)} sub="sin LTV o antigüedad" color={RED} />
+        <KpiCard icon={Ticket}        label="Tickets sin asociar" value={String(TICKETS_SIN_IDENTIFICAR)} sub="revisar en Zoho Desk" color={AMBER} />
       </div>
 
       {/* Gráfico + selector de métrica */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <div>
-            <h4 className="font-bold text-gray-900 text-sm">Comparativa por cuenta</h4>
+            <h4 className="font-bold text-gray-900 text-sm">
+              {esPorFecha ? 'Evolución por fecha de cancelación' : 'Comparativa por cuenta'}
+            </h4>
             <p className="text-xs text-gray-500 mt-0.5">Elige qué dato analizar en el gráfico</p>
           </div>
-          <div style={{ minWidth: 220 }}>
+          <div style={{ minWidth: 240 }}>
             <CustomSelect
               value={metrica}
               onChange={v => setMetrica(v as MetricaAlerta)}
               options={[
-                { value: 'ltv', label: 'LTV' },
-                { value: 'ultimoPago', label: 'Último Pago ($)' },
-                { value: 'meses', label: 'Meses en Callpicker' },
+                { value: 'ltv',             label: 'Por cuenta · LTV' },
+                { value: 'ultimoPago',      label: 'Por cuenta · Último Pago ($)' },
+                { value: 'meses',           label: 'Por cuenta · Meses en Callpicker' },
+                { value: 'ltvPorFecha',     label: 'Por fecha · LTV perdido' },
+                { value: 'cuentasPorFecha', label: 'Por fecha · Nº de cuentas' },
               ]}
               className="cp-select text-xs"
             />
@@ -1320,12 +1365,12 @@ function AlertasCancelacionSection() {
           <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 60, left: 10, bottom: 0 }}>
             <CartesianGrid horizontal={false} stroke="#F3E8DD" />
             <XAxis type="number" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="name" tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} width={170} />
+            <YAxis type="category" dataKey="name" tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} width={esPorFecha ? 70 : 170} />
             <Tooltip formatter={(v: number) => cfg.fmtValue(v)} cursor={{ fill: 'rgba(124,45,18,0.06)' }} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={18} fill={cfg.color} />
+            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={esPorFecha ? 26 : 18} fill={cfg.color} />
           </BarChart>
         </ResponsiveContainer>
-        {chartData.length < ALERTAS_CANCELACION.length && (
+        {!esPorFecha && chartData.length < ALERTAS_CANCELACION.length && (
           <p className="text-[11px] text-gray-400 mt-2">
             {ALERTAS_CANCELACION.length - chartData.length} cuenta(s) sin dato de &quot;{cfg.label}&quot; — no se muestran en el gráfico.
           </p>
@@ -1336,11 +1381,13 @@ function AlertasCancelacionSection() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-5 py-3 border-b border-gray-100">
           <h4 className="font-bold text-gray-900 text-sm">Detalle de cuentas</h4>
+          <p className="text-[11px] text-gray-400 mt-0.5">Ordenadas por fecha de cancelación (más reciente primero)</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100">
+                <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Cancelación</th>
                 <th className="text-left  py-2.5 px-4 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Cliente</th>
                 <th className="text-left  py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">CID</th>
                 <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Último Pago</th>
@@ -1352,8 +1399,16 @@ function AlertasCancelacionSection() {
               </tr>
             </thead>
             <tbody>
-              {ALERTAS_CANCELACION.map((c, i) => (
+              {[...ALERTAS_CANCELACION]
+                .sort((a, b) => b.fechaCancelacion.localeCompare(a.fechaCancelacion) || (b.ltv ?? 0) - (a.ltv ?? 0))
+                .map((c, i) => (
                 <tr key={`${c.cid}-${i}`} className="border-b border-gray-100 hover:bg-gray-50/40 transition-colors align-top">
+                  <td className="py-2.5 px-3 whitespace-nowrap">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: '#7c2d1212', color: '#7c2d12' }}>
+                      {fmtFechaCorta(c.fechaCancelacion)}
+                    </span>
+                  </td>
                   <td className="py-2.5 px-4 font-semibold text-gray-900">
                     {c.cliente}
                     {c.notaEspecial && (
@@ -1397,7 +1452,7 @@ function AlertasCancelacionSection() {
       </div>
 
       <p className="text-[11px] text-gray-400 text-center">
-        Fuente: reporte manual compartido en sesión de trabajo · Último lote: {ultimoLote?.fechaCorte ?? '—'}
+        Fuente: canal Slack #alertas-cuentas-canceladas (bot n8n) · {REPORTES_CANCELACION.length} reportes entre {rangoFechas} · LTV totales verificados contra la suma de cada corte
       </p>
     </div>
   )
