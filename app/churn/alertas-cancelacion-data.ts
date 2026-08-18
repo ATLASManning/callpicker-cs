@@ -75,6 +75,38 @@ export const LOTES_ALERTAS_CANCELACION: LoteAlertasCancelacion[] = [
       },
     ],
   },
+  {
+    id: 'lote-2026-08-18',
+    fechaCorte: '2026-08-18',
+    cuentas: [
+      {
+        cliente: 'A reservar', cid: '179952',
+        ultimoPagoMonto: 416.44, ultimoPagoFecha: '2026-07-13', mesesEnCallpicker: 4, primerPagoFecha: '2026-03-18', ltv: 1436.00,
+        servicio: 'Plan Emprendedor 200 minutos',
+        notaEspecial: 'Ya reportada como Suspendida ($359) en el análisis DATA Semana 2 · Ago 2026.',
+      },
+      {
+        cliente: 'LUNAH ECO-RESORTS', cid: '115829',
+        ultimoPagoMonto: 682.08, ultimoPagoFecha: '2026-06-26', mesesEnCallpicker: 48, primerPagoFecha: '2022-06-06', ltv: 26550.00,
+        servicio: 'Comunicación Empresarial 400 minutos',
+        notaEspecial: 'Historial previo en Churn: aparece como cancelada ("Lunah Eco-resorts CDMX", MRR $367, 38 meses) en Semana 8 · Jun 2026 y como suspendida ("Lunah", $367) en un corte posterior. Verificar si es reactivación o duplicidad de registro.',
+      },
+      {
+        cliente: 'Uno Suministros', cid: '55428',
+        ultimoPagoMonto: 2040.44, ultimoPagoFecha: '2026-06-22', mesesEnCallpicker: 68, primerPagoFecha: '2020-10-29', ltv: 227120.82,
+        servicio: '2 Extensiones Visibilidad y Control IL con SIM',
+        notaEspecial: 'LTV más alto del lote ($227K). Ya reportada como Desactivada ($1,759) en un corte semanal previo — requiere confirmación de estado real.',
+      },
+      { cliente: 'Hause Arq.', cid: '135918', ultimoPagoMonto: 196.04, ultimoPagoFecha: '2026-06-07', mesesEnCallpicker: 39, primerPagoFecha: '2023-03-03', ltv: 5738.35, servicio: 'Comunicación Empresarial 60 minutos' },
+      { cliente: 'Mobiliario Médico Nacional', cid: '2490', ultimoPagoMonto: 567.24, ultimoPagoFecha: '2026-06-07', mesesEnCallpicker: 110, primerPagoFecha: '2017-04-05', ltv: 51158.60, servicio: 'Comunicación Empresarial 400 minutos' },
+      {
+        cliente: 'Travelling', cid: '176205',
+        ultimoPagoMonto: 15120.60, ultimoPagoFecha: '2026-06-10', mesesEnCallpicker: 7, primerPagoFecha: '2025-10-07', ltv: 105005.89,
+        servicio: '4 Extensiones VyC Callcenter con 1,250 min',
+        notaEspecial: '⚠️ CONTRADICCIÓN CON GRC AAA: ahí figura como "Churn confirmado" con MRR fin $0 y pérdida de $12,922 (acumulado $102,583.98). Aquí reporta último pago de $15,120.60 el 10/06/2026 y LTV $105,005.89. Además aparece como Inactivo/Suspendido ($12,922) en dos cortes de junio. Aclarar con DATA cuál es el estado vigente antes de accionar.',
+      },
+    ],
+  },
 ]
 
 /** Todas las cuentas de todos los lotes, aplanadas (la UI trabaja sobre esta lista). */
