@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
-  Radar, Lock, AlertTriangle, ChevronDown, ChevronUp, Check,
-  Loader2, Copy, Database, TrendingDown, ClipboardList, X, Save,
+  Radar, Lock, Check, Loader2, Copy, Database, ClipboardList, X, Save,
 } from 'lucide-react'
 import { PREGUNTAS_RADAR, type RadarCuenta as RadarData, type NivelRadar } from '@/lib/radar'
 
