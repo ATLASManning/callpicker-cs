@@ -171,16 +171,29 @@ export default async function CuentaDetailPage({ params }: Props) {
                 <p className="text-xs text-textHi">{cuenta.servicio}</p></div>
             ) : null}
 
-            {cuenta.activo_desde && (
-              <div className="flex items-center gap-2 text-xs">
-                <Calendar size={12} className="text-textLow" />
-                <span className="text-textMid">Cliente desde:</span>
-                <span className="text-textHi font-medium">
-                  {new Date(cuenta.activo_desde).toLocaleDateString('es-MX', { year:'numeric', month:'long' })}
+            {/* Cliente activo desde — se muestra SIEMPRE. Cuando falta el dato
+                queda visible como pendiente en vez de desaparecer del panel. */}
+            <div className="flex items-center gap-2 text-xs flex-wrap">
+              <Calendar size={12} className="text-textLow flex-shrink-0" />
+              <span className="text-textMid">Cliente activo desde:</span>
+              {cuenta.activo_desde ? (
+                <>
+                  <span className="text-textHi font-medium">
+                    {new Date(cuenta.activo_desde).toLocaleDateString('es-MX', { year: 'numeric', month: 'long' })}
+                  </span>
+                  <span className="text-cpTeal">
+                    ({diasCliente >= 365
+                      ? `${Math.floor(diasCliente / 365)} año${Math.floor(diasCliente / 365) !== 1 ? 's' : ''}`
+                      : `${diasCliente}d`})
+                  </span>
+                </>
+              ) : (
+                <span className="font-medium px-1.5 py-0.5 rounded"
+                  style={{ background: 'rgba(234,179,8,0.15)', color: '#EAB308' }}>
+                  Sin registrar — capturar con el cliente
                 </span>
-                <span className="text-cpTeal">({diasCliente}d)</span>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Contactos — lista dinámica primero, fallback al campo legacy */}
             {(cuenta.contactos_json && cuenta.contactos_json.length > 0) ? (
