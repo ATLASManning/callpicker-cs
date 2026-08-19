@@ -321,6 +321,24 @@ export async function getHealthHistorial(cuentaId: string) {
   }
 }
 
+/**
+ * Cuántos registros de adopción tiene la cuenta. Sirve para distinguir
+ * "sin módulos activados" de "nadie ha capturado los módulos": el Health
+ * Score no debe penalizar la segunda.
+ */
+export async function getConteoAdopcion(cuentaId: string): Promise<number> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('adopcion_producto')
+      .select('id')
+      .eq('cuenta_id', cuentaId)
+    if (error) return 0
+    return data?.length ?? 0
+  } catch {
+    return 0
+  }
+}
+
 // ── Junta Semanal — tipos extendidos ─────────────────────────────────────────
 
 export type CuentaMin = {

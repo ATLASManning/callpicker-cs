@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getAuditCaseById }           from '@/app/auditoria/cases'
-import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta } from '@/lib/supabase'
+import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
 import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
@@ -40,12 +40,13 @@ export default async function CuentaDetailPage({ params }: Props) {
   // Usar el UUID real para las demás queries
   const cuentaUUID = cuenta.id
 
-  const [seguimientos, oportunidades, tickets, historial, actividades] = await Promise.all([
+  const [seguimientos, oportunidades, tickets, historial, actividades, revisionesAdopcion] = await Promise.all([
     getSeguimientos(cuentaUUID),
     getOportunidades(cuentaUUID),
     getTickets(cuentaUUID),
     getHealthHistorial(cuentaUUID),
     getActividadesByCuenta(cuentaUUID),
+    getConteoAdopcion(cuentaUUID),
   ])
 
   const h       = headers()
@@ -143,6 +144,7 @@ export default async function CuentaDetailPage({ params }: Props) {
             diasCliente={diasCliente}
             auditoriaEstado={auditoriaCase?.estado ?? null}
             auditoriaNombre={auditoriaCase?.nombre ?? null}
+            revisionesAdopcion={revisionesAdopcion}
           />
 
           {/* Info básica */}

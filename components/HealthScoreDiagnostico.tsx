@@ -104,33 +104,42 @@ function dimPagos(c: Cuenta): DimResult {
   return { key: 'pago', label: 'Pagos', pct: '20%', weight: 20, score, detail, color: scoreColor(score), missing: [], Icon: CreditCard }
 }
 
-// ── Scorer: Adopción de Producto ─────────────────────────────────────────────
-// Una cuenta madura con 0 módulos activos tiene costo de salida casi nulo —
-// señal de churn más confiable que cualquier métrica de soporte o actividad.
-function dimAdopcion(c: Cuenta, diasCliente: number): DimResult {
+// ── Scorer: Módulos Activados ────────────────────────────────────────────────
+// Mide COBERTURA: cuántos módulos del portafolio tiene encendidos la cuenta.
+// Es distinto del indicador "Adopción de producto" del Radar, que mide
+// PROFUNDIDAD (qué tan bien usa lo que ya tiene, según la revisión del asesor).
+//
+// Los flags viven en la tabla `cuentas` y hoy nadie los captura: están en
+// false en las 201 cuentas activas. Por eso NO se penaliza la ausencia de
+// dato — antes toda cuenta con más de un año caía a score 8 y arrastraba
+// ~23 puntos del Health Score por un campo vacío, no por falta de adopción.
+function dimModulos(c: Cuenta, diasCliente: number, revisionesAdopcion: number): DimResult {
   const MODS = [
-    { key: 'tiene_chat_activo',     label: 'Callpicker Chat' },
-    { key: 'tiene_integracion_api', label: 'Integración API/CRM' },
-    { key: 'tiene_pago_automatico', label: 'Pago automático' },
-    { key: 'tiene_ia_voz',          label: 'IA de Voz' },
-    { key: 'tiene_ia_chat',         label: 'IA de Chat' },
-    { key: 'dashboard_revisado',    label: 'Panel administrador revisado' },
+    'tiene_chat_activo', 'tiene_integracion_api', 'tiene_pago_automatico',
+    'tiene_ia_voz', 'tiene_ia_chat', 'dashboard_revisado',
   ]
   const r      = c as unknown as Record<string, unknown>
-  const active = MODS.filter(m => r[m.key] === true).length
+  const active = MODS.filter(m => r[m] === true).length
   const total  = MODS.length
+  // Un flag capturado en false es informativo; una cuenta donde ninguno de los
+  // seis fue tocado nunca es simplemente un registro sin llenar.
+  const capturado = MODS.some(m => r[m] === true || r[m] === false)
 
   let score: number
   let detail: string
 
-  if (diasCliente < 90) {
-    // Onboarding — cero adopción es normal
+  if (active === 0 && !capturado) {
+    // Sin dato: neutro, nunca crítico. La señal real la da el Radar.
+    score  = 50
+    detail = revisionesAdopcion > 0
+      ? 'Sin registro de módulos — ver Adopción en el Radar'
+      : 'Sin registro de módulos activados'
+  } else if (diasCliente < 90) {
     score  = active === 0 ? 45 : active <= 2 ? 65 : 82
-    detail = active === 0 ? 'En onboarding — adopción en proceso' : `${active}/${total} módulos · Cliente nuevo`
+    detail = active === 0 ? 'En onboarding — activación en proceso' : `${active}/${total} módulos · Cliente nuevo`
   } else if (active === 0 && diasCliente > 365) {
-    // Crítico: cuenta madura sin ningún módulo extra → costo de salida nulo
     score  = 8
-    detail = `0/${total} módulos en ${Math.floor(diasCliente / 365)} año${Math.floor(diasCliente / 365) > 1 ? 's' : ''} — riesgo de churn alto`
+    detail = `0/${total} módulos en ${Math.floor(diasCliente / 365)} año${Math.floor(diasCliente / 365) > 1 ? 's' : ''} — costo de salida bajo`
   } else if (active === 0) {
     score = 22; detail = `0/${total} módulos activados`
   } else if (active === 1) {
@@ -149,7 +158,7 @@ function dimAdopcion(c: Cuenta, diasCliente: number): DimResult {
   if (c.nps_score != null && c.nps_score >= 8) score = Math.min(100, score + 5)
 
   return {
-    key: 'adopcion', label: 'Adopción', pct: '25%', weight: 25,
+    key: 'modulos', label: 'Módulos activados', pct: '25%', weight: 25,
     score, detail, color: scoreColor(score), missing: [], Icon: Layers,
   }
 }
@@ -272,12 +281,14 @@ interface Props {
   diasCliente:      number
   auditoriaEstado?: string | null
   auditoriaNombre?: string | null
+  /** Registros en adopcion_producto — solo para diferenciar "sin dato" de "sin módulos" */
+  revisionesAdopcion?: number
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function HealthScoreDiagnostico({
   cuenta, seguimientos, ticketRows, diasCliente,
-  auditoriaEstado, auditoriaNombre,
+  auditoriaEstado, auditoriaNombre, revisionesAdopcion = 0,
 }: Props) {
 
   // ── Cálculo de las 6 dimensiones ───────────────────────────────────────────
@@ -285,7 +296,7 @@ export default function HealthScoreDiagnostico({
     dimAntiguedad(diasCliente),
     dimInformacion(cuenta),
     dimPagos(cuenta),
-    dimAdopcion(cuenta, diasCliente),
+    dimModulos(cuenta, diasCliente, revisionesAdopcion),
     dimSoporte(cuenta.cid, ticketRows, cuenta.tickets_abiertos ?? 0),
     dimSeguimiento(seguimientos, cuenta),
   ]
