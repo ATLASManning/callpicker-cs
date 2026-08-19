@@ -1,11 +1,11 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import PageHeader from '@/components/PageHeader'
-import { AAA_GRC_2026 } from './aaa-grc-data'
+import GrcAaaSection from '@/components/GrcAaaSection'
 import { ALERTAS_CANCELACION, REPORTES_CANCELACION, TICKETS_SIN_IDENTIFICAR, type CuentaAlertaCancelacion } from './alertas-cancelacion-data'
 import CustomSelect from '@/components/CustomSelect'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import {
   TrendingDown, AlertTriangle, XCircle, ArrowDownRight,
@@ -3033,148 +3033,7 @@ export default function ChurnPage() {
         )}
 
         {/* ── GRC · AAA 2026 (Ene–Jul, corte 15 Jul) ─────────────── */}
-        {tab === 'aaa' && (() => {
-          const totalClientes  = AAA_GRC_2026.reduce((s, m) => s + m.clientes.length, 0)
-          const totalPerdido2026 = AAA_GRC_2026.reduce((s, m) => s + m.clientes.reduce((ss, c) => ss + c.perdido + c.perdido2, 0), 0)
-          const totalChurns    = AAA_GRC_2026.reduce((s, m) => s + m.clientes.filter(c => c.movimiento.includes('Churn')).length, 0)
-          return (
-            <div className="space-y-4">
-              {/* Header */}
-              <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: '#7c3aed15' }}>
-                  <BarChart3 size={16} style={{ color: '#7c3aed' }} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 text-sm">GRC · Clientes AAA — Enero a Junio 2026</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">Pérdida: Downgrade + Churn · Clasificación AAA · Fuente: Zoho Analytics</p>
-                </div>
-              </div>
-
-              {/* KPIs */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <KpiCard icon={CalendarDays} label="Meses 2026"         value="7"                       sub="Ene–Jul (corte 15 Jul)"  color="#7c3aed" />
-                <KpiCard icon={XCircle}      label="Registros AAA"     value={String(totalClientes)}   sub="filas en el período"     color={RED}     />
-                <KpiCard icon={DollarSign}   label="Ingreso Perdido"   value={fmt(totalPerdido2026)}   sub="downgrade + churn 2026"  color={ORANGE}  />
-                <KpiCard icon={AlertTriangle} label="Churns Confirmados" value={String(totalChurns)}  sub="bajas reales en el período" color={RED}   />
-              </div>
-
-              {/* Sección por mes */}
-              {AAA_GRC_2026.map((mesData) => {
-                const open           = aaaOpenMes[mesData.mes] ?? false
-                const totalPerd      = mesData.clientes.reduce((s, c) => s + c.perdido + c.perdido2, 0)
-                const totalMrrInicio = mesData.clientes.reduce((s, c) => s + c.mrrInicio, 0)
-                const churnCount     = mesData.clientes.filter(c => c.movimiento.includes('Churn')).length
-                return (
-                  <div key={mesData.mes} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                    <button
-                      className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors text-left"
-                      onClick={() => setAaaOpenMes(prev => ({ ...prev, [mesData.mes]: !open }))}
-                    >
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
-                        style={{ background: '#7c3aed' }}>
-                        {mesData.mes.slice(0, 3).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-bold text-gray-900 text-sm">{mesData.mes} 2026</span>
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">
-                            {mesData.clientes.length} cliente{mesData.clientes.length !== 1 ? 's' : ''}
-                          </span>
-                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                            Perdido {fmt(totalPerd)}
-                          </span>
-                          {churnCount > 0 && (
-                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
-                              {churnCount} churn{churnCount !== 1 ? 's' : ''}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-gray-400 mt-0.5">MRR inicio período: {fmt(totalMrrInicio)}</p>
-                      </div>
-                      {open ? <ChevronUp size={16} className="text-gray-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />}
-                    </button>
-
-                    {open && (
-                      <div className="border-t border-gray-100">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="bg-gray-50/80 border-b border-gray-100">
-                                <th className="text-left py-2.5 px-4 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Cliente</th>
-                                <th className="text-left py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Movimiento</th>
-                                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">MRR Inicio</th>
-                                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">MRR Fin</th>
-                                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Ing. Perdido</th>
-                                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Acumulado</th>
-                                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Meses</th>
-                                <th className="text-right py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Facts.</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {mesData.clientes.map((c, i) => {
-                                const esChurn   = c.movimiento.includes('Churn')
-                                const esFraude  = c.movimiento.includes('Fraude')
-                                const perdTotal = c.perdido + c.perdido2
-                                const movColor  = esChurn
-                                  ? { bg: 'bg-red-100', text: 'text-red-700' }
-                                  : esFraude
-                                  ? { bg: 'bg-orange-100', text: 'text-orange-700' }
-                                  : { bg: 'bg-amber-100', text: 'text-amber-700' }
-                                return (
-                                  <tr key={i} className={`border-b border-gray-100 transition-colors ${
-                                    esChurn ? 'bg-red-50/30 hover:bg-red-50/50' : 'hover:bg-gray-50/40'
-                                  }`}>
-                                    <td className="py-2.5 px-4 font-semibold text-gray-900">{c.cliente}</td>
-                                    <td className="py-2.5 px-3">
-                                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${movColor.bg} ${movColor.text}`}>
-                                        {c.movimiento}
-                                      </span>
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right text-gray-700">{fmt(c.mrrInicio)}</td>
-                                    <td className="py-2.5 px-3 text-right">
-                                      {c.mrrFin > 0
-                                        ? <span className="text-gray-700">{fmt(c.mrrFin)}</span>
-                                        : <span className="font-bold text-red-600">$0</span>}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right">
-                                      {perdTotal > 0 ? (
-                                        <span className="font-semibold" style={{ color: ORANGE }}>
-                                          {fmt(perdTotal)}
-                                          {esFraude && <span className="text-[9px] ml-1 text-orange-500 font-normal">fraude</span>}
-                                        </span>
-                                      ) : <span className="text-gray-300">—</span>}
-                                    </td>
-                                    <td className="py-2.5 px-3 text-right text-gray-500">{fmt(c.acumulado)}</td>
-                                    <td className="py-2.5 px-3 text-right text-gray-500">{c.meses > 0 ? c.meses : '—'}</td>
-                                    <td className="py-2.5 px-3 text-right text-gray-500">{c.facturas > 0 ? c.facturas : '—'}</td>
-                                  </tr>
-                                )
-                              })}
-                            </tbody>
-                            <tfoot>
-                              <tr className="bg-purple-50/60 border-t-2 border-purple-100">
-                                <td className="py-2.5 px-4 font-bold text-purple-800 text-[10px]" colSpan={2}>TOTAL {mesData.mes.toUpperCase()}</td>
-                                <td className="py-2.5 px-3 text-right font-bold text-gray-700 text-[10px]">{fmt(totalMrrInicio)}</td>
-                                <td className="py-2.5 px-3" />
-                                <td className="py-2.5 px-3 text-right font-bold text-orange-700 text-[10px]">{fmt(totalPerd)}</td>
-                                <td className="py-2.5 px-3" colSpan={3} />
-                              </tr>
-                            </tfoot>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
-              <p className="text-[11px] text-gray-400 text-center">
-                Fuente: Excel GRC Confirmado — Pérdida: Downgrade + Churn · Filtro: clasificacion_cliente = AAA · Enero–Julio 2026 (corte 15 Jul)
-              </p>
-            </div>
-          )
-        })()}
+        {tab === 'aaa' && <GrcAaaSection />}
 
         {/* ── ALERTAS · CUENTAS CANCELACIÓN ────────────────────────── */}
         {tab === 'alertas' && <AlertasCancelacionSection />}
