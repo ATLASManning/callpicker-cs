@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Pencil, X, Save, Loader2, Globe, Phone, Mail, MapPin,
   Building2, Briefcase, Users, Hash, Plus, Trash2, UserPlus,
-  Package, ChevronDown, FileText,
+  Package, ChevronDown, FileText, CalendarDays,
 } from 'lucide-react'
 import type { Cuenta, ContactoCuenta, ServicioCuenta } from '@/lib/types'
 import CustomSelect from './CustomSelect'
@@ -60,6 +60,8 @@ export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
     total_empleados:   cuenta.total_empleados   ?? '',
     num_oficinas:      cuenta.num_oficinas      ?? '',
     grupo_empresarial: cuenta.grupo_empresarial ?? '',
+    // El input date exige YYYY-MM-DD; la columna puede venir con hora incluida.
+    activo_desde:      (cuenta.activo_desde ?? '').slice(0, 10),
     pagina_web:        cuenta.pagina_web        ?? '',
     direccion_fiscal:  cuenta.direccion_fiscal  ?? '',
     zoho_link:         cuenta.zoho_link         ?? '',
@@ -331,10 +333,22 @@ export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
                       className="cp-input" placeholder="Ej: 5" />
                   </Field>
                 </div>
-                <Field label="Grupo empresarial">
-                  <input value={info.grupo_empresarial} onChange={e => setInfoField('grupo_empresarial', e.target.value)}
-                    className="cp-input" placeholder="Ej: Grupo Torres" />
-                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Grupo empresarial">
+                    <input value={info.grupo_empresarial} onChange={e => setInfoField('grupo_empresarial', e.target.value)}
+                      className="cp-input" placeholder="Ej: Grupo Torres" />
+                  </Field>
+                  <Field label="Cliente activo desde" icon={<CalendarDays size={11} />}>
+                    <input type="date" value={info.activo_desde}
+                      onChange={e => setInfoField('activo_desde', e.target.value)}
+                      className="cp-input" max={new Date().toISOString().slice(0, 10)} />
+                  </Field>
+                </div>
+                {!info.activo_desde && (
+                  <p className="text-[10px] -mt-1" style={{ color: '#B45309' }}>
+                    Sin fecha de alta. Pregunta al cliente desde cuándo usa Callpicker — alimenta la antigüedad, el Health Score y el Radar.
+                  </p>
+                )}
               </Section>
 
               <Section title="Web y ubicación">
