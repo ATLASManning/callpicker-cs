@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   ChevronDown, ChevronUp, ArrowUpRight, AlertTriangle,
   TrendingUp, DollarSign, LifeBuoy, Phone, Mail, Hash,
+  Search, X, ArrowUpDown,
 } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
 import { getSemaforo, formatMXN, ASESOR_CONFIG } from '@/lib/types'
@@ -32,6 +33,42 @@ const L_TX_LOW  = '#94A3B8'
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface ZohoStats { total: number; fallas: number; ultima: string | null }
 export type CuentaRich = Cuenta & { zoho_tickets: ZohoStats }
+
+// ── Ordenamiento de la tabla ──────────────────────────────────────────────────
+type ColOrden = 'consecutivo' | 'empresa' | 'facturacion' | 'health_score'
+              | 'semaforo' | 'dias_sin_actividad' | 'tickets' | 'ultimo_contacto' | 'oportunidad'
+
+/** Columnas de texto: su primer clic ordena A→Z; las numéricas, de mayor a menor. */
+const COLS_TEXTO: ColOrden[] = ['consecutivo', 'empresa', 'oportunidad']
+
+const COLUMNAS: { col: ColOrden | null; label: string }[] = [
+  { col: 'consecutivo',        label: '#' },
+  { col: 'empresa',            label: 'Empresa' },
+  { col: 'facturacion',        label: 'Facturación' },
+  { col: 'health_score',       label: 'Health Score' },
+  { col: 'semaforo',           label: 'Semáforo' },
+  { col: 'dias_sin_actividad', label: 'Días sin act.' },
+  { col: 'tickets',            label: 'Tickets Zoho Desk' },
+  { col: 'ultimo_contacto',    label: 'Último contacto' },
+  { col: 'oportunidad',        label: 'Oportunidad' },
+  { col: null,                 label: '' },
+]
+
+const ORDEN_SEMAFORO: Record<string, number> = { rojo: 0, naranja: 1, amarillo: 2, azul: 3, verde: 4 }
+
+function valorOrden(c: CuentaRich, col: ColOrden): string | number | null {
+  switch (col) {
+    case 'consecutivo':        return c.consecutivo ?? null
+    case 'empresa':            return c.empresa ?? null
+    case 'facturacion':        return c.factura_mensual_zoho ?? c.facturacion ?? null
+    case 'health_score':       return c.health_score
+    case 'semaforo':           return ORDEN_SEMAFORO[getSemaforo(c.health_score)] ?? 99
+    case 'dias_sin_actividad': return c.dias_sin_actividad ?? null
+    case 'tickets':            return c.zoho_tickets?.total ?? 0
+    case 'ultimo_contacto':    return c.ultimo_contacto ?? null
+    case 'oportunidad':        return c.upsell_producto ?? c.crossell_producto ?? null
+  }
+}
 
 interface SemaforoResumen {
   verde: number; azul: number; amarillo: number; naranja: number; rojo: number
@@ -104,6 +141,38 @@ function KpiCard({
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = false }: Props) {
   const [expanded, setExpanded] = useState(defaultOpen)
+  const [busqueda, setBusqueda] = useState('')
+  const [orden, setOrden]       = useState<{ col: ColOrden; dir: 'asc' | 'desc' }>({ col: 'health_score', dir: 'asc' })
+
+  // Búsqueda por nombre, consecutivo o CID · ordenamiento por cualquier columna
+  const cuentasVisibles = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const filtradas = q
+      ? cuentas.filter(c =>
+          norm(c.empresa ?? '').includes(norm(q)) ||
+          (c.consecutivo ?? '').toLowerCase().includes(q) ||
+          (c.cid ?? '').toLowerCase().includes(q) ||
+          norm(c.giro ?? '').includes(norm(q)))
+      : [...cuentas]
+
+    const d = orden.dir === 'asc' ? 1 : -1
+    return filtradas.sort((a, b) => {
+      const va = valorOrden(a, orden.col)
+      const vb = valorOrden(b, orden.col)
+      if (va == null && vb == null) return 0
+      if (va == null) return 1          // los vacíos siempre al final
+      if (vb == null) return -1
+      if (typeof va === 'number' && typeof vb === 'number') return d * (va - vb)
+      return d * String(va).localeCompare(String(vb), 'es')
+    })
+  }, [cuentas, busqueda, orden])
+
+  const toggleOrden = (col: ColOrden) => setOrden(prev =>
+    prev.col === col
+      ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+      : { col, dir: COLS_TEXTO.includes(col) ? 'asc' : 'desc' })
+
   const ac = ASESOR_CONFIG[asesor as keyof typeof ASESOR_CONFIG] ?? {
     color: '#94A3B8', initial: '?', fullName: asesor, ext: '—', email: '—',
   }
@@ -270,19 +339,51 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
       {/* ════════════════════════════════════════════════════════════════════════
           TABLA colapsable — paleta clara
           ════════════════════════════════════════════════════════════════════════ */}
-      <div className={`transition-all duration-300 ease-in-out overflow-hidden
-        ${expanded ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+      {/* La altura se anima con grid-template-rows en vez de max-h: un tope fijo
+          recortaba la lista (79 cuentas necesitan ~6,500px y el tope era 3,000). */}
+      <div className="transition-all duration-300 ease-in-out"
+        style={{
+          display: 'grid',
+          gridTemplateRows: expanded ? '1fr' : '0fr',
+          opacity: expanded ? 1 : 0,
+        }}>
+       <div style={{ overflow: 'hidden', minHeight: 0 }}>
 
         <div style={{ borderTop: `1px solid ${L_LINE}`, background: L_BG }}>
-          {/* Sub-header */}
-          <div style={{ padding: '8px 24px', background: L_BG3, borderBottom: `1px solid ${L_LINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Sub-header — buscador + conteo */}
+          <div style={{ padding: '10px 24px', background: L_BG3, borderBottom: `1px solid ${L_LINE}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, color: L_TX_LOW, fontWeight: 500 }}>
-              {cuentas.length} cuentas · ordenadas por Health Score ascendente
+              {busqueda
+                ? <>{cuentasVisibles.length} de {cuentas.length} cuentas</>
+                : <>{cuentas.length} cuentas</>}
+              {' · '}clic en un encabezado para ordenar
             </span>
-            <Link href="/cuentas"
-              className="text-[11px] text-cp hover:text-cpTeal font-medium transition-colors flex items-center gap-1">
-              Ver en Cuentas <ArrowUpRight size={11} />
-            </Link>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ position: 'relative', minWidth: 250 }}>
+                <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: L_TX_LOW, pointerEvents: 'none' }} />
+                <input
+                  value={busqueda}
+                  onChange={e => setBusqueda(e.target.value)}
+                  placeholder="Buscar por empresa, CID o consecutivo…"
+                  style={{
+                    width: '100%', fontSize: 12, padding: '7px 28px 7px 30px',
+                    borderRadius: 8, border: `1px solid ${L_LINE}`,
+                    background: L_BG, color: L_TX, outline: 'none',
+                  }}
+                />
+                {busqueda && (
+                  <button onClick={() => setBusqueda('')} aria-label="Limpiar búsqueda"
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 0, cursor: 'pointer', color: L_TX_LOW, padding: 2, lineHeight: 0 }}>
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+              <Link href="/cuentas"
+                className="text-[11px] text-cp hover:text-cpTeal font-medium transition-colors flex items-center gap-1 whitespace-nowrap">
+                Ver en Cuentas <ArrowUpRight size={11} />
+              </Link>
+            </div>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
@@ -301,13 +402,44 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
               </colgroup>
               <thead>
                 <tr style={{ background: L_BG2 }}>
-                  {['#','Empresa','Facturación','Health Score','Semáforo','Días sin act.','Tickets Zoho Desk','Último contacto','Oportunidad',''].map((h, i) => (
-                    <th key={i} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: L_TX_LOW, borderBottom: `1px solid ${L_LINE}`, whiteSpace: 'nowrap' }}>{h}</th>
-                  ))}
+                  {COLUMNAS.map(({ col, label }, i) => {
+                    const activa = col !== null && orden.col === col
+                    if (col === null) {
+                      return <th key={i} style={{ padding: '10px 14px', borderBottom: `1px solid ${L_LINE}` }} />
+                    }
+                    return (
+                      <th key={i} style={{ padding: 0, borderBottom: `1px solid ${L_LINE}` }}>
+                        <button
+                          onClick={() => toggleOrden(col)}
+                          style={{
+                            width: '100%', display: 'flex', alignItems: 'center', gap: 4,
+                            padding: '10px 14px', background: activa ? '#EFF6FF' : 'transparent',
+                            border: 0, cursor: 'pointer', textAlign: 'left',
+                            fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                            letterSpacing: '0.07em', whiteSpace: 'nowrap',
+                            color: activa ? '#1B3FCC' : L_TX_LOW,
+                          }}>
+                          {label}
+                          {activa
+                            ? (orden.dir === 'asc'
+                                ? <ChevronUp size={11} style={{ color: '#1B3FCC' }} />
+                                : <ChevronDown size={11} style={{ color: '#1B3FCC' }} />)
+                            : <ArrowUpDown size={9} style={{ color: '#CBD5E1' }} />}
+                        </button>
+                      </th>
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {cuentas.map((c, ri) => {
+                {cuentasVisibles.length === 0 && (
+                  <tr>
+                    <td colSpan={10} style={{ padding: '36px 14px', textAlign: 'center', fontSize: 12, color: L_TX_LOW }}>
+                      Sin resultados para &quot;{busqueda}&quot;
+                    </td>
+                  </tr>
+                )}
+                {cuentasVisibles.map((c, ri) => {
                   const semaforo = getSemaforo(c.health_score)
                   const hsColor = ['verde', 'azul'].includes(semaforo) ? '#22C55E'
                     : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'
@@ -392,6 +524,7 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
             )}
           </div>
         </div>
+       </div>
       </div>
 
     </div>
