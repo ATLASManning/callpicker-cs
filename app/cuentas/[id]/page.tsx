@@ -16,6 +16,7 @@ import SeguimientoForm from '@/components/SeguimientoForm'
 import SeguimientoStatusSelect from '@/components/SeguimientoStatusSelect'
 import HealthHistorialChart from '@/components/charts/HealthHistorialChart'
 import AdopcionProducto from '@/components/AdopcionProducto'
+import RadarCuenta from '@/components/RadarCuenta'
 import CuentaInfoEditor from '@/components/CuentaInfoEditor'
 import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
@@ -239,6 +240,9 @@ export default async function CuentaDetailPage({ params }: Props) {
 
           {/* Adopción de Producto — interactiva con historial */}
           <AdopcionProducto cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} />
+
+          {/* Radar de Cuenta — evaluación automática de ATLAS + 12 preguntas del asesor */}
+          <RadarCuenta cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} canEdit={canEdit} />
         </div>
 
         {/* CENTER + RIGHT — Seguimientos + Oportunidades + Historial */}
