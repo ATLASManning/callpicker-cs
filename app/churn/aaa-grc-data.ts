@@ -3,6 +3,9 @@
    Fuente: DT_Churn_etiquetas.xlsx (Zoho Analytics), una hoja por mes.
    Se cargan TODAS las clasificaciones (AAA · AA · A · B · C) para poder
    filtrarlas en la vista; el módulo resalta AAA por omisión.
+
+   GENERADO — no editar a mano. Regenerar con:
+     python scripts/gen-grc-data.py "<ruta del Excel>" ENE FEB MAR ABR MAY JUN JUL
 ═══════════════════════════════════════════════════════════════════════ */
 
 export interface AAAGrcRow {
