@@ -204,7 +204,7 @@ export default function DashAlertasCriticas({ cuentas, totalCuentas }: Props) {
               <Tooltip
                 formatter={(v: number) => [METS[met].money ? fmt(v) : String(v), METS[met].label]}
                 contentStyle={{ background: '#111A26', border: `1px solid ${RED_LINE}`, borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: TX_HI }} cursor={{ fill: RED_BG }} />
+                labelStyle={{ color: TX_HI }} itemStyle={{ color: TX_MID }} cursor={{ fill: RED_BG }} />
               <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={20}>
                 {chart.map((_, i) => <Cell key={i} fill={RED} />)}
               </Bar>

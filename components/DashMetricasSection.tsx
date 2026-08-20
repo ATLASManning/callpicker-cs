@@ -233,6 +233,7 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
               <Tooltip
                 contentStyle={TT}
                 labelStyle={{ color: TX_HI, fontWeight: 700 }}
+                itemStyle={{ color: TX_HI }}
                 formatter={(v: number) => [formatMXN(v), 'Facturación']}
                 cursor={{ fill: 'rgba(0,180,255,0.06)' }}
               />
