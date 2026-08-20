@@ -1037,6 +1037,7 @@ export default async function DashboardPage() {
 
       {/* ══ §2 Alertas Críticas · datos faltantes y sin contacto ══════════ */}
       <DashAlertasCriticas cuentas={alertasCriticas} totalCuentas={cuentas.length} />
+      <TopCuentasVersatil data={rankRows} />
 
       {/* ══ §3 Diagnóstico de Perfiles ════════════════════════════════════ */}
       <div className="px-6 pb-5">
@@ -1202,10 +1203,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ §11a Top Cuentas — Ranking Versátil ═════════════════════════════ */}
-      <TopCuentasVersatil data={rankRows} />
-
-      {/* ══ §11b Métricas ════════════════════════════════════════════════════ */}
+      {/* ══ §11 Métricas ════════════════════════════════════════════════════ */}
       <DashMetricasSection
         kpis={{ totalCuentas: activas.length }}
         top10={top10Fac}
