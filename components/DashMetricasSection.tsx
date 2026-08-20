@@ -12,7 +12,7 @@ import {
 } from 'recharts'
 import Link from 'next/link'
 import {
-  ShieldAlert, TrendingUp, BarChart3, Activity,
+  BarChart3,
   ArrowUpRight, Zap,
 } from 'lucide-react'
 import { formatMXN } from '@/lib/types'
@@ -38,13 +38,7 @@ const TT = {
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 export interface MetricasKPIs {
-  facturacionRiesgo: number
-  churnCount:        number
-  valorUpsell:       number
-  upsellCount:       number
-  crossCount:        number
-  retencionPct:      number
-  totalCuentas:      number
+  totalCuentas: number
 }
 
 export interface ChurnRow {
@@ -68,49 +62,6 @@ interface Props {
   top10:     Top10Row[]
   churnRows: ChurnRow[]
   updatedAt: string   // ISO string
-}
-
-// ── KpiBlock — tarjeta KPI oscura ────────────────────────────────────────────
-function KpiBlock({
-  icon: Icon, label, value, sub, accent, pulse = false,
-}: {
-  icon: React.ElementType; label: string; value: string
-  sub: string; accent: string; pulse?: boolean
-}) {
-  return (
-    <div className="flex flex-col gap-3 p-5 rounded-2xl relative overflow-hidden"
-      style={{
-        background: `linear-gradient(145deg, ${PANEL} 0%, rgba(10,22,40,0.98) 100%)`,
-        border: `1px solid ${accent}25`,
-        boxShadow: `0 0 20px ${accent}10, 0 4px 16px rgba(0,0,0,0.4)`,
-      }}>
-
-      {/* Glow corner */}
-      <div className="absolute top-0 right-0 w-24 h-24 rounded-bl-full pointer-events-none"
-        style={{ background: `radial-gradient(circle at top right, ${accent}12 0%, transparent 70%)` }} />
-
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: `${accent}18`, border: `1px solid ${accent}30` }}>
-          <Icon size={14} style={{ color: accent }} />
-        </div>
-        <span className="text-[10px] font-bold uppercase tracking-[0.12em]"
-          style={{ color: TX_LOW }}>{label}</span>
-        {pulse && (
-          <span className="ml-auto w-1.5 h-1.5 rounded-full animate-pulse"
-            style={{ background: accent, boxShadow: `0 0 6px ${accent}` }} />
-        )}
-      </div>
-
-      {/* Value */}
-      <div>
-        <p className="text-3xl font-black tabular-nums leading-none tracking-tight"
-          style={{ color: TX_HI }}>{value}</p>
-        <p className="text-[11px] mt-1.5 leading-snug" style={{ color: TX_MID }}>{sub}</p>
-      </div>
-    </div>
-  )
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -162,39 +113,6 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
             Ver todas <ArrowUpRight size={11} />
           </Link>
         </div>
-      </div>
-
-      {/* ── KPI Grid ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-6 py-5">
-        <KpiBlock
-          icon={ShieldAlert}
-          label="Facturación en Riesgo"
-          value={formatMXN(kpis.facturacionRiesgo)}
-          sub={`${kpis.churnCount} cuentas con Health Score < 40`}
-          accent="#FF4444"
-          pulse
-        />
-        <KpiBlock
-          icon={TrendingUp}
-          label="Pipeline Upsell"
-          value={formatMXN(kpis.valorUpsell)}
-          sub={`${kpis.upsellCount} oportunidades activas identificadas`}
-          accent="#00E676"
-        />
-        <KpiBlock
-          icon={Activity}
-          label="Pipeline Cross-sell"
-          value={String(kpis.crossCount)}
-          sub="cuentas con oportunidad cross-sell"
-          accent="#A855F7"
-        />
-        <KpiBlock
-          icon={BarChart3}
-          label="Índice de Retención"
-          value={`${kpis.retencionPct}%`}
-          sub={`${kpis.totalCuentas - kpis.churnCount} cuentas fuera de zona de riesgo`}
-          accent="#00B4FF"
-        />
       </div>
 
       {/* ── Top 10 Facturación ─────────────────────────────────────────────── */}

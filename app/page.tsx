@@ -11,6 +11,7 @@ import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
 import DashAlertasCriticas from '@/components/DashAlertasCriticas'
 import DashMetricasSection from '@/components/DashMetricasSection'
+import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVersatil'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
 import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
@@ -54,6 +55,29 @@ const ADOPT_FEATURES: { key: keyof Cuenta; label: string; producto: string }[] =
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function avg(nums: number[]) {
   return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0
+}
+
+// Datos relevantes que le faltan a una cuenta para poder operarla bien.
+// Compartido por Alertas Críticas y el ranking versátil de Top Cuentas.
+function computeFaltantes(c: Cuenta): string[] {
+  const faltantes: string[] = []
+  if (!c.contacto_nombre)                      faltantes.push('Contacto')
+  if (!c.contacto_tel)                         faltantes.push('Teléfono')
+  if (!c.contacto_email)                       faltantes.push('Correo')
+  if (!c.activo_desde)                         faltantes.push('Fecha de alta')
+  if (!c.giro)                                 faltantes.push('Giro')
+  if (!c.cid)                                  faltantes.push('CID Zoho')
+  const kam = String(c.observaciones_kam ?? '').trim()
+  if (kam === '' || kam === '0')               faltantes.push('Observaciones KAM')
+  if ((c.contactos_json?.length ?? 0) < 2)     faltantes.push('Mapa de decisores')
+  return faltantes
+}
+
+// Días desde el último contacto registrado. null = nunca se registró uno.
+function diasSinContactoDe(c: Cuenta): number | null {
+  return c.ultimo_contacto
+    ? Math.floor((Date.now() - new Date(c.ultimo_contacto).getTime()) / 86400000)
+    : null
 }
 
 function fmtFecha(iso: string) {
@@ -913,11 +937,6 @@ export default async function DashboardPage() {
   // Datos para DashMetricasSection
   const activas       = cuentas.filter(c => c.estado === 'activo')
   const churnRiesgo   = activas.filter(c => c.health_score < 40)
-  const facChurn      = churnRiesgo.reduce((s, c) => s + c.facturacion, 0)
-  const conUpsellOnly = activas.filter(c => c.upsell_producto)
-  const conCross      = activas.filter(c => c.crossell_producto)
-  const valorUpsell   = activas.reduce((s, c) => s + (c.valor_upsell_estimado ?? 0), 0)
-  const retencionPct  = activas.length > 0 ? Math.round(((activas.length - churnRiesgo.length) / activas.length) * 100) : 0
   const cuentasObs    = cuentas.filter(c => getSemaforo(c.health_score) === 'amarillo')
   const facObs        = cuentasObs.reduce((s, c) => s + (c.facturacion ?? 0), 0)
   const conUpsell     = activas.filter(c => c.upsell_producto || c.crossell_producto).length
@@ -931,21 +950,8 @@ export default async function DashboardPage() {
   // Una cuenta entra a la alerta si le falta al menos un dato relevante para
   // operarla, o si lleva más de 30 días sin un seguimiento registrado.
   const alertasCriticas = cuentas.map(c => {
-    const faltantes: string[] = []
-    if (!c.contacto_nombre)                      faltantes.push('Contacto')
-    if (!c.contacto_tel)                         faltantes.push('Teléfono')
-    if (!c.contacto_email)                       faltantes.push('Correo')
-    if (!c.activo_desde)                         faltantes.push('Fecha de alta')
-    if (!c.giro)                                 faltantes.push('Giro')
-    if (!c.cid)                                  faltantes.push('CID Zoho')
-    const kam = String(c.observaciones_kam ?? '').trim()
-    if (kam === '' || kam === '0')               faltantes.push('Observaciones KAM')
-    if ((c.contactos_json?.length ?? 0) < 2)     faltantes.push('Mapa de decisores')
-
-    // Días desde el último contacto registrado. null = nunca se registró uno.
-    const diasSinContacto = c.ultimo_contacto
-      ? Math.floor((Date.now() - new Date(c.ultimo_contacto).getTime()) / 86400000)
-      : null
+    const faltantes = computeFaltantes(c)
+    const diasSinContacto = diasSinContactoDe(c)
 
     return {
       id: String(c.id),
@@ -957,6 +963,34 @@ export default async function DashboardPage() {
       faltantes,
     }
   }).filter(c => c.faltantes.length > 0 || c.diasSinContacto === null || c.diasSinContacto > 30)
+
+  // ── Top Cuentas — ranking versátil (13 dimensiones seleccionables) ────────
+  const rankRows: CuentaRank[] = cuentas.map(c => {
+    const tix = getTicketsByCuenta(c.cid ?? null, c.empresa)
+    const porProducto = adopMap.get(c.id)
+    let adopcionPct: number | null = null
+    if (porProducto) {
+      const scores = Array.from(porProducto.values())
+        .filter(r => r.nivel !== 'no_aplica')
+        .map(r => r.nivel === 'alto' ? 100 : r.nivel === 'medio' ? 50 : 0)
+      if (scores.length > 0) adopcionPct = avg(scores)
+    }
+    return {
+      id: String(c.id),
+      consecutivo: c.consecutivo ?? '',
+      empresa: c.empresa,
+      asesor: c.asesor ?? null,
+      facturacion: c.facturacion ?? 0,
+      healthScore: c.health_score ?? 50,
+      activoDesde: c.activo_desde,
+      diasSinContacto: diasSinContactoDe(c),
+      ticketsTotal: tix.total,
+      ticketsFallas: tix.rows.filter(t => t.es_falla === 'Si').length,
+      upsellValor: c.valor_upsell_estimado ?? 0,
+      adopcionPct,
+      faltantesCount: computeFaltantes(c).length,
+    }
+  })
 
   const nowISO = new Date().toISOString()
 
@@ -1168,9 +1202,12 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ §11 Métricas ════════════════════════════════════════════════════ */}
+      {/* ══ §11a Top Cuentas — Ranking Versátil ═════════════════════════════ */}
+      <TopCuentasVersatil data={rankRows} />
+
+      {/* ══ §11b Métricas ════════════════════════════════════════════════════ */}
       <DashMetricasSection
-        kpis={{ facturacionRiesgo: facChurn, churnCount: churnRiesgo.length, valorUpsell, upsellCount: conUpsellOnly.length, crossCount: conCross.length, retencionPct, totalCuentas: activas.length }}
+        kpis={{ totalCuentas: activas.length }}
         top10={top10Fac}
         churnRows={churnRows}
         updatedAt={nowISO}
