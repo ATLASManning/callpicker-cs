@@ -44,6 +44,7 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'kombitec',           nombre: 'KOMBITEC S.A. DE C.V.',        consecutivos: ['D22'] },
   { id: 'neruc-sede-central', nombre: 'NERUC Sede Central',            consecutivos: ['C9']  },
   { id: 'jason-de-mexico',   nombre: 'Jason de México',               consecutivos: ['D7']  },
+  { id: 'gwep',              nombre: 'GWEP (Grupo Gwep)',             consecutivos: ['D54'] },
 ]
 
 /** Devuelve la auditoría asociada a un consecutivo de cuenta, o null si no existe. */
