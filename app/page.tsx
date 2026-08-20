@@ -9,6 +9,7 @@ import AsesorLineasChart from '@/components/charts/AsesorLineasChart'
 import TicketsAnalyticsChart, { type TicketsAnalyticsData } from '@/components/charts/TicketsAnalyticsChart'
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
+import DashAlertasCriticas from '@/components/DashAlertasCriticas'
 import DashMetricasSection from '@/components/DashMetricasSection'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC } from '@/lib/supabase'
 import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor } from '@/lib/types'
@@ -896,6 +897,37 @@ export default async function DashboardPage() {
   const churnRows = churnRiesgo.sort((a, b) => a.health_score - b.health_score)
     .map(c => ({ id: c.id, consecutivo: c.consecutivo ?? '', empresa: c.empresa, asesor: c.asesor, facturacion: c.facturacion, health_score: c.health_score, dias_sin_actividad: c.dias_sin_actividad }))
 
+  // ── Alertas críticas: datos faltantes + cuentas sin contacto ──────────────
+  // Una cuenta entra a la alerta si le falta al menos un dato relevante para
+  // operarla, o si lleva más de 30 días sin un seguimiento registrado.
+  const alertasCriticas = cuentas.map(c => {
+    const faltantes: string[] = []
+    if (!c.contacto_nombre)                      faltantes.push('Contacto')
+    if (!c.contacto_tel)                         faltantes.push('Teléfono')
+    if (!c.contacto_email)                       faltantes.push('Correo')
+    if (!c.activo_desde)                         faltantes.push('Fecha de alta')
+    if (!c.giro)                                 faltantes.push('Giro')
+    if (!c.cid)                                  faltantes.push('CID Zoho')
+    const kam = String(c.observaciones_kam ?? '').trim()
+    if (kam === '' || kam === '0')               faltantes.push('Observaciones KAM')
+    if ((c.contactos_json?.length ?? 0) < 2)     faltantes.push('Mapa de decisores')
+
+    // Días desde el último contacto registrado. null = nunca se registró uno.
+    const diasSinContacto = c.ultimo_contacto
+      ? Math.floor((Date.now() - new Date(c.ultimo_contacto).getTime()) / 86400000)
+      : null
+
+    return {
+      id: String(c.id),
+      consecutivo: c.consecutivo ?? '',
+      empresa: c.empresa,
+      asesor: c.asesor ?? null,
+      facturacion: c.facturacion ?? 0,
+      diasSinContacto,
+      faltantes,
+    }
+  }).filter(c => c.faltantes.length > 0 || c.diasSinContacto === null || c.diasSinContacto > 30)
+
   const nowISO = new Date().toISOString()
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
@@ -934,7 +966,20 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* ══ §1 KPIs principales ════════════════════════════════════════════ */}
+      {/* ══ §1 Cumplimiento SAC Semanal ════════════════════════════════════ */}
+      <div className="px-6 pb-5">
+        <SACWeeklyPanel asesores={asesorStats} segsMap={segsMap} />
+      </div>
+
+      {/* ══ §2 Alertas Críticas · datos faltantes y sin contacto ══════════ */}
+      <DashAlertasCriticas cuentas={alertasCriticas} totalCuentas={cuentas.length} />
+
+      {/* ══ §3 Diagnóstico de Perfiles ════════════════════════════════════ */}
+      <div className="px-6 pb-5">
+        <PerfilDistPanel asesores={asesorStats} />
+      </div>
+
+      {/* ══ §4 KPIs principales ════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 px-6 pb-5">
         {/* KPI Auditoría — TOP para anticipar churn */}
         <div style={{
@@ -979,50 +1024,7 @@ export default async function DashboardPage() {
         <KpiCard label="Oportunidades" value={conUpsell} sub="Upsell / Cross-sell activas" icon={TrendingUp} accent="#A855F7" />
       </div>
 
-      {/* ══ §2 Tickets Zoho Desk ═══════════════════════════════════════════ */}
-      <div className="mx-6 mb-5 px-5 py-3 rounded-xl flex flex-wrap items-center gap-x-8 gap-y-2"
-        style={{ background: PANEL2, border: `1px solid ${BORDER2}` }}>
-        <div className="flex items-center gap-2">
-          <Ticket size={13} style={{ color: CYAN }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: TX_MID }}>Tickets Zoho Desk</span>
-          <span style={{ fontSize: 12, color: TX_LOW }}>· datos al {fmtFecha(globalTickets.ultima)}</span>
-        </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-1">
-          <span style={{ fontSize: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: TX_HI }}>{globalTickets.total.toLocaleString()}</span>
-            <span style={{ color: TX_LOW, marginLeft: 4 }}>tickets totales</span>
-          </span>
-          <span style={{ fontSize: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: '#EF4444' }}>{globalTickets.fallas}</span>
-            <span style={{ color: TX_LOW, marginLeft: 4 }}>fallas</span>
-          </span>
-          {topRiesgoTix > 0 && (
-            <span style={{ fontSize: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 800, color: '#F97316' }}>{topRiesgoTix}</span>
-              <span style={{ color: TX_LOW, marginLeft: 4 }}>en top 10 riesgo</span>
-              {topRiesgoFallas > 0 && (
-                <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444', fontSize: 12, fontWeight: 700 }}>
-                  {topRiesgoFallas} fallas
-                </span>
-              )}
-            </span>
-          )}
-          <Link href="/tickets" style={{ fontSize: 12, color: CYAN, fontWeight: 600, textDecoration: 'none' }} className="hover:underline flex items-center gap-1">
-            Ver todos <ArrowUpRight size={11} />
-          </Link>
-          <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0F766E] hover:bg-[#0D9488] text-white shadow-sm transition-all duration-150">
-            <LifeBuoy size={13} /> Centro de Ayuda
-          </a>
-        </div>
-      </div>
-
-      {/* ══ §2b Tickets Analytics ══════════════════════════════════════════ */}
-      <div className="px-6 mb-5">
-        <TicketsAnalyticsChart data={ticketsAnalytics} />
-      </div>
-
-      {/* ══ §3 Tacómetros por Asesor ═══════════════════════════════════════ */}
+      {/* ══ §5 Tacómetros por Asesor ═══════════════════════════════════════ */}
       <div className="px-6 pb-2">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
           <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_LOW }}>
@@ -1035,7 +1037,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ §4 Análisis detallado por Asesor ══════════════════════════════ */}
+      {/* ══ §6 Análisis detallado por Asesor ══════════════════════════════ */}
       <div className="px-6 pb-5">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
           <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_LOW }}>
@@ -1048,7 +1050,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ §5 Matriz adopción + completitud ══════════════════════════════ */}
+      {/* ══ §7 Matriz adopción + completitud ══════════════════════════════ */}
       <div className="px-6 pb-5">
         <Panel>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -1063,17 +1065,7 @@ export default async function DashboardPage() {
         </Panel>
       </div>
 
-      {/* ══ §5-A Diagnóstico de Perfiles ══════════════════════════════════ */}
-      <div className="px-6 pb-5">
-        <PerfilDistPanel asesores={asesorStats} />
-      </div>
-
-      {/* ══ §5-B Cumplimiento SAC Semanal ══════════════════════════════════ */}
-      <div className="px-6 pb-5">
-        <SACWeeklyPanel asesores={asesorStats} segsMap={segsMap} />
-      </div>
-
-      {/* ══ §6 Semáforo + Distribución ════════════════════════════════════ */}
+      {/* ══ §8 Semáforo + Distribución ════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-6 pb-5">
         <Panel className="lg:col-span-2">
           <PanelTitle>Semáforo por Asesor</PanelTitle>
@@ -1111,7 +1103,7 @@ export default async function DashboardPage() {
         </Panel>
       </div>
 
-      {/* ══ §7 Tendencia por Asesor ════════════════════════════════════════ */}
+      {/* ══ §9 Tendencia por Asesor ════════════════════════════════════════ */}
       <div className="px-6 pb-5">
         <Panel>
           <PanelTitle>Distribución por Asesor · Rango de Salud</PanelTitle>
@@ -1122,7 +1114,7 @@ export default async function DashboardPage() {
         </Panel>
       </div>
 
-      {/* ══ §8 Top Cuentas en Riesgo ═══════════════════════════════════════ */}
+      {/* ══ §10 Top Cuentas en Riesgo ═══════════════════════════════════════ */}
       <div className="px-6 pb-5">
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: `1px solid ${BORDER2}` }}>
@@ -1146,13 +1138,56 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ §9 Métricas ════════════════════════════════════════════════════ */}
+      {/* ══ §11 Métricas ════════════════════════════════════════════════════ */}
       <DashMetricasSection
         kpis={{ facturacionRiesgo: facChurn, churnCount: churnRiesgo.length, valorUpsell, upsellCount: conUpsellOnly.length, crossCount: conCross.length, retencionPct, totalCuentas: activas.length }}
         top10={top10Fac}
         churnRows={churnRows}
         updatedAt={nowISO}
       />
+
+      {/* ══ §12 Análisis de Tickets · Zoho Desk ══════════════════ */}
+      <div className="mx-6 mb-5 px-5 py-3 rounded-xl flex flex-wrap items-center gap-x-8 gap-y-2"
+        style={{ background: PANEL2, border: `1px solid ${BORDER2}` }}>
+        <div className="flex items-center gap-2">
+          <Ticket size={13} style={{ color: CYAN }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: TX_MID }}>Tickets Zoho Desk</span>
+          <span style={{ fontSize: 12, color: TX_LOW }}>· datos al {fmtFecha(globalTickets.ultima)}</span>
+        </div>
+        <div className="flex flex-wrap gap-x-6 gap-y-1">
+          <span style={{ fontSize: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: TX_HI }}>{globalTickets.total.toLocaleString()}</span>
+            <span style={{ color: TX_LOW, marginLeft: 4 }}>tickets totales</span>
+          </span>
+          <span style={{ fontSize: 12 }}>
+            <span style={{ fontSize: 14, fontWeight: 800, color: '#EF4444' }}>{globalTickets.fallas}</span>
+            <span style={{ color: TX_LOW, marginLeft: 4 }}>fallas</span>
+          </span>
+          {topRiesgoTix > 0 && (
+            <span style={{ fontSize: 12 }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: '#F97316' }}>{topRiesgoTix}</span>
+              <span style={{ color: TX_LOW, marginLeft: 4 }}>en top 10 riesgo</span>
+              {topRiesgoFallas > 0 && (
+                <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444', fontSize: 12, fontWeight: 700 }}>
+                  {topRiesgoFallas} fallas
+                </span>
+              )}
+            </span>
+          )}
+          <Link href="/tickets" style={{ fontSize: 12, color: CYAN, fontWeight: 600, textDecoration: 'none' }} className="hover:underline flex items-center gap-1">
+            Ver todos <ArrowUpRight size={11} />
+          </Link>
+          <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0F766E] hover:bg-[#0D9488] text-white shadow-sm transition-all duration-150">
+            <LifeBuoy size={13} /> Centro de Ayuda
+          </a>
+        </div>
+      </div>
+
+      {/* ══ §12b Tickets Analytics ══════════════════════════════════════════ */}
+      <div className="px-6 mb-5">
+        <TicketsAnalyticsChart data={ticketsAnalytics} />
+      </div>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       <div className="px-6 pb-6 pt-2 flex items-center gap-2 text-[10px] text-textLow">
