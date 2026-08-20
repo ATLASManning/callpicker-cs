@@ -339,6 +339,30 @@ export async function getConteoAdopcion(cuentaId: string): Promise<number> {
   }
 }
 
+export type AdopcionRow = {
+  cuenta_id: string
+  producto: string
+  nivel: 'alto' | 'medio' | 'bajo' | 'no_aplica'
+  created_at: string
+}
+
+/**
+ * Todos los registros de adopción (todas las cuentas). Usado por el Dashboard
+ * para calcular tasas de adopción reales por asesor — reemplaza los flags
+ * booleanos de `cuentas` (tiene_chat_activo, etc.) que nunca se capturan.
+ */
+export async function getAdopcionProductoAll(): Promise<AdopcionRow[]> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('adopcion_producto')
+      .select('cuenta_id, producto, nivel, created_at')
+    if (error) return []
+    return data ?? []
+  } catch {
+    return []
+  }
+}
+
 // ── Junta Semanal — tipos extendidos ─────────────────────────────────────────
 
 export type CuentaMin = {

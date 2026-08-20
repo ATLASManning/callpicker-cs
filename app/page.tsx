@@ -11,7 +11,7 @@ import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
 import DashAlertasCriticas from '@/components/DashAlertasCriticas'
 import DashMetricasSection from '@/components/DashMetricasSection'
-import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC } from '@/lib/supabase'
+import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
 import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
@@ -39,13 +39,16 @@ const SEM_LABEL: Record<string, string> = {
 }
 
 // ── Config adopción y perfil ──────────────────────────────────────────────────
-const ADOPT_FEATURES: { key: keyof Cuenta; label: string }[] = [
-  { key: 'tiene_chat_activo',     label: 'Chat' },
-  { key: 'tiene_ia_voz',          label: 'IA Voz' },
-  { key: 'tiene_ia_chat',         label: 'IA Chat' },
-  { key: 'tiene_integracion_api', label: 'API' },
-  { key: 'tiene_pago_automatico', label: 'Pago Auto' },
-  { key: 'dashboard_revisado',    label: 'Dashboard' },
+// Adopción real: se calcula desde la tabla `adopcion_producto` (capturada por
+// asesores en cada Cuenta), NO desde los flags booleanos de `cuentas` — esos
+// flags nunca se llenan y siempre reportaban 0%.
+const ADOPT_FEATURES: { key: keyof Cuenta; label: string; producto: string }[] = [
+  { key: 'tiene_chat_activo',     label: 'Chat',       producto: 'Callpicker Chat' },
+  { key: 'tiene_ia_voz',          label: 'IA Voz',     producto: 'IA de Voz' },
+  { key: 'tiene_ia_chat',         label: 'IA Chat',    producto: 'IA de Chat' },
+  { key: 'tiene_integracion_api', label: 'API',        producto: 'Integración API' },
+  { key: 'tiene_pago_automatico', label: 'Pago Auto',  producto: 'Pago Automático' },
+  { key: 'dashboard_revisado',    label: 'Dashboard',  producto: 'Uso del Panel Administrador' },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -205,6 +208,7 @@ interface AsesorStats {
   asesor: string
   color: string
   cuentas: Cuenta[]
+  totalAsignadas: number
   totalFac: number
   facEnRiesgo: number
   avgHealth: number
@@ -222,7 +226,10 @@ interface AsesorStats {
   importantesFaltantes: number
 }
 
-function computeAsesorStats(asesor: string, cuentas: Cuenta[], auditSet: Set<string>): AsesorStats {
+function computeAsesorStats(
+  asesor: string, cuentas: Cuenta[], auditSet: Set<string>,
+  adopMap: Map<string, Map<string, AdopcionRow>>, totalAsignadas: number,
+): AsesorStats {
   const color = ASESOR_CONFIG[asesor as Asesor]?.color ?? '#6366F1'
   const semDist = { verde: 0, azul: 0, amarillo: 0, naranja: 0, rojo: 0 }
   let totalFac = 0, facEnRiesgo = 0
@@ -236,10 +243,19 @@ function computeAsesorStats(asesor: string, cuentas: Cuenta[], auditSet: Set<str
 
   const avgHealth = avg(cuentas.map(c => c.health_score ?? 50))
 
+  // Adopción real desde `adopcion_producto` (capturada por el asesor en cada
+  // Cuenta): por cuenta con registro y nivel aplicable, alto=100 medio=50
+  // bajo=0. Se excluye `no_aplica` (el producto no le corresponde a la cuenta,
+  // no cuenta como "no adoptado"). Sin registros → 0% (pendiente de captura).
   const adoptRates: Record<string, number> = {}
   for (const f of ADOPT_FEATURES) {
-    adoptRates[f.key as string] = cuentas.length > 0
-      ? (cuentas.filter(c => Boolean(c[f.key])).length / cuentas.length) * 100 : 0
+    const scores: number[] = []
+    cuentas.forEach(c => {
+      const nivel = adopMap.get(c.id)?.get(f.producto)?.nivel
+      if (!nivel || nivel === 'no_aplica') return
+      scores.push(nivel === 'alto' ? 100 : nivel === 'medio' ? 50 : 0)
+    })
+    adoptRates[f.key as string] = scores.length > 0 ? avg(scores) : 0
   }
 
   const profilePct = cuentas.length > 0
@@ -274,7 +290,7 @@ function computeAsesorStats(asesor: string, cuentas: Cuenta[], auditSet: Set<str
   })
 
   return {
-    asesor, color, cuentas, totalFac, facEnRiesgo, avgHealth, semDist,
+    asesor, color, cuentas, totalAsignadas, totalFac, facEnRiesgo, avgHealth, semDist,
     adoptRates, profilePct, subScores,
     topRisk: sorted[0] ?? null,
     topSaludable: sorted[sorted.length - 1] ?? null,
@@ -308,8 +324,11 @@ function GaugeCard({ st }: { st: AsesorStats }) {
       {/* Stats row */}
       <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
         <div style={{ flex: 1, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 10px' }}>
-          <p style={{ fontSize: 16, fontWeight: 800, color: TX_HI, lineHeight: 1 }}>{st.cuentas.length}</p>
+          <p style={{ fontSize: 16, fontWeight: 800, color: TX_HI, lineHeight: 1 }}>{st.totalAsignadas}</p>
           <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>cuentas</p>
+          {st.totalAsignadas > st.cuentas.length && (
+            <p style={{ fontSize: 9, color: TX_LOW, marginTop: 2, opacity: 0.75 }}>{st.cuentas.length} activas/riesgo</p>
+          )}
         </div>
         <div style={{ flex: 2, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 10px' }}>
           <p style={{ fontSize: 15, fontWeight: 800, color: TX_HI, lineHeight: 1 }}>{formatMXN(st.totalFac)}</p>
@@ -823,11 +842,21 @@ export default async function DashboardPage() {
   }
   const semana3back = getMondayOffset(3)
 
-  const [kpis, semaforoAsesor, allCuentas, actsRaw] = await Promise.all([
+  const [kpis, semaforoAsesor, allCuentas, actsRaw, adopRows] = await Promise.all([
     getKPIs(), getSemaforoByAsesor(),
     getCuentas(isAsesor ? { asesor: asesorHeader } : undefined),
     getActividadesSAC(semana3back),
+    getAdopcionProductoAll(),
   ])
+
+  // Último nivel registrado por cuenta+producto (puede haber historial)
+  const adopMap = new Map<string, Map<string, AdopcionRow>>()
+  adopRows.forEach(r => {
+    if (!adopMap.has(r.cuenta_id)) adopMap.set(r.cuenta_id, new Map())
+    const porProducto = adopMap.get(r.cuenta_id)!
+    const actual = porProducto.get(r.producto)
+    if (!actual || r.created_at > actual.created_at) porProducto.set(r.producto, r)
+  })
 
   // Solo activas + en_riesgo para análisis
   const cuentas = allCuentas.filter(c => c.estado === 'activo' || c.estado === 'en_riesgo')
@@ -865,7 +894,8 @@ export default async function DashboardPage() {
   const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
   const asesorStats: AsesorStats[] = ASESORES.map(a => {
     const ac = cuentas.filter(c => c.asesor === a)
-    return computeAsesorStats(a, ac, auditSet)
+    const totalAsignadas = allCuentas.filter(c => c.asesor === a).length
+    return computeAsesorStats(a, ac, auditSet, adopMap, totalAsignadas)
   }).filter(s => s.cuentas.length > 0)
 
   // Top 10 riesgo con tickets
