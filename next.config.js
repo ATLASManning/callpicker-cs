@@ -4,8 +4,14 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === 'development',
+  // Sin esto, el Service Worker nuevo se queda "esperando" a que se cierren
+  // TODAS las pestañas abiertas antes de activarse — con el dashboard abierto
+  // todo el día, un deploy nuevo nunca llegaba a los usuarios aunque
+  // recargaran la página. skipWaiting + clientsClaim lo activa de inmediato.
   workboxOptions: {
     disableDevLogs: true,
+    skipWaiting: true,
+    clientsClaim: true,
   },
 })
 
