@@ -210,7 +210,10 @@ export default function TicketsPage() {
     setModalLoading(true)
     setModalData(null)
     const p = new URLSearchParams({ mode: 'charts' })
+    if (qRef.current)    p.set('q', qRef.current)
     if (filterMes)       p.set('mes', filterMes)
+    if (filterDesde)     p.set('desde', filterDesde)
+    if (filterHasta)     p.set('hasta', filterHasta)
     if (filterEjecutivo) p.set('propietario', filterEjecutivo)
     if (filterProd)      p.set('producto', filterProd)
     if (filterPrior)     p.set('prioridad', filterPrior)
@@ -1100,7 +1103,9 @@ export default function TicketsPage() {
                 <h2 className="font-bold text-gray-900 text-sm">Gráfica del filtro actual</h2>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {listTotal.toLocaleString('es-MX')} tickets
+                  {qRef.current         && ` · "${qRef.current}"`}
                   {filterMes            && ` · ${MESES.find(m => m.val === filterMes)?.label}`}
+                  {(filterDesde || filterHasta) && ` · ${filterDesde || '…'} → ${filterHasta || '…'}`}
                   {filterEjecutivo      && ` · ${filterEjecutivo}`}
                   {filterProd           && ` · ${filterProd}`}
                   {filterCat            && ` · ${filterCat}`}

@@ -109,6 +109,11 @@ export async function GET(req: NextRequest) {
   // ── Charts ─────────────────────────────────────────────────────────
   if (mode === 'charts') {
     let base = ALL_TICKETS
+    if (cidExact)     base = base.filter(t => t.cid === cidExact)
+    if (q) {
+      const nq = normalize(q)
+      base = base.filter(t => (normalize(t.empresa) + ' ' + t.num + ' ' + t.ticket_id).includes(nq))
+    }
     if (mes)          base = base.filter(t => t.fecha.startsWith(mes))
     if (desde)        base = base.filter(t => t.apertura.slice(0, 10) >= desde)
     if (hasta)        base = base.filter(t => t.apertura.slice(0, 10) <= hasta)
