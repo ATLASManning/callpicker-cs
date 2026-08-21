@@ -42,6 +42,8 @@ export async function GET(req: NextRequest) {
   const esFalla     = sp.get('es_falla') ?? ''
   const prioridad   = sp.get('prioridad') ?? ''
   const mes         = sp.get('mes') ?? ''
+  const desde       = sp.get('desde') ?? '' // YYYY-MM-DD — filtra por fecha de apertura (día exacto)
+  const hasta       = sp.get('hasta') ?? '' // YYYY-MM-DD
   const propietario = sp.get('propietario') ?? ''
   const sortBy      = sp.get('sortBy') ?? ''
   const sortDir     = sp.get('sortDir') ?? 'asc'
@@ -108,6 +110,8 @@ export async function GET(req: NextRequest) {
   if (mode === 'charts') {
     let base = ALL_TICKETS
     if (mes)          base = base.filter(t => t.fecha.startsWith(mes))
+    if (desde)        base = base.filter(t => t.apertura.slice(0, 10) >= desde)
+    if (hasta)        base = base.filter(t => t.apertura.slice(0, 10) <= hasta)
     if (propietario)  base = base.filter(t => t.propietario.toLowerCase() === propietario.toLowerCase())
     if (producto)     base = base.filter(t => t.producto.toLowerCase().includes(producto.toLowerCase()))
     if (prioridad)    base = base.filter(t => t.prioridad.toLowerCase() === prioridad.toLowerCase())
@@ -224,6 +228,8 @@ export async function GET(req: NextRequest) {
     if (esFalla      && t.es_falla !== esFalla)                                          return false
     if (prioridad    && t.prioridad.toLowerCase() !== prioridad.toLowerCase())           return false
     if (mes          && !t.fecha.startsWith(mes))                                        return false
+    if (desde        && t.apertura.slice(0, 10) < desde)                                  return false
+    if (hasta        && t.apertura.slice(0, 10) > hasta)                                  return false
     if (propietario  && t.propietario.toLowerCase() !== propietario.toLowerCase())       return false
     return true
   })

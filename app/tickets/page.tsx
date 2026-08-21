@@ -153,6 +153,14 @@ const MESES = [
   { val: '2026-07', label: 'Julio 2026' },
 ]
 
+// Fecha de apertura/cierre real (día exacto) — `fecha`/`mes` en los tickets
+// solo traen precisión de mes ("2026-08"), apertura/cierre sí traen el día.
+function fmtAperturaCorta(iso: string): string {
+  if (!iso) return ''
+  try { return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' }) }
+  catch { return '' }
+}
+
 export default function TicketsPage() {
   const [tab, setTab] = useState<Tab>('overview')
 
@@ -172,6 +180,8 @@ export default function TicketsPage() {
   const [filterCat, setFilterCat]     = useState('')
   const [filterPrior, setFilterPrior] = useState('')
   const [filterMes, setFilterMes]     = useState('')
+  const [filterDesde, setFilterDesde] = useState('') // YYYY-MM-DD — filtra por fecha de apertura
+  const [filterHasta, setFilterHasta] = useState('')
   const [filterFalla, setFilterFalla]         = useState('')
   const [filterEjecutivo, setFilterEjecutivo] = useState('')
   const [filterSubcat, setFilterSubcat]       = useState('')
@@ -278,6 +288,8 @@ export default function TicketsPage() {
     if (filterSubcat)    params.set('subcategoria', filterSubcat)
     if (filterPrior)     params.set('prioridad', filterPrior)
     if (filterMes)       params.set('mes', filterMes)
+    if (filterDesde)     params.set('desde', filterDesde)
+    if (filterHasta)     params.set('hasta', filterHasta)
     if (filterFalla)     params.set('es_falla', filterFalla)
     if (filterEjecutivo) params.set('propietario', filterEjecutivo)
     params.set('sortBy', sortCol)
@@ -286,7 +298,7 @@ export default function TicketsPage() {
       .then(r => r.json())
       .then(d => { setRows(d.rows); setListTotal(d.total); setListPages(d.pages); setPage(pg) })
       .finally(() => setListLoading(false))
-  }, [filterProd, filterCat, filterSubcat, filterPrior, filterMes, filterFalla, filterEjecutivo, sortCol, sortDir])
+  }, [filterProd, filterCat, filterSubcat, filterPrior, filterMes, filterDesde, filterHasta, filterFalla, filterEjecutivo, sortCol, sortDir])
 
   useEffect(() => { if (tab === 'explorador') fetchList(1) }, [tab, fetchList])
 
@@ -538,6 +550,36 @@ export default function TicketsPage() {
                   onChange={v => { setFilterSubcat(v); setTimeout(() => fetchList(1), 0) }}
                   className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
                   options={[{ value: '', label: 'Subcategoría (todas)' }, ...subcategorias.map(s => ({ value: s, label: s }))]} />
+                {/* Rango de fecha (apertura) — día exacto, para filtrar por semana o rango específico */}
+                <div className="flex items-center gap-1 text-xs">
+                  <Calendar size={12} className="text-gray-400" />
+                  <input type="date" value={filterDesde}
+                    onChange={e => { setFilterDesde(e.target.value); setTimeout(() => fetchList(1), 0) }}
+                    className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white" />
+                  <span className="text-gray-400">–</span>
+                  <input type="date" value={filterHasta}
+                    onChange={e => { setFilterHasta(e.target.value); setTimeout(() => fetchList(1), 0) }}
+                    className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white" />
+                </div>
+                <button onClick={() => {
+                    const hoy = new Date()
+                    const lunes = new Date(hoy)
+                    lunes.setDate(hoy.getDate() + (hoy.getDay() === 0 ? -6 : 1 - hoy.getDay()))
+                    const domingo = new Date(lunes)
+                    domingo.setDate(lunes.getDate() + 6)
+                    const iso = (d: Date) => d.toISOString().slice(0, 10)
+                    setFilterDesde(iso(lunes)); setFilterHasta(iso(domingo))
+                    setTimeout(() => fetchList(1), 0)
+                  }}
+                  className="text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+                  Esta semana
+                </button>
+                {(filterDesde || filterHasta) && (
+                  <button onClick={() => { setFilterDesde(''); setFilterHasta(''); setTimeout(() => fetchList(1), 0) }}
+                    className="text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
+                    Limpiar fecha
+                  </button>
+                )}
                 <button onClick={() => fetchList(1)}
                   className="flex items-center gap-1.5 text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
                   <RefreshCw size={11} /> Actualizar
@@ -591,7 +633,9 @@ export default function TicketsPage() {
                             : <CheckCircle2 size={13} style={{ color: GREEN }} />}
                         </td>
                         <td className="py-2.5 px-3 text-xs text-gray-600 whitespace-nowrap">{t.propietario}</td>
-                        <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{t.fecha}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap" title={t.cierre ? `Cierre: ${fmtAperturaCorta(t.cierre)}` : ''}>
+                          {fmtAperturaCorta(t.apertura) || t.fecha}
+                        </td>
                         <td className="py-2.5 px-3">
                           {t.enlace ? (
                             <a href={t.enlace} target="_blank" rel="noopener noreferrer"
@@ -780,7 +824,7 @@ export default function TicketsPage() {
                         <td className="py-2.5 px-3"><PillBadge label={t.producto || '—'} color={prodColor(t.producto)} /></td>
                         <td className="py-2.5 px-3"><PillBadge label={t.prioridad || 'Low'} color={prioColor(t.prioridad)} /></td>
                         <td className="py-2.5 px-3 text-xs text-gray-600">{t.propietario}</td>
-                        <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{t.apertura}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap" title={t.cierre ? `Cierre: ${fmtAperturaCorta(t.cierre)}` : ''}>{fmtAperturaCorta(t.apertura)}</td>
                         <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{t.duracion}</td>
                         <td className="py-2.5 px-3">
                           {t.enlace ? (

@@ -31,7 +31,7 @@ export default function CuentaTicketsPanel({
   empresa: string
 }) {
   const fallas    = rows.filter(t => t.es_falla === 'Si').length
-  const lastFecha = rows[0]?.fecha ?? ''
+  const lastFecha = rows[0]?.apertura || rows[0]?.fecha || ''
   const ticketsUrl = cid
     ? `/tickets?cid=${encodeURIComponent(cid)}`
     : `/tickets?q=${encodeURIComponent(empresa)}`
@@ -100,8 +100,8 @@ export default function CuentaTicketsPanel({
               </thead>
               <tbody>
                 {rows.map((t, i) => (
-                  <tr key={i} className="border-b border-border/40 hover:bg-surface/50">
-                    <td className="py-1.5 text-textLow whitespace-nowrap">{fmtFecha(t.fecha)}</td>
+                  <tr key={i} className="border-b border-border/40 hover:bg-surface/50" title={t.cierre ? `Cierre: ${fmtFecha(t.cierre)}` : ''}>
+                    <td className="py-1.5 text-textLow whitespace-nowrap">{fmtFecha(t.apertura || t.fecha)}</td>
                     <td className="py-1.5 text-textMid max-w-[110px] truncate">{t.categoria}</td>
                     <td className="py-1.5 text-textMid max-w-[90px] truncate">{t.producto}</td>
                     <td className="py-1.5"><PriorBadge p={t.prioridad} /></td>
