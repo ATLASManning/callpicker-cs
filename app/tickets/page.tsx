@@ -185,8 +185,10 @@ export default function TicketsPage() {
   const [filterFalla, setFilterFalla]         = useState('')
   const [filterEjecutivo, setFilterEjecutivo] = useState('')
   const [filterSubcat, setFilterSubcat]       = useState('')
+  const [filterCliente, setFilterCliente]     = useState('') // CID del cliente seleccionado
   const [propietarios, setPropietarios]       = useState<string[]>([])
   const [subcategorias, setSubcategorias]     = useState<string[]>([])
+  const [clientes, setClientes]               = useState<{ cid: string; empresa: string; total: number }[]>([])
   const [sortCol, setSortCol]                 = useState('fecha')
   const [sortDir, setSortDir]                 = useState<SortDir>('desc')
   const qRef = useRef(q)
@@ -211,6 +213,7 @@ export default function TicketsPage() {
     setModalData(null)
     const p = new URLSearchParams({ mode: 'charts' })
     if (qRef.current)    p.set('q', qRef.current)
+    if (filterCliente)   p.set('cid', filterCliente)
     if (filterMes)       p.set('mes', filterMes)
     if (filterDesde)     p.set('desde', filterDesde)
     if (filterHasta)     p.set('hasta', filterHasta)
@@ -261,6 +264,13 @@ export default function TicketsPage() {
       .then(d => setPropietarios(d.propietarios ?? []))
   }, [])
 
+  /* ── Fetch clientes — empresa + CID (una sola vez) ── */
+  useEffect(() => {
+    fetch('/api/tickets?mode=clientes')
+      .then(r => r.json())
+      .then(d => setClientes(d.clientes ?? []))
+  }, [])
+
   /* ── Fetch subcategorías (cambia si cambia categoria) ── */
   useEffect(() => {
     const p = new URLSearchParams({ mode: 'subcategorias' })
@@ -286,6 +296,7 @@ export default function TicketsPage() {
     setListLoading(true)
     const params = new URLSearchParams({ page: String(pg), limit: '50' })
     if (qRef.current)    params.set('q', qRef.current)
+    if (filterCliente)   params.set('cid', filterCliente)
     if (filterProd)      params.set('producto', filterProd)
     if (filterCat)       params.set('categoria', filterCat)
     if (filterSubcat)    params.set('subcategoria', filterSubcat)
@@ -301,7 +312,7 @@ export default function TicketsPage() {
       .then(r => r.json())
       .then(d => { setRows(d.rows); setListTotal(d.total); setListPages(d.pages); setPage(pg) })
       .finally(() => setListLoading(false))
-  }, [filterProd, filterCat, filterSubcat, filterPrior, filterMes, filterDesde, filterHasta, filterFalla, filterEjecutivo, sortCol, sortDir])
+  }, [filterCliente, filterProd, filterCat, filterSubcat, filterPrior, filterMes, filterDesde, filterHasta, filterFalla, filterEjecutivo, sortCol, sortDir])
 
   useEffect(() => { if (tab === 'explorador') fetchList(1) }, [tab, fetchList])
 
@@ -543,6 +554,11 @@ export default function TicketsPage() {
                     className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
                     options={f.opts.map(o => ({ value: o.v, label: o.l }))} />
                 ))}
+                {/* Filtro cliente (empresa + CID) — dinámico, exacto */}
+                <CustomSelect value={filterCliente}
+                  onChange={v => { setFilterCliente(v); setTimeout(() => fetchList(1), 0) }}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                  options={[{ value: '', label: 'Cliente (todos)' }, ...clientes.map(c => ({ value: c.cid, label: `${c.empresa} · CID ${c.cid} (${c.total})` }))]} />
                 {/* Filtro ejecutivo — dinámico */}
                 <CustomSelect value={filterEjecutivo}
                   onChange={v => { setFilterEjecutivo(v); setTimeout(() => fetchList(1), 0) }}
@@ -1104,6 +1120,7 @@ export default function TicketsPage() {
                 <p className="text-xs text-gray-500 mt-0.5">
                   {listTotal.toLocaleString('es-MX')} tickets
                   {qRef.current         && ` · "${qRef.current}"`}
+                  {filterCliente        && ` · ${clientes.find(c => c.cid === filterCliente)?.empresa ?? `CID ${filterCliente}`}`}
                   {filterMes            && ` · ${MESES.find(m => m.val === filterMes)?.label}`}
                   {(filterDesde || filterHasta) && ` · ${filterDesde || '…'} → ${filterHasta || '…'}`}
                   {filterEjecutivo      && ` · ${filterEjecutivo}`}

@@ -58,6 +58,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ propietarios: Array.from(set).sort() })
   }
 
+  // ── Clientes (empresa + CID) — para el combo "Cliente" del Explorador ──
+  if (mode === 'clientes') {
+    const map = new Map<string, { cid: string; empresa: string; total: number }>()
+    for (const t of ALL_TICKETS) {
+      if (!t.empresa) continue
+      const key = `${t.cid}|${t.empresa}`
+      if (!map.has(key)) map.set(key, { cid: t.cid, empresa: t.empresa, total: 0 })
+      map.get(key)!.total++
+    }
+    const clientes = Array.from(map.values()).sort((a, b) => a.empresa.localeCompare(b.empresa, 'es'))
+    return NextResponse.json({ clientes })
+  }
+
   // ── Subcategorías ──────────────────────────────────────────────────
   if (mode === 'subcategorias') {
     const base = categoria
