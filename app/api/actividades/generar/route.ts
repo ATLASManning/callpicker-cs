@@ -3,6 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { ASESOR_CONFIG } from '@/lib/types'
 import { ALERTAS_CANCELACION } from '@/app/churn/alertas-cancelacion-data'
 import { Resend } from 'resend'
+import { detectDataGaps, gapScore, type DataGap } from '@/lib/data-gaps'
+import { contarRespuestasRadar, preguntasRadarFaltantes } from '@/lib/radar'
 
 export const dynamic   = 'force-dynamic'
 // 55s (antes 30s) — deja margen al fetch interno a /api/facturacion?mode=dormidos
@@ -61,6 +63,27 @@ async function getDormidasEnZoho(origin: string): Promise<Set<string>> {
   return dormidas
 }
 
+// ── Radar de Cuenta — cuántas de las 12 preguntas tiene respondidas cada cuenta
+async function getRadarMap(cuentaIds: string[]): Promise<Map<string, Record<string, unknown> | null>> {
+  const map = new Map<string, Record<string, unknown> | null>()
+  if (!cuentaIds.length) return map
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('radar_respuestas')
+      .select('cuenta_id, respuestas, creado_en')
+      .in('cuenta_id', cuentaIds)
+      .order('creado_en', { ascending: false })
+    if (error) return map // tabla ausente u otro error — se trata como "sin respuestas" (fail-open)
+    const vistos = new Set<string>()
+    for (const r of (data ?? []) as Array<{ cuenta_id: string; respuestas: Record<string, unknown> | null }>) {
+      if (vistos.has(r.cuenta_id)) continue // ya se tomó la más reciente
+      vistos.add(r.cuenta_id)
+      map.set(r.cuenta_id, r.respuestas)
+    }
+  } catch { /* fail-open */ }
+  return map
+}
+
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 type TipoActividad = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell' | 'validacion' | 'tickets' | 'pagos'
@@ -82,7 +105,9 @@ interface CuentaFull {
   contacto_nombre: string | null
   contacto_cargo: string | null
   contacto_tel: string | null
+  contacto_email: string | null
   giro: string | null
+  tamano_empresa: string | null
   pagina_web: string | null
   total_empleados: string | null
   num_oficinas: string | null
@@ -129,37 +154,8 @@ const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov'
 const DIAS  = ['dom','lun','mar','mié','jue','vie','sáb']
 
 // ── Análisis de datos faltantes ───────────────────────────────────────────────
-
-interface DataGap {
-  campo:    string
-  pregunta: string
-  nivel:    'critico' | 'importante' | 'deseable'
-}
-
-function detectDataGaps(c: CuentaFull): DataGap[] {
-  const gaps: DataGap[] = []
-  if (!c.activo_desde)    gaps.push({ campo: 'Fecha de inicio',      pregunta: '¿Desde cuándo son clientes de Callpicker? (mes y año aproximado)',                nivel: 'critico' })
-  if (!c.contacto_nombre) gaps.push({ campo: 'Contacto principal',   pregunta: '¿Con quién hablas normalmente sobre el servicio? (nombre completo)',              nivel: 'critico' })
-  if (!c.contacto_cargo)  gaps.push({ campo: 'Cargo del contacto',   pregunta: '¿Cuál es el cargo o puesto del responsable de la cuenta?',                        nivel: 'critico' })
-  if (!c.contacto_tel)    gaps.push({ campo: 'Teléfono directo',     pregunta: '¿Me puedes compartir tu número directo para seguimientos urgentes?',               nivel: 'critico' })
-
-  // Mapa de decisores — lección KOMBITEC
-  const extraContacts = Array.isArray(c.contactos_json) ? c.contactos_json.length : 0
-  if (extraContacts < 2)  gaps.push({ campo: 'Mapa de decisores',   pregunta: '¿Hay alguien más en la empresa involucrado en las decisiones sobre herramientas como Callpicker? (nombre, cargo, email)',  nivel: 'critico' })
-
-  if (!c.giro)            gaps.push({ campo: 'Giro / Industria',     pregunta: '¿A qué sector o industria pertenece la empresa?',                                  nivel: 'importante' })
-  if (!c.nps_score)       gaps.push({ campo: 'NPS (satisfacción)',   pregunta: '"Del 1 al 10, ¿qué tan probable es que recomienden Callpicker a otra empresa?"',   nivel: 'importante' })
-  if (!c.observaciones_kam) gaps.push({ campo: 'Observaciones KAM', pregunta: '¿Hay compromisos vigentes, situaciones especiales o riesgos que debamos registrar?', nivel: 'importante' })
-  if (!c.total_empleados) gaps.push({ campo: 'No. de empleados',     pregunta: '¿Cuántos empleados tiene la organización en total?',                               nivel: 'deseable' })
-  if (!c.num_oficinas)    gaps.push({ campo: 'No. de sitios',        pregunta: '¿En cuántas ubicaciones o sucursales operan con Callpicker?',                     nivel: 'deseable' })
-  if (!c.pagina_web)      gaps.push({ campo: 'Sitio web',            pregunta: '¿Cuál es el sitio web de la empresa?',                                            nivel: 'deseable' })
-  return gaps
-}
-
-function gapScore(c: CuentaFull): number {
-  const g = detectDataGaps(c)
-  return g.filter(x => x.nivel === 'critico').length * 3 + g.filter(x => x.nivel === 'importante').length
-}
+// detectDataGaps / gapScore ahora viven en lib/data-gaps.ts (catálogo único,
+// compartido con diagnostico/route.ts y el gate de completada en [id]/route.ts).
 
 // Cuenta TOP = facturación ≥ $3,000 MXN/mes o score de adopción alto
 function isTopAccount(c: CuentaFull): boolean {
@@ -181,6 +177,15 @@ function buildKombitecAlert(empresa: string, gaps: DataGap[]): string {
   return `\n\n🔴 ALERTA — LECCIÓN KOMBITEC:\nSe documentó un caso real en cartera donde el asesor no tenía ningún seguimiento registrado, ningún mapa de decisores y ningún dato de perfil. Cuando el cliente solicitó cambios contractuales, no había contexto para responder ni para identificar a otras personas con poder de decisión. Esa situación colocó la cuenta en riesgo total de pérdida.\nPregunta obligatoria en esta interacción: "Si ${empresa} decidiera pedir una baja o downgrade HOY, ¿tienes la información para responder con contexto en menos de 2 horas?" Si la respuesta es NO → esta actividad no termina hasta que captures lo que falta.`
 }
 
+// Bloque del Radar de Cuenta — las 12 preguntas obligatorias del asesor.
+// Se usa solo en el lote dedicado de los lunes (Completar Perfil + Radar).
+function buildRadarBlock(empresa: string, respondidas: number, faltantes: ReturnType<typeof preguntasRadarFaltantes>): string {
+  if (faltantes.length === 0) return `\n\n🧭 RADAR DE CUENTA: ${empresa} ya tiene las 12 preguntas respondidas — revisa si alguna respuesta cambió antes de dar por cerrado este bloque.`
+  const lista = faltantes.slice(0, 6).map(p => `${p.n}. ${p.critica ? '[CRÍTICA] ' : ''}${p.texto}`).join('\n')
+  const resto = faltantes.length > 6 ? `\n… y ${faltantes.length - 6} pregunta(s) más en la pestaña Radar de la cuenta.` : ''
+  return `\n\n🧭 RADAR DE CUENTA — ${empresa}: ${respondidas}/12 preguntas respondidas. Responde las que faltan en la sección "Radar de Cuenta" de la ficha (Dashboard → Cuentas → ${empresa}):\n${lista}${resto}\nEstas preguntas son tan obligatorias como los datos de perfil — no es opcional dejarlas en blanco.`
+}
+
 // ── Lógica de descripción ─────────────────────────────────────────────────────
 
 function buildDescripcion(
@@ -190,6 +195,7 @@ function buildDescripcion(
   diasSinActividad: number,
   idx:              number,
   cuenta:           CuentaFull,
+  radar?:           { respondidas: number; faltantes: ReturnType<typeof preguntasRadarFaltantes> },
 ): string {
   const { empresa, upsell_producto } = cuenta
   const gaps     = detectDataGaps(cuenta)
@@ -230,7 +236,9 @@ ${introRiesgo} En tu próxima interacción OBTÉN y registra:
 ${noDeseable.map((g, i) => `${i + 1}. ${g.campo.toUpperCase()}: "${g.pregunta}"`).join('\n')}
 ${sinDecisor ? `\n🔑 DECISORES — Pregunta obligatoria: "¿Hay alguien más en ${empresa} involucrado en decisiones sobre herramientas como Callpicker?" Registra nombre, cargo y correo de cada persona adicional que mencionen. Un solo contacto es un punto de falla.` : ''}
 
-Actualiza en: Dashboard → Cuentas → ${empresa} → Editar.${isTop ? '\n\n★ CUENTA TOP: por el volumen e historial de esta cuenta, tener el perfil al 100% NO es opcional. Escala con tu coordinador si el cliente se niega a compartir datos básicos — es una señal de riesgo en sí misma.' : ''}`
+Actualiza en: Dashboard → Cuentas → ${empresa} → Editar.${isTop ? '\n\n★ CUENTA TOP: por el volumen e historial de esta cuenta, tener el perfil al 100% NO es opcional. Escala con tu coordinador si el cliente se niega a compartir datos básicos — es una señal de riesgo en sí misma.' : ''}${radar ? buildRadarBlock(empresa, radar.respondidas, radar.faltantes) : ''}
+
+✅ Esta actividad solo se puede marcar como Completada cuando los datos críticos de arriba estén guardados en la cuenta y las 12 preguntas del Radar tengan respuesta — el sistema lo valida automáticamente al guardar.`
     }
 
     case 'reunion':
@@ -352,8 +360,8 @@ export async function POST(req: NextRequest) {
       .select(`
         id, consecutivo, cid, empresa, health_score, estado,
         upsell_producto, crossell_producto, dias_sin_actividad, activo_desde,
-        contacto_nombre, contacto_cargo, contacto_tel,
-        giro, pagina_web, total_empleados, num_oficinas,
+        contacto_nombre, contacto_cargo, contacto_tel, contacto_email,
+        giro, tamano_empresa, pagina_web, total_empleados, num_oficinas,
         nps_score, notas, observaciones_kam,
         score_adopcion, tiene_chat_activo, tiene_integracion_api, tiene_pago_automatico,
         facturacion, contactos_json
@@ -439,6 +447,79 @@ export async function POST(req: NextRequest) {
         conflictosDeAsignacion, duplicadasMismoAsesor,
       }, { status: 409 })
 
+    // ── Lunes = Completar Perfil + Radar de Cuenta (4 cuentas fijas/semana) ────
+    // Reemplaza las 3 actividades que antes se generaban el lunes en el pool
+    // general — no se agrega volumen extra, se protege el lunes para esta
+    // práctica. Plazo: toda la semana (vence el viernes, no 2 días hábiles).
+    const semInicioDate = new Date(semanaInicio + 'T12:00:00')
+    const friday = new Date(semInicioDate)
+    friday.setDate(semInicioDate.getDate() + 4)
+    const fechaVencLunes = toISO(friday)
+
+    const semanaAnteriorDate = new Date(semanaInicio + 'T12:00:00')
+    semanaAnteriorDate.setDate(semanaAnteriorDate.getDate() - 7)
+    const semanaAnterior = toISO(semanaAnteriorDate)
+
+    const cuentaIds = elegibles.map(c => c.id)
+    const radarMap  = await getRadarMap(cuentaIds)
+
+    function necesitaCompletar(c: CuentaFull): { criticos: number; importantes: number; radarResp: number; score: number } {
+      const gaps       = detectDataGaps(c)
+      const criticos    = gaps.filter(g => g.nivel === 'critico').length
+      const importantes = gaps.filter(g => g.nivel === 'importante').length
+      const radarResp   = contarRespuestasRadar(radarMap.get(c.id))
+      const score = gapScore(c) + (12 - radarResp) * 2
+      return { criticos, importantes, radarResp, score }
+    }
+
+    // (a) Carry-over: actividades de "validación" de la semana pasada que NO
+    //     se completaron regresan primero, marcadas [2ª SOLICITUD] — solo si
+    //     la cuenta sigue elegible y sigue teniendo algo pendiente hoy.
+    const { data: pendientesSemanaAnterior } = await supabaseAdmin
+      .from('actividades')
+      .select('cuenta_id')
+      .eq('asesor', asesor)
+      .eq('semana_inicio', semanaAnterior)
+      .eq('tipo', 'validacion')
+      .eq('completada', false)
+
+    const elegiblesPorId = new Map(elegibles.map(c => [c.id, c]))
+    const carryOverIds   = new Set<string>()
+    const lunesSeleccion: Array<{ cuenta: CuentaFull; segundaSolicitud: boolean }> = []
+
+    for (const p of pendientesSemanaAnterior ?? []) {
+      if (lunesSeleccion.length >= 4) break
+      const c = elegiblesPorId.get(p.cuenta_id)
+      if (!c || carryOverIds.has(c.id)) continue
+      const { criticos, importantes, radarResp } = necesitaCompletar(c)
+      if (criticos === 0 && importantes === 0 && radarResp >= 12) continue // ya se puso al día por otra vía
+      carryOverIds.add(c.id)
+      lunesSeleccion.push({ cuenta: c, segundaSolicitud: true })
+    }
+
+    // (b) Rellenar hasta 4 con las cuentas de mayor prioridad: más críticos
+    //     de perfil, luego mayor facturación (TOP primero), luego más
+    //     tiempo sin contacto — mismo criterio que el resto del generador.
+    const candidatas = elegibles
+      .filter(c => !carryOverIds.has(c.id))
+      .map(c => ({ cuenta: c, ...necesitaCompletar(c) }))
+      .filter(x => x.criticos > 0 || x.importantes > 0 || x.radarResp < 12)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score
+        const facA = a.cuenta.facturacion ?? 0, facB = b.cuenta.facturacion ?? 0
+        if (facB !== facA) return facB - facA
+        return (b.cuenta.dias_sin_actividad ?? 0) - (a.cuenta.dias_sin_actividad ?? 0)
+      })
+
+    for (const { cuenta } of candidatas) {
+      if (lunesSeleccion.length >= 4) break
+      lunesSeleccion.push({ cuenta, segundaSolicitud: false })
+    }
+
+    // Estas cuentas quedan protegidas — no se les asigna además una segunda
+    // actividad de la rotación normal de martes a viernes en la misma semana.
+    const lunesIds = new Set(lunesSeleccion.map(x => x.cuenta.id))
+
     // Clasificar cuentas por prioridad
     const enRiesgo   = elegibles.filter(c => c.health_score < 40)
     const observacion = elegibles.filter(c => c.health_score >= 40 && c.health_score < 60)
@@ -446,8 +527,9 @@ export async function POST(req: NextRequest) {
     const conUpsell  = elegibles.filter(c => c.health_score >= 60 && (c.upsell_producto || c.crossell_producto) && c.dias_sin_actividad <= 30)
     const estables   = elegibles.filter(c => c.health_score >= 60 && !c.upsell_producto && !c.crossell_producto && c.dias_sin_actividad <= 30)
 
-    // Pool ordenado sin duplicados
-    const usedIds = new Set<string>()
+    // Pool ordenado sin duplicados — las 4 cuentas del lunes quedan protegidas
+    // (no reciben además una actividad de la rotación normal esta semana).
+    const usedIds = new Set<string>(lunesIds)
     const pool: Array<{ cuenta: CuentaFull; tipo: TipoActividad }> = []
 
     let ti = 0
@@ -491,33 +573,52 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (!pool.length) return NextResponse.json({ error: 'No hay cuentas para generar actividades' }, { status: 400 })
+    if (!pool.length && !lunesSeleccion.length)
+      return NextResponse.json({ error: 'No hay cuentas para generar actividades' }, { status: 400 })
 
-    // Inyectar actividades de validación de datos en el miércoles (posición 4-5 del pool)
-    // Solo para cuentas con datos críticos faltantes (score ≥ 2 = 1 crítico o 2 importantes)
-    const conGaps = Array.from(elegibles)
-      .map(c => ({ cuenta: c, score: gapScore(c) }))
-      .filter(x => x.score >= 2)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 2)
-
-    if (conGaps.length > 0) {
-      const insertAt = Math.min(4, pool.length)
-      const validacionItems = conGaps.map(({ cuenta }) => ({ cuenta, tipo: 'validacion' as TipoActividad }))
-      pool.splice(insertAt, 0, ...validacionItems)
-    }
-
-    // Generar 3 actividades por día hábil (Lun–Vie = 15 actividades)
     const rows: ActividadRow[] = []
+
+    // ── Lunes: 4 actividades fijas de Completar Perfil + Radar de Cuenta ──────
+    lunesSeleccion.forEach(({ cuenta, segundaSolicitud }, i) => {
+      const hs        = cuenta.health_score
+      const semaforo  = hs >= 80 ? 'verde' : hs >= 60 ? 'azul' : hs >= 40 ? 'amarillo' : hs >= 20 ? 'naranja' : 'rojo'
+      const respuestasRadar = radarMap.get(cuenta.id)
+      const radarResp   = contarRespuestasRadar(respuestasRadar)
+      const radarFaltan = preguntasRadarFaltantes(respuestasRadar)
+      let descripcion = buildDescripcion('validacion', hs, semaforo, cuenta.dias_sin_actividad ?? 0, i, cuenta, {
+        respondidas: radarResp,
+        faltantes:   radarFaltan,
+      })
+      if (segundaSolicitud) descripcion = `[2ª SOLICITUD — no se completó la semana pasada]\n\n${descripcion}`
+
+      rows.push({
+        asesor,
+        cuenta_id:        cuenta.id,
+        cid:              cuenta.cid,
+        consecutivo:      cuenta.consecutivo,
+        empresa:          cuenta.empresa,
+        tipo:             'validacion',
+        descripcion,
+        prioridad:        'alta',
+        fecha_programada: semanaInicio,
+        fecha_vencimiento:fechaVencLunes,
+        semana_inicio:    semanaInicio,
+        estado:           'pendiente',
+        semaforo_cuenta:  semaforo,
+        hs_cuenta:        hs,
+      })
+    })
+
+    // ── Martes a viernes: rotación normal (12 actividades) ────────────────────
     let poolIdx = 0
 
-    for (let d = 0; d < 5; d++) {
+    for (let d = 1; d < 5; d++) {
       const dia = new Date(monday)
       dia.setDate(monday.getDate() + d)
       const fechaProg = toISO(dia)
       const fechaVenc = toISO(addBusinessDays(dia, 2))
 
-      for (let a = 0; a < 3; a++) {
+      for (let a = 0; a < 3 && pool.length > 0; a++) {
         const { cuenta, tipo } = pool[poolIdx % pool.length]
         const idx = poolIdx
         poolIdx++
@@ -559,6 +660,10 @@ export async function POST(req: NextRequest) {
       semanaInicio,
       emailEnviado: sendEmail,
       actividades:  inserted,
+      completarPerfil: { // lote fijo del lunes — Perfil + Radar de Cuenta
+        cuentas: lunesSeleccion.length,
+        segundaSolicitud: lunesSeleccion.filter(x => x.segundaSolicitud).length,
+      },
       excluidasPorChurn, // cuentas activas/en_riesgo en Supabase pero dormidas en Zoho o en alerta de cancelación — no recibieron actividades
       // Integridad de cartera — si vienen con elementos, hay datos que corregir en Supabase:
       conflictosDeAsignacion, // mismo CID con 2+ asesores: nadie recibió actividad, requiere decidir el dueño real

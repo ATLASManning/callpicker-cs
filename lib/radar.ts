@@ -482,4 +482,24 @@ export const PREGUNTAS_RADAR: PreguntaRadar[] = [
   },
 ]
 
+/** Cuántas de las 12 preguntas obligatorias tienen respuesta guardada. */
+export function contarRespuestasRadar(respuestas: Record<string, unknown> | null | undefined): number {
+  if (!respuestas) return 0
+  return PREGUNTAS_RADAR.filter(p => {
+    const v = (respuestas as Record<string, unknown>)[p.id]
+    return v !== undefined && v !== null && String(v).trim() !== ''
+  }).length
+}
+
+/** Preguntas del Radar aún sin responder para esa cuenta (críticas primero). */
+export function preguntasRadarFaltantes(respuestas: Record<string, unknown> | null | undefined): PreguntaRadar[] {
+  const r = respuestas ?? {}
+  return PREGUNTAS_RADAR
+    .filter(p => {
+      const v = (r as Record<string, unknown>)[p.id]
+      return v === undefined || v === null || String(v).trim() === ''
+    })
+    .sort((a, b) => (b.critica ? 1 : 0) - (a.critica ? 1 : 0))
+}
+
 export { fmtMes }

@@ -1,43 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { headers } from 'next/headers'
+import { detectDataGaps, CAMPOS_GAP_SELECT, type CuentaGapInput } from '@/lib/data-gaps'
 
 export const dynamic = 'force-dynamic'
 
-interface DataGapInfo {
-  campo: string
-  nivel: 'critico' | 'importante' | 'deseable'
-}
-
-interface CuentaMin {
+interface CuentaMin extends CuentaGapInput {
   id: string
   consecutivo: string
   empresa: string
   health_score: number
   estado: string
-  contacto_nombre: string | null
-  contacto_cargo: string | null
-  contacto_tel: string | null
-  giro: string | null
-  nps_score: number | null
-  observaciones_kam: string | null
-  total_empleados: string | null
-  num_oficinas: string | null
-  pagina_web: string | null
-}
-
-function detectDataGaps(c: CuentaMin): DataGapInfo[] {
-  const gaps: DataGapInfo[] = []
-  if (!c.contacto_nombre)   gaps.push({ campo: 'Contacto principal',    nivel: 'critico' })
-  if (!c.contacto_cargo)    gaps.push({ campo: 'Cargo del contacto',    nivel: 'critico' })
-  if (!c.contacto_tel)      gaps.push({ campo: 'Teléfono directo',      nivel: 'critico' })
-  if (!c.giro)              gaps.push({ campo: 'Giro / Industria',      nivel: 'importante' })
-  if (!c.nps_score)         gaps.push({ campo: 'NPS (satisfacción)',    nivel: 'importante' })
-  if (!c.observaciones_kam) gaps.push({ campo: 'Observaciones KAM',    nivel: 'importante' })
-  if (!c.total_empleados)   gaps.push({ campo: 'No. de empleados',      nivel: 'deseable' })
-  if (!c.num_oficinas)      gaps.push({ campo: 'No. de sitios',         nivel: 'deseable' })
-  if (!c.pagina_web)        gaps.push({ campo: 'Sitio web',             nivel: 'deseable' })
-  return gaps
 }
 
 export async function GET(req: NextRequest) {
@@ -56,14 +29,14 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from('cuentas')
-    .select('id, consecutivo, empresa, health_score, estado, contacto_nombre, contacto_cargo, contacto_tel, giro, nps_score, observaciones_kam, total_empleados, num_oficinas, pagina_web')
+    .select(`id, consecutivo, empresa, health_score, estado, ${CAMPOS_GAP_SELECT}`)
     .eq('asesor', asesor)
     .in('estado', ['activo', 'en_riesgo'])
     .order('health_score', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const TOTAL_CAMPOS = 9
+  const TOTAL_CAMPOS = 11
 
   const result = (data ?? []).map(c => {
     const gaps = detectDataGaps(c as CuentaMin)

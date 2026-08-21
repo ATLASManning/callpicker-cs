@@ -32,6 +32,16 @@ interface Actividad {
   motivo_pendiente: string | null
   semaforo_cuenta:  string
   hs_cuenta:        number
+  iniciada_en:          string | null
+  tiempo_medido_min:    number | null
+  tiempo_reportado_min: number | null
+}
+
+const TIEMPO_OPCIONES = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180]
+function fmtMin(min: number): string {
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60), m = min % 60
+  return m > 0 ? `${h}h ${m}min` : `${h}h`
 }
 
 interface SemanaResumen {
@@ -112,31 +122,52 @@ function ActividadCard({
   const [editing,   setEditing]   = useState(false)
   const [resultado, setResultado] = useState(act.resultado ?? '')
   const [motivo,    setMotivo]    = useState(act.motivo_pendiente ?? '')
+  const [tiempoRep, setTiempoRep] = useState<number | ''>('')
   const [saving,    setSaving]    = useState(false)
+  const [starting,  setStarting]  = useState(false)
+  const [gateError, setGateError] = useState<{ error: string; perfilFaltante?: string[]; radarFaltante?: string[] } | null>(null)
 
   const overdue   = isOverdue(act)
   const tc        = TIPO_CFG[act.tipo]
   const borderCol = act.completada ? '#22C55E' : overdue ? '#EF4444' : '#E2E8F0'
   const headBg    = act.completada ? '#F0FDF4' : overdue ? '#FFF1F2' : '#F8FAFC'
 
+  async function iniciar() {
+    setStarting(true)
+    try {
+      const res = await fetch(`/api/actividades/${act.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'iniciar' }),
+      })
+      if (res.ok) onUpdate(act.id, await res.json())
+    } finally {
+      setStarting(false)
+    }
+  }
+
   async function save(completada: boolean) {
     setSaving(true)
+    setGateError(null)
     try {
       const payload = {
         completada,
         estado:          completada ? 'completada' : 'pendiente',
         resultado:       completada ? resultado : null,
         motivo_pendiente:!completada ? motivo    : null,
+        tiempo_reportado_min: completada ? tiempoRep : undefined,
       }
       const res = await fetch(`/api/actividades/${act.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+      const data = await res.json()
       if (res.ok) {
-        const updated = await res.json()
-        onUpdate(act.id, updated)
+        onUpdate(act.id, data)
         setEditing(false)
+      } else {
+        setGateError(data)
       }
     } finally {
       setSaving(false)
@@ -168,6 +199,14 @@ function ActividadCard({
           )}
           {!act.completada && act.motivo_pendiente && (
             <p style={{ margin: '3px 0 0', fontSize: 10, color: '#92400E' }}>⚠ {act.motivo_pendiente}</p>
+          )}
+          {act.completada && (act.tiempo_medido_min != null || act.tiempo_reportado_min != null) && (
+            <p style={{ margin: '3px 0 0', fontSize: 10, color: '#6B7280' }}>
+              ⏱ Medido: {act.tiempo_medido_min != null ? fmtMin(act.tiempo_medido_min) : '—'} · Reportado: {act.tiempo_reportado_min != null ? fmtMin(act.tiempo_reportado_min) : '—'}
+              {act.tiempo_medido_min != null && act.tiempo_reportado_min != null && Math.abs(act.tiempo_medido_min - act.tiempo_reportado_min) > act.tiempo_reportado_min * 0.5 && (
+                <span style={{ color: '#D97706', fontWeight: 700 }}> · diferencia notable</span>
+              )}
+            </p>
           )}
         </div>
       </div>
@@ -262,27 +301,57 @@ function ActividadCard({
       {/* Acciones */}
       {!act.completada && (
         <div style={{ padding: '8px 12px', borderTop: '1px solid #F1F5F9', background: '#FFFFFF' }}>
-          {!editing ? (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setEditing(true)} style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 11px', borderRadius: 6, cursor: 'pointer',
-                border: '1px solid #BBF7D0', background: '#F0FDF4', color: '#166534',
+          {!act.iniciada_en ? (
+            <button
+              disabled={starting}
+              onClick={iniciar}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 13px', borderRadius: 6, cursor: starting ? 'not-allowed' : 'pointer',
+                border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8',
                 fontSize: 11, fontWeight: 700,
-              }}>
-                <CheckCircle size={11} /> Completada
-              </button>
-              <button onClick={() => setEditing(true)} style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 11px', borderRadius: 6, cursor: 'pointer',
-                border: '1px solid #FECACA', background: '#FEF2F2', color: '#991B1B',
-                fontSize: 11, fontWeight: 700,
-              }}>
-                <XCircle size={11} /> No realizada
-              </button>
+              }}
+            >
+              {starting ? <Loader2 size={11} /> : <Clock size={11} />}
+              Iniciar actividad
+            </button>
+          ) : !editing ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span style={{ fontSize: 10, color: '#94A3B8' }}>
+                ⏱ Iniciada {fmtFecha(act.iniciada_en.slice(0, 10))} — el tiempo se está midiendo
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setEditing(true)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 11px', borderRadius: 6, cursor: 'pointer',
+                  border: '1px solid #BBF7D0', background: '#F0FDF4', color: '#166534',
+                  fontSize: 11, fontWeight: 700,
+                }}>
+                  <CheckCircle size={11} /> Completada
+                </button>
+                <button onClick={() => setEditing(true)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 11px', borderRadius: 6, cursor: 'pointer',
+                  border: '1px solid #FECACA', background: '#FEF2F2', color: '#991B1B',
+                  fontSize: 11, fontWeight: 700,
+                }}>
+                  <XCircle size={11} /> No realizada
+                </button>
+              </div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {gateError && (
+                <div style={{ padding: '8px 10px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 6, fontSize: 11, color: '#991B1B' }}>
+                  <strong>{gateError.error}</strong>
+                  {gateError.perfilFaltante && gateError.perfilFaltante.length > 0 && (
+                    <p style={{ margin: '4px 0 0' }}>Perfil: {gateError.perfilFaltante.join(' · ')}</p>
+                  )}
+                  {gateError.radarFaltante && gateError.radarFaltante.length > 0 && (
+                    <p style={{ margin: '4px 0 0' }}>Radar sin responder: {gateError.radarFaltante.slice(0, 3).join(' · ')}{gateError.radarFaltante.length > 3 ? ` (+${gateError.radarFaltante.length - 3} más)` : ''}</p>
+                  )}
+                </div>
+              )}
               <textarea
                 value={resultado}
                 onChange={e => setResultado(e.target.value)}
@@ -297,17 +366,32 @@ function ActividadCard({
                 rows={2}
                 style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #FECACA', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
+              <div>
+                <label style={{ fontSize: 10, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 3 }}>
+                  ¿Cuánto tiempo te tomó esta actividad? (para completar)
+                </label>
+                <select
+                  value={tiempoRep}
+                  onChange={e => setTiempoRep(e.target.value ? Number(e.target.value) : '')}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 12, background: '#fff' }}
+                >
+                  <option value="">Selecciona el tiempo...</option>
+                  {TIEMPO_OPCIONES.map(m => (
+                    <option key={m} value={m}>{fmtMin(m)}</option>
+                  ))}
+                </select>
+              </div>
               <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
                 <button
-                  disabled={saving || !resultado.trim()}
+                  disabled={saving || !resultado.trim() || !tiempoRep}
                   onClick={() => save(true)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 5,
                     padding: '5px 12px', borderRadius: 6, border: 'none',
-                    background: saving || !resultado.trim() ? '#DCFCE7' : '#059669',
-                    color: saving || !resultado.trim() ? '#6EE7B7' : '#fff',
+                    background: saving || !resultado.trim() || !tiempoRep ? '#DCFCE7' : '#059669',
+                    color: saving || !resultado.trim() || !tiempoRep ? '#6EE7B7' : '#fff',
                     fontSize: 11, fontWeight: 700,
-                    cursor: saving || !resultado.trim() ? 'not-allowed' : 'pointer',
+                    cursor: saving || !resultado.trim() || !tiempoRep ? 'not-allowed' : 'pointer',
                   }}
                 >
                   {saving ? <Loader2 size={11} /> : <CheckCircle size={11} />}
