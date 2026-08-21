@@ -3,11 +3,6 @@
   "buildCommand": "next build",
   "devCommand": "next dev",
   "installCommand": "npm install",
-  "git": {
-    "deploymentEnabled": {
-      "master": false
-    }
-  },
   "crons": [
     {
       "path": "/api/cron/refresh-tenure",
