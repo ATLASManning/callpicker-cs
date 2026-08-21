@@ -15,6 +15,39 @@ function mapTipo(tipo: string): TipoSeguimiento {
   return m[tipo] ?? 'nota'
 }
 
+// ── Detección de intención de cancelación en el texto que escribe el asesor ──
+// No cambia la cuenta a "cancelado" solo por una palabra — eso requiere
+// confirmación humana. Sube el estado a "en_riesgo" (si estaba "activo") y
+// deja una nota visible en Observaciones KAM para que el KAM/supervisor lo
+// verifique. Ver [[atlas_dashboard_contrast_architecture]]-style: detectar y
+// avisar, nunca ejecutar la baja de forma automática.
+const RX_CANCELACION = /cancelar|cancelaci[oó]n|dar(?:se)? de baja|no (?:va|van) a renovar|no renovar[áa]?|quiere(?:n)? (?:darse de )?baja|termin(?:ar|ó) (?:el )?(?:servicio|contrato)|cerrar (?:la )?cuenta/i
+
+async function etiquetarSiHayIntencionDeCancelacion(cuentaId: string, texto: string, actividadId: string) {
+  if (!texto || !RX_CANCELACION.test(texto)) return
+  try {
+    const { data: cuenta } = await supabaseAdmin
+      .from('cuentas')
+      .select('estado, observaciones_kam')
+      .eq('id', cuentaId)
+      .single()
+    if (!cuenta) return
+
+    const fecha = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+    const nota  = `🔴 [Detectado automáticamente ${fecha} · actividad] Posible intención de cancelación en el reporte del asesor — verificar con el cliente antes de dar de baja. Texto: "${texto.slice(0, 240)}"`
+    const observacionesNuevas = cuenta.observaciones_kam
+      ? `${nota}\n\n${cuenta.observaciones_kam}`
+      : nota
+
+    const patch: Record<string, unknown> = { observaciones_kam: observacionesNuevas }
+    if (cuenta.estado === 'activo') patch.estado = 'en_riesgo'
+
+    await supabaseAdmin.from('cuentas').update(patch).eq('id', cuentaId)
+  } catch (e) {
+    console.warn(`[Actividades ${actividadId}] No se pudo etiquetar intención de cancelación:`, e)
+  }
+}
+
 interface ActualRow {
   id: string; tipo: string; cuenta_id: string | null; empresa: string
   descripcion: string; asesor: string; completada: boolean
@@ -159,6 +192,13 @@ export async function PATCH(
         .from('cuentas')
         .update({ ultimo_contacto: today })
         .eq('id', data.cuenta_id)
+    }
+
+    // Cualquier actividad (completada o no) puede traer una señal de baja en
+    // el texto que escribió el asesor — se revisa siempre, no solo en "validación".
+    if (data.cuenta_id) {
+      const texto = body.completada ? body.resultado : body.motivo_pendiente
+      if (texto) await etiquetarSiHayIntencionDeCancelacion(data.cuenta_id, String(texto), data.id)
     }
 
     return NextResponse.json(data)
