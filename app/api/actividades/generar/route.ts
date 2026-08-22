@@ -500,7 +500,7 @@ export async function POST(req: NextRequest) {
     // (b) Rellenar hasta 4 con las cuentas de mayor prioridad: más críticos
     //     de perfil, luego mayor facturación (TOP primero), luego más
     //     tiempo sin contacto — mismo criterio que el resto del generador.
-    const candidatas = elegibles
+    const candidatasLunes = elegibles
       .filter(c => !carryOverIds.has(c.id))
       .map(c => ({ cuenta: c, ...necesitaCompletar(c) }))
       .filter(x => x.criticos > 0 || x.importantes > 0 || x.radarResp < 12)
@@ -511,7 +511,7 @@ export async function POST(req: NextRequest) {
         return (b.cuenta.dias_sin_actividad ?? 0) - (a.cuenta.dias_sin_actividad ?? 0)
       })
 
-    for (const { cuenta } of candidatas) {
+    for (const { cuenta } of candidatasLunes) {
       if (lunesSeleccion.length >= 4) break
       lunesSeleccion.push({ cuenta, segundaSolicitud: false })
     }
