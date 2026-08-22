@@ -3,6 +3,15 @@ import './globals.css'
 import Sidebar from '@/components/Sidebar'
 import PageTracker from '@/components/PageTracker'
 
+// Sin esto, páginas sin fetch de datos en el servidor (como /tickets o
+// /acceso) se pre-generan como HTML estático en el build, y Vercel las
+// sirve desde su Edge Cache ignorando el Cache-Control: no-store que ya
+// mandamos abajo — ese header solo aplica a respuestas dinámicas, nunca
+// llega a aplicarse a un HIT de caché estática. Confirmado en producción:
+// /acceso se sirvió con Age: 91254s (~25h) pese a múltiples deploys nuevos.
+// force-dynamic aquí, en el layout raíz, aplica a todas las páginas.
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Callpicker Customer Success',
   description: 'Panel de seguimiento y retención de cuentas estratégicas Callpicker',
