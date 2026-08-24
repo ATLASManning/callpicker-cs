@@ -1153,6 +1153,94 @@ const REPORTE_S2_AGOSTO_2026: ChurnReporte = {
   ],
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 3 · AGOSTO 2026  (21 ago 2026)
+═══════════════════════════════════════════════════════════════════════ */
+const REPORTE_S3_AGOSTO_2026: ChurnReporte = {
+  id:      's3-agosto-2026',
+  periodo: 'Semana 3 · Ago 2026',
+  fecha:   '21/08/2026',
+  notas:   'Gross Revenue Churn · Semana 3. Al 21 de agosto del 2026. Tercer corte de agosto con seguimiento acumulado de las semanas 1 y 2 en Activo (Pendiente), proyección de cierre de agosto según el patrón de conversión observado en julio, y confirmación de Daniel Martínez de que las cuentas AAA de mayor tamaño del corte ya pagaron. Siguiente revisión: viernes 28 de agosto.',
+  notaRemitente: 'Daniel Martínez — Siguiente revisión: viernes 28 de agosto.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Junio',             pct: 3.4  },
+      { mes: 'Julio',             pct: 2.2,  anterior: 2.3  },
+      { mes: 'Agosto (en curso)', pct: 21.6, anterior: 40.7 },
+    ],
+    acumulado: 36.9,
+    anterior:  15.3,
+    notaClave: 'GRC Julio corregido a 2.2% (ant. 2.3%). Agosto en curso: 21.6% (ant. 40.7%) — corrección a la baja según pagos confirmados. Churn acumulado hasta agosto 2026: 36.9% — MES CORRIENDO, NO DEFINITIVO (ant. 15.3%).',
+    notaEspecial: '🚨 ALERTA PATRÓN DE CONVERSIÓN: con la tasa observada en julio (83% de Suspendidos termina en Cancelado; 63% de Desactivados pasa a Suspendido, de los cuales el 100% termina cancelando), las 13 cuentas suspendidas de esta semana proyectan ≈11 cancelaciones y las 25 desactivadas ≈16 — ≈27 cuentas adicionales, ≈$20,100 MXN en riesgo directo sumado a los $8,514 ya cancelados: cerca del 76% del valor de la cartera semanal ($37,505 MXN) quedaría cancelado si se repite el patrón de julio. La cadena Desactivado → Suspendido → Cancelado ya está ocurriendo esta semana, aunque en menor escala que en julio. Nota de Daniel Martínez: hay algunos casos de cuentas AAA en el corte, pero ya validó que las cuentas más grandes han pagado.',
+  },
+
+  /* En Corte Sem 3 Agosto — top 5 de 43 cuentas · $53,819
+     Seguimiento Sem 1 y 2 en Activo (Pendiente): $13,264 · 8 cuentas — incluido en fila adicional */
+  pendientesTotalReal:   53819,
+  pendientesCuentasReal: 43,
+  pendientes: [
+    { cliente: '🔝 LI FINANCIERA',  monto: 9104, mesesActivo: 9,  ultimaFactura: '17/07/2026' },
+    { cliente: 'KW - Pedregal',     monto: 6382, mesesActivo: 92, ultimaFactura: '15/07/2026' },
+    { cliente: 'AS CONSULTING',     monto: 4745, mesesActivo: 0,  ultimaFactura: '07/07/2026' },
+    { cliente: 'GRUPO CYA',         monto: 3661, mesesActivo: 57, ultimaFactura: '16/07/2026' },
+    { cliente: 'Ikan experience',   monto: 3049, mesesActivo: 45, ultimaFactura: '13/07/2026' },
+    { cliente: '+ 38 cuentas adicionales sem 3 · Seguimiento Activo (Pendiente) Sem 1 y 2: $13,264.00 · 8 cuentas — Sem 1: Urban Capital $2,058 · Doña Alegria $979 · LEAH Inmobiliaria $418.50 · GRUPO EMPRESARIAL THUKI $279 — Sem 2: AS CONSULTING $4,745 · Ikan experience $3,049 · NatGas - Línea de Emergencias $1,540.50 · Property Solutions $195. Total pasado a Desactivado en Sem 1 y 2: $13,817.00 (18 cuentas).', monto: 26878, mesesActivo: 0, ultimaFactura: 'Ver documento' },
+  ],
+
+  /* Cancelados Sem 3 Agosto — 8 cuentas · $11,667 · top 5 */
+  cancelados: [
+    { cliente: '🔝 Centro Mexicano de Psicología Integrativa CEMEPI', mrr: 2921, mesesActivo: 77, acumulado: 204386 },
+    { cliente: 'Custodias RJ',                                       mrr: 2920, mesesActivo: 5,  acumulado: 14600  },
+    { cliente: 'Prya grupo inmobiliario',                            mrr: 2314, mesesActivo: 83, acumulado: 165926 },
+    { cliente: 'Torre 2 - Vía Montejo',                               mrr: 1890, mesesActivo: 29, acumulado: 52920  },
+    { cliente: 'COESPRO',                                            mrr: 579,  mesesActivo: 55, acumulado: 25702  },
+    { cliente: '+ 3 cuentas adicionales',                            mrr: 1043, mesesActivo: 0,  acumulado: 0      },
+  ],
+
+  /* Downgrades Sem 3 Agosto — 5 clientes · $10,905 */
+  downgradeTotalReal: 10905,
+  downgrades: [
+    { cliente: '🔝 Grupo Hodaya - Holtz', perdida: 3274, nota: '50% de baja — mayor % de reducción de la semana. DiD Nacional $990.00 → $495.00 · Paquete Min VyC $5,558.00 → $2,779.00.' },
+    { cliente: 'City HUB',               perdida: 3240, nota: '44% de baja. Paquete Min VyC $4,900.00 → $3,921.00.' },
+    { cliente: "Pipolo's",               perdida: 1400, nota: '40% de baja. Paquete Min CE $3,480.00 → $2,030.00 · Adquirió Usuario admin adicional (+$50.00).' },
+    { cliente: 'ZD - Midstorage',        perdida: 1761, nota: '27% de baja. Paquete Min VyC $5,355.00 → $3,000.00 · Upsell DiD Nacional $1,089.00 → $1,683.00 en la misma cuenta.' },
+    { cliente: 'DRENVIO',                perdida: 1230, nota: '27% de baja. Paquete Min VyC $4,419.00 → $3,189.00.' },
+  ],
+
+  downgradeArticulos: [
+    { articulo: 'Paquete Min VyC', vecesAfectado: 4, clientes: ['Grupo Hodaya - Holtz', 'City HUB', 'ZD - Midstorage', 'DRENVIO'] },
+    { articulo: 'DiD Nacional',    vecesAfectado: 1, clientes: ['Grupo Hodaya - Holtz'] },
+    { articulo: 'Paquete Min CE',  vecesAfectado: 1, clientes: ["Pipolo's"] },
+  ],
+
+  /* Suspendidos Sem 3 Agosto — 13 cuentas · $22,026
+     Riesgo de cancelación: 83% (patrón julio) → ≈11 cuentas */
+  suspendidosTotalReal:   22026,
+  suspendidosCuentasReal: 13,
+  suspendidos: [
+    { cliente: '🔝 EASO',                                                          importe: 13021, mesesActivo: 76, estado: 'Suspendido' },
+    { cliente: 'Servicio Plus Técnicos Especialistas en Línea Blanca',            importe: 2256,  mesesActivo: 6,  estado: 'Suspendido' },
+    { cliente: 'AVILA HERRERA GRUPO INMOBILIARIO',                                importe: 1959,  mesesActivo: 33, estado: 'Suspendido' },
+    { cliente: 'Energix',                                                        importe: 1021,  mesesActivo: 54, estado: 'Suspendido' },
+    { cliente: 'Bell Internacional de Mexico',                                   importe: 687,   mesesActivo: 60, estado: 'Suspendido' },
+    { cliente: '+ 8 cuentas adicionales',                                        importe: 3082,  mesesActivo: 0,  estado: 'Suspendido' },
+  ],
+
+  /* Desactivados Sem 3 Agosto — 25 cuentas · $19,973
+     Riesgo cadena Desactivado→Suspendido→Cancelado: 63%→100% (patrón julio) → ≈16 cuentas */
+  desactivadosTotalReal:   19973,
+  desactivadosCuentasReal: 25,
+  desactivados: [
+    { cliente: '🔝 transportes BPG SAS. DE CV.',   importe: 2447, mesesActivo: 39 },
+    { cliente: 'FLETES ESPECIALIZADOS TOFRA',      importe: 2387, mesesActivo: 9  },
+    { cliente: 'Citlali Amezcua',                  importe: 2012, mesesActivo: 49 },
+    { cliente: 'The Yacht Experiences',            importe: 1577, mesesActivo: 86 },
+    { cliente: 'Colegio NWL - Milenio',            importe: 1392, mesesActivo: 63 },
+    { cliente: '+ 20 cuentas adicionales',         importe: 10158, mesesActivo: 0 },
+  ],
+}
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -1926,7 +2014,7 @@ function SidebarAccesoBtn({ active, onClick, icon, label, bg, badge, href }: {
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s2-agosto-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s3-agosto-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [acumCancelSort, setAcumCancelSort] = useState<{ col: 'cliente' | 'mrr' | 'mesesActivo' | 'acumulado' | 'periodo'; dir: 'asc' | 'desc' }>({ col: 'mrr', dir: 'desc' })
@@ -1954,8 +2042,8 @@ export default function ChurnPage() {
 
 
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026', 's2-julio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, REPORTE_S2_AGOSTO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S2_AGOSTO_2026
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, REPORTE_S2_AGOSTO_2026, REPORTE_S3_AGOSTO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S3_AGOSTO_2026
 
   // Pre-filtrar a Enterprise y Large cuando llegan los datos
   useEffect(() => {
