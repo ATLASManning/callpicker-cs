@@ -108,7 +108,11 @@ function profileSemaforoForCuenta(c: Cuenta): 'verde' | 'amarillo' | 'naranja' |
   return 'rojo'
 }
 
-const SAC_WEEKLY_TARGET = 15 // 3 actividades/día × 5 días hábiles
+// Desde el 24 Ago 2026 la semana del asesor son 4 cuentas: cerrar sus datos de
+// perfil + Radar. Antes eran 15 actividades (3/día × 5 días) y por eso las
+// semanas anteriores muestran cifras de otro orden — no son comparables.
+const SAC_WEEKLY_TARGET = 4
+const SAC_TARGET_ANTERIOR = 15
 
 // ── Gauge SVG ─────────────────────────────────────────────────────────────────
 // Semicircle: 270° (left/9 o'clock) → 90° (right/3 o'clock) via top, 180° sweep
@@ -710,7 +714,7 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
         <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
           Cumplimiento SAC Semanal
         </p>
-        <span style={{ fontSize: 12, color: TX_LOW }}>Meta: {SAC_WEEKLY_TARGET} actividades/semana · 3/día × 5 días</span>
+        <span style={{ fontSize: 12, color: TX_LOW }}>Meta: {SAC_WEEKLY_TARGET} cuentas/semana · Completar Perfil + Radar</span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
@@ -741,16 +745,21 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
               <p style={{ fontSize: 12, color: TX_MID, textAlign: 'center' as const, marginTop: -4 }}>
                 <span style={{ fontWeight: 800, fontSize: 15, color: gaugeColor }}>{thisWeek}</span>
                 {' '}<span style={{ color: TX_LOW }}>/ {SAC_WEEKLY_TARGET}</span>
-                {' '}<span style={{ color: TX_LOW }}>actividades esta semana</span>
+                {' '}<span style={{ color: TX_LOW }}>cuentas cerradas esta semana</span>
               </p>
 
               {/* Tendencia: últimas 3 semanas */}
               <div style={{ width: '100%' }}>
-                <p style={{ fontSize: 11, color: TX_LOW, marginBottom: 5 }}>Semanas anteriores</p>
+                <p style={{ fontSize: 11, color: TX_LOW, marginBottom: 5 }}>
+                  Semanas anteriores <span style={{ opacity: 0.7 }}>· meta {SAC_TARGET_ANTERIOR}</span>
+                </p>
                 <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 44 }}>
                   {weeks.slice(1).map((w, i) => {
-                    const h = Math.max(Math.round((w / Math.max(maxPrev, SAC_WEEKLY_TARGET)) * 40), 3)
-                    const bc = (w / SAC_WEEKLY_TARGET) >= 0.8 ? '#22C55E' : (w / SAC_WEEKLY_TARGET) >= 0.5 ? '#EAB308' : '#EF4444'
+                    // Se escalan y colorean contra la meta que estaba vigente
+                    // entonces (15), no contra la actual: mezclarlas pintaría
+                    // de verde una semana de 15 sobre una meta de 4.
+                    const h  = Math.max(Math.round((w / Math.max(maxPrev, SAC_TARGET_ANTERIOR)) * 40), 3)
+                    const bc = (w / SAC_TARGET_ANTERIOR) >= 0.8 ? '#22C55E' : (w / SAC_TARGET_ANTERIOR) >= 0.5 ? '#EAB308' : '#EF4444'
                     return (
                       <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                         <div style={{ height: `${h}px`, width: '100%', borderRadius: 3, background: bc }} />
