@@ -125,7 +125,14 @@ function ActividadCard({
   const [tiempoRep, setTiempoRep] = useState<number | ''>('')
   const [saving,    setSaving]    = useState(false)
   const [starting,  setStarting]  = useState(false)
-  const [gateError, setGateError] = useState<{ error: string; perfilFaltante?: string[]; radarFaltante?: string[] } | null>(null)
+  const [gateError, setGateError] = useState<{
+    error: string
+    perfilFaltante?: string[]
+    radarFaltante?: string[]
+    contactoFaltante?: string[]
+    codigo?: string
+    bloqueada?: boolean
+  } | null>(null)
 
   const overdue   = isOverdue(act)
   const tc        = TIPO_CFG[act.tipo]
@@ -134,13 +141,21 @@ function ActividadCard({
 
   async function iniciar() {
     setStarting(true)
+    setGateError(null)
     try {
-      const res = await fetch(`/api/actividades/${act.id}`, {
+      const res  = await fetch(`/api/actividades/${act.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion: 'iniciar' }),
       })
-      if (res.ok) onUpdate(act.id, await res.json())
+      const data = await res.json()
+      if (res.ok) onUpdate(act.id, data)
+      // 409 = la cuenta dejó de ser elegible (churn, dormida, contacto incompleto).
+      // El backend ya bloqueó la actividad; se refleja aquí sin recargar.
+      else {
+        setGateError(data)
+        if (data?.bloqueada) onUpdate(act.id, { estado: 'bloqueada' })
+      }
     } finally {
       setStarting(false)
     }
@@ -302,19 +317,32 @@ function ActividadCard({
       {!act.completada && (
         <div style={{ padding: '8px 12px', borderTop: '1px solid #F1F5F9', background: '#FFFFFF' }}>
           {!act.iniciada_en ? (
-            <button
-              disabled={starting}
-              onClick={iniciar}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 13px', borderRadius: 6, cursor: starting ? 'not-allowed' : 'pointer',
-                border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8',
-                fontSize: 11, fontWeight: 700,
-              }}
-            >
-              {starting ? <Loader2 size={11} /> : <Clock size={11} />}
-              Iniciar actividad
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {gateError && !editing && (
+                <div style={{ padding: '8px 10px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 6, fontSize: 11, color: '#991B1B' }}>
+                  <strong>{gateError.error}</strong>
+                  {gateError.contactoFaltante && gateError.contactoFaltante.length > 0 && (
+                    <p style={{ margin: '4px 0 0' }}>Faltan: {gateError.contactoFaltante.join(' · ')}</p>
+                  )}
+                </div>
+              )}
+              <button
+                disabled={starting || act.estado === 'bloqueada'}
+                onClick={iniciar}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '6px 13px', borderRadius: 6,
+                  cursor: starting || act.estado === 'bloqueada' ? 'not-allowed' : 'pointer',
+                  border: `1px solid ${act.estado === 'bloqueada' ? '#E2E8F0' : '#BFDBFE'}`,
+                  background: act.estado === 'bloqueada' ? '#F1F5F9' : '#EFF6FF',
+                  color: act.estado === 'bloqueada' ? '#94A3B8' : '#1D4ED8',
+                  fontSize: 11, fontWeight: 700, alignSelf: 'flex-start',
+                }}
+              >
+                {starting ? <Loader2 size={11} /> : <Clock size={11} />}
+                Iniciar actividad
+              </button>
+            </div>
           ) : !editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <span style={{ fontSize: 10, color: '#94A3B8' }}>

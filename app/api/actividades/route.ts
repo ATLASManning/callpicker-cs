@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import {
+  evaluarElegibilidad, CAMPOS_ELEGIBILIDAD_SELECT, MSG, LIMITE_SEMANAL,
+  type CuentaElegibilidadInput,
+} from '@/lib/elegibilidad'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +67,37 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           error: `La cuenta ${cuenta.consecutivo} (${cuenta.empresa}) está asignada a ${cuenta.asesor}, no a ${f.asesor}. Corrige el asesor de la cuenta en Supabase o asigna la actividad al asesor correcto.`,
         }, { status: 409 })
+      }
+
+      // Elegibilidad: no se crea una actividad sobre una cuenta que no es
+      // cliente activo con contacto localizable. Misma regla que el generador.
+      const { data: cuentaEleg, error: elegErr } = await supabaseAdmin
+        .from('cuentas')
+        .select(CAMPOS_ELEGIBILIDAD_SELECT)
+        .eq('id', f.cuenta_id)
+        .single()
+
+      if (elegErr || !cuentaEleg) {
+        return NextResponse.json({ error: MSG.estatus_no_validable, codigo: 'estatus_no_validable' }, { status: 409 })
+      }
+
+      const eleg = evaluarElegibilidad(cuentaEleg as unknown as CuentaElegibilidadInput, new Set<string>(), f.tipo)
+      if (!eleg.elegible) {
+        return NextResponse.json({
+          error: eleg.motivo, codigo: eleg.codigo, contactoFaltante: eleg.contactoFaltante,
+        }, { status: 409 })
+      }
+
+      // Tope semanal por cuenta.
+      if (f.semana_inicio) {
+        const { count } = await supabaseAdmin
+          .from('actividades')
+          .select('id', { count: 'exact', head: true })
+          .eq('cuenta_id', f.cuenta_id)
+          .eq('semana_inicio', f.semana_inicio)
+        if ((count ?? 0) >= LIMITE_SEMANAL) {
+          return NextResponse.json({ error: MSG.limite_semanal, codigo: 'limite_semanal' }, { status: 409 })
+        }
       }
     }
 

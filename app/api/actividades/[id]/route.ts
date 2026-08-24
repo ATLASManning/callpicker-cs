@@ -3,8 +3,49 @@ import { supabaseAdmin } from '@/lib/supabase'
 import type { TipoSeguimiento } from '@/lib/types'
 import { detectDataGaps, CAMPOS_GAP_SELECT, type CuentaGapInput } from '@/lib/data-gaps'
 import { contarRespuestasRadar, preguntasRadarFaltantes } from '@/lib/radar'
+import {
+  evaluarElegibilidad, CAMPOS_ELEGIBILIDAD_SELECT, MSG,
+  type CuentaElegibilidadInput, type ResultadoElegibilidad,
+} from '@/lib/elegibilidad'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * Re-valida la elegibilidad en el momento de actuar sobre la actividad.
+ * Una cuenta puede haber cambiado de estatus DESPUÉS de que se generó la
+ * actividad; iniciar o completar sobre una cuenta ya dormida/cancelada/en
+ * churn no debe ser posible. Fail-closed: si no se puede leer la cuenta,
+ * se bloquea.
+ *
+ * No consulta Zoho aquí (esa llamada tarda y este endpoint es interactivo):
+ * se pasa un Set vacío, con lo que siguen aplicando estado, GRC-AAA-2026,
+ * alertas de cancelación y completitud de contacto. La conciliación con Zoho
+ * es responsabilidad del generador semanal.
+ */
+async function revalidarCuenta(cuentaId: string, tipo: string): Promise<ResultadoElegibilidad> {
+  const { data, error } = await supabaseAdmin
+    .from('cuentas')
+    .select(CAMPOS_ELEGIBILIDAD_SELECT)
+    .eq('id', cuentaId)
+    .single()
+
+  if (error || !data) {
+    return { elegible: false, codigo: 'estatus_no_validable', motivo: MSG.estatus_no_validable, contactoFaltante: [] }
+  }
+  return evaluarElegibilidad(data as unknown as CuentaElegibilidadInput, new Set<string>(), tipo)
+}
+
+/** Bloquea la actividad en BD cuando su cuenta dejó de ser elegible. */
+async function bloquearActividad(actividadId: string, motivo: string) {
+  try {
+    await supabaseAdmin
+      .from('actividades')
+      .update({ estado: 'bloqueada', motivo_pendiente: motivo, actualizado_en: new Date().toISOString() })
+      .eq('id', actividadId)
+  } catch (e) {
+    console.warn(`[Actividades ${actividadId}] No se pudo bloquear:`, e)
+  }
+}
 
 function mapTipo(tipo: string): TipoSeguimiento {
   const m: Record<string, TipoSeguimiento> = {
@@ -85,6 +126,23 @@ export async function PATCH(
       }
     }
     if (!actual) return NextResponse.json({ error: 'Actividad no encontrada' }, { status: 404 })
+
+    // ── Elegibilidad al momento de actuar ────────────────────────────────────
+    // Se revalida antes de iniciar el cronómetro y antes de completar. Si la
+    // cuenta cambió a un estado no activo desde que se generó la actividad,
+    // ésta queda bloqueada de inmediato en lugar de ejecutarse.
+    if ((body.accion === 'iniciar' || body.completada) && actual.cuenta_id) {
+      const eleg = await revalidarCuenta(actual.cuenta_id, actual.tipo)
+      if (!eleg.elegible) {
+        await bloquearActividad(actual.id, eleg.motivo!)
+        return NextResponse.json({
+          error:  eleg.motivo,
+          codigo: eleg.codigo,
+          contactoFaltante: eleg.contactoFaltante,
+          bloqueada: true,
+        }, { status: 409 })
+      }
+    }
 
     // ── Iniciar cronómetro — clic en "Iniciar actividad" ─────────────────────
     if (body.accion === 'iniciar') {

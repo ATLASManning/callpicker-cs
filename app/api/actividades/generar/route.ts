@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ASESOR_CONFIG } from '@/lib/types'
-import { ALERTAS_CANCELACION } from '@/app/churn/alertas-cancelacion-data'
 import { Resend } from 'resend'
 import { detectDataGaps, gapScore, type DataGap } from '@/lib/data-gaps'
 import { contarRespuestasRadar, preguntasRadarFaltantes } from '@/lib/radar'
+import {
+  evaluarElegibilidad, esLunes, LIMITE_SEMANAL, MSG,
+  type CodigoBloqueo,
+} from '@/lib/elegibilidad'
 
 export const dynamic   = 'force-dynamic'
 // 55s (antes 30s) — deja margen al fetch interno a /api/facturacion?mode=dormidos
@@ -22,16 +25,6 @@ function getMondayOfWeek(date: Date): Date {
   return d
 }
 
-function addBusinessDays(date: Date, days: number): Date {
-  const r = new Date(date)
-  let c   = 0
-  while (c < days) {
-    r.setDate(r.getDate() + 1)
-    if (r.getDay() !== 0 && r.getDay() !== 6) c++
-  }
-  return r
-}
-
 function toISO(d: Date): string {
   return d.toISOString().split('T')[0]
 }
@@ -41,26 +34,41 @@ function toISO(d: Date): string {
 // (ver incidente Campus Residencias/Trustworthy, 10 Jul 2026: cuentas ya
 // dormidas en Zoho seguían con estado "activo"/"en_riesgo" y recibieron
 // actividades). Antes de generar, se cruza contra la misma fuente que usa
-// el módulo Churn → Zoho · Dormidos en vivo (/api/facturacion?mode=dormidos)
-// y se excluye cualquier cuenta que Zoho marque como dormida (semáforo
-// "4-Dormido"), sin importar lo que diga `estado` en Supabase. Si Zoho no
-// está disponible o la consulta falla, no bloquea la generación — se
-// continúa solo con el filtro de Supabase (fail-open, con warning).
-async function getDormidasEnZoho(origin: string): Promise<Set<string>> {
+// el módulo Churn → Zoho · Dormidos en vivo (/api/facturacion?mode=dormidos).
+//
+// FAIL-CLOSED (24 Ago 2026): si Zoho no responde se devuelve `null` y NO se
+// genera nada. Antes era fail-open y esa fue la vía por la que cuentas ya
+// dormidas siguieron recibiendo actividades: cuando la conciliación fallaba
+// en silencio, el único filtro que quedaba era el `estado` desactualizado.
+async function getDormidasEnZoho(origin: string): Promise<Set<string> | null> {
   const dormidas = new Set<string>()
   try {
     const res = await fetch(`${origin}/api/facturacion?mode=dormidos`, {
       signal: AbortSignal.timeout(15000),
     })
-    if (!res.ok) return dormidas
+    if (!res.ok) return null
     const data = await res.json() as { rows?: Array<{ cuenta_id: number | string | null; matched: boolean }> }
     for (const r of data.rows ?? []) {
       if (r.matched && r.cuenta_id != null) dormidas.add(String(r.cuenta_id))
     }
   } catch (e) {
-    console.warn('[Actividades] No se pudo conciliar con Zoho dormidas — se continúa solo con filtro de Supabase:', e)
+    console.warn('[Actividades] Conciliación con Zoho dormidas no disponible — generación bloqueada (fail-closed):', e)
+    return null
   }
   return dormidas
+}
+
+// ── Auditoría ────────────────────────────────────────────────────────────────
+// Deja rastro de qué se generó y qué se bloqueó. Si la tabla `actividades_audit`
+// aún no existe (migración pendiente) no rompe la generación: registra en log.
+async function auditar(filas: Array<Record<string, unknown>>) {
+  if (!filas.length) return
+  try {
+    const { error } = await supabaseAdmin.from('actividades_audit').insert(filas)
+    if (error) console.warn('[Actividades][audit] no registrado:', error.message)
+  } catch (e) {
+    console.warn('[Actividades][audit] no registrado:', e)
+  }
 }
 
 // ── Radar de Cuenta — cuántas de las 12 preguntas tiene respondidas cada cuenta
@@ -325,13 +333,31 @@ Actualiza en: Dashboard → Cuentas → ${empresa} → Editar.${isTop ? '\n\n★
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { asesor, semana: semanaParam, sendEmail = false, testEmail } = body as {
+    const { asesor, semana: semanaParam, sendEmail = false, testEmail, excepcionAdministrativa = false } = body as {
       asesor: string; semana?: string; sendEmail?: boolean; testEmail?: string
+      excepcionAdministrativa?: boolean
     }
     if (!asesor) return NextResponse.json({ error: 'asesor requerido' }, { status: 400 })
 
     const monday       = semanaParam ? new Date(semanaParam + 'T12:00:00') : getMondayOfWeek(new Date())
     const semanaInicio = toISO(getMondayOfWeek(monday))
+
+    // Las actividades SAC solo se disparan en lunes. La única salida es una
+    // excepción administrativa explícita, que queda registrada en auditoría.
+    const hoy = new Date()
+    if (!esLunes(hoy)) {
+      if (!excepcionAdministrativa) {
+        return NextResponse.json({
+          error: MSG.fuera_de_lunes + ' Hoy no es lunes; para generar fuera de calendario se requiere excepción administrativa.',
+          codigo: 'fuera_de_lunes' as CodigoBloqueo,
+        }, { status: 409 })
+      }
+      await auditar([{
+        asesor, semana_inicio: semanaInicio, accion: 'excepcion_administrativa',
+        codigo: 'fuera_de_lunes', motivo: `Generación fuera de lunes autorizada (${hoy.toISOString()})`,
+        creado_en: new Date().toISOString(),
+      }])
+    }
 
     // Verificar si ya existen actividades esta semana
     const { data: existing } = await supabaseAdmin
@@ -377,18 +403,40 @@ export async function POST(req: NextRequest) {
     // 1. Zoho · Dormidas en vivo (ver getDormidasEnZoho arriba)
     // 2. Alertas · Cuentas Cancelación (reporte manual, app/churn/alertas-cancelacion-data.ts),
     //    cruzado por CID ya que esas cuentas aún no tienen cuenta_id de Supabase vinculado.
-    const dormidasZoho    = await getDormidasEnZoho(req.nextUrl.origin)
-    const cidsEnAlerta    = new Set(ALERTAS_CANCELACION.map(a => a.cid).filter(Boolean))
-    const candidatas      = cuentas as CuentaFull[]
-    const todas           = candidatas.filter(c =>
-      !dormidasZoho.has(String(c.id)) && !(c.cid && cidsEnAlerta.has(c.cid))
-    )
-    const excluidasPorChurn = candidatas.length - todas.length
+    const dormidasZoho = await getDormidasEnZoho(req.nextUrl.origin)
+
+    // Fail-closed: sin conciliación con Churn no se puede afirmar que ninguna
+    // cuenta siga activa, así que no se genera nada.
+    if (dormidasZoho === null)
+      return NextResponse.json({
+        error: MSG.estatus_no_validable + ' No se pudo conciliar con Churn (Zoho · Dormidos). No se generaron actividades.',
+        codigo: 'estatus_no_validable' as CodigoBloqueo,
+      }, { status: 503 })
+
+    const candidatas = cuentas as CuentaFull[]
+    const bloqueadas: Array<{ consecutivo: string; empresa: string; cid: string | null; codigo: CodigoBloqueo; motivo: string; contactoFaltante: string[] }> = []
+    const todas: CuentaFull[] = []
+
+    // El generador solo produce actividades de tipo 'validacion' (Completar
+    // Perfil + Radar), por eso se evalúa con ese tipo: la cuenta con datos
+    // faltantes es justamente la que debe recibirla.
+    for (const c of candidatas) {
+      const e = evaluarElegibilidad(c, dormidasZoho, 'validacion')
+      if (e.elegible) { todas.push(c); continue }
+      bloqueadas.push({
+        consecutivo: c.consecutivo, empresa: c.empresa, cid: c.cid,
+        codigo: e.codigo!, motivo: e.motivo!, contactoFaltante: e.contactoFaltante,
+      })
+    }
+
+    const excluidasPorChurn = bloqueadas.filter(b =>
+      b.codigo === 'churn_grc' || b.codigo === 'cancelacion' || b.codigo === 'dormida'
+    ).length
 
     if (!todas.length)
       return NextResponse.json({
-        error: 'Todas las cuentas de este asesor están marcadas como dormidas/en alerta de cancelación en Churn — revisar/actualizar su estado en Supabase antes de generar',
-        excluidasPorChurn,
+        error: 'Ninguna cuenta de este asesor resultó elegible: todas están en Churn (dormida / cancelación / GRC-AAA-2026) o tienen el contacto incompleto.',
+        excluidasPorChurn, bloqueadas,
       }, { status: 404 })
 
     // ── Guardas de integridad de cartera ──────────────────────────────────
@@ -447,10 +495,11 @@ export async function POST(req: NextRequest) {
         conflictosDeAsignacion, duplicadasMismoAsesor,
       }, { status: 409 })
 
-    // ── Lunes = Completar Perfil + Radar de Cuenta (4 cuentas fijas/semana) ────
-    // Reemplaza las 3 actividades que antes se generaban el lunes en el pool
-    // general — no se agrega volumen extra, se protege el lunes para esta
-    // práctica. Plazo: toda la semana (vence el viernes, no 2 días hábiles).
+    // ── La semana completa: Completar Perfil + Radar sobre 4 cuentas ─────────
+    // Es el ÚNICO lote que se genera. Antes esto convivía con 12 actividades de
+    // rotación martes-viernes; se retiró el 24 Ago 2026 porque el objetivo del
+    // asesor son 4 cuentas cerradas, no 16 tareas abiertas.
+    // Plazo: toda la semana (vence el viernes).
     const semInicioDate = new Date(semanaInicio + 'T12:00:00')
     const friday = new Date(semInicioDate)
     friday.setDate(semInicioDate.getDate() + 4)
@@ -488,7 +537,7 @@ export async function POST(req: NextRequest) {
     const lunesSeleccion: Array<{ cuenta: CuentaFull; segundaSolicitud: boolean }> = []
 
     for (const p of pendientesSemanaAnterior ?? []) {
-      if (lunesSeleccion.length >= 4) break
+      if (lunesSeleccion.length >= LIMITE_SEMANAL) break
       const c = elegiblesPorId.get(p.cuenta_id)
       if (!c || carryOverIds.has(c.id)) continue
       const { criticos, importantes, radarResp } = necesitaCompletar(c)
@@ -497,14 +546,34 @@ export async function POST(req: NextRequest) {
       lunesSeleccion.push({ cuenta: c, segundaSolicitud: true })
     }
 
-    // (b) Rellenar hasta 4 con las cuentas de mayor prioridad: más críticos
-    //     de perfil, luego mayor facturación (TOP primero), luego más
-    //     tiempo sin contacto — mismo criterio que el resto del generador.
+    // No repetir semana a semana la misma cuenta: las que ya se trabajaron en
+    // las últimas 8 semanas pasan al final de la fila. Solo vuelven antes si
+    // quedaron incompletas (eso ya lo cubre el carry-over de arriba).
+    const hace8Semanas = new Date(semInicioDate)
+    hace8Semanas.setDate(semInicioDate.getDate() - 56)
+    const { data: trabajadasRecientes } = await supabaseAdmin
+      .from('actividades')
+      .select('cuenta_id, semana_inicio')
+      .eq('asesor', asesor)
+      .eq('tipo', 'validacion')
+      .gte('semana_inicio', toISO(hace8Semanas))
+      .lt('semana_inicio', semanaInicio)
+
+    const ultimaVezPorCuenta = new Map<string, string>()
+    for (const t of (trabajadasRecientes ?? []) as Array<{ cuenta_id: string; semana_inicio: string }>) {
+      const prev = ultimaVezPorCuenta.get(t.cuenta_id)
+      if (!prev || t.semana_inicio > prev) ultimaVezPorCuenta.set(t.cuenta_id, t.semana_inicio)
+    }
+
+    // (b) Rellenar hasta LIMITE_SEMANAL con las cuentas de mayor prioridad:
+    //     nunca trabajadas primero, luego más críticos de perfil, luego mayor
+    //     facturación (TOP primero), luego más tiempo sin contacto.
     const candidatasLunes = elegibles
       .filter(c => !carryOverIds.has(c.id))
-      .map(c => ({ cuenta: c, ...necesitaCompletar(c) }))
+      .map(c => ({ cuenta: c, ...necesitaCompletar(c), ultima: ultimaVezPorCuenta.get(c.id) ?? '' }))
       .filter(x => x.criticos > 0 || x.importantes > 0 || x.radarResp < 12)
       .sort((a, b) => {
+        if (a.ultima !== b.ultima) return a.ultima.localeCompare(b.ultima) // '' (nunca) va primero
         if (b.score !== a.score) return b.score - a.score
         const facA = a.cuenta.facturacion ?? 0, facB = b.cuenta.facturacion ?? 0
         if (facB !== facA) return facB - facA
@@ -512,73 +581,19 @@ export async function POST(req: NextRequest) {
       })
 
     for (const { cuenta } of candidatasLunes) {
-      if (lunesSeleccion.length >= 4) break
+      if (lunesSeleccion.length >= LIMITE_SEMANAL) break
       lunesSeleccion.push({ cuenta, segundaSolicitud: false })
     }
 
-    // Estas cuentas quedan protegidas — no se les asigna además una segunda
-    // actividad de la rotación normal de martes a viernes en la misma semana.
-    const lunesIds = new Set(lunesSeleccion.map(x => x.cuenta.id))
-
-    // Clasificar cuentas por prioridad
-    const enRiesgo   = elegibles.filter(c => c.health_score < 40)
-    const observacion = elegibles.filter(c => c.health_score >= 40 && c.health_score < 60)
-    const sinAct     = elegibles.filter(c => c.health_score >= 60 && c.dias_sin_actividad > 30)
-    const conUpsell  = elegibles.filter(c => c.health_score >= 60 && (c.upsell_producto || c.crossell_producto) && c.dias_sin_actividad <= 30)
-    const estables   = elegibles.filter(c => c.health_score >= 60 && !c.upsell_producto && !c.crossell_producto && c.dias_sin_actividad <= 30)
-
-    // Pool ordenado sin duplicados — las 4 cuentas del lunes quedan protegidas
-    // (no reciben además una actividad de la rotación normal esta semana).
-    const usedIds = new Set<string>(lunesIds)
-    const pool: Array<{ cuenta: CuentaFull; tipo: TipoActividad }> = []
-
-    let ti = 0
-    const riesgoRotation: TipoActividad[] = ['reunion', 'llamada', 'pagos']
-    for (const c of enRiesgo) {
-      if (!usedIds.has(c.id)) {
-        pool.push({ cuenta: c, tipo: riesgoRotation[ti++ % riesgoRotation.length] })
-        usedIds.add(c.id)
-      }
-    }
-    ti = 0
-    const obsRotation: TipoActividad[] = ['llamada', 'analisis', 'kam', 'tickets']
-    for (const c of observacion) {
-      if (!usedIds.has(c.id)) {
-        pool.push({ cuenta: c, tipo: obsRotation[ti++ % obsRotation.length] })
-        usedIds.add(c.id)
-      }
-    }
-    ti = 0
-    const sinActRotation: TipoActividad[] = ['llamada', 'reunion', 'pagos']
-    for (const c of sinAct) {
-      if (!usedIds.has(c.id)) {
-        pool.push({ cuenta: c, tipo: sinActRotation[ti++ % sinActRotation.length] })
-        usedIds.add(c.id)
-      }
-    }
-    ti = 0
-    const upsellRotation: TipoActividad[] = ['upsell', 'analisis', 'reunion']
-    for (const c of conUpsell) {
-      if (!usedIds.has(c.id)) {
-        pool.push({ cuenta: c, tipo: upsellRotation[ti++ % upsellRotation.length] })
-        usedIds.add(c.id)
-      }
-    }
-    ti = 0
-    const estabRotation: TipoActividad[] = ['analisis', 'kam', 'llamada', 'tickets', 'pagos', 'analisis', 'kam']
-    for (const c of estables) {
-      if (!usedIds.has(c.id)) {
-        pool.push({ cuenta: c, tipo: estabRotation[ti++ % estabRotation.length] })
-        usedIds.add(c.id)
-      }
-    }
-
-    if (!pool.length && !lunesSeleccion.length)
-      return NextResponse.json({ error: 'No hay cuentas para generar actividades' }, { status: 400 })
+    if (!lunesSeleccion.length)
+      return NextResponse.json({
+        error: 'No hay cuentas elegibles con datos pendientes para este asesor: todas las cuentas activas ya tienen el perfil y el Radar completos.',
+        bloqueadas,
+      }, { status: 400 })
 
     const rows: ActividadRow[] = []
 
-    // ── Lunes: 4 actividades fijas de Completar Perfil + Radar de Cuenta ──────
+    // ── Lunes: hasta 4 actividades de Completar Perfil + Radar de Cuenta ──────
     lunesSeleccion.forEach(({ cuenta, segundaSolicitud }, i) => {
       const hs        = cuenta.health_score
       const semaforo  = hs >= 80 ? 'verde' : hs >= 60 ? 'azul' : hs >= 40 ? 'amarillo' : hs >= 20 ? 'naranja' : 'rojo'
@@ -609,42 +624,9 @@ export async function POST(req: NextRequest) {
       })
     })
 
-    // ── Martes a viernes: rotación normal (12 actividades) ────────────────────
-    let poolIdx = 0
-
-    for (let d = 1; d < 5; d++) {
-      const dia = new Date(monday)
-      dia.setDate(monday.getDate() + d)
-      const fechaProg = toISO(dia)
-      const fechaVenc = toISO(addBusinessDays(dia, 2))
-
-      for (let a = 0; a < 3 && pool.length > 0; a++) {
-        const { cuenta, tipo } = pool[poolIdx % pool.length]
-        const idx = poolIdx
-        poolIdx++
-
-        const hs       = cuenta.health_score
-        const semaforo = hs >= 80 ? 'verde' : hs >= 60 ? 'azul' : hs >= 40 ? 'amarillo' : hs >= 20 ? 'naranja' : 'rojo'
-        const prioridad: Prioridad = tipo === 'validacion' ? 'media' : hs < 40 ? 'alta' : hs < 60 ? 'media' : 'baja'
-
-        rows.push({
-          asesor,
-          cuenta_id:        cuenta.id,
-          cid:              cuenta.cid,
-          consecutivo:      cuenta.consecutivo,
-          empresa:          cuenta.empresa,
-          tipo,
-          descripcion:      buildDescripcion(tipo, hs, semaforo, cuenta.dias_sin_actividad ?? 0, idx, cuenta),
-          prioridad,
-          fecha_programada: fechaProg,
-          fecha_vencimiento:fechaVenc,
-          semana_inicio:    semanaInicio,
-          estado:           'pendiente',
-          semaforo_cuenta:  semaforo,
-          hs_cuenta:        hs,
-        })
-      }
-    }
+    // No se genera nada más. La semana del asesor son EXACTAMENTE estas cuentas
+    // (máx. 4): cerrar sus datos faltantes. No se agregan actividades de
+    // rotación encima — la rotación martes-viernes se retiró el 24 Ago 2026.
 
     const { data: inserted, error: insErr } = await supabaseAdmin
       .from('actividades')
@@ -653,6 +635,22 @@ export async function POST(req: NextRequest) {
 
     if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
 
+    const ahora = new Date().toISOString()
+    await auditar([
+      ...lunesSeleccion.map(({ cuenta, segundaSolicitud }) => ({
+        asesor, semana_inicio: semanaInicio, cuenta_id: cuenta.id, empresa: cuenta.empresa,
+        cid: cuenta.cid, accion: 'creado', codigo: null,
+        motivo: segundaSolicitud ? 'Carry-over: no se completó la semana anterior' : 'Selección semanal por datos faltantes',
+        estatus_detectado: cuenta.estado, creado_en: ahora,
+      })),
+      ...bloqueadas.map(b => ({
+        asesor, semana_inicio: semanaInicio, empresa: b.empresa, cid: b.cid,
+        accion: 'bloqueado', codigo: b.codigo, motivo: b.motivo,
+        campos_faltantes: b.contactoFaltante.length ? b.contactoFaltante.join(', ') : null,
+        creado_en: ahora,
+      })),
+    ])
+
     if (sendEmail) await sendActividadesEmail(asesor, rows as AnyAct[], semanaInicio, testEmail)
 
     return NextResponse.json({
@@ -660,11 +658,12 @@ export async function POST(req: NextRequest) {
       semanaInicio,
       emailEnviado: sendEmail,
       actividades:  inserted,
-      completarPerfil: { // lote fijo del lunes — Perfil + Radar de Cuenta
+      completarPerfil: { // único lote de la semana — Perfil + Radar de Cuenta
         cuentas: lunesSeleccion.length,
         segundaSolicitud: lunesSeleccion.filter(x => x.segundaSolicitud).length,
       },
-      excluidasPorChurn, // cuentas activas/en_riesgo en Supabase pero dormidas en Zoho o en alerta de cancelación — no recibieron actividades
+      excluidasPorChurn, // dormidas en Zoho, en alerta de cancelación o con churn confirmado en GRC-AAA-2026
+      bloqueadas,        // detalle de cada cuenta no elegible y su motivo
       // Integridad de cartera — si vienen con elementos, hay datos que corregir en Supabase:
       conflictosDeAsignacion, // mismo CID con 2+ asesores: nadie recibió actividad, requiere decidir el dueño real
       duplicadasMismoAsesor,  // mismo CID repetido en el mismo asesor: se generó solo una vez
@@ -733,7 +732,7 @@ async function sendActividadesEmail(
                 </div>
                 <p style="margin:0 0 4px;color:#475569;font-size:12px;line-height:1.55;white-space:pre-line">${String(a.descripcion ?? '')}</p>
                 <p style="margin:0;color:#94A3B8;font-size:11px">
-                  Vence: ${dv ? `${DIAS[dv.getDay()]} ${dv.getDate()} ${MESES[dv.getMonth()]}` : '—'} · 3 días hábiles
+                  Vence: ${dv ? `${DIAS[dv.getDay()]} ${dv.getDate()} ${MESES[dv.getMonth()]}` : '—'}
                 </p>
               </div>
             </div>
@@ -752,12 +751,13 @@ async function sendActividadesEmail(
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff">
       <div style="background:#0A1628;padding:24px 28px;border-radius:12px 12px 0 0;border-left:4px solid ${ac.color}">
         <p style="color:#fff;font-size:17px;font-weight:800;margin:0">📋 Actividades SAC — ${ac.fullName}</p>
-        <p style="color:rgba(255,255,255,0.55);font-size:12px;margin:5px 0 0">${fechaLabel} · 15 actividades · Lunes a viernes · 3 por día</p>
+        <p style="color:rgba(255,255,255,0.55);font-size:12px;margin:5px 0 0">${fechaLabel} · ${actividades.length} cuenta(s) · Completar Perfil + Radar · toda la semana</p>
       </div>
       <div style="padding:16px 28px;background:#EFF6FF;border-left:4px solid ${ac.color};border-bottom:1px solid #BFDBFE">
         <p style="margin:0;font-size:13px;color:#1E40AF">
-          Hola <strong>${ac.fullName.split(' ')[0]}</strong>, estas son tus actividades SAC para esta semana.
-          Cada actividad tiene <strong>2 días hábiles</strong> para completarse y se <strong style="color:#DC2626">bloquea automáticamente</strong> si no se registra en ese plazo. Las actividades <strong style="color:#DC2626">⚠️ Completar Perfil</strong> requieren actualizar datos en el sistema tras la interacción.
+          Hola <strong>${ac.fullName.split(' ')[0]}</strong>, esta semana tu objetivo son <strong>estas ${actividades.length} cuenta(s)</strong> — nada más.
+          La tarea es <strong style="color:#DC2626">cerrar los datos que faltan</strong> en cada una: perfil completo y las 12 preguntas del Radar de Cuenta.
+          Tienes <strong>toda la semana</strong> (vence el viernes). El sistema valida los datos al guardar: la actividad no se puede cerrar si siguen faltando.
         </p>
       </div>
       <table style="width:100%;border-collapse:collapse">
@@ -765,7 +765,7 @@ async function sendActividadesEmail(
       </table>
       <div style="padding:16px 28px;background:#F8FAFC;border-top:1px solid #E2E8F0;border-radius:0 0 12px 12px">
         <p style="margin:0;color:#64748B;font-size:12px">
-          ⛔ Las actividades no completadas en <strong>2 días hábiles</strong> quedan en <strong style="color:#EF4444">estado bloqueado</strong> automáticamente.
+          ⛔ Lo que no se cierre esta semana regresa el próximo lunes marcado como <strong style="color:#EF4444">[2ª SOLICITUD]</strong>.
           Registra siempre el motivo en el sistema si no fue posible realizarla.
         </p>
         <p style="margin:8px 0 0;color:#94A3B8;font-size:11px">
