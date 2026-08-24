@@ -953,8 +953,9 @@ export default function ActividadesBtn({
                         Sin actividades esta semana
                       </p>
                       <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
-                        Genera automáticamente las 15 actividades de la semana
-                        (3 por día, L–V) basadas en el estado real de la cartera de <strong>{asesor}</strong>.
+                        Selecciona las <strong>4 cuentas</strong> de la semana para <strong>{asesor}</strong>:
+                        las de mayor prioridad con datos de perfil o Radar pendientes.
+                        Solo cuentas activas — se excluyen dormidas, canceladas y con churn confirmado.
                       </p>
                       <button
                         onClick={() => generar()}

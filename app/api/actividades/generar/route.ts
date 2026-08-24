@@ -40,15 +40,26 @@ function toISO(d: Date): string {
 // genera nada. Antes era fail-open y esa fue la vía por la que cuentas ya
 // dormidas siguieron recibiendo actividades: cuando la conciliación fallaba
 // en silencio, el único filtro que quedaba era el `estado` desactualizado.
-async function getDormidasEnZoho(origin: string): Promise<Set<string> | null> {
+async function getDormidasEnZoho(origin: string, cookie: string | null): Promise<Set<string> | null> {
   const dormidas = new Set<string>()
   try {
+    // La cookie de sesión debe propagarse: /api/facturacion está detrás del
+    // middleware de auth. Sin ella el middleware responde con un redirect al
+    // login, fetch lo sigue y devuelve el HTML de /acceso con status 200 — la
+    // conciliación fallaba en silencio y todas las cuentas pasaban el filtro.
+    // Esa fue la causa real de que cuentas dormidas siguieran recibiendo
+    // actividades pese a existir la conciliación (24 Ago 2026).
     const res = await fetch(`${origin}/api/facturacion?mode=dormidos`, {
-      signal: AbortSignal.timeout(15000),
+      signal:   AbortSignal.timeout(25000),
+      redirect: 'manual',
+      headers:  cookie ? { cookie } : {},
     })
     if (!res.ok) return null
+    if (!(res.headers.get('content-type') ?? '').includes('application/json')) return null
+
     const data = await res.json() as { rows?: Array<{ cuenta_id: number | string | null; matched: boolean }> }
-    for (const r of data.rows ?? []) {
+    if (!Array.isArray(data.rows)) return null
+    for (const r of data.rows) {
       if (r.matched && r.cuenta_id != null) dormidas.add(String(r.cuenta_id))
     }
   } catch (e) {
@@ -403,7 +414,7 @@ export async function POST(req: NextRequest) {
     // 1. Zoho · Dormidas en vivo (ver getDormidasEnZoho arriba)
     // 2. Alertas · Cuentas Cancelación (reporte manual, app/churn/alertas-cancelacion-data.ts),
     //    cruzado por CID ya que esas cuentas aún no tienen cuenta_id de Supabase vinculado.
-    const dormidasZoho = await getDormidasEnZoho(req.nextUrl.origin)
+    const dormidasZoho = await getDormidasEnZoho(req.nextUrl.origin, req.headers.get('cookie'))
 
     // Fail-closed: sin conciliación con Churn no se puede afirmar que ninguna
     // cuenta siga activa, así que no se genera nada.
