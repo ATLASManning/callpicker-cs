@@ -753,7 +753,11 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
                 <p style={{ fontSize: 11, color: TX_LOW, marginBottom: 5 }}>
                   Semanas anteriores <span style={{ opacity: 0.7 }}>· meta {SAC_TARGET_ANTERIOR}</span>
                 </p>
-                <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 44 }}>
+                {/* La altura fija va en la PISTA de cada barra, no en el
+                    contenedor: con height:44 aquí, el contenido (barra +
+                    2 etiquetas ≈ 70px) se desbordaba 26px hacia arriba y
+                    tapaba el título de la sección. */}
+                <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end' }}>
                   {weeks.slice(1).map((w, i) => {
                     // Se escalan y colorean contra la meta que estaba vigente
                     // entonces (15), no contra la actual: mezclarlas pintaría
@@ -761,8 +765,10 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
                     const h  = Math.max(Math.round((w / Math.max(maxPrev, SAC_TARGET_ANTERIOR)) * 40), 3)
                     const bc = (w / SAC_TARGET_ANTERIOR) >= 0.8 ? '#22C55E' : (w / SAC_TARGET_ANTERIOR) >= 0.5 ? '#EAB308' : '#EF4444'
                     return (
-                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                        <div style={{ height: `${h}px`, width: '100%', borderRadius: 3, background: bc }} />
+                      <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <div style={{ height: 40, width: '100%', display: 'flex', alignItems: 'flex-end' }}>
+                          <div style={{ height: `${h}px`, width: '100%', borderRadius: 3, background: bc }} />
+                        </div>
                         <span style={{ fontSize: 11, color: TX_LOW }}>{w}</span>
                         <span style={{ fontSize: 10, color: TX_LOW }}>{weekLabel[i]}</span>
                       </div>
