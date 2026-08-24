@@ -25,6 +25,36 @@ const ACCENT = '#0057FF'
 
 const NIVEL_COLOR = { green: GREEN, amber: AMBER, red: RED }
 
+// ── Enlaces dentro de texto ───────────────────────────────────────────────────
+// Los artículos de Integraciones traen la URL de documentación oficial dentro
+// del propio texto del alcance. Sin esto quedaban como texto muerto: el asesor
+// tenía que copiarlas a mano.
+const RX_URL = /(https?:\/\/\S+)/g
+
+function conEnlaces(texto: string): React.ReactNode {
+  const partes = texto.split(RX_URL)
+  if (partes.length === 1) return texto
+  // Nunca usar RX_URL.test() aquí: al ser global mantiene `lastIndex` entre
+  // llamadas y alternaría true/false sobre la misma cadena.
+  return partes.map((p, i) => {
+    if (!p.startsWith('http')) return <span key={i}>{p}</span>
+    // La puntuación de la frase no forma parte de la URL: se recorta todo lo
+    // final que no sea un carácter válido de URL.
+    const url   = p.replace(/[^\w/=&?#-]+$/, '')
+    const cola  = p.slice(url.length)
+    const label = url.slice(url.indexOf('://') + 3)
+    return (
+      <span key={i}>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+           style={{ color: ACCENT, fontWeight: 600, textDecoration: 'underline', wordBreak: 'break-all' }}>
+          {label}
+        </a>
+        {cola}
+      </span>
+    )
+  })
+}
+
 // ── Íconos por categoría ──────────────────────────────────────────────────────
 const CAT_ICONS: Record<string, React.ElementType> = {
   minutos:      Timer,
@@ -254,7 +284,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
               {s.items.map((item, ii) => (
                 <div key={ii} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 5 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: catColor, flexShrink: 0, marginTop: 7 }} />
-                  <span style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>{item}</span>
+                  <span style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>{conEnlaces(item)}</span>
                 </div>
               ))}
             </div>
@@ -285,7 +315,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
                 <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 8,
                   padding: '8px 12px', borderRadius: 8, background: `${catColor}0A`, border: `1px solid ${catColor}20` }}>
                   <code style={{ fontSize: 13, fontWeight: 800, color: catColor, flexShrink: 0 }}>{a.nombre}</code>
-                  <span style={{ fontSize: 13, color: TX_MID }}>{a.descripcion}</span>
+                  <span style={{ fontSize: 13, color: TX_MID }}>{conEnlaces(a.descripcion)}</span>
                 </div>
               ))}
             </div>

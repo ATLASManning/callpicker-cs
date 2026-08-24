@@ -931,6 +931,115 @@ export const KB: Categoria[] = [
           { texto: 'Para Zapier se requiere habilitar el uso de API y contar con Client ID, Client Secret, Extension IDs.', tipo: 'info' },
         ],
       },
+
+      // ── Catálogo oficial 2026 ────────────────────────────────────────────
+      // Fuente: "APIs e Integraciones Callpicker 2026.pdf". Cada alcance
+      // conserva su URL de documentación oficial — la UI las vuelve clicables.
+      {
+        id: 'integraciones-catalogo-2026',
+        pdfUrl: '/docs/APIs e Integraciones Callpicker 2026.pdf',
+        badge: 'nuevo',
+        titulo: 'Catálogo de Integraciones 2026',
+        descripcion: 'Listado oficial de plataformas integradas con Callpicker, con el alcance exacto de cada flujo y su documentación. Es la referencia a citar cuando un cliente pregunta "¿se integra con…?".',
+        utilidad: 'Responder con precisión qué hace y qué NO hace cada integración antes de comprometer un alcance con el cliente.',
+        subtitulos: [
+          { titulo: 'Zoho CRM', items: [
+            'Todas las llamadas Callpicker se registran en Zoho: busca un registro con el número telefónico y anexa una nota con la información de la llamada. Si no encuentra registro, crea un nuevo Prospecto y lo asigna al usuario Zoho que corresponde con la extensión Callpicker. https://cutt.ly/sw0vfvKR',
+          ]},
+          { titulo: 'Zendesk', items: [
+            'Registrar en Zendesk las llamadas entrantes y salientes de Callpicker como un ticket. https://cutt.ly/NemVlubQ',
+          ]},
+          { titulo: 'HubSpot', items: [
+            '1. Registrar llamadas entrantes y salientes de Callpicker en HubSpot junto con los audios. https://cutt.ly/Beg00ci8',
+            '2. Registrar los contactos de HubSpot en Callpicker para saber quién te llama. https://cutt.ly/ieHpUjcO',
+            '3. Marcador (click2call): realizar llamadas salientes Callpicker desde HubSpot. https://cutt.ly/IeVRs8rr',
+          ]},
+          { titulo: 'Get Sirena', items: [
+            'Las llamadas entrantes y salientes se registran en Get Sirena incluyendo los audios de las llamadas. https://cutt.ly/DeHpYwfe',
+          ]},
+          { titulo: 'Aastra y Mitel', items: [
+            'Directorio de contactos Callpicker en teléfono IP. https://cutt.ly/ZF34uPM',
+          ]},
+          { titulo: 'Bitrix24', items: [
+            'Hacer y recibir llamadas desde Bitrix24 web, aplicación de escritorio o aplicación móvil. Todas las llamadas se registran en Bitrix y los flujos de llamadas y audios se pueden configurar en Bitrix. https://cutt.ly/3vURDWi',
+          ]},
+          { titulo: 'Salesforce', items: [
+            'Las llamadas entrantes y salientes se registran en Salesforce incluyendo los audios de las llamadas. https://cutt.ly/Teg2qUF7',
+          ]},
+          { titulo: 'Odoo', items: [
+            '1. Marcación desde Odoo: permite efectuar llamadas Callpicker desde Odoo mediante la tecnología webRTC de Callpicker. https://cutt.ly/3eg2TSUY',
+            '2. Las llamadas de Callpicker se registran como notas dentro de las oportunidades. https://cutt.ly/veepunf0',
+          ]},
+          { titulo: 'Zapier', items: [
+            'Generar una llamada automáticamente desde Zapier. Útil para que, al recibir un lead en Zapier, se le marque de forma inmediata. https://cutt.ly/make_call',
+          ]},
+          { titulo: 'Upnify (antes SalesUP)', items: [
+            'Las llamadas entrantes y salientes se registran en SalesUP incluyendo los audios de las llamadas. https://cutt.ly/MWhX8Yp',
+          ]},
+          { titulo: 'Kommo', items: [
+            '1. Todas las llamadas de Callpicker se registran en Kommo. https://cutt.ly/IeiITWQB',
+            '2. Sincronizar los contactos de Kommo con Callpicker para ver en Callpicker quién te llama, si ese contacto había sido previamente registrado en Kommo. https://cutt.ly/wwhqLnvP',
+            '3. Click2call: realizar llamadas Callpicker desde el CRM de Kommo. https://cutt.ly/AeeoCZYr',
+          ]},
+          { titulo: 'Pipedrive (a través de Zapier)', items: [
+            'Registrar como notas las llamadas dentro de las Personas. https://cutt.ly/fT6aRNy',
+            'Crear nuevas Personas. https://cutt.ly/sO1nTB2',
+            'Crear nuevos deals. https://cutt.ly/IwJAZq3V',
+          ]},
+          { titulo: 'Monday', items: [
+            '1. Registrar las llamadas de Callpicker dentro de un tablero de Monday.com',
+            '2. Click2call desde Monday',
+          ]},
+          { titulo: 'Zoho Desk', items: [
+            'Creación de tickets en Zoho Desk a partir de llamadas Callpicker. Al ocurrir una llamada se registrará en Zoho Desk dentro de un ticket. Se puede elegir entre crear siempre un ticket o usar tickets abiertos (si existen).',
+          ]},
+          { titulo: 'Clientify', items: [
+            'Registro de llamadas y creación de contactos (leads). https://cutt.ly/xeHpWGea',
+          ]},
+          { titulo: 'Microsoft Teams', items: [
+            'Habilita llamadas entrantes y salientes a la red telefónica pública (PSTN) desde la aplicación de Microsoft Teams de cada usuario, mediante la infraestructura telefónica de Callpicker.',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'Aastra/Mitel, Bitrix24 y Microsoft Teams requieren revisión previa con el área comercial para cotización. No comprometer tiempos ni alcance con el cliente antes de esa revisión.', tipo: 'warning' },
+          { texto: 'Zoho CRM: la asignación automática del Prospecto solo funciona si el nombre de la extensión en Callpicker es EXACTAMENTE el mismo nombre de usuario en Zoho. Es la causa más común de "las llamadas no se asignan a nadie".', tipo: 'warning' },
+          { texto: 'Pipedrive no es una integración nativa: opera a través de Zapier, por lo que hereda los requisitos y límites de esa plataforma.', tipo: 'info' },
+        ],
+      },
+      {
+        id: 'integraciones-gohighlevel',
+        badge: 'nuevo',
+        linkUrl: 'https://callpicker.getoutline.com/s/d05de540-1737-4493-805a-2c1e2c35dddb',
+        linkLabel: 'Documentación GoHighLevel',
+        titulo: 'GoHighLevel',
+        descripcion: 'Integración que mantiene al CRM del cliente como fuente única de verdad: crea contactos automáticamente y deja trazabilidad completa de cada llamada.',
+        subtitulos: [
+          { titulo: 'Alcances', items: [
+            '1. Sincronización automática de leads — Cada vez que se genera una nueva llamada en Callpicker, se crea instantáneamente un nuevo Contacto en la subcuenta de GoHighLevel.',
+            '2. Trazabilidad de llamadas — Cada llamada realizada o recibida queda registrada automáticamente. Como GHL no tiene un objeto nativo de "Llamadas" externo, el flujo se resuelve creando Notas detalladas dentro de la ficha del contacto, con duración, resultado y link a la grabación (si aplica).',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'GoHighLevel no cuenta con un objeto nativo de "Llamadas" para fuentes externas. Si el cliente espera ver un tab de llamadas como en HubSpot o Zoho, hay que alinear esa expectativa desde el inicio: la información vive en Notas dentro del contacto.', tipo: 'warning' },
+        ],
+      },
+      {
+        id: 'integraciones-apis-publicas',
+        pdfUrl: '/docs/APIs e Integraciones Callpicker 2026.pdf',
+        badge: 'nuevo',
+        titulo: 'APIs Públicas Callpicker',
+        descripcion: 'APIs abiertas para que el cliente construya su propia integración cuando no existe una nativa para su plataforma.',
+        utilidad: 'Alternativa a proponer cuando el CRM del cliente no está en el catálogo de integraciones.',
+        apis: [
+          { nombre: 'ICN (Eventos)',      descripcion: 'Webhook o Push API. Por cada llamada entrante o saliente se genera un POST a una URL donde Callpicker notifica, al final de cada llamada, la información de la misma. https://api.callpicker.com/docs/icn.html' },
+          { nombre: 'Marcación (Dial)',   descripcion: 'Dial API: realiza llamadas a través de tu cuenta Callpicker hacia PSTN. https://api.callpicker.com/docs/dial.html' },
+          { nombre: 'Contactos',          descripcion: 'Operaciones de agregar, editar, actualizar y eliminar los contactos de Callpicker. https://api.callpicker.com/docs/contacts.html' },
+          { nombre: 'Click to Call',      descripcion: 'Permite programar un objeto dentro de un sitio o herramienta para detonar llamadas mediante Callpicker. https://docs.google.com/document/u/0/d/e/2PACX-1vQLhTJ2EO744nBP4CdEUhLqapnOA6xHuUPkSa3q0RfPG-Lk6gJiDGehvAN3jc2XFKqpQ-BioHpIK1x7/pub?pli=1' },
+          { nombre: 'Extensiones',        descripcion: 'Agrega, edita, actualiza y elimina extensiones. https://api.callpicker.com/docs/extensions.html' },
+          { nombre: 'Redirecciones',      descripcion: 'Administra redirecciones en Callpicker fácilmente. https://api.callpicker.com/docs/redirections.html' },
+          { nombre: 'Grupos de extensión',descripcion: 'Agrega, edita y elimina Grupos de extensión. https://api.callpicker.com/docs/ring_groups.html' },
+        ],
+      },
     ],
   },
 
