@@ -410,10 +410,10 @@ export async function POST(req: NextRequest) {
     if (cErr || !cuentas?.length)
       return NextResponse.json({ error: 'No se encontraron cuentas para este asesor' }, { status: 404 })
 
-    // Conciliar con Churn — dos fuentes:
+    // Conciliar con Churn — tres fuentes, todas en lib/elegibilidad.ts:
     // 1. Zoho · Dormidas en vivo (ver getDormidasEnZoho arriba)
-    // 2. Alertas · Cuentas Cancelación (reporte manual, lib/churn-cancelaciones-data.ts),
-    //    cruzado por CID ya que esas cuentas aún no tienen cuenta_id de Supabase vinculado.
+    // 2. GRC · AAA 2026 — churn confirmado (app/churn/aaa-grc-data.ts)
+    // 3. Análisis DATA — cancelaciones semanales (lib/churn-cancelados-data.ts)
     const dormidasZoho = await getDormidasEnZoho(req.nextUrl.origin, req.headers.get('cookie'))
 
     // Fail-closed: sin conciliación con Churn no se puede afirmar que ninguna

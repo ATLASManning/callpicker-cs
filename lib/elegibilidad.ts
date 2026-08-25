@@ -13,7 +13,7 @@
  */
 
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
-import { ALERTAS_CANCELACION } from '@/lib/churn-cancelaciones-data'
+import { CLIENTES_CANCELADOS } from '@/lib/churn-cancelados-data'
 
 /** Tope duro de actividades por cuenta y por asesor en una misma semana. */
 export const LIMITE_SEMANAL = 4
@@ -86,18 +86,15 @@ export const NOMBRES_CHURN_GRC: Set<string> = (() => {
   return s
 })()
 
-export const CIDS_CANCELACION: Set<string> = (() => {
-  const s = new Set<string>()
-  for (const a of ALERTAS_CANCELACION) {
-    const cid = String(a.cid ?? '').trim()
-    if (cid && cid !== 's/d') s.add(cid)
-  }
-  return s
-})()
-
+/**
+ * Cancelaciones confirmadas en Churn > Análisis DATA (reportes semanales).
+ * Sustituye al módulo "Alertas · Cancelación", retirado el 24 Ago 2026: esa
+ * información ya vive en los módulos que integran Churn. El cruce es por
+ * nombre porque los reportes semanales no traen CID.
+ */
 export const NOMBRES_CANCELACION: Set<string> = (() => {
   const s = new Set<string>()
-  for (const a of ALERTAS_CANCELACION) s.add(normalizarNombre(a.cliente))
+  for (const c of CLIENTES_CANCELADOS) s.add(normalizarNombre(c.cliente))
   s.delete('')
   return s
 })()
@@ -173,9 +170,7 @@ export function evaluarElegibilidad(
   // 4. Churn confirmado en GRC-AAA-2026 (cruce por nombre: esa fuente no trae CID).
   if (NOMBRES_CHURN_GRC.has(normalizarNombre(c.empresa))) return no('churn_grc')
 
-  // 5. Alerta de cancelación (por CID y por nombre).
-  const cid = String(c.cid ?? '').trim()
-  if (cid && CIDS_CANCELACION.has(cid)) return no('cancelacion')
+  // 5. Cancelación confirmada en los reportes semanales de Churn.
   if (NOMBRES_CANCELACION.has(normalizarNombre(c.empresa))) return no('cancelacion')
 
   // 6. Contacto localizable: nombre, teléfono, correo y cargo con datos reales.

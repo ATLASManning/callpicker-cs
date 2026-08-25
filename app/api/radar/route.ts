@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 import { supabaseAdmin } from '@/lib/supabase'
 import { evaluarRadar, extraerExtensiones, type CorteSerie, type EntradaRadar } from '@/lib/radar'
-import { ALERTAS_CANCELACION } from '@/lib/churn-cancelaciones-data'
+import { NOMBRES_CANCELACION, normalizarNombre } from '@/lib/elegibilidad'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55
@@ -115,8 +115,10 @@ export async function GET(req: NextRequest) {
   const ultimaConversacion = seg?.[0]?.fecha ?? null
 
   /* Churn y alertas */
-  const cidsAlerta = new Set(ALERTAS_CANCELACION.map(a => a.cid))
-  const enAlerta = cid ? cidsAlerta.has(cid) : false
+  // El módulo "Alertas · Cancelación" se retiró el 24 Ago 2026; la señal
+  // ahora viene de las cancelaciones de Churn > Análisis DATA, que se cruzan
+  // por nombre porque esos reportes no traen CID.
+  const enAlerta = NOMBRES_CANCELACION.has(normalizarNombre(cuenta.empresa))
 
   const contactos = Array.isArray(cuenta.contactos_json) ? cuenta.contactos_json.length : 0
   const kamRaw = String(cuenta.observaciones_kam ?? '').trim()
