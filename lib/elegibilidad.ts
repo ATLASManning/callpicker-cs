@@ -30,7 +30,7 @@ export type CodigoBloqueo =
 
 export const MSG: Record<CodigoBloqueo, string> = {
   churn_grc:            'Actividad bloqueada: la cuenta se encuentra en Churn > GRC - AAA - 2026.',
-  cancelacion:          'Actividad bloqueada: la cuenta tiene una alerta de cancelación registrada.',
+  cancelacion:          'Actividad bloqueada: la cuenta aparece como cancelada en Churn > Análisis DATA.',
   dormida:              'Actividad bloqueada: la cuenta tiene estatus Dormida.',
   estado_no_activo:     'Actividad bloqueada: la cuenta no tiene estatus activo.',
   estatus_no_validable: 'Actividad bloqueada: no fue posible validar el estatus de la cuenta.',
