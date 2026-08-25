@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 import { supabaseAdmin } from '@/lib/supabase'
 import { evaluarRadar, extraerExtensiones, type CorteSerie, type EntradaRadar } from '@/lib/radar'
-import { ALERTAS_CANCELACION } from '@/app/churn/alertas-cancelacion-data'
+import { ALERTAS_CANCELACION } from '@/lib/churn-cancelaciones-data'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55

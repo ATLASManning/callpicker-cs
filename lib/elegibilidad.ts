@@ -13,7 +13,7 @@
  */
 
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
-import { ALERTAS_CANCELACION } from '@/app/churn/alertas-cancelacion-data'
+import { ALERTAS_CANCELACION } from '@/lib/churn-cancelaciones-data'
 
 /** Tope duro de actividades por cuenta y por asesor en una misma semana. */
 export const LIMITE_SEMANAL = 4

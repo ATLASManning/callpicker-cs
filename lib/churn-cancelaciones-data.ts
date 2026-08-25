@@ -1,8 +1,17 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   ALERTAS: CUENTAS CANCELACIÓN
+   LISTA DE EXCLUSIÓN — CUENTAS EN CANCELACIÓN
    Fuente: canal Slack #alertas-cuentas-canceladas · bot "SAC · Alerta
    Cuentas Canceladas · n8n". Cada envío diario del bot se registra como un
    REPORTE con su fecha real de cancelación.
+
+   SIN INTERFAZ. El módulo "Alertas · Cancelación" de Churn se retiró el
+   24 Ago 2026 por decisión de negocio: ese tablero no vive en este
+   proyecto. El dataset se conservó y se movió aquí porque NO era solo
+   presentación — alimenta dos reglas de backend:
+     · lib/elegibilidad.ts  → excluye cuentas en cancelación de las
+                              Actividades SAC (por CID y por nombre).
+     · app/api/radar/route.ts → marca cuentas con alerta de cancelación.
+   Borrar este archivo desactiva ambas exclusiones.
 
    Para agregar un nuevo día: añadir un objeto más a REPORTES_CANCELACION.
    NO se modifican los reportes anteriores.

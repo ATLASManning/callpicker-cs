@@ -412,7 +412,7 @@ export async function POST(req: NextRequest) {
 
     // Conciliar con Churn — dos fuentes:
     // 1. Zoho · Dormidas en vivo (ver getDormidasEnZoho arriba)
-    // 2. Alertas · Cuentas Cancelación (reporte manual, app/churn/alertas-cancelacion-data.ts),
+    // 2. Alertas · Cuentas Cancelación (reporte manual, lib/churn-cancelaciones-data.ts),
     //    cruzado por CID ya que esas cuentas aún no tienen cuenta_id de Supabase vinculado.
     const dormidasZoho = await getDormidasEnZoho(req.nextUrl.origin, req.headers.get('cookie'))
 

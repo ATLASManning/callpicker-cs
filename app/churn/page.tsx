@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import PageHeader from '@/components/PageHeader'
 import GrcAaaSection from '@/components/GrcAaaSection'
-import { ALERTAS_CANCELACION, REPORTES_CANCELACION, TICKETS_SIN_IDENTIFICAR, type CuentaAlertaCancelacion } from './alertas-cancelacion-data'
 import CustomSelect from '@/components/CustomSelect'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -11,14 +10,14 @@ import {
   TrendingDown, AlertTriangle, XCircle, ArrowDownRight,
   Clock, DollarSign, BarChart3, CalendarDays, ChevronDown, ChevronUp,
   Plus, Trash2, X, ChevronLeft, ChevronRight, Check, Database, FileBarChart2,
-  RefreshCw, ShieldAlert, ExternalLink, Ticket, Search, ArrowUpDown,
+  RefreshCw,
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════════════════
    TIPOS
 ═══════════════════════════════════════════════════════════════════════ */
 type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
-type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho' | 'aaa' | 'alertas'
+type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho' | 'aaa'
 
 interface ChurnPendiente   { cliente: string; monto: number; mesesActivo: number; ultimaFactura: string }
 interface ChurnCancelado   { cliente: string; mrr: number;   mesesActivo: number; acumulado: number    }
@@ -1328,316 +1327,6 @@ function SemaforoLeyenda() {
   )
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
-   ALERTAS · CUENTAS CANCELACIÓN
-   Reporte manual (canal de alertas) — ver app/churn/alertas-cancelacion-data.ts
-═══════════════════════════════════════════════════════════════════════ */
-type MetricaAlerta = 'ltv' | 'ultimoPago' | 'meses' | 'ltvPorFecha' | 'cuentasPorFecha'
-
-/** Métricas por cuenta (una barra por cliente) */
-const METRICA_ALERTA_CFG: Record<'ltv' | 'ultimoPago' | 'meses', {
-  label: string
-  getValue: (c: CuentaAlertaCancelacion) => number | null
-  fmtValue: (n: number) => string
-  color: string
-}> = {
-  ltv:        { label: 'LTV',                    getValue: c => c.ltv,               fmtValue: fmt,             color: '#7c2d12' },
-  ultimoPago: { label: 'Último Pago ($)',         getValue: c => c.ultimoPagoMonto,   fmtValue: fmt,             color: '#ea580c' },
-  meses:      { label: 'Meses en Callpicker',     getValue: c => c.mesesEnCallpicker, fmtValue: n => `${n} meses`, color: '#f97316' },
-}
-
-/** Métricas agregadas por fecha de cancelación (una barra por día) */
-const METRICA_FECHA_CFG: Record<'ltvPorFecha' | 'cuentasPorFecha', {
-  label: string; fmtValue: (n: number) => string; color: string
-}> = {
-  ltvPorFecha:     { label: 'LTV perdido por fecha',   fmtValue: fmt,                            color: '#b91c1c' },
-  cuentasPorFecha: { label: 'Cuentas por fecha',       fmtValue: n => `${n} cuenta${n !== 1 ? 's' : ''}`, color: '#c2410c' },
-}
-
-const ES_METRICA_FECHA = (m: MetricaAlerta): m is 'ltvPorFecha' | 'cuentasPorFecha' =>
-  m === 'ltvPorFecha' || m === 'cuentasPorFecha'
-
-const fmtFechaCorta = (iso: string) => {
-  const [y, m, d] = iso.split('-')
-  const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-  return `${d} ${MES[Number(m) - 1]}`
-}
-
-/** Columnas ordenables de la tabla de detalle */
-type ColAlerta = 'fechaCancelacion' | 'cliente' | 'cid' | 'ultimoPagoMonto' | 'mesesEnCallpicker' | 'primerPagoFecha' | 'ltv' | 'servicio'
-
-const COLS_ALERTA: Array<{ col: ColAlerta; label: string; align: 'left' | 'right' }> = [
-  { col: 'fechaCancelacion',  label: 'Cancelación', align: 'left'  },
-  { col: 'cliente',           label: 'Cliente',     align: 'left'  },
-  { col: 'cid',               label: 'CID',         align: 'left'  },
-  { col: 'ultimoPagoMonto',   label: 'Último Pago', align: 'right' },
-  { col: 'mesesEnCallpicker', label: 'Meses CP',    align: 'right' },
-  { col: 'primerPagoFecha',   label: 'Primer Pago', align: 'left'  },
-  { col: 'ltv',               label: 'LTV',         align: 'right' },
-  { col: 'servicio',          label: 'Servicio',    align: 'left'  },
-]
-
-function AlertasCancelacionSection() {
-  const [metrica, setMetrica] = useState<MetricaAlerta>('ltv')
-  const [busqueda, setBusqueda] = useState('')
-  const [sort, setSort] = useState<{ col: ColAlerta; dir: 'asc' | 'desc' }>({ col: 'fechaCancelacion', dir: 'desc' })
-  const esPorFecha = ES_METRICA_FECHA(metrica)
-  const cfg = esPorFecha ? METRICA_FECHA_CFG[metrica] : METRICA_ALERTA_CFG[metrica]
-
-  // Click en encabezado: alterna dirección si ya está activa, si no la activa
-  // en el sentido más útil por tipo de dato (numérico/fecha desc, texto asc).
-  const toggleSort = (col: ColAlerta) => setSort(prev =>
-    prev.col === col
-      ? { col, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-      : { col, dir: (col === 'cliente' || col === 'servicio' || col === 'cid') ? 'asc' : 'desc' }
-  )
-
-  const filasTabla = useMemo(() => {
-    const q = busqueda.trim().toLowerCase()
-    const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    const filtradas = q
-      ? ALERTAS_CANCELACION.filter(c =>
-          norm(c.cliente).includes(norm(q)) ||
-          c.cid.toLowerCase().includes(q) ||
-          norm(c.servicio).includes(norm(q)) ||
-          c.fechaCancelacion.includes(q) ||
-          fmtFechaCorta(c.fechaCancelacion).toLowerCase().includes(norm(q)))
-      : [...ALERTAS_CANCELACION]
-
-    const d = sort.dir === 'asc' ? 1 : -1
-    return filtradas.sort((a, b) => {
-      const va = a[sort.col]
-      const vb = b[sort.col]
-      // Los nulos siempre al final, sin importar la dirección
-      if (va == null && vb == null) return 0
-      if (va == null) return 1
-      if (vb == null) return -1
-      if (typeof va === 'number' && typeof vb === 'number') return d * (va - vb)
-      return d * String(va).localeCompare(String(vb), 'es')
-    })
-  }, [busqueda, sort])
-
-  // Agregado por fecha de cancelación — usa las cuentas únicas para no
-  // duplicar el LTV de una cuenta reportada en dos cortes distintos.
-  const porFecha = useMemo(() => {
-    const map = new Map<string, { ltv: number; cuentas: number }>()
-    for (const c of ALERTAS_CANCELACION) {
-      const cur = map.get(c.fechaCancelacion) ?? { ltv: 0, cuentas: 0 }
-      cur.ltv += c.ltv ?? 0
-      cur.cuentas += 1
-      map.set(c.fechaCancelacion, cur)
-    }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [])
-
-  const chartData = useMemo(() => {
-    if (metrica === 'ltvPorFecha')
-      return porFecha.map(([f, v]) => ({ name: fmtFechaCorta(f), value: v.ltv }))
-    if (metrica === 'cuentasPorFecha')
-      return porFecha.map(([f, v]) => ({ name: fmtFechaCorta(f), value: v.cuentas }))
-    const get = METRICA_ALERTA_CFG[metrica].getValue
-    return ALERTAS_CANCELACION
-      .map(c => ({ name: c.cliente, value: get(c) }))
-      .filter((d): d is { name: string; value: number } => d.value !== null)
-      .sort((a, b) => b.value - a.value)
-  }, [metrica, porFecha])
-
-  const totalLtv        = ALERTAS_CANCELACION.reduce((s, c) => s + (c.ltv ?? 0), 0)
-  const conDatosFaltantes = ALERTAS_CANCELACION.filter(c => c.ltv === null || c.mesesEnCallpicker === null).length
-  const fechas          = porFecha.map(([f]) => f)
-  const rangoFechas     = fechas.length
-    ? `${fmtFechaCorta(fechas[0])} – ${fmtFechaCorta(fechas[fechas.length - 1])}`
-    : '—'
-  const repeticiones = REPORTES_CANCELACION.reduce((s, r) => s + r.cuentas.length, 0) - ALERTAS_CANCELACION.length
-
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#7c2d1215' }}>
-          <ShieldAlert size={16} style={{ color: '#7c2d12' }} />
-        </div>
-        <div className="flex-1">
-          <h3 className="font-bold text-gray-900 text-sm">Alertas · Cuentas Canceladas</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Canal #alertas-cuentas-canceladas · {REPORTES_CANCELACION.length} reportes · {rangoFechas}
-            {repeticiones > 0 && ` · ${repeticiones} repetición(es) descontada(s)`}
-          </p>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard icon={ShieldAlert}   label="Cuentas canceladas"  value={String(ALERTAS_CANCELACION.length)} sub={`${rangoFechas} · sin duplicados`} color="#7c2d12" />
-        <KpiCard icon={DollarSign}    label="LTV total perdido"   value={fmt(totalLtv)}         sub="suma de LTV conocido"  color={ORANGE} />
-        <KpiCard icon={AlertTriangle} label="Con datos faltantes" value={String(conDatosFaltantes)} sub="sin LTV o antigüedad" color={RED} />
-        <KpiCard icon={Ticket}        label="Tickets sin asociar" value={String(TICKETS_SIN_IDENTIFICAR)} sub="revisar en Zoho Desk" color={AMBER} />
-      </div>
-
-      {/* Gráfico + selector de métrica */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-          <div>
-            <h4 className="font-bold text-gray-900 text-sm">
-              {esPorFecha ? 'Evolución por fecha de cancelación' : 'Comparativa por cuenta'}
-            </h4>
-            <p className="text-xs text-gray-500 mt-0.5">Elige qué dato analizar en el gráfico</p>
-          </div>
-          <div style={{ minWidth: 240 }}>
-            <CustomSelect
-              value={metrica}
-              onChange={v => setMetrica(v as MetricaAlerta)}
-              options={[
-                { value: 'ltv',             label: 'Por cuenta · LTV' },
-                { value: 'ultimoPago',      label: 'Por cuenta · Último Pago ($)' },
-                { value: 'meses',           label: 'Por cuenta · Meses en Callpicker' },
-                { value: 'ltvPorFecha',     label: 'Por fecha · LTV perdido' },
-                { value: 'cuentasPorFecha', label: 'Por fecha · Nº de cuentas' },
-              ]}
-              className="cp-select text-xs"
-            />
-          </div>
-        </div>
-        <ResponsiveContainer width="100%" height={Math.max(220, chartData.length * 32)}>
-          <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 60, left: 10, bottom: 0 }}>
-            <CartesianGrid horizontal={false} stroke="#F3E8DD" />
-            <XAxis type="number" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="name" tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} width={esPorFecha ? 70 : 170} />
-            <Tooltip formatter={(v: number) => cfg.fmtValue(v)} cursor={{ fill: 'rgba(124,45,18,0.06)' }} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={esPorFecha ? 26 : 18} fill={cfg.color} />
-          </BarChart>
-        </ResponsiveContainer>
-        {!esPorFecha && chartData.length < ALERTAS_CANCELACION.length && (
-          <p className="text-[11px] text-gray-400 mt-2">
-            {ALERTAS_CANCELACION.length - chartData.length} cuenta(s) sin dato de &quot;{cfg.label}&quot; — no se muestran en el gráfico.
-          </p>
-        )}
-      </div>
-
-      {/* Tabla de cuentas */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <h4 className="font-bold text-gray-900 text-sm">Detalle de cuentas</h4>
-            <p className="text-[11px] text-gray-400 mt-0.5">
-              Haz clic en un encabezado para ordenar · {filasTabla.length} de {ALERTAS_CANCELACION.length} cuenta{ALERTAS_CANCELACION.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          {/* Buscador */}
-          <div className="relative" style={{ minWidth: 260 }}>
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <input
-              value={busqueda}
-              onChange={e => setBusqueda(e.target.value)}
-              placeholder="Buscar cliente, CID, servicio o fecha…"
-              className="w-full text-xs rounded-lg border border-gray-200 bg-white py-2 pl-8 pr-8
-                         focus:outline-none focus:ring-2 focus:ring-orange-500/25 focus:border-orange-400"
-              style={{ color: '#0F172A' }}
-            />
-            {busqueda && (
-              <button
-                onClick={() => setBusqueda('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
-                aria-label="Limpiar búsqueda"
-              >
-                <X size={13} />
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100">
-                {COLS_ALERTA.map(({ col, label, align }) => {
-                  const activa = sort.col === col
-                  return (
-                    <th key={col} className="p-0">
-                      <button
-                        onClick={() => toggleSort(col)}
-                        className={`w-full flex items-center gap-1 py-2.5 px-3 font-semibold uppercase tracking-wide text-[10px]
-                          transition-colors whitespace-nowrap ${align === 'right' ? 'justify-end' : ''}
-                          ${activa ? '' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100/70'}`}
-                        style={activa ? { background: '#7c2d1212', color: '#7c2d12' } : undefined}
-                      >
-                        {label}
-                        {activa
-                          ? (sort.dir === 'asc'
-                              ? <ChevronUp size={11} style={{ color: '#7c2d12' }} />
-                              : <ChevronDown size={11} style={{ color: '#7c2d12' }} />)
-                          : <ArrowUpDown size={9} className="text-gray-300" />}
-                      </button>
-                    </th>
-                  )
-                })}
-                <th className="text-left py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px]">Ticket</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filasTabla.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="py-10 text-center text-gray-400 text-xs">
-                    Sin resultados para &quot;{busqueda}&quot;
-                  </td>
-                </tr>
-              )}
-              {filasTabla.map((c, i) => (
-                <tr key={`${c.cid}-${i}`} className="border-b border-gray-100 hover:bg-gray-50/40 transition-colors align-top">
-                  <td className="py-2.5 px-3 whitespace-nowrap">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold"
-                      style={{ background: '#7c2d1212', color: '#7c2d12' }}>
-                      {fmtFechaCorta(c.fechaCancelacion)}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 font-semibold text-gray-900">
-                    {c.cliente}
-                    {c.notaEspecial && (
-                      <div className="flex items-start gap-1 mt-1 text-[10px] text-amber-600 font-normal max-w-[220px]">
-                        <AlertTriangle size={10} className="flex-shrink-0 mt-0.5" /> {c.notaEspecial}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-2.5 px-3 text-gray-500 font-mono">{c.cid}</td>
-                  <td className="py-2.5 px-3 text-right text-gray-700">
-                    {c.ultimoPagoMonto != null ? (
-                      <>
-                        {fmt(c.ultimoPagoMonto)}
-                        {c.ultimoPagoFecha && <span className="block text-[10px] text-gray-400">{c.ultimoPagoFecha}</span>}
-                      </>
-                    ) : <span className="text-gray-300">sin registro</span>}
-                  </td>
-                  <td className="py-2.5 px-3 text-right text-gray-700">
-                    {c.mesesEnCallpicker ?? <span className="text-gray-300">—</span>}
-                  </td>
-                  <td className="py-2.5 px-3 text-gray-500">
-                    {c.primerPagoFecha ?? <span className="text-gray-300">sin dato</span>}
-                  </td>
-                  <td className="py-2.5 px-3 text-right font-semibold" style={{ color: c.ltv != null ? '#7c2d12' : '#D1D5DB' }}>
-                    {c.ltv != null ? fmt(c.ltv) : 'sin dato'}
-                  </td>
-                  <td className="py-2.5 px-3 text-gray-600 max-w-[200px]">{c.servicio}</td>
-                  <td className="py-2.5 px-3">
-                    {c.ticketUrl ? (
-                      <a href={c.ticketUrl} target="_blank" rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-cp hover:underline">
-                        <ExternalLink size={11} /> Ver
-                      </a>
-                    ) : <span className="text-gray-300">—</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <p className="text-[11px] text-gray-400 text-center">
-        Fuente: canal Slack #alertas-cuentas-canceladas (bot n8n) · {REPORTES_CANCELACION.length} reportes entre {rangoFechas} · LTV totales verificados contra la suma de cada corte
-      </p>
-    </div>
-  )
-}
-
 function DowngradeRow({ d }: { d: ChurnDowngrade }) {
   const [open, setOpen] = useState(false)
   return (
@@ -2146,7 +1835,7 @@ export default function ChurnPage() {
   // Análisis DATA (selector de períodos + KPIs + su tab-bar) se oculta por
   // completo para que el contenido de la sección se despliegue solo, sin
   // mezclarse con datos de otro contexto.
-  const SECCIONES_SUBMENU: Tab[] = ['zoho', 'aaa', 'alertas']
+  const SECCIONES_SUBMENU: Tab[] = ['zoho', 'aaa']
   const enSeccionSubmenu = SECCIONES_SUBMENU.includes(tab)
 
   const acumuladoCancelados = useMemo<Array<ChurnCancelado & { periodo: string }>>(() => {
@@ -2271,14 +1960,6 @@ export default function ChurnPage() {
             icon={<span style={{ fontSize: 13, lineHeight: 1 }}>⭐</span>}
             label="GRC · AAA 2026"
             bg="#4c1d95"
-          />
-          <SidebarAccesoBtn
-            active={tab === 'alertas'}
-            onClick={() => setTab('alertas')}
-            icon={<ShieldAlert size={14} />}
-            label="Alertas · Cancelación"
-            bg="#7c2d12"
-            badge={ALERTAS_CANCELACION.length}
           />
           <SidebarAccesoBtn
             active={false}
@@ -3124,7 +2805,6 @@ export default function ChurnPage() {
         {tab === 'aaa' && <GrcAaaSection />}
 
         {/* ── ALERTAS · CUENTAS CANCELACIÓN ────────────────────────── */}
-        {tab === 'alertas' && <AlertasCancelacionSection />}
 
         {/* ── ZOHO · DORMIDOS EN VIVO ──────────────────────────────── */}
         {tab === 'zoho' && (
