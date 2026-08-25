@@ -24,6 +24,7 @@ import { KOMBITEC }              from './kombitec-data'
 import { NERUC_SEDE_CENTRAL }   from './neruc-sede-central-data'
 import { JASON_DE_MEXICO }      from './jason-de-mexico-data'
 import { GWEP }                  from './gwep-data'
+import { MINT_CARGO }            from './mint-cargo-data'
 import type { AuditoriaCase } from './types'
 
 export const STATIC_CASES: AuditoriaCase[] = [
@@ -32,7 +33,7 @@ export const STATIC_CASES: AuditoriaCase[] = [
   BRANDGROUP, CINTAS_COVE, CLICKBALANCE, ELERY_BRANDS,
   HOSPITAL_SANTA_ROSA, TRAVELLING, POLAK_GRUPO, PUBSA,
   DENTAL_DISTRICT, MEDICALL_EXPERT, VAEO_BUSINESS_CLUB, KOMBITEC,
-  NERUC_SEDE_CENTRAL, JASON_DE_MEXICO, GWEP,
+  NERUC_SEDE_CENTRAL, JASON_DE_MEXICO, GWEP, MINT_CARGO,
 ]
 
 export const STATIC_CASE_IDS: ReadonlySet<string> = new Set(STATIC_CASES.map(c => c.id))

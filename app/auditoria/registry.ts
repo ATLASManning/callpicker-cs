@@ -35,6 +35,7 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'hospital-santa-rosa', nombre: 'Hospital Santa Rosa',          consecutivos: ['C4']  },
   { id: 'travelling',      nombre: 'Travelling / Grupo Mundo Joven',   consecutivos: ['C16'] },
   { id: 'dental-district', nombre: 'Dental District',                  consecutivos: ['Z54'] },
+  { id: 'mint-cargo',      nombre: 'MINT CARGO',                       consecutivos: ['Z58'] },
   // ── Dan ───────────────────────────────────────────────────────────────────
   { id: 'salud-y-hogar',   nombre: 'Salud y Hogar',                    consecutivos: ['D3']  },
   { id: 'cintascove',      nombre: 'Cintas Cove S.A. de C.V.',         consecutivos: ['D14'] },
