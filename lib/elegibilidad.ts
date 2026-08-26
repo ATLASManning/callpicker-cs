@@ -27,6 +27,7 @@ export type CodigoBloqueo =
   | 'contacto_incompleto'
   | 'limite_semanal'
   | 'fuera_de_lunes'
+  | 'exclusion_manual'
 
 export const MSG: Record<CodigoBloqueo, string> = {
   churn_grc:            'Actividad bloqueada: la cuenta se encuentra en Churn > GRC - AAA - 2026.',
@@ -37,7 +38,25 @@ export const MSG: Record<CodigoBloqueo, string> = {
   contacto_incompleto:  'Completa nombre, teléfono, correo y cargo del contacto antes de iniciar una actividad.',
   limite_semanal:       `Límite semanal alcanzado: esta cuenta ya tiene ${LIMITE_SEMANAL} actividades para la semana actual.`,
   fuera_de_lunes:       'Las actividades SAC solo se generan los lunes.',
+  exclusion_manual:     'Actividad bloqueada: la cuenta fue retirada del programa SAC por instrucción de dirección.',
 }
+
+/**
+ * Exclusiones manuales del programa SAC — cuentas que siguen en cartera pero
+ * NO deben recibir actividades, por decisión de dirección. Cada entrada
+ * documenta quién la pidió y por qué, para poder revisarla después.
+ * El cruce es por nombre normalizado (normalizarNombre).
+ */
+const EXCLUSIONES_SAC: Array<{ nombre: string; razon: string }> = [
+  {
+    nombre: 'Pitahaya',
+    razon:  '25 Ago 2026 · Fátima vía Slack, confirmado por dirección: downgrade en junio a CE 60 minutos — dejó de ser cuenta TOP/AAA. Pasa a seguimiento de retención, fuera del ritual SAC.',
+  },
+]
+
+const NOMBRES_EXCLUSION_MANUAL: Set<string> = new Set(
+  EXCLUSIONES_SAC.map(e => normalizarNombre(e.nombre))
+)
 
 /** Normaliza un nombre de empresa para cruzarlo entre fuentes sin CID común. */
 export function normalizarNombre(s: string | null | undefined): string {
@@ -153,6 +172,9 @@ export function evaluarElegibilidad(
   const ok = (): ResultadoElegibilidad => ({ elegible: true, codigo: null, motivo: null, contactoFaltante: [] })
   const no = (codigo: CodigoBloqueo, contactoFaltante: string[] = []): ResultadoElegibilidad =>
     ({ elegible: false, codigo, motivo: MSG[codigo], contactoFaltante })
+
+  // 0. Exclusión manual por dirección — aplica a TODOS los tipos de actividad.
+  if (NOMBRES_EXCLUSION_MANUAL.has(normalizarNombre(c.empresa))) return no('exclusion_manual')
 
   // 1. Conciliación con Churn indisponible → no se puede afirmar que está activa.
   if (dormidasZoho === null) return no('estatus_no_validable')
