@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 
 export type SelectOption = string | { value: string; label: string }
 
@@ -11,7 +11,12 @@ interface Props {
   style?: React.CSSProperties
   disabled?: boolean
   placeholder?: string
+  /** Muestra un buscador dentro del menú — para listas largas (p.ej. clientes). */
+  searchable?: boolean
 }
+
+const normBusq = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 function getValue(opt: SelectOption): string {
   return typeof opt === 'string' ? opt : opt.value
@@ -27,9 +32,20 @@ function getLabel(opt: SelectOption): string {
  * blanco por defecto del menú). Este componente controla el popup con React
  * para garantizar contraste consistente en cualquier tema.
  */
-export default function CustomSelect({ value, onChange, options, className = '', style, disabled = false, placeholder }: Props) {
+export default function CustomSelect({ value, onChange, options, className = '', style, disabled = false, placeholder, searchable = false }: Props) {
   const [open, setOpen] = useState(false)
+  const [busqueda, setBusqueda] = useState('')
   const ref = useRef<HTMLDivElement>(null)
+
+  // Con listas largas (clientes/CID) renderizar 2,600 botones por tecleo es
+  // lento: se filtra por búsqueda y se recorta el render a 200 visibles.
+  const visibles = useMemo(() => {
+    if (!searchable || busqueda.trim() === '') return options
+    const q = normBusq(busqueda.trim())
+    return options.filter(o => normBusq(getLabel(o)).includes(q))
+  }, [options, busqueda, searchable])
+  const LIMITE = 200
+  const recortadas = searchable ? visibles.slice(0, LIMITE) : visibles
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -73,10 +89,34 @@ export default function CustomSelect({ value, onChange, options, className = '',
             background: '#ffffff',
             borderColor: '#E2E8F0',
             boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-            maxHeight: '220px',
+            maxHeight: '260px',
+            minWidth: searchable ? 240 : undefined,
           }}
         >
-          {options.map(opt => {
+          {searchable && (
+            <div style={{ position: 'sticky', top: 0, background: '#ffffff', padding: 8, borderBottom: '1px solid #E2E8F0' }}>
+              <input
+                autoFocus
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar…"
+                style={{
+                  width: '100%', boxSizing: 'border-box', padding: '6px 10px',
+                  borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 12.5,
+                  color: '#0F172A', background: '#F8FAFC', outline: 'none',
+                }}
+              />
+              {visibles.length > LIMITE && (
+                <p style={{ margin: '5px 0 0', fontSize: 10.5, color: '#94A3B8' }}>
+                  {visibles.length.toLocaleString('es-MX')} coincidencias — escribe más para acotar
+                </p>
+              )}
+              {visibles.length === 0 && (
+                <p style={{ margin: '5px 0 0', fontSize: 10.5, color: '#94A3B8' }}>Sin coincidencias.</p>
+              )}
+            </div>
+          )}
+          {recortadas.map(opt => {
             const v = getValue(opt)
             const label = getLabel(opt)
             const isSelected = v === value
@@ -84,7 +124,7 @@ export default function CustomSelect({ value, onChange, options, className = '',
               <button
                 key={v}
                 type="button"
-                onClick={() => { onChange(v); setOpen(false) }}
+                onClick={() => { onChange(v); setOpen(false); setBusqueda('') }}
                 className="w-full text-left capitalize"
                 style={{
                   padding: '8px 12px',

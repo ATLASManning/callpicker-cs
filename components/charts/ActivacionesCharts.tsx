@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Legend,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, BarChart,
@@ -186,13 +186,14 @@ function TTBar({active,payload,label,colorMap}:any) {
 
 // ── Select de filtro ──────────────────────────────────────────────────────────
 function FilterSelect({
-  label, value, onChange, options,
+  label, value, onChange, options, searchable = false,
 }: {
   label: string; value: string; onChange:(v:string)=>void; options:{value:string;label:string}[]
+  searchable?: boolean
 }) {
   const active = value !== 'todos'
   return (
-    <div style={{display:'flex',flexDirection:'column',gap:4,minWidth:140}}>
+    <div style={{display:'flex',flexDirection:'column',gap:4,minWidth:140,maxWidth:searchable?230:undefined}}>
       <label style={{fontSize:10,fontWeight:700,color:TX_LOW,textTransform:'uppercase',letterSpacing:'0.08em'}}>
         {label}
       </label>
@@ -200,6 +201,7 @@ function FilterSelect({
         value={value}
         onChange={onChange}
         options={options}
+        searchable={searchable}
         style={{
           padding:'7px 10px', borderRadius:8, fontSize:12, fontWeight:600,
           background: active ? `${ACCENT}18` : '#F0F7FF',
@@ -208,6 +210,73 @@ function FilterSelect({
           outline:'none',
         }}
       />
+    </div>
+  )
+}
+
+// ── Ficha completa del cliente (todas las columnas del archivo) ───────────────
+interface CampoValor { campo: string; valor: string }
+interface RegistroDetalle { cid: string; cliente: string; campos: CampoValor[] }
+
+function FichaCliente({ cid, cliente }: { cid: string; cliente: string }) {
+  const [data, setData]   = useState<{ registros: RegistroDetalle[]; columnasArchivo: number } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let vivo = true
+    setData(null); setError(null)
+    const qs = cid !== 'todos' ? `cid=${encodeURIComponent(cid)}` : `cliente=${encodeURIComponent(cliente)}`
+    fetch(`/api/activaciones/detalle?${qs}`)
+      .then(r => r.json())
+      .then(d => { if (!vivo) return; d.error ? setError(d.error) : setData(d) })
+      .catch(e => vivo && setError(String(e)))
+    return () => { vivo = false }
+  }, [cid, cliente])
+
+  const LARGOS = new Set(['Comentarios Encuesta', 'contacto'])
+
+  return (
+    <div style={{ padding:'18px 20px', borderRadius:14, background:'#FFFFFF', border:`1px solid ${BORDER}` }}>
+      <p style={{ fontSize:13, fontWeight:800, color:TX, marginBottom:4 }}>
+        Ficha del cliente — detalle completo del archivo
+      </p>
+      {!data && !error && <p style={{ fontSize:12, color:TX_LOW }}>Cargando detalles…</p>}
+      {error && <p style={{ fontSize:12, color:'#DC2626' }}>{error}</p>}
+      {data && data.registros.length === 0 && (
+        <p style={{ fontSize:12, color:TX_MID }}>Sin registros en el archivo para esta selección.</p>
+      )}
+      {data && data.registros.map((r, i) => (
+        <div key={`${r.cid}-${i}`} style={{ marginTop: i === 0 ? 10 : 18, paddingTop: i === 0 ? 0 : 16,
+          borderTop: i === 0 ? 'none' : `1px dashed ${BORDER}` }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap' }}>
+            <span style={{ fontSize:13.5, fontWeight:800, color:TX }}>{r.cliente}</span>
+            <span style={{ fontSize:11, fontWeight:800, fontFamily:'monospace', color:ACCENT,
+              background:`${ACCENT}14`, border:`1px solid ${ACCENT}30`, padding:'2px 9px', borderRadius:99 }}>
+              CID {r.cid}
+            </span>
+            {data.registros.length > 1 && (
+              <span style={{ fontSize:10.5, color:TX_LOW }}>registro {i + 1} de {data.registros.length}</span>
+            )}
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'8px 18px' }}>
+            {r.campos.filter(c => !LARGOS.has(c.campo) && c.campo !== 'ID' && c.campo !== 'Cliente').map(c => (
+              <div key={c.campo} style={{ minWidth:0 }}>
+                <p style={{ fontSize:9.5, fontWeight:700, color:TX_LOW, textTransform:'uppercase',
+                  letterSpacing:'0.06em', marginBottom:1 }}>{c.campo}</p>
+                <p style={{ fontSize:12.5, color:TX, fontWeight:600, overflowWrap:'break-word' }}>{c.valor}</p>
+              </div>
+            ))}
+          </div>
+          {r.campos.filter(c => LARGOS.has(c.campo)).map(c => (
+            <div key={c.campo} style={{ marginTop:12, padding:'10px 13px', background:'#F8FAFC',
+              border:`1px solid ${BORDER}`, borderRadius:9 }}>
+              <p style={{ fontSize:9.5, fontWeight:700, color:TX_LOW, textTransform:'uppercase',
+                letterSpacing:'0.06em', marginBottom:4 }}>{c.campo}</p>
+              <p style={{ fontSize:12.5, color:TX_MID, lineHeight:1.65, whiteSpace:'pre-wrap' }}>{c.valor}</p>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }
@@ -221,8 +290,18 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
   const [selTam,   setSelTam]   = useState('todos')
   const [selGiro,  setSelGiro]  = useState('todos')
   const [selMes,   setSelMes]   = useState('todos')
+  const [selCli,   setSelCli]   = useState('todos')
+  const [selCid,   setSelCid]   = useState('todos')
 
   // Opciones únicas para los selects
+  const optsCli = useMemo(() =>
+    [{value:'todos',label:'Todos los clientes'},
+     ...Array.from(new Set(registros.map(r=>r.cliente))).sort((a,b)=>a.localeCompare(b,'es')).map(v=>({value:v,label:v}))], [registros])
+  const optsCid = useMemo(() =>
+    [{value:'todos',label:'Todos los CID'},
+     ...Array.from(new Map(registros.map(r=>[r.id, r.cliente])).entries())
+       .sort((a,b)=>Number(b[0])-Number(a[0]))
+       .map(([id,cli])=>({value:id,label:`${id} · ${cli}`}))], [registros])
   const optsEjec = useMemo(() =>
     [{value:'todos',label:'Todos los ejecutivos'},
      ...Array.from(new Set(registros.map(r=>r.ejecutivo))).sort().map(v=>({value:v,label:v}))], [registros])
@@ -243,6 +322,8 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
 
   // Filtrado combinado
   const filtered = useMemo(() => registros.filter(r => {
+    if (selCli  !== 'todos' && r.cliente   !== selCli)  return false
+    if (selCid  !== 'todos' && r.id        !== selCid)  return false
     if (selAno  !== 'todos' && r.ano      !== selAno)  return false
     if (selEjec !== 'todos' && r.ejecutivo !== selEjec) return false
     if (selVnd  !== 'todos' && r.vendedor  !== selVnd)  return false
@@ -250,7 +331,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
     if (selGiro !== 'todos' && r.giro      !== selGiro) return false
     if (selMes  !== 'todos' && r.mes       !== selMes)  return false
     return true
-  }), [registros,selAno,selEjec,selVnd,selTam,selGiro,selMes])
+  }), [registros,selCli,selCid,selAno,selEjec,selVnd,selTam,selGiro,selMes])
 
   const total    = filtered.length
   const totalFac = filtered.reduce((s,r)=>s+r.primerPago,0)
@@ -270,9 +351,9 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
   }).slice(0,20),[filtered])
 
   const maxFacMes = Math.max(...porMes.map(m=>m.fac),1)
-  const activeFilters = [selEjec,selVnd,selTam,selGiro,selMes].filter(f=>f!=='todos').length + (selAno!=='todos'?1:0)
+  const activeFilters = [selCli,selCid,selEjec,selVnd,selTam,selGiro,selMes].filter(f=>f!=='todos').length + (selAno!=='todos'?1:0)
 
-  const resetAll = () => { setSelAno('todos'); setSelEjec('todos'); setSelVnd('todos'); setSelTam('todos'); setSelGiro('todos'); setSelMes('todos') }
+  const resetAll = () => { setSelCli('todos'); setSelCid('todos'); setSelAno('todos'); setSelEjec('todos'); setSelVnd('todos'); setSelTam('todos'); setSelGiro('todos'); setSelMes('todos') }
 
   return (
     <div style={{display:'flex',flexDirection:'column',gap:24}}>
@@ -316,8 +397,10 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
           ))}
         </div>
 
-        {/* Fila 2: Selects */}
+        {/* Fila 2: Selects — Cliente y CID con buscador, al frente */}
         <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+          <FilterSelect label="Cliente"   value={selCli}  onChange={setSelCli}  options={optsCli}  searchable />
+          <FilterSelect label="CID"       value={selCid}  onChange={setSelCid}  options={optsCid}  searchable />
           <FilterSelect label="Mes"       value={selMes}  onChange={setSelMes}  options={optsMes}  />
           <FilterSelect label="Ejecutivo" value={selEjec} onChange={setSelEjec} options={optsEjec} />
           <FilterSelect label="Vendedor"  value={selVnd}  onChange={setSelVnd}  options={optsVnd}  />
@@ -333,6 +416,11 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
           </p>
         )}
       </div>
+
+      {/* ── Ficha completa al seleccionar Cliente o CID ──────────────────── */}
+      {(selCli !== 'todos' || selCid !== 'todos') && (
+        <FichaCliente cid={selCid} cliente={selCli} />
+      )}
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       <div style={{display:'flex',gap:16}}>
