@@ -190,8 +190,9 @@ function AvisoMigracion() {
         <AlertTriangle size={15} /> Falta correr la migración de base de datos
       </p>
       <p style={{ margin: '6px 0 0', fontSize: 12.5, color: '#92400E', lineHeight: 1.6 }}>
-        Las tablas del módulo aún no existen. Corre <code style={{ background: '#FDE68A', padding: '1px 6px', borderRadius: 4 }}>scripts/migracion-whatsapp.sql</code> en
-        Supabase → SQL Editor. Incluye los triggers que hacen los mensajes inmutables.
+        Las tablas del módulo aún no existen. Abre el archivo <code style={{ background: '#FDE68A', padding: '1px 6px', borderRadius: 4 }}>scripts/migracion-whatsapp.sql</code> del
+        proyecto, <strong>copia todo su contenido</strong> y pégalo en Supabase → SQL Editor → Run.
+        (Pegar solo el nombre del archivo da un error de sintaxis.) Incluye los triggers que hacen los mensajes inmutables.
       </p>
     </div>
   )
