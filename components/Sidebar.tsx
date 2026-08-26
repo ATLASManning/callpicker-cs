@@ -7,7 +7,7 @@ import {
   Settings, ChevronRight, Phone, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
-  Archive, BarChart2,
+  Archive, BarChart2, MessageCircle,
 } from 'lucide-react'
 import type { SessionPayload } from '@/lib/auth'
 
@@ -65,6 +65,7 @@ const NAV: NavEntry[] = [
   { href: '/reuniones',       label: 'Reuniones',         icon: CalendarDays },
   { href: '/tickets',         label: 'Tickets',           icon: Ticket },
   { href: '/upsell',          label: 'Upsell / Cross',    icon: TrendingUp },
+  { href: '/whatsapp',        label: 'WhatsApp',          icon: MessageCircle },
 ]
 
 // ── NavLink simple ────────────────────────────────────────────────────────────
