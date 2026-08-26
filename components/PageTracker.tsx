@@ -15,7 +15,6 @@ const SECTION_MAP: Array<[string, string]> = [
   ['/churn',             'Churn'],
   ['/facturacion',       'Facturación'],
   ['/customer-tenure',   'Customer Tenure'],
-  ['/whatsapp',          'WhatsApp'],
   ['/reuniones',         'Reuniones'],
   ['/tickets',           'Tickets'],
   ['/upsell',            'Upsell / Cross'],
