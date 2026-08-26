@@ -1050,9 +1050,11 @@ export default async function DashboardPage() {
         <SACWeeklyPanel asesores={asesorStats} segsMap={segsMap} />
       </div>
 
+      {/* ══ §1b Top Cuentas · Ranking Versátil ════════════════════════════ */}
+      <TopCuentasVersatil data={rankRows} />
+
       {/* ══ §2 Alertas Críticas · datos faltantes y sin contacto ══════════ */}
       <DashAlertasCriticas cuentas={alertasCriticas} totalCuentas={cuentas.length} />
-      <TopCuentasVersatil data={rankRows} />
 
       {/* ══ §3 Diagnóstico de Perfiles ════════════════════════════════════ */}
       <div className="px-6 pb-5">
