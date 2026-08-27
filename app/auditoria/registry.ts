@@ -25,6 +25,7 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'azyco',           nombre: 'Azyco Guadalajara',                consecutivos: ['F6']  },
   { id: 'polak-grupo',     nombre: 'Polak Grupo',                      consecutivos: ['F5']  },
   { id: 'pubsa',           nombre: 'Publicidad en Buscadores (AdCentral)', consecutivos: ['F17'] },
+  { id: 'li-financiera',   nombre: 'LI FINANCIERA',                    consecutivos: ['F61'] },
   // ── Claudia ───────────────────────────────────────────────────────────────
   { id: 'agua-inmaculada', nombre: 'Agua Inmaculada',                  consecutivos: ['C17'] },
   { id: 'labsus',          nombre: 'LABSUS Centro Diagnóstico',        consecutivos: ['C37'] },
