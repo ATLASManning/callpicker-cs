@@ -32,7 +32,8 @@ export const SOFIA: AuditoriaCase = {
   resumen_ejecutivo:
     'Sofia (F66) es la cuenta madre viva de un grupo de 3 subcuentas con $11,744 de MRR — el mismo grupo que el 28 de agosto canceló sus 2 cuentas a nombre de RDS ELITE CONDOS PDC (auditadas por separado en el caso RDS/Invest Vacay). Este caso audita lo que queda, y lo que queda es una paradoja:\n\n' +
     'Operativamente, Sofia es de las cuentas más sanas de la cartera: consume en promedio ~91% de su bolsa de 6,500 minutos, rebasó el 100% en dos de siete cortes (112.1% en marzo, 103.3% en mayo), su uso es intensivo en salientes, paga sin una sola incidencia y tiene contacto KAM esta misma semana. La capacidad ociosa es de apenas 9.7%: el siguiente sobreconsumo es cuestión de semanas.\n\n' +
-    'Administrativamente, es de las más ciegas: 1 de 8 campos de perfil registrados, cero módulos activados en 7 meses, mapa de decisores vacío, observaciones KAM vacías, Radar de asesora 0/12 y la actividad SAC "Completar Perfil" de esta semana aún pendiente. La cancelación de las cuentas hermanas la decidió Ricardo Straffon — alguien que no existía en nuestro mapa — y el ticket abierto todavía pregunta si esa baja aplica a toda la razón social. Mientras esa pregunta no tenga respuesta escrita, los $11,744 completos están en juego.',
+    'Administrativamente, es de las más ciegas: 1 de 8 campos de perfil registrados, cero módulos activados en 7 meses, mapa de decisores vacío, observaciones KAM vacías, Radar de asesora 0/12 y la actividad SAC "Completar Perfil" de esta semana aún pendiente.\n\n' +
+    'El agravante que define el caso: SOFIA Y RDS/INVEST VACAY SON DEL MISMO DUEÑO. El riesgo no es de "contagio" entre clientes distintos — es la misma persona que el 28 de agosto ya decidió cancelar 2 cuentas, ya declaró la migración a clic-a-WhatsApp y ya tiene a Bambete operando. El ticket abierto que pregunta si la baja aplica a toda la razón social no es un trámite: es preguntarle al mismo decisor si también apaga esta cuenta. Mientras esa respuesta no exista por escrito, los $11,744 completos penden de una decisión que su dueño ya tomó una vez.',
 
   resultado_positivo:
     'El perfil de consumo es el caso de upsell más limpio de la cartera: ~91% promedio, dos sobreconsumos ya facturados y tendencia +5.8% en los últimos 3 cortes contra los 3 anteriores. No hay que convencer a nadie de que use más: ya usa más de lo que contrató. ' +
@@ -45,7 +46,7 @@ export const SOFIA: AuditoriaCase = {
     'Perfil crítico: 1/8 campos registrados. Sin tamaño de empresa, sin dirección, sin decisores, sin observaciones KAM. El sistema marca dos CRÍTICOS simultáneos (Información y Módulos) en una cuenta que factura $11,744 de grupo.',
     '0/6 módulos activados en 7 meses: una cuenta que consume el 90%+ de su voz no tiene ni un ancla adicional — costo de salida bajo en el peor momento posible (competidor operando en el grupo).',
     '20 tickets en 5 meses, 16 de "Asistencia (voz)" con cadencia casi semanal may-jul: demanda clara de capacitación que nadie convirtió en plan de adopción.',
-    'Riesgo de contagio ACTIVO: el ticket de cancelación del grupo (28 Ago) sigue pendiente de confirmar si la baja aplica "de acuerdo a la razón social, o únicamente RDS ELITE CONDOS PDC". La diferencia es $2,387 vs $11,744.',
+    'MISMO DUEÑO que las cuentas canceladas: Sofia y RDS/Invest Vacay pertenecen al mismo propietario. El ticket del 28 Ago que pregunta si la baja aplica "de acuerdo a la razón social, o únicamente RDS ELITE CONDOS PDC" se responde en el escritorio de quien ya canceló una vez. La diferencia es $2,387 vs $11,744.',
     'El decisor que canceló las cuentas hermanas (Ricardo Straffon) no estaba en el mapa de esta cuenta — y el mapa sigue vacío hoy. La actividad SAC que lo corregiría está pendiente desde el lunes.',
   ],
 
@@ -72,7 +73,8 @@ export const SOFIA: AuditoriaCase = {
     { label: 'Radar ATLAS',          value: '73 OPTIMIZE · 3 alertas: decisores sin contactos · adopción sin datos · observaciones KAM vacías' },
     { label: 'Soporte',              value: '20 tickets · 1 falla · 16 de asistencia (voz) en cadencia semanal may-jul' },
     { label: 'Asesora',              value: 'Claudia Hernández · contacto esta semana · actividad SAC "Completar Perfil" PENDIENTE' },
-    { label: 'Riesgo externo',       value: 'Ticket de alcance de la cancelación RDS abierto · competidor Bambete operando en el grupo' },
+    { label: 'Propiedad',            value: 'MISMO DUEÑO que RDS/Invest Vacay — el decisor que canceló las 2 cuentas el 28 Ago y contrató a Bambete' },
+    { label: 'Riesgo externo',       value: 'Ticket de alcance de la cancelación RDS abierto · competidor Bambete operando con el mismo dueño' },
   ],
 
   necesidad_negocio:
@@ -101,8 +103,8 @@ export const SOFIA: AuditoriaCase = {
   ],
 
   senal_alarma:
-    'PRONÓSTICO: la cuenta se define en dos semanas. Si el ticket de alcance se cierra acotado y la ampliación de bolsa se presenta antes del tercer sobreconsumo, Sofia es una cuenta de expansión con la mejor evidencia de uso de la cartera. Si el ticket queda abierto y el grupo consolida su migración omnicanal con Bambete, los $11,744 siguen el camino de las cuentas RDS — y con 0/6 módulos, nada técnico lo impide. ' +
-    'La paradoja que debe quedar en actas: la cuenta con 90% de consumo y pagos perfectos estuvo a una pregunta sin responder ("¿la baja cubre toda la razón social?") de convertirse en el churn más grande del trimestre. Facturar mucho no es conocer al cliente.',
+    'PRONÓSTICO: la cuenta se define en dos semanas, y la decisión está en manos de alguien que ya canceló una vez. Sofia y las cuentas RDS son DEL MISMO DUEÑO: el propietario ya declaró la migración a clic-a-WhatsApp, ya contrató a Bambete y ya ejecutó la baja de 2 cuentas — la única razón por la que Sofia sigue viva es que su operación de salientes (90%+ de consumo) todavía le funciona. Si el ticket de alcance queda sin acotar y el dueño consolida su migración, los $11,744 siguen el mismo camino — y con 0/6 módulos, nada técnico lo impide. ' +
+    'La paradoja que debe quedar en actas: la cuenta con 90% de consumo y pagos perfectos está a una decisión de su propio dueño —que ya la tomó una vez— de convertirse en el churn más grande del trimestre. Facturar mucho no es conocer al cliente.',
 
   problema_raiz:
     'Cuenta facturada a ciegas: 7 meses de consumo intensivo y pagos perfectos convivieron con perfil vacío, cero decisores y cero módulos — el grupo decidió la cancelación de sus cuentas hermanas sin que existiera nadie mapeado a quién llamar antes.',
@@ -219,5 +221,5 @@ export const SOFIA: AuditoriaCase = {
 
   recomendacion_central:
     'Tres movimientos en orden estricto esta semana: (1) confirmación escrita de que la cancelación cubre únicamente las 2 cuentas RDS — nada se propone antes de acotar la exposición; (2) actividad SAC completada: perfil 8/8, Radar 12/12 y Ricardo Straffon en el mapa; (3) propuesta de ampliación de bolsa presentada con los 7 cortes como evidencia, antes del corte de septiembre. ' +
-    'La contraoferta omnicanal frente a Bambete viene después, con decisores conocidos y la baja acotada — proponerla antes sería negociar desde la exposición, no desde la fuerza.',
+    'La contraoferta omnicanal frente a Bambete viene después, con la baja acotada — y se presenta AL DUEÑO, no a un operativo: es la misma persona que canceló RDS, y la conversación de retención de Sofia y la de recuperación de RDS son una sola conversación.',
 }

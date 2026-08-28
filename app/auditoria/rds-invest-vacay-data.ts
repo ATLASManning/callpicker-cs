@@ -72,6 +72,7 @@ export const RDS_INVEST_VACAY: AuditoriaCase = {
     { label: 'Nombre comercial',            value: 'Invest Vacay Group (IVG)' },
     { label: 'Oportunidad Zoho CRM',        value: 'CP 189168 · propietario José Galván · fase final "Contrato Firmado - Cierre Logrado"' },
     { label: 'Pertenencia',                 value: 'Grupo Sofia (F66, CID 178011) — sin consecutivo propio en cartera' },
+    { label: 'Propiedad',                   value: 'MISMO DUEÑO que Sofia: el decisor de esta cancelación controla también la cuenta viva del grupo' },
     { label: 'Giro',                        value: 'Inmobiliario turístico: propiedades fraccionales y clubes vacacionales, Quintana Roo · 11-50 empleados' },
     { label: 'Origen del lead',             value: 'SEO (google.com) · landing · 10 Jul 2026' },
     { label: 'Necesidad declarada',         value: 'Integración de llamadas con Zoho CRM · historial de ventas salientes · 3 extensiones VyC + 3 DIDs nuevos' },
@@ -94,7 +95,8 @@ export const RDS_INVEST_VACAY: AuditoriaCase = {
   ],
 
   potencial_largo: [
-    'Recontacto a Ricardo Straffon en 90-120 días con solución de contactabilidad/omnicanal madura: su objeción fue de modelo, validó el servicio, y Bambete tendrá que demostrar en producción lo que prometió en venta.',
+    'El recontacto NO es frío: el dueño de RDS es el mismo dueño de Sofia (F66), que sigue siendo cliente activo con consumo del 90%+. Cada interacción de cartera con Sofia es también la relación con este decisor — la recuperación de RDS y la retención de Sofia son la misma conversación.',
+    'Recontacto formal a Ricardo Straffon en 90-120 días con solución de contactabilidad/omnicanal madura: su objeción fue de modelo, validó el servicio, y Bambete tendrá que demostrar en producción lo que prometió en venta.',
     'La regla comercial que este caso obliga: toda oportunidad de contactación indaga Chat/AV antes del cierre, y las promos de descuento se sustituyen por promos de adopción (el 2º mes al 50% compró un cierre de 39 días).',
   ],
 
@@ -237,5 +239,5 @@ export const RDS_INVEST_VACAY: AuditoriaCase = {
 
   recomendacion_central:
     'Cerrar el expediente con higiene (notificación formal + alcance acotado por escrito) y cobrar la lección donde vale: llevar este post-mortem a la mesa comercial y dejar instaladas las dos reglas — indagatoria omnicanal obligatoria en ventas de contactación, y aviso automático al asesor de cartera cuando la oportunidad diga "cuenta activa Callpicker". ' +
-    'Programar el recontacto a Ricardo Straffon en 90-120 días con la solución de contactabilidad/omnicanal: el churn que se despide diciendo "el servicio fue muy bueno" no es una puerta cerrada, es una puerta mal atendida.',
+    'Programar el recontacto a Ricardo Straffon en 90-120 días con la solución de contactabilidad/omnicanal — recordando que no es una puerta cerrada ni fría: el mismo dueño sigue siendo cliente activo a través de Sofia (F66), y el trato que reciba esa cuenta ES la campaña de recuperación de esta.',
 }
