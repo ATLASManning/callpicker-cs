@@ -558,7 +558,7 @@ export default function TicketsPage() {
                   Buscar
                 </button>
               </form>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {[
                   { label: 'Producto', value: filterProd, setter: setFilterProd,
                     opts: [{ v: '', l: 'Todos' }, { v: 'Voz', l: 'Voz' }, { v: 'Chat', l: 'Chat' }, { v: 'Sin producto', l: 'Sin producto' }] },
@@ -569,26 +569,34 @@ export default function TicketsPage() {
                   { label: 'Falla', value: filterFalla, setter: setFilterFalla,
                     opts: [{ v: '', l: 'Todas' }, { v: 'Si', l: 'Solo fallas' }, { v: 'No', l: 'No fallas' }] },
                 ].map(f => (
-                  <CustomSelect key={f.label} value={f.value}
-                    onChange={v => { f.setter(v); setTimeout(() => fetchList(1), 0) }}
-                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                    options={f.opts.map(o => ({ value: o.v, label: o.l }))} />
+                  <div key={f.label} className="w-40 flex-shrink-0">
+                    <CustomSelect value={f.value}
+                      onChange={v => { f.setter(v); setTimeout(() => fetchList(1), 0) }}
+                      className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                      options={f.opts.map(o => ({ value: o.v, label: o.l }))} />
+                  </div>
                 ))}
                 {/* Filtro cliente (empresa + CID) — dinámico, exacto */}
-                <CustomSelect value={filterCliente}
-                  onChange={v => { setFilterCliente(v); setTimeout(() => fetchList(1), 0) }}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                  options={[{ value: '', label: 'Cliente (todos)' }, ...clientes.map(c => ({ value: c.cid, label: `${c.empresa} · CID ${c.cid} (${c.total})` }))]} />
+                <div className="w-64 flex-shrink-0">
+                  <CustomSelect value={filterCliente}
+                    onChange={v => { setFilterCliente(v); setTimeout(() => fetchList(1), 0) }}
+                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    options={[{ value: '', label: 'Cliente (todos)' }, ...clientes.map(c => ({ value: c.cid, label: `${c.empresa} · CID ${c.cid} (${c.total})` }))]} />
+                </div>
                 {/* Filtro ejecutivo — dinámico */}
-                <CustomSelect value={filterEjecutivo}
-                  onChange={v => { setFilterEjecutivo(v); setTimeout(() => fetchList(1), 0) }}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                  options={[{ value: '', label: 'Ejecutivo (todos)' }, ...propietarios.map(p => ({ value: p, label: p }))]} />
+                <div className="w-48 flex-shrink-0">
+                  <CustomSelect value={filterEjecutivo}
+                    onChange={v => { setFilterEjecutivo(v); setTimeout(() => fetchList(1), 0) }}
+                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    options={[{ value: '', label: 'Ejecutivo (todos)' }, ...propietarios.map(p => ({ value: p, label: p }))]} />
+                </div>
                 {/* Filtro subcategoría — dinámico */}
-                <CustomSelect value={filterSubcat}
-                  onChange={v => { setFilterSubcat(v); setTimeout(() => fetchList(1), 0) }}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                  options={[{ value: '', label: 'Subcategoría (todas)' }, ...subcategorias.map(s => ({ value: s, label: s }))]} />
+                <div className="w-52 flex-shrink-0">
+                  <CustomSelect value={filterSubcat}
+                    onChange={v => { setFilterSubcat(v); setTimeout(() => fetchList(1), 0) }}
+                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    options={[{ value: '', label: 'Subcategoría (todas)' }, ...subcategorias.map(s => ({ value: s, label: s }))]} />
+                </div>
                 {/* Rango de fecha (apertura) — día exacto, para filtrar por semana o rango específico */}
                 <div className="flex items-center gap-1 text-xs">
                   <Calendar size={12} className="text-gray-400" />
@@ -905,29 +913,37 @@ export default function TicketsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <Filter size={14} className="text-gray-400 flex-shrink-0" />
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide mr-1">Filtrar</span>
-                <CustomSelect value={chartMes} onChange={setChartMes}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                  options={MESES.map(m => ({ value: m.val, label: m.label }))} />
-                <CustomSelect value={chartProp} onChange={setChartProp}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                  options={[{ value: '', label: 'Ejecutivo (todos)' }, ...propietarios.map(p => ({ value: p, label: p }))]} />
-                <CustomSelect value={chartProd} onChange={setChartProd}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                  options={[
-                    { value: '', label: 'Producto (todos)' },
-                    { value: 'Voz', label: 'Voz' },
-                    { value: 'Chat', label: 'Chat' },
-                    { value: 'Sin producto', label: 'Sin producto' },
-                  ]} />
-                <CustomSelect value={chartPrior} onChange={setChartPrior}
-                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                  options={[
-                    { value: '', label: 'Prioridad (todas)' },
-                    { value: 'Urgent', label: 'Urgente' },
-                    { value: 'High', label: 'Alta' },
-                    { value: 'Medium', label: 'Media' },
-                    { value: 'Low', label: 'Baja' },
-                  ]} />
+                <div className="w-44 flex-shrink-0">
+                  <CustomSelect value={chartMes} onChange={setChartMes}
+                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    options={MESES.map(m => ({ value: m.val, label: m.label }))} />
+                </div>
+                <div className="w-48 flex-shrink-0">
+                  <CustomSelect value={chartProp} onChange={setChartProp}
+                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    options={[{ value: '', label: 'Ejecutivo (todos)' }, ...propietarios.map(p => ({ value: p, label: p }))]} />
+                </div>
+                <div className="w-44 flex-shrink-0">
+                  <CustomSelect value={chartProd} onChange={setChartProd}
+                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    options={[
+                      { value: '', label: 'Producto (todos)' },
+                      { value: 'Voz', label: 'Voz' },
+                      { value: 'Chat', label: 'Chat' },
+                      { value: 'Sin producto', label: 'Sin producto' },
+                    ]} />
+                </div>
+                <div className="w-44 flex-shrink-0">
+                  <CustomSelect value={chartPrior} onChange={setChartPrior}
+                    className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
+                    options={[
+                      { value: '', label: 'Prioridad (todas)' },
+                      { value: 'Urgent', label: 'Urgente' },
+                      { value: 'High', label: 'Alta' },
+                      { value: 'Medium', label: 'Media' },
+                      { value: 'Low', label: 'Baja' },
+                    ]} />
+                </div>
                 {(chartMes || chartProp || chartProd || chartPrior) && (
                   <button onClick={() => { setChartMes(''); setChartProp(''); setChartProd(''); setChartPrior('') }}
                     className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50">
