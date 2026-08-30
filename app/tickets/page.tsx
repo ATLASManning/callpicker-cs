@@ -1,5 +1,5 @@
 ﻿'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
 import {
@@ -65,12 +65,19 @@ function prioColor(p: string) {
 function prodColor(p: string) {
   return PRODUCTO_COLOR[p?.toLowerCase()] ?? '#9ca3af'
 }
+// Etiquetas de mes derivadas del propio valor "YYYY-MM" — nunca de una lista
+// fija. Una lista fija fue la razón por la que agosto no aparecía en los
+// filtros pese a existir 1,046 tickets del mes (incidente 30 Ago 2026).
+const MES_CORTO = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+const MES_LARGO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+
 function mesLabel(m: string) {
-  const map: Record<string, string> = {
-    '2026-02': 'Feb', '2026-03': 'Mar', '2026-04': 'Abr',
-    '2026-05': 'May', '2026-06': 'Jun', '2026-07': 'Jul',
-  }
-  return map[m] ?? m
+  const n = Number(m?.slice(5, 7))
+  return n >= 1 && n <= 12 ? MES_CORTO[n - 1] : m
+}
+function mesLabelLargo(m: string) {
+  const n = Number(m?.slice(5, 7))
+  return n >= 1 && n <= 12 ? `${MES_LARGO[n - 1]} ${m.slice(0, 4)}` : m
 }
 
 /* ─── Mini-componentes ──────────────────────────────────────────── */
@@ -144,14 +151,9 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'nuevo',        label: '🎫 Nuevo Ticket' },
 ]
 
-const MESES = [
-  { val: '', label: 'Todos los meses' },
-  { val: '2026-03', label: 'Marzo 2026' },
-  { val: '2026-04', label: 'Abril 2026' },
-  { val: '2026-05', label: 'Mayo 2026' },
-  { val: '2026-06', label: 'Junio 2026' },
-  { val: '2026-07', label: 'Julio 2026' },
-]
+// La lista de meses se construye desde los datos (/api/tickets?mode=meses)
+// dentro del componente — ver mesesDisp/MESES. Aquí solo queda el fallback.
+const MESES_FALLBACK: { val: string; label: string }[] = [{ val: '', label: 'Todos los meses' }]
 
 // Fecha de apertura/cierre real (día exacto) — `fecha`/`mes` en los tickets
 // solo traen precisión de mes ("2026-08"), apertura/cierre sí traen el día.
@@ -168,6 +170,24 @@ export default function TicketsPage() {
   const [stats, setStats]       = useState<Stats | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
   const [overviewMes, setOverviewMes]   = useState('')
+
+  /* ── Meses disponibles: derivados del dataset, nunca de una lista fija ── */
+  const [mesesDisp, setMesesDisp] = useState<string[]>([])
+  useEffect(() => {
+    fetch('/api/tickets?mode=meses')
+      .then(r => r.json())
+      .then(d => setMesesDisp(Array.isArray(d.meses) ? d.meses : []))
+      .catch(() => setMesesDisp([]))
+  }, [])
+  const MESES = useMemo(() => [
+    ...MESES_FALLBACK,
+    ...mesesDisp.map(m => ({ val: m, label: mesLabelLargo(m) })),
+  ], [mesesDisp])
+  const rangoMeses = useMemo(() => {
+    if (!mesesDisp.length) return 'Histórico completo'
+    const a = mesesDisp[0], b = mesesDisp[mesesDisp.length - 1]
+    return a === b ? mesLabelLargo(a) : `${mesLabel(a)}–${mesLabel(b)} ${b.slice(0, 4)}`
+  }, [mesesDisp])
 
   /* ── Explorador ── */
   const [rows, setRows]         = useState<TicketRow[]>([])
@@ -408,7 +428,7 @@ export default function TicketsPage() {
               <>
                 {/* KPIs */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <KpiCard icon={Tag}           label="Total tickets"      value={stats.total.toLocaleString()}  sub={overviewMes ? MESES.find(m=>m.val===overviewMes)?.label : 'Mar–Jun 2026'} color={BLUE}   />
+                  <KpiCard icon={Tag}           label="Total tickets"      value={stats.total.toLocaleString()}  sub={overviewMes ? MESES.find(m=>m.val===overviewMes)?.label : rangoMeses} color={BLUE}   />
                   <KpiCard icon={AlertTriangle} label="Fallas reales"      value={stats.fallas}                  sub={`${stats.total > 0 ? ((stats.fallas/stats.total)*100).toFixed(1) : 0}% del total`} color={RED} />
                   <KpiCard icon={Zap}           label="Producto Voz"       value={stats.byProd['Voz'] ?? 0}      sub="tickets de voz"            color={BLUE}   />
                   <KpiCard icon={Users}         label="Producto Chat"      value={stats.byProd['Chat'] ?? 0}     sub="tickets de chat"           color={INDIGO} />
@@ -419,13 +439,13 @@ export default function TicketsPage() {
                   <h3 className="font-semibold text-sm text-gray-900 mb-4">Volumen por Mes</h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {Object.entries(stats.byMes).sort().map(([mes, n]) => {
-                      const labels: Record<string,string> = { '2026-02':'Feb','2026-03':'Mar','2026-04':'Abr','2026-05':'May','2026-06':'Jun','2026-07':'Jul' }
+
                       const colors = ['#3b82f6','#6366f1','#8b5cf6','#a855f7']
                       const idx = Object.keys(stats.byMes).sort().indexOf(mes)
                       return (
                         <div key={mes} className="rounded-lg p-3 border text-center"
                           style={{ background: `${colors[idx % 4]}08`, borderColor: `${colors[idx % 4]}25` }}>
-                          <p className="text-xs text-gray-500">{labels[mes] ?? mes}</p>
+                          <p className="text-xs text-gray-500">{mesLabel(mes)}</p>
                           <p className="text-2xl font-bold mt-1" style={{ color: colors[idx % 4] }}>{n}</p>
                         </div>
                       )

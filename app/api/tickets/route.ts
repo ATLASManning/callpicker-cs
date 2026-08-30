@@ -51,6 +51,15 @@ export async function GET(req: NextRequest) {
   const limit       = parseInt(sp.get('limit') ?? '50')
   const mode        = sp.get('mode') ?? 'list'
 
+  // ── Meses disponibles (para los filtros de la UI) ──────────────────
+  // Derivados del dataset: cuando el Excel gane un mes nuevo, el botón
+  // aparece solo — sin listas fijas que se queden atrás.
+  if (mode === 'meses') {
+    const set = new Set<string>()
+    for (const t of ALL_TICKETS) if (t.mes) set.add(t.mes)
+    return NextResponse.json({ meses: Array.from(set).sort() })
+  }
+
   // ── Propietarios ───────────────────────────────────────────────────
   if (mode === 'propietarios') {
     const set = new Set<string>()
