@@ -1,4 +1,5 @@
 import { getCuentas, getSemaforoByAsesor } from '@/lib/supabase'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { enrichCuentasWithZoho } from '@/lib/zoho-enrich'
 import type { Asesor } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
@@ -21,10 +22,13 @@ export default async function AsesoresPage() {
     ? ALL_ASESORES.filter(a => a === asesorHeader)
     : ALL_ASESORES
 
-  const [cuentasRaw, resumenList] = await Promise.all([
+  const [cuentasDb, resumenList] = await Promise.all([
     getCuentas(isAsesor ? { asesor: asesorHeader } : undefined),
     getSemaforoByAsesor(),
   ])
+  // Regla 30 Ago 2026: tickets abiertos del dataset vivo, no de la columna.
+  const cuentasRaw = cuentasDb.map(c => ({ ...c, tickets_abiertos: ticketStatsCuenta(c.cid ?? null, c.empresa).abiertos }))
+
   // Enriquecer con Factura Mensual + MRR en vivo de Zoho (misma fuente que Facturación/Cuentas)
   const cuentas = await enrichCuentasWithZoho(cuentasRaw)
 

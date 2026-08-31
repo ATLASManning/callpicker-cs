@@ -3,6 +3,7 @@ import path from 'path'
 import { supabaseAdmin } from '@/lib/supabase'
 import { evaluarRadar, extraerExtensiones, type CorteSerie, type EntradaRadar } from '@/lib/radar'
 import { NOMBRES_CANCELACION, normalizarNombre } from '@/lib/elegibilidad'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55
@@ -131,7 +132,9 @@ export async function GET(req: NextRequest) {
     adopcionBaja, adopcionTotal: delUltimoCorte.length,
     ultimaConversacion,
     totalActividades: act?.length ?? 0,
-    ticketsAbiertos: Number(cuenta.tickets_abiertos ?? 0),
+    // Abiertos calculados del dataset vivo — la columna de la tabla quedó
+    // obsoleta (regla 30 Ago 2026).
+    ticketsAbiertos: ticketStatsCuenta(cid || null, cuenta.empresa).abiertos,
     ticketReincidente: Boolean(cuenta.tiene_ticket_reincidente),
     facturacion: cuenta.facturacion != null ? Number(cuenta.facturacion) : null,
     activoDesde: cuenta.activo_desde,

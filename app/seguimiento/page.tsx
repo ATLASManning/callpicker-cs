@@ -1,4 +1,5 @@
 import { getCuentas } from '@/lib/supabase'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { formatMXN, getSemaforo, SEMAFORO_CONFIG, ASESOR_CONFIG } from '@/lib/types'
 import type { Asesor, Cuenta } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
@@ -519,7 +520,13 @@ export default async function SeguimientoPage() {
   const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
   const isAsesor     = rol === 'asesor' && !!asesorHeader
 
-  const cuentas = await getCuentas(isAsesor ? { asesor: asesorHeader } : undefined)
+  const cuentasRaw = await getCuentas(isAsesor ? { asesor: asesorHeader } : undefined)
+  // Regla 30 Ago 2026: los tickets abiertos se calculan del dataset vivo de
+  // Zoho Desk, no de la columna guardada (que nadie sincronizaba).
+  const cuentas = cuentasRaw.map(c => ({
+    ...c,
+    tickets_abiertos: ticketStatsCuenta(c.cid ?? null, c.empresa).abiertos,
+  }))
 
   const asesores: Asesor[] = isAsesor
     ? (['Fátima', 'Dan', 'Claudia'] as Asesor[]).filter(a => a === asesorHeader)

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getAuditCaseById }           from '@/app/auditoria/cases'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
 import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
@@ -34,7 +35,9 @@ interface Props { params: { id: string } }
 
 export default async function CuentaDetailPage({ params }: Props) {
   // Obtener la cuenta primero (función getCuentaById ahora soporta UUID o consecutivo)
-  const cuenta = await getCuentaById(params.id)
+  const cuentaBase = await getCuentaById(params.id)
+  // Regla 30 Ago 2026: tickets abiertos siempre del dataset vivo.
+  const cuenta = cuentaBase ? { ...cuentaBase, tickets_abiertos: ticketStatsCuenta(cuentaBase.cid ?? null, cuentaBase.empresa).abiertos } : cuentaBase
   if (!cuenta) notFound()
 
   // Usar el UUID real para las demás queries

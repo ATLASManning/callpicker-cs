@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { headers } from 'next/headers'
 import OpenAI from 'openai'
 
@@ -118,7 +119,7 @@ function buildContext(asesor: string, cuentas: Record<string, unknown>[], seguim
     ctx += `  Sub-scores → Actividad: ${sa ?? '?'} | Adopción: ${so ?? '?'} | Pago: ${sp ?? '?'} | Relacional: ${sr ?? '?'}\n`
 
     // Tickets
-    ctx += `  Tickets abiertos: ${c.tickets_abiertos ?? 0} | Ticket reincidente: ${c.tiene_ticket_reincidente ? 'SÍ ⚠' : 'No'}\n`
+    ctx += `  Tickets abiertos: ${ticketStatsCuenta(c.cid ?? null, c.empresa).abiertos} | Ticket reincidente: ${c.tiene_ticket_reincidente ? 'SÍ ⚠' : 'No'}\n`
 
     // Data gaps
     const rotos: string[] = []
@@ -219,7 +220,7 @@ export async function POST(req: NextRequest) {
       supabaseAdmin
         .from('cuentas')
         .select(`
-          id, consecutivo, empresa, health_score, estado, facturacion, dias_sin_actividad,
+          id, consecutivo, cid, empresa, health_score, estado, facturacion, dias_sin_actividad,
           contacto_nombre, contacto_cargo, giro, nps_score, notas, observaciones_kam,
           tickets_abiertos, tiene_ticket_reincidente,
           score_actividad, score_adopcion, score_pago, score_relacional,
