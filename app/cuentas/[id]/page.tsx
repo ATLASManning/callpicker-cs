@@ -258,6 +258,10 @@ export default async function CuentaDetailPage({ params }: Props) {
                 {cuenta.total_empleados && <span className="text-textLow">· {cuenta.total_empleados} empleados</span>}
               </div>
             )}
+
+            {/* Datos localizados por Atlas — dentro de la misma tarjeta, en
+                violeta, para distinguirlos de lo capturado por el KAM. */}
+            <DatosEnriquecidosPanel datos={enriquecido} />
           </div>
 
           {/* Adopción de Producto — interactiva con historial */}
@@ -265,10 +269,6 @@ export default async function CuentaDetailPage({ params }: Props) {
 
           {/* Radar de Cuenta — evaluación automática de ATLAS + 12 preguntas del asesor */}
           <RadarCuenta cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} canEdit={canEdit} />
-
-          {/* Datos generales enriquecidos — investigación externa e interna.
-              Información adicional con su fuente; no toca los campos del KAM. */}
-          <DatosEnriquecidosPanel datos={enriquecido} />
         </div>
 
         {/* CENTER + RIGHT — Seguimientos + Oportunidades + Historial */}

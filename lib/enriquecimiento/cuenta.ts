@@ -124,15 +124,29 @@ export function derivarSenales(
       accion: 'Confirmar con el cliente cuál es el correo del responsable y registrarlo.',
     })
   }
-  if (!esValorReal(c.contacto_email) && !correosNuevos.length && !esValorReal(c.contacto_tel)) {
+
+  /* Riesgo de incontactabilidad. Cuenta TODAS las vías, las del KAM y las
+   * localizadas: un teléfono corporativo encontrado ya es un canal. Antes esta
+   * señal ignoraba los teléfonos hallados y se contradecía con la línea de
+   * abajo (caso Velfare, 1 Sep 2026). */
+  const hayVia = esValorReal(c.contacto_email) || esValorReal(c.contacto_tel) ||
+                 correosNuevos.length > 0 || telsNuevos.length > 0
+  if (!hayVia) {
     out.push({
       tipo: 'riesgo',
       titulo: 'Cuenta sin vía de contacto localizable',
       detalle: 'Ni la ficha ni las fuentes públicas dan un correo o teléfono del responsable.',
       accion: 'Prioridad alta: sin canal de contacto, una baja se entera cuando ya ocurrió.',
     })
-  }
-  if (telsNuevos.length) {
+  } else if (!esValorReal(c.contacto_email) && !esValorReal(c.contacto_tel) && telsNuevos.length) {
+    // La ficha no tiene contacto, pero la investigación sí dio un canal.
+    out.push({
+      tipo: 'oportunidad',
+      titulo: 'Sin contacto en la ficha, pero sí hay canal localizado',
+      detalle: `La ficha no registra correo ni teléfono del responsable; la investigación encontró ${telsNuevos.map(x => x.valor_candidato).join(', ')}.`,
+      accion: 'Llamar a ese número para identificar al responsable y cerrar el hueco de contactabilidad.',
+    })
+  } else if (telsNuevos.length) {
     out.push({
       tipo: 'dato',
       titulo: `${telsNuevos.length} teléfono(s) corporativo(s) adicionales`,
