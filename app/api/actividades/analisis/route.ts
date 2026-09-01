@@ -252,6 +252,15 @@ export async function POST(req: NextRequest) {
     const seguimientos = (seguimientosRes.data ?? []) as Record<string, unknown>[]
     const actividades  = (actividadesRes.data ?? []) as Record<string, unknown>[]
 
+    // Facturación viva desde Zoho (regla fuente única — la columna guardada envejece)
+    try {
+      const { enrichCuentasWithZoho } = await import('@/lib/zoho-enrich')
+      const enriched = await enrichCuentasWithZoho(cuentas as Array<{ empresa: string; facturacion?: number | null }>)
+      for (let i = 0; i < enriched.length; i++) {
+        if (enriched[i].factura_mensual_zoho != null) cuentas[i].facturacion = enriched[i].factura_mensual_zoho
+      }
+    } catch { /* sin Zoho: dato guardado */ }
+
     if (!cuentas.length) return NextResponse.json({ error: 'No se encontraron cuentas activas' }, { status: 404 })
 
     const context = buildContext(asesor, cuentas, seguimientos, actividades)

@@ -48,7 +48,21 @@ export async function getCuentas(filters?: {
     result = result.filter(c => getSemaforo(c.health_score) === filters.semaforo)
   }
 
-  return result
+  // Regla 30 Ago 2026 (fuente única): la facturación visible SIEMPRE es la viva
+  // de Zoho — la columna guardada envejece (GRUPO FRISA: $1,622 guardados vs
+  // $16,539 reales con subcuentas). Se sobreescribe aquí, en el hub, para que
+  // todas las ventanas que consumen cuentas queden alimentadas en automático.
+  try {
+    const { enrichCuentasWithZoho } = await import('./zoho-enrich')
+    const enriched = await enrichCuentasWithZoho(result)
+    for (const c of enriched) {
+      if (c.factura_mensual_zoho != null) c.facturacion = c.factura_mensual_zoho
+    }
+    enriched.sort((a, b) => (b.facturacion ?? 0) - (a.facturacion ?? 0))
+    return enriched
+  } catch {
+    return result // sin Zoho configurado: se conserva el dato guardado
+  }
 }
 
 export async function getCuentaById(id: string): Promise<Cuenta | null> {
@@ -170,10 +184,18 @@ export async function deleteCuenta(id: string): Promise<void> {
 export async function getKPIs() {
   const { data } = await supabaseAdmin
     .from('cuentas')
-    .select('facturacion, health_score, estado, asesor, notas')
+    .select('empresa, facturacion, health_score, estado, asesor, notas')
     .in('estado', ['activo', 'en_riesgo'])
 
-  const cuentas = data ?? []
+  // Facturación viva desde Zoho (regla fuente única — ver getCuentas)
+  let cuentas = (data ?? []) as Array<{ empresa: string; facturacion: number | null; health_score: number; notas: string | null; factura_mensual_zoho?: number | null }>
+  try {
+    const { enrichCuentasWithZoho } = await import('./zoho-enrich')
+    cuentas = await enrichCuentasWithZoho(cuentas)
+    for (const c of cuentas) {
+      if (c.factura_mensual_zoho != null) c.facturacion = c.factura_mensual_zoho
+    }
+  } catch { /* sin Zoho: dato guardado */ }
   const total = cuentas.length
   const facturacionTotal = cuentas.reduce((s, c) => s + (c.facturacion ?? 0), 0)
   const enRiesgo = cuentas.filter(c => c.health_score < 40).length
@@ -190,11 +212,21 @@ export async function getKPIs() {
 export async function getSemaforoByAsesor(): Promise<SemaforoAsesor[]> {
   const { data } = await supabaseAdmin
     .from('cuentas')
-    .select('asesor, health_score, facturacion')
+    .select('empresa, asesor, health_score, facturacion')
     .in('estado', ['activo', 'en_riesgo'])
 
+  // Facturación viva desde Zoho (regla fuente única — ver getCuentas)
+  let rows = (data ?? []) as Array<{ empresa: string; asesor: string; health_score: number | null; facturacion: number | null; factura_mensual_zoho?: number | null }>
+  try {
+    const { enrichCuentasWithZoho } = await import('./zoho-enrich')
+    rows = await enrichCuentasWithZoho(rows)
+    for (const c of rows) {
+      if (c.factura_mensual_zoho != null) c.facturacion = c.factura_mensual_zoho
+    }
+  } catch { /* sin Zoho: dato guardado */ }
+
   const map: Record<string, SemaforoAsesor> = {}
-  for (const c of data ?? []) {
+  for (const c of rows) {
     if (!map[c.asesor]) {
       map[c.asesor] = {
         asesor: c.asesor,

@@ -76,6 +76,13 @@ export async function GET(req: NextRequest) {
     .single()
   if (error || !cuenta) return NextResponse.json({ error: 'Cuenta no encontrada' }, { status: 404 })
 
+  // Facturación viva desde Zoho (regla fuente única — la columna guardada envejece)
+  try {
+    const { enrichCuentasWithZoho } = await import('@/lib/zoho-enrich')
+    const [cz] = await enrichCuentasWithZoho([cuenta])
+    if (cz.factura_mensual_zoho != null) cuenta.facturacion = cz.factura_mensual_zoho
+  } catch { /* sin Zoho: dato guardado */ }
+
   const cid = String(cuenta.cid ?? '').trim()
 
   /* Serie de cortes — el % SIEMPRE se recalcula, nunca se toma del archivo */

@@ -11,6 +11,8 @@ import { detectDataGaps, CAMPOS_GAP_SELECT, type CuentaGapInput } from './data-g
 import { contarRespuestasRadar } from './radar'
 import { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } from './elegibilidad'
 import { getZohoMap, lookupZoho } from './zoho-enrich'
+import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
+import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 
 interface TicketRaw {
   cid: string; empresa: string; fecha: string
@@ -206,13 +208,14 @@ ${cortesTxt}
 export async function buildAtlasContext(): Promise<{ text: string; modulos: string[] }> {
   const sections: string[] = [AUDITORIA_SUMMARY, TICKET_SUMMARY]
   const modulos: string[]  = ['base-conocimiento', 'auditoria', 'tickets']
+  const asesorPorNombre: Record<string, string> = {}
 
   try {
     const monday      = getMonday()
     const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
     const today        = new Date().toISOString().split('T')[0]
 
-    const [csRes, segsRes, actRes, reuRes] = await Promise.all([
+    const [csRes, segsRes, actRes, reuRes, todasRes] = await Promise.all([
       supabaseAdmin
         .from('cuentas')
         .select('empresa,consecutivo,asesor,health_score,facturacion,estado,score_adopcion')
@@ -238,7 +241,18 @@ export async function buildAtlasContext(): Promise<{ text: string; modulos: stri
         .gte('fecha', today)
         .order('fecha', { ascending: true })
         .limit(6),
+
+      // Todas las cuentas (sin filtro de estado) — solo para cruzar nombre →
+      // asesor en la sección de churn (las canceladas ya no están "activas")
+      supabaseAdmin
+        .from('cuentas')
+        .select('empresa,asesor'),
     ])
+
+    for (const c of todasRes.data ?? []) {
+      const k = normalizarNombre(c.empresa)
+      if (k) asesorPorNombre[k] = c.asesor
+    }
 
     // ── Cuentas ──────────────────────────────────────────────────────────────
     if (csRes.data?.length) {
@@ -326,6 +340,47 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   } catch (err) {
     console.error('[atlas-context] Error fetching live data:', err)
   }
+
+  // ── Churn: GRC AAA 2026 + Cancelaciones DATA (estáticos — SIEMPRE van) ─────
+  // Incidente 31 Ago 2026: Atlas contestó "no tengo ese dato" a "¿qué cuentas
+  // de Dan tienen Downgrade?" cuando la respuesta vive en Churn > GRC AAA 2026.
+  const asesorDe = (nombre: string): string => {
+    const n = normalizarNombre(nombre)
+    if (!n) return ''
+    if (asesorPorNombre[n]) return `[${asesorPorNombre[n]}]`
+    for (const [k, a] of Object.entries(asesorPorNombre)) {
+      if (k.length >= 5 && n.length >= 5 && (n.includes(k) || k.includes(n))) return `[${a}]`
+    }
+    return ''
+  }
+  const money = (v: number) => `-$${Math.round(v).toLocaleString('es-MX')}`
+
+  const grcLines: string[] = []
+  for (const mes of AAA_GRC_2026) {
+    const churn = mes.clientes.filter(r => r.movimiento.includes('Churn'))
+    const down  = mes.clientes.filter(r => r.movimiento.includes('Downgrade'))
+    const fmt = (rows: typeof mes.clientes) => rows
+      .map(r => `${r.cliente}(${money(r.perdido || r.perdido2)})${asesorDe(r.cliente)}`)
+      .join(', ')
+    const tot = (rows: typeof mes.clientes) => rows.reduce((s, r) => s + (r.perdido || r.perdido2), 0)
+    if (churn.length) grcLines.push(`  ${mes.mes} — CHURN CONFIRMADO (${churn.length} clientes, ${money(tot(churn))} MRR): ${fmt(churn)}`)
+    if (down.length)  grcLines.push(`  ${mes.mes} — DOWNGRADES (${down.length} clientes, ${money(tot(down))} MRR): ${fmt(down)}`)
+  }
+  sections.push(
+    `CHURN — GRC AAA 2026 (apartado Churn > GRC AAA 2026 | Enero a Julio | formato: cliente(MRR perdido)[asesor si está en cartera]):\n${grcLines.join('\n')}`
+  )
+  modulos.push('churn-grc')
+
+  const porPeriodo: Record<string, string[]> = {}
+  for (const c of CLIENTES_CANCELADOS) {
+    if (!porPeriodo[c.periodo]) porPeriodo[c.periodo] = []
+    porPeriodo[c.periodo].push(c.cliente)
+  }
+  sections.push(
+    `CANCELACIONES CONFIRMADAS (apartado Churn > Análisis DATA — ${CLIENTES_CANCELADOS.length} clientes):\n` +
+    Object.entries(porPeriodo).map(([p, cs]) => `  ${p}: ${cs.join(', ')}`).join('\n')
+  )
+  modulos.push('churn-cancelados')
 
   const sep = '\n\n────────────────────────────────\n\n'
   return { text: sections.join(sep), modulos }
