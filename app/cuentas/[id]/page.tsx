@@ -27,6 +27,8 @@ import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
 import CuentaReunionButton from '@/components/CuentaReunionButton'
 import { updateKam, deleteKam } from '@/app/actions/updateKam'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
+import { datosEnriquecidosDeCuenta } from '@/lib/enriquecimiento/cuenta'
+import DatosEnriquecidosPanel from '@/components/DatosEnriquecidos'
 import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -43,13 +45,15 @@ export default async function CuentaDetailPage({ params }: Props) {
   // Usar el UUID real para las demás queries
   const cuentaUUID = cuenta.id
 
-  const [seguimientos, oportunidades, tickets, historial, actividades, revisionesAdopcion] = await Promise.all([
+  const [seguimientos, oportunidades, tickets, historial, actividades, revisionesAdopcion, enriquecido] = await Promise.all([
     getSeguimientos(cuentaUUID),
     getOportunidades(cuentaUUID),
     getTickets(cuentaUUID),
     getHealthHistorial(cuentaUUID),
     getActividadesByCuenta(cuentaUUID),
     getConteoAdopcion(cuentaUUID),
+    // Datos generales enriquecidos — información adicional, nunca sustituye
+    datosEnriquecidosDeCuenta(cuentaUUID, cuenta),
   ])
 
   const h       = headers()
@@ -261,6 +265,10 @@ export default async function CuentaDetailPage({ params }: Props) {
 
           {/* Radar de Cuenta — evaluación automática de ATLAS + 12 preguntas del asesor */}
           <RadarCuenta cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} canEdit={canEdit} />
+
+          {/* Datos generales enriquecidos — investigación externa e interna.
+              Información adicional con su fuente; no toca los campos del KAM. */}
+          <DatosEnriquecidosPanel datos={enriquecido} />
         </div>
 
         {/* CENTER + RIGHT — Seguimientos + Oportunidades + Historial */}

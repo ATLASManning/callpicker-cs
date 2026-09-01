@@ -18,6 +18,8 @@ import type { CampoEnriquecible } from '@/lib/enriquecimiento/tipos'
 export const dynamic = 'force-dynamic'
 
 const ACCIONES = ['aprobado_adicional', 'incorrecto', 'pospuesto', 'fusionado_manual'] as const
+// Nota: marcar 'incorrecto' retira el hallazgo de la ficha de la cuenta
+// (lib/enriquecimiento/cuenta.ts lo excluye), sin borrar el registro auditable.
 type Accion = (typeof ACCIONES)[number]
 
 export async function POST(req: NextRequest) {

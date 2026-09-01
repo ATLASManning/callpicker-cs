@@ -11,6 +11,7 @@ import { detectDataGaps, CAMPOS_GAP_SELECT, type CuentaGapInput } from './data-g
 import { contarRespuestasRadar } from './radar'
 import { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } from './elegibilidad'
 import { getZohoMap, lookupZoho } from './zoho-enrich'
+import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 
@@ -134,7 +135,7 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
   // columna cuentas.facturacion es una copia guardada que envejece; incidente
   // GRUPO FRISA 31 Ago 2026: la columna decía $1,622 y la cifra real viva era
   // $16,539 con subcuentas agregadas)
-  const [cortes, actsRes, segsRes, radarRes, zmap] = await Promise.all([
+  const [cortes, actsRes, segsRes, radarRes, zmap, enriq] = await Promise.all([
     cortesDeCuenta(c.cid, 4),
     supabaseAdmin.from('actividades')
       .select('tipo, estado, completada, semana_inicio, resultado')
@@ -146,6 +147,7 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
       .select('respuestas, creado_en')
       .eq('cuenta_id', c.id).order('creado_en', { ascending: false }).limit(1),
     getZohoMap(),
+    datosEnriquecidosDeCuenta(c.id, c as never).catch(() => null),
   ])
 
   const z       = lookupZoho(c.empresa, zmap)
@@ -199,7 +201,15 @@ ${cortesTxt}
   Actividades SAC (últimas): ${acts.length ? `${acts.length} registradas, ${actsComp} completadas; última semana ${acts[0].semana_inicio}` : 'NINGUNA registrada'}
   Seguimientos KAM: ${segs.length ? segs.slice(0, 3).map(s => `[${String(s.fecha).slice(0, 10)}] ${s.tipo}: ${(s.descripcion ?? '').slice(0, 70)}`).join(' | ') : 'NINGUNO registrado'}
   Radar de Cuenta: ${radarN}/12 preguntas respondidas
-  CALIDAD DE DATOS DE ESTA CUENTA: ${faltantes.length ? 'INCOMPLETA — ' + faltantes.join('; ') : 'completa'}`
+  CALIDAD DE DATOS DE ESTA CUENTA: ${faltantes.length ? 'INCOMPLETA — ' + faltantes.join('; ') : 'completa'}${
+    enriq && enriq.total ? `
+  DATOS ENRIQUECIDOS (investigacion externa e interna — informacion ADICIONAL, no sustituye lo del KAM):
+${Object.entries(enriq.porCampo).map(([campo, lista]) =>
+    `    ${campo}: ${lista.slice(0, 4).map(x => `${x.valor_candidato} (${x.confianza_score}/100${x.matching_status === 'conflicto' ? ', DIFIERE del dato del KAM' : ''})`).join(' | ')}`
+  ).join('\n')}${
+    enriq.senales.length ? `
+  LECTURA COMERCIAL detectada:
+${enriq.senales.map(s => `    [${s.tipo.toUpperCase()}] ${s.titulo}: ${s.detalle}${s.accion ? ` -> ${s.accion}` : ''}`).join('\n')}` : ''}` : ''}`
 
   return { text, empresa: c.empresa }
 }
