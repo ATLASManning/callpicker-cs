@@ -141,6 +141,7 @@ REGLAS DE RESPUESTA:
 - Para preguntas sobre una cuenta especifica: usa PRIMERO el bloque "DOSSIER DE CUENTA" si existe; despues el contexto de cuentas activas y auditorias.
 
 OFERTA DE PORTAFOLIO — cuando pregunten que ofrecer, vender o proponer a una cuenta:
+0. Si el dossier trae "ALERTA CHURN", NO ofrezcas portafolio de crecimiento: dilo claramente y responde con un plan de retencion o reactivacion.
 1. Analiza primero el DOSSIER DE CUENTA: que factura, que plan tiene, cuanto consume de su bolsa, que modulos ya usa y cuales no.
 2. Propon 2-3 ofertas PRIORIZADAS del portafolio Callpicker, cada una anclada a un dato concreto del dossier. Guia de mapeo:
    - Consumo de minutos >= 85% de la bolsa → ampliar bolsa de minutos o plan superior.

@@ -9,6 +9,7 @@ import { ticketStatsCuenta } from './tickets-cuenta'
 import { cortesDeCuenta } from './cortes-cuenta'
 import { detectDataGaps, CAMPOS_GAP_SELECT, type CuentaGapInput } from './data-gaps'
 import { contarRespuestasRadar } from './radar'
+import { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } from './elegibilidad'
 
 interface TicketRaw {
   cid: string; empresa: string; fecha: string
@@ -89,14 +90,8 @@ function sem(hs: number | null): string {
 // consumo, tickets, actividades, seguimientos, Radar y huecos de datos de LA
 // cuenta preguntada — todo desde las fuentes vivas.
 
-function normNombre(s: string): string {
-  return (s ?? '').toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]/g, '')
-}
-
 export async function buildCuentaDossier(pregunta: string): Promise<{ text: string; empresa: string } | null> {
-  const q = normNombre(pregunta)
+  const q = normalizarNombre(pregunta)
   if (q.length < 4) return null
 
   const { data: cuentas } = await supabaseAdmin
@@ -116,12 +111,21 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
   let mejor: (typeof cuentas)[number] | null = null
   let mejorLen = 0
   for (const c of cuentas) {
-    const n = normNombre(c.empresa)
+    const n = normalizarNombre(c.empresa)
     if (n.length >= 4 && q.includes(n) && n.length > mejorLen) { mejor = c; mejorLen = n.length }
     if (c.cid && cidsEnPregunta.has(String(c.cid).trim())) { mejor = c; mejorLen = 999 }
   }
   if (!mejor) return null
   const c = mejor
+
+  // Cruce con las listas vivas de churn: a una cuenta perdida no se le ofrece
+  // portafolio de crecimiento — el dossier lo advierte y el prompt lo respeta.
+  const nEmp = normalizarNombre(c.empresa)
+  const alertaChurn =
+    NOMBRES_CANCELACION.has(nEmp) ? 'aparece en cancelaciones confirmadas (Churn > Analisis DATA)' :
+    NOMBRES_CHURN_GRC.has(nEmp)   ? 'aparece como Churn confirmado (GRC AAA 2026)' :
+    (c.estado && c.estado !== 'activo' && c.estado !== 'en_riesgo')
+      ? `estado "${c.estado}" en la plataforma (no es cartera activa)` : null
 
   // Fuentes vivas en paralelo
   const [cortes, actsRes, segsRes, radarRes] = await Promise.all([
@@ -170,7 +174,8 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
   const antig = c.activo_desde ? `cliente desde ${String(c.activo_desde).slice(0, 10)}` : 'antigüedad sin registrar'
 
   const text = `DOSSIER DE CUENTA — ${c.empresa} (pregunta del usuario la menciona; USA ESTOS DATOS, la cuenta SI existe):
-  Identidad: ${c.consecutivo} | CID ${c.cid ?? 'sin CID'} | Asesor: ${c.asesor} | Estado: ${c.estado} | HS ${c.health_score ?? '?'} | Adopción ${c.score_adopcion ?? '?'}/100 | ${antig}
+  Identidad: ${c.consecutivo} | CID ${c.cid ?? 'sin CID'} | Asesor: ${c.asesor} | Estado: ${c.estado} | HS ${c.health_score ?? '?'} | Adopción ${c.score_adopcion ?? '?'}/100 | ${antig}${alertaChurn ? `
+  ALERTA CHURN: ${alertaChurn} — NO ofrecer portafolio de crecimiento; el enfoque correcto es retencion/reactivacion.` : ''}
   Facturación CRM: $${Number(c.facturacion ?? 0).toLocaleString('es-MX')}/mes
   Cortes de facturación (plan y consumo, últimos):
 ${cortesTxt}
