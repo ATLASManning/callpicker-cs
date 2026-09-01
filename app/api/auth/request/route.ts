@@ -4,6 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { esEmailAutorizado } from '@/lib/auth'
 import { Resend } from 'resend'
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +18,11 @@ export async function POST(req: NextRequest) {
   if (!email) return NextResponse.json({ error: 'email requerido' }, { status: 400 })
 
   const clean = email.trim().toLowerCase()
+
+  /* Lista blanca de dirección — sin código para quien no está autorizado */
+  if (!esEmailAutorizado(clean)) {
+    return NextResponse.json({ status: 'inactive' })
+  }
 
   /* Buscar usuario en la tabla */
   const { data: user, error } = await supabaseAdmin

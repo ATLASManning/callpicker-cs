@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { verifyPassword } from '@/lib/password'
-import { signToken, cookieOptions, COOKIE_NAME } from '@/lib/auth'
+import { signToken, cookieOptions, COOKIE_NAME, esEmailAutorizado } from '@/lib/auth'
 import type { Rol } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -18,6 +18,11 @@ export async function POST(req: NextRequest) {
   }
 
   const clean = email.trim().toLowerCase()
+
+  // Lista blanca de dirección — se valida antes que nada
+  if (!esEmailAutorizado(clean)) {
+    return NextResponse.json({ error: 'usuario_invalido' }, { status: 401 })
+  }
 
   const { data: user } = await supabaseAdmin
     .from('usuarios')

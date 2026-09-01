@@ -18,6 +18,34 @@ export interface SessionPayload {
 const SESSION_DURATION = 60 * 60 * 24 * 30   // 30 días en segundos
 export const COOKIE_NAME = 'cp_session'
 
+/* ── Lista blanca de acceso al dashboard ───────────────────────────────
+ * Fuente única de quién puede entrar (instrucción de dirección, 1 Sep 2026).
+ *
+ * Se evalúa en CADA request desde el middleware — no solo al iniciar sesión.
+ * Motivo: la marca `usuarios.activo` solo se revisa en login/verify, y la
+ * cookie dura 30 días; el 1 Sep 2026 había 4 usuarios marcados inactivos
+ * usando el dashboard con sesiones emitidas antes de la baja.
+ *
+ * Para cambiar la lista sin desplegar: variable de entorno
+ * EMAILS_AUTORIZADOS en Vercel, con los correos separados por coma.
+ */
+const EMAILS_AUTORIZADOS_DEFAULT = [
+  'daniel@callpicker.com',
+  'josel@callpicker.com',
+  'lopezdjosemanuel@gmail.com',
+]
+
+export function emailsAutorizados(): Set<string> {
+  const raw  = process.env.EMAILS_AUTORIZADOS
+  const list = raw ? raw.split(',') : EMAILS_AUTORIZADOS_DEFAULT
+  return new Set(list.map(e => e.trim().toLowerCase()).filter(Boolean))
+}
+
+export function esEmailAutorizado(email: string | null | undefined): boolean {
+  if (!email) return false
+  return emailsAutorizados().has(email.trim().toLowerCase())
+}
+
 function getSecret() {
   const s = process.env.JWT_SECRET
   if (!s) throw new Error('JWT_SECRET no configurado')

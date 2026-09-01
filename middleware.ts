@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
-import { COOKIE_NAME } from '@/lib/auth'
+import { COOKIE_NAME, esEmailAutorizado } from '@/lib/auth'
 
 const PUBLIC_PATHS  = ['/acceso', '/api/auth/']
 const ADMIN_ONLY    = ['/admin',  '/api/admin/']
@@ -15,11 +15,16 @@ const isAdminOnly = (p: string) => ADMIN_ONLY.some(x => p.startsWith(x))
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  // Los documentos de /docs/ (auditorías CONFIDENCIAL, one-pagers internos)
+  // NO se eximen: antes se servían sin sesión a cualquiera con la URL.
+  const esDocumento = pathname.startsWith('/docs/')
+
   if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon') ||
-    pathname.startsWith('/docs/') ||
-    /\.\w+$/.test(pathname)
+    !esDocumento && (
+      pathname.startsWith('/_next') ||
+      pathname.startsWith('/favicon') ||
+      /\.\w+$/.test(pathname)
+    )
   ) return NextResponse.next()
 
   if (isPublic(pathname)) return NextResponse.next()
@@ -40,6 +45,17 @@ export async function middleware(req: NextRequest) {
     const email        = (payload.email        as string) ?? ''
     const nombre       = (payload.nombre       as string) ?? ''
     const asesor_nombre = (payload.asesor_nombre as string) ?? ''
+
+    // Lista blanca — se aplica en cada request, así una sesión emitida antes
+    // de la baja del usuario deja de funcionar de inmediato.
+    if (!esEmailAutorizado(email)) {
+      const url = req.nextUrl.clone()
+      url.pathname = '/acceso'
+      url.search   = '?motivo=no_autorizado'
+      const res = NextResponse.redirect(url)
+      res.cookies.delete(COOKIE_NAME)
+      return res
+    }
 
     if (isAdminOnly(pathname) && rol !== 'admin') {
       const url = req.nextUrl.clone()
