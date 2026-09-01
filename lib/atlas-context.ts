@@ -10,6 +10,7 @@ import { cortesDeCuenta } from './cortes-cuenta'
 import { detectDataGaps, CAMPOS_GAP_SELECT, type CuentaGapInput } from './data-gaps'
 import { contarRespuestasRadar } from './radar'
 import { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } from './elegibilidad'
+import { getZohoMap, lookupZoho } from './zoho-enrich'
 
 interface TicketRaw {
   cid: string; empresa: string; fecha: string
@@ -96,7 +97,7 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
 
   const { data: cuentas } = await supabaseAdmin
     .from('cuentas')
-    .select(`id, consecutivo, cid, empresa, asesor, estado, health_score, facturacion,
+    .select(`id, consecutivo, cid, empresa, asesor, estado, health_score, facturacion, notas,
              score_adopcion, dias_sin_actividad, ultimo_contacto,
              tiene_chat_activo, tiene_integracion_api, tiene_pago_automatico,
              tiene_ia_voz, tiene_ia_chat, upsell_producto, crossell_producto,
@@ -127,8 +128,11 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
     (c.estado && c.estado !== 'activo' && c.estado !== 'en_riesgo')
       ? `estado "${c.estado}" en la plataforma (no es cartera activa)` : null
 
-  // Fuentes vivas en paralelo
-  const [cortes, actsRes, segsRes, radarRes] = await Promise.all([
+  // Fuentes vivas en paralelo (facturación SIEMPRE desde Zoho en vivo — la
+  // columna cuentas.facturacion es una copia guardada que envejece; incidente
+  // GRUPO FRISA 31 Ago 2026: la columna decía $1,622 y la cifra real viva era
+  // $16,539 con subcuentas agregadas)
+  const [cortes, actsRes, segsRes, radarRes, zmap] = await Promise.all([
     cortesDeCuenta(c.cid, 4),
     supabaseAdmin.from('actividades')
       .select('tipo, estado, completada, semana_inicio, resultado')
@@ -139,7 +143,11 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
     supabaseAdmin.from('radar_respuestas')
       .select('respuestas, creado_en')
       .eq('cuenta_id', c.id).order('creado_en', { ascending: false }).limit(1),
+    getZohoMap(),
   ])
+
+  const z       = lookupZoho(c.empresa, zmap)
+  const hsFalta = String(c.notas ?? '').includes('[FALTA_HS]')
 
   const tk    = ticketStatsCuenta(c.cid ?? null, c.empresa)
   const gaps  = detectDataGaps(c as unknown as CuentaGapInput)
@@ -170,14 +178,17 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
   if (!acts.length) faltantes.push('sin actividades SAC registradas')
   if (!segs.length) faltantes.push('sin seguimientos KAM registrados')
   if (!c.ultimo_contacto) faltantes.push('sin fecha de último contacto')
+  if (hsFalta)      faltantes.push('Health Score sin calcular (marca [FALTA_HS])')
 
   const antig = c.activo_desde ? `cliente desde ${String(c.activo_desde).slice(0, 10)}` : 'antigüedad sin registrar'
 
   const text = `DOSSIER DE CUENTA — ${c.empresa} (pregunta del usuario la menciona; USA ESTOS DATOS, la cuenta SI existe):
-  Identidad: ${c.consecutivo} | CID ${c.cid ?? 'sin CID'} | Asesor: ${c.asesor} | Estado: ${c.estado} | HS ${c.health_score ?? '?'} | Adopción ${c.score_adopcion ?? '?'}/100 | ${antig}${alertaChurn ? `
+  Identidad: ${c.consecutivo} | CID ${c.cid ?? 'sin CID'} | Asesor: ${c.asesor} | Estado: ${c.estado} | HS ${hsFalta ? 'FALTA (sin calcular)' : c.health_score ?? '?'} | Adopción ${c.score_adopcion ?? '?'}/100 | ${antig}${alertaChurn ? `
   ALERTA CHURN: ${alertaChurn} — NO ofrecer portafolio de crecimiento; el enfoque correcto es retencion/reactivacion.` : ''}
-  Facturación CRM: $${Number(c.facturacion ?? 0).toLocaleString('es-MX')}/mes
-  Cortes de facturación (plan y consumo, últimos):
+  Facturación: ${z
+    ? `Factura mensual (Zoho EN VIVO, con subcuentas): $${Math.round(z.factura_mensual).toLocaleString('es-MX')} | MRR: $${Math.round(z.mrr).toLocaleString('es-MX')}${z.segmento ? ` | Segmento: ${z.segmento}` : ''} — ESTA es la cifra oficial cuando pregunten cuanto factura`
+    : `$${Number(c.facturacion ?? 0).toLocaleString('es-MX')}/mes (dato CRM guardado, PUEDE ESTAR DESACTUALIZADO — sin dato Zoho en vivo)`}
+  Cortes de facturación del CID ${c.cid ?? '—'} (montos por plan individual — si el grupo tiene subcuentas son PARCIALES, no la factura total):
 ${cortesTxt}
   Módulos ACTIVOS: ${modOn.length ? modOn.join(', ') : 'NINGUNO (0/5)'}
   Módulos SIN activar: ${modOff.join(', ') || 'ninguno'}
