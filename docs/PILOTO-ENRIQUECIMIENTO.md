@@ -1,7 +1,8 @@
 # Reporte del piloto de enriquecimiento — 1 Sep 2026
 
-**Alcance:** 6 cuentas (2 por KAM), modo **dry-run**, motor desplegado en producción.
-**Resultado:** 13 candidatos válidos, 0 errores, 16 s de ejecución, **0 escrituras**.
+**Alcance:** 6 cuentas (2 por KAM), motor desplegado en producción.
+**Resultado:** 13 candidatos válidos, 0 errores, 16 s de ejecución.
+**Estado:** migración corrida y candidatos **persistidos**; la bandeja de revisión ya tiene contenido real (ver §9).
 
 ---
 
@@ -145,3 +146,37 @@ El motor depende hoy de que la cuenta tenga sitio web: **40 de 218 cuentas (18 %
 **Etapa 3 — con proveedor de búsqueda.** Cubre las 40 cuentas sin dominio y habilita el mapa de decisores, que hoy es el hueco más grande de la cartera (72 % de las cuentas tienen menos de 2 personas registradas).
 
 **Antes de la Etapa 1** conviene que un KAM revise a mano los ~40 candidatos de sus primeras 10 cuentas: si la precisión se sostiene como en el piloto (13 de 13 válidos tras la corrección), se escala al resto con confianza.
+
+---
+
+## 9. Verificación post-migración (1 Sep 2026, tras correr el SQL)
+
+La migración se ejecutó y el piloto se repitió **en modo real** para dejar la bandeja con contenido.
+
+| Prueba | Resultado |
+|---|---|
+| Las 4 tablas existen y aceptan escritura | ✅ (insert de prueba creado y eliminado) |
+| Candidatos persistidos | 13, todos en estado `pendiente` |
+| **Idempotencia**: la corrida se repitió una segunda vez | ✅ siguen siendo **13**, no 26; **cero** claves de deduplicación repetidas |
+| Corridas registradas en `enriquecimiento_runs` | 2, ambas auditadas con su alcance y resumen |
+| **Integridad de `cuentas` tras dos escrituras reales** | Hash `b7e9a453f943f906…` — **idéntico al sellado antes del piloto** |
+
+### Aislamiento por KAM verificado en producción
+
+| Sesión | Ve | Carteras visibles |
+|---|---|---|
+| Administrador | 13 candidatos | Fátima, Dan, Claudia |
+| Asesor · cartera Claudia | 3 | solo Claudia |
+| Asesor · cartera Claudia forzando `?asesor=Dan` | 3 | **solo Claudia** — el filtro no permite salirse |
+| Asesor · cartera Dan | 4 | solo Dan |
+| Asesor · cartera Fátima | 6 | solo Fátima |
+
+Un correo fuera de la lista blanca de acceso recibe 307 antes siquiera de llegar a la API, por la restricción del 1 Sep.
+
+### Cola inicial de revisión
+
+| KAM | Pendientes | Conflictos |
+|---|---|---|
+| Fátima | 6 | 0 |
+| Dan | 4 | 0 |
+| Claudia | 3 | 1 (oficinas de Mundo Joven) |
