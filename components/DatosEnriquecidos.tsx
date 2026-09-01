@@ -1,4 +1,5 @@
 import type { DatosEnriquecidos, SenalComercial } from '@/lib/enriquecimiento/cuenta'
+import { ETIQUETA_ROL } from '@/lib/enriquecimiento/cuenta'
 
 /**
  * Sección "Localizado por Atlas" DENTRO de la tarjeta de Información.
@@ -62,6 +63,40 @@ export default function DatosEnriquecidosPanel({ datos }: { datos: DatosEnriquec
       {datos.senales.length > 0 && (
         <div className="space-y-2">
           {datos.senales.map((s, i) => <Senal key={i} s={s} />)}
+        </div>
+      )}
+
+      {datos.decisores.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[10px] text-textLow">
+            Mapa de decisores localizado ({datos.decisores.length})
+          </p>
+          {datos.decisores.map(d => (
+            <div key={d.id} className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium" style={{ color: ATLAS }}>{d.persona_nombre}</p>
+                <p className="text-[10px] text-textMid leading-snug">
+                  {d.cargo}
+                  {d.rol_decision && (
+                    <span className="ml-1 px-1 rounded"
+                          style={{ background: `${ATLAS}22`, color: ATLAS }}>
+                      {ETIQUETA_ROL[d.rol_decision] ?? d.rol_decision}
+                    </span>
+                  )}
+                </p>
+                {d.email && <p className="text-[10px] text-textMid break-all">{d.email}</p>}
+                {d.fuente_url && (
+                  <a href={d.fuente_url} target="_blank" rel="noopener noreferrer"
+                     className="text-[9px] text-textLow hover:text-cp underline">
+                    publicado en el sitio de la empresa
+                  </a>
+                )}
+              </div>
+              <span className="text-[9px] font-bold flex-shrink-0 mt-0.5" style={{ color: ATLAS }}>
+                {d.confianza_score}
+              </span>
+            </div>
+          ))}
         </div>
       )}
 

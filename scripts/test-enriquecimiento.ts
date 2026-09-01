@@ -22,6 +22,7 @@ import { comparar, accionPropuesta, construirCandidato, deduplicar } from '../li
 import { assertTablaPermitida, TABLAS_PERMITIDAS, EscrituraProhibidaError } from '../lib/enriquecimiento/servicio'
 import { extraerEmpleados, extraerSitios, htmlATexto, sinTelefonos } from '../lib/enriquecimiento/proveedores/sitioWeb'
 import * as interno from '../lib/enriquecimiento/proveedores/interno'
+import { extraerPersonas } from '../lib/enriquecimiento/proveedores/decisores'
 import type { CuentaLectura } from '../lib/enriquecimiento/tipos'
 
 let ok = 0, fallos = 0
@@ -274,6 +275,60 @@ test('no deduce sitio web desde un correo genérico', () => {
   const c: CuentaLectura = { ...cuentaBase, pagina_web: '0',
     contacto_email: 'alguien@gmail.com' }
   assert.equal(interno.buscar(c).filter(x => x.campo === 'pagina_web').length, 0)
+})
+
+/* ════════════════════════════════════════════════════════════════════════
+   6b. Mapa de decisores
+   ════════════════════════════════════════════════════════════════════════ */
+grupo('MAPA DE DECISORES')
+
+test('detecta persona con cargo y le asigna rol de decisión', () => {
+  const p = extraerPersonas('Ana María Gutiérrez\nDirectora General', 'https://x.mx/nosotros')
+  assert.equal(p.length, 1)
+  assert.equal(p[0].nombre, 'Ana María Gutiérrez')
+  assert.equal(p[0].rol, 'decisor_economico')
+})
+
+test('clasifica al responsable de sistemas como decisor técnico', () => {
+  const p = extraerPersonas('Luis Hernández, Gerente de Sistemas', 'https://x.mx/equipo')
+  assert.equal(p[0]?.rol, 'decisor_tecnico')
+})
+
+test('NO toma nombres de testimonios de clientes', () => {
+  const p = extraerPersonas('Testimonio: Roberto Sánchez, Director de Compras de otra empresa, opinó sobre nosotros', 'https://x.mx')
+  assert.equal(p.length, 0)
+})
+
+test('NO confunde una razón social con una persona', () => {
+  const p = extraerPersonas('Servicios Corporativos Integrales — Director General', 'https://x.mx')
+  assert.ok(p.every(x => !/servicios|corporativ/i.test(x.nombre)))
+})
+
+test('rechaza los falsos positivos reales de la medición del 1 Sep', () => {
+  // Calle tomada como CTO, institución como fundadora, área como director
+  for (const linea of [
+    'Río Churubusco 500, CTO',
+    'Bolsa Mexicana Fundadora del programa',
+    'Políticas Públicas Director de área',
+    'Alto Performance Socio estratégico',
+    'World Vision México Director',
+  ]) {
+    assert.equal(extraerPersonas(linea, 'https://x.mx').length, 0, `no debía extraer de: ${linea}`)
+  }
+})
+
+test('un nombre de una sola palabra no es persona', () => {
+  assert.equal(extraerPersonas('Carlos — Director General', 'https://x.mx').length, 0)
+})
+
+test('no inventa correo cuando la página no lo publica', () => {
+  const p = extraerPersonas('Carlos Ramírez Soto\nDirector de Finanzas', 'https://x.mx')
+  assert.equal(p[0]?.email, null)
+})
+
+test('toma el correo solo si aparece junto a la persona', () => {
+  const p = extraerPersonas('Carlos Ramírez Soto, Director de Finanzas — carlos@x.mx', 'https://x.mx')
+  assert.equal(p[0]?.email, 'carlos@x.mx')
 })
 
 /* ════════════════════════════════════════════════════════════════════════

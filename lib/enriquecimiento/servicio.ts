@@ -15,9 +15,10 @@ import type {
 } from './tipos'
 import { construirCandidato, deduplicar } from './comparar'
 import { esValorReal } from './normalizar'
-import * as provInterno  from './proveedores/interno'
-import * as provSitioWeb from './proveedores/sitioWeb'
-import * as provApify    from './proveedores/apify'
+import * as provInterno   from './proveedores/interno'
+import * as provSitioWeb  from './proveedores/sitioWeb'
+import * as provApify     from './proveedores/apify'
+import * as provDecisores from './proveedores/decisores'
 
 /** Lista blanca de escritura. `cuentas` NO está y no debe estarse jamás. */
 export const TABLAS_PERMITIDAS = [
@@ -118,6 +119,8 @@ export async function ejecutarEnriquecimiento(opts: OpcionesRun): Promise<Result
     { nombre: provInterno.NOMBRE,  version: provInterno.VERSION,  disponible: true },
     { nombre: provSitioWeb.NOMBRE, version: provSitioWeb.VERSION, disponible: true },
     { nombre: provApify.NOMBRE,    version: provApify.VERSION,    disponible: provApify.disponible() },
+    { nombre: provDecisores.NOMBRE, version: provDecisores.VERSION,
+      disponible: process.env.ENRIQUECIMIENTO_DECISORES === '1' },
   ]
   resumen.proveedores_usados        = proveedores.filter(p => p.disponible).map(p => p.nombre)
   resumen.proveedores_no_disponibles = proveedores.filter(p => !p.disponible).map(p => p.nombre)
@@ -174,6 +177,22 @@ export async function ejecutarEnriquecimiento(opts: OpcionesRun): Promise<Result
         }
       } catch (e) {
         resumen.errores.push({ cuenta: cuenta.empresa, proveedor: 'apify', detalle: String(e) })
+      }
+    }
+
+    /* 4. Mapa de decisores — DESACTIVADO por medición, no por falta de código.
+     * Se midió sobre 35 sitios de la cartera (1 Sep 2026): el 91 % no publica
+     * a su equipo, y el 9 % restante solo produjo falsos positivos ("Río
+     * Churubusco" como CTO, "Bolsa Mexicana" como fundadora). El add-on de
+     * leads de pago de Apify tampoco devolvió personas. Activarlo costaría
+     * fetches extra para llenar la ficha de ruido.
+     * Para reactivar: `ENRIQUECIMIENTO_DECISORES=1` y revisar el rendimiento
+     * antes de una corrida masiva. Ver docs/ENRIQUECIMIENTO.md §10. */
+    if (process.env.ENRIQUECIMIENTO_DECISORES === '1' && esValorReal(cuenta.pagina_web)) {
+      try {
+        decisores.push(...await provDecisores.buscar(cuenta))
+      } catch (e) {
+        resumen.errores.push({ cuenta: cuenta.empresa, proveedor: 'decisores', detalle: String(e) })
       }
     }
 

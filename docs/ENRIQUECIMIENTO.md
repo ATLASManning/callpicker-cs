@@ -187,3 +187,46 @@ Actor `compass/crawler-google-places`, 41 cuentas, 3 búsquedas por lotes. Costo
 20 cuentas que **no tenían nada que investigar** ahora tienen dominio, teléfono, giro y —en 10 de ellas— número de ubicaciones. Entre ellas Velfare (`velfare.mx`, 2 sedes), Koltin (`koltin.mx`), Centro de Estudios de Posgrado (`cposgrado.edu.mx`, 3 sedes), JAD Suministros, Campus Residencias (2 sedes) y Servidiesel.
 
 **Caso que necesita ojos de Fátima:** Global Digital (F2, $34,430/mes) matcheó con `global-digital-commerce.ueniweb.com`, un sitio hecho con un constructor genérico. Pasa el filtro de nombre, pero es improbable que sea una cuenta de ese tamaño. Sigue siendo la cuenta que más urge anclar con un dominio o razón social reales.
+
+---
+
+## 10. Fase 3 — mapa de decisores: medido y descartado por ahora
+
+**Conclusión: el mapa de decisores no se puede llenar investigando esta cartera. Solo preguntando.**
+
+El código está construido y probado (`lib/enriquecimiento/proveedores/decisores.ts`), pero **queda apagado** tras medir su rendimiento real.
+
+### La medición (1 Sep 2026)
+
+Se recorrieron **35 sitios** de las cuentas de mayor facturación, siguiendo los enlaces institucionales que el propio sitio publica (nosotros, equipo, quiénes somos, dirección):
+
+| Resultado | Sitios | % |
+|---|---|---|
+| Publican a su equipo con nombre y cargo | 3 | 9 % |
+| No publican nada | 32 | 91 % |
+
+Y los 3 "aciertos" resultaron **falsos positivos al inspeccionarlos**:
+
+| Extraído | Cargo asignado | Qué era en realidad |
+|---|---|---|
+| Río Churubusco | CTO | una calle en la dirección de la empresa |
+| Bolsa Mexicana | Fundadora | una institución mencionada en el texto |
+| Políticas Públicas | Director | un área, no una persona |
+| Alto Performance | Socio | un concepto de marketing |
+
+**Personas reales extraídas: cero.**
+
+### La alternativa de pago tampoco funcionó
+
+Se probó el add-on *Business leads enrichment* del actor de Apify ($0.10 por lead en plan FREE), que promete nombre, correo de trabajo, cargo y LinkedIn. Sobre dos cuentas grandes (Tech People y Grupo Torres Corzo) devolvió **cero leads**: una no tiene sitio declarado en Maps y la otra resolvió a un concesionario del grupo.
+
+### Qué se hizo con eso
+
+1. **El proveedor queda desactivado** (`ENRIQUECIMIENTO_DECISORES=1` para reactivarlo). Correrlo costaría fetches adicionales por cuenta para llenar la ficha de ruido.
+2. **El extractor se endureció** con los falsos positivos reales como casos de prueba: ahora rechaza toponimia, instituciones, áreas y nombres de una sola palabra. Verificado: rechaza los 6 falsos positivos y acepta 5 nombres válidos.
+3. **El hueco se convirtió en una señal accionable.** Cuando una cuenta tiene menos de dos contactos, la ficha muestra —en el bloque de Atlas— la pregunta exacta que el KAM debe hacer: *"¿Quién más participa en las decisiones sobre herramientas como Callpicker, y quién autoriza el presupuesto?"*. En cuentas de $10,000/mes o más se marca como **riesgo**, no como dato: toda la relación depende de una sola persona.
+
+### Lo que sí movería la aguja
+
+- **Preguntar en la actividad SAC.** El catálogo `lib/data-gaps.ts` ya trae la pregunta de mapa de decisores como hueco crítico; el generador semanal puede priorizar las cuentas de mayor facturación con un solo contacto.
+- **Un proveedor B2B de contactos** (Apollo, Lusha o similar) con cobertura real en México. Es el único camino automático que queda, y requiere suscripción y una revisión de tratamiento de datos personales antes de contratarlo.

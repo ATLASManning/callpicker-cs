@@ -39,13 +39,42 @@ export interface SenalComercial {
   accion?: string
 }
 
+export interface DecisorCuenta {
+  id: string
+  persona_nombre: string | null
+  cargo: string | null
+  area: string | null
+  rol_decision: string | null
+  email: string | null
+  telefono: string | null
+  confianza_score: number
+  estado_verificacion: string
+  fuente_url: string | null
+  fuente_nombre: string
+  evidencia: string
+  review_status: string
+}
+
 export interface DatosEnriquecidos {
   candidatos: CandidatoCuenta[]
   porCampo:   Record<string, CandidatoCuenta[]>
+  decisores:  DecisorCuenta[]
   senales:    SenalComercial[]
   total:      number
   conflictos: number
   ultimaConsulta: string | null
+}
+
+/** Etiquetas legibles del rol en la decisión de compra. */
+export const ETIQUETA_ROL: Record<string, string> = {
+  decisor_economico:      'Decisor económico',
+  decisor_tecnico:        'Decisor técnico',
+  usuario_clave:          'Usuario clave',
+  influenciador:          'Influenciador',
+  comprador:              'Comprador',
+  patrocinador_ejecutivo: 'Patrocinador ejecutivo',
+  gatekeeper:             'Gatekeeper',
+  contacto_operativo:     'Contacto operativo',
 }
 
 /** Cuenta mínima que necesitamos para derivar señales. */
@@ -53,6 +82,9 @@ export interface CuentaParaSenales {
   num_oficinas: string | null
   contacto_email: string | null
   contacto_tel: string | null
+  contacto_nombre?: string | null
+  contactos_json?: Array<{ nombre?: string }> | null
+  facturacion?: number | null
   tamano_empresa: string | null
   giro: string | null
   tiene_chat_activo?: boolean | null
@@ -71,9 +103,44 @@ const RX_MULTISITIO = /sucursal|oficina|tienda|planta|centro de distribuci|punto
  * El foco es accionable: qué conversación abre cada dato.
  */
 export function derivarSenales(
-  c: CuentaParaSenales, cands: CandidatoCuenta[],
+  c: CuentaParaSenales, cands: CandidatoCuenta[], decisores: DecisorCuenta[] = [],
 ): SenalComercial[] {
   const out: SenalComercial[] = []
+
+  // ── Mapa de decisores: quién decide, además de quién contesta ────────────
+  const conNombre = decisores.filter(d => d.persona_nombre)
+  const economicos = conNombre.filter(d => d.rol_decision === 'decisor_economico')
+  const tecnicos   = conNombre.filter(d => d.rol_decision === 'decisor_tecnico')
+  if (conNombre.length) {
+    const perfiles = [
+      economicos.length ? `${economicos.length} con poder económico` : '',
+      tecnicos.length ? `${tecnicos.length} del lado técnico` : '',
+    ].filter(Boolean).join(' y ')
+    out.push({
+      tipo: 'oportunidad',
+      titulo: `${conNombre.length} persona(s) localizadas en la organización`,
+      detalle: `Publicadas por la propia empresa${perfiles ? `: ${perfiles}` : ''}. ` +
+               `${conNombre.slice(0, 3).map(d => `${d.persona_nombre} (${d.cargo})`).join(' · ')}`,
+      accion: economicos.length
+        ? 'Hay un decisor económico identificado: la renovación o el upsell no dependen solo del contacto operativo.'
+        : 'Validar con el cliente quién autoriza el gasto — el mapa aún no tiene decisor económico.',
+    })
+  } else if ((c.contactos_json?.length ?? 0) < 2) {
+    /* Sin decisores localizables. La medición del 1 Sep 2026 mostró que el
+     * 91 % de los sitios de esta cartera no publica a su equipo: el mapa no
+     * se puede llenar investigando, solo preguntando. Se convierte el hueco
+     * en la pregunta concreta que el KAM debe hacer. */
+    const soloUno = (c.contactos_json?.length ?? 0) === 1 || esValorReal(c.contacto_nombre)
+    out.push({
+      tipo: (c.facturacion ?? 0) >= 10000 ? 'riesgo' : 'dato',
+      titulo: soloUno ? 'Un solo contacto conocido en la cuenta' : 'Mapa de decisores vacío',
+      detalle: soloUno
+        ? 'Toda la relación depende de una sola persona. Si esa persona sale de la empresa, la cuenta queda a ciegas.'
+        : 'No hay ninguna persona registrada, y las fuentes públicas no publican al equipo de esta empresa.',
+      accion: 'Preguntar al cliente: “¿Quién más participa en las decisiones sobre herramientas como Callpicker, ' +
+              'y quién autoriza el presupuesto?” — nombre, cargo, teléfono y correo.',
+    })
+  }
 
   // ── Red de ubicaciones: la señal de upsell más directa ──────────────────
   const textoSitios = [
@@ -190,21 +257,34 @@ export async function datosEnriquecidosDeCuenta(
   cuentaId: string, cuenta?: CuentaParaSenales,
 ): Promise<DatosEnriquecidos> {
   const vacio: DatosEnriquecidos = {
-    candidatos: [], porCampo: {}, senales: [], total: 0, conflictos: 0, ultimaConsulta: null,
+    candidatos: [], porCampo: {}, decisores: [], senales: [],
+    total: 0, conflictos: 0, ultimaConsulta: null,
   }
 
-  const { data, error } = await supabaseAdmin
-    .from('enriquecimiento_candidatos')
-    .select(`id, campo, valor_original_snapshot, valor_candidato, confianza_score,
-             confianza_nivel, estado_verificacion, fuente_tipo, fuente_nombre,
-             fuente_url, evidencia, consultado_en, matching_status, review_status`)
-    .eq('cuenta_id', cuentaId)
-    .neq('review_status', 'incorrecto')
-    .order('confianza_score', { ascending: false })
+  const [candRes, decRes] = await Promise.all([
+    supabaseAdmin
+      .from('enriquecimiento_candidatos')
+      .select(`id, campo, valor_original_snapshot, valor_candidato, confianza_score,
+               confianza_nivel, estado_verificacion, fuente_tipo, fuente_nombre,
+               fuente_url, evidencia, consultado_en, matching_status, review_status`)
+      .eq('cuenta_id', cuentaId)
+      .neq('review_status', 'incorrecto')
+      .order('confianza_score', { ascending: false }),
+    supabaseAdmin
+      .from('enriquecimiento_decisores')
+      .select(`id, persona_nombre, cargo, area, rol_decision, email, telefono,
+               confianza_score, estado_verificacion, fuente_url, fuente_nombre,
+               evidencia, review_status`)
+      .eq('cuenta_id', cuentaId)
+      .neq('review_status', 'incorrecto')
+      .order('confianza_score', { ascending: false }),
+  ])
 
-  if (error || !data?.length) return vacio
+  const decisores = (decRes.data ?? []) as unknown as DecisorCuenta[]
+  const data = candRes.data
+  if ((candRes.error || !data?.length) && !decisores.length) return vacio
 
-  const candidatos = data as unknown as CandidatoCuenta[]
+  const candidatos = (data ?? []) as unknown as CandidatoCuenta[]
   const porCampo: Record<string, CandidatoCuenta[]> = {}
   for (const c of candidatos) {
     if (!porCampo[c.campo]) porCampo[c.campo] = []
@@ -214,8 +294,9 @@ export async function datosEnriquecidosDeCuenta(
   return {
     candidatos,
     porCampo,
-    senales: cuenta ? derivarSenales(cuenta, candidatos) : [],
-    total: candidatos.length,
+    decisores,
+    senales: cuenta ? derivarSenales(cuenta, candidatos, decisores) : [],
+    total: candidatos.length + decisores.length,
     conflictos: candidatos.filter(c => c.matching_status === 'conflicto').length,
     ultimaConsulta: candidatos
       .map(c => c.consultado_en)

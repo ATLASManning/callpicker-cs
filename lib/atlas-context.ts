@@ -207,6 +207,9 @@ ${cortesTxt}
 ${Object.entries(enriq.porCampo).map(([campo, lista]) =>
     `    ${campo}: ${lista.slice(0, 4).map(x => `${x.valor_candidato} (${x.confianza_score}/100${x.matching_status === 'conflicto' ? ', DIFIERE del dato del KAM' : ''})`).join(' | ')}`
   ).join('\n')}${
+    enriq.decisores.length ? `
+  MAPA DE DECISORES localizado en el sitio de la empresa (personas publicadas, sin verificar con el cliente):
+${enriq.decisores.map(d => `    ${d.persona_nombre} — ${d.cargo ?? 's/cargo'} [${d.rol_decision ?? 'rol sin definir'}]${d.email ? ` · ${d.email}` : ''}`).join('\n')}` : ''}${
     enriq.senales.length ? `
   LECTURA COMERCIAL detectada:
 ${enriq.senales.map(s => `    [${s.tipo.toUpperCase()}] ${s.titulo}: ${s.detalle}${s.accion ? ` -> ${s.accion}` : ''}`).join('\n')}` : ''}` : ''}`
