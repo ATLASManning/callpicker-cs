@@ -17,10 +17,10 @@ export const SOFIA: AuditoriaCase = {
   fecha_periodo:         'Enero – Agosto 2026 (7 cortes de facturación)',
   fecha_auditoria:       'Ago 2026',
   tipo_cliente:          'Cuenta madre de grupo · $11,744 MRR · consumo intensivo saliente',
-  descripcion_contexto:  'CID 178011 · Consecutivo F66 · La cuenta viva del grupo RDS · Asesora: Claudia Hernández',
-  estado:                'en_riesgo',
+  descripcion_contexto:  'CID 178011 · Consecutivo F66 · Última cuenta del grupo RDS · Asesora: Claudia Hernández',
+  estado:                'perdido',
   clasificacion:         'CONFIDENCIAL',
-  version:               '1.0',
+  version:               '1.1',
 
   kpis: [
     { label: 'MRR del grupo',              value: '$11,744',         color: '#6366f1' },
@@ -30,6 +30,7 @@ export const SOFIA: AuditoriaCase = {
   ],
 
   resumen_ejecutivo:
+    'ACTUALIZACIÓN 31 AGO 2026 — PRONÓSTICO CONFIRMADO: el cliente solicitó la baja del servicio también de Sofia. La cuenta fue etiquetada como cancelada en cartera y sus actividades SAC bloqueadas. La pregunta que este caso dejó abierta ("¿la baja aplica a toda la razón social?") quedó respondida: sí. El texto siguiente se conserva como estaba al momento de la auditoría (28 Ago), tres días antes de la confirmación.\n\n' +
     'Sofia (F66) es la cuenta madre viva de un grupo de 3 subcuentas con $11,744 de MRR — el mismo grupo que el 28 de agosto canceló sus 2 cuentas a nombre de RDS ELITE CONDOS PDC (auditadas por separado en el caso RDS/Invest Vacay). Este caso audita lo que queda, y lo que queda es una paradoja:\n\n' +
     'Operativamente, Sofia es de las cuentas más sanas de la cartera: consume en promedio ~91% de su bolsa de 6,500 minutos, rebasó el 100% en dos de siete cortes (112.1% en marzo, 103.3% en mayo), su uso es intensivo en salientes, paga sin una sola incidencia y tiene contacto KAM esta misma semana. La capacidad ociosa es de apenas 9.7%: el siguiente sobreconsumo es cuestión de semanas.\n\n' +
     'Administrativamente, es de las más ciegas: 1 de 8 campos de perfil registrados, cero módulos activados en 7 meses, mapa de decisores vacío, observaciones KAM vacías, Radar de asesora 0/12 y la actividad SAC "Completar Perfil" de esta semana aún pendiente.\n\n' +
