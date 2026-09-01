@@ -5,6 +5,10 @@
 import { supabaseAdmin } from './supabase'
 import rawTickets from './tickets-data.json'
 import { STATIC_CASES } from '@/app/auditoria/cases'
+import { ticketStatsCuenta } from './tickets-cuenta'
+import { cortesDeCuenta } from './cortes-cuenta'
+import { detectDataGaps, CAMPOS_GAP_SELECT, type CuentaGapInput } from './data-gaps'
+import { contarRespuestasRadar } from './radar'
 
 interface TicketRaw {
   cid: string; empresa: string; fecha: string
@@ -75,6 +79,111 @@ function sem(hs: number | null): string {
   if (hs >= 40) return 'amarillo'
   if (hs >= 20) return 'naranja'
   return 'rojo'
+}
+
+
+// ── Dossier por cuenta — se inyecta cuando la pregunta menciona una cuenta ────
+// Motivo (incidente Servinox, 31 Ago 2026): el contexto general solo nombra a
+// las cuentas con HS<40, así que Atlas respondía "no tengo esa información"
+// sobre cuentas perfectamente vivas. El dossier trae facturación, servicios,
+// consumo, tickets, actividades, seguimientos, Radar y huecos de datos de LA
+// cuenta preguntada — todo desde las fuentes vivas.
+
+function normNombre(s: string): string {
+  return (s ?? '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+}
+
+export async function buildCuentaDossier(pregunta: string): Promise<{ text: string; empresa: string } | null> {
+  const q = normNombre(pregunta)
+  if (q.length < 4) return null
+
+  const { data: cuentas } = await supabaseAdmin
+    .from('cuentas')
+    .select(`id, consecutivo, cid, empresa, asesor, estado, health_score, facturacion,
+             score_adopcion, dias_sin_actividad, ultimo_contacto,
+             tiene_chat_activo, tiene_integracion_api, tiene_pago_automatico,
+             tiene_ia_voz, tiene_ia_chat, upsell_producto, crossell_producto,
+             ${CAMPOS_GAP_SELECT}`)
+  if (!cuentas?.length) return null
+
+  // Coincidencia: nombre normalizado contenido en la pregunta, o CID exacto
+  // como token numérico completo (nunca substring — un teléfono no debe
+  // disparar una cuenta). Se prefiere el nombre más largo contra falsos
+  // positivos cortos.
+  const cidsEnPregunta = new Set(pregunta.match(/\d{3,}/g) ?? [])
+  let mejor: (typeof cuentas)[number] | null = null
+  let mejorLen = 0
+  for (const c of cuentas) {
+    const n = normNombre(c.empresa)
+    if (n.length >= 4 && q.includes(n) && n.length > mejorLen) { mejor = c; mejorLen = n.length }
+    if (c.cid && cidsEnPregunta.has(String(c.cid).trim())) { mejor = c; mejorLen = 999 }
+  }
+  if (!mejor) return null
+  const c = mejor
+
+  // Fuentes vivas en paralelo
+  const [cortes, actsRes, segsRes, radarRes] = await Promise.all([
+    cortesDeCuenta(c.cid, 4),
+    supabaseAdmin.from('actividades')
+      .select('tipo, estado, completada, semana_inicio, resultado')
+      .eq('cuenta_id', c.id).order('semana_inicio', { ascending: false }).limit(12),
+    supabaseAdmin.from('seguimientos')
+      .select('fecha, tipo, descripcion, resultado')
+      .eq('cuenta_id', c.id).order('fecha', { ascending: false }).limit(5),
+    supabaseAdmin.from('radar_respuestas')
+      .select('respuestas, creado_en')
+      .eq('cuenta_id', c.id).order('creado_en', { ascending: false }).limit(1),
+  ])
+
+  const tk    = ticketStatsCuenta(c.cid ?? null, c.empresa)
+  const gaps  = detectDataGaps(c as unknown as CuentaGapInput)
+  const crit  = gaps.filter(g => g.nivel === 'critico').map(g => g.campo)
+  const imp   = gaps.filter(g => g.nivel === 'importante').map(g => g.campo)
+  const radarN = contarRespuestasRadar(radarRes.data?.[0]?.respuestas ?? null)
+
+  const acts = actsRes.data ?? []
+  const segs = segsRes.data ?? []
+  const actsComp = acts.filter(a => a.completada).length
+
+  const modulos: Array<[string, boolean]> = [
+    ['Callpicker Chat', !!c.tiene_chat_activo], ['Integración API', !!c.tiene_integracion_api],
+    ['Pago automático', !!c.tiene_pago_automatico], ['IA de Voz', !!c.tiene_ia_voz],
+    ['IA de Chat', !!c.tiene_ia_chat],
+  ]
+  const modOn  = modulos.filter(([, v]) => v).map(([n]) => n)
+  const modOff = modulos.filter(([, v]) => !v).map(([n]) => n)
+
+  const cortesTxt = cortes.length
+    ? cortes.map(x => `    ${x.mes}: ${x.plan} | incl ${x.incl} min, consumidos ${x.cons} (${x.pct.toFixed(1)}%) | $${Math.round(x.monto).toLocaleString('es-MX')} | uso ${x.uso || '?'}`).join('\n')
+    : '    Sin cortes registrados para su CID'
+
+  const faltantes: string[] = []
+  if (crit.length)  faltantes.push(`perfil con ${crit.length} dato(s) CRITICO(S) sin capturar: ${crit.join(', ')}`)
+  if (imp.length)   faltantes.push(`datos importantes faltantes: ${imp.join(', ')}`)
+  if (radarN < 12)  faltantes.push(`Radar de Cuenta ${radarN}/12 preguntas respondidas`)
+  if (!acts.length) faltantes.push('sin actividades SAC registradas')
+  if (!segs.length) faltantes.push('sin seguimientos KAM registrados')
+  if (!c.ultimo_contacto) faltantes.push('sin fecha de último contacto')
+
+  const antig = c.activo_desde ? `cliente desde ${String(c.activo_desde).slice(0, 10)}` : 'antigüedad sin registrar'
+
+  const text = `DOSSIER DE CUENTA — ${c.empresa} (pregunta del usuario la menciona; USA ESTOS DATOS, la cuenta SI existe):
+  Identidad: ${c.consecutivo} | CID ${c.cid ?? 'sin CID'} | Asesor: ${c.asesor} | Estado: ${c.estado} | HS ${c.health_score ?? '?'} | Adopción ${c.score_adopcion ?? '?'}/100 | ${antig}
+  Facturación CRM: $${Number(c.facturacion ?? 0).toLocaleString('es-MX')}/mes
+  Cortes de facturación (plan y consumo, últimos):
+${cortesTxt}
+  Módulos ACTIVOS: ${modOn.length ? modOn.join(', ') : 'NINGUNO (0/5)'}
+  Módulos SIN activar: ${modOff.join(', ') || 'ninguno'}
+  Upsell/Cross marcado en CRM: ${c.upsell_producto ?? '—'} / ${c.crossell_producto ?? '—'}
+  Tickets: ${tk.total} totales, ${tk.fallas} fallas, ${tk.abiertos} abiertos | último: ${tk.ultima ?? '—'}
+  Actividades SAC (últimas): ${acts.length ? `${acts.length} registradas, ${actsComp} completadas; última semana ${acts[0].semana_inicio}` : 'NINGUNA registrada'}
+  Seguimientos KAM: ${segs.length ? segs.slice(0, 3).map(s => `[${String(s.fecha).slice(0, 10)}] ${s.tipo}: ${(s.descripcion ?? '').slice(0, 70)}`).join(' | ') : 'NINGUNO registrado'}
+  Radar de Cuenta: ${radarN}/12 preguntas respondidas
+  CALIDAD DE DATOS DE ESTA CUENTA: ${faltantes.length ? 'INCOMPLETA — ' + faltantes.join('; ') : 'completa'}`
+
+  return { text, empresa: c.empresa }
 }
 
 // ── Builder principal ─────────────────────────────────────────────────────────
