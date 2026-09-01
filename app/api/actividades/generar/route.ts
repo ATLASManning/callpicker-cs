@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ASESOR_CONFIG } from '@/lib/types'
 import { Resend } from 'resend'
-import { detectDataGaps, gapScore, type DataGap } from '@/lib/data-gaps'
+import { detectDataGaps, gapScore, conciliarGaps, type DataGap,
+         type CandidatoParaConciliar } from '@/lib/data-gaps'
+
+/** Candidatos ya localizados por cuenta, poblado al inicio de cada corrida.
+ *  Permite que la actividad diga "confirma este dato" en vez de "consiguelo". */
+let GAPS_LOCALIZADOS = new Map<string, CandidatoParaConciliar[]>()
 import { contarRespuestasRadar, preguntasRadarFaltantes } from '@/lib/radar'
 import {
   evaluarElegibilidad, esLunes, LIMITE_SEMANAL, MSG,
@@ -217,13 +222,24 @@ function buildDescripcion(
   radar?:           { respondidas: number; faltantes: ReturnType<typeof preguntasRadarFaltantes> },
 ): string {
   const { empresa, upsell_producto } = cuenta
-  const gaps     = detectDataGaps(cuenta)
-  const criticos = gaps.filter(g => g.nivel === 'critico')
+  const gaps     = conciliarGaps(detectDataGaps(cuenta), GAPS_LOCALIZADOS.get(cuenta.id) ?? [])
+  const criticos = gaps.filter(g => g.nivel === 'critico' && !g.localizado)
+  const yaLocalizados = gaps.filter(g => g.localizado)
   const isTop    = isTopAccount(cuenta)
 
   const topTag    = isTop ? ' [CUENTA TOP]' : ''
   const capturaStr = criticos.length > 0
     ? `\n\n⚡ CAPTURAR EN ESTA INTERACCIÓN: ${criticos.map(g => g.campo).join(' · ')}. Sin estos datos el perfil queda incompleto para análisis de riesgo.`
+    : ''
+
+  // Lo ya localizado no se pide: se confirma. Es la diferencia entre
+  // "consigue el correo" y "verifica si este correo es el correcto".
+  const confirmarStr = yaLocalizados.length > 0
+    ? `
+
+[LOCALIZADO POR ATLAS] Solo confirmar y capturar: ${yaLocalizados
+        .map(g => `${g.campo}: ${g.valor}${g.localizado === 'pista' ? ' (via alterna, no es el dato directo)' : ''}`)
+        .join(' | ')}.`
     : ''
 
   const modulos: string[] = []
@@ -263,78 +279,78 @@ Actualiza en: Dashboard → Cuentas → ${empresa} → Editar.${isTop ? '\n\n★
     case 'reunion':
       if (hs < 40) {
         return [
-          `REUNIÓN DE RESCATE${topTag} — ${empresa} (HS: ${hs}). LLEVAR PREPARADO: (1) reporte de uso + análisis de tráfico de llamadas últimas 4 semanas (ratio entrantes/salientes, % abandonadas), (2) tickets abiertos con tiempo sin respuesta, (3) compromisos de sesiones anteriores. OBJETIVOS: identificar causa raíz del deterioro y definir plan de acción con fechas. Si hay señal de churn → escalar a supervisión en < 24h.${kombitec}${capturaStr}`,
-          `REUNIÓN DE ESTABILIZACIÓN${topTag} — ${empresa} (HS: ${hs}). Presenta situación actual con datos reales de uso Callpicker: volumen, tasa de abandono, calidad. Define plan de recuperación con fechas comprometidas. Involucra al área técnica si hay incidencias sin resolver > 72h. Cierra con acuerdos documentados y pregunta directa: "¿Hay alguien más en la empresa que deba estar en esta conversación?".${kombitec}${capturaStr}`,
+          `REUNIÓN DE RESCATE${topTag} — ${empresa} (HS: ${hs}). LLEVAR PREPARADO: (1) reporte de uso + análisis de tráfico de llamadas últimas 4 semanas (ratio entrantes/salientes, % abandonadas), (2) tickets abiertos con tiempo sin respuesta, (3) compromisos de sesiones anteriores. OBJETIVOS: identificar causa raíz del deterioro y definir plan de acción con fechas. Si hay señal de churn → escalar a supervisión en < 24h.${kombitec}${capturaStr}${confirmarStr}`,
+          `REUNIÓN DE ESTABILIZACIÓN${topTag} — ${empresa} (HS: ${hs}). Presenta situación actual con datos reales de uso Callpicker: volumen, tasa de abandono, calidad. Define plan de recuperación con fechas comprometidas. Involucra al área técnica si hay incidencias sin resolver > 72h. Cierra con acuerdos documentados y pregunta directa: "¿Hay alguien más en la empresa que deba estar en esta conversación?".${kombitec}${capturaStr}${confirmarStr}`,
         ][idx % 2]
       }
       if (isTop) {
         return [
-          `REUNIÓN ESTRATÉGICA${topTag} — ${empresa}. Presentar con datos reales de Callpicker: (1) métricas de adopción — usuarios activos, módulos utilizados, volumen entrantes/salientes, tasa de resolución primer contacto; (2) comparativa vs. período anterior; (3) oportunidades de optimización no exploradas; (4) roadmap relevante para sus casos de uso. Cierra con acuerdos escritos, próxima revisión agendada y actualización del mapa de decisores.${callBlock}${capturaStr}`,
-          `REUNIÓN DE RESULTADOS${topTag} — ${empresa}. Lleva el reporte del mes con análisis de tráfico de llamadas: volumen, tasa de resolución primer contacto, tiempo promedio de atención, DIDs activos vs. contratados, SLA. Pide NPS verbal (1-10) y registra respuesta. ${modsStr} Pregunta explícita: "¿Quién más en su equipo tiene acceso al dashboard de Callpicker?" — confirma que el mapa de usuarios es correcto.${capturaStr}`,
+          `REUNIÓN ESTRATÉGICA${topTag} — ${empresa}. Presentar con datos reales de Callpicker: (1) métricas de adopción — usuarios activos, módulos utilizados, volumen entrantes/salientes, tasa de resolución primer contacto; (2) comparativa vs. período anterior; (3) oportunidades de optimización no exploradas; (4) roadmap relevante para sus casos de uso. Cierra con acuerdos escritos, próxima revisión agendada y actualización del mapa de decisores.${callBlock}${capturaStr}${confirmarStr}`,
+          `REUNIÓN DE RESULTADOS${topTag} — ${empresa}. Lleva el reporte del mes con análisis de tráfico de llamadas: volumen, tasa de resolución primer contacto, tiempo promedio de atención, DIDs activos vs. contratados, SLA. Pide NPS verbal (1-10) y registra respuesta. ${modsStr} Pregunta explícita: "¿Quién más en su equipo tiene acceso al dashboard de Callpicker?" — confirma que el mapa de usuarios es correcto.${capturaStr}${confirmarStr}`,
         ][idx % 2]
       }
       return [
-        `REUNIÓN ESTRATÉGICA — ${empresa}. Presentar: (1) métricas de adopción del periodo — usuarios activos, módulos utilizados, volumen de llamadas; (2) comparativa vs. período anterior; (3) oportunidades de optimización no exploradas. Cierra con acuerdos y próxima revisión agendada.${callBlock}${capturaStr}`,
-        `REUNIÓN DE RESULTADOS — ${empresa}. Lleva el reporte del mes: volumen de llamadas, tasa de resolución primer contacto, tiempo promedio de atención y SLA. Pide NPS verbal (1-10). ${modsStr} Alinea expectativas para el siguiente ciclo.${capturaStr}`,
+        `REUNIÓN ESTRATÉGICA — ${empresa}. Presentar: (1) métricas de adopción del periodo — usuarios activos, módulos utilizados, volumen de llamadas; (2) comparativa vs. período anterior; (3) oportunidades de optimización no exploradas. Cierra con acuerdos y próxima revisión agendada.${callBlock}${capturaStr}${confirmarStr}`,
+        `REUNIÓN DE RESULTADOS — ${empresa}. Lleva el reporte del mes: volumen de llamadas, tasa de resolución primer contacto, tiempo promedio de atención y SLA. Pide NPS verbal (1-10). ${modsStr} Alinea expectativas para el siguiente ciclo.${capturaStr}${confirmarStr}`,
       ][idx % 2]
 
     case 'upsell':
       return [
-        `PROPUESTA DE EXPANSIÓN${topTag} — ${empresa} → ${upsell_producto ?? 'nueva solución'}. PREPARA: (1) business case con ROI estimado basado en su uso real de Callpicker (volumetría actual → oportunidad con nuevo módulo), (2) 2-3 casos de éxito de clientes similares, (3) condiciones de implementación y timeline, (4) oferta de piloto sin riesgo si el cliente duda. OBJETIVO: definir próximo paso concreto con el DECISOR PRESUPUESTAL — no con quien usa la plataforma operativamente.${capturaStr}`,
-        `ACERCAMIENTO EXPANSIÓN${topTag} — ${empresa} → ${upsell_producto ?? 'nueva línea'}. Primero confirma cómo usan la plataforma HOY: revisa tráfico, grabaciones activas, módulos sin usar. Identifica al decisor presupuestal — si no lo conoces, pregúntale a tu contacto quién aprueba las herramientas tecnológicas. No propongas precio sin antes entender el caso de uso y el tamaño real de la oportunidad.${capturaStr}`,
+        `PROPUESTA DE EXPANSIÓN${topTag} — ${empresa} → ${upsell_producto ?? 'nueva solución'}. PREPARA: (1) business case con ROI estimado basado en su uso real de Callpicker (volumetría actual → oportunidad con nuevo módulo), (2) 2-3 casos de éxito de clientes similares, (3) condiciones de implementación y timeline, (4) oferta de piloto sin riesgo si el cliente duda. OBJETIVO: definir próximo paso concreto con el DECISOR PRESUPUESTAL — no con quien usa la plataforma operativamente.${capturaStr}${confirmarStr}`,
+        `ACERCAMIENTO EXPANSIÓN${topTag} — ${empresa} → ${upsell_producto ?? 'nueva línea'}. Primero confirma cómo usan la plataforma HOY: revisa tráfico, grabaciones activas, módulos sin usar. Identifica al decisor presupuestal — si no lo conoces, pregúntale a tu contacto quién aprueba las herramientas tecnológicas. No propongas precio sin antes entender el caso de uso y el tamaño real de la oportunidad.${capturaStr}${confirmarStr}`,
       ][idx % 2]
 
     case 'analisis':
       return [
-        `ANÁLISIS DE TRÁFICO CALLPICKER — ${empresa}. Revisa en el dashboard:\n• Total de llamadas entrantes vs. salientes últimas 4 semanas\n• % abandonadas/rechazadas — si supera el 15% el cliente tiene un problema operativo que no sabe que tenemos visible\n• Tiempo promedio de llamada y hora pico de mayor volumen\n• DIDs activos vs. total contratados — líneas sin uso son costo desperdiciado para el cliente\n• Variación semana a semana (¿hay caída brusca de llamadas? → señal de alerta)\nPrepara 3 hallazgos concretos y llévalos al próximo contacto. Si encuentras algo anormal, contacta antes de que el cliente lo reporte.${capturaStr}`,
-        `REVISIÓN DE CALIDAD DE LLAMADAS — ${empresa}. Escucha 3 grabaciones recientes: identifica si los agentes del cliente están usando bien la plataforma (menús, transferencias, tiempos de hold). Evalúa: (a) ¿Se están aprovechando las funciones de Callpicker? (b) ¿Hay llamadas que terminaron mal por error técnico vs. por error humano? (c) ¿El cliente está monitoreando sus propias grabaciones? Prepara resumen con 2 observaciones concretas para compartir.${capturaStr}`,
-        `REPORTE EJECUTIVO${topTag} — ${empresa}. Genera el reporte del período: volumen de llamadas (entrantes/salientes/abandonadas), tasa de resolución primer contacto, tiempo promedio de atención, SLA cumplido/incumplido, comparativa mensual. Envía por correo al responsable antes del cierre de semana y documenta su respuesta. ${isTop ? 'CUENTA TOP: incluye también el análisis de costo por llamada y proyección de utilización vs. plan contratado.' : ''}${capturaStr}`,
-        `DIAGNÓSTICO DE SLA — ${empresa}. Verifica tiempos de respuesta, resolución de incidencias y uptime del último mes. Si el SLA fue incumplido en > 1 ocasión → prepara plan de mejora para presentar en la próxima interacción. ${modsStr}${capturaStr}`,
+        `ANÁLISIS DE TRÁFICO CALLPICKER — ${empresa}. Revisa en el dashboard:\n• Total de llamadas entrantes vs. salientes últimas 4 semanas\n• % abandonadas/rechazadas — si supera el 15% el cliente tiene un problema operativo que no sabe que tenemos visible\n• Tiempo promedio de llamada y hora pico de mayor volumen\n• DIDs activos vs. total contratados — líneas sin uso son costo desperdiciado para el cliente\n• Variación semana a semana (¿hay caída brusca de llamadas? → señal de alerta)\nPrepara 3 hallazgos concretos y llévalos al próximo contacto. Si encuentras algo anormal, contacta antes de que el cliente lo reporte.${capturaStr}${confirmarStr}`,
+        `REVISIÓN DE CALIDAD DE LLAMADAS — ${empresa}. Escucha 3 grabaciones recientes: identifica si los agentes del cliente están usando bien la plataforma (menús, transferencias, tiempos de hold). Evalúa: (a) ¿Se están aprovechando las funciones de Callpicker? (b) ¿Hay llamadas que terminaron mal por error técnico vs. por error humano? (c) ¿El cliente está monitoreando sus propias grabaciones? Prepara resumen con 2 observaciones concretas para compartir.${capturaStr}${confirmarStr}`,
+        `REPORTE EJECUTIVO${topTag} — ${empresa}. Genera el reporte del período: volumen de llamadas (entrantes/salientes/abandonadas), tasa de resolución primer contacto, tiempo promedio de atención, SLA cumplido/incumplido, comparativa mensual. Envía por correo al responsable antes del cierre de semana y documenta su respuesta. ${isTop ? 'CUENTA TOP: incluye también el análisis de costo por llamada y proyección de utilización vs. plan contratado.' : ''}${capturaStr}${confirmarStr}`,
+        `DIAGNÓSTICO DE SLA — ${empresa}. Verifica tiempos de respuesta, resolución de incidencias y uptime del último mes. Si el SLA fue incumplido en > 1 ocasión → prepara plan de mejora para presentar en la próxima interacción. ${modsStr}${capturaStr}${confirmarStr}`,
       ][idx % 4]
 
     case 'kam':
       return [
-        `REGISTRO KAM — ${empresa}. Actualiza el campo Observaciones KAM con: (1) estado de la relación (positivo/neutral/en riesgo), (2) compromisos de la última interacción y cuáles se cumplieron, (3) MAPA DE DECISORES actualizado — ¿cambiaron? ¿hay alguien nuevo con influencia sobre la cuenta?, (4) riesgos detectados — cambios en equipo, presupuesto o competencia mencionada, (5) próximos pasos con fecha. Sin este registro la cuenta queda ciega para supervisión y cualquier handover.${kombitec}${capturaStr}`,
-        `VALIDAR TICKETS + KAM — ${empresa}. Revisa tickets activos y su antigüedad. Si supera 48h sin respuesta → escalar inmediatamente. Luego: ¿los compromisos del último contacto están en KAM? ¿El mapa de decisores está actualizado? Un KAM vacío o desactualizado equivale a empezar de cero cada vez que contactas al cliente.${kombitec}${capturaStr}`,
-        `ACTUALIZACIÓN DE RELACIÓN${topTag} — ${empresa}. Revisa compromisos de la última sesión: ¿cuáles se cumplieron? ¿cuáles están pendientes? Documenta nivel de satisfacción percibida, señales de riesgo u oportunidad, y confirma que el mapa de decisores tiene al menos 2 contactos con nombre, cargo y correo. ${isTop ? 'CUENTA TOP: un solo contacto conocido en esta cuenta es inaceptable — identifica al menos al respaldo operativo y al decisor presupuestal.' : ''}${capturaStr}`,
+        `REGISTRO KAM — ${empresa}. Actualiza el campo Observaciones KAM con: (1) estado de la relación (positivo/neutral/en riesgo), (2) compromisos de la última interacción y cuáles se cumplieron, (3) MAPA DE DECISORES actualizado — ¿cambiaron? ¿hay alguien nuevo con influencia sobre la cuenta?, (4) riesgos detectados — cambios en equipo, presupuesto o competencia mencionada, (5) próximos pasos con fecha. Sin este registro la cuenta queda ciega para supervisión y cualquier handover.${kombitec}${capturaStr}${confirmarStr}`,
+        `VALIDAR TICKETS + KAM — ${empresa}. Revisa tickets activos y su antigüedad. Si supera 48h sin respuesta → escalar inmediatamente. Luego: ¿los compromisos del último contacto están en KAM? ¿El mapa de decisores está actualizado? Un KAM vacío o desactualizado equivale a empezar de cero cada vez que contactas al cliente.${kombitec}${capturaStr}${confirmarStr}`,
+        `ACTUALIZACIÓN DE RELACIÓN${topTag} — ${empresa}. Revisa compromisos de la última sesión: ¿cuáles se cumplieron? ¿cuáles están pendientes? Documenta nivel de satisfacción percibida, señales de riesgo u oportunidad, y confirma que el mapa de decisores tiene al menos 2 contactos con nombre, cargo y correo. ${isTop ? 'CUENTA TOP: un solo contacto conocido en esta cuenta es inaceptable — identifica al menos al respaldo operativo y al decisor presupuestal.' : ''}${capturaStr}${confirmarStr}`,
       ][idx % 3]
 
     case 'tickets':
       return [
-        `REVISIÓN DE TICKETS — ${empresa}. Antes de cualquier contacto: (1) tickets abiertos y antigüedad, (2) categorías más frecuentes este mes (técnica / uso / configuración), (3) tiempo de resolución vs. SLA. Si hay tickets > 48h sin respuesta → escalar de inmediato y notificar al cliente con ETA de cierre. Importante: ¿el cliente está abriendo tickets por funciones de Callpicker que debería estar usando sin fricción? → eso es una señal de adopción baja que debe documentarse.${capturaStr}`,
-        `ANÁLISIS DE CALIDAD EN SOPORTE — ${empresa}. Clasifica tickets del último mes. Si "fallas técnicas" aparece más de 3 veces → el cliente tiene un problema de estabilidad que bloquea cualquier conversación de expansión. Si "dudas de uso" domina → el cliente no ha sido capacitado correctamente sobre las funciones de Callpicker que ya paga. Genera resumen y propón acción correctiva para la próxima interacción.${capturaStr}`,
+        `REVISIÓN DE TICKETS — ${empresa}. Antes de cualquier contacto: (1) tickets abiertos y antigüedad, (2) categorías más frecuentes este mes (técnica / uso / configuración), (3) tiempo de resolución vs. SLA. Si hay tickets > 48h sin respuesta → escalar de inmediato y notificar al cliente con ETA de cierre. Importante: ¿el cliente está abriendo tickets por funciones de Callpicker que debería estar usando sin fricción? → eso es una señal de adopción baja que debe documentarse.${capturaStr}${confirmarStr}`,
+        `ANÁLISIS DE CALIDAD EN SOPORTE — ${empresa}. Clasifica tickets del último mes. Si "fallas técnicas" aparece más de 3 veces → el cliente tiene un problema de estabilidad que bloquea cualquier conversación de expansión. Si "dudas de uso" domina → el cliente no ha sido capacitado correctamente sobre las funciones de Callpicker que ya paga. Genera resumen y propón acción correctiva para la próxima interacción.${capturaStr}${confirmarStr}`,
       ][idx % 2]
 
     case 'pagos':
       return [
-        `REVISIÓN DE COMPORTAMIENTO DE PAGO — ${empresa}. Verifica: (1) ¿pagos al corriente?, (2) número de incidencias históricas, (3) mes de último pago confirmado. Si hay atraso + HS < 60 → riesgo real: coordinar con cobranza y notificar a supervisión inmediatamente. Si hay 2+ incidencias históricas → nota de alerta en KAM y preparar argumentación de valor antes del próximo contacto. ${isTop ? 'CUENTA TOP: un atraso en esta cuenta tiene impacto en MRR relevante — escalar sin esperar al siguiente ciclo.' : ''}${capturaStr}`,
-        `VALIDACIÓN DE FACTURACIÓN — ${empresa}. Confirma que la factura fue emitida, enviada y recibida correctamente. Si hay discrepancias → documentar y canalizar a administración el mismo día. Pregunta directa: "¿Llegó correctamente su estado de cuenta y coincide con los servicios activos?". Si el cliente menciona líneas que está pagando pero no usa → oportunidad de revisión de plan (y de fortalecer la relación siendo proactivo).${capturaStr}`,
+        `REVISIÓN DE COMPORTAMIENTO DE PAGO — ${empresa}. Verifica: (1) ¿pagos al corriente?, (2) número de incidencias históricas, (3) mes de último pago confirmado. Si hay atraso + HS < 60 → riesgo real: coordinar con cobranza y notificar a supervisión inmediatamente. Si hay 2+ incidencias históricas → nota de alerta en KAM y preparar argumentación de valor antes del próximo contacto. ${isTop ? 'CUENTA TOP: un atraso en esta cuenta tiene impacto en MRR relevante — escalar sin esperar al siguiente ciclo.' : ''}${capturaStr}${confirmarStr}`,
+        `VALIDACIÓN DE FACTURACIÓN — ${empresa}. Confirma que la factura fue emitida, enviada y recibida correctamente. Si hay discrepancias → documentar y canalizar a administración el mismo día. Pregunta directa: "¿Llegó correctamente su estado de cuenta y coincide con los servicios activos?". Si el cliente menciona líneas que está pagando pero no usa → oportunidad de revisión de plan (y de fortalecer la relación siendo proactivo).${capturaStr}${confirmarStr}`,
       ][idx % 2]
 
     case 'llamada':
     default:
       if (semaforo === 'naranja' || semaforo === 'rojo') {
         return [
-          `LLAMADA DE RETENCIÓN URGENTE${topTag} — ${empresa} (HS: ${hs}). OBJETIVO: detectar si hay intención de cancelar. Preguntas clave: "¿Qué aspectos no están cumpliendo sus expectativas?" · "¿Ha evaluado alternativas?" · "¿Qué necesitaría para continuar?". Si confirma riesgo → escalar a supervisión en < 24h. Registra resultado en CRM inmediatamente. Confirma quién más en la empresa tiene influencia sobre esta decisión.${callBlock}${kombitec}${capturaStr}`,
-          `LLAMADA DE RESCATE${topTag} — ${empresa} (HS: ${hs}). Identifica la fricción principal: ¿es técnica (fallas, tickets sin resolver), operativa (el equipo no usa bien Callpicker) o relacional (inconformidad con atención)? Lleva el análisis de tráfico de llamadas del último mes — los datos de uso hablan por sí solos. Compromete fecha concreta de seguimiento y regístrala. Confirma mapa de decisores.${callBlock}${capturaStr}`,
+          `LLAMADA DE RETENCIÓN URGENTE${topTag} — ${empresa} (HS: ${hs}). OBJETIVO: detectar si hay intención de cancelar. Preguntas clave: "¿Qué aspectos no están cumpliendo sus expectativas?" · "¿Ha evaluado alternativas?" · "¿Qué necesitaría para continuar?". Si confirma riesgo → escalar a supervisión en < 24h. Registra resultado en CRM inmediatamente. Confirma quién más en la empresa tiene influencia sobre esta decisión.${callBlock}${kombitec}${capturaStr}${confirmarStr}`,
+          `LLAMADA DE RESCATE${topTag} — ${empresa} (HS: ${hs}). Identifica la fricción principal: ¿es técnica (fallas, tickets sin resolver), operativa (el equipo no usa bien Callpicker) o relacional (inconformidad con atención)? Lleva el análisis de tráfico de llamadas del último mes — los datos de uso hablan por sí solos. Compromete fecha concreta de seguimiento y regístrala. Confirma mapa de decisores.${callBlock}${capturaStr}${confirmarStr}`,
         ][idx % 2]
       }
       if (semaforo === 'amarillo') {
         return [
-          `LLAMADA PREVENTIVA${topTag} — ${empresa} (HS: ${hs}). Antes de marcar, revisa el tráfico de llamadas reciente en Callpicker. Valida en la llamada: (1) ¿cambios en el equipo que usa la plataforma?, (2) ¿módulos que dejaron de usar?, (3) ¿tickets pendientes sin respuesta? Registra acuerdos y próxima fecha. ${modsStr}${callBlock}${capturaStr}`,
-          `LLAMADA DE MONITOREO${topTag} — ${empresa} (HS: ${hs}, ${diasSinActividad} días sin contacto). Revisa tickets y tráfico de llamadas antes de marcar. Preguntas: "¿Cómo va el equipo con la plataforma?" · "¿Hubo algún cambio en la operación?" · "¿Hay algo en lo que podamos ayudar?". Detecta señal de riesgo antes de que impacte el health score.${callBlock}${capturaStr}`,
+          `LLAMADA PREVENTIVA${topTag} — ${empresa} (HS: ${hs}). Antes de marcar, revisa el tráfico de llamadas reciente en Callpicker. Valida en la llamada: (1) ¿cambios en el equipo que usa la plataforma?, (2) ¿módulos que dejaron de usar?, (3) ¿tickets pendientes sin respuesta? Registra acuerdos y próxima fecha. ${modsStr}${callBlock}${capturaStr}${confirmarStr}`,
+          `LLAMADA DE MONITOREO${topTag} — ${empresa} (HS: ${hs}, ${diasSinActividad} días sin contacto). Revisa tickets y tráfico de llamadas antes de marcar. Preguntas: "¿Cómo va el equipo con la plataforma?" · "¿Hubo algún cambio en la operación?" · "¿Hay algo en lo que podamos ayudar?". Detecta señal de riesgo antes de que impacte el health score.${callBlock}${capturaStr}${confirmarStr}`,
         ][idx % 2]
       }
       if (diasSinActividad > 30) {
         return [
-          `LLAMADA DE REACTIVACIÓN${topTag} — ${empresa} (${diasSinActividad} días sin contacto). PRIORIDAD: restablecer comunicación. Revisa en Callpicker si el cliente sigue usando el servicio (tráfico activo o inactivo — eso te dice mucho antes de la llamada). Preguntas: (1) "¿Siguen usando Callpicker en sus operaciones diarias?" (2) "¿Ha habido cambios en el equipo o en sus necesidades?" (3) "¿Con quién debo hablar si usted no está disponible?". Registra el nombre del nuevo responsable y cualquier nuevo decisor.${kombitec}${capturaStr}`,
-          `CHECK-IN DE REACTIVACIÓN${topTag} — ${empresa} (${diasSinActividad}+ días sin contacto). El lapso sin contacto es señal de alerta pasiva. Verifica el tráfico en Callpicker ANTES de llamar — si las llamadas siguen fluyendo el cliente está activo aunque no hayamos hablado. Confirma que el servicio opera bien, verifica si hubo cambios de equipo o prioridades, y cierra la llamada acordando la próxima fecha de contacto.${capturaStr}`,
+          `LLAMADA DE REACTIVACIÓN${topTag} — ${empresa} (${diasSinActividad} días sin contacto). PRIORIDAD: restablecer comunicación. Revisa en Callpicker si el cliente sigue usando el servicio (tráfico activo o inactivo — eso te dice mucho antes de la llamada). Preguntas: (1) "¿Siguen usando Callpicker en sus operaciones diarias?" (2) "¿Ha habido cambios en el equipo o en sus necesidades?" (3) "¿Con quién debo hablar si usted no está disponible?". Registra el nombre del nuevo responsable y cualquier nuevo decisor.${kombitec}${capturaStr}${confirmarStr}`,
+          `CHECK-IN DE REACTIVACIÓN${topTag} — ${empresa} (${diasSinActividad}+ días sin contacto). El lapso sin contacto es señal de alerta pasiva. Verifica el tráfico en Callpicker ANTES de llamar — si las llamadas siguen fluyendo el cliente está activo aunque no hayamos hablado. Confirma que el servicio opera bien, verifica si hubo cambios de equipo o prioridades, y cierra la llamada acordando la próxima fecha de contacto.${capturaStr}${confirmarStr}`,
         ][idx % 2]
       }
       return [
-        `LLAMADA DE SEGUIMIENTO${topTag} — ${empresa}. Agenda: (1) análisis de tráfico de llamadas últimas 2 semanas (llévalos tú — no esperes a que el cliente pregunte), (2) incidencias o tickets pendientes, (3) satisfacción del equipo — pide un número del 1 al 10, (4) agendar próxima fecha de contacto antes de colgar. Registra resultado completo en el sistema.${callBlock}${capturaStr}`,
-        `LLAMADA DE RELACIÓN${topTag} — ${empresa}. El objetivo es profundizar. Explora: (1) nuevos proyectos del cliente que Callpicker pueda apoyar, (2) módulos que no usan y podrían serles útiles, (3) NPS verbal 1-10. Si el cliente menciona un nuevo caso de uso → documenta como oportunidad. Pregunta quién más en su equipo usa o administra Callpicker — ese es tu próximo contacto a mapear.${capturaStr}`,
-        `CHECK-IN${topTag} — ${empresa}. Confirma 3 cosas: (1) el servicio opera sin problemas técnicos, (2) no hay tickets sin respuesta > 48h, (3) el responsable actual es quien esperamos — si cambió, actualiza el perfil inmediatamente y agenda reunión de presentación formal con el nuevo interlocutor.${capturaStr}`,
+        `LLAMADA DE SEGUIMIENTO${topTag} — ${empresa}. Agenda: (1) análisis de tráfico de llamadas últimas 2 semanas (llévalos tú — no esperes a que el cliente pregunte), (2) incidencias o tickets pendientes, (3) satisfacción del equipo — pide un número del 1 al 10, (4) agendar próxima fecha de contacto antes de colgar. Registra resultado completo en el sistema.${callBlock}${capturaStr}${confirmarStr}`,
+        `LLAMADA DE RELACIÓN${topTag} — ${empresa}. El objetivo es profundizar. Explora: (1) nuevos proyectos del cliente que Callpicker pueda apoyar, (2) módulos que no usan y podrían serles útiles, (3) NPS verbal 1-10. Si el cliente menciona un nuevo caso de uso → documenta como oportunidad. Pregunta quién más en su equipo usa o administra Callpicker — ese es tu próximo contacto a mapear.${capturaStr}${confirmarStr}`,
+        `CHECK-IN${topTag} — ${empresa}. Confirma 3 cosas: (1) el servicio opera sin problemas técnicos, (2) no hay tickets sin respuesta > 48h, (3) el responsable actual es quien esperamos — si cambió, actualiza el perfil inmediatamente y agenda reunión de presentación formal con el nuevo interlocutor.${capturaStr}${confirmarStr}`,
       ][idx % 3]
   }
 }
@@ -523,10 +539,28 @@ export async function POST(req: NextRequest) {
     const cuentaIds = elegibles.map(c => c.id)
     const radarMap  = await getRadarMap(cuentaIds)
 
+    /* Lo que Atlas ya localizo: al asesor no se le pide un dato que ya
+     * tenemos, se le pide CONFIRMARLO — es una tarea distinta y mas barata.
+     * Si la tabla aun no existe, se mantiene el comportamiento original. */
+    const enriqMap = new Map<string, CandidatoParaConciliar[]>()
+    try {
+      const { data: cands } = await supabaseAdmin
+        .from('enriquecimiento_candidatos')
+        .select('cuenta_id, campo, valor_candidato, confianza_score, fuente_nombre')
+        .in('cuenta_id', cuentaIds)
+        .neq('review_status', 'incorrecto')
+      for (const c of cands ?? []) {
+        const arr = enriqMap.get(c.cuenta_id) ?? []
+        arr.push(c as unknown as CandidatoParaConciliar)
+        enriqMap.set(c.cuenta_id, arr)
+      }
+    } catch { /* sin enriquecimiento: comportamiento original */ }
+    GAPS_LOCALIZADOS = enriqMap
+
     function necesitaCompletar(c: CuentaFull): { criticos: number; importantes: number; radarResp: number; score: number } {
-      const gaps       = detectDataGaps(c)
-      const criticos    = gaps.filter(g => g.nivel === 'critico').length
-      const importantes = gaps.filter(g => g.nivel === 'importante').length
+      const gaps       = conciliarGaps(detectDataGaps(c), GAPS_LOCALIZADOS.get(c.id) ?? [])
+      const criticos    = gaps.filter(g => g.nivel === 'critico'    && !g.localizado).length
+      const importantes = gaps.filter(g => g.nivel === 'importante' && !g.localizado).length
       const radarResp   = contarRespuestasRadar(radarMap.get(c.id))
       const score = gapScore(c) + (12 - radarResp) * 2
       return { criticos, importantes, radarResp, score }

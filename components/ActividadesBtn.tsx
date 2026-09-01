@@ -54,6 +54,12 @@ interface SemanaResumen {
 interface DataGapInfo {
   campo: string
   nivel: 'critico' | 'importante' | 'deseable'
+  /** Presente cuando el enriquecimiento ya localizo el dato: no hay que
+   *  conseguirlo, solo confirmarlo con el cliente y capturarlo. */
+  localizado?: 'directo' | 'pista'
+  valor?:      string
+  confianza?:  number
+  fuente?:     string
 }
 
 interface DiagCuenta {
@@ -67,6 +73,8 @@ interface DiagCuenta {
   importantes:  number
   deseables:    number
   pct_completo: number
+  por_conseguir?: number
+  por_confirmar?: number
 }
 
 // ── Config visual por tipo ────────────────────────────────────────────────────
@@ -1113,9 +1121,27 @@ export default function ActividadesBtn({
                             <div style={{ padding: '8px 12px' }}>
                               <p style={{ margin: '0 0 6px', fontSize: 9, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                                 Datos faltantes ({d.gaps.length})
+                                {(d.por_confirmar ?? 0) > 0 && (
+                                  <span style={{ marginLeft: 6, fontWeight: 700, color: '#A855F7', textTransform: 'none', letterSpacing: 0 }}>
+                                    — {d.por_conseguir ?? 0} por conseguir · {d.por_confirmar} ya localizados por Atlas
+                                  </span>
+                                )}
                               </p>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                                {d.gaps.map((g, i) => (
+                                {d.gaps.map((g, i) => g.localizado ? (
+                                  <span key={i} title={`${g.valor ?? ''}${g.fuente ? ` — ${g.fuente}` : ''}`} style={{
+                                    fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
+                                    background: '#FAF5FF', color: '#A855F7', border: '1px solid #E9D5FF',
+                                  }}>
+                                    ◆ {g.campo}
+                                    {g.valor && (
+                                      <span style={{ fontWeight: 500, opacity: 0.85 }}>
+                                        {': '}{g.valor.length > 26 ? g.valor.slice(0, 26) + '…' : g.valor}
+                                      </span>
+                                    )}
+                                    {g.localizado === 'pista' && <span style={{ fontWeight: 500 }}> (vía alterna)</span>}
+                                  </span>
+                                ) : (
                                   <span key={i} style={{
                                     fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99,
                                     background: g.nivel === 'critico' ? '#FEF2F2' : g.nivel === 'importante' ? '#FFFBEB' : '#F8FAFC',
@@ -1138,6 +1164,7 @@ export default function ActividadesBtn({
                           <span style={{ fontSize: 11, color: '#DC2626' }}>🔴 <strong>Crítico</strong>: bloquea análisis de riesgo y contactabilidad</span>
                           <span style={{ fontSize: 11, color: '#D97706' }}>🟡 <strong>Importante</strong>: limita previsión de churn y oportunidades</span>
                           <span style={{ fontSize: 11, color: '#94A3B8' }}>⚪ <strong>Deseable</strong>: enriquece el perfil del cliente B2B</span>
+                          <span style={{ fontSize: 11, color: '#A855F7' }}>◆ <strong>Localizado por Atlas</strong>: el dato ya se encontró — solo hay que confirmarlo con el cliente y capturarlo</span>
                         </div>
                       </div>
                     </>

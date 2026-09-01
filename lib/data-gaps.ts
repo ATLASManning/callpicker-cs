@@ -58,6 +58,73 @@ export function gapScore(c: CuentaGapInput): number {
   return g.filter(x => x.nivel === 'critico').length * 3 + g.filter(x => x.nivel === 'importante').length
 }
 
+/* ── Conciliación con lo que Atlas ya localizó ────────────────────────────────
+ * `detectDataGaps` solo mira las columnas de `cuentas`, así que un campo sigue
+ * contando como faltante aunque el enriquecimiento ya haya encontrado el dato
+ * (por diseño nunca se escribe en `cuentas`). Esto separa las dos cosas:
+ *   · por conseguir  → nadie tiene el dato, el KAM debe preguntarlo
+ *   · por confirmar  → Atlas ya lo localizó, solo falta validarlo y capturarlo
+ * Son tareas distintas y cuestan distinto: mezclarlas infla la lista.
+ */
+
+/** Campo del catálogo → campos del enriquecimiento que lo resuelven. */
+const EQUIVALENCIAS: Record<string, { directo: string[]; pista: string[] }> = {
+  'Contacto principal': { directo: ['contacto_nombre'], pista: [] },
+  'Cargo del contacto': { directo: ['contacto_cargo'], pista: [] },
+  'Teléfono directo':   { directo: ['contacto_tel'],   pista: ['telefono_corporativo'] },
+  'Correo del contacto':{ directo: ['contacto_email'], pista: ['email_corporativo'] },
+  'Giro / Industria':   { directo: ['giro'],           pista: [] },
+  'Tamaño de cuenta':   { directo: ['tamano_empresa'], pista: [] },
+  'No. de empleados':   { directo: ['total_empleados'],pista: [] },
+  'No. de sitios':      { directo: ['num_oficinas'],   pista: [] },
+  'Sitio web':          { directo: ['pagina_web'],     pista: [] },
+  // 'NPS (satisfacción)' y 'Observaciones KAM' no se enriquecen nunca: solo
+  // pueden venir del cliente o del KAM. 'Mapa de decisores' y 'Fecha de inicio'
+  // tampoco tienen equivalente automático.
+}
+
+export interface CandidatoParaConciliar {
+  campo: string
+  valor_candidato: string
+  confianza_score: number
+  fuente_nombre: string
+}
+
+export interface GapConciliado extends DataGap {
+  /** 'directo' = el dato exacto; 'pista' = una vía relacionada (buzón corporativo). */
+  localizado?: 'directo' | 'pista'
+  valor?:      string
+  confianza?:  number
+  fuente?:     string
+}
+
+export function conciliarGaps(
+  gaps: DataGap[], candidatos: CandidatoParaConciliar[],
+): GapConciliado[] {
+  if (!candidatos.length) return gaps
+  const porCampo = new Map<string, CandidatoParaConciliar>()
+  for (const c of candidatos) {
+    const prev = porCampo.get(c.campo)
+    if (!prev || c.confianza_score > prev.confianza_score) porCampo.set(c.campo, c)
+  }
+
+  return gaps.map(g => {
+    const eq = EQUIVALENCIAS[g.campo]
+    if (!eq) return g
+    for (const campo of eq.directo) {
+      const c = porCampo.get(campo)
+      if (c) return { ...g, localizado: 'directo', valor: c.valor_candidato,
+                      confianza: c.confianza_score, fuente: c.fuente_nombre }
+    }
+    for (const campo of eq.pista) {
+      const c = porCampo.get(campo)
+      if (c) return { ...g, localizado: 'pista', valor: c.valor_candidato,
+                      confianza: c.confianza_score, fuente: c.fuente_nombre }
+    }
+    return g
+  })
+}
+
 /** Columnas de `cuentas` que hay que seleccionar para poder llamar detectDataGaps/gapScore. */
 export const CAMPOS_GAP_SELECT =
   'activo_desde, contacto_nombre, contacto_cargo, contacto_tel, contacto_email, contactos_json, ' +
