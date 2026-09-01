@@ -154,3 +154,36 @@ Límites respetados: 1 request/segundo por host, máximo 4 páginas por dominio,
 | 8 | Dry-run previo | `dryRun: true` por defecto; escritura requiere pedirlo explícitamente |
 | 9 | Reportes por KAM | `scripts/reporte-piloto-enriquecimiento.md` |
 | 10 | Pruebas de no sobrescritura | `scripts/test-enriquecimiento.ts` |
+
+---
+
+## 9. Proveedor Apify activado (1 Sep 2026)
+
+`APIFY_API_KEY` quedó en `.env.local` (archivo ignorado por git). **Falta agregarla en Vercel** para que el proveedor funcione en las corridas desplegadas:
+`Vercel → callpicker-cs → Settings → Environment Variables → APIFY_API_KEY` (Production y Preview), y redeploy.
+
+### Corrida sobre las cuentas sin sitio web
+
+Actor `compass/crawler-google-places`, 41 cuentas, 3 búsquedas por lotes. Costo real ≈ **$0.60 USD** (147 lugares × $0.004 en plan FREE).
+
+| Etapa | Resultado |
+|---|---|
+| Lugares devueltos por Maps | 147 |
+| Descartados por baja similitud de nombre | 89 |
+| Candidatos generados | 87 |
+| **Eliminados por falso positivo tras revisión** | **20** |
+| **Candidatos finales** | **67 en 20 cuentas** |
+
+### Los tres filtros que hicieron falta
+
+1. **Similitud de bigramas ≥ 0.6** sobre la razón social — descartó 89 lugares (a "Global Trust Solutions" Maps devolvía EasyTrust, Tglobal, TRUST People…).
+2. **Núcleo del nombre sin palabras geográficas.** Descubrimiento del ejercicio: los nombres que terminan en "México" se parecen entre sí y disparaban falsos positivos. `GVA - México` matcheó con Keller Williams (`kwmexico.mx`) porque compartían el sufijo. La regla nueva quita `méxico`, `grupo`, `corporativo` y ciudades antes de comparar, y exige que el núcleo esté contenido o se parezca ≥ 0.75. Eliminó 18 candidatos.
+3. **Homonimia entre sectores.** `Sofia` (inmobiliaria del grupo RDS) matcheó con `Sofía Salud`, una aseguradora. Se eliminó a mano con registro en auditoría. Cuando la cuenta tiene giro capturado, la comprobación es automática; cuando está vacío —como aquí— hace falta criterio humano.
+
+**Por eso los 67 supervivientes quedaron marcados `review_required` y `estado_verificacion = probable`**: una coincidencia por nombre, sin un dominio que sirva de ancla, es más débil que un hallazgo del sitio oficial. Van al KAM como pista a confirmar, no como dato.
+
+### Qué se ganó
+
+20 cuentas que **no tenían nada que investigar** ahora tienen dominio, teléfono, giro y —en 10 de ellas— número de ubicaciones. Entre ellas Velfare (`velfare.mx`, 2 sedes), Koltin (`koltin.mx`), Centro de Estudios de Posgrado (`cposgrado.edu.mx`, 3 sedes), JAD Suministros, Campus Residencias (2 sedes) y Servidiesel.
+
+**Caso que necesita ojos de Fátima:** Global Digital (F2, $34,430/mes) matcheó con `global-digital-commerce.ueniweb.com`, un sitio hecho con un constructor genérico. Pasa el filtro de nombre, pero es improbable que sea una cuenta de ese tamaño. Sigue siendo la cuenta que más urge anclar con un dominio o razón social reales.
