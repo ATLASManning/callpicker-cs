@@ -91,19 +91,38 @@ export async function descargarSitio(dominio: string): Promise<PaginaDescargada[
 /** Palabras que delatan que la cifra NO es la plantilla propia de la empresa.
  *  Caso real del piloto: Velfare publica "más de 5000 colaboradores están
  *  mejorando su calidad de vida" — son empleados de sus CLIENTES. */
-const CONTEXTO_AJENO = /(client|usuari|beneficiari|atendemos|alcanz|impact|particip|asegurad|afiliad|miembros|pacientes|alumnos|viajeros)/i
+const CONTEXTO_AJENO = /(client|usuari|beneficiari|atendemos|alcanz|impact|particip|asegurad|afiliad|miembro|paciente|alumno|viaj|grupo|reserva|cupo|capacidad|asistente|invitado|pasajero)/i
+
+/**
+ * Quita del texto todo lo que parezca teléfono ANTES de buscar cifras.
+ * Caso real del piloto: "(55) 54 82 82 82 Sucursales Mundo Joven" producía
+ * "82 sucursales" — el número salía del teléfono pegado a la palabra.
+ */
+export function sinTelefonos(texto: string): string {
+  return texto
+    // Un teléfono es un grupo inicial seguido de DOS o más grupos de dígitos;
+    // el cuantificador debe consumirlos todos o queda residuo ("… 82 Sucursales").
+    .replace(/\+?\(?\d{2,3}\)?(?:[\s.·-]?\d{2,4}){2,}/g, ' ')
+    .replace(/\+\d[\d\s.-]{7,}/g, ' ')
+}
 
 export interface EmpleadosDetectados { valor: string; evidencia: string; rechazado?: string }
 
 export function extraerEmpleados(texto: string): EmpleadosDetectados | null {
   const frases = texto.split(/[.\n]/)
-  const RX = /(?:somos|contamos con|plantilla de|equipo de|m[aá]s de)?\s*([\d,]{2,7})\s*(?:\+)?\s*(empleados|colaboradores|trabajadores|personas)/i
+  // "personas" solo cuenta si la frase la ancla explícitamente a la plantilla;
+  // suelta significa cualquier cosa ("viajas más de 10 personas").
+  const RX_PLANTILLA = /(?:somos|contamos con|plantilla de|equipo de|n[oó]mina de|m[aá]s de)?\s*([\d,]{2,7})\s*\+?\s*(empleados|colaboradores|trabajadores)/i
+  const RX_PERSONAS  = /(?:somos|plantilla de|equipo de|n[oó]mina de)\s*(?:m[aá]s de\s*)?([\d,]{2,7})\s*(personas)/i
+
   for (const f of frases) {
-    const m = f.match(RX)
+    if (/[¿?]/.test(f)) continue                    // preguntas de marketing, no datos
+    const limpio = sinTelefonos(f)
+    const m = limpio.match(RX_PLANTILLA) ?? limpio.match(RX_PERSONAS)
     if (!m) continue
     const frag = f.replace(/\s+/g, ' ').trim().slice(0, 200)
     if (CONTEXTO_AJENO.test(f)) {
-      return { valor: '', evidencia: frag, rechazado: 'La cifra se refiere a personas de clientes/usuarios, no a la plantilla propia' }
+      return { valor: '', evidencia: frag, rechazado: 'La cifra se refiere a personas de clientes/usuarios/grupos, no a la plantilla propia' }
     }
     return { valor: `${m[1]} ${m[2].toLowerCase()}`, evidencia: frag }
   }
@@ -118,7 +137,9 @@ export function extraerSitios(texto: string): SitiosDetectados | null {
   const frases = texto.split(/[.\n]/)
   const RX = /(?:m[aá]s de\s*)?([\d,]{1,5})\s*(sucursales|oficinas|tiendas|plantas|centros de distribuci[oó]n|puntos de venta)/i
   for (const f of frases) {
-    const m = f.match(RX)
+    // Los teléfonos se retiran primero: un "(55) 54 82 82 82" junto a la palabra
+    // "Sucursales" hacía leer "82 sucursales".
+    const m = sinTelefonos(f).match(RX)
     if (!m) continue
     const frag = f.replace(/\s+/g, ' ').trim().slice(0, 200)
     const franquicia = /franquicia|distribuidor|afiliad/i.test(f)

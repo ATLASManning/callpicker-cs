@@ -20,7 +20,7 @@ import {
 import { puntuar, nivelConfianza, estadoVerificacion, permitePromocionAutomatica } from '../lib/enriquecimiento/confianza'
 import { comparar, accionPropuesta, construirCandidato, deduplicar } from '../lib/enriquecimiento/comparar'
 import { assertTablaPermitida, TABLAS_PERMITIDAS, EscrituraProhibidaError } from '../lib/enriquecimiento/servicio'
-import { extraerEmpleados, extraerSitios, htmlATexto } from '../lib/enriquecimiento/proveedores/sitioWeb'
+import { extraerEmpleados, extraerSitios, htmlATexto, sinTelefonos } from '../lib/enriquecimiento/proveedores/sitioWeb'
 import * as interno from '../lib/enriquecimiento/proveedores/interno'
 import type { CuentaLectura } from '../lib/enriquecimiento/tipos'
 
@@ -202,6 +202,27 @@ test('sí toma la plantilla propia cuando la frase es de la empresa', () => {
 test('marca las franquicias como no equivalentes a sitios propios', () => {
   const r = extraerSitios('Contamos con 50 oficinas entre propias y franquicias')
   assert.ok(r?.nota, 'debe anotar la mezcla con franquicias')
+})
+
+test('NO confunde el tamaño de un grupo de viaje con la plantilla (caso Mundo Joven)', () => {
+  const r = extraerEmpleados('¿Viajas más de 10 personas? Nosotros te ayudamos a organizar tu viaje en grupo')
+  assert.ok(!r?.valor, `no debía proponer empleados, propuso "${r?.valor}"`)
+})
+
+test('NO toma dígitos de un teléfono como número de sucursales (caso Mundo Joven)', () => {
+  const r = extraerSitios('(55) 54 82 82 82 Sucursales Mundo Joven')
+  assert.ok(!r, `no debía extraer sitios de un teléfono, extrajo "${r?.valor}"`)
+})
+
+test('sinTelefonos limpia patrones telefónicos y deja el resto', () => {
+  const t = sinTelefonos('Llama al (55) 54 82 82 82 y visita 50 oficinas')
+  assert.ok(!t.includes('82 82'), 'debe quitar el teléfono')
+  assert.ok(t.includes('50 oficinas'), 'debe conservar la cifra real')
+})
+
+test('sigue leyendo la cifra legítima de sucursales', () => {
+  const r = extraerSitios('Más de 50 oficinas en todo México')
+  assert.equal(r?.valor, '50 oficinas')
 })
 
 test('htmlATexto limpia scripts y etiquetas', () => {
