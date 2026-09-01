@@ -180,3 +180,51 @@ Un correo fuera de la lista blanca de acceso recibe 307 antes siquiera de llegar
 | Fátima | 6 | 0 |
 | Dan | 4 | 0 |
 | Claudia | 3 | 1 (oficinas de Mundo Joven) |
+
+---
+
+## 10. Etapa 1 ejecutada — 173 cuentas (1 Sep 2026)
+
+Autorizada por dirección tras el piloto. Se procesaron las cuentas **activas o en riesgo con sitio web**: 173 de las 178 con dominio (se excluyeron 4 en hibernación y 1 cancelada).
+
+| Métrica | Resultado |
+|---|---|
+| Candidatos en cola de revisión | **521** |
+| Cuentas con al menos un hallazgo | 164 de 173 |
+| Llenan un campo hoy vacío | 359 |
+| Validan un dato existente | 160 |
+| Conflictos que requieren decisión | 2 |
+| Claves de deduplicación repetidas | 0 |
+| **Hash SHA-256 de `cuentas`** | **idéntico al inicial** |
+
+### Reparto por KAM
+
+| KAM | Candidatos | Cuentas | Llenan huecos | Conflictos |
+|---|---|---|---|---|
+| Fátima | 200 | 56 | 146 | 0 |
+| Dan | 165 | 54 | 110 | 0 |
+| Claudia | 156 | 54 | 103 | 2 |
+
+### Qué se ganó, por campo
+
+| Campo | Candidatos | Origen |
+|---|---|---|
+| Teléfono corporativo | 205 | sitio oficial |
+| Sitio web (validación) | 157 | sitio oficial |
+| Correo corporativo | 87 | sitio oficial |
+| **Correo del contacto** | **67** | **interno — ya estaba en la ficha, mal ubicado** |
+| No. de sitios | 4 | sitio oficial |
+| No. de empleados | 1 | sitio oficial |
+
+El dato de más valor no vino de internet: **67 correos de contacto estaban capturados dentro de otros campos** (pegados al nombre, sobre todo). Si el KAM los aprueba, la cobertura de "Correo del contacto" pasa de **70/218 (32 %) a 128/218 (59 %)** sin una sola llamada al cliente.
+
+### Incidencias
+
+- **3 lotes de 15 cuentas fallaron con 504**: algunos sitios corporativos responden lento y la función de Vercel corta a los 60 s. Se reprocesaron en lotes de 5 y entraron los 10 sin fallo. Las 10 corridas abortadas quedaron marcadas como `error` con su motivo, no como `en_curso`.
+- **Tercer bug de precisión**, detectado por el volumen: 3 candidatos de 525 eran basura (`", tiendas"`, `", plantas"`, `"000 trabajadores"`). Causa: la captura aceptaba texto sin dígitos reales. Corregido, con pruebas, y los 4 registros afectados eliminados dejando rastro en la auditoría.
+- **9 cuentas sin ningún hallazgo**: CS7 (bloquea con 403), LINEACEL (su "sitio web" es el texto *"No identificado"*), y 7 sitios que no respondieron o no publican datos extraíbles (RANCH MART, Linden, IMPAS Chihuahua, TRANSPORTES FEMA, Notaría 18, Lean Tools, Sellomatic).
+
+### Los 2 conflictos vivos, ambos de Claudia
+
+1. **Travelling / Mundo Joven** — el KAM registró 43 oficinas (22 propias + 21 franquicias); el sitio dice "más de 50".
+2. **Agua Inmaculada** — el KAM registró "más de 1,800 sucursales/franquicias"; el sitio menciona "8 centros de distribución". Son dos cosas distintas: franquicias vs. centros propios.
