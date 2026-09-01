@@ -228,3 +228,33 @@ El dato de más valor no vino de internet: **67 correos de contacto estaban capt
 
 1. **Travelling / Mundo Joven** — el KAM registró 43 oficinas (22 propias + 21 franquicias); el sitio dice "más de 50".
 2. **Agua Inmaculada** — el KAM registró "más de 1,800 sucursales/franquicias"; el sitio menciona "8 centros de distribución". Son dos cosas distintas: franquicias vs. centros propios.
+
+---
+
+## 11. Cobertura total y panorama comercial (1 Sep 2026)
+
+Se completó el barrido: **las 218 cuentas** pasaron por el motor (las 45 restantes incluían 40 sin sitio web, donde solo corre el proveedor interno). Total: **536 hallazgos en 172 cuentas**.
+
+Los datos dejaron de vivir solo en la cola de revisión: ahora aparecen en cada ficha como **"Datos generales enriquecidos"**, con fuente y fecha, junto al registro del KAM y sin sustituirlo. Atlas IA también los recibe en su dossier.
+
+### Señales derivadas sobre la cartera
+
+| Señal | Cuentas | Facturación implicada |
+|---|---|---|
+| **Ganan una vía de contacto** que no tenían | 85 | $1,138,378/mes |
+| **Cross-sell**: red multi-sitio con 3+ módulos sin activar | 69 | $974,936/mes |
+| **Red multi-sitio propia** (3 o más sedes) | 67 | $951,645/mes |
+| **Riesgo: sin contacto localizable** | 36 | $132,215/mes |
+| **Opera con franquicias o distribuidores** | 2 | $23,291/mes |
+
+### Lectura
+
+**Multi-sitio es la palanca de upsell más grande de la cartera.** 67 cuentas operan 3 o más sedes y suman casi $1M mensual; 69 de ellas además no tienen activados tres o más módulos. El argumento no es genérico: Grupo Torres Corzo opera ~32 sedes, Tech People ~100, ECODELI ~33, Alianza Multimarca ~38. Cada sede es un número rastreable y un grupo de extensiones que hoy no está contratado.
+
+**Las franquicias son un modelo distinto, no una cuenta más grande.** Travelling (~50 puntos, 22 propias + 21 franquicias) y Agua Inmaculada (~1,800 franquicias) no se venden como una cuenta central: cada franquiciatario decide y paga por separado. La ficha lo marca como señal propia para que el KAM no confunda cobertura con sedes propias.
+
+**36 cuentas no tienen forma de ser contactadas** — ni en la ficha ni en fuentes públicas. Son $132,215/mes que, si entran en proceso de baja, nadie se enteraría a tiempo. Varias ya están en riesgo o canceladas (Velfare, GVA México, Global Trust). Esta es la lista de prevención de bajas más accionable que salió del ejercicio.
+
+### Qué ve el KAM en la ficha
+
+Un bloque con la lectura comercial arriba (oportunidad / riesgo / dato, cada una con su siguiente paso) y los hallazgos por campo abajo, cada uno con su puntaje de confianza y enlace a la fuente. Lo que contradice al dato del KAM se muestra en rojo con la leyenda *"validar con el cliente"* — nunca corregido en automático.
