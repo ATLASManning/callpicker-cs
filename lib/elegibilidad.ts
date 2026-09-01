@@ -73,21 +73,11 @@ export function normalizarNombre(s: string | null | undefined): string {
  * perfil completo y son la razón por la que cuentas sin contacto localizable
  * pasaban el filtro.
  */
-const RELLENO = new Set([
-  'na', 'n/a', 'noaplica', 'pendiente', 'sininformacion', 'sininfo', 'sindato',
-  'sindatos', 'tbd', 'porconfirmar', 'pordefinir', 'desconocido', 'ninguno',
-  'nodisponible', 'nd', 'xx', 'xxx', '-', '--', '0', 'null', 'undefined',
-])
-
-export function esValorReal(v: unknown): boolean {
-  if (v == null) return false
-  const raw = String(v).trim()
-  if (raw === '') return false
-  const k = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '')
-  if (RELLENO.has(k)) return false
-  if (/^[-–—._]+$/.test(k)) return false
-  return true
-}
+/* La definicion vive ahora en lib/valores.ts — un modulo sin dependencias, para
+ * que el enriquecimiento y las pruebas puedan usarla sin arrastrar los datasets
+ * de churn que importa este archivo. Se reexporta para no tocar a ningun
+ * consumidor existente: sigue habiendo UNA sola definicion. */
+export { esValorReal } from './valores'
 
 /* ── Listas de exclusión derivadas de Churn ──────────────────────────────────
  * GRC-AAA-2026: se excluyen las cuentas con "Churn confirmado" (la cuenta ya
