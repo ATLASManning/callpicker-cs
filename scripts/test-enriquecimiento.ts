@@ -225,6 +225,20 @@ test('sigue leyendo la cifra legítima de sucursales', () => {
   assert.equal(r?.valor, '50 oficinas')
 })
 
+test('NO propone una cifra sin dígitos reales (caso ", tiendas")', () => {
+  assert.equal(extraerSitios('Nuestras marcas, tiendas y servicios'), null)
+  assert.equal(extraerSitios('Contamos con , plantas de produccion'), null)
+})
+
+test('NO propone una cifra que parsea a cero ("000 trabajadores")', () => {
+  const r = extraerEmpleados('Somos 000 trabajadores comprometidos')
+  assert.ok(!r?.valor, `no debía proponer, propuso "${r?.valor}"`)
+})
+
+test('sí lee plantillas grandes con separador de miles', () => {
+  assert.equal(extraerEmpleados('Somos 10,000 empleados en el país')?.valor, '10,000 empleados')
+})
+
 test('htmlATexto limpia scripts y etiquetas', () => {
   const t = htmlATexto('<div>Hola<script>var a=1</script><b>mundo</b></div>')
   assert.ok(t.includes('Hola') && t.includes('mundo') && !t.includes('var a'))

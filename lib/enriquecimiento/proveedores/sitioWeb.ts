@@ -112,8 +112,8 @@ export function extraerEmpleados(texto: string): EmpleadosDetectados | null {
   const frases = texto.split(/[.\n]/)
   // "personas" solo cuenta si la frase la ancla explícitamente a la plantilla;
   // suelta significa cualquier cosa ("viajas más de 10 personas").
-  const RX_PLANTILLA = /(?:somos|contamos con|plantilla de|equipo de|n[oó]mina de|m[aá]s de)?\s*([\d,]{2,7})\s*\+?\s*(empleados|colaboradores|trabajadores)/i
-  const RX_PERSONAS  = /(?:somos|plantilla de|equipo de|n[oó]mina de)\s*(?:m[aá]s de\s*)?([\d,]{2,7})\s*(personas)/i
+  const RX_PLANTILLA = /(?:somos|contamos con|plantilla de|equipo de|n[oó]mina de|m[aá]s de)?\s*(\d[\d,]{1,6})\s*\+?\s*(empleados|colaboradores|trabajadores)/i
+  const RX_PERSONAS  = /(?:somos|plantilla de|equipo de|n[oó]mina de)\s*(?:m[aá]s de\s*)?(\d[\d,]{1,6})\s*(personas)/i
 
   for (const f of frases) {
     if (/[¿?]/.test(f)) continue                    // preguntas de marketing, no datos
@@ -124,6 +124,9 @@ export function extraerEmpleados(texto: string): EmpleadosDetectados | null {
     if (CONTEXTO_AJENO.test(f)) {
       return { valor: '', evidencia: frag, rechazado: 'La cifra se refiere a personas de clientes/usuarios/grupos, no a la plantilla propia' }
     }
+    // Una cifra que no parsea a un entero positivo es ruido de extraccion
+    // (caso real: "000 trabajadores" salido de un numero partido).
+    if (!(parseInt(m[1].replace(/,/g, ''), 10) > 0)) continue
     return { valor: `${m[1]} ${m[2].toLowerCase()}`, evidencia: frag }
   }
   return null
@@ -135,12 +138,14 @@ export interface SitiosDetectados { valor: string; evidencia: string; nota?: str
 
 export function extraerSitios(texto: string): SitiosDetectados | null {
   const frases = texto.split(/[.\n]/)
-  const RX = /(?:m[aá]s de\s*)?([\d,]{1,5})\s*(sucursales|oficinas|tiendas|plantas|centros de distribuci[oó]n|puntos de venta)/i
+  const RX = /(?:m[aá]s de\s*)?(\d[\d,]{0,4})\s*(sucursales|oficinas|tiendas|plantas|centros de distribuci[oó]n|puntos de venta)/i
   for (const f of frases) {
     // Los teléfonos se retiran primero: un "(55) 54 82 82 82" junto a la palabra
     // "Sucursales" hacía leer "82 sucursales".
     const m = sinTelefonos(f).match(RX)
     if (!m) continue
+    // Misma validacion: sin entero positivo no hay dato (caso real: ", tiendas").
+    if (!(parseInt(m[1].replace(/,/g, ''), 10) > 0)) continue
     const frag = f.replace(/\s+/g, ' ').trim().slice(0, 200)
     const franquicia = /franquicia|distribuidor|afiliad/i.test(f)
     return {
