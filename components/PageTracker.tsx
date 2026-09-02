@@ -9,6 +9,7 @@ const SECTION_MAP: Array<[string, string]> = [
   ['/asesores',          'Panel Asesores'],
   ['/seguimiento',       'Seguimiento'],
   ['/activaciones',      'Activaciones 2.0'],
+  ['/perfil-rol',        'Perfil del Rol'],
   ['/base-cs',           'Base de Conocimiento'],
   ['/chat',              'Atlas IA'],
   ['/auditoria',         'Auditoría Cuentas'],

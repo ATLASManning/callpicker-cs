@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "import": "ts-node --project tsconfig.import.json supabase/import.ts",
-    "test:enriquecimiento": "ts-node --project tsconfig.import.json scripts/test-enriquecimiento.ts"
+    "test:enriquecimiento": "ts-node --project tsconfig.import.json scripts/test-enriquecimiento.ts",
+    "test:cierre": "ts-node --project tsconfig.import.json scripts/test-cierre-actividades.ts"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

@@ -7,6 +7,7 @@ import {
   evaluarElegibilidad, CAMPOS_ELEGIBILIDAD_SELECT, MSG,
   type CuentaElegibilidadInput, type ResultadoElegibilidad,
 } from '@/lib/elegibilidad'
+import { evaluarCierre } from '@/lib/actividades/cierre'
 
 export const dynamic = 'force-dynamic'
 
@@ -199,6 +200,39 @@ export async function PATCH(
         }
       }
 
+      /* ── Candado de calidad del cierre (1 Sep 2026) ────────────────────────
+       * Antes bastaba cualquier texto para cerrar. Ahora una declaración de
+       * baja abre expediente en vez de cerrar, "no contesta" abre secuencia, y
+       * una respuesta sin análisis no pasa. Ver lib/actividades/cierre.ts.
+       *
+       * Importante: la cuenta NO cambia de estatus por lo que escriba el
+       * asesor. Se etiqueta como riesgo y se avisa; la baja la valida
+       * Dirección con la evidencia del expediente. */
+      const veredicto = evaluarCierre({
+        resultado: body.resultado,
+        tipo: actual.tipo,
+        expedienteAdjunto:   body.expediente_baja === true,
+        secuenciaRegistrada: body.secuencia_contacto === true,
+      })
+
+      if (!veredicto.permitido) {
+        // Una declaración de baja se registra aunque la actividad no cierre:
+        // deja la cuenta en riesgo y la nota visible para el supervisor.
+        if (
+          (veredicto.codigo === 'declaracion_baja' || veredicto.codigo === 'declaracion_downgrade') &&
+          actual.cuenta_id
+        ) {
+          await etiquetarSiHayIntencionDeCancelacion(actual.cuenta_id, String(body.resultado ?? ''), actual.id)
+        }
+        return NextResponse.json({
+          error:     veredicto.mensaje,
+          codigo:    veredicto.codigo,
+          exige:     veredicto.exige,
+          preguntas: veredicto.preguntas,
+          cierreBloqueado: true,
+        }, { status: 409 })
+      }
+
       // Auto-reporte de tiempo — obligatorio para cerrar cualquier actividad.
       const tiempoReportado = Number(body.tiempo_reportado_min)
       if (!tiempoReportado || tiempoReportado <= 0) {
@@ -212,9 +246,14 @@ export async function PATCH(
       extra = { tiempo_reportado_min: tiempoReportado, tiempo_medido_min: tiempoMedido }
     }
 
+    // Campos de control del candado de cierre: viajan en el body pero NO son
+    // columnas de `actividades`. Si se colaran al update, romperían el cierre.
+    const { expediente_baja: _eb, secuencia_contacto: _sc, ...bodyColumnas } = body as Record<string, unknown>
+    void _eb; void _sc
+
     let { data, error } = await supabaseAdmin
       .from('actividades')
-      .update({ ...body, ...extra, actualizado_en: new Date().toISOString() })
+      .update({ ...bodyColumnas, ...extra, actualizado_en: new Date().toISOString() })
       .eq('id', params.id)
       .select()
       .single()
@@ -224,7 +263,7 @@ export async function PATCH(
       // para no bloquear el cierre de la actividad (que ya funcionaba antes).
       ;({ data, error } = await supabaseAdmin
         .from('actividades')
-        .update({ ...body, actualizado_en: new Date().toISOString() })
+        .update({ ...bodyColumnas, actualizado_en: new Date().toISOString() })
         .eq('id', params.id)
         .select()
         .single())

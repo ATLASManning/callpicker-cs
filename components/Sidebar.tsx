@@ -7,7 +7,7 @@ import {
   Settings, ChevronRight, Phone, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
-  Archive, BarChart2,
+  Archive, BarChart2, Target,
 } from 'lucide-react'
 import type { SessionPayload } from '@/lib/auth'
 
@@ -40,6 +40,7 @@ const NAV: NavEntry[] = [
   },
 
   { href: '/activaciones',    label: 'Activaciones 2.0',     icon: Zap },
+  { href: '/perfil-rol',      label: 'Perfil del Rol',       icon: Target },
   { href: '/base-cs',         label: 'Base de Conocimiento', icon: Library },
   { href: '/chat',            label: 'Atlas IA',          icon: MessageSquare },
   { href: '/auditoria',       label: 'Auditoría Cuentas', icon: ClipboardList },
