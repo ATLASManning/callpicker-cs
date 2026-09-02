@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { headers } from 'next/headers'
 import {
-  detectDataGaps, conciliarGaps, CAMPOS_GAP_SELECT,
+  detectDataGaps, conciliarGaps, CAMPOS_GAP_SELECT, TOTAL_CAMPOS_GAP,
   type CuentaGapInput, type CandidatoParaConciliar,
 } from '@/lib/data-gaps'
 
@@ -55,7 +55,6 @@ export async function GET(req: NextRequest) {
     }
   } catch { /* sin enriquecimiento: se reporta el hueco tal cual */ }
 
-  const TOTAL_CAMPOS = 11
 
   const result = (data ?? []).map(c => {
     const gaps = conciliarGaps(detectDataGaps(c as CuentaMin), porCuenta.get(c.id) ?? [])
@@ -75,8 +74,8 @@ export async function GET(req: NextRequest) {
       deseables:    porConseguir.filter(g => g.nivel === 'deseable').length,
       // La completitud real cuenta como resuelto lo que Atlas ya localizó,
       // aunque siga pendiente de confirmar con el cliente.
-      pct_completo: Math.round((1 - porConseguir.length / TOTAL_CAMPOS) * 100),
-      pct_capturado: Math.round((1 - gaps.length / TOTAL_CAMPOS) * 100),
+      pct_completo: Math.round((1 - porConseguir.length / TOTAL_CAMPOS_GAP) * 100),
+      pct_capturado: Math.round((1 - gaps.length / TOTAL_CAMPOS_GAP) * 100),
     }
   }).sort((a, b) => {
     const scoreA = a.criticos * 3 + a.importantes

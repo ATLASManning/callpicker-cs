@@ -53,6 +53,19 @@ export function detectDataGaps(c: CuentaGapInput): DataGap[] {
   return gaps
 }
 
+/**
+ * Cuántos campos evalúa el catálogo. Se deriva del propio `detectDataGaps`
+ * con una cuenta totalmente vacía, así que no puede desfasarse al agregar o
+ * quitar un campo. Antes estaba escrito a mano como 11 cuando ya eran 13, y
+ * eso producía porcentajes de completitud negativos.
+ */
+export const TOTAL_CAMPOS_GAP = detectDataGaps({
+  activo_desde: null, contacto_nombre: null, contacto_cargo: null,
+  contacto_tel: null, contacto_email: null, contactos_json: null,
+  giro: null, tamano_empresa: null, nps_score: null, observaciones_kam: null,
+  total_empleados: null, num_oficinas: null, pagina_web: null,
+}).length
+
 export function gapScore(c: CuentaGapInput): number {
   const g = detectDataGaps(c)
   return g.filter(x => x.nivel === 'critico').length * 3 + g.filter(x => x.nivel === 'importante').length
