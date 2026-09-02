@@ -45,44 +45,61 @@ const OK: VeredictoCierre = { permitido: true, codigo: 'ok', mensaje: '', exige:
 /** Longitud mínima. Una gestión real no cabe en menos que esto. */
 const MIN_CARACTERES = 60
 
+/*
+ * IMPORTANTE — por qué todas las detecciones corren sobre texto SIN acentos:
+ *
+ * En JavaScript `` es ASCII: una vocal acentuada NO es carácter de palabra.
+ * Una alternativa que termina en acento —"ya no está", "canceló", "renunció"—
+ * nunca hacía match, porque el `` final fallaba justo ahí. Se detectó en
+ * producción: "Cambió el contacto" sí disparaba (termina en "contacto") pero
+ * "Ya no está esa persona" no.
+ *
+ * Normalizar resuelve eso y, de paso, algo igual de valioso: el asesor que
+ * escribe rápido y sin acentos ("no contesto", "cancelo") queda cubierto igual.
+ */
+function sinAcentos(t: string): string {
+  return t.normalize('NFD').replace(/[̀-ͯ]/g, '')
+}
+
 /**
  * Frases que por sí solas no son un cierre. No están prohibidas —son legítimas
  * como parte de un relato—; lo que no se acepta es que sean TODA la respuesta.
  */
 const RX_GENERICO = new RegExp(
-  '^(?:\\W|\\d)*(?:' + [
-    'ok', 'listo', 'hecho', 'realizado', 'atendido', 'aplica', 'no aplica', 'n\\/?a',
-    'se dio seguimiento', 'seguimiento', 'se revis[oó]', 'revisado', 'se atendi[oó]',
+  '^(?:\W|\d)*(?:' + [
+    'ok', 'listo', 'hecho', 'realizado', 'atendido', 'aplica', 'no aplica', 'n\/?a',
+    'se dio seguimiento', 'seguimiento', 'se reviso', 'revisado', 'se atendio',
     'sin novedad(?:es)?', 'todo bien', 'todo en orden', 'sin cambios', 'sin comentarios',
-    'cliente informado', 'se le inform[oó]', 'se contact[oó]', 'contactado',
-    'pendiente', 'en proceso', 'se qued[oó] de ver', 'queda pendiente',
-    'ya se hab[ií]a hecho', 'no hubo respuesta', 'sin respuesta',
-  ].join('|') + ')(?:\\W|\\d)*$',
+    'cliente informado', 'se le informo', 'se contacto', 'contactado',
+    'pendiente', 'en proceso', 'se quedo de ver', 'queda pendiente',
+    'ya se habia hecho', 'no hubo respuesta', 'sin respuesta',
+  ].join('|') + ')(?:\W|\d)*$',
   'i',
 )
 
 /** El cliente se va. Declararlo abre expediente, no cierra la actividad. */
-const RX_BAJA = /\b(?:cancel(?:ar|ó|o|ada|ado|aci[oó]n)|dar(?:se)? de baja|se dio de baja|ya no (?:est[aá]|son|es) cliente|termin(?:ar|ó|o) (?:el )?(?:servicio|contrato)|cerr(?:ar|ó|o) (?:la )?cuenta|no (?:va|van) a (?:continuar|renovar|seguir)|dej(?:ar|ó|o) de usar|se fue con|se cambi(?:ó|o) (?:de|a) (?:proveedor|otra empresa))\b/i
+const RX_BAJA = /(?:cancel(?:ar|o|ada|ado|acion)|dar(?:se)? de baja|se dio de baja|ya no (?:esta|son|es) cliente|termin(?:ar|o) (?:el )?(?:servicio|contrato)|cerr(?:ar|o) (?:la )?cuenta|no (?:va|van) a (?:continuar|renovar|seguir)|dej(?:ar|o) de usar|se fue con|se cambio (?:de|a) (?:proveedor|otra empresa))/i
 
 /** Reducción de servicio. Mismo tratamiento: expediente. */
-const RX_DOWNGRADE = /\b(?:downgrade|baj(?:ar|ó|o) (?:de )?plan|reduc(?:ir|ción|ci[oó]n|jo)|menos (?:extensiones|licencias|l[ií]neas|agentes|minutos)|quit(?:ar|ó|o) (?:extensiones|l[ií]neas|licencias|agentes)|cambi(?:ar|ó|o) a un plan (?:menor|m[aá]s bajo))\b/i
+const RX_DOWNGRADE = /(?:downgrade|baj(?:ar|o) (?:de )?plan|reduc(?:ir|cion|jo)|menos (?:extensiones|licencias|lineas|agentes|minutos)|quit(?:ar|o) (?:extensiones|lineas|licencias|agentes)|cambi(?:ar|o) a un plan (?:menor|mas bajo))/i
 
 /** El cliente no respondió. Es un disparador, no un desenlace. */
-const RX_SIN_CONTACTO = /\b(?:no (?:me )?(?:contest(?:a|ó|o|aron)|respond(?:e|ió|io|ieron)|atendi(?:ó|o|eron))|no hubo respuesta|sin respuesta|buz[oó]n|no localizado|ilocalizable|no se pudo contactar|manda(?:ba)? a buz[oó]n|no est[aá] disponible)\b/i
+const RX_SIN_CONTACTO = /(?:no (?:me )?(?:contest(?:a|o|aron)|respond(?:e|io|ieron)|atendi(?:o|eron))|no hubo respuesta|sin respuesta|buzon|no localizado|ilocalizable|no se pudo contactar|manda(?:ba)? a buzon|no esta disponible)/i
 
 /** El interlocutor cambió. Es la causa 7 del catálogo, no una excusa. */
-const RX_CAMBIO_PERSONA = /\b(?:ya no (?:est[aá]|trabaja|labora)|cambi(?:ó|o|aron) (?:de |el |la )?(?:persona|contacto|encargad|responsable|administrador)|otra persona|nuevo (?:contacto|encargado|responsable)|sali(?:ó|o) de la empresa|renunci(?:ó|o))\b/i
+const RX_CAMBIO_PERSONA = /(?:ya no (?:esta|trabaja|labora)|cambi(?:o|aron) (?:de |el |la )?(?:persona|contacto|encargad|responsable|administrador)|otra persona|nuevo (?:contacto|encargado|responsable)|sali(?:o) de la empresa|renuncio)/i
 
 /* ── Señales de que SÍ hubo análisis ───────────────────────────────────────
- * No se exige una plantilla: se exige que la respuesta contenga al menos una
- * señal de trabajo real — una persona, una fecha, un siguiente paso o un
+ * No se exige una plantilla: se exige que la respuesta contenga al menos dos
+ * señales de trabajo real — una persona, una fecha, un siguiente paso o un
  * hallazgo concreto. */
-const RX_PERSONA     = /\b(?:habl[ée]|platiqu[ée]|reuni[oó]n con|me atendi[oó]|contact[ée] a|con el|con la|licenciad|ingenier|sr\.|sra\.|gerente|director|encargad)\b/i
-const RX_SIGUIENTE   = /\b(?:qued(?:amos|ó|o)|acord(?:amos|ó|o)|compromiso|siguiente paso|próxim[oa]|proxim[oa]|agend(?:é|e|amos|ada)|enviar[ée]|mandar[ée]|revisar[ée]|volver[ée] a|se agenda|se enviar[aá]|para el|el d[ií]a)\b/i
-const RX_FECHA       = /\b(?:\d{1,2}[\/-]\d{1,2}|lunes|martes|mi[eé]rcoles|jueves|viernes|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|pr[oó]xima semana|esta semana|ma[ñn]ana)\b/i
-const RX_HALLAZGO    = /\b(?:porque|debido a|el problema|la raz[oó]n|detect|encontr|report[oó]|se identific|comentó que|mencionó que|dijo que|indic[oó] que|solicit[oó]|requiere|necesita)\b/i
+const RX_PERSONA   = /(?:hable|platique|reunion con|me atendio|contacte a|con el |con la |licenciad|ingenier|sr\.|sra\.|gerente|director|encargad)/i
+const RX_SIGUIENTE = /(?:qued(?:amos|o)|acord(?:amos|o)|compromiso|siguiente paso|proxim[oa]|agend(?:e|amos|ada)|enviare|mandare|revisare|volvere a|se agenda|se enviara|para el |el dia)/i
+const RX_FECHA     = /(?:\d{1,2}[\/-]\d{1,2}|lunes|martes|miercoles|jueves|viernes|enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|proxima semana|esta semana|manana)/i
+const RX_HALLAZGO  = /(?:porque|debido a|el problema|la razon|detect|encontr|reporto|se identific|comento que|menciono que|dijo que|indico que|solicito|requiere|necesita)/i
 
-function tieneAnalisis(t: string): boolean {
+function tieneAnalisis(texto: string): boolean {
+  const t = sinAcentos(texto)
   let señales = 0
   if (RX_PERSONA.test(t))   señales++
   if (RX_SIGUIENTE.test(t)) señales++
@@ -107,6 +124,9 @@ export interface EntradaCierre {
  */
 export function evaluarCierre(e: EntradaCierre): VeredictoCierre {
   const t = String(e.resultado ?? '').trim()
+  // Todas las detecciones corren sobre `n`; `t` conserva el original
+  // para longitud y para lo que se guarda.
+  const n = sinAcentos(t)
 
   if (!t) {
     return {
@@ -127,8 +147,8 @@ export function evaluarCierre(e: EntradaCierre): VeredictoCierre {
    * el mensaje útil es el de su propio flujo, no un regaño de longitud. */
 
   // ── 1. Declaración de baja o downgrade: abre expediente, no cierra ────────
-  const declaraBaja      = RX_BAJA.test(t)
-  const declaraDowngrade = !declaraBaja && RX_DOWNGRADE.test(t)
+  const declaraBaja      = RX_BAJA.test(n)
+  const declaraDowngrade = !declaraBaja && RX_DOWNGRADE.test(n)
 
   if ((declaraBaja || declaraDowngrade) && !e.expedienteAdjunto) {
     const evento = declaraBaja ? 'cancelación' : 'reducción de servicio'
@@ -159,7 +179,7 @@ export function evaluarCierre(e: EntradaCierre): VeredictoCierre {
   }
 
   // ── 2. "No contesta": secuencia, no desenlace ─────────────────────────────
-  if (RX_SIN_CONTACTO.test(t) && !e.secuenciaRegistrada && !tieneAnalisis(t)) {
+  if (RX_SIN_CONTACTO.test(n) && !e.secuenciaRegistrada && !tieneAnalisis(t)) {
     return {
       permitido: false, codigo: 'sin_contacto',
       mensaje:
@@ -180,7 +200,7 @@ export function evaluarCierre(e: EntradaCierre): VeredictoCierre {
   }
 
   // ── 3. Cambio de interlocutor: es diagnóstico, no explicación ─────────────
-  if (RX_CAMBIO_PERSONA.test(t) && !tieneAnalisis(t)) {
+  if (RX_CAMBIO_PERSONA.test(n) && !tieneAnalisis(t)) {
     return {
       permitido: false, codigo: 'sin_analisis',
       mensaje:
@@ -210,7 +230,7 @@ export function evaluarCierre(e: EntradaCierre): VeredictoCierre {
     }
   }
 
-  if (RX_GENERICO.test(t)) {
+  if (RX_GENERICO.test(n)) {
     return {
       permitido: false, codigo: 'generico',
       mensaje: 'Esa respuesta no describe una gestión. "Se dio seguimiento" o "sin novedades" no permiten saber qué pasó con la cuenta.',
