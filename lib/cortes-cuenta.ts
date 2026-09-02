@@ -7,7 +7,19 @@ import path from 'path'
 
 export interface CorteCuenta {
   mes: string; plan: string; incl: number; cons: number; pct: number; monto: number; uso: string
+  /** Suma de visitas a las secciones del panel en ese corte. */
+  panel: number
+  /** Visitas a la sección Desarrolladores (señal de integración API). */
+  desarrolladores: number
+  /** 1 cuando el cobro automático fue exitoso en el periodo. */
+  pagoExitoso: number
 }
+
+/** Columnas del panel que se suman para medir uso del administrador. */
+const COLS_PANEL = [
+  'Menú Configuracion', 'Reportes', 'Call History',
+  'Visit Inbound', 'Visit Outbound', 'My extension',
+] as const
 
 let _cache: Map<string, CorteCuenta[]> | null = null
 let _cacheTime = 0
@@ -47,6 +59,9 @@ async function loadMap(): Promise<Map<string, CorteCuenta[]>> {
       pct:   num(r['% Consumo']),
       monto: num(r['Monto del plan']),
       uso:   String(r['Uso Principal de llamadas'] ?? '').trim(),
+      panel: COLS_PANEL.reduce((s, c) => s + num(r[c]), 0),
+      desarrolladores: num(r['Desarrolladores']),
+      pagoExitoso:     num(r['Pago exitoso']),
     })
   }
   for (const arr of map.values()) arr.sort((a, b) => a.mes.localeCompare(b.mes))

@@ -28,6 +28,7 @@ import CuentaReunionButton from '@/components/CuentaReunionButton'
 import { updateKam, deleteKam } from '@/app/actions/updateKam'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import { datosEnriquecidosDeCuenta } from '@/lib/enriquecimiento/cuenta'
+import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import DatosEnriquecidosPanel from '@/components/DatosEnriquecidos'
 import { headers } from 'next/headers'
 
@@ -55,6 +56,11 @@ export default async function CuentaDetailPage({ params }: Props) {
     // Datos generales enriquecidos — información adicional, nunca sustituye
     datosEnriquecidosDeCuenta(cuentaUUID, cuenta),
   ])
+
+  // Plan contratado según el último corte de facturación (fuente viva).
+  // Se muestra en Información como referencia de qué tiene el cliente.
+  const cortesRecientes = await cortesDeCuenta(cuenta.cid, 3)
+  const planVigente     = cortesRecientes.at(-1) ?? null
 
   const h       = headers()
   const rol     = h.get('x-user-rol') ?? 'viewer'
@@ -177,6 +183,21 @@ export default async function CuentaDetailPage({ params }: Props) {
               <div><p className="text-[10px] text-textLow mb-0.5">Servicio</p>
                 <p className="text-xs text-textHi">{cuenta.servicio}</p></div>
             ) : null}
+
+            {/* Plan contratado según el último corte de facturación. Se lee de
+                la fuente viva; no toca ningún campo de la cuenta. */}
+            {planVigente?.plan && (
+              <div>
+                <p className="text-[10px] text-textLow mb-0.5">Plan contratado (último corte)</p>
+                <p className="text-xs text-textHi font-medium">{planVigente.plan}</p>
+                <p className="text-[10px] text-textLow">
+                  {planVigente.mes}
+                  {planVigente.incl > 0 && ` · ${planVigente.incl.toLocaleString('es-MX')} min incluidos`}
+                  {planVigente.pct > 0 && ` · ${planVigente.pct.toFixed(0)}% consumido`}
+                  {planVigente.uso && ` · uso ${planVigente.uso}`}
+                </p>
+              </div>
+            )}
 
             {/* Cliente activo desde — se muestra SIEMPRE. Cuando falta el dato
                 queda visible como pendiente en vez de desaparecer del panel. */}
