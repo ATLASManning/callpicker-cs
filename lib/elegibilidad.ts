@@ -77,7 +77,10 @@ export function normalizarNombre(s: string | null | undefined): string {
  * que el enriquecimiento y las pruebas puedan usarla sin arrastrar los datasets
  * de churn que importa este archivo. Se reexporta para no tocar a ningun
  * consumidor existente: sigue habiendo UNA sola definicion. */
-export { esValorReal } from './valores'
+/* Se importa Y se reexporta: `export { X } from` por si solo reexporta sin
+ * crear el binding local, y este archivo usa esValorReal internamente. */
+import { esValorReal } from './valores'
+export { esValorReal }
 
 /* ── Listas de exclusión derivadas de Churn ──────────────────────────────────
  * GRC-AAA-2026: se excluyen las cuentas con "Churn confirmado" (la cuenta ya
