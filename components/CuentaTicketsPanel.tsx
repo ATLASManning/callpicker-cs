@@ -93,7 +93,7 @@ export default function CuentaTicketsPanel({
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-border">
-                  {['Fecha','Categoría','Producto','Prior.','Falla'].map(h => (
+                  {['Fecha','Categoría','Subcategoría','Producto','Prior.','Falla'].map(h => (
                     <th key={h} className={`pb-1.5 text-textLow font-medium text-[10px] ${h === 'Falla' ? 'text-center' : 'text-left'}`}>{h}</th>
                   ))}
                 </tr>
@@ -102,8 +102,9 @@ export default function CuentaTicketsPanel({
                 {rows.map((t, i) => (
                   <tr key={i} className="border-b border-border/40 hover:bg-surface/50" title={t.cierre ? `Cierre: ${fmtFecha(t.cierre)}` : ''}>
                     <td className="py-1.5 text-textLow whitespace-nowrap">{fmtFecha(t.apertura || t.fecha)}</td>
-                    <td className="py-1.5 text-textMid max-w-[110px] truncate">{t.categoria}</td>
-                    <td className="py-1.5 text-textMid max-w-[90px] truncate">{t.producto}</td>
+                    <td className="py-1.5 text-textMid max-w-[110px] truncate" title={t.categoria}>{t.categoria}</td>
+                    <td className="py-1.5 text-textLow max-w-[110px] truncate" title={t.subcategoria}>{t.subcategoria}</td>
+                    <td className="py-1.5 text-textMid max-w-[90px] truncate" title={t.producto}>{t.producto}</td>
                     <td className="py-1.5"><PriorBadge p={t.prioridad} /></td>
                     <td className="py-1.5 text-center">
                       {t.es_falla === 'Si'

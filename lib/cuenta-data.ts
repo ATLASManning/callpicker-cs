@@ -57,6 +57,21 @@ function norm(s: string) {
     .replace(/[^a-z0-9\s]/g, '').trim()
 }
 
+/**
+ * Orden de tickets: del mas reciente al mas antiguo.
+ *
+ * Antes se ordenaba por `fecha`, que es el MES ("2026-07"), no la fecha
+ * completa: dentro de un mismo mes el orden quedaba al azar y la ficha
+ * mostraba un ticket del 30 de junio antes que uno del 13 de julio.
+ * `apertura` trae el timestamp ISO completo y esta poblado en los 4,987
+ * registros; `fecha` queda solo como respaldo.
+ */
+function ordenRecientePrimero(a: TicketRow, b: TicketRow): number {
+  const fa = a.apertura || a.fecha || ''
+  const fb = b.apertura || b.fecha || ''
+  return fb.localeCompare(fa)
+}
+
 /* ══════════════════════════════════════════════════════════════════════
    TICKETS por cuenta
 ══════════════════════════════════════════════════════════════════════ */
@@ -71,7 +86,7 @@ export function getTicketsByCuenta(
   if (cid) {
     const trimCid = cid.trim()
     const rows = all.filter(t => (t.cid ?? '').trim() === trimCid)
-      .sort((a, b) => b.fecha.localeCompare(a.fecha))
+      .sort(ordenRecientePrimero)
       .slice(0, limit)
     if (rows.length > 0)
       return { rows, total: rows.length, matchedBy: `CID ${trimCid}` }
@@ -80,7 +95,7 @@ export function getTicketsByCuenta(
   // 2) Nombre normalizado completo
   const normEmp = norm(empresa)
   const byName = all.filter(t => norm(t.empresa).includes(normEmp) || normEmp.includes(norm(t.empresa)))
-    .sort((a, b) => b.fecha.localeCompare(a.fecha))
+    .sort(ordenRecientePrimero)
     .slice(0, limit)
   if (byName.length > 0)
     return { rows: byName, total: byName.length, matchedBy: empresa }
@@ -89,7 +104,7 @@ export function getTicketsByCuenta(
   const words = normEmp.split(/\s+/).filter(w => w.length >= 4)
   if (words.length > 0) {
     const byWord = all.filter(t => norm(t.empresa).includes(words[0]))
-      .sort((a, b) => b.fecha.localeCompare(a.fecha))
+      .sort(ordenRecientePrimero)
       .slice(0, limit)
     if (byWord.length > 0)
       return { rows: byWord, total: byWord.length, matchedBy: `"${words[0]}"` }
