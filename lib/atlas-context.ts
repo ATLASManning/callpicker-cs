@@ -416,6 +416,15 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     const downs = rep.downgrades
       .map((d, i) => `    ${i + 1}/${rep.downgrades.length}. ${limpio(d.cliente)} -$${d.perdida.toLocaleString('es-MX')}${cartera(limpio(d.cliente))} — ${d.nota}`)
       .join('\n')
+    /* Los grupos se entregan resueltos: pedirle al modelo que separe asignados
+     * de no asignados le salía mal aun teniendo la marca al lado del nombre. */
+    const enCartera: string[] = []
+    const fueraCartera: string[] = []
+    for (const d of rep.downgrades) {
+      const nom = limpio(d.cliente)
+      const a = asesorDe(nom)
+      ;(a ? enCartera : fueraCartera).push(a ? `${nom} ${a}` : nom)
+    }
     sections.push(
       `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha} | ` +
       `ESTA es la fuente para agosto 2026: los downgrades listados abajo son los ÚNICOS del mes, ` +
@@ -427,6 +436,9 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       (antig ? `  Antigüedad de saldos (total $177,156.62): ${antig}.\n` : '') +
       `  Downgrades de agosto — lista COMPLETA y CERRADA de ${rep.downgrades.length} clientes por $${(rep.downgradeTotalReal ?? 0).toLocaleString('es-MX')}. ` +
       `No hay un cliente número ${rep.downgrades.length + 1}: cualquier otro nombre pertenece a otro mes.\n${downs}\n` +
+      `  Downgrades de agosto agrupados por cartera (ya calculado, NO lo recalcules): ` +
+      `EN CARTERA CS → ${enCartera.length ? enCartera.join(', ') : 'ninguno'}. ` +
+      `SIN ASESOR ASIGNADO → ${fueraCartera.length ? fueraCartera.join(', ') : 'ninguno'}.\n` +
       `  ${rep.grc.notaEspecial ?? ''}\n` +
       `  Cadencia: el reporte se envía los martes. Próxima revisión: martes 8 de septiembre de 2026.`
     )
