@@ -373,11 +373,12 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
    * asignadas. Dejar el hueco vacío no basta: el 2 sep 2026 el modelo atribuyó
    * las subcuentas GTC a Fátima y Embler Autopartes a un asesor, cuando ninguna
    * existe en `cuentas`. Con marca explícita en ambos sentidos no queda nada
-   * que suponer. Se usa [·] por volumen: son >700 movimientos. */
-  const SIN_CARTERA = '[·]'
+   * que suponer. La marca se escribe legible en vez de un símbolo: si el
+   * modelo la copia tal cual en su respuesta, el asesor igual la entiende. */
+  const SIN_CARTERA = '[sin asesor]'
   const cartera = (nombre: string) => asesorDe(nombre) || SIN_CARTERA
   const LEYENDA_CARTERA =
-    '[Nombre]=asesor asignado · [·]=NO está en la cartera CS (no lo atribuyas a nadie)'
+    '[Nombre]=asesor asignado · [sin asesor]=NO está en la cartera CS (no lo atribuyas a nadie)'
 
   const grcLines: string[] = []
   for (const mes of AAA_GRC_2026) {
