@@ -35,6 +35,11 @@ const SENALES_GLOSARIO = [
   'explica', 'define', 'definicion', 'capacitacion', 'capacitar', 'entrenar',
   'como le explico', 'como explico', 'como le digo', 'para que sirve',
 ]
+// No se agregan señales genéricas como "usan" o "tienen": aparecen en casi
+// cualquier pregunta de cartera y meterían el índice de 179 términos en
+// consultas que no lo necesitan. Cuando el asesor nombra una plataforma
+// ("usamos Pipedrive"), `terminosEnPregunta` ya la detecta y eso basta para
+// activar el índice.
 
 /**
  * Términos mencionados en la pregunta.
@@ -61,6 +66,7 @@ export function terminosEnPregunta(pregunta: string): TerminoGlosario[] {
 
 function lineaTermino(t: TerminoGlosario): string {
   const partes = [t.sig ? `${t.t} (${t.sig})` : t.t, `[${t.cat}]`, t.def]
+  if (t.sirve) partes.push(`Sirve para: ${t.sirve}`)
   if (t.com) partes.push(`Comercial: ${t.com}`)
   if (t.ej)  partes.push(`Ej: ${t.ej}`)
   if (t.ojo) partes.push(`OJO: ${t.ojo}`)

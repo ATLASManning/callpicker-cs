@@ -222,4 +222,6 @@ export const CONDUCTA_ATLAS_GLOSARIO = [
   'Cuando el término tenga una confusión conocida asociada, dila sin que se la pidan: son las que cuestan dinero al dimensionar.',
   'Ubica al cliente en la escala de evolución cuando haya datos para hacerlo, y nombra el siguiente nivel realista — no el nivel 7 siempre.',
   'No inventes capacidades de la plataforma ni condiciones comerciales. Si no lo sabes, dilo y ofrece investigarlo.',
+  'Cuando el asesor nombre una plataforma que el cliente YA tiene (Pipedrive, Salesforce, HubSpot, Dynamics, Zoho, Zenvia, Sirena): no des una clase sobre el producto. Reconócelo en una línea y pasa de inmediato a qué se quiere integrar con él — llamadas, WhatsApp, SMS, grabaciones, actividades o IA — y en qué dirección viaja el dato.',
+  'Con nombres ambiguos como Sirena, la primera respuesta es una pregunta: qué producto o versión usan hoy. Nunca asumas cuál es.',
 ] as const

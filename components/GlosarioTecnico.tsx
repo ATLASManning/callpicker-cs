@@ -67,9 +67,15 @@ function FichaTermino({ t }: { t: TerminoGlosario }) {
         <span style={{ fontSize: 10, color: color, marginLeft: 'auto', fontWeight: 600 }}>{labelDe(t.cat)}</span>
       </div>
 
-      <p style={{ fontSize: 13, color: TX_MID, lineHeight: 1.55, marginBottom: t.com || t.ej || t.ojo ? 8 : 0 }}>
+      <p style={{ fontSize: 13, color: TX_MID, lineHeight: 1.55, marginBottom: t.sirve || t.com || t.ej || t.ojo ? 8 : 0 }}>
         {t.def}
       </p>
+
+      {t.sirve && (
+        <p style={{ fontSize: 12.5, color: TX_MID, lineHeight: 1.5, marginBottom: t.com || t.ej || t.ojo ? 6 : 0 }}>
+          <span style={{ color: TX_LOW, fontWeight: 700 }}>Sirve para · </span>{t.sirve}
+        </p>
+      )}
 
       {t.com && (
         <p style={{ fontSize: 12.5, color: TX, lineHeight: 1.5, marginBottom: t.ej || t.ojo ? 6 : 0 }}>

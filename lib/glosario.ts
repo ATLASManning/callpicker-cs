@@ -32,6 +32,8 @@ export interface TerminoGlosario {
   cat:   string
   /** Definición técnica. */
   def:   string
+  /** Para qué sirve. Se usa sobre todo en plataformas y productos de terceros. */
+  sirve?: string
   /** Traducción comercial: qué significa para el cliente. */
   com?:  string
   ej?:   string
@@ -40,6 +42,7 @@ export interface TerminoGlosario {
 }
 
 export const CATEGORIAS_GLOSARIO: CategoriaGlosario[] = [
+  { id: 'plataformas', label: 'Plataformas y productos',      color: '#F43F5E', nota: 'Lo que el cliente ya tiene instalado. Reconocer el nombre es el primer paso del descubrimiento.' },
   { id: 'nube',        label: 'Telefonía en la nube',        color: '#0057FF', nota: 'La plataforma, las extensiones y los protocolos que las sostienen.' },
   { id: 'tradicional', label: 'Telefonía tradicional y migración', color: '#B45309', nota: 'E1, troncales, analógico y el puente hacia IP. Aparece en casi toda migración.' },
   { id: 'numeracion',  label: 'Numeración e identificación', color: '#0EA5E9', nota: 'Números, identificadores de llamada y registros. Aquí viven los errores de dimensionamiento.' },
@@ -56,6 +59,48 @@ export const CATEGORIAS_GLOSARIO: CategoriaGlosario[] = [
 ]
 
 export const GLOSARIO: TerminoGlosario[] = [
+
+  /* ── Plataformas y productos que un comercial debe reconocer ─────────────
+   * Estos no son conceptos: son cosas que el cliente ya compró. Reconocer el
+   * nombre en la primera llamada es lo que separa "le platico de telefonía" de
+   * "¿cómo quiere que las llamadas lleguen a su Pipedrive?".
+   */
+  { t: 'Pipedrive', cat: 'plataformas',
+    def: 'Plataforma CRM de ventas orientada a la administración del pipeline comercial. Es una solución SaaS accesible desde web y aplicaciones móviles.',
+    sirve: 'Gestionar leads, contactos, oportunidades, actividades, seguimientos, automatizaciones y procesos de venta.',
+    com: 'Si un cliente dice "usamos Pipedrive", hay que investigar cómo quiere integrar llamadas, WhatsApp, SMS, grabaciones, actividades o IA con ese CRM. Pipedrive dispone de integraciones y API.' },
+
+  { t: 'Salesforce', cat: 'plataformas',
+    def: 'Plataforma CRM empresarial.',
+    sirve: 'Gestiona ventas, clientes, servicio, marketing, procesos y ecosistemas de aplicaciones.',
+    com: 'Es frecuente encontrar proyectos donde telefonía, WhatsApp o un Contact Center necesitan registrar automáticamente interacciones en Salesforce.' },
+
+  { t: 'HubSpot', cat: 'plataformas',
+    def: 'Plataforma CRM con capacidades comerciales, de marketing y de servicio.',
+    sirve: 'Centraliza contactos, ventas, actividades y relaciones con clientes.',
+    com: 'Un CRM no es simplemente una agenda: centraliza información e interacciones del cliente y puede automatizar procesos.' },
+
+  { t: 'Microsoft Dynamics 365', alias: ['Dynamics'], cat: 'plataformas',
+    def: 'Familia de aplicaciones empresariales de Microsoft que incluye CRM y ERP.',
+    sirve: 'Ventas, servicio, operaciones, finanzas y procesos empresariales.',
+    com: 'Puede requerir integración con telefonía, Contact Center, Teams, WhatsApp o aplicaciones externas.' },
+
+  { t: 'Zoho CRM', cat: 'plataformas',
+    def: 'Plataforma CRM orientada a la administración de ventas y relaciones con clientes.',
+    sirve: 'Leads, contactos, oportunidades, automatización y seguimiento.',
+    com: 'Otro CRM que puede convertirse en sistema maestro para integraciones de comunicaciones.' },
+
+  { t: 'Zenvia Conversion', cat: 'plataformas',
+    def: 'Plataforma que centraliza conversaciones de distintos canales para atención y ventas. Su documentación menciona WhatsApp, Facebook Messenger, Instagram y Webchat.',
+    sirve: 'Centralizar conversaciones, asignarlas y gestionar equipos comerciales o de atención.',
+    com: 'Es un ejemplo de plataforma conversacional.',
+    ojo: 'No debe confundirse automáticamente con una PBX ni con un CRM tradicional.' },
+
+  { t: 'Sirena', cat: 'plataformas',
+    def: 'Nombre que requiere contextualización. Zenvia identifica a Zenvia Conversion como "previamente Sirena"; además, Sirena México fue incorporada por Zenvia México en 2024.',
+    sirve: 'Históricamente asociado con gestión de conversaciones y procesos comerciales, especialmente WhatsApp y otros canales.',
+    com: 'Si un prospecto dice "tenemos Sirena", hay que preguntar qué producto o versión utiliza actualmente.',
+    ojo: 'No asumir. Existe además un sitio sirena.chat que comercializa un CRM para WhatsApp, Facebook e Instagram, así que el nombre puede resultar ambiguo.' },
 
   /* ── Telefonía en la nube ────────────────────────────────────────────── */
   { t: 'Cloud Telephony', alias: ['telefonía en la nube'], cat: 'nube',
