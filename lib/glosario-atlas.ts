@@ -22,6 +22,7 @@ import {
   DOCE_ESENCIALES, SEGUNDA_OLA, PRECISIONES, NIVELES_EVOLUCION,
   PREGUNTAS_PERFILAMIENTO, TABLA_EVOLUCION, CONDUCTA_ATLAS_GLOSARIO, REGLA_COMERCIAL,
 } from './perfilamiento'
+import { seccionIntegraciones, integracionDe } from './integraciones-catalogo'
 
 function norm(s: string): string {
   return s.toLowerCase().normalize('NFD')
@@ -70,6 +71,12 @@ function lineaTermino(t: TerminoGlosario): string {
   if (t.com) partes.push(`Comercial: ${t.com}`)
   if (t.ej)  partes.push(`Ej: ${t.ej}`)
   if (t.ojo) partes.push(`OJO: ${t.ojo}`)
+  if (t.cat === 'plataformas') {
+    const i = integracionDe(t.t)
+    partes.push(i
+      ? `INTEGRACIÓN DOCUMENTADA (${i.fuente}) — alcance exacto, no lo amplíes: ${i.alcances.join(' | ')}`
+      : 'SIN INTEGRACIÓN EN EL CATÁLOGO: no afirmes que Callpicker se integra con esta plataforma. Dilo y plantéalo como integración a la medida vía API, a confirmar con Producto.')
+  }
   return `  - ${partes.join(' | ')}`
 }
 
@@ -117,7 +124,8 @@ export function seccionesGlosario(pregunta: string): { secciones: string[]; modu
       `  ${b.bloque} — revela: ${b.revela}\n${b.preguntas.map(q => `    · ${q}`).join('\n')}`
     ).join('\n')
   )
-  modulos.push('glosario')
+  secciones.push(seccionIntegraciones())
+  modulos.push('glosario', 'integraciones-catalogo')
 
   /* ── Capa 2: los términos que aparecen en la pregunta ─────────────────── */
   const hits = terminosEnPregunta(pregunta)

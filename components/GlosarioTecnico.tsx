@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { Search, AlertTriangle, ArrowRight } from 'lucide-react'
 import { GLOSARIO, CATEGORIAS_GLOSARIO, type TerminoGlosario } from '@/lib/glosario'
+import { integracionDe } from '@/lib/integraciones-catalogo'
 import {
   DOCE_ESENCIALES, SEGUNDA_OLA, PRECISIONES, NIVELES_EVOLUCION,
   PREGUNTAS_PERFILAMIENTO, TABLA_EVOLUCION, REGLA_COMERCIAL,
@@ -96,10 +97,38 @@ function FichaTermino({ t }: { t: TerminoGlosario }) {
         <p style={{
           fontSize: 12, color: '#9A3412', lineHeight: 1.5,
           background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 6, padding: '6px 9px',
+          marginBottom: t.cat === 'plataformas' ? 6 : 0,
         }}>
           <span style={{ fontWeight: 800 }}>Ojo · </span>{t.ojo}
         </p>
       )}
+
+      {/* Estado real de integración, leído del Catálogo 2026. Va aquí y no en
+          una nota suelta porque es el dato que decide si se puede comprometer
+          un alcance con el cliente. */}
+      {t.cat === 'plataformas' && (() => {
+        const i = integracionDe(t.t)
+        return i ? (
+          <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 6, padding: '7px 9px' }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: '#15803D', marginBottom: 3 }}>
+              ✓ Integración disponible · {i.fuente}
+            </p>
+            {i.alcances.map((a, k) => (
+              <p key={k} style={{ fontSize: 11.5, color: '#166534', lineHeight: 1.45 }}>{a}</p>
+            ))}
+          </div>
+        ) : (
+          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 6, padding: '7px 9px' }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: '#B91C1C', marginBottom: 3 }}>
+              ✕ No está en el catálogo de integraciones
+            </p>
+            <p style={{ fontSize: 11.5, color: '#991B1B', lineHeight: 1.45 }}>
+              No comprometas una integración. Se plantea como desarrollo a la medida vía API
+              y se confirma con Producto antes de ofrecerla.
+            </p>
+          </div>
+        )
+      })()}
     </div>
   )
 }
