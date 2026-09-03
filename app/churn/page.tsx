@@ -1,6 +1,10 @@
 'use client'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import PageHeader from '@/components/PageHeader'
+import { REPORTE_S18_AGOSTO_2026 } from './reporte-actual'
+import type {
+  ChurnPendiente, ChurnCancelado, ChurnDowngrade, ChurnReporte,
+} from './tipos'
 import GrcAaaSection from '@/components/GrcAaaSection'
 import CustomSelect from '@/components/CustomSelect'
 import {
@@ -19,43 +23,6 @@ import {
 type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
 type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho' | 'aaa'
 
-interface ChurnPendiente   { cliente: string; monto: number; mesesActivo: number; ultimaFactura: string }
-interface ChurnCancelado   { cliente: string; mrr: number;   mesesActivo: number; acumulado: number    }
-interface ChurnDowngrade   { cliente: string; perdida: number; nota: string                            }
-interface ChurnSuspendido  { cliente: string; importe: number; mesesActivo: number; estado: 'Suspendido' | 'Inactivo' }
-
-interface ChurnDesactivado { cliente: string; importe: number; mesesActivo: number }
-interface DowngradeArticulo { articulo: string; vecesAfectado: number; clientes: string[] }
-
-interface ChurnGRC {
-  evolucion:   { mes: string; pct: number; anterior?: number }[]
-  acumulado:   number
-  anterior?:   number
-  notaClave:   string
-  notaEspecial?: string
-}
-
-interface ChurnReporte {
-  id:          string
-  periodo:     string
-  fecha:       string
-  notas:       string
-  notaRemitente?: string
-  pendientes:  ChurnPendiente[]
-  cancelados:  ChurnCancelado[]
-  downgrades:  ChurnDowngrade[]
-  suspendidos?: ChurnSuspendido[]
-  desactivados?: ChurnDesactivado[]
-  downgradeArticulos?: DowngradeArticulo[]
-  grc?:        ChurnGRC
-  pendientesTotalReal?:   number
-  pendientesCuentasReal?: number
-  suspendidosTotalReal?:  number
-  suspendidosCuentasReal?: number
-  desactivadosTotalReal?:  number
-  desactivadosCuentasReal?: number
-  downgradeTotalReal?:     number
-}
 
 /* ─── Tipos GRC Detalle AAA ───────────────────────────────────────── */
 type AAAClienteRow = {
@@ -1240,6 +1207,7 @@ const REPORTE_S3_AGOSTO_2026: ChurnReporte = {
   ],
 }
 
+
 /* Clientes T1 (histórico fijo) */
 const T1_CLIENTES = [
   { cliente: 'GDA - Genética',          perdida: 12812,   tipo: 'Churn confirmado', mes: 'Enero'   },
@@ -1703,7 +1671,7 @@ function SidebarAccesoBtn({ active, onClick, icon, label, bg, badge, href }: {
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s3-agosto-2026')
+  const [selectedId,   setSelectedId]   = useState<string>('s18-agosto-2026')
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [acumCancelSort, setAcumCancelSort] = useState<{ col: 'cliente' | 'mrr' | 'mesesActivo' | 'acumulado' | 'periodo'; dir: 'asc' | 'desc' }>({ col: 'mrr', dir: 'desc' })
@@ -1731,8 +1699,8 @@ export default function ChurnPage() {
 
 
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026', 's2-julio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, REPORTE_S2_AGOSTO_2026, REPORTE_S3_AGOSTO_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S3_AGOSTO_2026
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, REPORTE_S2_AGOSTO_2026, REPORTE_S3_AGOSTO_2026, REPORTE_S18_AGOSTO_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S18_AGOSTO_2026
 
   // Pre-filtrar a Enterprise y Large cuando llegan los datos
   useEffect(() => {
@@ -1916,7 +1884,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s2-agosto-2026')
+    if (selectedId === id) setSelectedId('s18-agosto-2026')
     setDelConfirm(null)
   }
 
@@ -2574,12 +2542,64 @@ export default function ChurnPage() {
               </div>
             )}
 
+            {/* Antigüedad de saldos — solo en cortes que la reportan */}
+            {reporte.antiguedadSaldos && reporte.antiguedadSaldos.length > 0 && (() => {
+              const filas = reporte.antiguedadSaldos!
+              const totalSaldos = filas.reduce((s, f) => s + f.monto, 0)
+              const vencido = filas.filter(f => !/por vencer/i.test(f.rango)).reduce((s, f) => s + f.monto, 0)
+              /* Entre más vieja la deuda, más caliente el color: por vencer aún es sano. */
+              const colorRango = (rango: string) =>
+                /por vencer/i.test(rango) ? GREEN :
+                /^\s*1\b|1 –|1-/.test(rango) ? TEAL :
+                /^\s*8\b|8 –|8-/.test(rango) ? AMBER :
+                /16/.test(rango) ? ORANGE : RED
+              return (
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                  <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
+                    <h3 className="font-semibold text-gray-900 text-sm">Antigüedad de saldos — {reporte.periodo}</h3>
+                    <p className="text-xs text-gray-500">
+                      Total <strong className="text-gray-900">{fmt(totalSaldos)}</strong> ·{' '}
+                      vencido <strong style={{ color: RED }}>{fmt(vencido)}</strong>{' '}
+                      ({Math.round((vencido / (totalSaldos || 1)) * 100)}%)
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {filas.map(f => {
+                      const c = colorRango(f.rango)
+                      return (
+                        <div key={f.rango}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-gray-700 font-medium">{f.rango}</span>
+                            <div className="text-right">
+                              <span className="font-bold" style={{ color: c }}>{fmt(f.monto)}</span>
+                              <span className="text-gray-400 ml-2 text-[11px]">
+                                {Math.round((f.monto / (totalSaldos || 1)) * 100)}% del saldo
+                              </span>
+                            </div>
+                          </div>
+                          <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                            <div className="h-full rounded-full"
+                                 style={{ width: `${(f.monto / (totalSaldos || 1)) * 100}%`, background: c }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-4 pt-3 border-t border-gray-100 leading-relaxed">
+                    El saldo con más de 30 días es el que históricamente antecede a la suspensión.
+                    Cobranza y Customer Success trabajan el mismo tramo: si la cuenta ya está vencida,
+                    la conversación de valor tiene que ocurrir antes del corte, no después.
+                  </p>
+                </div>
+              )
+            })()}
+
             {/* Resumen de impacto */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
               <h3 className="font-semibold text-gray-900 text-sm mb-4">Resumen de Impacto — {reporte.periodo}</h3>
               <div className="space-y-3">
                 {[
-                  { label: 'Pendiente de facturar (31 cuentas)',     monto: totalPendiente,  color: ORANGE, sub: 'Riesgo inmediato de churn' },
+                  { label: `Pendiente de facturar (${reporte.pendientesCuentasReal ?? reporte.pendientes.length} cuentas)`, monto: totalPendiente, color: ORANGE, sub: 'Riesgo inmediato de churn' },
                   { label: 'Downgrades detectados',                   monto: totalDowngrades, color: AMBER,  sub: `${downgrades.length} clientes con reducción de plan` },
                   { label: 'Suspendidos / Inactivos en retención',    monto: totalSuspendidos, color: BLUE,  sub: `${reporte.suspendidosCuentasReal ?? suspendidos?.length ?? 0} cuentas pausadas` },
                 ].map(row => {

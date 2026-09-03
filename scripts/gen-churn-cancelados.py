@@ -21,7 +21,12 @@ import os
 import unicodedata
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, 'app', 'churn', 'page.tsx')
+# El corte vigente vive en su propio módulo (Atlas lo consume del lado del
+# servidor); los cortes anteriores quedan archivados dentro de page.tsx.
+SRCS = [
+    os.path.join(ROOT, 'app', 'churn', 'page.tsx'),
+    os.path.join(ROOT, 'app', 'churn', 'reporte-actual.ts'),
+]
 OUT = os.path.join(ROOT, 'lib', 'churn-cancelados-data.ts')
 
 
@@ -30,7 +35,9 @@ def norm(s):
     return re.sub(r'[^a-z0-9]', '', s)
 
 
-src = open(SRC, encoding='utf-8').read()
+src = '\n'.join(
+    open(f, encoding='utf-8').read() for f in SRCS if os.path.exists(f)
+)
 
 # Cada reporte trae su periodo; se conserva para poder rastrear el origen.
 periodos = {}

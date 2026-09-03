@@ -13,6 +13,7 @@ import { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } from './eleg
 import { getZohoMap, lookupZoho } from './zoho-enrich'
 import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
+import { REPORTE_S18_AGOSTO_2026 } from '@/app/churn/reporte-actual'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 
 interface TicketRaw {
@@ -383,6 +384,35 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     `CHURN — GRC AAA 2026 (apartado Churn > GRC AAA 2026 | Enero a Julio | formato: cliente(MRR perdido)[asesor si está en cartera]):\n${grcLines.join('\n')}`
   )
   modulos.push('churn-grc')
+
+  // Corte vigente de Gross Revenue Churn — misma fuente que renderiza el módulo.
+  const rep = REPORTE_S18_AGOSTO_2026
+  if (rep.grc) {
+    const evo = rep.grc.evolucion
+      .map(e => `${e.mes} ${e.pct}%${e.anterior !== undefined ? ` (ant. ${e.anterior}%)` : ''}`)
+      .join(' · ')
+    const antig = (rep.antiguedadSaldos ?? [])
+      .map(a => `${a.rango} $${a.monto.toLocaleString('es-MX')}`).join(' · ')
+    const top = rep.pendientes
+      .filter(p => !p.cliente.startsWith('+'))
+      .map(p => `${p.cliente.replace('🔝 ', '')} $${p.monto.toLocaleString('es-MX')} (${p.mesesActivo} meses)`)
+      .join(', ')
+    const downs = rep.downgrades
+      .map(d => `${d.cliente.replace('🔝 ', '')} -$${d.perdida.toLocaleString('es-MX')} — ${d.nota}`)
+      .join('; ')
+    sections.push(
+      `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha}):\n` +
+      `  Evolución GRC: ${evo}. Acumulado 2026: ${rep.grc.acumulado}%` +
+      `${rep.grc.anterior !== undefined ? ` (ant. ${rep.grc.anterior}%)` : ''} — MES CORRIENDO, NO DEFINITIVO.\n` +
+      `  Cartera en Activo: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} en ${rep.pendientesCuentasReal} cuentas. Top 10: ${top}.\n` +
+      `  Dinero fuera de cartera: $72,631 en 71 cuentas — Suspendidos 27 ($18,692 · 25.2 días promedio) · Desactivados 23 ($33,899 · 11.9 días) · Cancelados 21 ($20,040).\n` +
+      (antig ? `  Antigüedad de saldos (total $177,156.62): ${antig}.\n` : '') +
+      `  Downgrades de agosto ($${(rep.downgradeTotalReal ?? 0).toLocaleString('es-MX')} · ${rep.downgrades.length} clientes): ${downs}\n` +
+      `  ${rep.grc.notaEspecial ?? ''}\n` +
+      `  Cadencia: el reporte se envía los martes. Próxima revisión: martes 8 de septiembre de 2026.`
+    )
+    modulos.push('churn-corte-vigente')
+  }
 
   const porPeriodo: Record<string, string[]> = {}
   for (const c of CLIENTES_CANCELADOS) {
