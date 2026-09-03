@@ -79,7 +79,7 @@ function lineaTermino(t: TerminoGlosario): string {
     // la cadena exacta que debe escribir, no hay nada que recortar.
     partes.push(i
       ? `INTEGRACIÓN DOCUMENTADA (${i.fuente}). NOMBRE EXACTO QUE DEBES ESCRIBIR, completo y sin recortar: "${i.plataforma}". Alcance exacto, no lo amplíes: ${i.alcances.join(' | ')}`
-      : `NO ESTÁ EN EL CATÁLOGO: no afirmes que Callpicker ya se integra con esta plataforma, pero TAMPOCO digas que no se puede. ${PROTOCOLO_SIN_INTEGRACION.condiciones.join(' Y ')} → ${PROTOCOLO_SIN_INTEGRACION.siSeCumplen} ${PROTOCOLO_SIN_INTEGRACION.canalizacion} ${PROTOCOLO_SIN_INTEGRACION.limite}`)
+      : `NO ESTÁ EN EL CATÁLOGO: no afirmes que Callpicker ya se integra con esta plataforma, pero TAMPOCO digas que no se puede. ${PROTOCOLO_SIN_INTEGRACION.condiciones.join(' Y ')} → ${PROTOCOLO_SIN_INTEGRACION.siSeCumplen} ${PROTOCOLO_SIN_INTEGRACION.limite} CIERRA CON ESTA FRASE TEXTUAL, sin omitirla: "${PROTOCOLO_SIN_INTEGRACION.canalizacion}"`)
   }
   return `  - ${partes.join(' | ')}`
 }
