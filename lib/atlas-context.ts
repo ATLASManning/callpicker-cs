@@ -393,15 +393,24 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       .join(' · ')
     const antig = (rep.antiguedadSaldos ?? [])
       .map(a => `${a.rango} $${a.monto.toLocaleString('es-MX')}`).join(' · ')
+    /* El corte trae clientes de toda la base de Zoho, no solo de la cartera CS.
+     * Sin marcar cuáles están asignados, el modelo rellena el hueco inventando
+     * asesores (comprobado el 2 sep 2026: atribuyó GTC y Embler a Dan y Fátima
+     * cuando ninguna de esas cuentas existe en `cuentas`). Se anota explícito
+     * en ambos sentidos para que no quede nada que suponer. */
+    const cartera = (nombre: string) => asesorDe(nombre) || '[NO está en la cartera CS]'
+    const limpio = (c: string) => c.replace('🔝 ', '')
     const top = rep.pendientes
       .filter(p => !p.cliente.startsWith('+'))
-      .map(p => `${p.cliente.replace('🔝 ', '')} $${p.monto.toLocaleString('es-MX')} (${p.mesesActivo} meses)`)
+      .map(p => `${limpio(p.cliente)} $${p.monto.toLocaleString('es-MX')} (${p.mesesActivo} meses)${cartera(limpio(p.cliente))}`)
       .join(', ')
     const downs = rep.downgrades
-      .map(d => `${d.cliente.replace('🔝 ', '')} -$${d.perdida.toLocaleString('es-MX')} — ${d.nota}`)
+      .map(d => `${limpio(d.cliente)} -$${d.perdida.toLocaleString('es-MX')}${cartera(limpio(d.cliente))} — ${d.nota}`)
       .join('; ')
     sections.push(
-      `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha}):\n` +
+      `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha} | ` +
+      `cada cliente trae entre corchetes su asesor o la marca de que NO está en la cartera CS — ` +
+      `usa SOLO eso, nunca deduzcas el asesor por el nombre del cliente):\n` +
       `  Evolución GRC: ${evo}. Acumulado 2026: ${rep.grc.acumulado}%` +
       `${rep.grc.anterior !== undefined ? ` (ant. ${rep.grc.anterior}%)` : ''} — MES CORRIENDO, NO DEFINITIVO.\n` +
       `  Cartera en Activo: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} en ${rep.pendientesCuentasReal} cuentas. Top 10: ${top}.\n` +
