@@ -409,9 +409,12 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       .filter(p => !p.cliente.startsWith('+'))
       .map(p => `${limpio(p.cliente)} $${p.monto.toLocaleString('es-MX')} (${p.mesesActivo} meses)${cartera(limpio(p.cliente))}`)
       .join(', ')
+    /* Uno por línea y numerado: en formato corrido el modelo colaba un cliente
+     * de otro mes al final de la lista (Cargo Lift, 2 sep 2026). Con el índice
+     * y el total a la vista, la lista se cierra sola. */
     const downs = rep.downgrades
-      .map(d => `${limpio(d.cliente)} -$${d.perdida.toLocaleString('es-MX')}${cartera(limpio(d.cliente))} — ${d.nota}`)
-      .join('; ')
+      .map((d, i) => `    ${i + 1}/${rep.downgrades.length}. ${limpio(d.cliente)} -$${d.perdida.toLocaleString('es-MX')}${cartera(limpio(d.cliente))} — ${d.nota}`)
+      .join('\n')
     sections.push(
       `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha} | ` +
       `ESTA es la fuente para agosto 2026: los downgrades listados abajo son los ÚNICOS del mes, ` +
@@ -421,7 +424,8 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       `  Cartera en Activo: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} en ${rep.pendientesCuentasReal} cuentas. Top 10: ${top}.\n` +
       `  Dinero fuera de cartera: $72,631 en 71 cuentas — Suspendidos 27 ($18,692 · 25.2 días promedio) · Desactivados 23 ($33,899 · 11.9 días) · Cancelados 21 ($20,040).\n` +
       (antig ? `  Antigüedad de saldos (total $177,156.62): ${antig}.\n` : '') +
-      `  Downgrades de agosto ($${(rep.downgradeTotalReal ?? 0).toLocaleString('es-MX')} · ${rep.downgrades.length} clientes): ${downs}\n` +
+      `  Downgrades de agosto — lista COMPLETA y CERRADA de ${rep.downgrades.length} clientes por $${(rep.downgradeTotalReal ?? 0).toLocaleString('es-MX')}. ` +
+      `No hay un cliente número ${rep.downgrades.length + 1}: cualquier otro nombre pertenece a otro mes.\n${downs}\n` +
       `  ${rep.grc.notaEspecial ?? ''}\n` +
       `  Cadencia: el reporte se envía los martes. Próxima revisión: martes 8 de septiembre de 2026.`
     )
