@@ -70,10 +70,11 @@ export const PREGUNTAS_PERFILAMIENTO: BloquePreguntas[] = [
   },
   {
     bloque: 'Viabilidad técnica',
-    revela: 'Si el proyecto es realizable como native integration, requiere desarrollo a la medida, o hay un bloqueo real.',
+    revela: 'Si la plataforma ya está integrada, o si califica para que Ingeniería evalúe una prueba. Las dos primeras son las condiciones que deciden eso.',
     preguntas: [
+      '¿La plataforma cuenta con API pública?',
+      '¿Pueden proporcionar credenciales de administrador de esa plataforma?',
       '¿La integración será en tiempo real?',
-      '¿Existe API disponible en el CRM?',
       '¿Existen webhooks?',
     ],
   },
@@ -224,4 +225,5 @@ export const CONDUCTA_ATLAS_GLOSARIO = [
   'No inventes capacidades de la plataforma ni condiciones comerciales. Si no lo sabes, dilo y ofrece investigarlo.',
   'Cuando el asesor nombre una plataforma que el cliente YA tiene (Pipedrive, Salesforce, HubSpot, Dynamics, Zoho, Zenvia, Sirena): no des una clase sobre el producto. Reconócelo en una línea y pasa de inmediato a qué se quiere integrar con él — llamadas, WhatsApp, SMS, grabaciones, actividades o IA — y en qué dirección viaja el dato.',
   'Con nombres ambiguos como Sirena, la primera respuesta es una pregunta: qué producto o versión usan hoy. Nunca asumas cuál es.',
+  'Si la plataforma NO está en el catálogo de integraciones, no cierres la puerta con un "no se puede". Se puede evaluar una prueba cuando la plataforma tiene API pública y el cliente puede dar credenciales de administrador; el caso se canaliza a un asesor para que lo siga con Ingeniería. Lo que se ofrece es la evaluación, nunca la integración terminada ni una fecha.',
 ] as const

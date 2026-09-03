@@ -2,7 +2,7 @@
 import { useState, useMemo } from 'react'
 import { Search, AlertTriangle, ArrowRight } from 'lucide-react'
 import { GLOSARIO, CATEGORIAS_GLOSARIO, type TerminoGlosario } from '@/lib/glosario'
-import { integracionDe } from '@/lib/integraciones-catalogo'
+import { integracionDe, PROTOCOLO_SIN_INTEGRACION } from '@/lib/integraciones-catalogo'
 import {
   DOCE_ESENCIALES, SEGUNDA_OLA, PRECISIONES, NIVELES_EVOLUCION,
   PREGUNTAS_PERFILAMIENTO, TABLA_EVOLUCION, REGLA_COMERCIAL,
@@ -118,13 +118,25 @@ function FichaTermino({ t }: { t: TerminoGlosario }) {
             ))}
           </div>
         ) : (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 6, padding: '7px 9px' }}>
-            <p style={{ fontSize: 11, fontWeight: 800, color: '#B91C1C', marginBottom: 3 }}>
-              ✕ No está en el catálogo de integraciones
+          <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, padding: '7px 9px' }}>
+            <p style={{ fontSize: 11, fontWeight: 800, color: '#B45309', marginBottom: 4 }}>
+              ◇ {PROTOCOLO_SIN_INTEGRACION.titulo}
             </p>
-            <p style={{ fontSize: 11.5, color: '#991B1B', lineHeight: 1.45 }}>
-              No comprometas una integración. Se plantea como desarrollo a la medida vía API
-              y se confirma con Producto antes de ofrecerla.
+            <p style={{ fontSize: 11.5, color: '#92400E', lineHeight: 1.45, marginBottom: 3 }}>
+              Se puede evaluar una prueba si se cumplen las dos:
+            </p>
+            <ul style={{ marginBottom: 4 }}>
+              {PROTOCOLO_SIN_INTEGRACION.condiciones.map((c, k) => (
+                <li key={k} style={{ fontSize: 11.5, color: '#92400E', lineHeight: 1.45, display: 'flex', gap: 6 }}>
+                  <span style={{ fontWeight: 800 }}>{k + 1}.</span><span>{c}</span>
+                </li>
+              ))}
+            </ul>
+            <p style={{ fontSize: 11.5, color: '#92400E', lineHeight: 1.45, fontWeight: 700 }}>
+              {PROTOCOLO_SIN_INTEGRACION.canalizacion}
+            </p>
+            <p style={{ fontSize: 11, color: '#A16207', lineHeight: 1.45, marginTop: 3 }}>
+              {PROTOCOLO_SIN_INTEGRACION.limite}
             </p>
           </div>
         )

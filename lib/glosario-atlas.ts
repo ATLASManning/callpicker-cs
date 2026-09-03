@@ -22,7 +22,7 @@ import {
   DOCE_ESENCIALES, SEGUNDA_OLA, PRECISIONES, NIVELES_EVOLUCION,
   PREGUNTAS_PERFILAMIENTO, TABLA_EVOLUCION, CONDUCTA_ATLAS_GLOSARIO, REGLA_COMERCIAL,
 } from './perfilamiento'
-import { seccionIntegraciones, integracionDe } from './integraciones-catalogo'
+import { seccionIntegraciones, integracionDe, PROTOCOLO_SIN_INTEGRACION } from './integraciones-catalogo'
 
 function norm(s: string): string {
   return s.toLowerCase().normalize('NFD')
@@ -79,7 +79,7 @@ function lineaTermino(t: TerminoGlosario): string {
     // la cadena exacta que debe escribir, no hay nada que recortar.
     partes.push(i
       ? `INTEGRACIÓN DOCUMENTADA (${i.fuente}). NOMBRE EXACTO QUE DEBES ESCRIBIR, completo y sin recortar: "${i.plataforma}". Alcance exacto, no lo amplíes: ${i.alcances.join(' | ')}`
-      : 'SIN INTEGRACIÓN EN EL CATÁLOGO: no afirmes que Callpicker se integra con esta plataforma. Dilo y plantéalo como integración a la medida vía API, a confirmar con Producto.')
+      : `NO ESTÁ EN EL CATÁLOGO: no afirmes que Callpicker ya se integra con esta plataforma, pero TAMPOCO digas que no se puede. ${PROTOCOLO_SIN_INTEGRACION.condiciones.join(' Y ')} → ${PROTOCOLO_SIN_INTEGRACION.siSeCumplen} ${PROTOCOLO_SIN_INTEGRACION.canalizacion} ${PROTOCOLO_SIN_INTEGRACION.limite}`)
   }
   return `  - ${partes.join(' | ')}`
 }

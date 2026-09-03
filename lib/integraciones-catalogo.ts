@@ -28,6 +28,28 @@ export interface IntegracionCatalogo {
   fuente:     string
 }
 
+/**
+ * Qué se responde cuando la plataforma NO está en el catálogo.
+ *
+ * Instrucción de dirección (3 sep 2026): que no esté no significa que no se
+ * pueda. Decir "no se integra" cierra una puerta que sigue abierta y le quita
+ * al asesor una conversación viva. Lo correcto es plantear la evaluación con
+ * sus dos condiciones y canalizarla — nunca prometer que se hará ni cuándo.
+ *
+ * Una sola definición para la pantalla y para Atlas: si las dos redacciones
+ * se separan, el asesor lee una cosa y el cliente escucha otra.
+ */
+export const PROTOCOLO_SIN_INTEGRACION = {
+  titulo: 'No está en el catálogo actual — no significa que no se pueda',
+  condiciones: [
+    'Que la plataforma cuente con API pública.',
+    'Que el cliente pueda proporcionar credenciales de administrador.',
+  ],
+  siSeCumplen: 'Se puede evaluar una prueba.',
+  canalizacion: 'El caso se canaliza a un asesor para que gestione el seguimiento con el área de Ingeniería.',
+  limite: 'No se promete que la integración se hará, ni un alcance, ni una fecha. Lo que se ofrece es la evaluación.',
+} as const
+
 function norm(s: string): string {
   return s.toLowerCase().normalize('NFD')
     .split('').filter(c => { const x = c.codePointAt(0) ?? 0; return x < 0x0300 || x > 0x036f }).join('')
@@ -89,7 +111,8 @@ export function seccionIntegraciones(): string {
   const cat = catalogoIntegraciones()
   return (
     `INTEGRACIONES DISPONIBLES — LISTA AUTORITATIVA (apartado Base de Conocimiento > Catálogo de Integraciones 2026 y Otras Integraciones CRM).\n` +
-    `  REGLA DURA: esta lista es la ÚNICA fuente para afirmar que una integración existe. Si una plataforma NO aparece abajo, está PROHIBIDO decir que Callpicker se integra con ella, describir lo que "permitiría" hacer, o insinuar que existe. Di con esas palabras que no está en el catálogo y que habría que evaluarla como integración a la medida vía API, y ofrece confirmarlo con Producto.\n` +
+    `  REGLA DURA: esta lista es la ÚNICA fuente para afirmar que una integración YA existe. Si una plataforma NO aparece abajo, está PROHIBIDO decir que Callpicker se integra con ella, describir lo que "permitiría" hacer, o insinuar que existe.\n` +
+    `  PERO TAMPOCO la descartes ni digas "no se puede". ${PROTOCOLO_SIN_INTEGRACION.titulo}. La respuesta correcta es: si se cumplen las dos condiciones —${PROTOCOLO_SIN_INTEGRACION.condiciones.join(' Y ')}— ${PROTOCOLO_SIN_INTEGRACION.siSeCumplen.toLowerCase()} ${PROTOCOLO_SIN_INTEGRACION.canalizacion} Preguntar por esas dos condiciones es parte de la respuesta, no un extra. ${PROTOCOLO_SIN_INTEGRACION.limite}\n` +
     `  Tampoco amplíes el alcance: si el catálogo dice que solo registra llamadas, no digas que también sincroniza contactos ni que abre la ficha.\n` +
     `  Y NUNCA recortes el nombre de la plataforma: cuando trae un calificativo entre paréntesis —"Pipedrive (a través de Zapier)", "Upnify (antes SalesUP)"— ese calificativo ES el alcance del proyecto y debe decirse siempre. Omitir "a través de Zapier" convierte una integración que exige Zapier, con sus credenciales, límites y costo, en una nativa que no existe.\n` +
     cat.map(c => `  - ${c.plataforma}: ${c.alcances.join(' | ')}`).join('\n')
