@@ -39,3 +39,6 @@ next-env.d.ts
 .vercel
 
 scripts/update-facturacion.log
+
+# Token efímero de verificación (JWT de sesión) — nunca versionar
+.tok
