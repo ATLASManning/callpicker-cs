@@ -319,8 +319,12 @@ export async function POST(req: NextRequest) {
     if (esPrueba !== true) void logBitacora(pregunta, chatResp, email, nombre, ctx.modulos)
 
     if (chatResp.tipo !== 'normal') {
-      void logPendiente(pregunta, chatResp, email, nombre)
-      void notifyAdmin(pregunta, chatResp, nombre)
+      // `esPrueba` tambien silencia esto: una verificacion no debe abrir una
+      // pendiente de trabajo real ni disparar el correo al admin.
+      if (esPrueba !== true) {
+        void logPendiente(pregunta, chatResp, email, nombre)
+        void notifyAdmin(pregunta, chatResp, nombre)
+      }
     }
 
     return NextResponse.json({
