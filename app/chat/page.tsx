@@ -1,9 +1,18 @@
 ﻿'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Bot, User, Loader2, Sparkles, BookOpen, Clock, ChevronDown, ChevronUp, AlertCircle, Search } from 'lucide-react'
+import { VistaPendientes, VistaReporteMensual } from '@/components/AtlasPendientes'
 import PageHeader from '@/components/PageHeader'
 
 type TipoRespuesta = 'normal' | 'pendiente' | 'requiere_busqueda_web'
+
+/** Las tres caras del book de preguntas. */
+type VistaPanel = 'dia' | 'pendientes' | 'mensual'
+const VISTAS_PANEL: Array<{ id: VistaPanel; label: string; sub: string }> = [
+  { id: 'dia',        label: 'Bitácora del día',   sub: 'Lo que se preguntó hoy' },
+  { id: 'pendientes', label: 'Pendientes',         sub: 'Preguntas sin contestar' },
+  { id: 'mensual',    label: 'Reporte mensual',    sub: 'El mes visto de lejos' },
+]
 type Confianza     = 'alta' | 'media' | 'baja'
 
 interface Msg {
@@ -70,20 +79,25 @@ function TipoBadge({ tipo, confianza }: { tipo: TipoRespuesta; confianza?: Confi
 }
 
 // ── Panel de bitácora ─────────────────────────────────────────────────────────
-function BitacoraPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
+function BitacoraPanel({ open, onClose, vistaInicial, onCambio }: {
+  open: boolean; onClose: () => void
+  vistaInicial: VistaPanel; onCambio?: () => void
+}) {
+  const [vista, setVista] = useState<VistaPanel>(vistaInicial)
+  useEffect(() => { if (open) setVista(vistaInicial) }, [open, vistaInicial])
   const [entries,  setEntries]  = useState<BitacoraEntry[]>([])
   const [loading,  setLoading]  = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!open) return
+    if (!open || vista !== 'dia') return
     setLoading(true)
     fetch('/api/chat/bitacora')
       .then(r => r.json())
       .then(d => setEntries(d.entries ?? []))
       .catch(() => setEntries([]))
       .finally(() => setLoading(false))
-  }, [open])
+  }, [open, vista])
 
   if (!open) return null
 
@@ -115,31 +129,52 @@ function BitacoraPanel({ open, onClose }: { open: boolean; onClose: () => void }
           padding: '20px 24px', borderBottom: '1px solid #E2E8F0',
           background: '#F8FAFF', display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <BookOpen size={18} style={{ color: '#1D4ED8' }} />
+          <BookOpen size={18} style={{ color: '#1D4ED8', flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, color: '#fff', fontSize: 15 }}>
-              Bitácora del día
+            <div style={{ fontWeight: 800, color: '#0F172A', fontSize: 15 }}>
+              Book de preguntas
             </div>
             <div style={{ fontSize: 11, color: '#64748b' }}>
-              {new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {VISTAS_PANEL.find(v => v.id === vista)?.sub ??
+                new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: 20 }}>✕</button>
         </div>
 
+        {/* Pestañas */}
+        <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0', borderBottom: '1px solid #E2E8F0' }}>
+          {VISTAS_PANEL.map(v => {
+            const activa = vista === v.id
+            return (
+              <button key={v.id} onClick={() => setVista(v.id)} style={{
+                padding: '7px 13px', fontSize: 12.5, fontWeight: activa ? 800 : 600,
+                color: activa ? '#1D4ED8' : '#64748b', background: 'none',
+                border: 'none', borderBottom: `2px solid ${activa ? '#1D4ED8' : 'transparent'}`,
+                cursor: 'pointer', marginBottom: -1,
+              }}>
+                {v.label}
+              </button>
+            )
+          })}
+        </div>
+
         {/* Content */}
         <div style={{ flex: 1, padding: '16px 20px' }}>
-          {loading && (
+          {vista === 'pendientes' && <VistaPendientes onCambio={onCambio} />}
+          {vista === 'mensual'    && <VistaReporteMensual />}
+
+          {vista === 'dia' && loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 13 }}>
               <Loader2 size={14} className="animate-spin" /> Cargando bitácora…
             </div>
           )}
-          {!loading && entries.length === 0 && (
+          {vista === 'dia' && !loading && entries.length === 0 && (
             <div style={{ textAlign: 'center', color: '#94A3B8', fontSize: 13, marginTop: 40 }}>
               Sin consultas registradas hoy
             </div>
           )}
-          {!loading && entries.map((e, i) => (
+          {vista === 'dia' && !loading && entries.map((e, i) => (
             <div key={e.id} style={{
               border: '1px solid #E2E8F0', borderRadius: 10, marginBottom: 10,
               background: i % 2 === 0 ? '#F8FAFF' : '#FFFFFF',
@@ -203,6 +238,18 @@ export default function ChatPage() {
   const [input,        setInput]        = useState('')
   const [loading,      setLoading]      = useState(false)
   const [bitacoraOpen, setBitacoraOpen] = useState(false)
+  const [vistaPanel,   setVistaPanel]   = useState<VistaPanel>('dia')
+  const [pendientes,   setPendientes]   = useState<number | null>(null)
+
+  // El contador de pendientes vive en la cabecera porque es lo que no debe
+  // quedarse esperando: una pregunta sin contestar es alguien sin respuesta.
+  const cargarPendientes = useCallback(() => {
+    fetch('/api/chat/pendientes')
+      .then(r => r.json())
+      .then(d => setPendientes(d.abiertos ?? 0))
+      .catch(() => setPendientes(null))
+  }, [])
+  useEffect(() => { cargarPendientes() }, [cargarPendientes])
   const [totalHoy,     setTotalHoy]     = useState<number | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -268,25 +315,51 @@ export default function ChatPage() {
         <div style={{ fontSize: 12, color: '#64748b' }}>
           Contexto: Cuentas · Tickets · Auditoría · Activaciones · Seguimientos · Base de Conocimiento · Reuniones
         </div>
-        <button
-          onClick={() => setBitacoraOpen(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px', borderRadius: 20, border: '1px solid #BFDBFE',
-            background: '#EFF6FF', color: '#1D4ED8', fontSize: 12, fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          <Clock size={12} />
-          Bitácora del día
-          {totalHoy !== null && totalHoy > 0 && (
-            <span style={{
-              background: '#1D4ED8', color: '#FFF',
-              borderRadius: 20, padding: '0 6px', fontSize: 10, fontWeight: 800,
-              minWidth: 18, textAlign: 'center',
-            }}>{totalHoy}</span>
-          )}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => { setVistaPanel('dia'); setBitacoraOpen(true) }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '5px 12px', borderRadius: 20, border: '1px solid #BFDBFE',
+              background: '#EFF6FF', color: '#1D4ED8', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <Clock size={12} />
+            Bitácora del día
+            {totalHoy !== null && totalHoy > 0 && (
+              <span style={{
+                background: '#1D4ED8', color: '#FFF',
+                borderRadius: 20, padding: '0 6px', fontSize: 10, fontWeight: 800,
+                minWidth: 18, textAlign: 'center',
+              }}>{totalHoy}</span>
+            )}
+          </button>
+
+          {/* Separado y en ámbar a proposito: lo que no se pudo contestar no
+              debe leerse como una entrada más del registro del día. */}
+          <button
+            onClick={() => { setVistaPanel('pendientes'); setBitacoraOpen(true) }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '5px 12px', borderRadius: 20,
+              border: `1px solid ${pendientes ? '#FDE68A' : '#E2E8F0'}`,
+              background: pendientes ? '#FFFBEB' : '#FFFFFF',
+              color: pendientes ? '#B45309' : '#64748b',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            <AlertCircle size={12} />
+            Pendientes de contestar
+            {pendientes !== null && pendientes > 0 && (
+              <span style={{
+                background: '#D97706', color: '#FFF',
+                borderRadius: 20, padding: '0 6px', fontSize: 10, fontWeight: 800,
+                minWidth: 18, textAlign: 'center',
+              }}>{pendientes}</span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Messages area */}
@@ -369,7 +442,8 @@ export default function ChatPage() {
         </p>
       </div>
 
-      <BitacoraPanel open={bitacoraOpen} onClose={() => setBitacoraOpen(false)} />
+      <BitacoraPanel open={bitacoraOpen} onClose={() => setBitacoraOpen(false)}
+                     vistaInicial={vistaPanel} onCambio={cargarPendientes} />
     </div>
   )
 }
