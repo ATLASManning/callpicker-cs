@@ -3,6 +3,7 @@ import {
   OBJETIVO_PUESTO, POSTURA, RESPONSABILIDADES, CADENCIA,
   INDICADORES_ANCLA, INDICADORES_DISCIPLINA, COMPROMISOS, ANTI_PERFIL,
   PRINCIPIO_BAJA, PROTOCOLO_BAJA, RESPUESTAS_NO_ACEPTADAS, EVALUACION_PERDIDA,
+  REGLAS_DURAS,
 } from '@/lib/perfil-rol'
 
 const COLOR_FASE: Record<string, string> = {
@@ -106,6 +107,15 @@ export default function PerfilRolPage() {
           </h3>
           <p className="text-xs text-textHi leading-relaxed mt-2">{PRINCIPIO_BAJA}</p>
         </div>
+
+        {/* Las dos reglas sin excepción */}
+        {REGLAS_DURAS.map((r, i) => (
+          <div key={i} className="rounded-lg p-3"
+               style={{ background: 'rgba(248,113,113,0.10)', border: '1px solid rgba(248,113,113,0.35)' }}>
+            <p className="text-xs font-bold mb-1" style={{ color: '#F87171' }}>⛔ {r.titulo}</p>
+            <p className="text-xs text-textMid leading-relaxed">{r.texto}</p>
+          </div>
+        ))}
 
         {PROTOCOLO_BAJA.map(f => {
           const col = COLOR_FASE[f.fase] ?? '#94A3B8'

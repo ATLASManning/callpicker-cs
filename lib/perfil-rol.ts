@@ -244,6 +244,32 @@ export const PROTOCOLO_BAJA: FaseProtocolo[] = [
   },
 ]
 
+/**
+ * Las dos reglas que no admiten excepción, por instrucción de dirección.
+ * Van aparte porque son las que cierran las dos salidas que quedaban.
+ */
+export const REGLAS_DURAS = [
+  {
+    titulo: 'La cuenta no cambia de estatus hasta que esté documentado',
+    texto:
+      'Una baja o un downgrade no se registran por lo que diga el asesor. La cuenta permanece en su ' +
+      'estatus actual —marcada en riesgo y visible para Dirección— hasta que el expediente esté completo: ' +
+      'causa real, historial de lo que se hizo, si existió plan y estrategia, evidencia y plan de ' +
+      'recuperación del ingreso. No existe la baja no documentada: mientras falte, la cuenta sigue ' +
+      'contando en la cartera del KAM y en sus indicadores.',
+  },
+  {
+    titulo: '"No había manera de saberlo" no es una defensa',
+    texto:
+      'El dashboard muestra las señales antes de que el cliente avise: caída de consumo contra su propia ' +
+      'media, panel sin uso, tickets recurrentes, silencio del contacto, incidencias de pago y pérdida de ' +
+      'contactabilidad. Si la baja ocurre sin que se haya actuado, la revisión no pregunta si el asesor ' +
+      'sabía: verifica si la información estaba disponible y qué se hizo con ella. Cuando efectivamente ' +
+      'no hubo señal detectable, el propio registro lo demuestra y la pérdida se clasifica como no ' +
+      'prevenible — eso protege al asesor tanto como lo expone.',
+  },
+]
+
 /** Respuestas que dejaron de ser aceptables al cerrar una actividad. */
 export const RESPUESTAS_NO_ACEPTADAS = [
   { frase: '"No contesta"',              porque: 'No es un desenlace: es el inicio de una secuencia. Si además no hay a quién más contactar, ese vacío es el hallazgo de la cuenta.' },
