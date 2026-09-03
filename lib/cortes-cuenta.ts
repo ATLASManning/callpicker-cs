@@ -25,6 +25,12 @@ let _cache: Map<string, CorteCuenta[]> | null = null
 let _cacheTime = 0
 const CACHE_TTL = 5 * 60 * 1000
 
+/* Carga en vuelo compartida. Sin esto, un Promise.all sobre las 218 cuentas
+ * encuentra la caché vacía 218 veces y abre el Excel de 19,230 filas otras
+ * tantas. Con esto, la primera llamada carga y las demás esperan la misma
+ * promesa. */
+let _cargando: Promise<Map<string, CorteCuenta[]>> | null = null
+
 function excelSerialToMonth(v: unknown): string {
   if (typeof v === 'number') {
     const d = new Date(Date.UTC(1899, 11, 30) + v * 86400000)
@@ -36,6 +42,12 @@ function excelSerialToMonth(v: unknown): string {
 
 async function loadMap(): Promise<Map<string, CorteCuenta[]>> {
   if (_cache && Date.now() - _cacheTime < CACHE_TTL) return _cache
+  if (_cargando) return _cargando
+  _cargando = leerArchivo().finally(() => { _cargando = null })
+  return _cargando
+}
+
+async function leerArchivo(): Promise<Map<string, CorteCuenta[]>> {
   const xlsx = (await import('xlsx')).default
   const fs   = (await import('fs')).default
   const filePath = path.join(process.cwd(), 'data', 'cortes-facturacion.xlsx')

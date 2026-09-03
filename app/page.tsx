@@ -12,6 +12,9 @@ import AutoRefresh from '@/components/AutoRefresh'
 import DashAlertasCriticas from '@/components/DashAlertasCriticas'
 import DashMetricasSection from '@/components/DashMetricasSection'
 import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVersatil'
+import CandidatoA from '@/components/CandidatoA'
+import { evaluarCandidato, type EntradaCandidatura, type ResultadoCandidato } from '@/lib/candidato-a'
+import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
 import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
@@ -980,6 +983,50 @@ export default async function DashboardPage() {
   }).filter(c => c.faltantes.length > 0 || c.diasSinContacto === null || c.diasSinContacto > 30)
 
   // ── Top Cuentas — ranking versátil (13 dimensiones seleccionables) ────────
+  /* ── Candidato a: — a qué es candidata cada cuenta ────────────────────────
+   * Se arma con lo que ya está en memoria (cuentas, adopción, tickets) más los
+   * cortes de facturación, que aportan plan, consumo y uso del panel. El
+   * evaluador nunca inventa: si faltan señales, lo dice. */
+  const candidatos: ResultadoCandidato[] = await Promise.all(
+    cuentas.map(async (c): Promise<ResultadoCandidato> => {
+      const tix = getTicketsByCuenta(c.cid ?? null, c.empresa)
+      const cortes = await cortesDeCuenta(c.cid, 6)
+      const ult3 = cortes.slice(-3)
+      const prom = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null
+      const consumoPct = ult3.length ? prom(ult3.map(x => x.pct)) : null
+      const previos    = cortes.slice(0, -2).map(x => x.pct)
+      const recientes  = cortes.slice(-2).map(x => x.pct)
+      const mediaPrev  = prom(previos)
+      const mediaRec   = prom(recientes)
+      const caida = (mediaPrev && mediaPrev > 0 && mediaRec !== null)
+        ? Math.max(0, ((mediaPrev - mediaRec) / mediaPrev) * 100) : null
+
+      const adopcion: Record<string, string> = {}
+      const porProd = adopMap.get(c.id)
+      if (porProd) for (const [prod, row] of Array.from(porProd.entries())) adopcion[prod] = row.nivel
+
+      const entrada: EntradaCandidatura = {
+        id: String(c.id), consecutivo: c.consecutivo ?? '', empresa: c.empresa,
+        asesor: c.asesor ?? null, estado: c.estado ?? null,
+        facturacion: c.facturacion ?? 0, healthScore: c.health_score ?? null,
+        activoDesde: c.activo_desde, diasSinContacto: diasSinContactoDe(c),
+        giro: c.giro ?? null, numOficinas: c.num_oficinas ?? null,
+        tieneContacto: Boolean(
+          (c.contacto_email && String(c.contacto_email).trim() && String(c.contacto_email).trim() !== '0') ||
+          (c.contacto_tel   && String(c.contacto_tel).trim()   && String(c.contacto_tel).trim()   !== '0')),
+        faltantesCount: computeFaltantes(c).length,
+        ticketsTotal: tix.total,
+        ticketsFallas: tix.rows.filter(t => t.es_falla === 'Si').length,
+        ticketsAbiertos: tix.rows.filter(t => !String(t.cierre ?? '').trim()).length,
+        plan: cortes.at(-1)?.plan ?? null,
+        consumoPct, caidaConsumo: caida,
+        panelPromedio: ult3.length ? prom(ult3.map(x => x.panel)) : null,
+        adopcion,
+      }
+      return evaluarCandidato(entrada)
+    }),
+  )
+
   const rankRows: CuentaRank[] = cuentas.map(c => {
     const tix = getTicketsByCuenta(c.cid ?? null, c.empresa)
     const porProducto = adopMap.get(c.id)
@@ -1052,6 +1099,9 @@ export default async function DashboardPage() {
 
       {/* ══ §1b Top Cuentas · Ranking Versátil ════════════════════════════ */}
       <TopCuentasVersatil data={rankRows} />
+
+      {/* ══ Candidato a: — blindaje y crecimiento con evidencia ══════════ */}
+      <CandidatoA data={candidatos} />
 
       {/* ══ §2 Alertas Críticas · datos faltantes y sin contacto ══════════ */}
       <DashAlertasCriticas cuentas={alertasCriticas} totalCuentas={cuentas.length} />
