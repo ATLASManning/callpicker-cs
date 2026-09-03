@@ -91,6 +91,7 @@ export function seccionIntegraciones(): string {
     `INTEGRACIONES DISPONIBLES — LISTA AUTORITATIVA (apartado Base de Conocimiento > Catálogo de Integraciones 2026 y Otras Integraciones CRM).\n` +
     `  REGLA DURA: esta lista es la ÚNICA fuente para afirmar que una integración existe. Si una plataforma NO aparece abajo, está PROHIBIDO decir que Callpicker se integra con ella, describir lo que "permitiría" hacer, o insinuar que existe. Di con esas palabras que no está en el catálogo y que habría que evaluarla como integración a la medida vía API, y ofrece confirmarlo con Producto.\n` +
     `  Tampoco amplíes el alcance: si el catálogo dice que solo registra llamadas, no digas que también sincroniza contactos ni que abre la ficha.\n` +
+    `  Y NUNCA recortes el nombre de la plataforma: cuando trae un calificativo entre paréntesis —"Pipedrive (a través de Zapier)", "Upnify (antes SalesUP)"— ese calificativo ES el alcance del proyecto y debe decirse siempre. Omitir "a través de Zapier" convierte una integración que exige Zapier, con sus credenciales, límites y costo, en una nativa que no existe.\n` +
     cat.map(c => `  - ${c.plataforma}: ${c.alcances.join(' | ')}`).join('\n')
   )
 }
