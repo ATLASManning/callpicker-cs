@@ -152,6 +152,116 @@ export const RESPONSABILIDADES: Responsabilidad[] = [
   },
 ]
 
+/* ══════════════════════════════════════════════════════════════════════════
+   PROTOCOLO DE BAJA, DOWNGRADE Y RECUPERACIÓN DEL INGRESO
+   ══════════════════════════════════════════════════════════════════════════
+   Instrucción de dirección (1 Sep 2026), explícita: una cancelación no pasa
+   al cajón de los olvidados. El trabajo del KAM no termina al registrar la
+   baja — ahí empieza la parte que se evalúa.
+
+   Lo que cambia respecto a como se venía trabajando: el plan de recuperación
+   del ingreso NO se redacta después de perder la cuenta. Se prepara cuando la
+   cuenta entra en riesgo, mientras todavía se puede contener.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+export interface FaseProtocolo {
+  fase:      string
+  cuando:    string
+  titulo:    string
+  proposito: string
+  entregables: string[]
+  /** Qué impide el sistema si esto no está. */
+  candado?:  string
+}
+
+export const PRINCIPIO_BAJA =
+  'Una baja o cancelación de servicio NO pasa al cajón de los olvidados. Toda cuenta perdida exige ' +
+  'historial, evidencia de lo que se hizo, causa raíz y un plan de recuperación del ingreso. ' +
+  'No es siempre responsabilidad del asesor que un cliente cancele; sí lo es no haber actuado, ' +
+  'no haber prevenido y no haber alertado a tiempo.'
+
+export const PROTOCOLO_BAJA: FaseProtocolo[] = [
+  {
+    fase: 'ANTES',
+    cuando: 'En cuanto la cuenta muestra señal de riesgo — no cuando el cliente avisa',
+    titulo: 'Plan de contención y recuperación anticipado',
+    proposito:
+      'Esta es la actividad que más pesa y la que antes no existía. Cuando una cuenta entra en riesgo ' +
+      'se abre una actividad P1 que exige tener listo, por escrito, cómo se contiene la pérdida y —si ' +
+      'aun así ocurre— de dónde se recupera el ingreso. Redactarlo cuando la cuenta ya se fue es tarde: ' +
+      'ya no hay con quién negociar ni información fresca.',
+    entregables: [
+      'Señal detectada, con fecha y evidencia (caída de consumo, panel sin uso, tickets, silencio del contacto)',
+      'Monto de MRR en riesgo',
+      'Hipótesis de causa y qué la confirmaría o descartaría',
+      'Decisor económico identificado, no solo el contacto operativo',
+      'Acciones de contención con fecha y responsable',
+      'Plan de recuperación del ingreso ya redactado, por si la contención falla',
+      'Fecha de revisión del plan',
+    ],
+  },
+  {
+    fase: 'DURANTE',
+    cuando: 'Cuando el cliente expresa la intención de baja o de reducir servicio',
+    titulo: 'Expediente obligatorio del evento',
+    proposito:
+      'Declarar una baja no cierra la actividad: abre expediente. La cuenta no cambia de estatus por lo ' +
+      'que escriba el asesor — lo valida Dirección con la evidencia registrada. No se aceptan respuestas ' +
+      'como "no contesta", "se cambió la persona" o "ya no es cliente" sin el análisis detrás.',
+    entregables: [
+      'Motivo real de la decisión, en palabras del cliente',
+      'Fecha de la primera señal y fecha en que el cliente comunicó la decisión',
+      'Historial completo: qué se hizo entre esa primera señal y hoy, con fechas y resultado de cada acción',
+      '¿Existió plan? ¿Existió estrategia? Si no existieron, decirlo con todas sus letras',
+      'Con quién se habló y en qué calidad: ¿decide o solo opera?',
+      'Escalamientos realizados a soporte, producto, finanzas o Dirección, con fecha',
+      'Evidencia: folio de ticket, correo, minuta o reunión',
+      'Qué se pudo hacer antes y no se hizo',
+    ],
+    candado:
+      'El sistema no permite cerrar la actividad mientras el expediente no esté sustentado.',
+  },
+  {
+    fase: 'DESPUÉS',
+    cuando: 'Baja o downgrade confirmado',
+    titulo: 'Plan de recuperación del ingreso perdido',
+    proposito:
+      'La cancelación no se considera cerrada hasta que existe el análisis de pérdida y el plan de ' +
+      'recuperación del monto. La cuenta permanece asignada al KAM durante el periodo de análisis: no ' +
+      'desaparece de su cartera ni de sus indicadores.',
+    entregables: [
+      'Monto de MRR/ARR perdido, con el valor anterior y el posterior',
+      'Objetivo de recuperación y plazo',
+      'Estrategia: recuperar la misma cuenta · reactivar · expandir otra cuenta asignada · oportunidad nueva · recuperación parcial · no recuperable con justificación',
+      'Cuentas u oportunidades concretas candidatas, con nombre',
+      'Evidencia de que existe una necesidad verificable en esas cuentas',
+      'Actividades concretas con fecha de primer avance',
+      'Aprendizaje: qué señal se nos pasó y cómo se detecta antes la próxima vez',
+    ],
+    candado:
+      'Un plan no puede consistir en "buscar nuevos clientes" o "dar seguimiento". Sin cuentas, fechas ' +
+      'y acciones, no es un plan. Ninguna condición comercial, precio o descuento se ofrece sin VoBo de Dirección.',
+  },
+]
+
+/** Respuestas que dejaron de ser aceptables al cerrar una actividad. */
+export const RESPUESTAS_NO_ACEPTADAS = [
+  { frase: '"No contesta"',              porque: 'No es un desenlace: es el inicio de una secuencia. Si además no hay a quién más contactar, ese vacío es el hallazgo de la cuenta.' },
+  { frase: '"Ya no es la persona"',      porque: 'El cambio de decisor es una de las causas más frecuentes de baja. Exige saber quién quedó, desde cuándo y qué se hizo al enterarnos.' },
+  { frase: '"Se dio de baja"',           porque: 'Abre expediente, no cierra la actividad. Sin causa, historial y evidencia no se registra la pérdida.' },
+  { frase: '"Se dio seguimiento"',       porque: 'No describe ninguna gestión. No permite saber qué pasó con la cuenta.' },
+  { frase: '"Sin novedades" · "Todo bien"', porque: 'La ausencia de información no es evidencia de salud.' },
+]
+
+/** Cómo se evalúa la gestión cuando ocurre una pérdida. Nunca se usa "culpa". */
+export const EVALUACION_PERDIDA = [
+  { etiqueta: 'Gestión preventiva documentada',  criterio: 'Riesgo identificado a tiempo, acciones oportunas con evidencia, contacto con quien decide, escalamiento cuando correspondía y plan de recuperación.' },
+  { etiqueta: 'Gestión preventiva parcial',       criterio: 'Hubo acciones, pero tardías, incompletas, sin continuidad, sin decisor o sin evidencia.' },
+  { etiqueta: 'Gestión preventiva insuficiente',  criterio: 'Sin seguimiento, sin contacto relevante, sin revisión de adopción, sin escalamiento, con compromisos vencidos o con explicaciones genéricas.' },
+  { etiqueta: 'Causa externa comprobada',         criterio: 'Cierre del negocio, consolidación corporativa, fuerza mayor o decisión externa documentada.' },
+  { etiqueta: 'En evaluación',                    criterio: 'Faltan datos para concluir. No se cierra el juicio hasta documentar causa, señales, acciones y evidencia.' },
+]
+
 /** Cadencia esperada. La de AAA es quincenal; la de Mid, mensual. */
 export const CADENCIA = [
   { periodo: 'Diaria', detalle: 'Revisión de alertas, atención de urgencias, bloques de trabajo profundo, reuniones con clientes y cierre del día con próximos pasos actualizados.' },

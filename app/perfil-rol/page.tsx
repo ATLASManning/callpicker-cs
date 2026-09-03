@@ -2,7 +2,12 @@ import PageHeader from '@/components/PageHeader'
 import {
   OBJETIVO_PUESTO, POSTURA, RESPONSABILIDADES, CADENCIA,
   INDICADORES_ANCLA, INDICADORES_DISCIPLINA, COMPROMISOS, ANTI_PERFIL,
+  PRINCIPIO_BAJA, PROTOCOLO_BAJA, RESPUESTAS_NO_ACEPTADAS, EVALUACION_PERDIDA,
 } from '@/lib/perfil-rol'
+
+const COLOR_FASE: Record<string, string> = {
+  ANTES: '#22C55E', DURANTE: '#F59E0B', 'DESPUÉS': '#F87171',
+}
 
 export const dynamic = 'force-dynamic'
 
@@ -91,6 +96,77 @@ export default function PerfilRolPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ══ Protocolo de baja — el bloque duro del rol ══════════════════ */}
+      <div className="cp-card space-y-4" style={{ borderColor: 'rgba(248,113,113,0.4)' }}>
+        <div>
+          <h3 className="text-sm font-bold" style={{ color: '#F87171' }}>
+            Protocolo de baja, downgrade y recuperación del ingreso
+          </h3>
+          <p className="text-xs text-textHi leading-relaxed mt-2">{PRINCIPIO_BAJA}</p>
+        </div>
+
+        {PROTOCOLO_BAJA.map(f => {
+          const col = COLOR_FASE[f.fase] ?? '#94A3B8'
+          return (
+            <div key={f.fase} className="rounded-lg p-3.5" style={{ background: `${col}12`, border: `1px solid ${col}40` }}>
+              <div className="flex flex-wrap items-baseline gap-2 mb-1">
+                <span className="text-[10px] font-extrabold tracking-widest px-2 py-0.5 rounded"
+                      style={{ background: col, color: '#0B1220' }}>{f.fase}</span>
+                <span className="text-sm font-bold text-textHi">{f.titulo}</span>
+              </div>
+              <p className="text-[11px] text-textLow mb-2">{f.cuando}</p>
+              <p className="text-xs text-textMid leading-relaxed mb-2.5">{f.proposito}</p>
+              <p className="text-[10px] uppercase tracking-wide text-textLow mb-1">Qué se entrega</p>
+              <ul className="space-y-1 mb-2">
+                {f.entregables.map((e, i) => (
+                  <li key={i} className="text-xs text-textMid leading-relaxed flex gap-2">
+                    <span style={{ color: col }} className="flex-shrink-0">·</span><span>{e}</span>
+                  </li>
+                ))}
+              </ul>
+              {f.candado && (
+                <p className="text-[11px] leading-relaxed rounded px-2.5 py-1.5"
+                   style={{ background: 'rgba(148,163,184,0.12)', color: col }}>
+                  <span className="font-bold">Candado del sistema: </span>{f.candado}
+                </p>
+              )}
+            </div>
+          )
+        })}
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-textLow mb-1.5">
+              Respuestas que ya no cierran una actividad
+            </p>
+            <div className="space-y-1.5">
+              {RESPUESTAS_NO_ACEPTADAS.map((r, i) => (
+                <div key={i}>
+                  <p className="text-xs font-semibold" style={{ color: '#F87171' }}>{r.frase}</p>
+                  <p className="text-[11px] text-textMid leading-snug">{r.porque}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-textLow mb-1.5">
+              Cómo se evalúa la gestión ante una pérdida
+            </p>
+            <div className="space-y-1.5">
+              {EVALUACION_PERDIDA.map((e, i) => (
+                <div key={i}>
+                  <p className="text-xs font-semibold text-textHi">{e.etiqueta}</p>
+                  <p className="text-[11px] text-textMid leading-snug">{e.criterio}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-textLow italic mt-2">
+              Nunca se usa "culpa" como etiqueta. Se clasifica con evidencia.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Cadencia */}
