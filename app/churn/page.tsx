@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import PageHeader from '@/components/PageHeader'
 import { REPORTE_S18_AGOSTO_2026 } from './reporte-actual'
+import ConciliacionChurn from '@/components/ConciliacionChurn'
 import type {
   ChurnPendiente, ChurnCancelado, ChurnDowngrade, ChurnReporte,
 } from './tipos'
@@ -21,7 +22,7 @@ import {
    TIPOS
 ═══════════════════════════════════════════════════════════════════════ */
 type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
-type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho' | 'aaa'
+type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho' | 'aaa' | 'conciliacion'
 
 
 /* ─── Tipos GRC Detalle AAA ───────────────────────────────────────── */
@@ -1803,7 +1804,7 @@ export default function ChurnPage() {
   // Análisis DATA (selector de períodos + KPIs + su tab-bar) se oculta por
   // completo para que el contenido de la sección se despliegue solo, sin
   // mezclarse con datos de otro contexto.
-  const SECCIONES_SUBMENU: Tab[] = ['zoho', 'aaa']
+  const SECCIONES_SUBMENU: Tab[] = ['zoho', 'aaa', 'conciliacion']
   const enSeccionSubmenu = SECCIONES_SUBMENU.includes(tab)
 
   const acumuladoCancelados = useMemo<Array<ChurnCancelado & { periodo: string }>>(() => {
@@ -1928,6 +1929,13 @@ export default function ChurnPage() {
             icon={<span style={{ fontSize: 13, lineHeight: 1 }}>⭐</span>}
             label="GRC · AAA 2026"
             bg="#4c1d95"
+          />
+          <SidebarAccesoBtn
+            active={tab === 'conciliacion'}
+            onClick={() => setTab('conciliacion')}
+            icon={<RefreshCw size={14} />}
+            label="Conciliación"
+            bg="#0f766e"
           />
           <SidebarAccesoBtn
             active={false}
@@ -2827,6 +2835,8 @@ export default function ChurnPage() {
         {/* ── ALERTAS · CUENTAS CANCELACIÓN ────────────────────────── */}
 
         {/* ── ZOHO · DORMIDOS EN VIVO ──────────────────────────────── */}
+        {tab === 'conciliacion' && <ConciliacionChurn />}
+
         {tab === 'zoho' && (
           <div className="space-y-4">
             {/* Header */}

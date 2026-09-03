@@ -74,6 +74,36 @@ async function getDormidasEnZoho(origin: string, cookie: string | null): Promise
   return dormidas
 }
 
+// ── Conciliación de cierre de semana ─────────────────────────────────────────
+// Llama al mismo endpoint que expone el módulo Churn → Conciliación, para que
+// la limpieza de cartera y el reporte semanal usen exactamente el mismo
+// criterio en vez de dos implementaciones que se desincronizan.
+async function conciliarAntesDeGenerar(req: NextRequest): Promise<{
+  aplicadas: number; pendientesDeExpediente: number; ok: boolean
+}> {
+  try {
+    const res = await fetch(`${req.nextUrl.origin}/api/conciliacion`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(40000),
+      redirect: 'manual',
+      headers: req.headers.get('cookie') ? { cookie: req.headers.get('cookie')! } : {},
+    })
+    if (!res.ok) return { aplicadas: 0, pendientesDeExpediente: 0, ok: false }
+    if (!(res.headers.get('content-type') ?? '').includes('application/json')) {
+      return { aplicadas: 0, pendientesDeExpediente: 0, ok: false }
+    }
+    const d = await res.json() as { aplicadas?: unknown[]; pendientesDeExpediente?: number }
+    return {
+      aplicadas: Array.isArray(d.aplicadas) ? d.aplicadas.length : 0,
+      pendientesDeExpediente: Number(d.pendientesDeExpediente ?? 0),
+      ok: true,
+    }
+  } catch (e) {
+    console.warn('[Actividades] Conciliación previa no disponible:', e)
+    return { aplicadas: 0, pendientesDeExpediente: 0, ok: false }
+  }
+}
+
 // ── Auditoría ────────────────────────────────────────────────────────────────
 // Deja rastro de qué se generó y qué se bloqueó. Si la tabla `actividades_audit`
 // aún no existe (migración pendiente) no rompe la generación: registra en log.
@@ -407,6 +437,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Ya existen actividades para esta semana', semanaInicio })
     }
 
+    // ── Conciliación previa (instrucción de dirección, 2 sep 2026) ────────
+    // Antes de generar el reporte de la semana, los módulos de Churn se
+    // concilian contra la cartera: lo que ya murió y quedó del lado del
+    // histórico pasa a Dormida en ese momento. Sin esto la cuenta seguía
+    // apareciendo Activa el resto de la semana aunque el generador la
+    // bloqueara el lunes (Global Digital, churn desde junio, activa en sep).
+    //
+    // No es fail-closed: la exclusión de cuentas en churn ya la garantiza
+    // evaluarElegibilidad más abajo. Si la conciliación no corre, se genera
+    // igual — pero con la cartera sin limpiar, y eso se registra.
+    const conciliacion = await conciliarAntesDeGenerar(req)
+
     // Obtener cuentas con campos extendidos para análisis de datos
     const { data: cuentas, error: cErr } = await supabaseAdmin
       .from('cuentas')
@@ -712,6 +754,7 @@ export async function POST(req: NextRequest) {
       // Integridad de cartera — si vienen con elementos, hay datos que corregir en Supabase:
       conflictosDeAsignacion, // mismo CID con 2+ asesores: nadie recibió actividad, requiere decidir el dueño real
       duplicadasMismoAsesor,  // mismo CID repetido en el mismo asesor: se generó solo una vez
+      conciliacion,           // qué se pasó a Dormida antes de generar y qué quedó esperando expediente
     })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
