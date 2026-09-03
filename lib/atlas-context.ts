@@ -369,19 +369,30 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   }
   const money = (v: number) => `-$${Math.round(v).toLocaleString('es-MX')}`
 
+  /* Los reportes de churn cubren toda la base de Zoho, no solo las cuentas
+   * asignadas. Dejar el hueco vacío no basta: el 2 sep 2026 el modelo atribuyó
+   * las subcuentas GTC a Fátima y Embler Autopartes a un asesor, cuando ninguna
+   * existe en `cuentas`. Con marca explícita en ambos sentidos no queda nada
+   * que suponer. Se usa [·] por volumen: son >700 movimientos. */
+  const SIN_CARTERA = '[·]'
+  const cartera = (nombre: string) => asesorDe(nombre) || SIN_CARTERA
+  const LEYENDA_CARTERA =
+    '[Nombre]=asesor asignado · [·]=NO está en la cartera CS (no lo atribuyas a nadie)'
+
   const grcLines: string[] = []
   for (const mes of AAA_GRC_2026) {
     const churn = mes.clientes.filter(r => r.movimiento.includes('Churn'))
     const down  = mes.clientes.filter(r => r.movimiento.includes('Downgrade'))
     const fmt = (rows: typeof mes.clientes) => rows
-      .map(r => `${r.cliente}(${money(r.perdido || r.perdido2)})${asesorDe(r.cliente)}`)
+      .map(r => `${r.cliente}(${money(r.perdido || r.perdido2)})${cartera(r.cliente)}`)
       .join(', ')
     const tot = (rows: typeof mes.clientes) => rows.reduce((s, r) => s + (r.perdido || r.perdido2), 0)
     if (churn.length) grcLines.push(`  ${mes.mes} — CHURN CONFIRMADO (${churn.length} clientes, ${money(tot(churn))} MRR): ${fmt(churn)}`)
     if (down.length)  grcLines.push(`  ${mes.mes} — DOWNGRADES (${down.length} clientes, ${money(tot(down))} MRR): ${fmt(down)}`)
   }
   sections.push(
-    `CHURN — GRC AAA 2026 (apartado Churn > GRC AAA 2026 | Enero a Julio | formato: cliente(MRR perdido)[asesor si está en cartera]):\n${grcLines.join('\n')}`
+    `CHURN — GRC AAA 2026 (apartado Churn > GRC AAA 2026 | SOLO Enero a Julio 2026 — para agosto usa "CHURN — CORTE VIGENTE", NO mezcles ambas ` +
+    `| formato: cliente(MRR perdido)[cartera], ${LEYENDA_CARTERA}):\n${grcLines.join('\n')}`
   )
   modulos.push('churn-grc')
 
@@ -393,12 +404,6 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       .join(' · ')
     const antig = (rep.antiguedadSaldos ?? [])
       .map(a => `${a.rango} $${a.monto.toLocaleString('es-MX')}`).join(' · ')
-    /* El corte trae clientes de toda la base de Zoho, no solo de la cartera CS.
-     * Sin marcar cuáles están asignados, el modelo rellena el hueco inventando
-     * asesores (comprobado el 2 sep 2026: atribuyó GTC y Embler a Dan y Fátima
-     * cuando ninguna de esas cuentas existe en `cuentas`). Se anota explícito
-     * en ambos sentidos para que no quede nada que suponer. */
-    const cartera = (nombre: string) => asesorDe(nombre) || '[NO está en la cartera CS]'
     const limpio = (c: string) => c.replace('🔝 ', '')
     const top = rep.pendientes
       .filter(p => !p.cliente.startsWith('+'))
@@ -409,8 +414,8 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       .join('; ')
     sections.push(
       `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha} | ` +
-      `cada cliente trae entre corchetes su asesor o la marca de que NO está en la cartera CS — ` +
-      `usa SOLO eso, nunca deduzcas el asesor por el nombre del cliente):\n` +
+      `ESTA es la fuente para agosto 2026: los downgrades listados abajo son los ÚNICOS del mes, ` +
+      `no agregues clientes de la sección GRC AAA (esa cubre enero–julio) | ${LEYENDA_CARTERA}):\n` +
       `  Evolución GRC: ${evo}. Acumulado 2026: ${rep.grc.acumulado}%` +
       `${rep.grc.anterior !== undefined ? ` (ant. ${rep.grc.anterior}%)` : ''} — MES CORRIENDO, NO DEFINITIVO.\n` +
       `  Cartera en Activo: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} en ${rep.pendientesCuentasReal} cuentas. Top 10: ${top}.\n` +
