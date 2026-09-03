@@ -248,7 +248,14 @@ https://callpicker-cs.vercel.app/chat`,
 // ── Handler ───────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   try {
-    const { messages, cuentaContext } = await req.json()
+    // `esPrueba` excluye la consulta de la bitacora del dia. Existe porque las
+    // verificaciones contra produccion —las que confirman que Atlas responde
+    // bien tras un cambio— se registraban como consultas reales y ahogaban las
+    // de los asesores: el 3 sep 2026 la bitacora tenia 66 entradas y solo 2
+    // eran de un asesor. La bitacora es para leer que preguntan ellos, no para
+    // guardar pruebas. No entra en la UI: solo lo usan las llamadas de
+    // verificacion, y el endpoint ya vive tras la lista blanca de acceso.
+    const { messages, cuentaContext, esPrueba } = await req.json()
 
     const email  = req.headers.get('x-user-email') ?? ''
     const nombre = decodeURIComponent(req.headers.get('x-user-nombre') ?? 'Usuario')
@@ -305,7 +312,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Logging (fire and forget — no bloquea la respuesta)
-    void logBitacora(pregunta, chatResp, email, nombre, ctx.modulos)
+    if (esPrueba !== true) void logBitacora(pregunta, chatResp, email, nombre, ctx.modulos)
 
     if (chatResp.tipo !== 'normal') {
       void logPendiente(pregunta, chatResp, email, nombre)
