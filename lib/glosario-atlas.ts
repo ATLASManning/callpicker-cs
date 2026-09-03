@@ -73,8 +73,12 @@ function lineaTermino(t: TerminoGlosario): string {
   if (t.ojo) partes.push(`OJO: ${t.ojo}`)
   if (t.cat === 'plataformas') {
     const i = integracionDe(t.t)
+    // Se entrega el nombre del catálogo tal cual, no solo el alcance: apoyarse
+    // en una regla en prosa para que el modelo conserve "(a través de Zapier)"
+    // no bastó — omitía el calificativo aunque lo tuviera en la lista. Dándole
+    // la cadena exacta que debe escribir, no hay nada que recortar.
     partes.push(i
-      ? `INTEGRACIÓN DOCUMENTADA (${i.fuente}) — alcance exacto, no lo amplíes: ${i.alcances.join(' | ')}`
+      ? `INTEGRACIÓN DOCUMENTADA (${i.fuente}). NOMBRE EXACTO QUE DEBES ESCRIBIR, completo y sin recortar: "${i.plataforma}". Alcance exacto, no lo amplíes: ${i.alcances.join(' | ')}`
       : 'SIN INTEGRACIÓN EN EL CATÁLOGO: no afirmes que Callpicker se integra con esta plataforma. Dilo y plantéalo como integración a la medida vía API, a confirmar con Producto.')
   }
   return `  - ${partes.join(' | ')}`
