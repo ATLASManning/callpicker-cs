@@ -7,9 +7,11 @@ import {
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
   ShieldCheck, Puzzle, Globe, FileText, LifeBuoy,
-  Heart, ExternalLink, Cpu,
+  Heart, ExternalLink, Cpu, BookMarked,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
+import GlosarioTecnico from '@/components/GlosarioTecnico'
+import { GLOSARIO } from '@/lib/glosario'
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
 const BG     = '#EFF6FF'
@@ -393,7 +395,8 @@ export default function BaseCSPage() {
   const [activa, setActiva] = useState('callpicker-sac')
   const [query,  setQuery]  = useState('')
 
-  const cat = KB_SORTED.find(c => c.id === activa)!
+  const esGlosario = activa === 'glosario'
+  const cat = KB_SORTED.find(c => c.id === activa) ?? KB_SORTED[0]
   const Icon = CAT_ICONS[activa] ?? Info
 
   const artsFiltrados = useMemo(() => {
@@ -466,6 +469,26 @@ export default function BaseCSPage() {
               </button>
             )
           })}
+
+          {/* El diccionario no es una categoría de artículos: es material de
+              consulta rápida, así que va aparte pero dentro del mismo módulo. */}
+          <div style={{ borderTop: `1px solid ${BORDER}`, margin: '10px 8px' }} />
+          <button onClick={() => { setActiva('glosario'); setQuery('') }} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 12px', borderRadius: 9, width: '100%',
+            textAlign: 'left', cursor: 'pointer', transition: 'all 150ms',
+            background:   esGlosario ? '#0057FF18' : 'transparent',
+            border:       esGlosario ? '1px solid #0057FF35' : '1px solid transparent',
+            borderLeft:   esGlosario ? '3px solid #0057FF' : '3px solid transparent',
+          }}>
+            <BookMarked size={15} style={{ color: esGlosario ? '#0057FF' : TX_LOW, flexShrink: 0 }} />
+            <span style={{ fontSize: 13, fontWeight: esGlosario ? 700 : 500, color: esGlosario ? TX : TX_MID, flex: 1, lineHeight: 1.3 }}>
+              Glosario técnico
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 10, background: '#0057FF25', color: '#0057FF' }}>
+              {GLOSARIO.length}
+            </span>
+          </button>
         </nav>
 
         {/* ── Contenido ──────────────────────────────────────────────────── */}
@@ -476,9 +499,11 @@ export default function BaseCSPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 13, color: TX_LOW }}>Base de Conocimiento</span>
               <ChevronRight size={13} style={{ color: TX_LOW }} />
-              <span style={{ fontSize: 13, color: cat.color, fontWeight: 700 }}>{cat.label}</span>
+              <span style={{ fontSize: 13, color: esGlosario ? '#0057FF' : cat.color, fontWeight: 700 }}>
+                {esGlosario ? 'Glosario técnico' : cat.label}
+              </span>
             </div>
-            {cat.articulos.length > 3 && (
+            {!esGlosario && cat.articulos.length > 3 && (
               <div style={{ position: 'relative' }}>
                 <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: TX_LOW }} />
                 <input
@@ -495,7 +520,30 @@ export default function BaseCSPage() {
             )}
           </div>
 
+          {esGlosario && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#0057FF18', border: '1px solid #0057FF35', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BookMarked size={18} style={{ color: '#0057FF' }} />
+                </div>
+                <div>
+                  <h2 style={{ fontSize: 21, fontWeight: 800, color: TX, lineHeight: 1 }}>Glosario técnico-comercial</h2>
+                  <p style={{ fontSize: 13, color: TX_LOW, marginTop: 4 }}>
+                    {GLOSARIO.length} términos de comunicaciones, contact center, IA e integración
+                  </p>
+                </div>
+              </div>
+              <p style={{ fontSize: 13, color: TX_MID, lineHeight: 1.6, maxWidth: 900, marginBottom: 22 }}>
+                El asesor no necesita programar una API, pero sí entender qué permite hacer. Atlas IA tiene
+                cargado este diccionario completo: puede explicar cualquier término y devolverte las preguntas
+                de descubrimiento que corresponden.
+              </p>
+              <GlosarioTecnico />
+            </>
+          )}
+
           {/* Título categoría */}
+          {!esGlosario && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `${cat.color}18`, border: `1px solid ${cat.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon size={18} style={{ color: cat.color }} />
@@ -505,9 +553,10 @@ export default function BaseCSPage() {
               <p style={{ fontSize: 13, color: TX_LOW, marginTop: 4 }}>{artsFiltrados.length} artículo{artsFiltrados.length !== 1 ? 's' : ''}</p>
             </div>
           </div>
+          )}
 
           {/* Artículos */}
-          {artsFiltrados.length > 0
+          {!esGlosario && (artsFiltrados.length > 0
             ? artsFiltrados.map((art, i) => <ArticuloCard key={art.id} art={art} catColor={cat.color} defaultOpen={cat.id === 'callpicker-sac' && i === 0} />)
             : (
               <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.5 }}>
@@ -517,7 +566,7 @@ export default function BaseCSPage() {
                 }
               </div>
             )
-          }
+          )}
         </div>
       </div>
     </div>

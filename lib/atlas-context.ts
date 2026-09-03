@@ -14,6 +14,7 @@ import { getZohoMap, lookupZoho } from './zoho-enrich'
 import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
 import { REPORTE_S18_AGOSTO_2026 } from '@/app/churn/reporte-actual'
+import { seccionesGlosario } from './glosario-atlas'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 
 interface TicketRaw {
@@ -219,7 +220,7 @@ ${enriq.senales.map(s => `    [${s.tipo.toUpperCase()}] ${s.titulo}: ${s.detalle
 }
 
 // ── Builder principal ─────────────────────────────────────────────────────────
-export async function buildAtlasContext(): Promise<{ text: string; modulos: string[] }> {
+export async function buildAtlasContext(pregunta = ''): Promise<{ text: string; modulos: string[] }> {
   const sections: string[] = [AUDITORIA_SUMMARY, TICKET_SUMMARY]
   const modulos: string[]  = ['base-conocimiento', 'auditoria', 'tickets']
   const asesorPorNombre: Record<string, string> = {}
@@ -455,6 +456,14 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     Object.entries(porPeriodo).map(([p, cs]) => `  ${p}: ${cs.join(', ')}`).join('\n')
   )
   modulos.push('churn-cancelados')
+
+  // Diccionario técnico-comercial. Se inyecta por capas según la pregunta: el
+  // mapa y las reglas de conducta siempre, las fichas completas solo de los
+  // términos mencionados, y el índice entero cuando la consulta es de
+  // terminología. Ver lib/glosario-atlas.ts.
+  const glos = seccionesGlosario(pregunta)
+  sections.push(...glos.secciones)
+  modulos.push(...glos.modulos)
 
   const sep = '\n\n────────────────────────────────\n\n'
   return { text: sections.join(sep), modulos }

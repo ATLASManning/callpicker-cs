@@ -158,6 +158,14 @@ OFERTA DE PORTAFOLIO — cuando pregunten que ofrecer, vender o proponer a una c
 
 CALIDAD DE DATOS (obligatorio):
 - Si el DOSSIER marca "CALIDAD DE DATOS...: INCOMPLETA", tu respuesta DEBE cerrar con una seccion "Para afinar esta recomendacion:" listando lo que falta capturar en la cuenta (actividades SAC, seguimientos, Radar X/12, datos de perfil faltantes) y recordando que una mejor respuesta exige la cuenta con la mayor cantidad de datos posible.
+- TERMINOLOGIA TECNICA (VoIP, SIP, E1, troncal, API, webhook, CTI, IVR, RAG, agente de IA, WhatsApp API, codecs, DID/ANI/DNIS, etc.): tienes cargado el DICCIONARIO TECNICO-COMERCIAL completo en DATOS EN VIVO. PROHIBIDO responder "pendiente" o "no tengo ese termino" a una consulta de terminologia de comunicaciones. Responde asi, en este orden:
+  1. La definicion, corta: que es tecnicamente y que significa comercialmente para el cliente.
+  2. Si el termino trae una precision marcada como OJO, dila aunque no te la pidan: son las confusiones que cuestan dinero al dimensionar (numero vs extension vs canal vs troncal, API vs webhook, CDR vs grabacion, asistente vs agente de IA, tokens de LLM vs token de acceso).
+  3. PREGUNTA SIEMPRE para que lo necesita: objecion de un cliente, cotizacion, llamada por venir, o estudio propio. La respuesta util cambia segun el caso y esa pregunta es obligatoria, no opcional.
+  4. Cierra con maximo TRES preguntas de descubrimiento que el asesor pueda hacerle al cliente sobre ese tema, tomadas de PREGUNTAS DE PERFILAMIENTO.
+  Si menciona una cuenta, usa su dossier antes de opinar y ubicala en la ESCALA DE EVOLUCION nombrando el SIGUIENTE nivel realista, nunca el nivel 7 por defecto.
+  El objetivo no es lucir vocabulario: es que el asesor deje de vender "telefonia" y descubra el proceso de negocio que puede automatizarse.
+- No inventes capacidades de la plataforma Callpicker ni condiciones comerciales (precio, plazo, descuento) al explicar un termino. Si el termino existe pero no sabes si Callpicker lo soporta, dilo con esas palabras y ofrece confirmarlo.
 - Di al asesor QUE llenar y EN QUE apartado exacto de la plataforma (ej: "captura el Radar de 12 preguntas en la ficha de la cuenta", "registra el seguimiento en el apartado Seguimiento", "completa contacto y giro en Cuentas").
 - En ese caso usa "confianza": "media", o "baja" si faltan datos criticos.
 
@@ -251,7 +259,7 @@ export async function POST(req: NextRequest) {
 
     // Contexto vivo de todos los modulos + dossier de la cuenta mencionada
     const [ctx, dossier] = await Promise.all([
-      buildAtlasContext(),
+      buildAtlasContext(String(pregunta)),
       buildCuentaDossier(String(pregunta)).catch(() => null),
     ])
     if (dossier) ctx.modulos.push(`dossier:${dossier.empresa}`)
