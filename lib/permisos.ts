@@ -18,8 +18,17 @@ export interface DefinicionRol {
   color:   string
   /** Rutas de página permitidas. `null` = todas. */
   paginas: string[] | null
-  /** Prefijos de API permitidos. `null` = todas. */
+  /** Prefijos de API permitidos, con cualquier método. `null` = todas. */
   apis:    string[] | null
+  /**
+   * Prefijos permitidos SOLO para leer (GET/HEAD).
+   *
+   * Existen porque un módulo permitido puede necesitar datos de uno que no lo
+   * está: la ficha de una cuenta muestra sus seguimientos, sus actividades SAC
+   * y sus reuniones. Perfilamiento necesita ver ese historial para armar el
+   * perfil, pero no debe crear un seguimiento ni cerrar la actividad de otro.
+   */
+  apisLectura?: string[]
   /** A dónde cae al entrar, y a dónde se le devuelve si toca algo que no le toca. */
   inicio:  string
 }
@@ -63,6 +72,12 @@ export const ROLES: Record<Rol, DefinicionRol> = {
       '/api/enriquecimiento',
       '/api/customer-tenure',
     ],
+    // Solo lectura: la ficha de cuenta los pinta, pero no deben escribirse.
+    apisLectura: [
+      '/api/seguimientos',
+      '/api/actividades',
+      '/api/reuniones',
+    ],
     inicio: '/cuentas',
   },
 }
@@ -71,8 +86,21 @@ export function definicionRol(rol: string | null | undefined): DefinicionRol {
   return ROLES[(rol ?? 'viewer') as Rol] ?? ROLES.viewer
 }
 
-/** ¿Este rol puede abrir esta ruta? */
-export function puedeAbrir(rol: string | null | undefined, pathname: string): boolean {
+const calza = (lista: string[], pathname: string) =>
+  lista.some(p => pathname === p || pathname.startsWith(p + '/'))
+
+/**
+ * ¿Este rol puede abrir esta ruta con este método?
+ *
+ * `metodo` solo importa para las rutas de `apisLectura`: ahí un GET pasa y
+ * cualquier escritura no. Sin el método, un rol de consulta podría hacer POST
+ * a la misma URL que tiene permitido leer.
+ */
+export function puedeAbrir(
+  rol: string | null | undefined,
+  pathname: string,
+  metodo = 'GET',
+): boolean {
   const def = definicionRol(rol)
   const esApi = pathname.startsWith('/api/')
 
@@ -83,7 +111,12 @@ export function puedeAbrir(rol: string | null | undefined, pathname: string): bo
   if (permitidas === null) return true
 
   // La raíz se compara exacta: si no, '/' haría match con todo.
-  return permitidas.some(p => pathname === p || pathname.startsWith(p + '/'))
+  if (calza(permitidas, pathname)) return true
+
+  if (esApi && def.apisLectura && calza(def.apisLectura, pathname)) {
+    return metodo === 'GET' || metodo === 'HEAD'
+  }
+  return false
 }
 
 /** Entradas del menú que este rol debe ver. */

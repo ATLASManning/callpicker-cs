@@ -68,7 +68,7 @@ export async function middleware(req: NextRequest) {
     // menu: ocultar un link no impide teclear la URL. Un rol acotado que pida
     // un modulo ajeno cae en su pantalla de inicio; si es una llamada de API,
     // recibe 403 en vez de un redirect que el cliente no sabria interpretar.
-    if (!puedeAbrir(rol, pathname)) {
+    if (!puedeAbrir(rol, pathname, req.method)) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(
           { error: 'Tu rol no tiene acceso a este modulo.' },
