@@ -212,8 +212,11 @@ export default function Sidebar() {
   }, [])
 
   return (
+    // `position: relative` + z-index: la aurora del Dashboard es un elemento
+    // fijo dentro de <main>, y sin esto pintaría por encima del menú — un
+    // elemento posicionado gana a uno de flujo normal aunque esté en z-index 0.
     <aside className="w-60 flex-shrink-0 flex flex-col h-full"
-      style={{ background: SB, borderRight: `1px solid ${SB_D}` }}>
+      style={{ background: SB, borderRight: `1px solid ${SB_D}`, position: 'relative', zIndex: 20 }}>
 
       {/* Logo */}
       <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB_D}` }}>

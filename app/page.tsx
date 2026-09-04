@@ -1059,6 +1059,13 @@ export default async function DashboardPage() {
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen">
+      {/* Aurora ambiental. Va fija detrás de todo y no captura el puntero; el
+          contenido viaja en .cp-sobre-aurora, por encima. Ver app/globals.css. */}
+      <div className="cp-aurora" aria-hidden="true">
+        <span /><span /><span />
+      </div>
+
+      <div className="cp-sobre-aurora">
       <AutoRefresh intervalMs={300_000} showIndicator={false} />
 
       <PageHeader
@@ -1328,6 +1335,7 @@ export default async function DashboardPage() {
         <span>Datos en tiempo real · force-dynamic · auto-refresh 5 min</span>
         <span>·</span>
         <span>{new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+      </div>
       </div>
     </div>
   )

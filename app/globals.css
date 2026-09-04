@@ -399,3 +399,80 @@ body {
   .bg-white.rounded-xl { break-inside: avoid; }
   @page { margin: 16mm; size: A4 portrait; }
 }
+
+/* ═══ Aurora ambiental del Dashboard ═══════════════════════════════════════
+   Tres manchas de gradiente en los colores de marca que se desplazan muy
+   lento por detrás del contenido.
+
+   Por qué así y no partículas o una malla animada: las tarjetas del dashboard
+   son opacas, así que la aurora solo asoma en los márgenes y entre bloques —
+   nunca debajo de una cifra. Ningún texto se apoya sobre ella, así que el
+   contraste de lectura no cambia en absoluto.
+
+   Costo: cero JavaScript y cero repintado. Solo se animan `transform` y
+   `opacity`, que el navegador resuelve en la GPU; los ciclos son de 44 a 68
+   segundos y desfasados entre sí, así que el ojo lo lee como ambiente y no
+   como movimiento. En una pestaña en segundo plano el navegador la congela
+   sola.
+   ────────────────────────────────────────────────────────────────────────── */
+.cp-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  /* El fondo de página se pinta aquí para que las manchas se fundan con él. */
+  background: #EFF6FF;
+}
+
+.cp-aurora span {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform;
+}
+
+/* Azul Callpicker — la mancha ancla, arriba a la izquierda. */
+.cp-aurora span:nth-child(1) {
+  width: 46vw; height: 46vw; top: -14vw; left: -10vw;
+  background: radial-gradient(circle, rgba(0,87,255,0.16) 0%, rgba(0,87,255,0) 70%);
+  animation: cp-aurora-a 52s ease-in-out infinite;
+}
+
+/* Teal — abajo a la derecha, en contrapunto. */
+.cp-aurora span:nth-child(2) {
+  width: 40vw; height: 40vw; bottom: -12vw; right: -8vw;
+  background: radial-gradient(circle, rgba(14,165,233,0.14) 0%, rgba(14,165,233,0) 70%);
+  animation: cp-aurora-b 68s ease-in-out infinite;
+}
+
+/* Violeta — la más tenue, da profundidad al centro sin llamar la atención. */
+.cp-aurora span:nth-child(3) {
+  width: 34vw; height: 34vw; top: 32%; left: 42%;
+  background: radial-gradient(circle, rgba(139,92,246,0.10) 0%, rgba(139,92,246,0) 70%);
+  animation: cp-aurora-c 44s ease-in-out infinite;
+}
+
+/* Recorridos cortos: se trata de que respire, no de que viaje. */
+@keyframes cp-aurora-a {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(6vw, 4vh, 0) scale(1.12); }
+}
+@keyframes cp-aurora-b {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(-5vw, -5vh, 0) scale(1.08); }
+}
+@keyframes cp-aurora-c {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.7; }
+  50%      { transform: translate3d(-4vw, 3vh, 0) scale(1.15); opacity: 1; }
+}
+
+/* Quien pidió menos movimiento no lo recibe. La aurora se queda quieta pero
+   no desaparece: sigue viéndose como un degradado intencional. */
+@media (prefers-reduced-motion: reduce) {
+  .cp-aurora span { animation: none; }
+}
+
+/* El contenido del dashboard va por encima de la aurora. */
+.cp-sobre-aurora { position: relative; z-index: 1; }
