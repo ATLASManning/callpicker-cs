@@ -42,3 +42,6 @@ scripts/update-facturacion.log
 
 # Token efímero de verificación (JWT de sesión) — nunca versionar
 .tok
+
+# Maqueta temporal para revisar el fondo animado
+aurora-preview.html

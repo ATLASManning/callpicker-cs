@@ -406,8 +406,18 @@ body {
 
    Por qué así y no partículas o una malla animada: las tarjetas del dashboard
    son opacas, así que la aurora solo asoma en los márgenes y entre bloques —
-   nunca debajo de una cifra. Ningún texto se apoya sobre ella, así que el
-   contraste de lectura no cambia en absoluto.
+   nunca debajo de una cifra.
+
+   Los valores están calibrados midiendo, no a ojo. La primera versión usaba
+   alfa 0.16 con blur de 90px y era invisible: el degradado ya cae a cero desde
+   el centro y el desenfoque diluía lo poco que quedaba. Con 0.40 y blur de
+   60px se lee sin competir con los datos.
+
+   La franja superior va enmascarada porque ahí vive el ÚNICO texto apoyado
+   sobre el fondo claro: el título del dashboard y su fecha. Sin la máscara, la
+   fecha (#64748b) caía de 4.37:1 a 2.26:1 de contraste. Debajo de esa franja
+   solo hay tarjetas opacas y hueco, así que el color puede subir sin tocar la
+   legibilidad de nada.
 
    Costo: cero JavaScript y cero repintado. Solo se animan `transform` y
    `opacity`, que el navegador resuelve en la GPU; los ciclos son de 44 a 68
@@ -423,34 +433,40 @@ body {
   overflow: hidden;
   /* El fondo de página se pinta aquí para que las manchas se fundan con él. */
   background: #EFF6FF;
+  /* Deja intacta la banda del encabezado. Ver nota de contraste arriba. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 210px);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 210px);
 }
 
 .cp-aurora span {
   position: absolute;
   display: block;
   border-radius: 50%;
-  filter: blur(90px);
+  filter: blur(60px);
   will-change: transform;
 }
 
-/* Azul Callpicker — la mancha ancla, arriba a la izquierda. */
+/* Azul Callpicker — la mancha ancla, entra por el costado izquierdo. */
 .cp-aurora span:nth-child(1) {
-  width: 46vw; height: 46vw; top: -14vw; left: -10vw;
-  background: radial-gradient(circle, rgba(0,87,255,0.16) 0%, rgba(0,87,255,0) 70%);
+  width: 54vw; height: 54vw; top: 14%; left: -20vw;
+  background: radial-gradient(circle,
+    rgba(0,87,255,0.40) 0%, rgba(0,87,255,0.24) 38%, rgba(0,87,255,0) 72%);
   animation: cp-aurora-a 52s ease-in-out infinite;
 }
 
 /* Teal — abajo a la derecha, en contrapunto. */
 .cp-aurora span:nth-child(2) {
-  width: 40vw; height: 40vw; bottom: -12vw; right: -8vw;
-  background: radial-gradient(circle, rgba(14,165,233,0.14) 0%, rgba(14,165,233,0) 70%);
+  width: 48vw; height: 48vw; bottom: -16vw; right: -12vw;
+  background: radial-gradient(circle,
+    rgba(14,165,233,0.38) 0%, rgba(14,165,233,0.22) 40%, rgba(14,165,233,0) 72%);
   animation: cp-aurora-b 68s ease-in-out infinite;
 }
 
 /* Violeta — la más tenue, da profundidad al centro sin llamar la atención. */
 .cp-aurora span:nth-child(3) {
-  width: 34vw; height: 34vw; top: 32%; left: 42%;
-  background: radial-gradient(circle, rgba(139,92,246,0.10) 0%, rgba(139,92,246,0) 70%);
+  width: 42vw; height: 42vw; top: 34%; left: 40%;
+  background: radial-gradient(circle,
+    rgba(139,92,246,0.24) 0%, rgba(139,92,246,0.14) 40%, rgba(139,92,246,0) 72%);
   animation: cp-aurora-c 44s ease-in-out infinite;
 }
 
