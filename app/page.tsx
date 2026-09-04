@@ -4,7 +4,6 @@
   ArrowUpRight, Target, RefreshCw,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
-import FondoTecnologico from '@/components/FondoTecnologico'
 import SemaforoDashChart from '@/components/charts/SemaforoDashChart'
 import AsesorLineasChart from '@/components/charts/AsesorLineasChart'
 import TicketsAnalyticsChart, { type TicketsAnalyticsData } from '@/components/charts/TicketsAnalyticsChart'
@@ -1060,11 +1059,6 @@ export default async function DashboardPage() {
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen">
-      {/* Fondo tecnológico. Va fijo detrás de todo y no captura el puntero; el
-          contenido viaja en .cp-sobre-aurora, por encima. Ver app/globals.css. */}
-      <FondoTecnologico />
-
-      <div className="cp-sobre-aurora">
       <AutoRefresh intervalMs={300_000} showIndicator={false} />
 
       <PageHeader
@@ -1334,7 +1328,6 @@ export default async function DashboardPage() {
         <span>Datos en tiempo real · force-dynamic · auto-refresh 5 min</span>
         <span>·</span>
         <span>{new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}</span>
-      </div>
       </div>
     </div>
   )

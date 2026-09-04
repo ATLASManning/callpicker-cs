@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Sidebar from '@/components/Sidebar'
+import FondoTecnologico from '@/components/FondoTecnologico'
 import PageTracker from '@/components/PageTracker'
 
 // Sin esto, páginas sin fetch de datos en el servidor (como /tickets o
@@ -53,7 +54,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PageTracker />
         <Sidebar />
         <main className="flex-1 overflow-y-auto" style={{ background: '#EFF6FF' }}>
-          {children}
+          {/* Fondo tecnológico de toda la aplicación. Va fijo detrás del
+              contenido y no captura el puntero; `.cp-sobre-fondo` levanta lo
+              que se pinta encima. Ver app/globals.css. */}
+          <FondoTecnologico />
+          <div className="cp-sobre-fondo">
+            {children}
+          </div>
         </main>
       </body>
     </html>

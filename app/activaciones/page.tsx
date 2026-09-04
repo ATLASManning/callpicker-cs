@@ -4,7 +4,6 @@ import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico
 
 export const dynamic = 'force-dynamic'
 
-const BG     = '#EFF6FF'
 const TX     = '#0F172A'
 const TX_MID = '#475569'
 
@@ -89,7 +88,7 @@ export default async function ActivacionesPage() {
 
   if (registros.length === 0) {
     return (
-      <div style={{ minHeight: '100%', background: BG, padding: '48px 32px' }}>
+      <div style={{ minHeight: '100%', padding: '48px 32px' }}>
         <div style={{
           maxWidth: 500, margin: '0 auto', padding: '40px 32px', borderRadius: 16,
           background: '#FFFFFF', border: '1px solid #BFDBFE',
@@ -116,7 +115,7 @@ export default async function ActivacionesPage() {
 
   return (
     // Solo <div> — nunca <main> aquí: el CSS del layout tiene main{background:#DBEAFE !important}
-    <div style={{ minHeight: '100%', background: BG }}>
+    <div style={{ minHeight: '100%' }}>
       {/* Header */}
       <div style={{
         padding: '28px 32px 24px',

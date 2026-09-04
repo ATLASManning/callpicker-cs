@@ -233,7 +233,7 @@ export default function ReunionesPage() {
 
   /* ── Render ─────────────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen" style={{ background: '#EFF6FF' }}>
+    <div className="min-h-screen">
       <div className="px-6 pt-5 pb-0">
         <Link href="/" className="inline-flex items-center gap-1.5 text-xs mb-4"
           style={{ color: '#64748b' }}>

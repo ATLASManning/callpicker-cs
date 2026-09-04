@@ -16,7 +16,6 @@ import { TELEFONOS_COMPATIBLES } from '@/lib/telefonos-ip'
 import { GLOSARIO } from '@/lib/glosario'
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
-const BG     = '#EFF6FF'
 const PANEL  = '#FFFFFF'
 const BORDER = '#BFDBFE'
 const TX     = '#0F172A'
@@ -415,7 +414,7 @@ export default function BaseCSPage() {
   const totalArticulos = KB_SORTED.reduce((s, c) => s + c.articulos.length, 0)
 
   return (
-    <div style={{ minHeight: '100%', background: BG, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div style={{

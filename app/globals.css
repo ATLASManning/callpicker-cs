@@ -478,5 +478,5 @@ body {
   .cp-malla-nodos circle { animation: none; opacity: 0.38; }
 }
 
-/* El contenido del dashboard va por encima del fondo. */
-.cp-sobre-aurora { position: relative; z-index: 1; }
+/* El contenido de la aplicación va por encima del fondo. */
+.cp-sobre-fondo { position: relative; z-index: 1; }
