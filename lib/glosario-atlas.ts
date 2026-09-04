@@ -23,6 +23,10 @@ import {
   PREGUNTAS_PERFILAMIENTO, TABLA_EVOLUCION, CONDUCTA_ATLAS_GLOSARIO, REGLA_COMERCIAL,
 } from './perfilamiento'
 import { seccionIntegraciones, integracionDe, PROTOCOLO_SIN_INTEGRACION } from './integraciones-catalogo'
+import {
+  TELEFONOS_COMPATIBLES, TELEFONOS_NO_COMPATIBLES, MARCAS_MIXTAS,
+  compatibilidadTelefono, porMarca,
+} from './telefonos-ip'
 
 function norm(s: string): string {
   return s.toLowerCase().normalize('NFD')
@@ -129,7 +133,33 @@ export function seccionesGlosario(pregunta: string): { secciones: string[]; modu
     ).join('\n')
   )
   secciones.push(seccionIntegraciones())
-  modulos.push('glosario', 'integraciones-catalogo')
+
+  const linea = (g: { marca: string; modelos: Array<{ modelo: string; nota?: string }> }) =>
+    `    ${g.marca}: ${g.modelos.map(m => m.modelo + (m.nota ? ` (${m.nota})` : '')).join(', ')}`
+
+  const compat   = porMarca(TELEFONOS_COMPATIBLES).map(linea).join('\n')
+  const noCompat = porMarca(TELEFONOS_NO_COMPATIBLES).map(linea).join('\n')
+
+  secciones.push(
+    `TELÉFONOS IP VERIFICADOS CON CALLPICKER (apartado Base de Conocimiento > Teléfonos IP compatibles).\n` +
+    `  REGLA DURA: se responde por MODELO, nunca por marca. ${MARCAS_MIXTAS.join(' y ')} aparecen en AMBAS listas — decir "sí, Cisco funciona" es falso la mayoría de las veces: de Cisco solo 2 modelos están verificados y 14 no lo están. Si te dan solo la marca, PIDE el modelo exacto antes de responder.\n` +
+    `  Lo que NO aparece en ninguna lista NO es incompatible: es SIN VERIFICAR. Son cosas distintas y confundirlas cuesta una venta o una promesa rota. Ante un equipo no listado, di que no se ha probado, no lo declares incompatible, y canalízalo a Soporte para validarlo antes de comprometer nada con el cliente.\n` +
+    `  COMPATIBLES (${TELEFONOS_COMPATIBLES.length} modelos):\n${compat}\n` +
+    `  NO COMPATIBLES (${TELEFONOS_NO_COMPATIBLES.length} entradas):\n${noCompat}`
+  )
+  modulos.push('glosario', 'integraciones-catalogo', 'telefonos-ip')
+
+  // Si la pregunta nombra un equipo, el veredicto se resuelve aquí y se le
+  // entrega ya calculado: el modelo no tiene que deducirlo de la lista.
+  const MARCAS_RX = /telefono|teléfono|equipo|aparato|yealink|grandstream|cisco|fanvil|polycom|avaya|panasonic|snom|aastra|denwa|linksys|sangoma|vtech|xorcom|crexendo|linphone|xorcom/i
+  const vered = compatibilidadTelefono(pregunta)
+  if (vered.estado !== 'sin_verificar' || MARCAS_RX.test(pregunta)) {
+    secciones.push(
+      `VEREDICTO DE COMPATIBILIDAD PARA ESTA PREGUNTA (ya resuelto, úsalo tal cual):\n` +
+      `  Estado: ${vered.estado.toUpperCase()}\n  ${vered.mensaje}`
+    )
+    modulos.push(`telefono:${vered.estado}`)
+  }
 
   /* ── Capa 2: los términos que aparecen en la pregunta ─────────────────── */
   const hits = terminosEnPregunta(pregunta)
