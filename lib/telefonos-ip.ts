@@ -101,8 +101,45 @@ export const MARCAS_MIXTAS = ['Cisco', 'Panasonic'] as const
  * Una sola definición para la pantalla y para Atlas — si las dos redacciones se
  * separan, el asesor lee una cosa y el cliente escucha otra.
  */
+export const CONTACTO_VALIDACION = {
+  para:        'pablo@callpicker.com',
+  paraNombre:  'Pablo Soto',
+  copia:       'josel@callpicker.com',
+  copiaNombre: 'José Manuel López',
+} as const
+
 export const RUTA_EQUIPO_NO_LISTADO =
-  'Envía un correo a Pablo Soto, con copia a José Manuel, para que validen el equipo.'
+  `Envía un correo a ${CONTACTO_VALIDACION.paraNombre} (${CONTACTO_VALIDACION.para}), ` +
+  `con copia a ${CONTACTO_VALIDACION.copiaNombre} (${CONTACTO_VALIDACION.copia}), para que validen el equipo.`
+
+/**
+ * Enlace mailto con el asunto y el cuerpo ya escritos.
+ *
+ * La fricción que deja un caso sin enviar no es la falta de ganas: es tener que
+ * buscar a quién se le escribe y qué se le pone. Con el correo redactado, mandarlo
+ * cuesta un clic.
+ */
+export function correoValidacion(equipo: string): string {
+  const asunto = `Validación de compatibilidad — ${equipo.trim()}`
+  const cuerpo = [
+    'Hola Pablo,',
+    '',
+    `Un cliente tiene el equipo: ${equipo.trim()}`,
+    '',
+    'No aparece en la lista de teléfonos IP verificados con Callpicker. ¿Nos ayudas a validar si es compatible?',
+    '',
+    'Datos del caso:',
+    '- Cuenta / cliente: ',
+    '- Cantidad de equipos: ',
+    '- Urgencia: ',
+    '',
+    'Gracias.',
+  ].join('\n')
+  return `mailto:${CONTACTO_VALIDACION.para}`
+    + `?cc=${CONTACTO_VALIDACION.copia}`
+    + `&subject=${encodeURIComponent(asunto)}`
+    + `&body=${encodeURIComponent(cuerpo)}`
+}
 
 /* ── Consulta ────────────────────────────────────────────────────────────── */
 

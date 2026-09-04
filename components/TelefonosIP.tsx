@@ -1,9 +1,10 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { Search, CheckCircle2, XCircle, HelpCircle, Phone } from 'lucide-react'
+import { Search, CheckCircle2, XCircle, HelpCircle, Phone, Mail } from 'lucide-react'
 import {
   TELEFONOS_COMPATIBLES, TELEFONOS_NO_COMPATIBLES, MARCAS_MIXTAS,
-  compatibilidadTelefono, porMarca, RUTA_EQUIPO_NO_LISTADO, type TelefonoIP,
+  compatibilidadTelefono, porMarca, RUTA_EQUIPO_NO_LISTADO,
+  correoValidacion, CONTACTO_VALIDACION, type TelefonoIP,
 } from '@/lib/telefonos-ip'
 
 /**
@@ -95,6 +96,23 @@ export default function TelefonosIP() {
               <div>
                 <p style={{ fontSize: 13, fontWeight: 800, color: cfg.color, marginBottom: 2 }}>{cfg.titulo}</p>
                 <p style={{ fontSize: 12.5, color: TX_MID, lineHeight: 1.5 }}>{res.mensaje}</p>
+
+                {/* El correo sale redactado: la fricción que deja un caso sin
+                    enviar es tener que buscar a quién se le escribe y qué se
+                    le pone, no la falta de ganas. */}
+                {res.estado === 'sin_verificar' && !res.mensaje.startsWith('De ') && (
+                  <a
+                    href={correoValidacion(consulta)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 9,
+                      padding: '6px 12px', borderRadius: 8, textDecoration: 'none',
+                      background: AMBAR, color: '#FFF', fontSize: 12, fontWeight: 700,
+                    }}
+                  >
+                    <Mail size={13} />
+                    Escribir a {CONTACTO_VALIDACION.paraNombre}
+                  </a>
+                )}
               </div>
             </div>
           </div>
