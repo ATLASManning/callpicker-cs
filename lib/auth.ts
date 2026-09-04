@@ -6,7 +6,8 @@
 import { SignJWT, jwtVerify } from 'jose'
 import type { NextRequest } from 'next/server'
 
-export type Rol = 'admin' | 'asesor' | 'viewer'
+export type { Rol } from './permisos'
+import type { Rol } from './permisos'
 
 export interface SessionPayload {
   email:        string
@@ -33,6 +34,11 @@ const EMAILS_AUTORIZADOS_DEFAULT = [
   'daniel@callpicker.com',
   'josel@callpicker.com',
   'lopezdjosemanuel@gmail.com',
+  // Área de Perfilamiento (3 sep 2026) — acceso limitado por el rol
+  // `perfilamiento`, ver lib/permisos.ts.
+  'roberto@callpicker.com',
+  'nancy@callpicker.com',
+  'valeria@callpicker.com',
 ]
 
 export function emailsAutorizados(): Set<string> {

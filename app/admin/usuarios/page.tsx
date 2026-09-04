@@ -1,11 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Users, Plus, Trash2, RefreshCw, ShieldCheck, Eye, UserCheck,
-         ToggleLeft, ToggleRight, X, Save, KeyRound, Copy, Check, AlertTriangle } from 'lucide-react'
+         ToggleLeft, ToggleRight, X, Save, KeyRound, Copy, Check, AlertTriangle, Target } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
+import type { Rol } from '@/lib/permisos'
 
-type Rol = 'admin' | 'asesor' | 'viewer'
 type Usuario = {
   id: string; email: string; nombre: string; rol: Rol
   asesor_nombre: string | null; activo: boolean
@@ -14,9 +14,10 @@ type Usuario = {
 }
 
 const ROL_CONFIG: Record<Rol, { label: string; color: string; icon: React.ElementType }> = {
-  admin:  { label: 'Admin',  color: '#1B3FCC', icon: ShieldCheck },
-  asesor: { label: 'Asesor', color: '#059669', icon: UserCheck  },
-  viewer: { label: 'Viewer', color: '#D97706', icon: Eye        },
+  admin:         { label: 'Admin',         color: '#1B3FCC', icon: ShieldCheck },
+  asesor:        { label: 'Asesor',        color: '#059669', icon: UserCheck  },
+  viewer:        { label: 'Viewer',        color: '#D97706', icon: Eye        },
+  perfilamiento: { label: 'Perfilamiento', color: '#7E22CE', icon: Target     },
 }
 const ASESORES = ['Fátima', 'Dan', 'Claudia', 'Monse', 'José']
 
@@ -221,6 +222,7 @@ export default function AdminUsuariosPage() {
                             { value: 'admin', label: 'Admin' },
                             { value: 'asesor', label: 'Asesor' },
                             { value: 'viewer', label: 'Viewer' },
+                            { value: 'perfilamiento', label: 'Perfilamiento' },
                           ]} />
                       </td>
                       <td className="py-3 px-4 text-xs text-gray-500">{u.asesor_nombre ?? '—'}</td>
@@ -282,6 +284,7 @@ export default function AdminUsuariosPage() {
                     { value: 'admin', label: 'Admin — ve todo' },
                     { value: 'asesor', label: 'Asesor — solo sus cuentas' },
                     { value: 'viewer', label: 'Viewer — solo lectura' },
+                    { value: 'perfilamiento', label: 'Perfilamiento — Activaciones, Base de Conocimiento, Atlas IA, Auditoría, Facturación, Cuentas y Tickets' },
                   ]} />
               </div>
               {form.rol === 'asesor' && (

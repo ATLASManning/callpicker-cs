@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
 import { COOKIE_NAME, esEmailAutorizado } from '@/lib/auth'
+import { puedeAbrir, definicionRol } from '@/lib/permisos'
 
 const PUBLIC_PATHS  = ['/acceso', '/api/auth/']
 const ADMIN_ONLY    = ['/admin',  '/api/admin/']
@@ -60,6 +61,23 @@ export async function middleware(req: NextRequest) {
     if (isAdminOnly(pathname) && rol !== 'admin') {
       const url = req.nextUrl.clone()
       url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+
+    // Permisos por modulo. Se aplica aqui y no solo escondiendo enlaces en el
+    // menu: ocultar un link no impide teclear la URL. Un rol acotado que pida
+    // un modulo ajeno cae en su pantalla de inicio; si es una llamada de API,
+    // recibe 403 en vez de un redirect que el cliente no sabria interpretar.
+    if (!puedeAbrir(rol, pathname)) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Tu rol no tiene acceso a este modulo.' },
+          { status: 403 },
+        )
+      }
+      const url = req.nextUrl.clone()
+      url.pathname = definicionRol(rol).inicio
+      url.search   = ''
       return NextResponse.redirect(url)
     }
 

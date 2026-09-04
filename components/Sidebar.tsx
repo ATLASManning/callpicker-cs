@@ -22,6 +22,8 @@ const IC_A = '#FFFFFF'
 const IC   = '#FFFFFF'
 
 // ── Definición de nav ─────────────────────────────────────────────────────────
+import { puedeVerModulo, definicionRol } from '@/lib/permisos'
+
 type NavItem   = { href: string; label: string; icon: React.ElementType }
 type NavGroup  = { group: string; icon: React.ElementType; children: NavItem[] }
 type NavEntry  = NavItem | NavGroup
@@ -185,22 +187,29 @@ export default function Sidebar() {
     router.push('/acceso')
   }
 
-  const rolIcon = me?.rol === 'admin' ? ShieldCheck : me?.rol === 'asesor' ? UserCheck : Eye
-  const RolIcon = rolIcon
-  const rolColor = me?.rol === 'admin' ? '#60A5FA' : me?.rol === 'asesor' ? '#34D399' : '#FBBF24'
-  const rolLabel = me?.rol === 'admin' ? 'Admin' : me?.rol === 'asesor' ? 'Asesor' : 'Viewer'
+  const RolIcon  = me?.rol === 'admin' ? ShieldCheck : me?.rol === 'asesor' ? UserCheck : Eye
+  const rolColor = definicionRol(me?.rol).color
+  const rolLabel = definicionRol(me?.rol).label
 
-  // Filtrar nav según rol
-  const navFiltered = NAV.filter(entry => {
-    // Admin ve todo
-    if (!me || me.rol === 'admin') return true
-    // Asesores y viewers NO ven ciertas secciones
-    if (isGroup(entry)) return true // los grupos los mostramos siempre
+  // Filtrar nav segun rol. Los grupos se podan por dentro: si a un rol le
+  // quedan cero hijos visibles, el grupo entero desaparece — antes se mostraba
+  // el encabezado aunque no llevara a ningun lado.
+  const navFiltered = NAV.reduce<NavEntry[]>((acc, entry) => {
+    if (!me || me.rol === 'admin') { acc.push(entry); return acc }
+
+    if (isGroup(entry)) {
+      const hijos = entry.children.filter(c => puedeVerModulo(me.rol, c.href))
+      if (hijos.length) acc.push({ ...entry, children: hijos })
+      return acc
+    }
+
     const item = entry as NavItem
+    if (!puedeVerModulo(me.rol, item.href)) return acc
     // Viewers no ven seguimiento ni auditoria
-    if (me.rol === 'viewer' && ['/seguimiento', '/auditoria'].includes(item.href)) return false
-    return true
-  })
+    if (me.rol === 'viewer' && ['/seguimiento', '/auditoria'].includes(item.href)) return acc
+    acc.push(item)
+    return acc
+  }, [])
 
   return (
     <aside className="w-60 flex-shrink-0 flex flex-col h-full"
