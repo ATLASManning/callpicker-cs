@@ -25,7 +25,7 @@ import {
 import { seccionIntegraciones, integracionDe, PROTOCOLO_SIN_INTEGRACION } from './integraciones-catalogo'
 import {
   TELEFONOS_COMPATIBLES, TELEFONOS_NO_COMPATIBLES, MARCAS_MIXTAS,
-  compatibilidadTelefono, porMarca,
+  compatibilidadTelefono, porMarca, RUTA_EQUIPO_NO_LISTADO,
 } from './telefonos-ip'
 
 function norm(s: string): string {
@@ -143,7 +143,7 @@ export function seccionesGlosario(pregunta: string): { secciones: string[]; modu
   secciones.push(
     `TELÉFONOS IP VERIFICADOS CON CALLPICKER (apartado Base de Conocimiento > Teléfonos IP compatibles).\n` +
     `  REGLA DURA: se responde por MODELO, nunca por marca. ${MARCAS_MIXTAS.join(' y ')} aparecen en AMBAS listas — decir "sí, Cisco funciona" es falso la mayoría de las veces: de Cisco solo 2 modelos están verificados y 14 no lo están. Si te dan solo la marca, PIDE el modelo exacto antes de responder.\n` +
-    `  Lo que NO aparece en ninguna lista NO es incompatible: es SIN VERIFICAR. Son cosas distintas y confundirlas cuesta una venta o una promesa rota. Ante un equipo no listado, di que no se ha probado, no lo declares incompatible, y canalízalo a Soporte para validarlo antes de comprometer nada con el cliente.\n` +
+    `  Lo que NO aparece en ninguna lista NO es incompatible: es SIN VERIFICAR. Son cosas distintas y confundirlas cuesta una venta o una promesa rota. Ante un equipo no listado, di que no se ha probado, no lo declares incompatible ni lo prometas, y da la ruta EXACTA, textual: "${RUTA_EQUIPO_NO_LISTADO}"\n` +
     `  COMPATIBLES (${TELEFONOS_COMPATIBLES.length} modelos):\n${compat}\n` +
     `  NO COMPATIBLES (${TELEFONOS_NO_COMPATIBLES.length} entradas):\n${noCompat}`
   )

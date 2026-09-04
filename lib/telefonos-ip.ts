@@ -93,6 +93,17 @@ export const TELEFONOS_NO_COMPATIBLES: TelefonoIP[] = [
 /** Marcas que aparecen en las dos listas: obligan a preguntar el modelo. */
 export const MARCAS_MIXTAS = ['Cisco', 'Panasonic'] as const
 
+/**
+ * Qué hacer cuando el equipo no está en ninguna de las dos listas.
+ *
+ * Instrucción de dirección (4 sep 2026). Es una ruta concreta con nombre y
+ * apellido, no un "consúltalo con alguien": así el caso no se queda sin dueño.
+ * Una sola definición para la pantalla y para Atlas — si las dos redacciones se
+ * separan, el asesor lee una cosa y el cliente escucha otra.
+ */
+export const RUTA_EQUIPO_NO_LISTADO =
+  'Envía un correo a Pablo Soto, con copia a José Manuel, para que validen el equipo.'
+
 /* ── Consulta ────────────────────────────────────────────────────────────── */
 
 function norm(s: string): string {
@@ -195,7 +206,7 @@ export function compatibilidadTelefono(consulta: string): ResultadoCompatibilida
 
   return {
     estado: 'sin_verificar',
-    mensaje: 'Ese equipo no aparece en la lista verificada. No significa que no funcione: significa que no se ha probado. Se canaliza a Soporte para validarlo antes de comprometer nada con el cliente.',
+    mensaje: `Ese equipo no aparece en la lista verificada. No significa que no funcione: significa que no se ha probado. ${RUTA_EQUIPO_NO_LISTADO} No lo descartes ni lo prometas hasta tener esa respuesta.`,
   }
 }
 

@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import { Search, CheckCircle2, XCircle, HelpCircle, Phone } from 'lucide-react'
 import {
   TELEFONOS_COMPATIBLES, TELEFONOS_NO_COMPATIBLES, MARCAS_MIXTAS,
-  compatibilidadTelefono, porMarca, type TelefonoIP,
+  compatibilidadTelefono, porMarca, RUTA_EQUIPO_NO_LISTADO, type TelefonoIP,
 } from '@/lib/telefonos-ip'
 
 /**
@@ -105,8 +105,8 @@ export default function TelefonosIP() {
       <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 10, padding: '11px 14px', marginBottom: 16 }}>
         <p style={{ fontSize: 12.5, color: '#92400E', lineHeight: 1.55 }}>
           <strong>Lo que no aparece en ninguna lista no es incompatible: es sin verificar.</strong> Son
-          cosas distintas. Ante un equipo no listado no lo descartes ni lo prometas — se canaliza a
-          Soporte para validarlo antes de comprometer nada con el cliente.
+          cosas distintas. Ante un equipo no listado no lo descartes ni lo prometas:{' '}
+          <strong>{RUTA_EQUIPO_NO_LISTADO}</strong>
         </p>
       </div>
 
