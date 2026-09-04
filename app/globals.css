@@ -400,95 +400,83 @@ body {
   @page { margin: 16mm; size: A4 portrait; }
 }
 
-/* ═══ Aurora ambiental del Dashboard ═══════════════════════════════════════
-   Tres manchas de gradiente en los colores de marca que se desplazan muy
-   lento por detrás del contenido.
+/* ═══ Fondo tecnológico del Dashboard ══════════════════════════════════════
+   Malla de líneas delgadas en azul marino, con nodos y destellos que las
+   recorren. Sustituye a la aurora de manchas difusas.
 
-   Por qué así y no partículas o una malla animada: las tarjetas del dashboard
-   son opacas, así que la aurora solo asoma en los márgenes y entre bloques —
-   nunca debajo de una cifra.
+   Aquí el movimiento sí se percibe, que es lo que se pidió: los destellos
+   tardan de 7 a 13 segundos en recorrer su arista y los nodos laten entre 3 y
+   5 — no los 44 a 68 de la versión anterior.
 
-   Los valores están calibrados midiendo, no a ojo. La primera versión usaba
-   alfa 0.16 con blur de 90px y era invisible: el degradado ya cae a cero desde
-   el centro y el desenfoque diluía lo poco que quedaba. Con 0.40 y blur de
-   60px se lee sin competir con los datos.
+   Cero JavaScript y cero canvas. El SVG se dibuja una vez; lo único que cambia
+   por cuadro es el `stroke-dashoffset` de seis destellos y la opacidad de los
+   nodos. Con más destellos la malla se vuelve ruidosa y además repinta de más.
 
-   La franja superior va enmascarada porque ahí vive el ÚNICO texto apoyado
-   sobre el fondo claro: el título del dashboard y su fecha. Sin la máscara, la
-   fecha (#64748b) caía de 4.37:1 a 2.26:1 de contraste. Debajo de esa franja
-   solo hay tarjetas opacas y hueco, así que el color puede subir sin tocar la
-   legibilidad de nada.
-
-   Costo: cero JavaScript y cero repintado. Solo se animan `transform` y
-   `opacity`, que el navegador resuelve en la GPU; los ciclos son de 44 a 68
-   segundos y desfasados entre sí, así que el ojo lo lee como ambiente y no
-   como movimiento. En una pestaña en segundo plano el navegador la congela
-   sola.
+   La franja del encabezado va enmascarada: ahí vive el único texto apoyado
+   sobre el fondo claro y ninguna línea debe cruzarlo.
    ────────────────────────────────────────────────────────────────────────── */
-.cp-aurora {
+.cp-malla {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  /* El fondo de página se pinta aquí para que las manchas se fundan con él. */
   background: #EFF6FF;
-  /* Deja intacta la banda del encabezado. Ver nota de contraste arriba. */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 210px);
-  mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 210px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 200px);
+  mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 200px);
 }
 
-.cp-aurora span {
-  position: absolute;
-  display: block;
-  border-radius: 50%;
-  filter: blur(60px);
-  will-change: transform;
+.cp-malla svg { width: 100%; height: 100%; display: block; }
+
+/* Líneas: delgadas y en azul marino, como un plano técnico de fondo. */
+.cp-malla-lineas line {
+  stroke: #1E3A5F;
+  stroke-width: 1.1;
+  /* 0.24 salió de mirarla, no de estimarla: con 0.16 la malla existía pero
+     apenas se distinguía del fondo, el mismo error que hundió a la aurora. */
+  opacity: 0.24;
 }
 
-/* Azul Callpicker — la mancha ancla, entra por el costado izquierdo. */
-.cp-aurora span:nth-child(1) {
-  width: 54vw; height: 54vw; top: 14%; left: -20vw;
-  background: radial-gradient(circle,
-    rgba(0,87,255,0.40) 0%, rgba(0,87,255,0.24) 38%, rgba(0,87,255,0) 72%);
-  animation: cp-aurora-a 52s ease-in-out infinite;
+/* Destello: un segmento corto de 60px sobre una arista larguísima, que se
+   desplaza con `stroke-dashoffset`. El resto del trazo queda invisible. */
+.cp-malla-destellos line {
+  stroke: #0057FF;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 60 1400;
+  animation-name: cp-malla-destello;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  filter: drop-shadow(0 0 3px rgba(0,87,255,0.45));
 }
 
-/* Teal — abajo a la derecha, en contrapunto. */
-.cp-aurora span:nth-child(2) {
-  width: 48vw; height: 48vw; bottom: -16vw; right: -12vw;
-  background: radial-gradient(circle,
-    rgba(14,165,233,0.38) 0%, rgba(14,165,233,0.22) 40%, rgba(14,165,233,0) 72%);
-  animation: cp-aurora-b 68s ease-in-out infinite;
+@keyframes cp-malla-destello {
+  0%       { stroke-dashoffset: 260;  opacity: 0; }
+  12%      { opacity: 0.75; }
+  88%      { opacity: 0.75; }
+  100%     { stroke-dashoffset: -260; opacity: 0; }
 }
 
-/* Violeta — la más tenue, da profundidad al centro sin llamar la atención. */
-.cp-aurora span:nth-child(3) {
-  width: 42vw; height: 42vw; top: 34%; left: 40%;
-  background: radial-gradient(circle,
-    rgba(139,92,246,0.24) 0%, rgba(139,92,246,0.14) 40%, rgba(139,92,246,0) 72%);
-  animation: cp-aurora-c 44s ease-in-out infinite;
+/* Nodos: laten suave y desfasados, para que la malla no parpadee a coro. */
+.cp-malla-nodos circle {
+  fill: #1E3A5F;
+  animation-name: cp-malla-nodo;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
 }
 
-/* Recorridos cortos: se trata de que respire, no de que viaje. */
-@keyframes cp-aurora-a {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(6vw, 4vh, 0) scale(1.12); }
-}
-@keyframes cp-aurora-b {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50%      { transform: translate3d(-5vw, -5vh, 0) scale(1.08); }
-}
-@keyframes cp-aurora-c {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.7; }
-  50%      { transform: translate3d(-4vw, 3vh, 0) scale(1.15); opacity: 1; }
+@keyframes cp-malla-nodo {
+  from { opacity: 0.22; r: 2; }
+  to   { opacity: 0.55; }
 }
 
-/* Quien pidió menos movimiento no lo recibe. La aurora se queda quieta pero
-   no desaparece: sigue viéndose como un degradado intencional. */
+/* Quien pidió menos movimiento recibe la malla quieta: sigue leyéndose como
+   un plano técnico intencional, solo que sin destellos ni latido. */
 @media (prefers-reduced-motion: reduce) {
-  .cp-aurora span { animation: none; }
+  .cp-malla-destellos { display: none; }
+  .cp-malla-nodos circle { animation: none; opacity: 0.38; }
 }
 
-/* El contenido del dashboard va por encima de la aurora. */
+/* El contenido del dashboard va por encima del fondo. */
 .cp-sobre-aurora { position: relative; z-index: 1; }

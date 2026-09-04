@@ -4,6 +4,7 @@
   ArrowUpRight, Target, RefreshCw,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
+import FondoTecnologico from '@/components/FondoTecnologico'
 import SemaforoDashChart from '@/components/charts/SemaforoDashChart'
 import AsesorLineasChart from '@/components/charts/AsesorLineasChart'
 import TicketsAnalyticsChart, { type TicketsAnalyticsData } from '@/components/charts/TicketsAnalyticsChart'
@@ -1059,11 +1060,9 @@ export default async function DashboardPage() {
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen">
-      {/* Aurora ambiental. Va fija detrás de todo y no captura el puntero; el
+      {/* Fondo tecnológico. Va fijo detrás de todo y no captura el puntero; el
           contenido viaja en .cp-sobre-aurora, por encima. Ver app/globals.css. */}
-      <div className="cp-aurora" aria-hidden="true">
-        <span /><span /><span />
-      </div>
+      <FondoTecnologico />
 
       <div className="cp-sobre-aurora">
       <AutoRefresh intervalMs={300_000} showIndicator={false} />
