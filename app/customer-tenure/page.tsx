@@ -647,7 +647,8 @@ export default function CustomerTenurePage() {
                     className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-300" />
                 </div>
                 <CustomSelect value={fSem} onChange={setFSem}
-                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700"
+                  wrapperClassName="w-52 flex-shrink-0"
+                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 w-full"
                   options={[
                     { value: '', label: 'Todos los semáforos' },
                     { value: 'nuevo', label: '🔵 Nuevo' },
@@ -657,11 +658,13 @@ export default function CustomerTenurePage() {
                     { value: 'dormido', label: '🔴 Dormido' },
                   ]} />
                 <CustomSelect value={fTamano} onChange={setFTamano}
-                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700"
+                  wrapperClassName="w-48 flex-shrink-0"
+                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 w-full"
                   options={[{ value: '', label: 'Todos los tamaños' },
                     ...['Micro','SMB','Mid-Market','Large','Enterprise'].map(t => ({ value: t, label: t }))]} />
                 <CustomSelect value={fBucket} onChange={setFBucket}
-                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700"
+                  wrapperClassName="w-48 flex-shrink-0"
+                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 w-full"
                   options={[{ value: '', label: 'Todos los buckets' },
                     ...['Sin Actividad','Nuevos','Jóvenes','Activos','Maduros','Veteranos'].map(b => ({ value: b, label: b }))]} />
                 <span className="text-xs text-gray-400 ml-auto">{fmtN(total)} clientes</span>

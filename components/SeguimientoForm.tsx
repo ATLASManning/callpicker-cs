@@ -42,9 +42,11 @@ export default function SeguimientoForm({ cuentaId, asesor, canEdit = false }: P
     <form onSubmit={submit} className="bg-surface rounded-lg border border-border p-3 space-y-3">
       <div className="flex gap-2">
         <CustomSelect value={tipo} onChange={v => setTipo(v as TipoSeguimiento)}
-          options={TIPOS} className="cp-select text-xs flex-1 capitalize" />
+          options={TIPOS} wrapperClassName="flex-1 min-w-0"
+          className="cp-select text-xs w-full capitalize" />
         <CustomSelect value={resultado} onChange={setResultado}
-          options={RESULTADOS} className="cp-select text-xs flex-1" />
+          options={RESULTADOS} wrapperClassName="flex-1 min-w-0"
+          className="cp-select text-xs w-full" />
       </div>
       <textarea
         value={descripcion}

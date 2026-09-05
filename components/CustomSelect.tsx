@@ -13,6 +13,18 @@ interface Props {
   placeholder?: string
   /** Muestra un buscador dentro del menú — para listas largas (p.ej. clientes). */
   searchable?: boolean
+  /**
+   * Clases y estilos del <div> contenedor (NO del botón — para eso usa `className`).
+   *
+   * El contenedor mide `width: 100%` por defecto para que llene al padre en
+   * formularios y en los envoltorios de ancho fijo (`<div className="w-44">`).
+   * Pero como HIJO DIRECTO de una fila flex ese 100% se resuelve contra el
+   * ancho de la fila completa: el select se come el renglón y empuja a los
+   * demás controles hacia abajo. En ese caso pasa un ancho explícito aquí,
+   * p.ej. wrapperClassName="w-52 flex-shrink-0".
+   */
+  wrapperClassName?: string
+  wrapperStyle?: React.CSSProperties
 }
 
 const normBusq = (s: string) =>
@@ -32,7 +44,7 @@ function getLabel(opt: SelectOption): string {
  * blanco por defecto del menú). Este componente controla el popup con React
  * para garantizar contraste consistente en cualquier tema.
  */
-export default function CustomSelect({ value, onChange, options, className = '', style, disabled = false, placeholder, searchable = false }: Props) {
+export default function CustomSelect({ value, onChange, options, className = '', style, disabled = false, placeholder, searchable = false, wrapperClassName = '', wrapperStyle }: Props) {
   const [open, setOpen] = useState(false)
   const [busqueda, setBusqueda] = useState('')
   const ref = useRef<HTMLDivElement>(null)
@@ -68,7 +80,14 @@ export default function CustomSelect({ value, onChange, options, className = '',
   const selectedLabel = selected ? getLabel(selected) : (placeholder ?? '')
 
   return (
-    <div ref={ref} className="relative" style={{ width: '100%' }}>
+    // El 100% inline sólo se aplica cuando el llamador no define un ancho propio:
+    // un `style` en línea gana sobre cualquier clase de Tailwind, así que dejarlo
+    // fijo anularía silenciosamente un wrapperClassName="w-52".
+    <div
+      ref={ref}
+      className={`relative ${wrapperClassName}`.trim()}
+      style={{ ...(wrapperClassName || wrapperStyle?.width ? {} : { width: '100%' }), ...wrapperStyle }}
+    >
       <button
         type="button"
         onClick={() => !disabled && setOpen(v => !v)}

@@ -234,18 +234,19 @@ function DormidasPageInner() {
       )}
 
       {/* Filtros */}
-      <div className="flex flex-wrap gap-3 px-6 pb-4">
-        <div className="relative">
+      <div className="flex flex-wrap items-center gap-3 px-6 pb-4">
+        <div className="relative flex-shrink-0">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-textLow" />
           <input className="cp-input pl-8 w-56" placeholder="Buscar empresa…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        <CustomSelect className="cp-select" value={asesorFilter}
+        <CustomSelect className="cp-select w-full" wrapperClassName="w-56 flex-shrink-0"
+          value={asesorFilter}
           onChange={setAsesorFilter}
           options={[{ value: '', label: 'Todos los asesores' }, ...ASESORES.map(a => ({ value: a, label: a }))]} />
 
-        <button onClick={fetchCuentas} className="cp-btn cp-btn-ghost">
+        <button onClick={fetchCuentas} className="cp-btn cp-btn-ghost flex-shrink-0">
           <RefreshCw size={14} /> Actualizar
         </button>
       </div>

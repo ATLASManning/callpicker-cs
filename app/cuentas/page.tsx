@@ -319,15 +319,17 @@ function CuentasPageInner() {
         </div>
       )}
 
-      {/* Filtros superiores */}
-      <div className="flex flex-wrap gap-3 px-6 pb-4">
-        <div className="relative">
+      {/* Filtros superiores — una sola fila horizontal: cada control lleva su
+          ancho propio para no acaparar el renglón y dejar más alto de tabla. */}
+      <div className="flex flex-wrap items-center gap-3 px-6 pb-4">
+        <div className="relative flex-shrink-0">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-textLow" />
           <input className="cp-input pl-8 w-56" placeholder="Buscar empresa…"
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        <CustomSelect className="cp-select" value={warningFilter}
+        <CustomSelect className="cp-select w-full" wrapperClassName="w-60 flex-shrink-0"
+          value={warningFilter}
           onChange={v => setWarningFilter(v as '' | 'FALTA_TC' | 'FALTA_HS')}
           options={[
             { value: '', label: 'Todas las fichas' },
@@ -336,19 +338,19 @@ function CuentasPageInner() {
           ]} />
 
         <button onClick={() => setTopFilter(t => !t)}
-          className={`cp-btn text-xs font-semibold border transition-colors ${
+          className={`cp-btn text-xs font-semibold border transition-colors flex-shrink-0 ${
             topFilter ? 'bg-cp/20 text-cp border-cp/50' : 'cp-btn-ghost border-cp/30 text-cp hover:bg-cp/10'
           }`}>
           ⭐ Solo Top Customer
         </button>
 
-        <button onClick={fetchCuentas} className="cp-btn cp-btn-ghost">
+        <button onClick={fetchCuentas} className="cp-btn cp-btn-ghost flex-shrink-0">
           <RefreshCw size={14} /> Actualizar
         </button>
 
         {hayFiltros && (
           <button onClick={limpiarFiltros}
-            className="cp-btn cp-btn-ghost text-xs text-rojo border-rojo/30 hover:bg-rojo/10">
+            className="cp-btn cp-btn-ghost text-xs text-rojo border-rojo/30 hover:bg-rojo/10 flex-shrink-0">
             Limpiar filtros
           </button>
         )}
