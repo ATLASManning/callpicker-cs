@@ -317,7 +317,7 @@ export default function HealthScoreDiagnostico({
   const hsIsRisk = hs < 60 && !isPartial
 
   return (
-    <div className="cp-card" style={{ padding: 0 }}>
+    <div className="cp-card" style={{ padding: 0, overflow: 'hidden' }}>
 
       {/* ── Banner de auditoría activa ────────────────────────────────── */}
       {(hasAuditRisk || hasAuditLoss) && (
@@ -332,7 +332,7 @@ export default function HealthScoreDiagnostico({
             {hasAuditLoss ? 'CUENTA PERDIDA' : 'AUDITORÍA EN RIESGO'}
           </span>
           {auditoriaNombre && (
-            <span style={{ fontSize: 10, color: 'rgba(252,165,165,0.7)' }}>· {auditoriaNombre}</span>
+              <span style={{ fontSize: 10, color: 'rgba(252,165,165,0.7)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {auditoriaNombre}</span>
           )}
         </div>
       )}
@@ -341,9 +341,9 @@ export default function HealthScoreDiagnostico({
       <div style={{
         padding: '14px 18px 12px',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
       }}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
             Diagnóstico Automático
           </p>
@@ -351,7 +351,7 @@ export default function HealthScoreDiagnostico({
             Health Score
           </h3>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           {isPartial && (
             <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.07em', padding: '2px 8px', borderRadius: 4, background: 'rgba(220,38,38,0.2)', color: '#F87171', border: '1px solid rgba(220,38,38,0.3)', textTransform: 'uppercase' }}>
               Incompleto
@@ -368,7 +368,7 @@ export default function HealthScoreDiagnostico({
 
       {/* ── Ring + dimensiones ────────────────────────────────────────── */}
       <div style={{ padding: '16px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, minWidth: 0 }}>
 
           {/* Gauge circular */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -381,13 +381,13 @@ export default function HealthScoreDiagnostico({
           </div>
 
           {/* Filas de dimensiones */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 9 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
             {dims.map(d => {
               const { Icon } = d
               const showBadge = d.score === null || d.score < 60
               return (
                 <div key={d.key}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, minWidth: 0, marginBottom: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                       <Icon size={10} style={{ color: d.color, flexShrink: 0 }} />
                       <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -415,7 +415,10 @@ export default function HealthScoreDiagnostico({
                     }} />
                   </div>
 
-                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', margin: '3px 0 0', lineHeight: 1 }}>
+                  <p style={{
+                    fontSize: 10, color: 'rgba(255,255,255,0.4)', margin: '3px 0 0',
+                    lineHeight: 1.35, overflowWrap: 'anywhere',
+                  }}>
                     {d.detail}
                   </p>
                 </div>
@@ -429,13 +432,13 @@ export default function HealthScoreDiagnostico({
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {alertDims.map(d => (
               <div key={d.key} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
+                display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0,
                 padding: '7px 10px', borderRadius: 8,
                 background: `${alertBarColor(d.score!)}22`,
                 border: `1px solid ${alertBarColor(d.score!)}55`,
               }}>
-                <TrendingDown size={11} style={{ color: alertBarColor(d.score!), flexShrink: 0 }} />
-                <span style={{ fontSize: 11, color: '#FCA5A5', fontWeight: 500 }}>
+                <TrendingDown size={11} style={{ color: alertBarColor(d.score!), flexShrink: 0, marginTop: 2 }} />
+                <span style={{ fontSize: 11, color: '#FCA5A5', fontWeight: 500, minWidth: 0, lineHeight: 1.4, overflowWrap: 'anywhere' }}>
                   <strong style={{ color: alertBarColor(d.score!) }}>{d.label}:</strong> {d.detail}
                 </span>
               </div>
@@ -457,7 +460,7 @@ export default function HealthScoreDiagnostico({
               }}>
                 <AlertTriangle size={11} style={{ color: '#fff' }} />
               </span>
-              <div>
+              <div style={{ minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: '#F87171', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                   Actividad SAC Requerida
                 </p>
@@ -468,9 +471,9 @@ export default function HealthScoreDiagnostico({
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {allMissing.map((m, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#EF4444', flexShrink: 0 }} />
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', lineHeight: 1 }}>{m}</span>
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, minWidth: 0 }}>
+                  <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#EF4444', flexShrink: 0, marginTop: 6 }} />
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', lineHeight: 1.4, minWidth: 0, overflowWrap: 'anywhere' }}>{m}</span>
                 </div>
               ))}
             </div>
