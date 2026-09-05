@@ -50,6 +50,7 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'jason-de-mexico',   nombre: 'Jason de México',               consecutivos: ['D7']  },
   { id: 'gwep',              nombre: 'GWEP (Grupo Gwep)',             consecutivos: ['D54'] },
   { id: 'cargo-lift',        nombre: 'Cargo Lift',                    consecutivos: ['D5']  },
+  { id: 'university-4-people', nombre: 'University 4 People (Tec de Monterrey)', consecutivos: ['D58'] },
 ]
 
 /** Devuelve la auditoría asociada a un consecutivo de cuenta, o null si no existe. */
