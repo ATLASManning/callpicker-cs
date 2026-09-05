@@ -49,6 +49,9 @@ usan otra herramienta; decision centralizada a nivel nacional aunque la operacio
 sea del campus; y la aceleracion de IA del Tec (TECgpt, automatizacion), que exige
 evolucionar a transcripcion, resumen, clasificacion y QA.
 
+- EQUIPO CALLPICKER
+Ejecutivo de venta: Jose Galvan. KAM / Customer Success: Dan Dominguez.
+
 - LO QUE FALTA ANTES DE PRESENTAR NADA: cuatro nombres internos
 1. Dueno actual del servicio Callpicker.
 2. Administrador / Product Owner de Salesforce.
@@ -96,7 +99,7 @@ lleguen consumo y tickets por CID. Tampoco se estimo la matricula del campus:
 las cifras de alumnos que aparecen son institucionales del Tec, no del campus."""
 
 FILA = {
-    'consecutivo': 'Z66',
+    'consecutivo': 'D58',
     # El nombre debe coincidir EXACTO con Zoho: de ese match sale la facturacion
     # viva. La razon social va en direccion_fiscal y grupo_empresarial.
     'empresa': 'University 4 People',
