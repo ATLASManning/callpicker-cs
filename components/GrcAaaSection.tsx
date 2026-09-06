@@ -32,7 +32,21 @@ const METRICAS: Record<Metrica, { label: string; color: string; money: boolean }
   mesesProm:    { label: 'Antigüedad promedio (meses)', color: '#059669', money: false },
 }
 
-const ORDEN_MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio']
+/* Los meses del corte se derivan de los datos, en orden natural de calendario:
+   así incorporar un mes nuevo es sólo regenerar aaa-grc-data.ts — el título,
+   el KPI de meses y las series de las gráficas se mueven solos. */
+const CALENDARIO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+const ORDEN_MES = CALENDARIO.filter(m => AAA_GRC_2026.some(x => x.mes === m))
+const ABREV: Record<string, string> = {
+  Enero: 'Ene', Febrero: 'Feb', Marzo: 'Mar', Abril: 'Abr', Mayo: 'May', Junio: 'Jun',
+  Julio: 'Jul', Agosto: 'Ago', Septiembre: 'Sep', Octubre: 'Oct', Noviembre: 'Nov', Diciembre: 'Dic',
+}
+const MES_INI = ORDEN_MES[0] ?? ''
+const MES_FIN = ORDEN_MES[ORDEN_MES.length - 1] ?? ''
+const PERIODO = `${MES_INI} a ${MES_FIN} 2026`
+const PERIODO_CORTO = `${ABREV[MES_INI] ?? MES_INI}–${ABREV[MES_FIN] ?? MES_FIN} 2026`
+
 const ORDEN_CLAS = ['AAA','AA','A','B','C']
 const ORDEN_RANGO = ['$1 - $300','$301 - $500','$501 - $1,000','$1,001 - $3,000',
   '$3,001 - $5,000','$5,001 - $10,000','$10,001 - $20,000','$20,001 - $40,000','$40,001 - $80,000']
@@ -110,7 +124,7 @@ export default function GrcAaaSection() {
           <BarChart3 size={16} style={{ color: '#7c3aed' }} />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-gray-900 text-sm">GRC · Clientes {fClas || 'todas las clasificaciones'} — Enero a Julio 2026</h3>
+          <h3 className="font-bold text-gray-900 text-sm">GRC · Clientes {fClas || 'todas las clasificaciones'} — {PERIODO}</h3>
           <p className="text-xs text-gray-500 mt-0.5">
             Pérdida: Downgrade + Churn · Fuente: Zoho Analytics · {AAA_GRC_FLAT.length} registros en el período
           </p>
@@ -119,7 +133,7 @@ export default function GrcAaaSection() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <KpiMini icon={CalendarDays}  label="Meses"            value="7"                        sub="Ene–Jul 2026"      color="#7c3aed" />
+        <KpiMini icon={CalendarDays}  label="Meses"            value={String(ORDEN_MES.length)} sub={PERIODO_CORTO}     color="#7c3aed" />
         <KpiMini icon={XCircle}       label="Registros"        value={String(kpi.registros)}    sub={fClas ? `clasificación ${fClas}` : 'todas'} color="#DC2626" />
         <KpiMini icon={DollarSign}    label="Ingreso perdido"  value={fmt(kpi.perdido)}         sub="downgrade + churn" color="#EA580C" />
         <KpiMini icon={AlertTriangle} label="Churns"           value={String(kpi.churns)}       sub="bajas confirmadas" color="#DC2626" />
@@ -289,7 +303,7 @@ export default function GrcAaaSection() {
       })}
 
       <p className="text-[11px] text-gray-400 text-center">
-        Fuente: DT_Churn_etiquetas.xlsx · Zoho Analytics · Enero–Julio 2026 · {AAA_GRC_FLAT.length} registros
+        Fuente: GRC_AAA_2026.xlsx · Zoho Analytics · {PERIODO_CORTO} · {AAA_GRC_FLAT.length} registros
       </p>
     </div>
   )
