@@ -73,7 +73,11 @@ const ORDEN_RANGO = ['$1 - $300','$301 - $500','$501 - $1,000','$1,001 - $3,000'
 export default function GrcAaaSection() {
   const [dimension, setDimension] = useState<Dimension>('mes')
   const [metrica, setMetrica]     = useState<Metrica>('perdido')
-  const [fClas, setFClas]         = useState('AAA')
+  /* Arranca SIN filtro de clasificación: con 'AAA' por omisión el detalle de
+     cada mes mostraba sólo una parte y no cuadraba con la tabla de Gross
+     Revenue Churn, que es sobre todas las clasificaciones (junio: $93,136.05
+     en AAA contra los $169,684.66 del GRC). */
+  const [fClas, setFClas]         = useState('')
   const [fMov, setFMov]           = useState('')
   const [openMes, setOpenMes]     = useState<Record<string, boolean>>({})
 
@@ -375,6 +379,11 @@ export default function GrcAaaSection() {
         const perd     = perdReal + fraude
         const mrrIni = clientes.reduce((s, c) => s + c.mrrInicio, 0)
         const churns = clientes.filter(c => c.movimiento.includes('Churn')).length
+        /* Cifra oficial del mes en la tabla GRC (sin filtros). Si la vista está
+           filtrada se muestra al lado, para que nunca parezca que el mes
+           contradice al GRC cuando en realidad está viendo un subconjunto. */
+        const grcMes  = grc.filas.find(f => f.mes === mesData.mes)?.perdida ?? 0
+        const filtrado = Boolean(fClas || fMov)
 
         return (
           <div key={mesData.mes} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -391,8 +400,12 @@ export default function GrcAaaSection() {
                   <Pill bg="#FEE2E2" fg="#B91C1C">Ing. perdido real {fmt(perdReal)}</Pill>
                   {fraude > 0 && <Pill bg="#FFEDD5" fg="#C2410C">+ fraude {fmt(fraude)}</Pill>}
                   {churns > 0 && <Pill bg="#FEF2F2" fg="#DC2626" border>{churns} churn{churns !== 1 ? 's' : ''}</Pill>}
+                  {filtrado && <Pill bg="#EFF6FF" fg="#1D4ED8">GRC del mes {fmt(grcMes)}</Pill>}
                 </div>
-                <p className="text-[11px] text-gray-400 mt-0.5">MRR inicio del período: {fmtF(mrrIni)}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  MRR inicio del período: {fmtF(mrrIni)}
+                  {filtrado && ' · vista filtrada: no cuadra con el GRC hasta quitar los filtros'}
+                </p>
               </div>
               {open ? <ChevronUp size={16} className="text-gray-400 flex-shrink-0" />
                     : <ChevronDown size={16} className="text-gray-400 flex-shrink-0" />}
@@ -485,6 +498,45 @@ export default function GrcAaaSection() {
           </div>
         )
       })}
+
+      {/* ── Total de los meses mostrados, para cerrar contra el GRC ───────── */}
+      {(() => {
+        const totReal   = filas.reduce((s, r) => s + r.perdido, 0)
+        const totFraude = filas.reduce((s, r) => s + r.perdido2, 0)
+        const totChurns = filas.filter(r => r.movimiento.includes('Churn')).length
+        const cuadra    = Math.abs(totReal - grc.tot.perdida) < 0.005
+        const filtrado  = Boolean(fClas || fMov)
+        return (
+          <div className="rounded-xl border shadow-sm overflow-hidden"
+            style={{ borderColor: cuadra ? '#BBF7D0' : '#FDE68A', background: cuadra ? '#F0FDF4' : '#FFFBEB' }}>
+            <div className="px-5 py-4 flex items-center gap-4 flex-wrap">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold"
+                style={{ background: cuadra ? '#059669' : '#D97706' }}>
+                Σ
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-gray-900 text-sm">
+                    Total {ORDEN_MES.length} meses · {MES_INI} a {MES_FIN} 2026
+                  </span>
+                  <Pill bg="#F3E8FF" fg="#6B21A8">{filas.length} registros</Pill>
+                  <Pill bg="#FEE2E2" fg="#B91C1C">Ing. perdido real {fmtF(totReal)}</Pill>
+                  {totFraude > 0 && <Pill bg="#FFEDD5" fg="#C2410C">+ fraude {fmtF(totFraude)}</Pill>}
+                  {totChurns > 0 && <Pill bg="#FEF2F2" fg="#DC2626" border>{totChurns} churns</Pill>}
+                </div>
+                <p className="text-[11px] mt-1" style={{ color: cuadra ? '#047857' : '#B45309' }}>
+                  {cuadra
+                    ? `Cuadra con el Gross Revenue Churn del periodo: ${fmtF(grc.tot.perdida)}`
+                    : `Vista filtrada${filtrado ? '' : ''}: ${fmtF(totReal)} de los ${fmtF(grc.tot.perdida)} del Gross Revenue Churn. Quita los filtros para cerrar el periodo completo.`}
+                </p>
+              </div>
+              {cuadra
+                ? <CheckCircle2 size={18} style={{ color: '#059669' }} className="flex-shrink-0" />
+                : <AlertTriangle size={18} style={{ color: '#D97706' }} className="flex-shrink-0" />}
+            </div>
+          </div>
+        )
+      })()}
 
       <p className="text-[11px] text-gray-400 text-center">
         Fuente: GRC_AAA_2026.xlsx · Zoho Analytics · {PERIODO_CORTO} · {AAA_GRC_FLAT.length} registros
