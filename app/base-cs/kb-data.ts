@@ -872,13 +872,15 @@ export const KB: Categoria[] = [
             'Corresponde a los mensajes de texto, multimedia o audio intercambiados dentro de una conversación ya abierta.',
             'Una vez que el cliente responde a una plantilla verificada, se abre una ventana de 24 horas de atención.',
             'Durante ese periodo, TODOS los mensajes entrantes y salientes (del cliente y de la empresa) generan costo según las tarifas establecidas.',
+            'La ventana de 24 horas NO es un periodo gratuito ni de mensajes ilimitados: es una ventana en la que se puede conversar SIN volver a pagar una plantilla, pero cada mensaje intercambiado sigue generando costo.',
             'Al finalizar la ventana de 24 horas, la empresa deberá enviar nuevamente una plantilla verificada para reactivar la conversación, repitiendo el ciclo de comunicación y cobro.',
           ]},
         ],
         consideraciones: [
+          { texto: 'NUNCA afirmes que dentro de la ventana de 24 horas los mensajes son gratuitos o "sin costo adicional". El documento dice lo contrario: todos los mensajes entrantes y salientes de esa ventana generan costo según las tarifas establecidas. Lo único que evita la ventana es tener que pagar otra plantilla para reabrir la conversación.', tipo: 'error' },
           { texto: 'El costo depende de la CATEGORÍA de la plantilla (Utility, Marketing o Authentication), no es una tarifa única.', tipo: 'warning' },
           { texto: 'La ventana de 24 horas se cuenta desde que el cliente responde. Cerrada la ventana, reabrir la conversación vuelve a costar una plantilla.', tipo: 'warning' },
-          { texto: 'El documento no publica el importe de cada categoría de plantilla; las tarifas las establece Meta. Para un costo puntual hay que canalizar la consulta a un asesor.', tipo: 'info' },
+          { texto: 'El documento no publica el importe de cada categoría de plantilla ni el de los mensajes individuales; las tarifas las establece Meta. Para un costo puntual hay que canalizar la consulta a un asesor — no estimarlo.', tipo: 'info' },
         ],
       },
       {
