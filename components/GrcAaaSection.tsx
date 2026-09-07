@@ -48,6 +48,24 @@ const MES_FIN = ORDEN_MES[ORDEN_MES.length - 1] ?? ''
 const PERIODO = `${MES_INI} a ${MES_FIN} 2026`
 const PERIODO_CORTO = `${ABREV[MES_INI] ?? MES_INI}–${ABREV[MES_FIN] ?? MES_FIN} 2026`
 
+/* Columnas del detalle mensual. `largo` es el nombre EXACTO del campo en el
+   export de Zoho y se muestra como tooltip al pasar el cursor, igual que en
+   el Excel. La columna destacada es "Ingreso Perdido Contrato (BCY) Real":
+   es la que alimenta el Gross Revenue Churn. */
+const COLUMNAS_MES: { corto: string; largo: string; destacada?: boolean }[] = [
+  { corto: 'Cliente',           largo: 'Cliente' },
+  { corto: 'Clas.',             largo: 'clasificacion_cliente' },
+  { corto: 'Movimiento',        largo: 'Movimiento MRR' },
+  { corto: 'MRR Inicio',        largo: 'MRR Inicio Contrato (BCY)' },
+  { corto: 'MRR Fin',           largo: 'MRR Fin Contrato (BCY)' },
+  { corto: 'Ing. Perdido Real', largo: 'Ingreso Perdido Contrato (BCY) Real', destacada: true },
+  { corto: 'Fraude',            largo: 'Ingreso Perdido Contrato (BCY) Fraude-Reestructura' },
+  { corto: 'Pérdida Total',     largo: 'Real + Fraude-Reestructura — cálculo del dashboard, no es un campo del export' },
+  { corto: 'Acumulado',         largo: 'Importe Acumulado Recurrente' },
+  { corto: 'Meses',             largo: 'Meses Activo' },
+  { corto: 'Facts.',            largo: 'Facturas_2026' },
+]
+
 const ORDEN_CLAS = ['AAA','AA','A','B','C']
 const ORDEN_RANGO = ['$1 - $300','$301 - $500','$501 - $1,000','$1,001 - $3,000',
   '$3,001 - $5,000','$5,001 - $10,000','$10,001 - $20,000','$20,001 - $40,000','$40,001 - $80,000']
@@ -349,7 +367,12 @@ export default function GrcAaaSection() {
           (!fClas || c.clas === fClas) && (!fMov || c.movimiento === fMov))
         if (clientes.length === 0) return null
         const open = openMes[mesData.mes] ?? false
-        const perd = clientes.reduce((s, c) => s + c.perdido + c.perdido2, 0)
+        /* "Ingreso Perdido Contrato (BCY) Real" y el fraude/reestructura se
+           llevan por separado: el GRC se construye SÓLO con el real, así que
+           mezclarlos aquí hacía que el mes no atara con la tabla de arriba. */
+        const perdReal = clientes.reduce((s, c) => s + c.perdido, 0)
+        const fraude   = clientes.reduce((s, c) => s + c.perdido2, 0)
+        const perd     = perdReal + fraude
         const mrrIni = clientes.reduce((s, c) => s + c.mrrInicio, 0)
         const churns = clientes.filter(c => c.movimiento.includes('Churn')).length
 
@@ -365,7 +388,8 @@ export default function GrcAaaSection() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-gray-900 text-sm">{mesData.mes} 2026</span>
                   <Pill bg="#F3E8FF" fg="#6B21A8">{clientes.length} cliente{clientes.length !== 1 ? 's' : ''}</Pill>
-                  <Pill bg="#FEE2E2" fg="#B91C1C">Perdido {fmt(perd)}</Pill>
+                  <Pill bg="#FEE2E2" fg="#B91C1C">Ing. perdido real {fmt(perdReal)}</Pill>
+                  {fraude > 0 && <Pill bg="#FFEDD5" fg="#C2410C">+ fraude {fmt(fraude)}</Pill>}
                   {churns > 0 && <Pill bg="#FEF2F2" fg="#DC2626" border>{churns} churn{churns !== 1 ? 's' : ''}</Pill>}
                 </div>
                 <p className="text-[11px] text-gray-400 mt-0.5">MRR inicio del período: {fmtF(mrrIni)}</p>
@@ -376,12 +400,17 @@ export default function GrcAaaSection() {
 
             {open && (
               <div className="border-t border-gray-100 overflow-x-auto">
-                <table className="w-full text-xs" style={{ minWidth: 860 }}>
+                <table className="w-full text-xs" style={{ minWidth: 960 }}>
                   <thead>
                     <tr className="bg-gray-50/80 border-b border-gray-100">
-                      {['Cliente','Clas.','Movimiento','MRR Inicio','MRR Fin','Ing. Perdido','Fraude','Acumulado','Meses','Facts.']
-                        .map((h, i) => (
-                        <th key={h} className={`py-2.5 px-3 font-semibold text-gray-500 uppercase tracking-wide text-[10px] whitespace-nowrap ${i >= 3 ? 'text-right' : 'text-left'}`}>{h}</th>
+                      {COLUMNAS_MES.map((col, i) => (
+                        <th key={col.corto} title={col.largo}
+                          className={`py-2.5 px-3 font-semibold uppercase tracking-wide text-[10px] whitespace-nowrap
+                            ${i >= 3 ? 'text-right' : 'text-left'}
+                            ${col.destacada ? 'text-red-700' : 'text-gray-500'}`}
+                          style={col.destacada ? { background: '#FEF2F2' } : undefined}>
+                          {col.corto}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -412,11 +441,19 @@ export default function GrcAaaSection() {
                             {c.mrrFin > 0 ? <span className="text-gray-700">{fmtF(c.mrrFin)}</span>
                                           : <span className="font-bold text-red-600">$0</span>}
                           </td>
+                          {/* Ingreso Perdido Contrato (BCY) Real — el campo que alimenta el GRC */}
+                          <td className="py-2.5 px-3 text-right font-bold tabular-nums"
+                            title="Ingreso Perdido Contrato (BCY) Real"
+                            style={{ color: c.perdido > 0 ? '#B91C1C' : '#CBD5E1', background: '#FEF2F2' }}>
+                            {c.perdido > 0 ? fmtF(c.perdido) : '—'}
+                          </td>
+                          <td className="py-2.5 px-3 text-right tabular-nums"
+                            title="Ingreso Perdido Contrato (BCY) Fraude-Reestructura"
+                            style={{ color: c.perdido2 > 0 ? '#C2410C' : '#CBD5E1' }}>
+                            {c.perdido2 > 0 ? fmtF(c.perdido2) : '—'}
+                          </td>
                           <td className="py-2.5 px-3 text-right font-semibold tabular-nums" style={{ color: perdTotal > 0 ? '#EA580C' : '#CBD5E1' }}>
                             {perdTotal > 0 ? fmtF(perdTotal) : '—'}
-                          </td>
-                          <td className="py-2.5 px-3 text-right tabular-nums" style={{ color: c.perdido2 > 0 ? '#C2410C' : '#CBD5E1' }}>
-                            {c.perdido2 > 0 ? fmtF(c.perdido2) : '—'}
                           </td>
                           <td className="py-2.5 px-3 text-right text-gray-500 tabular-nums">{fmt(c.acumulado)}</td>
                           <td className="py-2.5 px-3 text-right text-gray-500 tabular-nums">{c.meses || '—'}</td>
@@ -432,8 +469,14 @@ export default function GrcAaaSection() {
                       <td className="py-2.5 px-3 text-right font-bold text-gray-700 text-[10px] tabular-nums">
                         {fmtF(clientes.reduce((s, c) => s + c.mrrFin, 0))}
                       </td>
+                      <td className="py-2.5 px-3 text-right font-bold text-[10px] tabular-nums"
+                        title="Ingreso Perdido Contrato (BCY) Real"
+                        style={{ color: '#B91C1C', background: '#FEE2E2' }}>{fmtF(perdReal)}</td>
+                      <td className="py-2.5 px-3 text-right font-bold text-[10px] tabular-nums" style={{ color: '#C2410C' }}>
+                        {fraude > 0 ? fmtF(fraude) : '—'}
+                      </td>
                       <td className="py-2.5 px-3 text-right font-bold text-orange-700 text-[10px] tabular-nums">{fmtF(perd)}</td>
-                      <td className="py-2.5 px-3" colSpan={4} />
+                      <td className="py-2.5 px-3" colSpan={3} />
                     </tr>
                   </tfoot>
                 </table>
