@@ -808,7 +808,138 @@ export const KB: Categoria[] = [
   // ── CHAT ─────────────────────────────────────────────────────────────────
   {
     id: 'chat', label: 'Chat', color: '#EC4899',
-    articulos: [],
+    articulos: [
+      {
+        id: 'wa-api-que-es',
+        pdfUrl: '/docs/Callpicker Chat - WhatsApp Business API.pdf',
+        titulo: 'WhatsApp Business API — qué es y ventajas',
+        descripcion: 'WhatsApp Business API es la versión profesional de WhatsApp, diseñada para empresas medianas y grandes que desean comunicarse con sus clientes a gran escala, de forma segura, automatizada y medible. Permite integrar WhatsApp con sistemas empresariales, plataformas de atención al cliente, CRMs o chatbots para ofrecer una atención más rápida, personalizada y eficiente.',
+        utilidad: 'Documento oficial de información de servicio de Callpicker Chat, versión 3.16.0.',
+        badge: 'nuevo',
+        subtitulos: [
+          { titulo: 'Ventajas principales', items: [
+            'Automatización total: conecta bots, flujos conversacionales y respuestas inteligentes sin riesgo de suspensión de cuentas por el uso de este tipo de herramientas.',
+            'Atención multiagente: varios agentes pueden atender desde una misma línea.',
+            'Plantillas aprobadas: envía mensajes proactivos (notificaciones, recordatorios, confirmaciones) con formatos oficiales de WhatsApp.',
+            'Envíos masivos inteligentes: campañas de mensajería a gran escala de forma controlada y segmentada, usando plantillas aprobadas y midiendo el rendimiento de cada envío. Ideal para promociones, avisos, recordatorios y seguimientos automatizados.',
+          ]},
+        ],
+      },
+      {
+        id: 'wa-api-requisitos',
+        pdfUrl: '/docs/Callpicker Chat - WhatsApp Business API.pdf',
+        titulo: 'Requisitos para dar de alta WhatsApp Business API',
+        descripcion: 'Meta busca garantizar que quienes usen WhatsApp Business API sean empresas verificadas y de confianza, comprometidas con el uso responsable y legítimo de la plataforma. Por eso hay dos requisitos previos obligatorios: un portafolio comercial de Meta creado Y verificado, y un número telefónico que cumpla dos condiciones.',
+        badge: 'nuevo',
+        subtitulos: [
+          { titulo: '1. Portafolio Comercial de Meta creado y verificado', items: [
+            'El Portafolio Comercial —también llamado Meta Business Manager— es el panel central donde la empresa administra sus activos digitales.',
+            'Agrupa: páginas de Facebook, cuentas de Instagram empresariales, cuentas publicitarias, y aplicaciones y activos asociados.',
+            'Ahí la empresa registra su información legal y comercial para que Meta verifique su identidad y reconozca que es una empresa formalmente establecida.',
+            'Primer paso del cliente: verificar si YA cuenta con un Portafolio Comercial activo.',
+            'Si ya lo tiene, debe asegurarse de tener acceso como administrador.',
+            'Si no lo tiene, hay que crear uno nuevo. Callpicker puede apoyar en ese proceso si es necesario.',
+          ]},
+          { titulo: '2. Número telefónico con capacidad de recibir OTP', items: [
+            'El número debe poder recibir llamadas o mensajes SMS.',
+            'Durante la activación, WhatsApp envía un código OTP (One Time Password) para verificar y vincular oficialmente el número con la cuenta empresarial.',
+            'Completada la verificación, el número queda registrado y listo para operar dentro de la plataforma API.',
+          ]},
+          { titulo: '3. Número libre de uso previo', items: [
+            'El número debe estar completamente libre de cualquier cuenta activa de WhatsApp o WhatsApp Business para teléfonos.',
+            'Si el número ya está vinculado a una cuenta existente, Meta NO permitirá su registro en la API y mostrará una advertencia de que el número ya está en uso.',
+            'Para continuar con éxito la solicitud, se debe eliminar previamente toda asociación del número con cualquier cuenta de WhatsApp antes de iniciar el alta.',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'El portafolio comercial no basta con estar creado: debe estar VERIFICADO por Meta.', tipo: 'warning' },
+        ],
+      },
+      {
+        id: 'wa-api-cobros',
+        pdfUrl: '/docs/Callpicker Chat - WhatsApp Business API.pdf',
+        titulo: 'WhatsApp Business API — cobro por conversaciones y mensajes',
+        descripcion: 'WhatsApp Business API es un servicio que genera cobro por su uso. Los cobros se dividen en dos rubros: las conversaciones que inicia la empresa mediante plantillas verificadas, y los mensajes individuales intercambiados dentro de una conversación ya abierta.',
+        badge: 'nuevo',
+        subtitulos: [
+          { titulo: '1. Conversaciones iniciadas por la empresa (plantillas verificadas)', items: [
+            'Cada vez que la empresa necesita iniciar una conversación con un cliente es OBLIGATORIO hacerlo mediante plantillas verificadas aprobadas por Meta.',
+            'Estas plantillas se usan para notificaciones, recordatorios, avisos o mensajes proactivos.',
+            'Están clasificadas por categorías: Utility, Marketing o Authentication.',
+            'El costo de uso varía según la categoría de la plantilla, y Meta cobra cada vez que se envía una plantilla a un cliente.',
+          ]},
+          { titulo: '2. Mensajes individuales dentro de una conversación activa', items: [
+            'Corresponde a los mensajes de texto, multimedia o audio intercambiados dentro de una conversación ya abierta.',
+            'Una vez que el cliente responde a una plantilla verificada, se abre una ventana de 24 horas de atención.',
+            'Durante ese periodo, TODOS los mensajes entrantes y salientes (del cliente y de la empresa) generan costo según las tarifas establecidas.',
+            'Al finalizar la ventana de 24 horas, la empresa deberá enviar nuevamente una plantilla verificada para reactivar la conversación, repitiendo el ciclo de comunicación y cobro.',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'El costo depende de la CATEGORÍA de la plantilla (Utility, Marketing o Authentication), no es una tarifa única.', tipo: 'warning' },
+          { texto: 'La ventana de 24 horas se cuenta desde que el cliente responde. Cerrada la ventana, reabrir la conversación vuelve a costar una plantilla.', tipo: 'warning' },
+          { texto: 'El documento no publica el importe de cada categoría de plantilla; las tarifas las establece Meta. Para un costo puntual hay que canalizar la consulta a un asesor.', tipo: 'info' },
+        ],
+      },
+      {
+        id: 'wa-api-uso-exclusivo',
+        pdfUrl: '/docs/Callpicker Chat - WhatsApp Business API.pdf',
+        titulo: 'Uso exclusivo en modalidad API — el número deja de servir en el celular',
+        descripcion: 'Una vez que el número se da de alta en modalidad API ya NO puede usarse en la aplicación oficial de WhatsApp ni en WhatsApp Business para teléfonos móviles. Toda la comunicación y gestión deberá realizarse únicamente a través del sistema Callpicker Chat o de la app móvil de Callpicker Chat.',
+        badge: 'nuevo',
+        subtitulos: [
+          { titulo: 'Si el número ya tiene una cuenta de WhatsApp móvil', items: [
+            'Será necesario eliminar por completo esa cuenta antes de poder darlo de alta en modalidad API.',
+            'Al eliminar la cuenta se pierde toda la información asociada.',
+          ]},
+          { titulo: 'Información que se pierde al eliminar la cuenta', items: [
+            'Conversaciones y archivos.',
+            'Grupos y listas de difusión.',
+            'Respaldos almacenados en Google Drive o iCloud.',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'PÉRDIDA DE DATOS IRREVERSIBLE: eliminar la cuenta de WhatsApp del número borra conversaciones, archivos, grupos, listas de difusión y los respaldos en Google Drive o iCloud. Advertir al cliente ANTES de iniciar el proceso y sugerir que resguarde lo que necesite conservar.', tipo: 'error' },
+          { texto: 'Tras el alta en API, el número deja de funcionar en la app móvil de WhatsApp y de WhatsApp Business. Si el cliente usa ese número a diario desde su celular, conviene evaluar dar de alta un número distinto.', tipo: 'warning' },
+          { texto: 'Gestionar todo desde Callpicker Chat garantiza la sincronización total de conversaciones, agentes y automatizaciones dentro del entorno profesional.' },
+        ],
+      },
+      {
+        id: 'wa-api-plantillas',
+        pdfUrl: '/docs/Callpicker Chat - WhatsApp Business API.pdf',
+        titulo: 'Plantillas verificadas de WhatsApp Business API',
+        descripcion: 'Las plantillas verificadas (también llamadas message templates) son mensajes preaprobados por Meta que las empresas usan para iniciar conversaciones o enviar notificaciones automáticas a sus clientes. Garantizan el cumplimiento de las políticas de WhatsApp, asegurando que los mensajes sean seguros, relevantes y no intrusivos.',
+        badge: 'nuevo',
+        subtitulos: [
+          { titulo: '¿Cuándo se deben usar? — los 3 casos', items: [
+            '1. Cuando la empresa inicia una conversación: si el negocio necesita contactar a un cliente primero (confirmación, recordatorio, aviso o promoción), es obligatorio usar una plantilla verificada.',
+            '2. Cuando ha expirado la ventana de 24 horas: si el cliente no responde dentro de 24 horas desde su último mensaje, la ventana de atención se cierra. Para reanudar hay que enviar de nuevo una plantilla verificada, abriendo una nueva ventana.',
+            '3. Para notificaciones automáticas o masivas: las campañas de mensajes masivos o automáticos (recordatorios de pago, estatus de pedidos, confirmaciones) deben enviarse siempre mediante plantillas aprobadas por Meta.',
+          ]},
+          { titulo: 'Categorías de plantillas verificadas', items: [
+            'Utility (Utilidad): recordatorios, confirmaciones o avisos de servicio.',
+            'Marketing: promociones, novedades o mensajes informativos.',
+            'Authentication: códigos de verificación o confirmación de identidad.',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'La categoría de la plantilla determina su costo — ver el artículo de cobro por conversaciones y mensajes.', tipo: 'info' },
+        ],
+      },
+      {
+        id: 'wa-api-soporte',
+        pdfUrl: '/docs/Callpicker Chat - WhatsApp Business API.pdf',
+        titulo: 'WhatsApp Business API — contacto de soporte',
+        descripcion: 'Canales oficiales publicados en el documento de información de servicio para dudas o ayuda con WhatsApp Business API.',
+        badge: 'nuevo',
+        subtitulos: [
+          { titulo: 'Contacto', items: [
+            'Teléfono y WhatsApp: 55 5011 8919',
+            'Email para generación de ticket de soporte: ayuda@callpicker.com',
+          ]},
+        ],
+      },
+    ],
   },
 
   // ── SEGURIDAD ─────────────────────────────────────────────────────────────
