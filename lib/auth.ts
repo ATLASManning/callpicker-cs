@@ -39,6 +39,13 @@ const EMAILS_AUTORIZADOS_DEFAULT = [
   'roberto@callpicker.com',
   'nancy@callpicker.com',
   'valeria@callpicker.com',
+  // Asesores de cuenta (7 sep 2026) — rol `asesor`: cada uno ve sólo su
+  // cartera. Marcarlos `activo` en Gestión de Usuarios NO basta: esa marca
+  // sólo se revisa en login/verify, mientras que esta lista se evalúa en
+  // cada request desde el middleware.
+  'fatima@callpicker.com',
+  'claudia@callpicker.com',
+  'dominguez.dan@callpicker.com',
 ]
 
 export function emailsAutorizados(): Set<string> {
