@@ -4,9 +4,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell, LineChart, Line, Legend,
 } from 'recharts'
-import { BarChart3, CalendarDays, XCircle, DollarSign, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
+import { BarChart3, CalendarDays, XCircle, DollarSign, AlertTriangle, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
 import { AAA_GRC_2026, AAA_GRC_FLAT } from '@/app/churn/aaa-grc-data'
+import { GRC_BASE_MRR, GRC_VERIFICACION, GRC_RESUMEN_REPORTE } from '@/app/churn/grc-reporte'
 
 const fmt = (n: number) => '$' + n.toLocaleString('es-MX', { maximumFractionDigits: 0 })
 const fmtF = (n: number) => '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -101,6 +102,56 @@ export default function GrcAaaSection() {
     }
   }), [filas])
 
+  /* ── Gross Revenue Churn oficial ─────────────────────────────────────
+     Se calcula sobre TODAS las clasificaciones y con la pérdida REAL: es el
+     reporte de dirección, no la vista filtrada de abajo. El fraude /
+     reestructura queda fuera, igual que en el reporte GRC.
+     La base de MRR no está en el Excel (sólo trae contratos afectados), así
+     que viene de GRC_BASE_MRR; sin base, el mes no muestra porcentaje. */
+  const grc = useMemo(() => {
+    let acum = 0
+    const filas = ORDEN_MES.map(mes => {
+      const f = AAA_GRC_FLAT.filter(r => r.mes === mes)
+      const churn     = f.filter(r => r.movimiento.includes('Churn')).reduce((s, r) => s + r.perdido, 0)
+      const downgrade = f.filter(r => r.movimiento.includes('Downgrade')).reduce((s, r) => s + r.perdido, 0)
+      const perdida   = churn + downgrade
+      const base      = GRC_BASE_MRR[mes] ?? 0
+      const pct       = base ? (perdida / base) * 100 : null
+      if (pct !== null) acum += pct
+      return { mes, base, churn, downgrade, perdida, pct, acum: pct !== null ? acum : null }
+    })
+    const tot = filas.reduce((a, r) => ({
+      base: a.base + r.base, churn: a.churn + r.churn,
+      downgrade: a.downgrade + r.downgrade, perdida: a.perdida + r.perdida,
+    }), { base: 0, churn: 0, downgrade: 0, perdida: 0 })
+    return { filas, tot, pctGlobal: tot.base ? (tot.perdida / tot.base) * 100 : 0 }
+  }, [])
+
+  /* Contraste contra el reporte GRC: si al regenerar los datos algún mes deja
+     de cuadrar, se dice en pantalla en vez de mostrar un número equivocado. */
+  const descuadres = useMemo(() => {
+    const cerca = (a: number, b: number) => Math.abs(a - b) < 0.005
+    const porMes = grc.filas.flatMap(f => {
+      const esperado = GRC_VERIFICACION.find(v => v.mes === f.mes)
+      if (!esperado) return [`${f.mes}: sin fila de verificación en el reporte`]
+      if (cerca(f.churn, esperado.churn) && cerca(f.downgrade, esperado.downgrade)
+        && cerca(f.perdida, esperado.perdida)) return []
+      return [`${f.mes}: dashboard ${fmtF(f.perdida)} vs reporte ${fmtF(esperado.perdida)}`]
+    })
+    const R = GRC_RESUMEN_REPORTE
+    const totales = [
+      ['base de MRR',  grc.tot.base,      R.base],
+      ['churn',        grc.tot.churn,     R.churn],
+      ['downgrade',    grc.tot.downgrade, R.downgrade],
+      ['pérdida',      grc.tot.perdida,   R.perdida],
+    ] as const
+    return [
+      ...porMes,
+      ...totales.filter(([, a, b]) => !cerca(a, b))
+        .map(([etq, a, b]) => `Resumen amplio · ${etq}: dashboard ${fmtF(a)} vs reporte ${fmtF(b)}`),
+    ]
+  }, [grc])
+
   /* ── KPIs ── */
   const kpi = useMemo(() => ({
     registros: filas.length,
@@ -129,6 +180,96 @@ export default function GrcAaaSection() {
             Pérdida: Downgrade + Churn · Fuente: Zoho Analytics · {AAA_GRC_FLAT.length} registros en el período
           </p>
         </div>
+      </div>
+
+      {/* ── Gross Revenue Churn · tabla oficial de dirección ─────────────── */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h4 className="font-bold text-gray-900 text-sm">Gross Revenue Churn — 2026 confirmado</h4>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Todas las clasificaciones · pérdida real, sin fraude ni reestructura ·
+              la base de MRR proviene del reporte GRC, no del export
+            </p>
+          </div>
+          {descuadres.length === 0 ? (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex-shrink-0"
+              style={{ background: '#05966915', color: '#059669' }}>
+              <CheckCircle2 size={12} /> Conciliado con el reporte GRC
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex-shrink-0"
+              style={{ background: '#DC262615', color: '#DC2626' }}>
+              <AlertTriangle size={12} /> {descuadres.length} mes(es) sin cuadrar
+            </span>
+          )}
+        </div>
+
+        {descuadres.length > 0 && (
+          <ul className="px-5 py-3 bg-red-50 border-b border-red-100 text-[11px] text-red-700 space-y-0.5">
+            {descuadres.map(d => <li key={d}>· {d}</li>)}
+          </ul>
+        )}
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs" style={{ minWidth: 680 }}>
+            <thead>
+              <tr style={{ background: '#1D4ED8' }} className="text-white align-bottom">
+                <th className="text-left  font-bold px-3 py-2.5">Mes</th>
+                <th className="text-right font-bold px-3 py-2.5">MRR inicio</th>
+                <th className="text-right font-bold px-3 py-2.5">Churn</th>
+                <th className="text-right font-bold px-3 py-2.5">Downgrade</th>
+                {/* Columna destacada: es la cifra que se reporta a dirección. */}
+                <th className="text-right font-extrabold px-3 py-2.5"
+                  style={{ background: '#1E40AF', whiteSpace: 'normal', minWidth: 108 }}>
+                  Pérdida:<br />Downgrade + Churn
+                </th>
+                <th className="text-right font-bold px-3 py-2.5" style={{ whiteSpace: 'normal' }}>
+                  GRC (%)<br />Mensual
+                </th>
+                <th className="text-right font-bold px-3 py-2.5" style={{ whiteSpace: 'normal' }}>
+                  GRC (%)<br />Acumulado
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {grc.filas.map((f, i) => (
+                <tr key={f.mes} className="border-b border-gray-100" style={{ background: i % 2 ? '#F8FAFC' : '#fff' }}>
+                  <td className="px-3 py-2 font-semibold text-gray-700">{f.mes}</td>
+                  <td className="px-3 py-2 text-right tabular-nums text-gray-600 whitespace-nowrap">
+                    {f.base ? fmtF(f.base) : <span className="text-gray-400">sin base</span>}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap" style={{ color: '#DC2626' }}>{fmtF(f.churn)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap" style={{ color: '#D97706' }}>{fmtF(f.downgrade)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums font-bold whitespace-nowrap"
+                    style={{ color: '#B91C1C', background: '#FEF2F2' }}>{fmtF(f.perdida)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums font-semibold text-gray-700">
+                    {f.pct === null ? '—' : `${f.pct.toFixed(1)}%`}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular-nums font-semibold text-gray-700">
+                    {f.acum === null ? '—' : `${f.acum.toFixed(1)}%`}
+                  </td>
+                </tr>
+              ))}
+              <tr style={{ background: '#EFF6FF' }} className="border-t-2" >
+                <td className="px-3 py-2.5 font-bold text-gray-900 whitespace-nowrap">Resumen amplio:</td>
+                <td className="px-3 py-2.5 text-right tabular-nums font-bold text-gray-900 whitespace-nowrap">{fmtF(grc.tot.base)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums font-bold whitespace-nowrap" style={{ color: '#DC2626' }}>{fmtF(grc.tot.churn)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums font-bold whitespace-nowrap" style={{ color: '#D97706' }}>{fmtF(grc.tot.downgrade)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums font-extrabold whitespace-nowrap"
+                  style={{ color: '#B91C1C', background: '#FEE2E2' }}>{fmtF(grc.tot.perdida)}</td>
+                <td className="px-3 py-2.5 text-right tabular-nums font-bold text-gray-900">{grc.pctGlobal.toFixed(1)}%</td>
+                <td className="px-3 py-2.5" />
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p className="px-5 py-2.5 text-[11px] text-gray-400 border-t border-gray-100">
+          El GRC acumulado es la suma de los porcentajes mensuales. El fraude y la reestructura
+          se excluyen: en el periodo suman {fmtF(AAA_GRC_FLAT.reduce((s, r) => s + r.perdido2, 0))} y
+          se reportan aparte. Esta tabla no se ve afectada por los filtros de abajo.
+        </p>
       </div>
 
       {/* KPIs */}
