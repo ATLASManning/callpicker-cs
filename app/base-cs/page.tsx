@@ -7,7 +7,7 @@ import {
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
   ShieldCheck, Puzzle, Globe, FileText, LifeBuoy,
-  Heart, ExternalLink, Cpu, BookMarked, Download,
+  Heart, ExternalLink, Cpu, BookMarked, Download, Eye, EyeOff,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
 import GlosarioTecnico from '@/components/GlosarioTecnico'
@@ -124,6 +124,10 @@ function Consideracion({ texto, tipo }: { texto: string; tipo?: string }) {
 // ── Tarjeta de artículo ───────────────────────────────────────────────────────
 function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor: string; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen ?? false)
+  /* El visor del PDF lleva su propio estado, independiente de `open`: así un
+     artículo que sólo tiene documento adjunto —sin secciones extra— también
+     puede mostrarlo sin salir de la Base de Conocimiento. */
+  const [verDoc, setVerDoc] = useState(false)
   const hasExtra = !!(art.tarificacion || art.funcionamiento || art.consideraciones ||
     art.modalidades || art.acciones || art.graficas || art.apis || art.subtitulos || art.utilidad || art.bloques)
 
@@ -147,6 +151,33 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
             <p style={{ fontSize: 17, fontWeight: 700, color: TX }}>{art.titulo}</p>
             {art.badge && <Badge type={art.badge} />}
+            {/* Lectura DENTRO de la Base de Conocimiento, sin abrir otra
+                pestaña ni descargar. */}
+            {art.pdfUrl && (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={e => { e.stopPropagation(); setVerDoc(v => !v) }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault(); e.stopPropagation(); setVerDoc(v => !v)
+                  }
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
+                  background: verDoc ? catColor : `${catColor}18`,
+                  color: verDoc ? '#fff' : catColor,
+                  border: `1px solid ${catColor}${verDoc ? '' : '35'}`,
+                  cursor: 'pointer', transition: 'opacity 150ms',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                {verDoc ? <EyeOff size={11} /> : <Eye size={11} />}
+                {verDoc ? 'Ocultar documento' : 'Ver aquí'}
+              </span>
+            )}
             {art.pdfUrl && (
               <a
                 href={art.pdfUrl}
@@ -234,6 +265,27 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           </div>
         )}
       </button>
+
+      {/* Visor del documento — se lee aquí mismo, sin salir del módulo */}
+      {art.pdfUrl && verDoc && (
+        <div style={{ padding: '0 20px 20px', borderTop: `1px solid ${BORDER}` }}>
+          <div style={{
+            marginTop: 16, borderRadius: 10, overflow: 'hidden',
+            border: `1px solid ${BORDER}`, background: '#fff',
+          }}>
+            <iframe
+              src={art.pdfUrl}
+              title={art.titulo}
+              style={{ width: '100%', height: 620, border: 0, display: 'block' }}
+            />
+          </div>
+          <p style={{ fontSize: 11, color: TX_LOW, marginTop: 8 }}>
+            {art.pdfUrl.split('/').pop()} · Si el documento no se muestra, tu navegador
+            puede tener desactivado el visor de PDF: usa “Ver PDF” para abrirlo en una
+            pestaña o “Descargar” para guardarlo.
+          </p>
+        </div>
+      )}
 
       {/* Contenido expandido */}
       {open && (
