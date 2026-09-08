@@ -147,6 +147,52 @@ export const KB: Categoria[] = [
         ],
       },
       {
+        id: 'portabilidad',
+        pdfUrl: '/docs/Solicitud de Portabilidad.pdf',
+        titulo: 'Solicitud de Portabilidad — migrar un número a Callpicker',
+        descripcion: 'Si el número de la empresa ya está posicionado entre sus clientes pero está con un proveedor tradicional (por ejemplo Telmex o Axtel), puede migrarse a la plataforma de Callpicker. El trámite se llama portabilidad numérica y es TOTALMENTE GRATUITO. Solo se requiere enviar copia digital de los documentos a ayuda@callpicker.com.',
+        utilidad: 'Checklist para pedirle al cliente la documentación completa a la primera y no alargar el trámite.',
+        badge: 'nuevo',
+        subtitulos: [
+          { titulo: 'Si el número está a nombre de PERSONA FÍSICA', items: [
+            'INE o pasaporte vigente del titular de la línea.',
+            'Carátula del recibo telefónico actual, no mayor a 3 meses.',
+            'NIP de portabilidad de 4 dígitos, que se obtiene marcando 051 desde la línea que se desea portar.',
+          ]},
+          { titulo: 'Si el número está a nombre de PERSONA MORAL', items: [
+            'Carátula del recibo telefónico actual, no mayor a 3 meses.',
+            'Acta constitutiva.',
+            'Poder del representante legal, en caso de que no aparezca en el acta constitutiva.',
+            'INE o pasaporte vigente del representante legal.',
+          ]},
+          { titulo: 'Proceso y tiempos', items: [
+            'Con esos documentos Callpicker genera una solicitud de portabilidad para que la firme el titular o el representante legal; puede devolverse de manera digital.',
+            'Con la documentación completa se ingresa al organismo regulador.',
+            'En un lapso aproximado de 8 DÍAS HÁBILES el número queda migrado. Se notifica previamente la fecha exacta.',
+            'Durante ese tiempo el número sigue operando con el proveedor actual.',
+          ]},
+          { titulo: 'Toma en cuenta que', items: [
+            'Para iniciar el trámite es necesario contar con una cuenta PAGADA de Callpicker.',
+            'Solo se pueden migrar números fijos y 800. NO se migran celulares.',
+            'Callpicker de momento no brinda servicio de Internet. Si el número a portar tiene ese servicio, hay que pasarlo a otra línea antes de portar para no tener afectación. Si no se desea conservar el Internet, basta con devolver el módem.',
+            'El cable telefónico donde estaba el número dejará de funcionar, ya que pasa a la nube.',
+            'Al migrar un número que esté agrupado, es posible que todos los números queden desagrupados.',
+            'Es posible recibir facturas del proveedor anterior 1 o 2 meses después, si el servicio era postpago.',
+          ]},
+          { titulo: 'Contacto', items: [
+            'Envío de documentos y dudas: ayuda@callpicker.com',
+            'Teléfono: (55) 5022-0001',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'El trámite NO tiene costo. Si un cliente pregunta el precio de portar, la respuesta es que es gratuito.', tipo: 'info' },
+          { texto: 'Requisito bloqueante: la cuenta de Callpicker debe estar PAGADA antes de iniciar. Una cuenta demo no puede portar.', tipo: 'warning' },
+          { texto: 'Si la línea a portar trae Internet del mismo proveedor, advertir ANTES: hay que mover el Internet a otra línea o el cliente se queda sin servicio.', tipo: 'error' },
+          { texto: 'Los celulares no se portan a Callpicker. Solo números fijos y 800.', tipo: 'warning' },
+          { texto: 'Advertir de entrada que pueden llegar facturas del proveedor anterior 1 o 2 meses después: es normal en postpago y evita un reclamo por doble cobro.', tipo: 'warning' },
+        ],
+      },
+      {
         id: 'canales',
         titulo: 'Canales de Voz',
         descripcion: 'Los canales son las llamadas simultáneas que se pueden establecer. Por cada canal del plan, se brinda uno en cada categoría: entrante, saliente y API. Con 5 canales: recibir 5, hacer 5 y establecer 5 vía API a la vez.',
@@ -971,6 +1017,44 @@ export const KB: Categoria[] = [
         ],
       },
       {
+        id: 'politica-uso-justo',
+        pdfUrl: '/docs/Política de Uso Justo.pdf',
+        titulo: 'Política de Uso Justo — qué se considera Fraude',
+        descripcion: 'Los servicios de voz, SMS y/o datos que Callpicker ofrece de forma ilimitada sirven estrictamente la comunicación PERSONA A PERSONA. La política enumera, de manera enunciativa más no limitativa, las prácticas que se considerarán Fraude.',
+        utilidad: 'Sustento para responder por qué una cuenta con extensiones ilimitadas puede ser suspendida, y para fijar expectativas antes de vender.',
+        badge: 'nuevo',
+        subtitulos: [
+          { titulo: 'Prácticas consideradas Fraude — cuando el Usuario utilice los Servicios para:', items: [
+            '1. La comercialización, reventa o cualquier forma de explotación sin previa autorización del Instituto Federal de Telecomunicaciones o de Callpicker, o que incumpla la Ley Federal de Telecomunicaciones y Radiodifusión.',
+            '2. Establecer servicios de call center con líneas Callpicker con la finalidad de realizar campañas de contacto telefónico y/o para la realización y envío de publicidad, alertas, entre otros.',
+            '3. Utilizarlo de forma doméstica como monitor de bebé.',
+            '4. Utilizarlos como puerta de enlace de envío de comunicaciones, comúnmente conocido como bypass.',
+            '5. Realizar envío de mensajes de texto masivo tipo spam.',
+            '6. Cuando el uso de los Servicios degrade el desempeño y/o perturbe la red de Callpicker, o degrade y/o perturbe los servicios de otros usuarios.',
+            '7. Utilizar los Servicios con fines fraudulentos, delictivos o ilegales. Por ejemplo: llamadas invitando a ser parte de un concurso, invitar a hacer recargas electrónicas o encuestas.',
+            '8. Utilizar los servicios para telefonía pública y casetas telefónicas.',
+            '9. Realizar re-originación, traslación o desvío automático de llamadas.',
+            '10. Operar o permitir que terceros operen servidores de cualquier tipo, y/o conectar dispositivos, hardware o software que brinden funcionalidad de servidor a través del servicio contratado.',
+            '11. Hacer uso anómalo de los servicios.',
+            '12. Tener un uso de alto volumen que no corresponde a un uso normal, el cual se calcula con promedios de consumo de distintas empresas dentro del mismo sector.',
+          ]},
+          { titulo: 'Consecuencias', items: [
+            'Callpicker se reserva el derecho de ejercer las acciones administrativas, civiles y/o penales que conforme a derecho correspondan.',
+            'Incluye las correspondientes a la reparación de daños y perjuicios ocasionados a Callpicker.',
+            'Puede suspender o cancelar la prestación de los servicios, total o parcialmente, de manera temporal o definitiva.',
+          ]},
+          { titulo: 'Contacto', items: [
+            'Teléfono: (55) 5022-0001',
+            'Correo: ayuda@callpicker.com',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'La lista es ENUNCIATIVA MÁS NO LIMITATIVA: que una práctica no aparezca en los 12 puntos no significa que esté permitida.', tipo: 'warning' },
+          { texto: 'El punto 2 es el que más fricción genera en venta: usar líneas Callpicker para campañas de contacto telefónico saliente cae en la política, aunque el cliente lo llame "call center". Aclararlo ANTES de cerrar, no cuando se suspenda el servicio.', tipo: 'error' },
+          { texto: 'El punto 12 no fija un umbral numérico público: el "uso normal" se calcula contra promedios de consumo de empresas del mismo sector. Si un cliente pide un límite exacto, hay que canalizarlo a un asesor — no estimarlo.', tipo: 'warning' },
+        ],
+      },
+      {
         id: 'seguridad-audit',
         titulo: 'Registro de Auditoría (Audit Logging)',
         descripcion: 'El cliente tiene acceso al historial de actividad de su cuenta. Dependiendo del plan contratado, incluye registro de historial de señalización de llamadas y eventos, incluyendo intentos de acceso no autorizados.',
@@ -1299,6 +1383,57 @@ export const KB: Categoria[] = [
   {
     id: 'soporte', label: 'Soporte', color: '#F97316',
     articulos: [
+      {
+        id: 'recomendaciones-sip',
+        pdfUrl: '/docs/Recomendaciones SIP.pdf',
+        titulo: 'Recomendaciones SIP — requisitos de red',
+        descripcion: 'Requisitos de red y equipo para operar SIP con calidad. Aplican principalmente para empresas con operación de call center o que tengan restricciones en su red.',
+        utilidad: 'Documento que se entrega al área de TI del cliente antes de una implementación, y la referencia para diagnosticar audio entrecortado o llamadas que no conectan.',
+        badge: 'nuevo',
+        subtitulos: [
+          { titulo: '1. Direcciones IP a abrir y priorizar (todo el tráfico TCP/UDP, en ambos sentidos)', items: [
+            '52.44.232.15 · 23.20.173.80 · 54.211.200.108 · 54.174.145.97 · 34.230.75.23 · 34.231.224.249',
+            '23.23.180.34 · 3.226.197.47 · 18.206.129.126 · 54.90.137.78 · 18.235.237.24 · 54.159.4.99',
+            '18.235.128.171 · 35.83.13.150 · 54.152.167.53 · 52.205.217.82 · 44.199.5.141 · 3.94.223.72',
+          ]},
+          { titulo: '2. Puertos a abrir desde y hacia esas IP', items: [
+            'TCP y UDP: 4060 al 5080',
+            'TCP y UDP: 65535',
+            'TCP y UDP: 10000 al 20000',
+          ]},
+          { titulo: '3-6. Requisitos del enlace y del equipo de red', items: [
+            'Contemplar 100 kbps simétricos por llamada simultánea. Ejemplo: 4 posiciones haciendo y recibiendo llamadas al mismo tiempo requieren al menos 400 kbps.',
+            'El enlace a internet debe estar garantizado en dos parámetros: latencia menor a 120 ms y pérdida de paquetes menor al 1%.',
+            'El router debe tener un throughput de al menos 31 Mbps procesando paquetes de 64 bytes.',
+            'El router y los switches deben contar con algún esquema de priorización (QoS) de voz IP.',
+          ]},
+          { titulo: '7-8. Softphone y topología', items: [
+            'Emplear en computadoras un softphone con soporte SIP 2.0. Recomendados: Callpicker, X-lite, Bria, Zoiper.',
+            'Las computadoras o teléfonos IP NO deben estar bajo doble NAT.',
+          ]},
+          { titulo: '9. Requisitos mínimos para instalar softphone', items: [
+            'Windows 7 Service Pack 1 o superior.',
+            '4 GB de RAM.',
+            '50 MB de espacio en disco.',
+            'Intel Core 2 Duo o equivalente; tarjeta de video con soporte DirectX 9.0c.',
+            'Tarjeta de sonido Full-duplex de 16 bits, o diadema USB.',
+          ]},
+          { titulo: '10. Puntos a considerar al usar voz sobre internet', items: [
+            'La infraestructura de red —routers, firewalls, switches, teléfonos IP, conmutadores y softphone— requiere configuración y gestión continua por parte de personal calificado y especializado.',
+            'Baja calidad de audio: la mayoría de los enlaces convencionales a internet están diseñados para la navegación, no para aplicaciones de tiempo real como la voz. Eso hace que no se pueda garantizar la calidad del audio y deja al cliente la responsabilidad de resolver la estabilidad de su enlace.',
+          ]},
+          { titulo: 'Contacto', items: [
+            'Teléfono: (55) 5022-0001',
+            'Correo: ayuda@callpicker.com',
+          ]},
+        ],
+        consideraciones: [
+          { texto: 'Los tres umbrales que más fallas explican: 100 kbps simétricos POR llamada simultánea, latencia < 120 ms y pérdida de paquetes < 1%. Si el enlace del cliente no los cumple, el audio entrecortado no se resuelve del lado de Callpicker.', tipo: 'warning' },
+          { texto: 'La doble NAT es causa frecuente de llamadas que no conectan o que se registran con IP inválida. Revisarla antes de escalar a Ingeniería.', tipo: 'warning' },
+          { texto: 'El documento deja explícito que la responsabilidad de la estabilidad del enlace es del cliente. Es el sustento para pedir una visita técnica o el levantamiento de infraestructura cuando las fallas se repiten.', tipo: 'info' },
+          { texto: 'La lista de IP y puertos cambia con la infraestructura. Antes de entregarla a un cliente, confirmar que el PDF adjunto es la versión vigente.', tipo: 'info' },
+        ],
+      },
       {
         id: 'ticket-a-nombre-cliente',
         titulo: 'Levantar un Ticket a Nombre del Cliente',

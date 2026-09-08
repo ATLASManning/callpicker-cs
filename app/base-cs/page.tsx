@@ -7,7 +7,7 @@ import {
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
   ShieldCheck, Puzzle, Globe, FileText, LifeBuoy,
-  Heart, ExternalLink, Cpu, BookMarked,
+  Heart, ExternalLink, Cpu, BookMarked, Download,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
 import GlosarioTecnico from '@/components/GlosarioTecnico'
@@ -165,6 +165,30 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
               >
                 <FileText size={11} />
                 Ver PDF
+              </a>
+            )}
+            {/* Descarga directa. "Ver PDF" abre el visor del navegador; este
+                botón guarda el archivo. El atributo `download` sólo surte
+                efecto en mismo origen — los PDF viven en /public/docs, así
+                que se cumple. */}
+            {art.pdfUrl && (
+              <a
+                href={art.pdfUrl}
+                download
+                onClick={e => e.stopPropagation()}
+                title={`Descargar ${art.pdfUrl.split('/').pop()}`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
+                  background: `${catColor}18`, color: catColor,
+                  border: `1px solid ${catColor}35`, textDecoration: 'none',
+                  transition: 'opacity 150ms',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                <Download size={11} />
+                Descargar
               </a>
             )}
             {art.linkUrl && (
