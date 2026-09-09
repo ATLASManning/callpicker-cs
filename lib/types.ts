@@ -52,6 +52,19 @@ export interface Cuenta {
   factura_mensual_zoho?: number | null
   semaforo_zoho?: string | null
   segmento_zoho?: string | null
+
+  /* Bloqueo comercial — lo calcula /api/cuentas en el SERVIDOR cruzando los
+   * datasets de Churn, para que esos datasets no viajen al navegador.
+   *
+   * Regla de dirección (9-sep-2026): "si una cuenta está con Churn Confirmado
+   * o cancelada debe estar en el apartado Dormidas, pero no se debe eliminar".
+   * Estas banderas son TRUE aunque `estado` siga diciendo activo — las fuentes
+   * de Churn mandan sobre la columna, que se desactualiza (incidente 24-ago). */
+  churn_confirmado?: boolean
+  cancelacion_reportada?: boolean
+  bloqueo_sac?: boolean
+  bloqueo_motivos?: string[]
+
   servicio: string | null
   activo_desde: string | null
 

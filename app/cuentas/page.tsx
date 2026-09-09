@@ -55,6 +55,21 @@ const ESTADO_LABELS: Record<string, { label: string; color: string; bg: string }
   '4': { label: '4 - Dormido',        color: '#94A3B8', bg: '#94A3B810' },
 }
 
+/**
+ * ¿La cuenta pertenece a Dormidas y no a esta lista?
+ *
+ * Regla de dirección (9-sep-2026): "si una cuenta está con Churn Confirmado o
+ * cancelada debe estar en el apartado Dormidas, pero no se debe eliminar".
+ * Por eso no basta `estado`: esa columna se desactualiza respecto a Churn
+ * (incidente 24-ago-2026). `churn_confirmado` y `cancelacion_reportada` los
+ * calcula /api/cuentas en el servidor contra los datasets de Churn.
+ *
+ * SOLO decide en qué pantalla se ve. No borra nada.
+ */
+function vaEnDormidas(c: Cuenta): boolean {
+  return !!c.churn_confirmado || !!c.cancelacion_reportada || getEstadoKey(c) === '4'
+}
+
 function getEstadoKey(c: Cuenta): string {
   if (!c.facturacion || c.facturacion === 0) return '0'
   if (c.estado === 'hibernacion' || c.estado === 'cancelado') return '4'
@@ -205,7 +220,7 @@ function CuentasPageInner() {
   useEffect(() => { fetchCuentas() }, [fetchCuentas])
 
   const filtered = cuentas
-    .filter(c => getEstadoKey(c) !== '4')          // Dormidas van a su propia sección
+    .filter(c => !vaEnDormidas(c))                 // Dormidas van a su propia sección
     .filter(c => !warningFilter    || getDataWarning(c) === warningFilter)
     .filter(c => !topFilter        || isTopCustomer(c.consecutivo))
     .filter(c => !estadoFilter     || getEstadoKey(c) === estadoFilter)
@@ -296,7 +311,7 @@ function CuentasPageInner() {
     )
   }
 
-  const totalDormidas = cuentas.filter(c => getEstadoKey(c) === '4').length
+  const totalDormidas = cuentas.filter(c => vaEnDormidas(c)).length
 
   return (
     <div className="min-h-screen">

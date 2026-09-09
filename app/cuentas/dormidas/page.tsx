@@ -49,7 +49,13 @@ function ZohoSemaforoBadge({ val }: { val: string | null | undefined }) {
 
 // ── Motivo dormido ────────────────────────────────────────────────────────────
 function getMotivo(c: Cuenta): { label: string; color: string } {
+  // Churn confirmado va PRIMERO: es el veredicto de la fuente de Churn y vale
+  // aunque `estado` en Supabase todavía diga activo. Si se evaluara después de
+  // `estado`, una cuenta con churn confirmado y estado sin actualizar se
+  // etiquetaría por su facturación o su HS y se perdería el motivo real.
+  if (c.churn_confirmado)                       return { label: 'Churn confirmado', color: '#DC2626' }
   if (c.estado === 'cancelado')                 return { label: 'Cancelado',       color: '#EF4444' }
+  if (c.cancelacion_reportada)                  return { label: 'Cancelación reportada', color: '#F43F5E' }
   if (c.estado === 'hibernacion')               return { label: 'Hibernación',     color: '#8B5CF6' }
   if (c.semaforo_zoho === '4 - Dormido')        return { label: 'Dormido Zoho',    color: '#64748b' }
   if (!c.facturacion || c.facturacion === 0)    return { label: 'Sin facturación', color: '#6366F1' }
@@ -130,8 +136,22 @@ function DormidasPageInner() {
     if (asesorFilter) params.set('asesor', asesorFilter)
     const res  = await fetch(`/api/cuentas?${params}`)
     const data = await res.json()
-    // Todas las dormidas: estado cancelado/hibernacion OR health score bajo
+    // Todas las dormidas: estado cancelado/hibernacion OR health score bajo,
+    // MÁS lo que declaren las fuentes de Churn.
+    //
+    // Regla de dirección (9-sep-2026): "si una cuenta está con Churn Confirmado
+    // o cancelada debe estar en el apartado Dormidas, pero no se debe eliminar".
+    // Por eso no basta con mirar `estado`: esa columna se desactualiza respecto
+    // a Churn — fue exactamente la causa del incidente del 24-ago-2026, cuando
+    // Coristylo, Velfare, Global Trust Solutions EZQ y Koltin figuraban activas
+    // en Supabase y con "Churn confirmado" en GRC-AAA-2026. Si el único
+    // criterio fuera `estado`, una cuenta así se quedaría fuera de Dormidas y
+    // nadie la vería aquí. `churn_confirmado` y `cancelacion_reportada` los
+    // calcula /api/cuentas en el servidor contra esos datasets.
+    //
+    // Ninguna cuenta se elimina: esto solo decide DÓNDE se ve.
     const dormidas = (data as Cuenta[]).filter(c =>
+      c.churn_confirmado || c.cancelacion_reportada ||
       c.estado === 'cancelado' || c.estado === 'hibernacion' ||
       (!c.facturacion || c.facturacion === 0) ||
       getEstadoKey(c) === '4'
