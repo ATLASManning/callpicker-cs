@@ -400,11 +400,11 @@ export default function AsesorCard({ asesor, cuentas, resumen, fueraDeCartera = 
               background: '#F1F5F9', border: `1px solid ${L_LINE}`,
               fontSize: 11, color: L_TX_MID, lineHeight: 1.5,
             }}>
-              <strong style={{ color: L_TX }}>{fueraDeCartera}</strong>{' '}
-              {fueraDeCartera === 1 ? 'cuenta cancelada o dormida' : 'cuentas canceladas o dormidas'}
-              {' '}no {fueraDeCartera === 1 ? 'se muestra' : 'se muestran'} en esta cartera:
-              ya no son cliente, no reciben actividades SAC y no suman a la facturación.
-              {' '}Se consultan en <strong style={{ color: L_TX }}>Cuentas › Dormidas</strong>.
+              De estas cuentas, <strong style={{ color: L_TX }}>{fueraDeCartera}</strong>{' '}
+              {fueraDeCartera === 1 ? 'está dormida o cancelada' : 'están dormidas o canceladas'}
+              {' '}— {fueraDeCartera === 1 ? 'aparece' : 'aparecen'} en la lista con semáforo gris
+              {' '}<strong style={{ color: L_TX }}>Sin servicio</strong>. Siguen siendo tuyas para
+              recuperación, pero no reciben actividades SAC ni suman a la facturación.
             </p>
           )}
 

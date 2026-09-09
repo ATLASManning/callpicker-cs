@@ -44,24 +44,24 @@ export default async function AsesoresPage() {
 
       <div className="px-6 pb-8 space-y-5">
         {ASESORES.map((asesor, idx) => {
-          // Cuentas de este asesor (activo + en_riesgo), ordenadas por HS asc.
+          // TODAS las cuentas del asesor, ordenadas por HS asc.
           //
-          // El filtro por estatus FALTABA (9-sep-2026): este comentario decía
-          // "activo + en_riesgo" pero la lista traía TODAS, así que las
-          // canceladas y dormidas aparecían en la cartera del asesor con su
-          // semáforo de salud. Es lo que reportó Claudia: "Bliss crédito libre"
-          // se leía activa/estable estando cancelada (HS 70 → azul "Estable").
-          // La facturación de abajo sí filtraba — solo la lista no.
-          // Se oculta SOLO lo confirmado como fuera de servicio. Una cuenta con
-          // estatus vacío o desconocido se sigue mostrando: desaparecerla de la
-          // cartera de su asesor por un dato mal capturado sería peor que el
-          // bug original. Ver esCuentaSinServicio.
-          const todasDelAsesor = cuentas.filter(c => c.asesor === asesor)
-          const lista = todasDelAsesor
-            .filter(c => !esCuentaSinServicio(c.estado))
+          // NO se filtra por estatus. El 9-sep-2026 lo filtré a cartera viva y
+          // fue un error: la cartera de cada asesor cayó de ~73 cuentas a ~58
+          // (219 cuentas totales, 46 de ellas dormidas o canceladas) y José
+          // Manuel lo detectó de inmediato. Una cuenta cancelada o dormida
+          // SIGUE siendo responsabilidad de su asesor — es justo la que hay que
+          // recuperar — así que se muestra, no se esconde.
+          //
+          // Lo que reportó Claudia ("Bliss crédito libre" se leía activa/
+          // estable estando cancelada) se resuelve MARCÁNDOLAS, no quitándolas:
+          // getSemaforoCuenta las pinta gris "Sin servicio" y la columna Estatus
+          // dice CANCELADA / DORMIDA. Se ve que están ahí y se ve que están de
+          // baja.
+          const lista = cuentas
+            .filter(c => c.asesor === asesor)
             .sort((a, b) => a.health_score - b.health_score)
-          // No se ocultan en silencio: se dice cuántas quedaron fuera y por qué.
-          const fueraDeCartera = todasDelAsesor.length - lista.length
+          const fueraDeCartera = lista.filter(c => esCuentaSinServicio(c.estado)).length
 
           // Enriquecer con tickets reales de Zoho Desk
           const listaRich = lista.map(c => {
@@ -79,8 +79,11 @@ export default async function AsesoresPage() {
           // Resumen semáforo de este asesor
           const res = resumenList.find(r => r.asesor === asesor)
           // Total de cartera usando Factura Mensual de Zoho (misma base que la columna y Facturación)
-          // `lista` ya es solo cartera viva, así que no se vuelve a filtrar.
+          // Total de cartera usando Factura Mensual de Zoho (misma base que la columna y Facturación).
+          // Aquí SÍ se filtra a cartera viva, como siempre: una cuenta dada de
+          // baja se sigue listando arriba, pero no factura.
           const facturacionTotal = lista
+            .filter(c => c.estado === 'activo' || c.estado === 'en_riesgo')
             .reduce((s, c) => s + (c.factura_mensual_zoho ?? c.facturacion ?? 0), 0)
           const resumen = {
             verde:    res?.verde    ?? 0,

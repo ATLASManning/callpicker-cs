@@ -520,15 +520,13 @@ export default async function SeguimientoPage() {
   const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
   const isAsesor     = rol === 'asesor' && !!asesorHeader
 
-  const cuentasTodas = await getCuentas(isAsesor ? { asesor: asesorHeader } : undefined)
-  // Solo cartera viva. Sin este filtro (bug encontrado el 9-sep-2026 junto con
-  // el de /asesores) el subtítulo decía "N cuentas en cartera" contando
-  // canceladas y dormidas, y `totalChurn` las sumaba como "en riesgo" por su
-  // Health Score histórico. Una cuenta cancelada no está en riesgo: ya se fue.
-  // Oculta solo lo confirmado fuera de servicio; un estatus vacío se sigue
-  // viendo, para no perder cuentas por un dato mal capturado.
-  const cuentasRaw = cuentasTodas.filter(c => !esCuentaSinServicio(c.estado))
-  const fueraDeCartera = cuentasTodas.length - cuentasRaw.length
+  // TODAS las cuentas del asesor. NO se filtra por estatus: el 9-sep-2026 lo
+  // filtré a cartera viva y desapareció ~1 de cada 5 cuentas de la vista, que
+  // no es lo que este tablero debe hacer — una cuenta dormida o cancelada
+  // sigue necesitando seguimiento (es la que hay que recuperar). Se distinguen
+  // por su semáforo gris "Sin servicio", no por su ausencia.
+  const cuentasRaw = await getCuentas(isAsesor ? { asesor: asesorHeader } : undefined)
+  const fueraDeCartera = cuentasRaw.filter(c => esCuentaSinServicio(c.estado)).length
   // Regla 30 Ago 2026: los tickets abiertos se calculan del dataset vivo de
   // Zoho Desk, no de la columna guardada (que nadie sincronizaba).
   const cuentas = cuentasRaw.map(c => ({
@@ -553,8 +551,8 @@ export default async function SeguimientoPage() {
 
       <PageHeader
         title="Seguimiento y Mentoring"
-        subtitle={`${today} · ${cuentas.length} cuentas en cartera viva${
-          fueraDeCartera > 0 ? ` · ${fueraDeCartera} cancelada${fueraDeCartera === 1 ? '' : 's'} o dormida${fueraDeCartera === 1 ? '' : 's'} fuera de cartera` : ''
+        subtitle={`${today} · ${cuentas.length} cuentas en cartera${
+          fueraDeCartera > 0 ? ` (${fueraDeCartera} dormida${fueraDeCartera === 1 ? '' : 's'} o cancelada${fueraDeCartera === 1 ? '' : 's'})` : ''
         }`}
         actions={
           <div className="flex items-center gap-4">
