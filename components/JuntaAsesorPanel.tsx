@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import type { SeguimientoConCuenta, OportunidadConCuenta, TicketConCuenta } from '@/lib/supabase'
 import type { Cuenta, SemaforoAsesor, Asesor, TipoSeguimiento } from '@/lib/types'
-import { ASESOR_CONFIG, SEMAFORO_CONFIG, getSemaforo, formatMXN } from '@/lib/types'
+import { ASESOR_CONFIG, SEMAFORO_CONFIG, getSemaforoCuenta, formatMXN } from '@/lib/types'
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -375,7 +375,7 @@ export default function JuntaAsesorPanel({
             {tab === 'semaforo' && (
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                 {[...cuentas].sort((a, b) => a.health_score - b.health_score).map(c => {
-                  const semaforo = getSemaforo(c.health_score)
+                  const semaforo = getSemaforoCuenta(c)
                   const cfg = SEMAFORO_CONFIG[semaforo]
                   return (
                     <Link key={c.id} href={`/cuentas/${c.id}`}

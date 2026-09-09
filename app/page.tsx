@@ -16,7 +16,7 @@ import CandidatoA from '@/components/CandidatoA'
 import { evaluarCandidato, type EntradaCandidatura, type ResultadoCandidato } from '@/lib/candidato-a'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
-import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor } from '@/lib/types'
+import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor, type SemaforoSalud } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import Link from 'next/link'
@@ -904,7 +904,10 @@ export default async function DashboardPage() {
   const cuentas = allCuentas.filter(c => c.estado === 'activo' || c.estado === 'en_riesgo')
 
   // Distribución semáforo global
-  const dist = { verde: 0, azul: 0, amarillo: 0, naranja: 0, rojo: 0 }
+  // `cuentas` ya viene filtrada a activo/en_riesgo (línea de arriba), así que
+  // esta distribución es de cartera viva y getSemaforo basta: no puede
+  // aparecer 'inactivo'. Por eso el reparto tiene exactamente 5 llaves.
+  const dist: Record<SemaforoSalud, number> = { verde: 0, azul: 0, amarillo: 0, naranja: 0, rojo: 0 }
   cuentas.forEach(c => { dist[getSemaforo(c.health_score)]++ })
 
   // ── Cobertura de auditoría ────────────────────────────────────────────────

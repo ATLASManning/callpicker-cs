@@ -1,6 +1,6 @@
 import { getCuentas } from '@/lib/supabase'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
-import { formatMXN, getSemaforo, SEMAFORO_CONFIG, ASESOR_CONFIG } from '@/lib/types'
+import { formatMXN, getSemaforoCuenta, esCuentaViva, SEMAFORO_CONFIG, ASESOR_CONFIG } from '@/lib/types'
 import type { Asesor, Cuenta } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import AutoRefresh from '@/components/AutoRefresh'
@@ -376,7 +376,7 @@ function CuentaCard({ cuenta, acciones, preguntas }: {
   acciones: string[]
   preguntas: string[]
 }) {
-  const sem = getSemaforo(cuenta.health_score)
+  const sem = getSemaforoCuenta(cuenta)
   const cfg = SEMAFORO_CONFIG[sem]
 
   return (
@@ -520,7 +520,13 @@ export default async function SeguimientoPage() {
   const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
   const isAsesor     = rol === 'asesor' && !!asesorHeader
 
-  const cuentasRaw = await getCuentas(isAsesor ? { asesor: asesorHeader } : undefined)
+  const cuentasTodas = await getCuentas(isAsesor ? { asesor: asesorHeader } : undefined)
+  // Solo cartera viva. Sin este filtro (bug encontrado el 9-sep-2026 junto con
+  // el de /asesores) el subtítulo decía "N cuentas en cartera" contando
+  // canceladas y dormidas, y `totalChurn` las sumaba como "en riesgo" por su
+  // Health Score histórico. Una cuenta cancelada no está en riesgo: ya se fue.
+  const cuentasRaw = cuentasTodas.filter(c => esCuentaViva(c.estado))
+  const fueraDeCartera = cuentasTodas.length - cuentasRaw.length
   // Regla 30 Ago 2026: los tickets abiertos se calculan del dataset vivo de
   // Zoho Desk, no de la columna guardada (que nadie sincronizaba).
   const cuentas = cuentasRaw.map(c => ({
@@ -545,7 +551,9 @@ export default async function SeguimientoPage() {
 
       <PageHeader
         title="Seguimiento y Mentoring"
-        subtitle={`${today} · ${cuentas.length} cuentas en cartera`}
+        subtitle={`${today} · ${cuentas.length} cuentas en cartera viva${
+          fueraDeCartera > 0 ? ` · ${fueraDeCartera} cancelada${fueraDeCartera === 1 ? '' : 's'} o dormida${fueraDeCartera === 1 ? '' : 's'} fuera de cartera` : ''
+        }`}
         actions={
           <div className="flex items-center gap-4">
             <AutoRefresh intervalMs={300_000} showIndicator />

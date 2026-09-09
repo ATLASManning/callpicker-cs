@@ -202,3 +202,42 @@ export function evaluarElegibilidad(
 export function esLunes(d: Date): boolean {
   return d.getDay() === 1
 }
+
+/* ── Bloqueo visible en la ficha de la cuenta ────────────────────────────────
+ *
+ * POR QUÉ EXISTE (9 Sep 2026): Claudia reportó que "Bliss crédito libre"
+ * aparecía como *Estable* en el dashboard estando cancelada. La regla de
+ * actividades SÍ la bloqueaba — Bliss nunca recibió una actividad SAC — pero
+ * nada en la pantalla lo decía, así que desde fuera parecía que el candado no
+ * existía. Un candado que no se ve no genera confianza.
+ *
+ * Esta función es SOLO para mostrar. Evalúa las causas PERMANENTES de bloqueo
+ * (estatus no vivo, churn confirmado, cancelación, exclusión de dirección), que
+ * son las que se pueden leer sin salir a la red.
+ *
+ * NO sustituye a `evaluarElegibilidad`: le falta la conciliación en vivo con
+ * Zoho Dormidas y el fail-closed correspondiente. Autorizar una actividad SOLO
+ * con esta función reabriría el hueco del 24 de agosto. Autorizar = evaluarElegibilidad.
+ */
+export interface BloqueoComercial {
+  bloqueada: boolean
+  codigos:   CodigoBloqueo[]
+  motivos:   string[]
+}
+
+export function bloqueoComercialDeCuenta(
+  c: { empresa: string; estado?: string | null },
+): BloqueoComercial {
+  const codigos: CodigoBloqueo[] = []
+  const n = normalizarNombre(c.empresa)
+  const estado = String(c.estado ?? '').trim()
+
+  if (NOMBRES_EXCLUSION_MANUAL.has(n)) codigos.push('exclusion_manual')
+  if (estado === '')                            codigos.push('estatus_no_validable')
+  else if (estado === 'hibernacion')            codigos.push('dormida')
+  else if (estado !== 'activo' && estado !== 'en_riesgo') codigos.push('estado_no_activo')
+  if (NOMBRES_CHURN_GRC.has(n))   codigos.push('churn_grc')
+  if (NOMBRES_CANCELACION.has(n)) codigos.push('cancelacion')
+
+  return { bloqueada: codigos.length > 0, codigos, motivos: codigos.map(k => MSG[k]) }
+}

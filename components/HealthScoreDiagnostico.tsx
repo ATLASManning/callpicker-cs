@@ -372,7 +372,7 @@ export default function HealthScoreDiagnostico({
 
           {/* Gauge circular */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <HealthScoreRing score={hs} size={84} strokeWidth={8} />
+            <HealthScoreRing score={hs} size={84} strokeWidth={8} estado={cuenta.estado} />
             {isPartial && (
               <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textAlign: 'center', lineHeight: 1.3 }}>
                 Parcial<br />({avail.length}/{dims.length})

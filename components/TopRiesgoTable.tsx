@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { AlertTriangle, ArrowUpRight } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
-import { getSemaforo, ASESOR_CONFIG, formatMXN } from '@/lib/types'
+import { getSemaforoCuenta, ASESOR_CONFIG, formatMXN } from '@/lib/types'
 import SemaforoBadge from './SemaforoBadge'
 import HealthScoreRing from './HealthScoreRing'
 
@@ -124,7 +124,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
         </thead>
         <tbody>
           {cuentas.map((c, idx) => {
-            const semaforo = getSemaforo(c.health_score)
+            const semaforo = getSemaforoCuenta(c)
             const ac = ASESOR_CONFIG[c.asesor]
             const hsColor = ['verde','azul'].includes(semaforo) ? '#22C55E'
               : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'

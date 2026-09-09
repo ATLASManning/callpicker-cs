@@ -1,7 +1,7 @@
 import { getCuentas, getSemaforoByAsesor } from '@/lib/supabase'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { enrichCuentasWithZoho } from '@/lib/zoho-enrich'
-import type { Asesor } from '@/lib/types'
+import { esCuentaViva, type Asesor } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import AsesorCard from '@/components/AsesorCard'
 import AutoRefresh from '@/components/AutoRefresh'
@@ -44,10 +44,20 @@ export default async function AsesoresPage() {
 
       <div className="px-6 pb-8 space-y-5">
         {ASESORES.map((asesor, idx) => {
-          // Cuentas de este asesor (activo + en_riesgo), ordenadas por HS asc
-          const lista = cuentas
-            .filter(c => c.asesor === asesor)
+          // Cuentas de este asesor (activo + en_riesgo), ordenadas por HS asc.
+          //
+          // El filtro por estatus FALTABA (9-sep-2026): este comentario decía
+          // "activo + en_riesgo" pero la lista traía TODAS, así que las
+          // canceladas y dormidas aparecían en la cartera del asesor con su
+          // semáforo de salud. Es lo que reportó Claudia: "Bliss crédito libre"
+          // se leía activa/estable estando cancelada (HS 70 → azul "Estable").
+          // La facturación de abajo sí filtraba — solo la lista no.
+          const todasDelAsesor = cuentas.filter(c => c.asesor === asesor)
+          const lista = todasDelAsesor
+            .filter(c => esCuentaViva(c.estado))
             .sort((a, b) => a.health_score - b.health_score)
+          // No se ocultan en silencio: se dice cuántas quedaron fuera y por qué.
+          const fueraDeCartera = todasDelAsesor.length - lista.length
 
           // Enriquecer con tickets reales de Zoho Desk
           const listaRich = lista.map(c => {
@@ -65,8 +75,8 @@ export default async function AsesoresPage() {
           // Resumen semáforo de este asesor
           const res = resumenList.find(r => r.asesor === asesor)
           // Total de cartera usando Factura Mensual de Zoho (misma base que la columna y Facturación)
+          // `lista` ya es solo cartera viva, así que no se vuelve a filtrar.
           const facturacionTotal = lista
-            .filter(c => c.estado === 'activo' || c.estado === 'en_riesgo')
             .reduce((s, c) => s + (c.factura_mensual_zoho ?? c.facturacion ?? 0), 0)
           const resumen = {
             verde:    res?.verde    ?? 0,
@@ -83,6 +93,7 @@ export default async function AsesoresPage() {
               asesor={asesor}
               cuentas={listaRich}
               resumen={resumen}
+              fueraDeCartera={fueraDeCartera}
               defaultOpen={idx === 0}   // Primer asesor abierto por defecto
             />
           )

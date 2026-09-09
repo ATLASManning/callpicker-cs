@@ -8,7 +8,10 @@ import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getAuditCaseById }           from '@/app/auditoria/cases'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
-import { getSemaforo, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
+import { getSemaforoCuenta, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
+import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
+import EstadoCuentaBadge from '@/components/EstadoCuentaBadge'
+import CuentaBloqueoBanner from '@/components/CuentaBloqueoBanner'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
@@ -85,8 +88,11 @@ export default async function CuentaDetailPage({ params }: Props) {
   const auditoriaCase = auditoria ? getAuditCaseById(auditoria.id) : null
   const zohoTickets   = getTicketsByCuenta(cuenta.cid ?? null, cuenta.empresa)
 
-  const semaforo = getSemaforo(cuenta.health_score)
+  // El estatus manda sobre el Health Score: una cuenta cancelada no puede
+  // pintarse "Estable" aunque conserve un HS alto (ver getSemaforoCuenta).
+  const semaforo = getSemaforoCuenta(cuenta)
   const cfg = SEMAFORO_CONFIG[semaforo]
+  const bloqueo = bloqueoComercialDeCuenta(cuenta)
   const diasCliente = cuenta.activo_desde
     ? Math.floor((Date.now() - new Date(cuenta.activo_desde).getTime()) / 86400000)
     : cuenta.dias_como_cliente
@@ -109,6 +115,7 @@ export default async function CuentaDetailPage({ params }: Props) {
               <div className="flex items-center gap-3">
                 <h1 className="text-lg font-bold text-textHi">{cuenta.empresa}</h1>
                 <span className="font-mono text-xs text-cp bg-cp/10 px-2 py-0.5 rounded">{cuenta.consecutivo}</span>
+                <EstadoCuentaBadge estado={cuenta.estado} />
                 <SemaforoBadge semaforo={semaforo} score={cuenta.health_score} />
               </div>
               <div className="flex items-center gap-4 mt-1">
@@ -145,6 +152,14 @@ export default async function CuentaDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Banner: cuenta bloqueada para SAC — va PRIMERO, antes que cualquier
+          otro aviso: si la cuenta ya no es cliente, lo demás es secundario. */}
+      {bloqueo.bloqueada && (
+        <div className="mx-6 mt-4">
+          <CuentaBloqueoBanner bloqueo={bloqueo} />
+        </div>
+      )}
 
       {/* Banner: perfil incompleto (cuenta sin activo_desde, contacto ni giro) */}
       {!cuenta.activo_desde && !cuenta.contacto_nombre && !cuenta.giro && (

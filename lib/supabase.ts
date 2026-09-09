@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Cuenta, Seguimiento, Oportunidad, Ticket, SemaforoAsesor } from './types'
-import { getSemaforo } from './types'
+import { getSemaforo, getSemaforoCuenta } from './types'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
@@ -45,7 +45,9 @@ export async function getCuentas(filters?: {
   let result = (data ?? []) as Cuenta[]
 
   if (filters?.semaforo) {
-    result = result.filter(c => getSemaforo(c.health_score) === filters.semaforo)
+    // Mismo criterio que pinta la tabla: si el filtro usara solo el HS, buscar
+    // "Verde" seguiría devolviendo cuentas canceladas con HS alto.
+    result = result.filter(c => getSemaforoCuenta(c) === filters.semaforo)
   }
 
   // Regla 30 Ago 2026 (fuente única): la facturación visible SIEMPRE es la viva

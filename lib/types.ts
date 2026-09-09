@@ -1,6 +1,18 @@
 // ── Enums ───────────────────────────────────────────────────────────────────
 export type Asesor = 'Fátima' | 'Dan' | 'Claudia'
-export type Semaforo = 'verde' | 'azul' | 'amarillo' | 'naranja' | 'rojo'
+/** Los cinco niveles de SALUD. Solo aplican a una cuenta que sigue viva. */
+export type SemaforoSalud = 'verde' | 'azul' | 'amarillo' | 'naranja' | 'rojo'
+
+/**
+ * `inactivo` NO es un nivel de salud: es la ausencia de cuenta viva. Una cuenta
+ * cancelada o dormida no tiene semáforo, porque ya no hay servicio que cuidar.
+ *
+ * Se mantiene FUERA de `SemaforoSalud` a propósito: así las distribuciones y
+ * conteos que solo tienen sentido sobre cartera viva (`{verde..rojo}`) siguen
+ * siendo exhaustivos y el compilador avisa si alguien intenta meter una cuenta
+ * muerta en un reparto de salud. Ver getSemaforoCuenta.
+ */
+export type Semaforo = SemaforoSalud | 'inactivo'
 export type EstadoCuenta = 'activo' | 'en_riesgo' | 'hibernacion' | 'cancelado'
 export type TipoSeguimiento = 'llamada' | 'whatsapp' | 'email' | 'reunion' | 'ticket' | 'nota' | 'demo' | 'upsell'
 export type TipoOportunidad = 'upsell' | 'crossell'
@@ -186,12 +198,40 @@ export interface SemaforoAsesor {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-export function getSemaforo(score: number): Semaforo {
+/**
+ * Semáforo por Health Score puro. NO conoce el estatus de la cuenta.
+ *
+ * Preferir SIEMPRE `getSemaforoCuenta` cuando se tenga la cuenta completa: el
+ * Health Score de una cuenta cancelada sigue siendo el último calculado y pinta
+ * verde, que es exactamente el error que reportó Claudia el 9-sep-2026 —
+ * "Bliss crédito libre" aparecía como *Estable* estando cancelada (HS 70).
+ */
+export function getSemaforo(score: number): SemaforoSalud {
   if (score >= 80) return 'verde'
   if (score >= 60) return 'azul'
   if (score >= 40) return 'amarillo'
   if (score >= 20) return 'naranja'
   return 'rojo'
+}
+
+/** Cuenta viva = sigue siendo cliente. Solo éstas tienen semáforo de salud. */
+export function esCuentaViva(estado: string | null | undefined): boolean {
+  const e = String(estado ?? '').trim()
+  return e === 'activo' || e === 'en_riesgo'
+}
+
+/**
+ * Semáforo REAL de una cuenta: el estatus manda sobre el Health Score.
+ *
+ * Una cuenta cancelada o dormida se pinta `inactivo` sin importar su HS. El
+ * número se conserva (es el histórico), pero deja de leerse como salud: no se
+ * puede estar "Saludable" y cancelado a la vez.
+ */
+export function getSemaforoCuenta(
+  c: { health_score: number; estado?: string | null },
+): Semaforo {
+  if (!esCuentaViva(c.estado)) return 'inactivo'
+  return getSemaforo(c.health_score)
 }
 
 export const SEMAFORO_CONFIG: Record<Semaforo, { label: string; color: string; bg: string; border: string }> = {
@@ -200,6 +240,24 @@ export const SEMAFORO_CONFIG: Record<Semaforo, { label: string; color: string; b
   amarillo: { label: 'Observación',  color: '#EAB308', bg: 'bg-amarillo/10', border: 'border-amarillo' },
   naranja:  { label: 'En Riesgo',    color: '#F97316', bg: 'bg-naranja/10',  border: 'border-naranja' },
   rojo:     { label: 'Riesgo Alto',  color: '#EF4444', bg: 'bg-rojo/10',     border: 'border-rojo' },
+  inactivo: { label: 'Sin servicio', color: '#64748B', bg: 'bg-textLow/10',  border: 'border-textLow' },
+}
+
+/**
+ * Etiquetas de estatus de cuenta. Existen para que ninguna vista tenga que
+ * inventar su propia traducción de `hibernacion` — la palabra que el negocio
+ * usa es "Dormida", y "cancelado" debe decirse Cancelada, no omitirse.
+ */
+export const ESTADO_CUENTA_CONFIG: Record<string, { label: string; color: string; viva: boolean }> = {
+  activo:      { label: 'Activa',    color: '#16A34A', viva: true  },
+  en_riesgo:   { label: 'En riesgo', color: '#EA580C', viva: true  },
+  hibernacion: { label: 'Dormida',   color: '#64748B', viva: false },
+  cancelado:   { label: 'Cancelada', color: '#DC2626', viva: false },
+}
+
+export function getEstadoCuentaConfig(estado: string | null | undefined) {
+  const e = String(estado ?? '').trim()
+  return ESTADO_CUENTA_CONFIG[e] ?? { label: e || 'Sin estatus', color: '#64748B', viva: false }
 }
 
 export const ASESOR_CONFIG: Record<Asesor, {

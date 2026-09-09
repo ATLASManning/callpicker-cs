@@ -11,7 +11,7 @@ import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
 import CustomSelect from '@/components/CustomSelect'
 import type { Cuenta, Asesor } from '@/lib/types'
-import { getSemaforo, formatMXN } from '@/lib/types'
+import { getSemaforoCuenta, formatMXN } from '@/lib/types'
 
 const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 
@@ -297,7 +297,7 @@ function DormidasPageInner() {
                 </thead>
                 <tbody>
                   {sorted.map(c => {
-                    const semaforo = getSemaforo(c.health_score)
+                    const semaforo = getSemaforoCuenta(c)
                     const motivo   = getMotivo(c)
                     return (
                       <tr key={c.id} style={{ opacity: 0.85 }}>
@@ -340,7 +340,7 @@ function DormidasPageInner() {
                         {/* Health Score */}
                         <td>
                           <div className="flex items-center gap-2">
-                            <HealthScoreRing score={c.health_score} size={32} strokeWidth={4} showLabel={false} />
+                            <HealthScoreRing score={c.health_score} size={32} strokeWidth={4} showLabel={false} estado={c.estado} />
                             <span className="text-sm font-bold text-textHi tabular-nums">{c.health_score}</span>
                           </div>
                         </td>

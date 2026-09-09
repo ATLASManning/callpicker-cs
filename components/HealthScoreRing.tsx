@@ -1,15 +1,21 @@
 'use client'
-import { getSemaforo, SEMAFORO_CONFIG } from '@/lib/types'
+import { getSemaforoCuenta, SEMAFORO_CONFIG } from '@/lib/types'
 
 interface Props {
   score: number
   size?: number
   strokeWidth?: number
   showLabel?: boolean
+  /**
+   * Estatus de la cuenta. Si se pasa y la cuenta no está viva, el anillo se
+   * pinta gris: un HS de 70 en una cuenta cancelada es historial, no salud.
+   * Omitirlo conserva el comportamiento anterior (color por HS puro).
+   */
+  estado?: string | null
 }
 
-export default function HealthScoreRing({ score, size = 80, strokeWidth = 8, showLabel = true }: Props) {
-  const semaforo = getSemaforo(score)
+export default function HealthScoreRing({ score, size = 80, strokeWidth = 8, showLabel = true, estado }: Props) {
+  const semaforo = getSemaforoCuenta({ health_score: score, estado: estado === undefined ? 'activo' : estado })
   const cfg = SEMAFORO_CONFIG[semaforo]
   const r = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * r

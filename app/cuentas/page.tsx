@@ -12,10 +12,20 @@ import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
 import CustomSelect, { type SelectOption } from '@/components/CustomSelect'
 import type { Cuenta, Asesor, Semaforo } from '@/lib/types'
-import { getSemaforo, formatMXN } from '@/lib/types'
+import { getSemaforoCuenta, formatMXN } from '@/lib/types'
 
 const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
-const SEMAFOROS: Semaforo[] = ['rojo', 'naranja', 'amarillo', 'azul', 'verde']
+// 'inactivo' se ofrece como filtro para poder listar de un golpe las cuentas
+// que ya no son cartera viva (canceladas o dormidas) — las que no reciben
+// actividades SAC.
+const SEMAFOROS: Array<{ value: Semaforo; label: string }> = [
+  { value: 'rojo',     label: 'Rojo'         },
+  { value: 'naranja',  label: 'Naranja'      },
+  { value: 'amarillo', label: 'Amarillo'     },
+  { value: 'azul',     label: 'Azul'         },
+  { value: 'verde',    label: 'Verde'        },
+  { value: 'inactivo', label: 'Sin servicio' },
+]
 
 const TOP_RANGES: Record<string, number> = { F: 46, D: 38, C: 43 }
 function isTopCustomer(consecutivo: string | null): boolean {
@@ -122,10 +132,10 @@ function EstadoCell({ cuenta }: { cuenta: Cuenta }) {
 }
 
 // ── Columna Health Score ─────────────────────────────────────────────────────
-function HSCell({ score }: { score: number }) {
+function HSCell({ score, estado }: { score: number; estado?: string | null }) {
   return (
     <div className="flex items-center gap-2">
-      <HealthScoreRing score={score} size={34} strokeWidth={4} showLabel={false} />
+      <HealthScoreRing score={score} size={34} strokeWidth={4} showLabel={false} estado={estado} />
       <span className="text-sm font-bold text-textHi tabular-nums">{score}</span>
     </div>
   )
@@ -450,7 +460,7 @@ function CuentasPageInner() {
                       label="Semáforo"
                       filterEl={
                         <HeaderSelect value={semaforoFilter} onChange={setSemaforoFilter} placeholder="Todos los semáforos"
-                          options={SEMAFOROS.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))} />
+                          options={SEMAFOROS} />
                       }
                     />
 
@@ -481,7 +491,7 @@ function CuentasPageInner() {
                 </thead>
                 <tbody>
                   {sorted.map(c => {
-                    const semaforo = getSemaforo(c.health_score)
+                    const semaforo = getSemaforoCuenta(c)
                     const warning  = getDataWarning(c)
                     const top      = isTopCustomer(c.consecutivo)
                     return (
@@ -541,7 +551,7 @@ function CuentasPageInner() {
 
                         {/* Health Score */}
                         <td>
-                          <HSCell score={c.health_score} />
+                          <HSCell score={c.health_score} estado={c.estado} />
                         </td>
 
                         {/* Semáforo */}

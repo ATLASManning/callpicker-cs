@@ -8,7 +8,7 @@ import {
   Search, X, ArrowUpDown,
 } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
-import { getSemaforo, formatMXN, ASESOR_CONFIG } from '@/lib/types'
+import { getSemaforoCuenta, formatMXN, ASESOR_CONFIG } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import ActividadesBtn from '@/components/ActividadesBtn'
@@ -54,7 +54,9 @@ const COLUMNAS: { col: ColOrden | null; label: string }[] = [
   { col: null,                 label: '' },
 ]
 
-const ORDEN_SEMAFORO: Record<string, number> = { rojo: 0, naranja: 1, amarillo: 2, azul: 3, verde: 4 }
+// `inactivo` va al final: una cuenta sin servicio no compite por atención con
+// las vivas, pero tampoco debe colarse entre las sanas por su HS histórico.
+const ORDEN_SEMAFORO: Record<string, number> = { rojo: 0, naranja: 1, amarillo: 2, azul: 3, verde: 4, inactivo: 5 }
 
 function valorOrden(c: CuentaRich, col: ColOrden): string | number | null {
   switch (col) {
@@ -62,7 +64,7 @@ function valorOrden(c: CuentaRich, col: ColOrden): string | number | null {
     case 'empresa':            return c.empresa ?? null
     case 'facturacion':        return c.factura_mensual_zoho ?? c.facturacion ?? null
     case 'health_score':       return c.health_score
-    case 'semaforo':           return ORDEN_SEMAFORO[getSemaforo(c.health_score)] ?? 99
+    case 'semaforo':           return ORDEN_SEMAFORO[getSemaforoCuenta(c)] ?? 99
     case 'dias_sin_actividad': return c.dias_sin_actividad ?? null
     case 'tickets':            return c.zoho_tickets?.total ?? 0
     case 'ultimo_contacto':    return c.ultimo_contacto ?? null
@@ -79,6 +81,12 @@ interface Props {
   asesor:      string
   cuentas:     CuentaRich[]
   resumen:     SemaforoResumen
+  /**
+   * Cuentas del asesor que NO entran en la cartera viva (canceladas o
+   * dormidas). No se listan aquí — se trabajan desde Cuentas > Dormidas — pero
+   * se declara el número para que la exclusión sea visible y no un hueco mudo.
+   */
+  fueraDeCartera?: number
   defaultOpen?: boolean
 }
 
@@ -139,7 +147,7 @@ function KpiCard({
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = false }: Props) {
+export default function AsesorCard({ asesor, cuentas, resumen, fueraDeCartera = 0, defaultOpen = false }: Props) {
   const [expanded, setExpanded] = useState(defaultOpen)
   const [busqueda, setBusqueda] = useState('')
   const [orden, setOrden]       = useState<{ col: ColOrden; dir: 'asc' | 'desc' }>({ col: 'health_score', dir: 'asc' })
@@ -386,6 +394,20 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
             </div>
           </div>
 
+          {fueraDeCartera > 0 && (
+            <p style={{
+              margin: '0 0 10px', padding: '7px 11px', borderRadius: 8,
+              background: '#F1F5F9', border: `1px solid ${L_LINE}`,
+              fontSize: 11, color: L_TX_MID, lineHeight: 1.5,
+            }}>
+              <strong style={{ color: L_TX }}>{fueraDeCartera}</strong>{' '}
+              {fueraDeCartera === 1 ? 'cuenta cancelada o dormida' : 'cuentas canceladas o dormidas'}
+              {' '}no {fueraDeCartera === 1 ? 'se muestra' : 'se muestran'} en esta cartera:
+              ya no son cliente, no reciben actividades SAC y no suman a la facturación.
+              {' '}Se consultan en <strong style={{ color: L_TX }}>Cuentas › Dormidas</strong>.
+            </p>
+          )}
+
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <colgroup>
@@ -440,7 +462,7 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
                   </tr>
                 )}
                 {cuentasVisibles.map((c, ri) => {
-                  const semaforo = getSemaforo(c.health_score)
+                  const semaforo = getSemaforoCuenta(c)
                   const hsColor = ['verde', 'azul'].includes(semaforo) ? '#22C55E'
                     : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'
                   const rowBg = ri % 2 === 0 ? L_BG : L_BG2
@@ -465,7 +487,7 @@ export default function AsesorCard({ asesor, cuentas, resumen, defaultOpen = fal
                       </td>
                       <td style={cell}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <HealthScoreRing score={c.health_score} size={32} strokeWidth={4} showLabel={false} />
+                          <HealthScoreRing score={c.health_score} size={32} strokeWidth={4} showLabel={false} estado={c.estado} />
                           <span style={{ fontSize: 13, fontWeight: 700, color: hsColor, fontVariantNumeric: 'tabular-nums' }}>
                             {c.health_score}
                           </span>
