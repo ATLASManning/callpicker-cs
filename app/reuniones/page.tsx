@@ -20,8 +20,13 @@ type Reunion = {
   acuerdos: string
   proximos_pasos: string
   empresa?: string | null
+  cuenta_id?: string | null
+  cid?: string | null
   creado_en: string
 }
+
+/** Cuenta seleccionable para vincular una reunión de cliente. */
+type CuentaOpcion = { id: string; consecutivo: string | null; cid: string | null; empresa: string; asesor: string | null }
 
 const TIPOS: Record<TipoReunion, { label: string; color: string; bg: string }> = {
   junta_semanal: { label: 'Junta Semanal',  color: '#0057FF', bg: 'rgba(0,87,255,0.08)' },
@@ -37,6 +42,7 @@ const hoy = () => new Date().toISOString().slice(0, 10)
 const emptyForm = (): Omit<Reunion, 'id' | 'creado_en'> => ({
   fecha: hoy(), tipo: 'junta_semanal',
   titulo: '', participantes: '', resumen: '', acuerdos: '', proximos_pasos: '', empresa: '',
+  cuenta_id: null, cid: null,
 })
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -116,6 +122,8 @@ export default function ReunionesPage() {
   const [mesActivo,    setMesActivo]    = useState(() => hoy().slice(0, 7))
   const [tableExists,  setTableExists]  = useState<boolean | null>(null)
   const [migrated,     setMigrated]     = useState(false)
+  const [cuentas,      setCuentas]      = useState<CuentaOpcion[]>([])
+  const [cuentasCargando, setCuentasCargando] = useState(false)
   const [saveError,    setSaveError]    = useState<string | null>(null)
 
   /* ── Cargar desde Supabase ──────────────────────────────────────── */
@@ -138,6 +146,31 @@ export default function ReunionesPage() {
   }, [])
 
   useEffect(() => { loadFromServer() }, [loadFromServer])
+
+  /* ── Catálogo de cuentas para el selector de reuniones de cliente ──
+     Se cargan las vivas y las dormidas: una reunión puede ser justamente
+     la de recuperación de una cuenta dormida. */
+  useEffect(() => {
+    let cancelado = false
+    setCuentasCargando(true)
+    fetch('/api/cuentas')
+      .then(r => (r.ok ? r.json() : []))
+      .then((rows: unknown) => {
+        if (cancelado || !Array.isArray(rows)) return
+        const arr = (rows as Record<string, unknown>[])
+          .map(c => ({
+            id: String(c.id), consecutivo: (c.consecutivo as string) ?? null,
+            cid: (c.cid as string) ?? null, empresa: String(c.empresa ?? ''),
+            asesor: (c.asesor as string) ?? null,
+          }))
+          .filter(c => c.id && c.empresa)
+          .sort((a, b) => a.empresa.localeCompare(b.empresa, 'es'))
+        setCuentas(arr)
+      })
+      .catch(() => {/* el selector queda vacío; el guardado lo bloquea */})
+      .finally(() => { if (!cancelado) setCuentasCargando(false) })
+    return () => { cancelado = true }
+  }, [])
 
   /* ── Auto-migrar localStorage → Supabase (una sola vez) ────────── */
   useEffect(() => {
@@ -172,7 +205,8 @@ export default function ReunionesPage() {
   /* ── Guardar nueva reunión ──────────────────────────────────────── */
   async function guardar() {
     if (!form.titulo.trim()) return
-    if (form.tipo === 'cliente' && !form.empresa?.trim()) return
+    // Se exige la CUENTA, no un nombre escrito: un texto libre no vincula nada.
+    if (form.tipo === 'cliente' && !form.cuenta_id) return
     setSaving(true)
     setSaveError(null)
     try {
@@ -323,15 +357,38 @@ export default function ReunionesPage() {
             {form.tipo === 'cliente' && (
               <div>
                 <label className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: '#059669' }}>
-                  <Building2 size={12} /> Cuenta / Empresa <span style={{ color: '#ef4444' }}>*</span>
+                  <Building2 size={12} /> Cuenta <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <input type="text" placeholder="ej. Finsus Growth, VAEO, Grupo FRISA…"
-                  value={form.empresa ?? ''}
-                  onChange={e => setForm(p => ({ ...p, empresa: e.target.value }))}
-                  className="cp-input w-full"
-                  style={{ borderColor: !form.empresa?.trim() ? '#fca5a5' : undefined }} />
-                <p className="text-[10px] mt-1" style={{ color: '#94a3b8' }}>
-                  Este nombre vincula la reunión con la cuenta en el módulo Cuentas
+                {/* Selector real contra el catálogo de cuentas. Antes esto era
+                    texto libre y no vinculaba nada: "Neruc", "Grupo NERUC" y
+                    "Neruc Sede Central" son la misma cuenta y no cruzaban. */}
+                <CustomSelect
+                  value={form.cuenta_id ?? ''}
+                  searchable
+                  placeholder={cuentasCargando ? 'Cargando cuentas…' : 'Busca y selecciona la cuenta…'}
+                  wrapperClassName="w-full"
+                  className="cp-select w-full"
+                  style={{ borderColor: !form.cuenta_id ? '#fca5a5' : undefined }}
+                  onChange={v => {
+                    const c = cuentas.find(x => x.id === v)
+                    setForm(p => ({
+                      ...p,
+                      cuenta_id: v || null,
+                      cid: c?.cid ?? null,
+                      empresa: c?.empresa ?? '',
+                    }))
+                  }}
+                  options={[
+                    { value: '', label: '— Selecciona una cuenta —' },
+                    ...cuentas.map(c => ({
+                      value: c.id,
+                      label: `${c.consecutivo ?? 's/c'} · ${c.empresa}${c.asesor ? ` · ${c.asesor}` : ''}`,
+                    })),
+                  ]} />
+                <p className="text-[10px] mt-1" style={{ color: form.cuenta_id ? '#94a3b8' : '#ef4444' }}>
+                  {form.cuenta_id
+                    ? `Vinculada a ${form.empresa}${form.cid ? ` · CID ${form.cid}` : ''}. Contará en el relacionamiento y en el Health Score de la cuenta.`
+                    : 'Obligatorio: sin cuenta vinculada la reunión no aparece en la ficha ni suma al relacionamiento.'}
                 </p>
               </div>
             )}

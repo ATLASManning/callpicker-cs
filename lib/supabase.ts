@@ -262,6 +262,43 @@ export async function getSeguimientos(cuentaId: string): Promise<Seguimiento[]> 
   return (data ?? []) as Seguimiento[]
 }
 
+export interface ReunionCuenta {
+  id: string
+  fecha: string
+  titulo: string
+  participantes: string | null
+  resumen: string | null
+  acuerdos: string | null
+  proximos_pasos: string | null
+}
+
+/**
+ * Reuniones con el cliente de una cuenta, por VÍNCULO REAL (cuenta_id).
+ *
+ * Devuelve [] mientras la migración scripts/migracion-reuniones-cuenta.sql no
+ * se haya ejecutado: se prefiere no mostrar nada antes que mostrar reuniones
+ * de otro cliente por una coincidencia de nombre. El error 42703 (columna
+ * inexistente) se trata como "aún no hay vínculo", no como fallo.
+ */
+export async function getReunionesDeCuenta(
+  cuentaId: string,
+): Promise<{ rows: ReunionCuenta[]; vinculoDisponible: boolean }> {
+  const { data, error } = await supabaseAdmin
+    .from('reuniones')
+    .select('id, fecha, titulo, participantes, resumen, acuerdos, proximos_pasos')
+    .eq('cuenta_id', cuentaId)
+    .order('fecha', { ascending: false })
+    .limit(50)
+  if (error) {
+    // 42703 = la columna cuenta_id no existe → migración pendiente.
+    // 42P01 = la tabla no existe. En ambos casos NO hay vínculo posible, y la
+    // UI debe decirlo en vez de mostrar un "sin reuniones" que parece un dato.
+    const sinVinculo = error.code === '42703' || error.code === '42P01'
+    return { rows: [], vinculoDisponible: !sinVinculo }
+  }
+  return { rows: (data ?? []) as ReunionCuenta[], vinculoDisponible: true }
+}
+
 export async function updateSeguimientoResultado(id: string, resultado: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from('seguimientos')

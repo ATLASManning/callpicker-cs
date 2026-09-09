@@ -30,6 +30,9 @@ import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import { datosEnriquecidosDeCuenta } from '@/lib/enriquecimiento/cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import DatosEnriquecidosPanel from '@/components/DatosEnriquecidos'
+import CuentaRelacionPanel from '@/components/CuentaRelacionPanel'
+import { getReunionesDeCuenta } from '@/lib/supabase'
+import { relacionamientoDeCuenta } from '@/lib/relacionamiento'
 import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -46,7 +49,8 @@ export default async function CuentaDetailPage({ params }: Props) {
   // Usar el UUID real para las demás queries
   const cuentaUUID = cuenta.id
 
-  const [seguimientos, oportunidades, tickets, historial, actividades, revisionesAdopcion, enriquecido] = await Promise.all([
+  const [seguimientos, oportunidades, tickets, historial, actividades, revisionesAdopcion, enriquecido,
+         reunionesCuenta, relacion] = await Promise.all([
     getSeguimientos(cuentaUUID),
     getOportunidades(cuentaUUID),
     getTickets(cuentaUUID),
@@ -55,6 +59,17 @@ export default async function CuentaDetailPage({ params }: Props) {
     getConteoAdopcion(cuentaUUID),
     // Datos generales enriquecidos — información adicional, nunca sustituye
     datosEnriquecidosDeCuenta(cuentaUUID, cuenta),
+    // Reuniones vinculadas por cuenta_id y el índice de relacionamiento que
+    // alimenta score_relacional (15% del Health Score).
+    getReunionesDeCuenta(cuentaUUID),
+    relacionamientoDeCuenta({
+      cuentaId:         cuentaUUID,
+      consecutivo:      cuenta.consecutivo,
+      ultimoContacto:   cuenta.ultimo_contacto,
+      contactosJson:    cuenta.contactos_json,
+      observacionesKam: cuenta.observaciones_kam,
+      notas:            cuenta.notas,
+    }),
   ])
 
   // Plan contratado según el último corte de facturación (fuente viva).
@@ -115,7 +130,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                 <ClipboardCheck size={13} /> Auditoría
               </Link>
             )}
-            <CuentaReunionButton empresa={cuenta.empresa} />
+            <CuentaReunionButton cuentaId={cuentaUUID} />
             {cuenta.zoho_link && (
               <a href={cuenta.zoho_link} target="_blank" rel="noopener noreferrer"
                 className="cp-btn cp-btn-ghost text-xs">
@@ -406,6 +421,13 @@ export default async function CuentaDetailPage({ params }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Relacionamiento y reuniones — alimenta score_relacional (15% del HS) */}
+          <CuentaRelacionPanel
+            relacion={relacion}
+            reuniones={reunionesCuenta.rows}
+            migracionPendiente={!reunionesCuenta.vinculoDisponible}
+          />
 
           {/* Notas KAM — Server Actions, build válido */}
           {(() => {
