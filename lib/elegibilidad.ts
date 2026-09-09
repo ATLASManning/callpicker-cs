@@ -223,6 +223,16 @@ export interface BloqueoComercial {
   bloqueada: boolean
   codigos:   CodigoBloqueo[]
   motivos:   string[]
+  /**
+   * ¿La cuenta SIGUE siendo cliente pese a estar bloqueada?
+   *
+   * Bloqueada y muerta no son lo mismo. `exclusion_manual` retira del ritual
+   * SAC a cuentas que siguen en cartera y facturando (hoy: Pitahaya, un
+   * downgrade). Sin esta bandera, la ficha mostraría el badge ACTIVA y, dos
+   * líneas abajo, un aviso diciendo que su Health Score es historial — falso,
+   * y justo el error inverso al que este módulo vino a corregir.
+   */
+  sigueViva: boolean
 }
 
 export function bloqueoComercialDeCuenta(
@@ -239,5 +249,10 @@ export function bloqueoComercialDeCuenta(
   if (NOMBRES_CHURN_GRC.has(n))   codigos.push('churn_grc')
   if (NOMBRES_CANCELACION.has(n)) codigos.push('cancelacion')
 
-  return { bloqueada: codigos.length > 0, codigos, motivos: codigos.map(k => MSG[k]) }
+  return {
+    bloqueada: codigos.length > 0,
+    codigos,
+    motivos: codigos.map(k => MSG[k]),
+    sigueViva: estado === 'activo' || estado === 'en_riesgo',
+  }
 }

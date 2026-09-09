@@ -37,9 +37,15 @@ export default function CuentaBloqueoBanner({ bloqueo }: { bloqueo: BloqueoComer
               </li>
             ))}
           </ul>
+          {/* Bloqueada NO implica muerta. Una cuenta puede seguir facturando y
+              estar fuera del ritual SAC por decisión de dirección (hoy:
+              Pitahaya, un downgrade). Decirle a su asesor que el Health Score
+              es "historial" sería falso y contradiría el badge ACTIVA que se
+              pinta dos líneas más arriba en la misma ficha. */}
           <p className="text-[10.5px]" style={{ color: '#9A3412', margin: '8px 0 0', lineHeight: 1.5 }}>
-            El Health Score que se muestra es el último calculado mientras la cuenta
-            estuvo activa: es historial, no salud vigente.
+            {bloqueo.sigueViva
+              ? 'La cuenta sigue activa y su Health Score es vigente: lo que está suspendido es el ritual de actividades SAC, no el servicio.'
+              : 'El Health Score que se muestra es el último calculado mientras la cuenta estuvo activa: es historial, no salud vigente.'}
           </p>
         </div>
       </div>
