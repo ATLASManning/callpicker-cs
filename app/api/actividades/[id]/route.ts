@@ -36,6 +36,20 @@ async function revalidarCuenta(cuentaId: string, tipo: string): Promise<Resultad
   return evaluarElegibilidad(data as unknown as CuentaElegibilidadInput, new Set<string>(), tipo)
 }
 
+/**
+ * Códigos que significan "la cuenta ya no es cliente" (o fue retirada del
+ * programa por dirección). Una actividad viva sobre una cuenta así NO se
+ * bloquea: se deja llegar a su cierre para que el asesor justifique qué pasó y
+ * qué acciones tomó. Ver el bloque de elegibilidad en PATCH.
+ *
+ * OJO: esta lista es SOLO para actividades YA EXISTENTES. Para generar
+ * actividades nuevas estos mismos códigos siguen bloqueando (fail-closed) en
+ * app/api/actividades/generar/route.ts.
+ */
+const BAJA_COMERCIAL: ReadonlySet<string> = new Set([
+  'churn_grc', 'cancelacion', 'dormida', 'estado_no_activo', 'exclusion_manual',
+])
+
 /** Bloquea la actividad en BD cuando su cuenta dejó de ser elegible. */
 async function bloquearActividad(actividadId: string, motivo: string) {
   try {
@@ -129,12 +143,30 @@ export async function PATCH(
     if (!actual) return NextResponse.json({ error: 'Actividad no encontrada' }, { status: 404 })
 
     // ── Elegibilidad al momento de actuar ────────────────────────────────────
-    // Se revalida antes de iniciar el cronómetro y antes de completar. Si la
-    // cuenta cambió a un estado no activo desde que se generó la actividad,
-    // ésta queda bloqueada de inmediato en lugar de ejecutarse.
+    // Se revalida antes de iniciar el cronómetro y antes de completar, pero el
+    // desenlace depende de POR QUÉ la cuenta dejó de ser elegible.
+    //
+    // INSTRUCCIÓN DE DIRECCIÓN (9-sep-2026): "si tiene una actividad debe
+    // seguir el curso de justificar porque se dio, acciones, etc."
+    //
+    // Antes, cualquier inelegibilidad mataba la actividad (estado 'bloqueada'
+    // + 409). Cuando la causa era la baja de la cuenta eso era exactamente lo
+    // contrario de lo que se necesita: el asesor se quedaba SIN forma de
+    // registrar por qué se perdió al cliente y qué se intentó — la información
+    // más valiosa que produce un churn. La actividad moría muda.
+    //
+    // Ahora la baja comercial NO detiene la actividad: se deja seguir su curso
+    // para que se documente el cierre. Lo que sigue siendo fail-closed es
+    // GENERAR actividades nuevas sobre esa cuenta — eso vive en
+    // app/api/actividades/generar/route.ts y no se toca (regla del 24-ago-2026).
     if ((body.accion === 'iniciar' || body.completada) && actual.cuenta_id) {
       const eleg = await revalidarCuenta(actual.cuenta_id, actual.tipo)
-      if (!eleg.elegible) {
+      if (!eleg.elegible && !BAJA_COMERCIAL.has(String(eleg.codigo)) && body.accion === 'iniciar') {
+        // Aquí la causa NO es la baja, es falta de datos (contacto incompleto)
+        // o estatus no validable. Ese bloqueo sí se conserva porque es un
+        // empujón para capturar lo que falta — pero SOLO al ARRANCAR. Nunca al
+        // cerrar: una actividad ya iniciada jamás debe quedar atrapada sin
+        // poder documentarse.
         await bloquearActividad(actual.id, eleg.motivo!)
         return NextResponse.json({
           error:  eleg.motivo,
