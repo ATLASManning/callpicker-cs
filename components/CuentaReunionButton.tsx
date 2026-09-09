@@ -35,9 +35,9 @@ export default function CuentaReunionButton({ cuentaId }: { cuentaId: string }) 
       href="/reuniones"
       className="cp-btn cp-btn-ghost text-xs"
       style={{ color: '#059669', borderColor: '#059669', background: 'rgba(5,150,105,0.06)' }}
-      title={`${count} reunión${count === 1 ? '' : 'es'} vinculada${count === 1 ? '' : 's'} a esta cuenta`}
+      title={`${count} ${count === 1 ? 'reunión vinculada' : 'reuniones vinculadas'} a esta cuenta`}
     >
-      <CalendarCheck size={13} /> {count} reunión{count === 1 ? '' : 'es'}
+      <CalendarCheck size={13} /> {count} {count === 1 ? 'reunión' : 'reuniones'}
     </Link>
   )
 }

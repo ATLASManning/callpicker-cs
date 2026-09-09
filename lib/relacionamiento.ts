@@ -190,7 +190,7 @@ export async function relacionamientoDeCuentas(
     const evidencia: string[] = []
     if (nSeg)    evidencia.push(`${nSeg} seguimiento${nSeg === 1 ? '' : 's'} registrado${nSeg === 1 ? '' : 's'}`)
     if (nAct)    evidencia.push(`${nComp}/${nAct} actividades SAC completadas`)
-    if (nReu)    evidencia.push(`${nReu} reunión${nReu === 1 ? '' : 'es'} con el cliente`)
+    if (nReu)    evidencia.push(`${nReu} ${nReu === 1 ? 'reunión' : 'reuniones'} con el cliente`)
     if (nCon)    evidencia.push(`${nCon} contacto${nCon === 1 ? '' : 's'} registrado${nCon === 1 ? '' : 's'}`)
     if (tieneAud) evidencia.push('auditoría de cuenta documentada')
     if (pDoc)    evidencia.push('ficha documentada por el KAM')

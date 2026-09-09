@@ -103,7 +103,7 @@ export default function CuentaRelacionPanel({
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
           <span style={{ fontSize: 10.5, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            {reuniones.length} reunión{reuniones.length === 1 ? '' : 'es'} con el cliente
+            {reuniones.length} {reuniones.length === 1 ? 'reunión' : 'reuniones'} con el cliente
           </span>
           {reuniones.slice(0, 6).map(r => (
             <div key={r.id} style={{ borderLeft: '2px solid #059669', paddingLeft: 10 }}>
@@ -127,7 +127,7 @@ export default function CuentaRelacionPanel({
           ))}
           {reuniones.length > 6 && (
             <span style={{ fontSize: 10.5, color: '#94A3B8' }}>
-              y {reuniones.length - 6} reunión{reuniones.length - 6 === 1 ? '' : 'es'} más
+              y {reuniones.length - 6} {reuniones.length - 6 === 1 ? 'reunión' : 'reuniones'} más
             </span>
           )}
         </div>
