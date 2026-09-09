@@ -61,6 +61,26 @@ RUIDO = {'de', 'del', 'la', 'el', 'los', 'las', 'y', 'ft', 'callpicker', 'revisi
 
 GENERICOS = {'gmail', 'hotmail', 'outlook', 'yahoo', 'live', 'icloud', 'callpicker'}
 
+# Vínculos que las heurísticas NO pueden deducir y que confirmó Dirección de
+# Satisfacción al Cliente (José Manuel, 8-sep-2026). Se dejan explícitos, con
+# su razón, en vez de aflojar las reglas automáticas: relajarlas para cubrir
+# estos dos casos produjo un falso positivo grave en la prueba.
+CONFIRMADAS = {
+    # "Analisis de Integración de Callpicker con Microsoft ID - Azure".
+    # Los participantes dicen "Equipo Técnico de Finsus" pero sin correo, y el
+    # título sólo menciona Microsoft/Azure. Mismo tema (OTPs) que la reunión
+    # del 28-may con Finsus.
+    'a64f5bcb-13b2-47ef-9e05-d32dd1ba6f38': ('0b9caaa0-bbe1-4576-977e-06ec2351c7ba',
+                                             'F1 · Finsus Growth'),
+    # "Seguimiento RDS ELITE CONDOS PDC". El participante es
+    # ricardo@investvacaygroup.com; la cuenta no se llama así en el catálogo:
+    # es F66 · Sofia (CID 178011), hoy en Dormidas con estado cancelado. Lo
+    # confirma el caso de auditoría rds-invest-vacay, que la describe como
+    # "sin consecutivo propio (grupo Sofia F66)".
+    '00840673-7932-4a46-b7cb-4ab9b6293f91': ('58c76ec4-dc37-4612-8134-0f4753cf2875',
+                                             'F66 · Sofia'),
+}
+
 
 def dominios(texto):
     """Dominios de correo que no sean genéricos ni de Callpicker."""
@@ -133,6 +153,15 @@ def main():
         return por_id[top[0]] if len(top) == 1 else None
 
     def resolver(r):
+        # 0 · vínculo confirmado por Dirección: gana sobre cualquier heurística
+        conf = CONFIRMADAS.get(r.get('id'))
+        if conf:
+            c = por_id.get(conf[0])
+            if c:
+                return c, 'confirmado por Direccion'
+            print('  AVISO: la cuenta confirmada %s ya no existe (reunión %s)'
+                  % (conf[1], str(r.get('titulo'))[:50]))
+
         texto = ' '.join(str(r.get(k) or '') for k in ('participantes', 'resumen', 'acuerdos', 'proximos_pasos'))
         doms = dominios(texto)
 
