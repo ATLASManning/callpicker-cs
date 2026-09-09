@@ -1,7 +1,7 @@
 import { getCuentas, getSemaforoByAsesor } from '@/lib/supabase'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { enrichCuentasWithZoho } from '@/lib/zoho-enrich'
-import { esCuentaViva, type Asesor } from '@/lib/types'
+import { esCuentaSinServicio, type Asesor } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import AsesorCard from '@/components/AsesorCard'
 import AutoRefresh from '@/components/AutoRefresh'
@@ -52,9 +52,13 @@ export default async function AsesoresPage() {
           // semáforo de salud. Es lo que reportó Claudia: "Bliss crédito libre"
           // se leía activa/estable estando cancelada (HS 70 → azul "Estable").
           // La facturación de abajo sí filtraba — solo la lista no.
+          // Se oculta SOLO lo confirmado como fuera de servicio. Una cuenta con
+          // estatus vacío o desconocido se sigue mostrando: desaparecerla de la
+          // cartera de su asesor por un dato mal capturado sería peor que el
+          // bug original. Ver esCuentaSinServicio.
           const todasDelAsesor = cuentas.filter(c => c.asesor === asesor)
           const lista = todasDelAsesor
-            .filter(c => esCuentaViva(c.estado))
+            .filter(c => !esCuentaSinServicio(c.estado))
             .sort((a, b) => a.health_score - b.health_score)
           // No se ocultan en silencio: se dice cuántas quedaron fuera y por qué.
           const fueraDeCartera = todasDelAsesor.length - lista.length

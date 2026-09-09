@@ -126,7 +126,11 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
           {cuentas.map((c, idx) => {
             const semaforo = getSemaforoCuenta(c)
             const ac = ASESOR_CONFIG[c.asesor]
-            const hsColor = ['verde','azul'].includes(semaforo) ? '#22C55E'
+            // 'inactivo' se contempla explícitamente: sin este caso caía en el
+            // `else` y una cuenta cancelada mostraba su Health Score en ROJO,
+            // es decir "riesgo alto" — cuando ya no hay riesgo, hay baja.
+            const hsColor = semaforo === 'inactivo' ? '#64748B'
+              : ['verde','azul'].includes(semaforo) ? '#22C55E'
               : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'
             const rowBg = dark
               ? (idx % 2 === 0 ? 'transparent' : D.rowAlt)
@@ -196,7 +200,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
 
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <HealthScoreRing score={c.health_score} size={34} strokeWidth={4} showLabel={false} />
+                    <HealthScoreRing score={c.health_score} size={34} strokeWidth={4} showLabel={false} estado={c.estado} />
                     <span style={{
                       fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                       color: hsColor, textShadow: dark ? `0 0 8px ${hsColor}50` : 'none',

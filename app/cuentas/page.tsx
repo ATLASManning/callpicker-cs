@@ -15,16 +15,18 @@ import type { Cuenta, Asesor, Semaforo } from '@/lib/types'
 import { getSemaforoCuenta, formatMXN } from '@/lib/types'
 
 const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
-// 'inactivo' se ofrece como filtro para poder listar de un golpe las cuentas
-// que ya no son cartera viva (canceladas o dormidas) — las que no reciben
-// actividades SAC.
+// SIN opción 'inactivo' a propósito. Esta pantalla excluye por diseño las
+// cuentas dormidas y canceladas (ver `filtered`: `getEstadoKey(c) !== '4'`,
+// "Dormidas van a su propia sección"), así que un filtro "Sin servicio" aquí
+// devolvería SIEMPRE una tabla vacía: el servidor seleccionaría justo las filas
+// que el cliente descarta una línea después. Esas cuentas se consultan en
+// Cuentas › Dormidas.
 const SEMAFOROS: Array<{ value: Semaforo; label: string }> = [
-  { value: 'rojo',     label: 'Rojo'         },
-  { value: 'naranja',  label: 'Naranja'      },
-  { value: 'amarillo', label: 'Amarillo'     },
-  { value: 'azul',     label: 'Azul'         },
-  { value: 'verde',    label: 'Verde'        },
-  { value: 'inactivo', label: 'Sin servicio' },
+  { value: 'rojo',     label: 'Rojo'     },
+  { value: 'naranja',  label: 'Naranja'  },
+  { value: 'amarillo', label: 'Amarillo' },
+  { value: 'azul',     label: 'Azul'     },
+  { value: 'verde',    label: 'Verde'    },
 ]
 
 const TOP_RANGES: Record<string, number> = { F: 46, D: 38, C: 43 }

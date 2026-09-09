@@ -463,7 +463,10 @@ export default function AsesorCard({ asesor, cuentas, resumen, fueraDeCartera = 
                 )}
                 {cuentasVisibles.map((c, ri) => {
                   const semaforo = getSemaforoCuenta(c)
-                  const hsColor = ['verde', 'azul'].includes(semaforo) ? '#22C55E'
+                  // 'inactivo' explícito: sin este caso caía en el `else` y
+                  // pintaba de ROJO ("riesgo alto") una cuenta ya dada de baja.
+                  const hsColor = semaforo === 'inactivo' ? '#64748B'
+                    : ['verde', 'azul'].includes(semaforo) ? '#22C55E'
                     : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'
                   const rowBg = ri % 2 === 0 ? L_BG : L_BG2
                   const cell: React.CSSProperties = { padding: '11px 14px', borderBottom: `1px solid ${L_LINE}`, verticalAlign: 'middle' }

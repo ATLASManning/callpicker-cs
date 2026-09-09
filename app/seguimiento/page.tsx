@@ -1,6 +1,6 @@
 import { getCuentas } from '@/lib/supabase'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
-import { formatMXN, getSemaforoCuenta, esCuentaViva, SEMAFORO_CONFIG, ASESOR_CONFIG } from '@/lib/types'
+import { formatMXN, getSemaforoCuenta, esCuentaSinServicio, SEMAFORO_CONFIG, ASESOR_CONFIG } from '@/lib/types'
 import type { Asesor, Cuenta } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import AutoRefresh from '@/components/AutoRefresh'
@@ -525,7 +525,9 @@ export default async function SeguimientoPage() {
   // el de /asesores) el subtítulo decía "N cuentas en cartera" contando
   // canceladas y dormidas, y `totalChurn` las sumaba como "en riesgo" por su
   // Health Score histórico. Una cuenta cancelada no está en riesgo: ya se fue.
-  const cuentasRaw = cuentasTodas.filter(c => esCuentaViva(c.estado))
+  // Oculta solo lo confirmado fuera de servicio; un estatus vacío se sigue
+  // viendo, para no perder cuentas por un dato mal capturado.
+  const cuentasRaw = cuentasTodas.filter(c => !esCuentaSinServicio(c.estado))
   const fueraDeCartera = cuentasTodas.length - cuentasRaw.length
   // Regla 30 Ago 2026: los tickets abiertos se calculan del dataset vivo de
   // Zoho Desk, no de la columna guardada (que nadie sincronizaba).

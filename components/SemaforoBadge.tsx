@@ -20,7 +20,14 @@ export default function SemaforoBadge({ semaforo, score, size = 'md', showLabel 
     <span className={clsx(
       'inline-flex items-center gap-1.5 px-2 py-1 rounded-full font-medium',
       cfg.bg, TEXT_SIZE[size]
-    )} style={{ color: cfg.color, border: `1px solid ${cfg.color}30` }}>
+    )} style={{
+      color: cfg.color,
+      border: `1px solid ${cfg.color}30`,
+      // Cuando la config no trae clase de fondo (caso 'inactivo': lib/ queda
+      // fuera del `content` de Tailwind y la clase no se generaría), el fondo
+      // se pinta aquí. Las cinco entradas con clase siguen usándola.
+      ...(cfg.bg ? {} : { background: `${cfg.color}1A` }),
+    }}>
       <span
         className={clsx('rounded-full flex-shrink-0', DOT_SIZE[size], isRojo && 'semaforo-rojo')}
         style={{ background: cfg.color }}

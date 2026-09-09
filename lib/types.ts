@@ -220,6 +220,24 @@ export function esCuentaViva(estado: string | null | undefined): boolean {
   return e === 'activo' || e === 'en_riesgo'
 }
 
+/** Estatus que significan, sin ambigüedad, que ya no hay servicio vigente. */
+const ESTADOS_SIN_SERVICIO: ReadonlySet<string> = new Set(['hibernacion', 'cancelado'])
+
+/**
+ * ¿La cuenta está EXPLÍCITAMENTE fuera de servicio?
+ *
+ * Ojo con la diferencia respecto a `!esCuentaViva()`: una cuenta con `estado`
+ * vacío o desconocido NO está viva, pero tampoco se puede afirmar que esté
+ * muerta. Usar la negación de esCuentaViva para ocultar filas haría desaparecer
+ * en silencio a cualquier cuenta mal capturada de la cartera de su asesor —
+ * perder una cuenta es peor que mostrarla. Por eso las listas ocultan solo lo
+ * que este predicado confirma, y un estatus faltante se sigue viendo (y se nota
+ * como dato incompleto).
+ */
+export function esCuentaSinServicio(estado: string | null | undefined): boolean {
+  return ESTADOS_SIN_SERVICIO.has(String(estado ?? '').trim())
+}
+
 /**
  * Semáforo REAL de una cuenta: el estatus manda sobre el Health Score.
  *
@@ -230,7 +248,11 @@ export function esCuentaViva(estado: string | null | undefined): boolean {
 export function getSemaforoCuenta(
   c: { health_score: number; estado?: string | null },
 ): Semaforo {
-  if (!esCuentaViva(c.estado)) return 'inactivo'
+  // Solo un estatus que CONFIRMA la baja apaga el semáforo. Con el estatus
+  // vacío o desconocido se mantiene el color por Health Score: pintar gris
+  // "Sin servicio" una cuenta que quizá sí está activa sería el mismo error de
+  // origen, nada más que al revés.
+  if (esCuentaSinServicio(c.estado)) return 'inactivo'
   return getSemaforo(c.health_score)
 }
 
@@ -240,7 +262,13 @@ export const SEMAFORO_CONFIG: Record<Semaforo, { label: string; color: string; b
   amarillo: { label: 'Observación',  color: '#EAB308', bg: 'bg-amarillo/10', border: 'border-amarillo' },
   naranja:  { label: 'En Riesgo',    color: '#F97316', bg: 'bg-naranja/10',  border: 'border-naranja' },
   rojo:     { label: 'Riesgo Alto',  color: '#EF4444', bg: 'bg-rojo/10',     border: 'border-rojo' },
-  inactivo: { label: 'Sin servicio', color: '#64748B', bg: 'bg-textLow/10',  border: 'border-textLow' },
+  // `bg` va VACÍO a propósito: Tailwind solo genera las clases que encuentra
+  // literales en sus rutas de `content` (pages, components, app) y lib/ NO está
+  // ahí, así que un 'bg-textLow/10' escrito aquí nunca se emitiría y el badge
+  // saldría sin fondo. SemaforoBadge pinta el fondo con estilo en línea cuando
+  // `bg` está vacío. No se tocan las otras cinco entradas para no alterar su
+  // apariencia actual.
+  inactivo: { label: 'Sin servicio', color: '#64748B', bg: '', border: 'border-textLow' },
 }
 
 /**
