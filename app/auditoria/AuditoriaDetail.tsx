@@ -193,7 +193,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
           <>
             <SectionCard title="Resumen Ejecutivo" icon={FileText} color={INDIGO}>
               {caso.resumen_ejecutivo.split('\n\n').map((p, i) => (
-                <p key={i} className="text-sm text-gray-700 leading-relaxed mt-3 first:mt-0"
+                <p key={i} className="text-sm text-gray-700 leading-relaxed mt-3 first:mt-0 whitespace-pre-line"
                   dangerouslySetInnerHTML={{ __html: p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
               ))}
             </SectionCard>
@@ -257,7 +257,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
 
             <SectionCard title="Necesidad de Negocio" icon={Target} color={BLUE}>
               {caso.necesidad_negocio.split('\n\n').map((p, i) => (
-                <p key={i} className="text-sm text-gray-700 leading-relaxed mt-3 first:mt-0"
+                <p key={i} className="text-sm text-gray-700 leading-relaxed mt-3 first:mt-0 whitespace-pre-line"
                   dangerouslySetInnerHTML={{ __html: p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
               ))}
             </SectionCard>
@@ -289,7 +289,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                 {caso.senal_alarma && (
                   <div className="mt-4 p-3 rounded-lg border" style={{ background: `${AMBER}08`, borderColor: `${AMBER}30` }}>
                     <p className="text-xs font-semibold" style={{ color: AMBER }}>⚠ Señal de alarma</p>
-                    <p className="text-xs text-gray-600 mt-1">{caso.senal_alarma}</p>
+                    <p className="text-xs text-gray-600 mt-1 whitespace-pre-line">{caso.senal_alarma}</p>
                   </div>
                 )}
               </SectionCard>
@@ -331,7 +331,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               <div className="p-4 rounded-xl text-center border-2" style={{ borderColor: `${RED}40`, background: `${RED}06` }}>
                 <p className="text-lg font-bold text-gray-900">{caso.problema_raiz}</p>
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed mt-4">{caso.problema_raiz_detalle}</p>
+              <p className="text-sm text-gray-700 leading-relaxed mt-4 whitespace-pre-line">{caso.problema_raiz_detalle}</p>
             </SectionCard>
 
             {caso.flujo_real.length > 0 && (
@@ -572,7 +572,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
             {/* Conclusión */}
             <SectionCard title="Conclusión y Recomendación Central" icon={CheckCircle2} color={INDIGO}>
               {caso.conclusion && (
-                <p className="text-sm text-gray-700 leading-relaxed mb-4">{caso.conclusion}</p>
+                <p className="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-line">{caso.conclusion}</p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 {caso.pierde.length > 0 && (
@@ -606,7 +606,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               </div>
               {caso.recomendacion_central && (
                 <div className="p-4 rounded-xl text-center border-2" style={{ borderColor: `${INDIGO}40`, background: `${INDIGO}06` }}>
-                  <p className="text-sm font-semibold text-gray-900">{caso.recomendacion_central}</p>
+                  <p className="text-sm font-semibold text-gray-900 whitespace-pre-line">{caso.recomendacion_central}</p>
                 </div>
               )}
             </SectionCard>
