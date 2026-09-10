@@ -213,7 +213,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
             </SectionCard>
 
             <SectionCard title="Resultado Positivo" icon={CheckCircle2} color={GREEN}>
-              <p className="text-sm text-gray-700 leading-relaxed">{caso.resultado_positivo}</p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{caso.resultado_positivo}</p>
             </SectionCard>
 
             <SectionCard title="Cronología del Caso" icon={Clock} color={BLUE}>
