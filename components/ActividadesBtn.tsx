@@ -11,6 +11,7 @@ import {
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 type TipoActividad  = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell' | 'validacion' | 'tickets' | 'pagos'
+                    | 'aclaracion'
 type EstadoAct      = 'pendiente' | 'completada' | 'vencida' | 'bloqueada'
 
 interface Actividad {
@@ -88,6 +89,9 @@ const TIPO_CFG: Record<TipoActividad, { label: string; icon: React.ReactNode; co
   validacion: { label: 'Completar Perfil',  icon: <AlertCircle size={10} />, color: '#DC2626' },
   tickets:    { label: 'Análisis Tickets',  icon: <ListChecks size={10} />,  color: '#0E7490' },
   pagos:      { label: 'Comportamiento Pago', icon: <History size={10} />,   color: '#4338CA' },
+  // Churn confirmado / Downgrade. Rojo fuerte: no es una tarea rutinaria, es
+  // la documentación obligatoria de una pérdida.
+  aclaracion: { label: 'Aclaración de baja', icon: <AlertCircle size={10} />, color: '#B91C1C' },
 }
 
 const DIAS  = ['dom','lun','mar','mié','jue','vie','sáb']
@@ -129,6 +133,14 @@ function ActividadCard({
 }) {
   const [editing,   setEditing]   = useState(false)
   const [resultado, setResultado] = useState(act.resultado ?? '')
+  // Aclaración de baja: se capturan por separado (ver el bloque de edición).
+  const esAclaracion = act.tipo === 'aclaracion'
+  const [causa, setCausa]       = useState('')
+  const [acciones, setAcciones] = useState('')
+  // Mínimos que exige el backend (lib/aclaraciones.ts). Se replican aquí solo
+  // para deshabilitar el botón; la validación de verdad vive en el servidor.
+  const aclaracionLista = causa.trim().length >= 40 && acciones.trim().length >= 40
+  const listoParaCerrar = esAclaracion ? aclaracionLista : !!resultado.trim()
   const [motivo,    setMotivo]    = useState(act.motivo_pendiente ?? '')
   const [tiempoRep, setTiempoRep] = useState<number | ''>('')
   const [saving,    setSaving]    = useState(false)
@@ -138,6 +150,8 @@ function ActividadCard({
     perfilFaltante?: string[]
     radarFaltante?: string[]
     contactoFaltante?: string[]
+    /** Qué falta para poder cerrar una Aclaración de baja. */
+    faltantes?: string[]
     codigo?: string
     bloqueada?: boolean
   } | null>(null)
@@ -176,7 +190,11 @@ function ActividadCard({
       const payload = {
         completada,
         estado:          completada ? 'completada' : 'pendiente',
-        resultado:       completada ? resultado : null,
+        // En una aclaración el `resultado` lo compone el servidor a partir de
+        // los dos campos, para que la estructura CAUSA / ACCIONES quede fija.
+        resultado:       completada ? (esAclaracion ? undefined : resultado) : null,
+        aclaracion_causa:    completada && esAclaracion ? causa    : undefined,
+        aclaracion_acciones: completada && esAclaracion ? acciones : undefined,
         motivo_pendiente:!completada ? motivo    : null,
         tiempo_reportado_min: completada ? tiempoRep : undefined,
       }
@@ -386,15 +404,56 @@ function ActividadCard({
                   {gateError.radarFaltante && gateError.radarFaltante.length > 0 && (
                     <p style={{ margin: '4px 0 0' }}>Radar sin responder: {gateError.radarFaltante.slice(0, 3).join(' · ')}{gateError.radarFaltante.length > 3 ? ` (+${gateError.radarFaltante.length - 3} más)` : ''}</p>
                   )}
+                  {gateError.faltantes && gateError.faltantes.length > 0 && (
+                    <ul style={{ margin: '5px 0 0', paddingLeft: 16 }}>
+                      {gateError.faltantes.map((f, i) => (
+                        <li key={i} style={{ marginBottom: 2 }}>{f}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
-              <textarea
-                value={resultado}
-                onChange={e => setResultado(e.target.value)}
-                placeholder="Resultado (si se completó)..."
-                rows={2}
-                style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
-              />
+
+              {/* Aclaración de baja: DOS campos separados, no uno.
+                  Con un solo cuadro "se fue por precio" cumple el mínimo y no
+                  dice nada de lo que se intentó — que es el aprendizaje que
+                  dirección quiere capturar. El backend valida ambos. */}
+              {esAclaracion ? (
+                <>
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 800, color: '#B91C1C', display: 'block', marginBottom: 3 }}>
+                      1 · CAUSA EXPLÍCITA — ¿por qué ocurrió? <span style={{ color: '#9CA3AF', fontWeight: 600 }}>(obligatorio)</span>
+                    </label>
+                    <textarea
+                      value={causa}
+                      onChange={e => setCausa(e.target.value)}
+                      placeholder="Qué pasó, cuándo empezó, quién lo decidió del lado del cliente y si hubo un detonante (falla, facturación, competencia)..."
+                      rows={3}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #FECACA', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 800, color: '#B91C1C', display: 'block', marginBottom: 3 }}>
+                      2 · ACCIONES PREVIAS — ¿qué se hizo antes? <span style={{ color: '#9CA3AF', fontWeight: 600 }}>(obligatorio)</span>
+                    </label>
+                    <textarea
+                      value={acciones}
+                      onChange={e => setAcciones(e.target.value)}
+                      placeholder="Contactos, reuniones, propuestas, escalamientos, con fechas. Si no se hizo nada, escríbelo así de claro: eso también es un hallazgo."
+                      rows={3}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #FECACA', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <textarea
+                  value={resultado}
+                  onChange={e => setResultado(e.target.value)}
+                  placeholder="Resultado (si se completó)..."
+                  rows={2}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.1)', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              )}
               <textarea
                 value={motivo}
                 onChange={e => setMotivo(e.target.value)}
@@ -419,15 +478,15 @@ function ActividadCard({
               </div>
               <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
                 <button
-                  disabled={saving || !resultado.trim() || !tiempoRep}
+                  disabled={saving || !listoParaCerrar || !tiempoRep}
                   onClick={() => save(true)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 5,
                     padding: '5px 12px', borderRadius: 6, border: 'none',
-                    background: saving || !resultado.trim() || !tiempoRep ? '#DCFCE7' : '#059669',
-                    color: saving || !resultado.trim() || !tiempoRep ? '#6EE7B7' : '#fff',
+                    background: saving || !listoParaCerrar || !tiempoRep ? '#DCFCE7' : '#059669',
+                    color: saving || !listoParaCerrar || !tiempoRep ? '#6EE7B7' : '#fff',
                     fontSize: 11, fontWeight: 700,
-                    cursor: saving || !resultado.trim() || !tiempoRep ? 'not-allowed' : 'pointer',
+                    cursor: saving || !listoParaCerrar || !tiempoRep ? 'not-allowed' : 'pointer',
                   }}
                 >
                   {saving ? <Loader2 size={11} /> : <CheckCircle size={11} />}

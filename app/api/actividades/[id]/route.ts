@@ -8,6 +8,9 @@ import {
   type CuentaElegibilidadInput, type ResultadoElegibilidad,
 } from '@/lib/elegibilidad'
 import { evaluarCierre } from '@/lib/actividades/cierre'
+import {
+  TIPO_ACLARACION, validarCierreAclaracion, componerResultadoAclaracion,
+} from '@/lib/aclaraciones'
 
 export const dynamic = 'force-dynamic'
 
@@ -232,6 +235,33 @@ export async function PATCH(
         }
       }
 
+      /* ── Candado de ACLARACIÓN por Churn confirmado / Downgrade ────────────
+       * Instrucción de dirección (9-sep-2026): la actividad "no se cierra
+       * hasta cumplir con el requisito de la aclaración explícita, con las
+       * acciones previas".
+       *
+       * Va ANTES del candado general porque es más estricto y más específico:
+       * exige DOS campos separados (causa y acciones previas), no un texto
+       * único. Con un solo cuadro, "se fue por precio" pasa el mínimo y no
+       * dice nada de lo que se intentó, que es el aprendizaje que se busca. */
+      if (actual.tipo === TIPO_ACLARACION) {
+        const vered = validarCierreAclaracion({
+          causa:           body.aclaracion_causa,
+          accionesPrevias: body.aclaracion_acciones,
+        })
+        if (!vered.permitido) {
+          return NextResponse.json({
+            error:     vered.mensaje,
+            codigo:    'aclaracion_incompleta',
+            faltantes: vered.faltantes,
+          }, { status: 409 })
+        }
+        // El resultado guardado conserva la estructura de los dos campos.
+        body.resultado = componerResultadoAclaracion(
+          String(body.aclaracion_causa), String(body.aclaracion_acciones),
+        )
+      }
+
       /* ── Candado de calidad del cierre (1 Sep 2026) ────────────────────────
        * Antes bastaba cualquier texto para cerrar. Ahora una declaración de
        * baja abre expediente en vez de cerrar, "no contesta" abre secuencia, y
@@ -240,29 +270,44 @@ export async function PATCH(
        * Importante: la cuenta NO cambia de estatus por lo que escriba el
        * asesor. Se etiqueta como riesgo y se avisa; la baja la valida
        * Dirección con la evidencia del expediente. */
-      const veredicto = evaluarCierre({
-        resultado: body.resultado,
-        tipo: actual.tipo,
-        expedienteAdjunto:   body.expediente_baja === true,
-        secuenciaRegistrada: body.secuencia_contacto === true,
-      })
+      /* Una ACLARACIÓN no pasa por este candado: ya pasó por el suyo, que es
+       * más estricto (dos campos obligatorios, mínimo de longitud y rechazo de
+       * relleno, contra un solo texto libre aquí).
+       *
+       * No basta con marcarle `expedienteAdjunto`: eso solo exime la regla 1
+       * ("declaración de baja"). Las reglas 2 y 3 seguirían aplicando, y son
+       * justamente las que más chocan con una aclaración bien escrita:
+       *   · regla 2 rechaza los textos con "no contesta" — una causa de baja
+       *     perfectamente real;
+       *   · regla 3 rechaza los de cambio de interlocutor, que el propio
+       *     archivo describe como "una de las causas más frecuentes de baja".
+       * Un asesor que explicara con precisión POR QUÉ se fue el cliente se
+       * habría quedado sin poder cerrar la actividad. */
+      if (actual.tipo !== TIPO_ACLARACION) {
+        const veredicto = evaluarCierre({
+          resultado: body.resultado,
+          tipo: actual.tipo,
+          expedienteAdjunto:   body.expediente_baja === true,
+          secuenciaRegistrada: body.secuencia_contacto === true,
+        })
 
-      if (!veredicto.permitido) {
-        // Una declaración de baja se registra aunque la actividad no cierre:
-        // deja la cuenta en riesgo y la nota visible para el supervisor.
-        if (
-          (veredicto.codigo === 'declaracion_baja' || veredicto.codigo === 'declaracion_downgrade') &&
-          actual.cuenta_id
-        ) {
-          await etiquetarSiHayIntencionDeCancelacion(actual.cuenta_id, String(body.resultado ?? ''), actual.id)
+        if (!veredicto.permitido) {
+          // Una declaración de baja se registra aunque la actividad no cierre:
+          // deja la cuenta en riesgo y la nota visible para el supervisor.
+          if (
+            (veredicto.codigo === 'declaracion_baja' || veredicto.codigo === 'declaracion_downgrade') &&
+            actual.cuenta_id
+          ) {
+            await etiquetarSiHayIntencionDeCancelacion(actual.cuenta_id, String(body.resultado ?? ''), actual.id)
+          }
+          return NextResponse.json({
+            error:     veredicto.mensaje,
+            codigo:    veredicto.codigo,
+            exige:     veredicto.exige,
+            preguntas: veredicto.preguntas,
+            cierreBloqueado: true,
+          }, { status: 409 })
         }
-        return NextResponse.json({
-          error:     veredicto.mensaje,
-          codigo:    veredicto.codigo,
-          exige:     veredicto.exige,
-          preguntas: veredicto.preguntas,
-          cierreBloqueado: true,
-        }, { status: 409 })
       }
 
       // Auto-reporte de tiempo — obligatorio para cerrar cualquier actividad.
@@ -280,8 +325,17 @@ export async function PATCH(
 
     // Campos de control del candado de cierre: viajan en el body pero NO son
     // columnas de `actividades`. Si se colaran al update, romperían el cierre.
-    const { expediente_baja: _eb, secuencia_contacto: _sc, ...bodyColumnas } = body as Record<string, unknown>
-    void _eb; void _sc
+    const {
+      expediente_baja: _eb, secuencia_contacto: _sc,
+      // Los dos campos de la Aclaración de baja tampoco son columnas: el
+      // servidor ya los fusionó en `resultado` (componerResultadoAclaracion).
+      // Si se colaran aquí, PostgREST respondería "Could not find the
+      // 'aclaracion_causa' column" y NINGUNA aclaración podría cerrarse —
+      // ni siquiera por el reintento de abajo, que reusa este mismo objeto.
+      aclaracion_causa: _ac, aclaracion_acciones: _aa,
+      ...bodyColumnas
+    } = body as Record<string, unknown>
+    void _eb; void _sc; void _ac; void _aa
 
     let { data, error } = await supabaseAdmin
       .from('actividades')

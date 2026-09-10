@@ -149,7 +149,15 @@ export const CAMPOS_ELEGIBILIDAD_SELECT =
  * iniciar la actividad que sirve para completarlos. Los bloqueos por churn,
  * cancelación, dormida y estatus no validable SÍ siguen aplicando.
  */
-const TIPOS_DE_CAPTURA = new Set(['validacion'])
+const TIPOS_DE_CAPTURA = new Set([
+  'validacion',
+  // 'aclaracion' (Churn confirmado / Downgrade) por el mismo motivo, al revés:
+  // exigir "contacto localizable" para documentar una baja es absurdo —
+  // precisamente el cliente que se fue es el que ya no tiene contacto vivo.
+  // Sin esto, la aclaración de una cuenta con la ficha incompleta no se podría
+  // ni iniciar, y esa cuenta es de las que más urge explicar.
+  'aclaracion',
+])
 
 /**
  * @param dormidasZoho  IDs dormidos según Zoho. `null` = la conciliación falló

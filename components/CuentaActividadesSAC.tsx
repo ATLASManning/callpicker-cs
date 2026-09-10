@@ -13,12 +13,20 @@ const TIPO_META: Record<string, { label: string; emoji: string; color: string; b
   validacion: { label: 'Completar Perfil',    emoji: '⚠️', color: '#991B1B', bg: '#FEE2E2' },
   tickets:    { label: 'Análisis Tickets',    emoji: '🎫', color: '#7C2D12', bg: '#FFEDD5' },
   pagos:      { label: 'Comportamiento Pago', emoji: '💳', color: '#713F12', bg: '#FEF9C3' },
+  aclaracion: { label: 'Aclaración de baja',  emoji: '🚨', color: '#7F1D1D', bg: '#FEE2E2' },
 }
 
 const PRIO_META: Record<string, { color: string; bg: string; border: string }> = {
   alta:  { color: '#7F1D1D', bg: '#FEE2E2', border: '#FCA5A5' },
   media: { color: '#7C2D12', bg: '#FFEDD5', border: '#FDBA74' },
   baja:  { color: '#1E3A8A', bg: '#DBEAFE', border: '#93C5FD' },
+}
+
+const TIEMPO_OPCIONES = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180]
+function fmtMin(min: number): string {
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60), m = min % 60
+  return m > 0 ? `${h}h ${m}min` : `${h}h`
 }
 
 function fmtFecha(iso: string): string {
@@ -38,6 +46,19 @@ function ActividadRow({ act, canEdit }: { act: ActividadSAC; canEdit: boolean })
   const [resultado, setResultado] = useState(act.resultado ?? '')
   const [estado,    setEstado]    = useState(act.estado)
   const [saved,     setSaved]     = useState(false)
+  const [error,     setError]     = useState<string | null>(null)
+  /* El backend exige `tiempo_reportado_min` para cerrar CUALQUIER actividad
+   * (candado del 1-sep-2026). Este panel nunca lo enviaba, así que el botón
+   * "Marcar como completada" devolvía 400 SIEMPRE — y como el error se
+   * descartaba en silencio, parecía que simplemente no hacía nada. */
+  const [tiempoRep, setTiempoRep] = useState<number | ''>('')
+
+  /* Una Aclaración de baja NO se puede cerrar desde aquí: exige dos campos
+   * separados (causa y acciones previas) que este panel compacto no captura.
+   * Si se ofreciera el cuadro único, el servidor devolvería 409 y —como este
+   * componente no mostraba el error— el asesor haría clic y no pasaría
+   * absolutamente nada. Se manda al panel semanal, que sí los tiene. */
+  const esAclaracion = act.tipo === 'aclaracion'
 
   const meta  = TIPO_META[act.tipo] ?? { label: act.tipo, emoji: '📋', color: '#1F2937', bg: '#F3F4F6' }
   const prio  = PRIO_META[act.prioridad] ?? { color: '#1F2937', bg: '#F3F4F6', border: '#D1D5DB' }
@@ -47,13 +68,28 @@ function ActividadRow({ act, canEdit }: { act: ActividadSAC; canEdit: boolean })
   async function completar() {
     if (!resultado.trim()) return
     setSaving(true)
+    setError(null)
     try {
       const r = await fetch(`/api/actividades/${act.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ completada: true, estado: 'completada', resultado }),
+        body: JSON.stringify({
+          completada: true, estado: 'completada', resultado,
+          tiempo_reportado_min: tiempoRep || undefined,
+        }),
       })
       if (r.ok) { setEstado('completada'); setSaved(true) }
+      else {
+        // ANTES este error se perdía en silencio: el asesor pulsaba el botón y
+        // no ocurría nada visible. Los candados de cierre (baja declarada,
+        // perfil incompleto, aclaración) devuelven 409 con el motivo — hay que
+        // enseñarlo o el asesor no sabe qué le falta.
+        const d = await r.json().catch(() => null)
+        const faltantes = Array.isArray(d?.faltantes) ? ` ${d.faltantes.join(' ')}` : ''
+        setError(`${d?.error ?? `No se pudo completar (error ${r.status}).`}${faltantes}`)
+      }
+    } catch {
+      setError('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.')
     } finally { setSaving(false) }
   }
 
@@ -174,8 +210,22 @@ function ActividadRow({ act, canEdit }: { act: ActividadSAC; canEdit: boolean })
             </div>
           )}
 
+          {/* Aclaración de baja: no se cierra desde aquí (ver esAclaracion) */}
+          {!pcomp && esAclaracion && (
+            <div style={{
+              background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
+              padding: '10px 12px', marginBottom: 10,
+            }}>
+              <p style={{ fontSize: 11, color: '#991B1B', margin: 0, lineHeight: 1.6 }}>
+                <strong>Esta aclaración se cierra desde el panel semanal de actividades.</strong>{' '}
+                Ahí se capturan por separado la <strong>causa explícita</strong> y las{' '}
+                <strong>acciones previas</strong>, que son obligatorias para poder completarla.
+              </p>
+            </div>
+          )}
+
           {/* Completar actividad */}
-          {!pcomp && !pbloc && canEdit && (
+          {!pcomp && !pbloc && !esAclaracion && canEdit && (
             <div style={{ marginBottom: 10 }}>
               <p style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' }}>
                 Registrar resultado
@@ -192,21 +242,48 @@ function ActividadRow({ act, canEdit }: { act: ActividadSAC; canEdit: boolean })
                   background: '#fff', boxSizing: 'border-box',
                 }}
               />
+              <div style={{ marginTop: 7 }}>
+                <label style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
+                  ¿Cuánto tiempo te tomó? (obligatorio)
+                </label>
+                <select
+                  value={tiempoRep}
+                  onChange={e => setTiempoRep(e.target.value ? Number(e.target.value) : '')}
+                  style={{
+                    width: '100%', fontSize: 11, color: '#1F2937', background: '#fff',
+                    border: '1px solid #D1D5DB', borderRadius: 8, padding: '7px 10px', outline: 'none',
+                  }}
+                >
+                  <option value="">Selecciona el tiempo…</option>
+                  {TIEMPO_OPCIONES.map(m => (
+                    <option key={m} value={m}>{fmtMin(m)}</option>
+                  ))}
+                </select>
+              </div>
               <button
                 onClick={completar}
-                disabled={saving || !resultado.trim()}
+                disabled={saving || !resultado.trim() || !tiempoRep}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5,
                   marginTop: 6, padding: '6px 14px', borderRadius: 8, border: 'none',
                   fontSize: 11, fontWeight: 700, color: '#fff',
-                  cursor: saving || !resultado.trim() ? 'not-allowed' : 'pointer',
+                  cursor: saving || !resultado.trim() || !tiempoRep ? 'not-allowed' : 'pointer',
                   background: saved ? '#16A34A' : '#1B3FCC',
-                  opacity: saving || !resultado.trim() ? 0.45 : 1,
+                  opacity: saving || !resultado.trim() || !tiempoRep ? 0.45 : 1,
                 }}
               >
                 <CheckCircle2 size={12} />
                 {saving ? 'Guardando…' : saved ? '¡Completada!' : 'Marcar como completada'}
               </button>
+              {error && (
+                <p style={{
+                  marginTop: 7, padding: '7px 10px', borderRadius: 6,
+                  background: '#FEF2F2', border: '1px solid #FECACA',
+                  fontSize: 10.5, color: '#991B1B', lineHeight: 1.5,
+                }}>
+                  {error}
+                </p>
+              )}
             </div>
           )}
 

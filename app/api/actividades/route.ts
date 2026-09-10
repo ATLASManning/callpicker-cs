@@ -24,10 +24,21 @@ export async function GET(req: NextRequest) {
   const { data, error } = await q
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Auto-bloquear actividades pendientes cuya fecha_vencimiento ya pasó
+  // Auto-bloquear actividades pendientes cuya fecha_vencimiento ya pasó.
+  //
+  // EXCEPCIÓN: las Aclaraciones de baja (Churn confirmado / Downgrade) NO
+  // vencen. La instrucción de dirección (9-sep-2026) es que la actividad "no
+  // se cierra hasta cumplir con el requisito de la aclaración explícita, con
+  // las acciones previas" — es una obligación, no una tarea de la semana. Si
+  // se auto-bloqueara el lunes siguiente, la baja quedaría para siempre sin
+  // documentar y el asesor ya no podría hacerlo aunque quisiera: exactamente
+  // lo contrario de lo que se pidió. Se queda pendiente hasta que se cierre.
   const today   = new Date().toISOString().split('T')[0]
   const vencidas = (data ?? []).filter(
-    (a: Record<string, unknown>) => a.estado === 'pendiente' && typeof a.fecha_vencimiento === 'string' && a.fecha_vencimiento < today
+    (a: Record<string, unknown>) =>
+      a.estado === 'pendiente' &&
+      a.tipo !== 'aclaracion' &&
+      typeof a.fecha_vencimiento === 'string' && a.fecha_vencimiento < today
   )
   if (vencidas.length > 0) {
     const ids = vencidas.map((a: Record<string, unknown>) => a.id)

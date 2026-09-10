@@ -10,9 +10,13 @@ import { detectDataGaps, gapScore, conciliarGaps, type DataGap,
 let GAPS_LOCALIZADOS = new Map<string, CandidatoParaConciliar[]>()
 import { contarRespuestasRadar, preguntasRadarFaltantes } from '@/lib/radar'
 import {
-  evaluarElegibilidad, esLunes, LIMITE_SEMANAL, MSG,
+  evaluarElegibilidad, esLunes, LIMITE_SEMANAL, MSG, normalizarNombre,
   type CodigoBloqueo,
 } from '@/lib/elegibilidad'
+import {
+  TIPO_ACLARACION, eventosNuevosDeAclaracion, marcadorAclaracion,
+  descripcionAclaracion,
+} from '@/lib/aclaraciones'
 
 export const dynamic   = 'force-dynamic'
 // 55s (antes 30s) — deja margen al fetch interno a /api/facturacion?mode=dormidos
@@ -118,6 +122,107 @@ async function auditar(filas: Array<Record<string, unknown>>) {
 }
 
 // ── Radar de Cuenta — cuántas de las 12 preguntas tiene respondidas cada cuenta
+/* ── Aclaraciones por Churn confirmado / Downgrade ──────────────────────────
+ * Ver lib/aclaraciones.ts para el porqué y el corte que define "nuevo".
+ *
+ * Se generan FUERA del tope semanal de 4 y sin pasar por evaluarElegibilidad:
+ * la cuenta está dada de baja o degradada, y eso ES el motivo de la actividad,
+ * no un impedimento. La regla fail-closed del 24-ago-2026 sigue rigiendo para
+ * las 4 actividades rutinarias, que es lo que se reportó como problema.
+ */
+async function construirAclaraciones(
+  asesor: string,
+  semanaInicio: string,
+): Promise<AnyAct[]> {
+  const nuevos = eventosNuevosDeAclaracion()
+  if (nuevos.length === 0) return []
+
+  // Vence el viernes de la misma semana, igual que el lote rutinario. Se
+  // calcula aquí y no se recibe como parámetro para que esta función pueda
+  // llamarse ANTES de los filtros de elegibilidad — ver el porqué en el POST.
+  const vSem = new Date(semanaInicio + 'T12:00:00')
+  vSem.setDate(vSem.getDate() + 4)
+  const fechaVencimiento = toISO(vSem)
+
+  // Cuentas del asesor, para cruzar el nombre del GRC contra la cartera real.
+  const { data: cuentasAsesor } = await supabaseAdmin
+    .from('cuentas')
+    .select('id, cid, consecutivo, empresa, estado, asesor, health_score')
+    .eq('asesor', asesor)
+
+  const porNombre = new Map<string, { id: string; cid: string | null; consecutivo: string | null; empresa: string; health_score: number }>()
+  for (const c of (cuentasAsesor ?? []) as Array<{ id: string; cid: string | null; consecutivo: string | null; empresa: string; health_score: number }>) {
+    const n = normalizarNombre(c.empresa)
+    // Si el mismo nombre normalizado apunta a dos cuentas del asesor no se
+    // elige a ciegas: se descarta para no atribuir la baja a la cuenta
+    // equivocada (mismo criterio que el resto del módulo tras el incidente
+    // Medicall Expert del 18-ago-2026).
+    if (porNombre.has(n)) { porNombre.set(n, null as never); continue }
+    porNombre.set(n, c)
+  }
+
+  // ¿Ya se generó una aclaración por ESTE evento Y esta cuenta? El marcador
+  // vive en la descripción (ver marcadorAclaracion en lib/aclaraciones.ts) y
+  // se combina con cuenta_id: el marcador solo, sin la cuenta, chocaría entre
+  // dos clientes distintos que cayeron en churn el mismo mes.
+  //
+  // La consulta NO se limita a la semana actual a propósito: una aclaración
+  // sigue viva hasta que se documenta, y volver a generarla cada lunes
+  // llenaría el tablero del asesor con copias de la misma baja.
+  const { data: yaHay } = await supabaseAdmin
+    .from('actividades')
+    .select('cuenta_id, descripcion')
+    .eq('tipo', TIPO_ACLARACION)
+  const yaGeneradas = new Set(
+    (yaHay ?? [])
+      .map((a: { cuenta_id: string | null; descripcion: string | null }) => {
+        const m = String(a.descripcion ?? '').match(/^\[ACLARACIÓN · [^\]]+\]/)
+        return m && a.cuenta_id ? `${a.cuenta_id}::${m[0]}` : null
+      })
+      .filter(Boolean) as string[],
+  )
+
+  const filas: AnyAct[] = []
+  const vistos = new Set<string>()
+  // Eventos de Churn que NO se pudieron atribuir a una cuenta de este asesor.
+  // Se registran en el log en vez de desaparecer: un churn que el dashboard no
+  // sabe a quién asignar es un problema de cartera, no un no-evento.
+  const sinCuenta: string[] = []
+  for (const ev of nuevos) {
+    const cuenta = porNombre.get(ev.clienteNorm)
+    if (!cuenta) { sinCuenta.push(`${ev.cliente} (${ev.mes}, ${ev.movimiento})`); continue }
+    if (vistos.has(ev.clave)) continue
+    if (yaGeneradas.has(`${cuenta.id}::${marcadorAclaracion(ev)}`)) continue
+    vistos.add(ev.clave)
+
+    filas.push({
+      asesor,
+      cuenta_id:         cuenta.id,
+      cid:               cuenta.cid,
+      consecutivo:       cuenta.consecutivo ?? '',
+      empresa:           cuenta.empresa,
+      tipo:              TIPO_ACLARACION,
+      descripcion:       descripcionAclaracion(ev, cuenta.empresa),
+      prioridad:         'alta',
+      fecha_programada:  semanaInicio,
+      fecha_vencimiento: fechaVencimiento,
+      semana_inicio:     semanaInicio,
+      estado:            'pendiente',
+      semaforo_cuenta:   ev.movimiento === 'churn' ? 'inactivo' : 'naranja',
+      hs_cuenta:         cuenta.health_score,
+    } as AnyAct)
+  }
+
+  if (sinCuenta.length) {
+    // Nota: la mayoría serán clientes de OTRO asesor — esta función corre por
+    // asesor. Solo preocupa un nombre que no aparezca para NINGUNO.
+    console.warn(
+      `[Aclaraciones] ${sinCuenta.length} evento(s) de Churn/Downgrade sin cuenta de ${asesor}: ${sinCuenta.slice(0, 20).join(' · ')}`,
+    )
+  }
+  return filas
+}
+
 async function getRadarMap(cuentaIds: string[]): Promise<Map<string, Record<string, unknown> | null>> {
   const map = new Map<string, Record<string, unknown> | null>()
   if (!cuentaIds.length) return map
@@ -141,6 +246,7 @@ async function getRadarMap(cuentaIds: string[]): Promise<Map<string, Record<stri
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 type TipoActividad = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell' | 'validacion' | 'tickets' | 'pagos'
+                   | 'aclaracion'
 type Prioridad     = 'alta' | 'media' | 'baja'
 
 interface ContactoJson { nombre: string; cargo: string; email: string; tel?: string }
@@ -202,6 +308,17 @@ const TIPO_META: Record<TipoActividad, { label: string; emoji: string }> = {
   validacion: { label: 'Completar Perfil',    emoji: '⚠️' },
   tickets:    { label: 'Análisis de Tickets', emoji: '🎫' },
   pagos:      { label: 'Comportamiento Pago', emoji: '💳' },
+  aclaracion: { label: 'Aclaración de baja',  emoji: '🚨' },
+}
+
+/**
+ * Nunca indexar TIPO_META directamente: `tipo` viene de la BD, que es TEXT sin
+ * CHECK y puede traer cualquier cosa. Un tipo desconocido devolvía `undefined`
+ * y el correo semanal reventaba con TypeError en `meta.emoji` — después de
+ * haber insertado ya las actividades.
+ */
+function metaDeTipo(tipo: string): { label: string; emoji: string } {
+  return TIPO_META[tipo as TipoActividad] ?? { label: tipo || 'Actividad', emoji: '📋' }
 }
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -437,6 +554,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Ya existen actividades para esta semana', semanaInicio })
     }
 
+    /* ── ACLARACIONES por Churn confirmado / Downgrade ──────────────────────
+     * Se calculan AQUÍ, antes de los filtros de elegibilidad, y no al final.
+     *
+     * Motivo: más abajo hay tres `return` que cortan la petición cuando el
+     * asesor no tiene cuentas elegibles — y uno de ellos es literalmente
+     * "Ninguna cuenta de este asesor resultó elegible: todas están en Churn".
+     * Ése es exactamente el caso en el que las aclaraciones MÁS hacen falta.
+     * Calculándolas al final, ese asesor recibía un 404 y cero aclaraciones:
+     * el churn se quedaba sin documentar justo donde más churn hay.
+     *
+     * No pasan por evaluarElegibilidad, y no deben: la cuenta está dada de
+     * baja o degradada, y eso ES el motivo de la actividad. El fail-closed del
+     * 24-ago-2026 sigue intacto para las 4 rutinarias. */
+    const aclaraciones = await construirAclaraciones(asesor, semanaInicio)
+
+    /** Cierra la petición cuando no hubo lote rutinario pero sí aclaraciones. */
+    const salidaConAclaraciones = async (
+      payload: Record<string, unknown>, status: number,
+    ) => {
+      if (!aclaraciones.length) return NextResponse.json(payload, { status })
+      const { data, error } = await supabaseAdmin.from('actividades').insert(aclaraciones).select()
+      if (error) {
+        return NextResponse.json({ ...payload, aclaracionesError: error.message }, { status })
+      }
+      return NextResponse.json({
+        ...payload,
+        // 200: sí se generó trabajo para el asesor, aunque no sea el lote rutinario.
+        generadas:   data?.length ?? 0,
+        semanaInicio,
+        actividades: data,
+        aclaraciones: {
+          generadas: data?.length ?? 0,
+          nota: 'Sin lote rutinario esta semana, pero hay bajas/downgrades por documentar.',
+          detalle: aclaraciones.map(a => ({ empresa: a.empresa, descripcion: a.descripcion.split('\n')[0] })),
+        },
+      })
+    }
+
     // ── Conciliación previa (instrucción de dirección, 2 sep 2026) ────────
     // Antes de generar el reporte de la semana, los módulos de Churn se
     // concilian contra la cartera: lo que ya murió y quedó del lado del
@@ -466,7 +621,7 @@ export async function POST(req: NextRequest) {
       .order('health_score', { ascending: true })
 
     if (cErr || !cuentas?.length)
-      return NextResponse.json({ error: 'No se encontraron cuentas para este asesor' }, { status: 404 })
+      return salidaConAclaraciones({ error: 'No se encontraron cuentas para este asesor' }, 404)
 
     // Conciliar con Churn — tres fuentes, todas en lib/elegibilidad.ts:
     // 1. Zoho · Dormidas en vivo (ver getDormidasEnZoho arriba)
@@ -503,10 +658,10 @@ export async function POST(req: NextRequest) {
     ).length
 
     if (!todas.length)
-      return NextResponse.json({
+      return salidaConAclaraciones({
         error: 'Ninguna cuenta de este asesor resultó elegible: todas están en Churn (dormida / cancelación / GRC-AAA-2026) o tienen el contacto incompleto.',
         excluidasPorChurn, bloqueadas,
-      }, { status: 404 })
+      }, 404)
 
     // ── Guardas de integridad de cartera ──────────────────────────────────
     // Incidente 18 Ago 2026: "Medicall Expert" existía DUPLICADA en Supabase
@@ -559,10 +714,10 @@ export async function POST(req: NextRequest) {
     })
 
     if (!elegibles.length)
-      return NextResponse.json({
+      return salidaConAclaraciones({
         error: 'No quedaron cuentas elegibles tras validar la integridad de la cartera — revisar duplicados y conflictos de asignación en Supabase',
         conflictosDeAsignacion, duplicadasMismoAsesor,
-      }, { status: 409 })
+      }, 409)
 
     // ── La semana completa: Completar Perfil + Radar sobre 4 cuentas ─────────
     // Es el ÚNICO lote que se genera. Antes esto convivía con 12 actividades de
@@ -711,9 +866,18 @@ export async function POST(req: NextRequest) {
       })
     })
 
-    // No se genera nada más. La semana del asesor son EXACTAMENTE estas cuentas
-    // (máx. 4): cerrar sus datos faltantes. No se agregan actividades de
-    // rotación encima — la rotación martes-viernes se retiró el 24 Ago 2026.
+    // No se genera nada más POR RUTINA. La semana del asesor son EXACTAMENTE
+    // estas cuentas (máx. 4): cerrar sus datos faltantes. No se agregan
+    // actividades de rotación encima — la rotación martes-viernes se retiró el
+    // 24 Ago 2026.
+
+    /* Las aclaraciones ya se calcularon arriba (antes de los filtros de
+     * elegibilidad, ver el porqué ahí). Van APARTE del tope de 4 por decisión
+     * expresa de dirección: una semana con tres bajas exige tres aclaraciones,
+     * y si compitieran por los 4 espacios la documentación del churn
+     * desplazaría al trabajo de retención — que es justo lo que evita el
+     * churn siguiente. */
+    rows.push(...aclaraciones)
 
     const { data: inserted, error: insErr } = await supabaseAdmin
       .from('actividades')
@@ -748,6 +912,10 @@ export async function POST(req: NextRequest) {
       completarPerfil: { // único lote de la semana — Perfil + Radar de Cuenta
         cuentas: lunesSeleccion.length,
         segundaSolicitud: lunesSeleccion.filter(x => x.segundaSolicitud).length,
+      },
+      aclaraciones: {   // Churn confirmado / Downgrade nuevos — van FUERA del tope de 4
+        generadas: aclaraciones.length,
+        detalle:   aclaraciones.map(a => ({ empresa: a.empresa, descripcion: a.descripcion.split('\n')[0] })),
       },
       excluidasPorChurn, // dormidas en Zoho, en alerta de cancelación o con churn confirmado en GRC-AAA-2026
       bloqueadas,        // detalle de cada cuenta no elegible y su motivo
@@ -800,7 +968,7 @@ async function sendActividadesEmail(
 
     const actsHtml = acts.map(a => {
       const tipo      = String(a.tipo ?? 'llamada') as TipoActividad
-      const meta      = TIPO_META[tipo]
+      const meta      = metaDeTipo(tipo)
       const prioridad = String(a.prioridad ?? 'media')
       const isVal     = tipo === 'validacion'
       const color     = isVal ? '#DC2626' : prioridad === 'alta' ? '#EF4444' : prioridad === 'media' ? '#F97316' : '#3B82F6'
