@@ -13,7 +13,7 @@ import { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } from './eleg
 import { getZohoMap, lookupZoho } from './zoho-enrich'
 import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
-import { REPORTE_S18_AGOSTO_2026 } from '@/app/churn/reporte-actual'
+import { REPORTE_S19_SEPTIEMBRE_2026 } from '@/app/churn/reporte-actual'
 import { seccionesGlosario } from './glosario-atlas'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 
@@ -399,7 +399,7 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   modulos.push('churn-grc')
 
   // Corte vigente de Gross Revenue Churn — misma fuente que renderiza el módulo.
-  const rep = REPORTE_S18_AGOSTO_2026
+  const rep = REPORTE_S19_SEPTIEMBRE_2026
   if (rep.grc) {
     const evo = rep.grc.evolucion
       .map(e => `${e.mes} ${e.pct}%${e.anterior !== undefined ? ` (ant. ${e.anterior}%)` : ''}`)
