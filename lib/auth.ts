@@ -46,6 +46,12 @@ const EMAILS_AUTORIZADOS_DEFAULT = [
   'fatima@callpicker.com',
   'claudia@callpicker.com',
   'dominguez.dan@callpicker.com',
+  // Aurora (10 sep 2026) — alta por instrucción de dirección. Su registro en
+  // `usuarios` ya existía con contraseña propia y `activo = true`, pero nunca
+  // pudo entrar (`ultimo_acceso` en null): faltaba justamente esta línea.
+  // Rol `viewer`, que en lib/permisos.ts NO es de solo lectura — ve todos los
+  // módulos, igual que Daniel.
+  'auroravelinomartinez1@gmail.com',
 ]
 
 export function emailsAutorizados(): Set<string> {
