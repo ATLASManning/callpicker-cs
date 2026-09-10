@@ -557,12 +557,24 @@ export async function POST(req: NextRequest) {
     /* ── ACLARACIONES por Churn confirmado / Downgrade ──────────────────────
      * Se calculan AQUÍ, antes de los filtros de elegibilidad, y no al final.
      *
-     * Motivo: más abajo hay tres `return` que cortan la petición cuando el
-     * asesor no tiene cuentas elegibles — y uno de ellos es literalmente
-     * "Ninguna cuenta de este asesor resultó elegible: todas están en Churn".
-     * Ése es exactamente el caso en el que las aclaraciones MÁS hacen falta.
-     * Calculándolas al final, ese asesor recibía un 404 y cero aclaraciones:
-     * el churn se quedaba sin documentar justo donde más churn hay.
+     * Motivo: más abajo hay CUATRO `return` que cortan la petición sin lote
+     * rutinario, y uno es literalmente "Ninguna cuenta de este asesor resultó
+     * elegible: todas están en Churn" — exactamente el caso en el que las
+     * aclaraciones MÁS hacen falta. Calculándolas al final, ese asesor recibía
+     * un 404 y cero aclaraciones: el churn se quedaba sin documentar justo
+     * donde más churn hay.
+     *
+     * REGLA AL TOCAR ESTE ARCHIVO: entre esta línea y el `rows.push(...
+     * aclaraciones)` del final NO debe quedar ningún `return NextResponse.json`
+     * que corte la petición; todos deben salir por `salidaConAclaraciones`.
+     * Un cuarto `return` se escapó en la primera versión (el del asesor con la
+     * cartera al día) y perdía la aclaración de forma PERMANENTE: mientras su
+     * cartera siguiera completa, el mismo 400 se repetía cada lunes.
+     *
+     * Única excepción deliberada: el 503 de fail-closed cuando Zoho no
+     * responde. Ahí sí se corta sin insertar, pero eso solo RETRASA la
+     * aclaración — en cuanto Zoho vuelva, la siguiente corrida la crea, porque
+     * el dedup solo mira filas ya guardadas. No se pierde.
      *
      * No pasan por evaluarElegibilidad, y no deben: la cuenta está dada de
      * baja o degradada, y eso ES el motivo de la actividad. El fail-closed del
@@ -827,11 +839,20 @@ export async function POST(req: NextRequest) {
       lunesSeleccion.push({ cuenta, segundaSolicitud: false })
     }
 
+    // Éste es el caso del asesor SANO: todas sus cuentas activas ya tienen
+    // perfil y Radar completos, así que no hay lote rutinario. Tiene que salir
+    // por el helper igual que los otros: si esa semana cayó un churn, la
+    // aclaración YA está calculada en memoria y este `return` la tiraría.
+    //
+    // Y aquí la pérdida sería PERMANENTE, no un retraso: mientras la cartera
+    // siga completa, el mismo 400 se repite cada lunes y la aclaración no se
+    // inserta nunca. El dedup solo mira filas ya guardadas, así que no queda
+    // rastro de que faltó documentar la baja.
     if (!lunesSeleccion.length)
-      return NextResponse.json({
+      return salidaConAclaraciones({
         error: 'No hay cuentas elegibles con datos pendientes para este asesor: todas las cuentas activas ya tienen el perfil y el Radar completos.',
         bloqueadas,
-      }, { status: 400 })
+      }, 400)
 
     const rows: ActividadRow[] = []
 
