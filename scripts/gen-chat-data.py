@@ -16,7 +16,7 @@
    base_medicion = "agentes" (83 de 130 clientes). Eso NO es consumo de plan:
    es mensajes por agente. Produce valores como 433,369% (PVnube) o 51,602%
    (HomiRent), y deja 70 de 130 cuentas en el rango "100+" como si rebasaran su
-   plan. Solo ~12 cuentas tienen bolsa de mensajes real
+   plan. Solo 13 de 159 cuentas tienen bolsa de mensajes real
    (`contracted_messages_monthly` > 0), que es el unico caso donde un porcentaje
    de plan significa algo — ese se conserva aparte como `pctBolsa`.
 
@@ -72,7 +72,7 @@ def semaforo(c):
     if c['estado'] == 'suspended':
         return 'suspendida', ['Cuenta suspendida en el periodo — no se mide consumo.']
     if c['estado'] == 'operational_error':
-        return 'sin_medicion', ['La recoleccion del periodo fallo (operational_error): '
+        return 'sin_medicion', ['La recolección del periodo falló (operational_error): '
                                 'la cifra de este corte no es confiable.']
 
     msgs = c['mensajes'] or 0
@@ -98,7 +98,7 @@ def semaforo(c):
         if c['bolsaMensajes']:
             m.append('Revisar dimensionamiento del plan.')
         else:
-            m.append('Sin bolsa contratada — candidato a revision comercial.')
+            m.append('Sin bolsa contratada — candidato a revisión comercial.')
         return 'intenso', m
 
     señales_malas = []
@@ -136,9 +136,9 @@ def semaforo_cliente(cuentas):
     vivas = [c for c in cuentas if c['semaforo'] not in ('sin_medicion', 'suspendida')]
     if not vivas:
         # ninguna cuenta tiene lectura utilizable
-        return ('suspendida', ['Todas las cuentas del cliente estan suspendidas.']) \
+        return ('suspendida', ['Todas las cuentas del cliente están suspendidas.']) \
             if all(c['semaforo'] == 'suspendida' for c in cuentas) \
-            else ('sin_medicion', ['La recoleccion fallo en todas las cuentas del cliente.'])
+            else ('sin_medicion', ['La recolección falló en todas las cuentas del cliente.'])
 
     if len(vivas) == 1:
         return vivas[0]['semaforo'], list(vivas[0]['motivos'])
@@ -158,10 +158,10 @@ def semaforo_cliente(cuentas):
         'crecimientoPct': principal['crecimientoPct'],
     }
     clave, motivos = semaforo(agg)
-    motivos.append('Agregado de %d cuentas Chatwoot; cada una conserva su propio semaforo abajo.' % len(vivas))
+    motivos.append('Agregado de %d cuentas Chatwoot; cada una conserva su propio semáforo abajo.' % len(vivas))
     aparte = [c for c in cuentas if c['semaforo'] in ('sin_medicion', 'suspendida')]
     if aparte:
-        motivos.append('%d cuenta(s) quedaron fuera del calculo por falta de medicion: %s.'
+        motivos.append('%d cuenta(s) quedaron fuera del cálculo por falta de medición: %s.'
                        % (len(aparte), ', '.join(c['cuenta'] for c in aparte)))
     return clave, motivos
 
