@@ -26,6 +26,8 @@ Columnas esperadas, en este orden:
 Requiere openpyxl:  python -m pip install openpyxl
 """
 import sys
+import re
+import unicodedata
 import os
 import openpyxl
 
@@ -52,6 +54,33 @@ def num(valor):
         return 0
 
 
+# ── Clientes que NO entran al Churn ──────────────────────────────────────────
+# El Excel de Zoho los sigue trayendo, pero direccion los saco del Churn. Sin
+# esta lista, la siguiente regeneracion los devolveria al tablero en silencio y
+# volveria a bloquearlos para actividades SAC.
+#
+# Cada entrada se compara por nombre normalizado (sin acentos, sin espacios ni
+# signos, en minusculas), igual que lib/elegibilidad.ts.
+#
+# IMPORTANTE: si agregas uno aqui, ajusta tambien las cifras de conciliacion en
+# app/churn/grc-reporte.ts (GRC_VERIFICACION del mes y GRC_RESUMEN_REPORTE), o
+# el modulo GRC marcara ese mes como "sin cuadrar".
+FUERA_DEL_CHURN = {
+    # 9 sep 2026 - Jose Manuel Lopez Delgadillo, Direccion: "te solicito
+    # sacarla del Churn". TATSA figuraba con Churn confirmado en agosto 2026
+    # (AAA, MRR 11,086 -> 0). Tras la recomendacion de los duenos de CBS
+    # Compresores y la visita de direccion, la cuenta se reactiva y se da de
+    # alta como cuenta TOP (D59, cartera de Dan).
+    'tatsa': 'Reactivada. Alta como cuenta TOP D59 el 9 sep 2026.',
+}
+
+
+def normalizar(s):
+    s = unicodedata.normalize('NFD', str(s or ''))
+    s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+    return re.sub(r'[^a-z0-9]', '', s.lower())
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -63,6 +92,7 @@ def main():
     destino = os.path.normpath(destino)
 
     wb = openpyxl.load_workbook(origen, read_only=True, data_only=True)
+    fuera = []   # filas omitidas por FUERA_DEL_CHURN, se reportan al final
 
     def fila(r):
         return {
@@ -81,7 +111,19 @@ def main():
         for clave in hojas:
             it = wb[clave].iter_rows(values_only=True)
             next(it)
-            porMes[NOMBRES.get(clave, clave)] = [fila(r) for r in it if r[1]]
+            mes = NOMBRES.get(clave, clave)
+            acum = []
+            for r in it:
+                if not r[1]:
+                    continue
+                # Mismo filtro que en el formato de hoja unica: si solo se
+                # aplicara alla, bastaria que Zoho entregara el otro formato
+                # para que la cuenta excluida volviera al Churn en silencio.
+                if normalizar(r[1]) in FUERA_DEL_CHURN:
+                    fuera.append('%s (%s)' % (esc(r[1]), mes))
+                    continue
+                acum.append(fila(r))
+            porMes[mes] = acum
     else:
         # (b) una sola hoja, separada por la columna "Mes Nombre"
         formato = 'hoja unica con columna de mes'
@@ -90,6 +132,9 @@ def main():
         next(it)
         for r in it:
             if not r[1] or not r[0]:
+                continue
+            if normalizar(r[1]) in FUERA_DEL_CHURN:
+                fuera.append('%s (%s)' % (esc(r[1]), esc(r[0])))
                 continue
             porMes.setdefault(esc(r[0]), []).append(fila(r))
         pedidos = [NOMBRES.get(h, h) for h in hojas]
@@ -177,6 +222,9 @@ def main():
     perdido = sum(f['perdido'] for _, fs in meses for f in fs)
     fraude = sum(f['perdido2'] for _, fs in meses for f in fs)
     print('Escrito: %s' % destino)
+    if fuera:
+        print('OMITIDAS por FUERA_DEL_CHURN (%d): %s' % (len(fuera), ', '.join(fuera)))
+        print('  Recuerda ajustar app/churn/grc-reporte.ts si cambio el monto.')
     print('%d filas en %d meses' % (total, len(meses)))
     for nombre, filas in meses:
         aaa = sum(1 for f in filas if f['clas'] == 'AAA')

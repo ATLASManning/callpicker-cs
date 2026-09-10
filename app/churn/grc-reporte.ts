@@ -50,21 +50,21 @@ export const GRC_VERIFICACION: GrcFilaReporte[] = [
   { mes: 'Mayo',    churn:  32586.00, downgrade: 44979.51, perdida:  77565.51 },
   { mes: 'Junio',   churn:  87260.00, downgrade: 82424.66, perdida: 169684.66 },
   { mes: 'Julio',   churn:  76624.46, downgrade: 28143.20, perdida: 104767.66 },
-  { mes: 'Agosto',  churn: 125698.17, downgrade: 49977.17, perdida: 175675.34 },
+  { mes: 'Agosto',  churn: 114612.17, downgrade: 49977.17, perdida: 164589.34 },
 ]
 
 /** Totales del renglón "Resumen amplio" del reporte. */
 export const GRC_RESUMEN_REPORTE = {
   base:      39109117.90,
-  churn:       602600.99,
+  churn:       591514.99,
   downgrade:   312737.48,
-  perdida:     915338.47,
+  perdida:     904252.47,
   pct:               2.3,
 }
 
 /**
  * El fraude / reestructura queda FUERA del Gross Revenue Churn: el reporte
- * cierra en $915,338.47, que es la pérdida real sin los $203,132.14 de
+ * cierra en $904,252.47, que es la pérdida real sin los $203,132.14 de
  * fraude-reestructura del mismo periodo. Se reporta por separado.
  */
 export const GRC_EXCLUYE_FRAUDE = true

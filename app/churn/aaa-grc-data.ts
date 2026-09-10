@@ -801,7 +801,6 @@ export const AAA_GRC_2026: AAAGrcMes[] = [
     clientes: [
       { cliente: 'GTC - CARRANZA', clas: 'AAA', facturas: 6, meses: 5, acumulado: 129767.45, mrrInicio: 23113.62, mrrFin: 0.0, ganado: 0.0, movimiento: 'Churn confirmado', perdido: 23113.62, perdido2: 0.0, rango: '$20,001 - $40,000' },
       { cliente: 'Universidad UniverMilenium', clas: 'AAA', facturas: 11, meses: 7, acumulado: 88591.0, mrrInicio: 36428.0, mrrFin: 18514.0, ganado: 0.0, movimiento: 'Downgrade', perdido: 17914.0, perdido2: 0.0, rango: '$10,001 - $20,000' },
-      { cliente: 'TATSA', clas: 'AAA', facturas: 2, meses: 1, acumulado: 11086.0, mrrInicio: 11086.0, mrrFin: 0.0, ganado: 0.0, movimiento: 'Churn confirmado', perdido: 11086.0, perdido2: 0.0, rango: '$10,001 - $20,000' },
       { cliente: 'GTC - LOMAS', clas: 'AAA', facturas: 6, meses: 5, acumulado: 80706.34, mrrInicio: 10953.37, mrrFin: 0.0, ganado: 0.0, movimiento: 'Churn confirmado', perdido: 10953.37, perdido2: 0.0, rango: '$10,001 - $20,000' },
       { cliente: 'INBROTEK SERVICIOS', clas: 'AAA', facturas: 10, meses: 45, acumulado: 262104.86, mrrInicio: 9716.96, mrrFin: 2801.0, ganado: 0.0, movimiento: 'Downgrade', perdido: 6915.96, perdido2: 0.0, rango: '$1,001 - $3,000' },
       { cliente: 'AS CONSULTING', clas: 'AA', facturas: 1, meses: 0, acumulado: 4745.0, mrrInicio: 4745.0, mrrFin: 0.0, ganado: 0.0, movimiento: 'Churn confirmado', perdido: 4745.0, perdido2: 0.0, rango: '$3,001 - $5,000' },
