@@ -348,8 +348,26 @@ function Detalle({ c }: { c: ChatCliente }) {
   const conTrafico = c.inboxes.filter(i => i.mensajes > 0)
   const muertos    = c.inboxes.filter(i => i.contratado && i.mensajes === 0)
 
+  const cfgC = SEMAFORO[c.semaforo]
+
   return (
     <div className="space-y-5">
+
+      {/* Por qué el cliente está en ese color */}
+      {c.motivos?.length > 0 && (
+        <div className="rounded-xl px-4 py-3" style={{ background: `${cfgC.color}14`, border: `1px solid ${cfgC.color}44` }}>
+          <p className="text-[11px] uppercase tracking-wide font-semibold mb-1.5" style={{ color: cfgC.color }}>
+            Por qué {c.nombre} está en «{cfgC.label}»
+          </p>
+          <ul className="space-y-1">
+            {c.motivos.map((m, i) => (
+              <li key={i} className="text-xs leading-snug flex gap-1.5" style={{ color: 'rgba(255,255,255,0.8)' }}>
+                <span style={{ color: cfgC.color }}>·</span>{m}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Cuentas Chatwoot */}
       <div>

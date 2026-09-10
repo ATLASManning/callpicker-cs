@@ -122,15 +122,48 @@ def semaforo(c):
     return 'saludable', m
 
 
-# el peor semaforo manda cuando un CID tiene varias cuentas Chatwoot
-PEOR = ['sin_uso', 'bajo', 'sin_medicion', 'suspendida', 'saludable', 'intenso']
+def semaforo_cliente(cuentas):
+    """Semaforo a nivel CID cuando el cliente tiene varias cuentas Chatwoot.
 
+       NO se toma "el peor manda". Esa regla producia lecturas falsas: HomiRent
+       tiene la cuenta "Homi Rent" con 163,063 mensajes y una "BOT-TEST" con
+       cero, y el cliente entero salia "Sin uso". Un cliente con 163 mil
+       mensajes no esta sin uso — su cuenta de pruebas si.
 
-def peor(claves):
-    for k in PEOR:
-        if k in claves:
-            return k
-    return 'sin_medicion'
+       Se evalua la MISMA regla sobre el agregado del cliente. El detalle por
+       cuenta conserva su propio color, que es donde vive ese matiz.
+    """
+    vivas = [c for c in cuentas if c['semaforo'] not in ('sin_medicion', 'suspendida')]
+    if not vivas:
+        # ninguna cuenta tiene lectura utilizable
+        return ('suspendida', ['Todas las cuentas del cliente estan suspendidas.']) \
+            if all(c['semaforo'] == 'suspendida' for c in cuentas) \
+            else ('sin_medicion', ['La recoleccion fallo en todas las cuentas del cliente.'])
+
+    if len(vivas) == 1:
+        return vivas[0]['semaforo'], list(vivas[0]['motivos'])
+
+    principal = max(vivas, key=lambda c: c['mensajes'])
+    con_bolsa = [c for c in vivas if c['bolsaMensajes']]
+    bolsa = sum(c['bolsaMensajes'] for c in con_bolsa) or None
+    pct = (sum(c['mensajes'] for c in con_bolsa) / bolsa * 100) if bolsa else None
+    agg = {
+        'estado': 'ok',
+        'mensajes': sum(c['mensajes'] for c in vivas),
+        'inboxesContratados': sum(c['inboxesContratados'] or 0 for c in vivas) or None,
+        'inboxesActivos': sum(c['inboxesActivos'] or 0 for c in vivas),
+        'bolsaMensajes': bolsa,
+        'pctBolsa': pct,
+        'tendencia': principal['tendencia'],
+        'crecimientoPct': principal['crecimientoPct'],
+    }
+    clave, motivos = semaforo(agg)
+    motivos.append('Agregado de %d cuentas Chatwoot; cada una conserva su propio semaforo abajo.' % len(vivas))
+    aparte = [c for c in cuentas if c['semaforo'] in ('sin_medicion', 'suspendida')]
+    if aparte:
+        motivos.append('%d cuenta(s) quedaron fuera del calculo por falta de medicion: %s.'
+                       % (len(aparte), ', '.join(c['cuenta'] for c in aparte)))
+    return clave, motivos
 
 
 # ── armado ───────────────────────────────────────────────────────────────────
@@ -227,11 +260,13 @@ def main():
         cs.sort(key=lambda x: (-x['mensajes'], x['cuenta']))
         inboxes = porCliente.get(cid, [])
         tiers = [c['tier'] for c in cs if c['tier']]
+        sem, motivos = semaforo_cliente(cs)
         clientes.append({
             'cid': cid,
             'nombre': cs[0]['cliente'],
             'tier': tiers[0] if tiers else None,
-            'semaforo': peor([c['semaforo'] for c in cs]),
+            'semaforo': sem,
+            'motivos': motivos,
             'cuentas': cs,
             'inboxes': inboxes,
             'inboxesRelleno': placeholders.get(cid, 0),
@@ -332,6 +367,7 @@ def main():
     w('  nombre: string')
     w('  tier: string | null')
     w('  semaforo: SemaforoChat')
+    w('  motivos: string[]')
     w('  cuentas: ChatCuenta[]')
     w('  inboxes: ChatInbox[]')
     w('  inboxesRelleno: number')
