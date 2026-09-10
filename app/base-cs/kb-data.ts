@@ -658,6 +658,93 @@ export const KB: Categoria[] = [
   {
     id: 'ia', label: 'IA & Asistente Virtual', color: '#F97316',
     articulos: [
+
+      // ── Evaluación técnica de plataformas de agentes de voz ──────────────
+      // Documento interno de Engineering (Outline). Se resume aquí porque el
+      // enlace exige sesión de Outline: quien no la tenga vería un login, y
+      // Atlas IA no puede seguir enlaces — solo lee este archivo. Por eso el
+      // contenido vive en los bloques y el enlace queda como referencia.
+      {
+        id: 'eval-elevenagents-retell',
+        titulo: 'Evaluación: ElevenAgents (ElevenLabs) vs Retell AI',
+        descripcion: 'Comparativa técnica de las dos plataformas administradas para construir agentes de voz con IA. Retell AI es la que Callpicker usa hoy en producción; ElevenAgents es la alternativa evaluada. Conclusión: ElevenAgents cubre las cuatro características que hoy se usan de Retell, ninguna requiere código manual.',
+        badge: 'nuevo',
+        linkUrl: 'https://callpicker.getoutline.com/doc/evaluacion-elevenagents-elevenlabs-vs-retell-ai-Gxzj5UpQ9y',
+        linkLabel: 'Abrir el documento completo en Outline',
+        ubicacion: 'Outline › Engineering › 🧑🏽‍💻 Agentes virtuales',
+        utilidad: 'Sustentar la decisión de plataforma para el Agente Virtual de Voz y responder qué cambia si se migra de Retell AI a ElevenAgents.',
+        bloques: [
+          {
+            tipo: 'parrafo',
+            texto: 'Autor: José Abraham Raymundo García. A diferencia de la evaluación previa contra LiveKit, aquí ambas plataformas parten del MISMO modelo de arquitectura: son plataformas administradas donde el agente se configura como un recurso del proveedor, no como código que uno despliega. Eso es lo que las hace genuinamente comparables.',
+          },
+          { tipo: 'seccion', titulo: 'Cómo procesa cada una una llamada' },
+          {
+            tipo: 'lista',
+            items: [
+              'RETELL AI — La llamada llega a sus servidores, se crea una sesión con call_id único, el audio pasa por un STT de un proveedor integrado, la transcripción se puede enviar a un servidor propio vía WebSocket, y la respuesta se convierte a voz con un TTS.',
+              'RETELL AI — El agente son DOS objetos separados, cada uno con su propio ID y su propio ciclo de vida en la API: el agente (voz y comportamiento) y el Retell LLM (prompt y acciones).',
+              'ELEVENAGENTS — La llamada entra por SIP INVITE; el número puede importarse desde un SIP trunk propio o una integración nativa (compatible con la mayoría de proveedores SIP estándar, incluido Twilio). El número está asignado a un agente concreto desde el dashboard.',
+              'ELEVENAGENTS — Coordina cuatro componentes: STT afinado por ellos, LLM a elegir (o custom LLM), TTS de baja latencia con más de 5,000 voces y más de 70 idiomas, y un modelo propio de turn-taking para controlar los tiempos de la conversación.',
+              'ELEVENAGENTS — Al terminar, la conversación queda registrada con transcripción, audio, análisis y metadatos, y puede notificarse a un servidor externo vía post-call webhook.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'La desventaja que comparten' },
+          {
+            tipo: 'parrafo',
+            texto: 'Ninguna de las dos permite elegir proveedor de STT y TTS. En Retell AI quedas limitado a los proveedores que Retell tiene integrados; en ElevenAgents, únicamente a ElevenLabs. El documento la registra como desventaja en ambas.',
+          },
+          { tipo: 'seccion', titulo: 'Formas de integración' },
+          {
+            tipo: 'lista',
+            items: [
+              'Retell AI — API REST (es la forma en que está implementado hoy en la infraestructura de Callpicker) y SDK oficial para Node.js/TypeScript y Python.',
+              'ElevenAgents — API REST, SDK oficial para Python, JavaScript, React, React Native, Swift, Kotlin y Flutter, y además un CLI que permite administrar los agentes como código (descargar la configuración, modificarla y republicarla). El CLI es opcional y no sustituye a la API REST.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'Equivalencia de los 11 endpoints que Callpicker usa hoy' },
+          {
+            tipo: 'lista',
+            items: [
+              'CON EQUIVALENTE DIRECTO (7): get-agent → GET /v1/convai/agents/{id} · create-agent → POST /v1/convai/agents/create · update-agent → PATCH /v1/convai/agents/{id} · delete-agent → DELETE /v1/convai/agents/{id} · get-voice → GET /v1/voices/{id} · list-voices → GET /v1/voices · register-phone-call → POST /v1/convai/sip-trunk/outbound-call (o WebSocket / WebRTC según el caso).',
+              'NO APLICAN (4), y por una sola razón estructural: en ElevenAgents el LLM NO es un recurso independiente, vive dentro del agente. Por eso desaparecen get-retell-llm, create-retell-llm, update-retell-llm y delete-retell-llm. El prompt se define en el mismo POST de creación y se actualiza con el mismo PATCH del agente, modificando conversation_config.agent.prompt.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'Las cuatro características que hoy se usan de Retell, y su equivalente' },
+          {
+            tipo: 'lista',
+            items: [
+              'VARIABLES DINÁMICAS — Ambas inyectan valores en tiempo de ejecución sin código externo. En ElevenAgents se escriben {{variable}} en el system prompt, el primer mensaje y los parámetros de las herramientas. Además hay variables de sistema automáticas con prefijo system__ (caller_id, called_number, call_duration_secs, conversation_id, agent_turns, conversation_history, entre otras).',
+              'MULTI-PROMPT — Retell transiciona entre estados, cada uno con su prompt y sus funciones. En ElevenAgents el equivalente son los Workflows: un grafo visual de nodos donde la conversación se ramifica, editable por API o CLI.',
+              'POST-CALL ANALYSIS — Retell extrae resumen, sentimiento y campos estructurados. ElevenAgents lo cubre con Conversation analysis, dividido en Success evaluation (criterios propios evaluados contra la transcripción), Data collection (extracción de campos), Sentiment analysis y resumen.',
+              'VOICEMAIL DETECTION — Ambas detectan cuando la saliente cae en buzón. En ElevenAgents el LLM identifica los patrones del buzón y, según configuración, deja un mensaje predefinido o cuelga.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'Modelo de cobro de ElevenAgents' },
+          {
+            tipo: 'lista',
+            items: [
+              'El costo depende de si el agente es solo de voz, multimodal o de texto.',
+              'Agentes de VOZ: se cobra por duración de la llamada, con un descuento del 95% en los periodos de silencio superiores a 10 segundos.',
+              'Agentes MULTIMODAL: por duración y además por cada mensaje de texto, con el mismo descuento del 95% en silencios de más de 10 segundos.',
+              'Agentes de TEXTO: se cobra por cada mensaje.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'Conclusión del documento' },
+          {
+            tipo: 'parrafo',
+            texto: 'Retell AI y ElevenAgents resuelven el mismo problema desde el mismo tipo de arquitectura: plataformas administradas, con API REST, SDK oficiales y el agente como recurso configurable. ElevenAgents cubre las cuatro características que hoy se usan de Retell —variables dinámicas, multi-prompt, post-call analysis y voicemail detection— y ninguna requiere implementación manual en código, a diferencia de lo que ocurría con LiveKit.',
+          },
+        ],
+        consideraciones: [
+          { texto: 'Este es un documento de EVALUACIÓN, no una decisión tomada. Hoy Callpicker opera con Retell AI en producción vía API REST.', tipo: 'warning' },
+          { texto: 'Los resultados de costos de llamadas reales viven en un Google Sheets enlazado desde el documento original, NO en el documento ni en este resumen. Para hablar de costos con cifras hay que abrir esa hoja.', tipo: 'warning' },
+          { texto: 'La migración eliminaría 4 de los 11 endpoints que se usan hoy, porque en ElevenAgents el LLM deja de ser un recurso independiente. Es el cambio estructural más grande a considerar.', tipo: 'info' },
+          { texto: 'El enlace de Outline exige sesión iniciada. Quien no la tenga verá la pantalla de login, no el documento.', tipo: 'info' },
+          { texto: 'Última actualización del documento original: 3 de septiembre de 2026 (6 días antes del 9-sep-2026, fecha en que se incorporó a esta base).', tipo: 'info' },
+        ],
+      },
+
       {
         id: 'agente-virtual',
         pdfUrl: '/docs/Callpicker_Agentes_Virtuales_OnePager_Confidencial.pdf',
