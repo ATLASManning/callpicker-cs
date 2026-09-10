@@ -1901,6 +1901,38 @@ export default function ChurnPage() {
   const SECCIONES_SUBMENU: Tab[] = ['zoho', 'aaa', 'conciliacion']
   const enSeccionSubmenu = SECCIONES_SUBMENU.includes(tab)
 
+  /* Rango real del acumulado, derivado de los reportes cargados.
+     Antes decía "Abr–Jul 2026" escrito a mano y ya iba dos meses atrasado: al
+     cargar septiembre seguía anunciando julio. Ahora se mueve solo. */
+  const rangoAcumulado = useMemo(() => {
+    const MES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+    const NOMBRE: Record<string, string> = {
+      enero:'Ene', febrero:'Feb', marzo:'Mar', abril:'Abr', mayo:'May', junio:'Jun',
+      julio:'Jul', agosto:'Ago', septiembre:'Sep', octubre:'Oct', noviembre:'Nov', diciembre:'Dic',
+    }
+    const vistos: string[] = []
+    for (const r of allReportes) {
+      const p = (r.periodo || '').toLowerCase()
+      const hit = Object.keys(NOMBRE).find(k => p.includes(k)) ??
+                  MES.find(m => p.includes(m.toLowerCase()))?.toLowerCase()
+      const abrev = hit ? (NOMBRE[hit] ?? hit) : null
+      if (abrev && !vistos.includes(abrev)) vistos.push(abrev)
+    }
+    if (!vistos.length) return ''
+    const orden = vistos.slice().sort((a, b) => MES.indexOf(a) - MES.indexOf(b))
+    const anios = Array.from(new Set(allReportes.map(r => (r.periodo.match(/20\d\d/) || [''])[0]).filter(Boolean)))
+    const anio = anios.length === 1 ? anios[0] : `${anios[0]}–${anios[anios.length - 1]}`
+    return orden.length === 1 ? `${orden[0]} ${anio}` : `${orden[0]}–${orden[orden.length - 1]} ${anio}`
+  }, [allReportes])
+
+  /* Filas que NO son un cliente sino el resumen de varias cuentas que el corte
+     no desglosó ("+ 21 cuentas canceladas en agosto…"). Cuentan para el DINERO
+     pero no para el número de clientes: mezclarlas hacía que el acumulado
+     dijera "100 cancelaciones" cuando 5 de esas filas representan decenas de
+     cuentas sin nombre. */
+  const esFilaAgregada = (nombre: string) =>
+    /^\s*\+|cuentas adicionales|no desglosa|cuentas canceladas en|^\d+\s+cuentas|^(Hard|Soft) Suspend —/i.test(nombre || '')
+
   const acumuladoCancelados = useMemo<Array<ChurnCancelado & { periodo: string }>>(() => {
     const items: Array<ChurnCancelado & { periodo: string }> = []
     for (const r of allReportes) {
@@ -1920,6 +1952,11 @@ export default function ChurnPage() {
     }
     return items.sort((a, b) => Number(b.perdida) - Number(a.perdida))
   }, [allReportes])
+
+  const acumCancelAgregados = useMemo(() =>
+    acumuladoCancelados.filter(c => esFilaAgregada(c.cliente)).length, [acumuladoCancelados])
+  const acumCancelNombrados = useMemo(() =>
+    acumuladoCancelados.length - acumCancelAgregados, [acumuladoCancelados, acumCancelAgregados])
 
   const totalAcumCancelados = useMemo(() =>
     acumuladoCancelados.reduce((s, c) => s + (Number(c.mrr) || 0), 0),
@@ -2079,7 +2116,7 @@ export default function ChurnPage() {
                 }}
               >
                 <p className="text-[11px] font-bold text-white tracking-widest">ACUMULADO</p>
-                <p className="text-[9px] text-blue-300 font-medium mt-0.5">Desde Abr 2026</p>
+                <p className="text-[9px] text-blue-300 font-medium mt-0.5">{rangoAcumulado || 'Desde Abr 2026'}</p>
                 <div className="flex gap-1 mt-1.5">
                   <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
                     style={{ background: 'rgba(239,68,68,0.30)', color: '#fca5a5' }}>
@@ -2154,9 +2191,9 @@ export default function ChurnPage() {
       {isAcumulado ? (
         <div className="px-6 pt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <KpiCard icon={XCircle}        label="MRR Cancelado · Acumulado"    value={fmt(totalAcumCancelados)}
-            sub={`${acumuladoCancelados.length} cancelaciones · Abr–Jul 2026`} color={RED}    />
+            sub={`${acumCancelNombrados} clientes${acumCancelAgregados ? ` + ${acumCancelAgregados} resúmenes sin desglosar` : ''} · ${rangoAcumulado}`} color={RED}    />
           <KpiCard icon={ArrowDownRight} label="Downgrades · Acumulado"       value={fmt(totalAcumDowngrades)}
-            sub={`${acumuladoDowngrades.length} eventos · Abr–Jul 2026`}       color={AMBER}  />
+            sub={`${acumuladoDowngrades.length} eventos · ${rangoAcumulado}`}       color={AMBER}  />
           <KpiCard icon={TrendingDown}   label="Impacto Total Acumulado"      value={fmt(totalAcumCancelados + totalAcumDowngrades)}
             sub="Cancelados + Downgrades desde abr 2026"                        color={INDIGO} />
           <KpiCard icon={CalendarDays}   label="Reportes Analizados"          value={String(allReportes.length)}
