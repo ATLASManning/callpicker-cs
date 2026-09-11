@@ -7,8 +7,8 @@ import {
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getAuditCaseById }           from '@/app/auditoria/cases'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
-import { inventarioDeCuenta } from '@/lib/servicios-cuenta'
-import CuentaServiciosPanel from '@/components/CuentaServiciosPanel'
+import { chatDeCuenta } from '@/lib/chat-cuenta'
+import CuentaChatPanel from '@/components/CuentaChatPanel'
 import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
 import { getSemaforoCuenta, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
@@ -82,14 +82,11 @@ export default async function CuentaDetailPage({ params }: Props) {
   const cortesRecientes = await cortesDeCuenta(cuenta.cid, 3)
   const planVigente     = cortesRecientes.at(-1) ?? null
 
-  // CAPA 1 — inventario de servicios. Cruza lo que declara la ficha, lo que
-  // aparece en los cortes y lo que mide la hoja de chat: el corte solo trae una
-  // linea de plan por mes, asi que por si solo no lista todos los servicios.
-  const inventario = await inventarioDeCuenta(
-    cuenta.cid,
-    (cuenta as Record<string, unknown>).servicio as string | null,
-    (cuenta as Record<string, unknown>).servicios_json,
-  )
+  // Modulo de Callpicker Chat. Solo devuelve algo donde hay chat; la voz de
+  // arriba no se toca. Mira 6 cortes y no los 3 de la ficha porque la linea de
+  // chat no aparece todos los meses: el archivo trae un solo plan por mes.
+  // cortesDeCuenta cachea, asi que esta segunda llamada no relee el archivo.
+  const chat = chatDeCuenta(cuenta.cid, cuenta.health_score, await cortesDeCuenta(cuenta.cid, 6))
 
   const h       = headers()
   const rol     = h.get('x-user-rol') ?? 'viewer'
@@ -326,8 +323,8 @@ export default async function CuentaDetailPage({ params }: Props) {
             <DatosEnriquecidosPanel datos={enriquecido} />
           </div>
 
-          {/* Servicios contratados — Capa 1 del Portafolio del Cliente */}
-          <CuentaServiciosPanel inv={inventario} />
+          {/* Callpicker Chat — solo en las cuentas que lo tienen */}
+          {chat && <CuentaChatPanel chat={chat} />}
 
           {/* Adopción de Producto — interactiva con historial */}
           <AdopcionProducto cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} />
