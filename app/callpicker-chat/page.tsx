@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import StatCard from '@/components/StatCard'
+import DiagnosticoSacUx from './DiagnosticoSacUx'
 import { CHAT_CLIENTES, CHAT_RESUMEN, type SemaforoChat, type ChatCliente, type ChatInbox } from './chat-data'
 
 /* ── Semáforo de salud de uso ───────────────────────────────────────────────
@@ -62,6 +63,7 @@ const fecha = (s: string) => {
 type Orden = 'mensajes' | 'cid' | 'nombre' | 'semaforo'
 
 export default function CallpickerChatPage() {
+  const [vista, setVista]     = useState<'operacion' | 'diagnostico'>('diagnostico')
   const [filtro, setFiltro]   = useState<SemaforoChat | null>(null)
   const [busca, setBusca]     = useState('')
   const [orden, setOrden]     = useState<Orden>('mensajes')
@@ -125,6 +127,25 @@ export default function CallpickerChatPage() {
             sub="uso que no está en el contrato" icon={Inbox} variant="success" />
         </div>
 
+        {/* ── Selector de vista ─────────────────────────────────────────── */}
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl w-fit"
+          style={{ background: 'rgba(13,24,41,0.07)', border: '1px solid rgba(13,24,41,0.10)' }}>
+          {([['operacion', 'Operación', 'Cliente por cliente, con su desglose de bandejas'],
+             ['diagnostico', 'Diagnóstico SAC & UX', 'Lectura de portafolio: brechas, riesgos y agenda']] as const).map(([k, l, d]) => (
+            <button key={k} onClick={() => setVista(k)} title={d}
+              className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+              style={{
+                background: vista === k ? '#1B3FCC' : 'transparent',
+                color: vista === k ? '#fff' : '#475569',
+              }}>
+              {l}
+            </button>
+          ))}
+        </div>
+
+        {vista === 'diagnostico' && <DiagnosticoSacUx />}
+
+        {vista === 'operacion' && <>
         {/* ── Aviso de calidad del dato ─────────────────────────────────── */}
         <div className="cp-card border-l-2" style={{ borderLeftColor: '#F97316' }}>
           <div className="flex gap-3">
@@ -268,6 +289,8 @@ export default function CallpickerChatPage() {
             </table>
           </div>
         </div>
+
+        </>}
 
         <p className="text-[11px] leading-relaxed px-1" style={{ color: '#64748B' }}>
           Fuente: hojas <span className="font-semibold">Chat Usage Monthly</span> (resumen) y{' '}

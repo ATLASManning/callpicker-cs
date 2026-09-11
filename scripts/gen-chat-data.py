@@ -181,6 +181,100 @@ def semaforo(c):
     return 'saludable', m
 
 
+# ── indicadores SAC / UX ─────────────────────────────────────────────────────
+# Solo se calculan sobre cuentas MEDIBLES (lectura buena y con trafico). Cualquier
+# agregado que meta las 28 cuentas con operational_error o las que tuvieron cero
+# mensajes estaria mintiendo, asi que se excluyen y se reporta cuantas quedaron
+# fuera. Ver [[feedback_contexto_ia_sin_huecos]].
+
+def medible(c):
+    return c['estado'] not in ('operational_error', 'suspended') and c['mensajes'] > 0
+
+
+# Base minima para que un ratio signifique algo. Sin esto, una cuenta con 3
+# mensajes entrantes y 0 salientes aparece como "desatencion total".
+BASE_MINIMA = 200
+
+
+def indicadores_cuenta(c):
+    """Senales de servicio y experiencia, a nivel cuenta Chatwoot."""
+    if not medible(c):
+        return None
+    ent, sal = c['mensajesCliente'] or 0, c['mensajesSalida'] or 0
+    ind = {
+        # BALANCE DE LA CONVERSACION — NO es "mensajes sin responder".
+        # El dato es un conteo agregado por direccion: no existe mapeo
+        # mensaje->respuesta, ni tiempos, ni identidad. En WhatsApp el cliente
+        # final escribe en rafaga (5 lineas = 5 mensajes) y UNA respuesta las
+        # atiende todas, asi que un ratio bajo puede ser operacion normal.
+        # Se publica como pregunta a investigar, jamas como acusacion, y solo
+        # cuando hay base suficiente.
+        'balance': round(sal / ent, 2) if ent >= BASE_MINIMA else None,
+        'baseBalance': ent,
+        'msjPorConv': c['promedioPorConv'],
+        'cargaAgente': round(c['mensajes'] / c['agentes']) if c['agentes'] else None,
+        'crecimiento': c['crecimientoPct'],
+    }
+    # Un volumen enorme con 1-2 agentes no es sobrecarga humana: es automatizacion.
+    # Marcarlo como "sobrecarga" mandaria al asesor a una conversacion equivocada.
+    ind['probablementeBot'] = bool(
+        ind['cargaAgente'] and ind['cargaAgente'] > 20000 and (c['agentes'] or 0) <= 2)
+    return ind
+
+
+def indicadores_cliente(cuentas, inboxes):
+    """Senales que solo tienen sentido sumando las cuentas de un mismo CID."""
+    vivas = [c for c in cuentas if medible(c)]
+    if not vivas:
+        return None
+    ent = sum(c['mensajesCliente'] or 0 for c in vivas)
+    sal = sum(c['mensajesSalida'] or 0 for c in vivas)
+    conv = sum(c['conversaciones'] for c in vivas)
+    msgs = sum(c['mensajes'] for c in vivas)
+    agentes = sum(c['agentes'] or 0 for c in vivas)
+
+    # 3. Mezcla de canal. El QR es conexion NO oficial de WhatsApp: se desconecta
+    #    sola y Meta puede banear el numero. Volumen alto en QR sin API es riesgo
+    #    de continuidad, no una preferencia tecnica.
+    porTipo = collections.Counter()
+    for i in inboxes:
+        porTipo[i['tipo'] or 'Sin clasificar'] += i['mensajes']
+    qr  = porTipo.get('WhatsApp QR', 0)
+    api = porTipo.get('WhatsApp API', 0)
+
+    # 4. Concentracion. El denominador son TODAS las bandejas del corte, no solo
+    #    las que tuvieron trafico: con ese filtro una cuenta al 100% tiene UNA
+    #    sola bandeja activa y quedaba excluida justo por ser el caso extremo
+    #    —FINSUS Cobranza, 100% en 1 de 42, salia como None—.
+    conTrafico = sorted([i['mensajes'] for i in inboxes if i['mensajes'] > 0], reverse=True)
+    concentracion = None
+    if conTrafico and len(inboxes) >= 3:
+        concentracion = round(conTrafico[0] / sum(conTrafico), 3)
+
+    # Cobertura del desglose: los mensajes que la hoja de bandejas explica contra
+    # los que reporta la cuenta. En las cuentas medidas por respaldo esto es 0 —
+    # cualquier lectura de canal debe declarar sobre que porcion se calcula.
+    msgsInbox = sum(i['mensajes'] for i in inboxes)
+
+    return {
+        'balance':       round(sal / ent, 2) if ent >= BASE_MINIMA else None,
+        'baseBalance':   ent,
+        'msjPorConv':    round(msgs / conv, 1) if conv > 0 else None,
+        'cargaAgente':   round(msgs / agentes) if agentes else None,
+        'mensajesQR':    qr,
+        'mensajesAPI':   api,
+        'dependeDeQR':   bool(qr > 0 and api == 0),
+        'pctQR':         round(100.0 * qr / (qr + api), 1) if (qr + api) > 0 else None,
+        'concentracion': concentracion,
+        'bandejasTotales':    len(inboxes),
+        'bandejasConTrafico': len(conTrafico),
+        'msgsExplicados':     msgsInbox,
+        'coberturaDesglose':  round(100.0 * msgsInbox / msgs, 1) if msgs > 0 else None,
+        'cuentasFueraDelCalculo': len(cuentas) - len(vivas),
+        'mezclaCanal':   dict(porTipo),
+    }
+
+
 def semaforo_cliente(cuentas):
     """Semaforo a nivel CID cuando el cliente tiene varias cuentas Chatwoot.
 
@@ -366,6 +460,7 @@ def main():
         if c['bolsaMensajes'] is None:
             c['pctBolsa'] = None
         c['semaforo'], c['motivos'] = semaforo(c)
+        c['sacux'] = indicadores_cuenta(c)
         cuentas.append(c)
 
     # 3. inboxes del periodo vigente de cada cliente. Se descartan los renglones
@@ -446,7 +541,9 @@ def main():
         inboxes = porCliente.get(cid, [])
         tiers = [c['tier'] for c in cs if c['tier']]
         sem, motivos = semaforo_cliente(cs)
+        sacux = indicadores_cliente(cs, inboxes)
         clientes.append({
+            'sacux': sacux,
             'cid': cid,
             'nombre': cs[0]['cliente'],
             'tier': tiers[0] if tiers else None,
@@ -495,6 +592,138 @@ def main():
         'generado': time.strftime('%Y-%m-%d', time.localtime(os.path.getmtime(libro))),
     }
 
+    # ── diagnostico SAC / UX del portafolio ──────────────────────────────────
+    # Reglas que se impusieron despues de que un panel de revision tumbara la
+    # primera version (10 sep 2026):
+    #  · Ningun agregado sin su denominador escrito.
+    #  · El balance de conversacion NO se llama "mensajes sin responder": el dato
+    #    no lo soporta. Se publica como pregunta, con base minima de BASE_MINIMA.
+    #  · La lectura de canal declara que solo explica una fraccion del volumen.
+    #  · Nada de score 0-100: promediar esconde justo el riesgo que mueve la junta.
+    #  · La agenda se acota a la capacidad real (4 actividades por asesor/semana).
+    medibles = [c for c in clientes if c.get('sacux')]
+    sinUso   = [c for c in clientes if c['semaforo'] == 'sin_uso']
+    sinMed   = [c for c in clientes if c['semaforo'] in ('sin_medicion', 'suspendida')]
+
+    msgsTot   = sum(c['mensajes'] for c in clientes)
+    msgsInbox = sum(i['mensajes'] for c in clientes for i in c['inboxes'])
+    msgsClasif = sum(i['mensajes'] for c in clientes for i in c['inboxes'] if i['tipo'])
+
+    riesgoQR = sorted(
+        [{'cid': c['cid'], 'nombre': c['nombre'], 'tier': c['tier'],
+          'qr': c['sacux']['mensajesQR'], 'api': c['sacux']['mensajesAPI']}
+         for c in medibles if c['sacux']['dependeDeQR']],
+        key=lambda x: -x['qr'])
+
+    balance = sorted(
+        [{'cid': c['cid'], 'nombre': c['nombre'], 'valor': c['sacux']['balance'],
+          'base': c['sacux']['baseBalance'], 'mensajes': c['mensajes']}
+         for c in medibles if c['sacux']['balance'] is not None],
+        key=lambda x: x['valor'])
+
+    concentradas = sorted(
+        [{'cid': c['cid'], 'nombre': c['nombre'], 'pct': c['sacux']['concentracion'],
+          'bandejas': c['sacux']['bandejasTotales'], 'activas': c['sacux']['bandejasConTrafico']}
+         for c in medibles
+         if c['sacux']['concentracion'] is not None and c['sacux']['concentracion'] >= 0.9],
+        key=lambda x: -x['bandejas'])
+
+    # conversaciones que no se cierran: solo el extremo, no un cuartil del propio
+    # portafolio. 100 msj/conv no es "arriba del promedio", es un proceso roto.
+    noCierran = sorted(
+        [{'cid': c['cid'], 'nombre': c['nombre'], 'valor': c['sacux']['msjPorConv'],
+          'conversaciones': c['conversaciones'], 'mensajes': c['mensajes']}
+         for c in medibles if (c['sacux']['msjPorConv'] or 0) >= 100],
+        key=lambda x: -x['valor'])
+
+    automatizadas = [{'cid': c['cid'], 'nombre': c['nombre'],
+                      'carga': c['sacux']['cargaAgente'], 'mensajes': c['mensajes']}
+                     for c in medibles if any(
+                         x.get('sacux', {}) and x['sacux'].get('probablementeBot') for x in c['cuentas'])]
+
+    ociosas = sorted([{'cid': c['cid'], 'nombre': c['nombre'],
+                       'muertas': c['contratadosMuertos'], 'total': len(c['inboxes'])}
+                      for c in clientes if c['contratadosMuertos'] >= 3],
+                     key=lambda x: -x['muertas'])
+
+    fueraContrato = sorted([{'cid': c['cid'], 'nombre': c['nombre'],
+                             'bandejas': c['sinContratoConTrafico'], 'mensajes': c['mensajes']}
+                            for c in clientes if c['sinContratoConTrafico'] >= 5],
+                           key=lambda x: -x['bandejas'])
+
+    # ── agenda: una sola lista priorizada, no 70 banderas ────────────────────
+    # Peso por severidad del hallazgo x tamano de la cuenta. Un cliente aparece
+    # UNA vez, con su motivo principal — no una llamada por cada indicador.
+    agenda = {}
+    def proponer(c, motivo, guion, peso):
+        prev = agenda.get(c['cid'])
+        score = peso * (1 + (c['mensajes'] / max(1, msgsTot)) * 100)
+        if not prev or score > prev['score']:
+            agenda[c['cid']] = {'cid': c['cid'], 'nombre': c['nombre'], 'tier': c['tier'],
+                                'mensajes': c['mensajes'], 'motivo': motivo,
+                                'guion': guion, 'score': round(score, 2)}
+    porCidObj = {c['cid']: c for c in clientes}
+    for r in riesgoQR:
+        proponer(porCidObj[r['cid']], 'Depende solo de WhatsApp QR',
+                 'El número que usa para atender vive colgado de un celular enlazado. '
+                 'Si Meta lo tumba se va el número y el historial. Proponer migración a API oficial.', 100)
+    for r in noCierran:
+        proponer(porCidObj[r['cid']], 'Conversaciones que no se cierran',
+                 'Promedia %s mensajes por conversación. Revisar si los agentes están cerrando '
+                 'las conversaciones al resolver; si no, las métricas de su operación no son fiables.'
+                 % r['valor'], 60)
+    for r in concentradas:
+        proponer(porCidObj[r['cid']], 'Enrutamiento concentrado',
+                 'El %.0f%% del tráfico cae en 1 de %d bandejas. Las demás confunden al cliente '
+                 'final o están mal publicadas.' % (r['pct'] * 100, r['bandejas']), 50)
+    for r in ociosas:
+        proponer(porCidObj[r['cid']], 'Capacidad contratada sin usar',
+                 '%d bandejas contratadas no registraron un solo mensaje. O se activan o se '
+                 'ajusta el plan.' % r['muertas'], 45)
+    for r in fueraContrato:
+        proponer(porCidObj[r['cid']], 'Uso fuera del contrato',
+                 '%d bandejas con tráfico no están contratadas. Revisar alcance comercial.'
+                 % r['bandejas'], 40)
+    for r in balance:
+        if r['valor'] < 0.5:
+            proponer(porCidObj[r['cid']], 'Balance de conversación bajo',
+                     'Por cada 10 mensajes que entran salen %d. NO es prueba de falta de respuesta '
+                     '—en WhatsApp se escribe en ráfaga— pero sí amerita abrir su bandeja y ver '
+                     'qué está pasando.' % round(r['valor'] * 10), 35)
+
+    agendaOrd = sorted(agenda.values(), key=lambda x: -x['score'])
+    CAPACIDAD = 12   # 3 asesores x 4 actividades por semana
+
+    sacux = {
+        'cobertura': {
+            'clientes': len(clientes),
+            'medibles': len(medibles),
+            'sinUso':   len(sinUso),
+            'sinMedicion': len(sinMed),
+        },
+        'volumen': {
+            'total': msgsTot,
+            'explicadoPorBandeja': msgsInbox,
+            'pctExplicado': round(100.0 * msgsInbox / msgsTot, 1) if msgsTot else None,
+            'clasificadoPorTipo': msgsClasif,
+            'pctClasificado': round(100.0 * msgsClasif / msgsTot, 1) if msgsTot else None,
+        },
+        'mezclaCanal': dict(collections.Counter(
+            {t: sum(i['mensajes'] for c in clientes for i in c['inboxes'] if (i['tipo'] or 'Sin clasificar') == t)
+             for t in set((i['tipo'] or 'Sin clasificar') for c in clientes for i in c['inboxes'])})),
+        'riesgoQR': riesgoQR,
+        'balance': balance,
+        'concentradas': concentradas,
+        'noCierran': noCierran,
+        'automatizadas': automatizadas,
+        'ociosas': ociosas,
+        'fueraContrato': fueraContrato,
+        'agenda': agendaOrd[:CAPACIDAD],
+        'agendaTotal': len(agendaOrd),
+        'capacidad': CAPACIDAD,
+        'baseMinimaBalance': BASE_MINIMA,
+    }
+
     # ── emitir TypeScript ────────────────────────────────────────────────────
     def ts(v):
         return json.dumps(v, ensure_ascii=False)
@@ -536,7 +765,8 @@ def main():
               'bolsaMensajes: number | null', 'agentes: number | null', 'pctBolsa: number | null',
               'mensajesPrevios: number | null', 'crecimientoPct: number | null',
               'tendencia: string | null', 'tier: string | null',
-              'respaldoPeriodo: string | null', 'respaldoMensajes: number | null']:
+              'respaldoPeriodo: string | null', 'respaldoMensajes: number | null',
+              'sacux: Record<string, any> | null']:
         w('  ' + l)
     w('}')
     w('')
@@ -548,7 +778,8 @@ def main():
               'contratadosMuertos: number', 'sinContratoConTrafico: number',
               'inboxesConTrafico: number', 'inboxesSinClasificar: number',
               'inboxesConError: number',
-              'periodo: string', 'conError: number']:
+              'periodo: string', 'conError: number',
+              'sacux: Record<string, any> | null']:
         w('  ' + l)
     w('}')
     w('')
@@ -558,6 +789,9 @@ def main():
     w(']')
     w('')
     w('export const CHAT_RESUMEN = ' + ts(resumen) + ' as const')
+    w('')
+    w('/** Diagnostico SAC/UX del portafolio. Cada bloque trae su denominador. */')
+    w('export const CHAT_SACUX = ' + ts(sacux) + ' as const')
     w('')
 
     os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
