@@ -7,6 +7,8 @@ import {
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getAuditCaseById }           from '@/app/auditoria/cases'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { inventarioDeCuenta } from '@/lib/servicios-cuenta'
+import CuentaServiciosPanel from '@/components/CuentaServiciosPanel'
 import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
 import { getSemaforoCuenta, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
@@ -79,6 +81,15 @@ export default async function CuentaDetailPage({ params }: Props) {
   // Se muestra en Información como referencia de qué tiene el cliente.
   const cortesRecientes = await cortesDeCuenta(cuenta.cid, 3)
   const planVigente     = cortesRecientes.at(-1) ?? null
+
+  // CAPA 1 — inventario de servicios. Cruza lo que declara la ficha, lo que
+  // aparece en los cortes y lo que mide la hoja de chat: el corte solo trae una
+  // linea de plan por mes, asi que por si solo no lista todos los servicios.
+  const inventario = await inventarioDeCuenta(
+    cuenta.cid,
+    (cuenta as Record<string, unknown>).servicio as string | null,
+    (cuenta as Record<string, unknown>).servicios_json,
+  )
 
   const h       = headers()
   const rol     = h.get('x-user-rol') ?? 'viewer'
@@ -314,6 +325,9 @@ export default async function CuentaDetailPage({ params }: Props) {
                 violeta, para distinguirlos de lo capturado por el KAM. */}
             <DatosEnriquecidosPanel datos={enriquecido} />
           </div>
+
+          {/* Servicios contratados — Capa 1 del Portafolio del Cliente */}
+          <CuentaServiciosPanel inv={inventario} />
 
           {/* Adopción de Producto — interactiva con historial */}
           <AdopcionProducto cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} />
