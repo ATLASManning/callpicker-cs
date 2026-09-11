@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import StatCard from '@/components/StatCard'
-import { CHAT_CLIENTES, CHAT_RESUMEN, type SemaforoChat, type ChatCliente } from './chat-data'
+import { CHAT_CLIENTES, CHAT_RESUMEN, type SemaforoChat, type ChatCliente, type ChatInbox } from './chat-data'
 
 /* ── Semáforo de salud de uso ───────────────────────────────────────────────
    No replica `uso_rango` de la hoja de origen: ese campo divide mensajes entre
@@ -24,9 +24,18 @@ const SEMAFORO: Record<SemaforoChat, { label: string; color: string; desc: strin
 
 const ORDEN: SemaforoChat[] = ['sin_uso', 'bajo', 'intenso', 'saludable', 'sin_medicion', 'suspendida']
 
-const CANAL: Record<string, string> = {
-  API: 'WhatsApp API', WA: 'WhatsApp', FB: 'Facebook / Instagram',
-  MAIL: 'Correo', WEB: 'Web', SMS: 'SMS',
+/* Color por tipo de bandeja. El tipo viene del campo `inbox_type` del origen
+   —no de `inbox_channel_type`, que mete WhatsApp API y QR en el mismo saco—. */
+const COLOR_TIPO: Record<string, string> = {
+  'WhatsApp API':            '#22C55E',
+  'WhatsApp QR':             '#84CC16',
+  'Facebook':                '#3B82F6',
+  'Comentarios de Facebook': '#60A5FA',
+  'Marketplace':             '#F59E0B',
+  'Correo':                  '#A855F7',
+  'Web':                     '#06B6D4',
+  'API (otro)':              '#94A3B8',
+  'Otro':                    '#94A3B8',
 }
 
 const RECONCILIACION: Record<string, { label: string; color: string }> = {
@@ -34,6 +43,13 @@ const RECONCILIACION: Record<string, { label: string; color: string }> = {
   ERR:  { label: 'Error de medición', color: '#F97316' },
   LIM:  { label: 'Límite de inboxes', color: '#64748B' },
   SUSP: { label: 'Suspendido',        color: '#334155' },
+}
+
+/** Estado operativo de una bandeja, para agruparlas en la ficha. */
+function estadoInbox(i: ChatInbox) {
+  if (i.mensajes > 0)  return { clave: 'activa',    label: 'Con actividad',        color: '#22C55E' }
+  if (i.contratado)    return { clave: 'ociosa',    label: 'Contratada sin uso',   color: '#F97316' }
+  return                      { clave: 'observada', label: 'Observada sin tráfico', color: '#64748B' }
 }
 
 const n = (v: number | null | undefined) => (v ?? 0).toLocaleString('es-MX')
@@ -120,9 +136,17 @@ export default function CallpickerChatPage() {
               contratados y produce valores de hasta 433,369% — no se usa aquí. Solo{' '}
               <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.conBolsa} de {CHAT_RESUMEN.cuentas}</span>{' '}
               cuentas tienen bolsa de mensajes real; en ésas sí se muestra el % de consumo.
-              {' '}<span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.clientesConError}</span>{' '}
-              clientes traen la lectura del corte rota (<code style={{ color: '#93C5FD' }}>operational_error</code>): salen en gris
-              y se muestra su corte anterior como referencia, en vez de reportar una caída que no ocurrió.
+              <br /><br />
+              <span className="font-semibold" style={{ color: '#fff' }}>Dos huecos que vienen del origen, no del tablero:</span>{' '}
+              <span className="font-semibold" style={{ color: '#F97316' }}>{CHAT_RESUMEN.cuentasConError} de {CHAT_RESUMEN.cuentas}</span>{' '}
+              cuentas ({Math.round(100 * CHAT_RESUMEN.cuentasConError / CHAT_RESUMEN.cuentas)}%) no pudieron medir su consumo
+              (<code style={{ color: '#93C5FD' }}>operational_error</code>) — la hoja reporta{' '}
+              <span className="font-semibold" style={{ color: '#fff' }}>HTTP 500</span> al pedir el resumen de{' '}
+              <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.inboxesConError}</span> bandejas; salen en gris
+              con su corte anterior como referencia, en vez de reportar una caída que no ocurrió. Y{' '}
+              <span className="font-semibold" style={{ color: '#F97316' }}>{CHAT_RESUMEN.inboxesSinClasificar} de {CHAT_RESUMEN.inboxes}</span>{' '}
+              bandejas no traen tipo (<code style={{ color: '#93C5FD' }}>inbox_type</code> vacío), así que no se puede decir si son
+              WhatsApp API, QR, Facebook o Marketplace. Aquí no se infiere: se publica lo que trae la fuente.
             </div>
           </div>
         </div>
@@ -345,9 +369,6 @@ function FilaCliente({ c, abierto, onToggle }: { c: ChatCliente; abierto: boolea
 
 /* ── Detalle desplegado: cuentas Chatwoot y sus inboxes ─────────────────── */
 function Detalle({ c }: { c: ChatCliente }) {
-  const conTrafico = c.inboxes.filter(i => i.mensajes > 0)
-  const muertos    = c.inboxes.filter(i => i.contratado && i.mensajes === 0)
-
   const cfgC = SEMAFORO[c.semaforo]
 
   return (
@@ -380,11 +401,22 @@ function Detalle({ c }: { c: ChatCliente }) {
             return (
               <div key={cta.cuenta} className="rounded-xl p-3.5"
                 style={{ background: 'rgba(255,255,255,0.05)', border: `1px solid ${cfg.color}44` }}>
-                <div className="flex items-start justify-between gap-2 mb-2.5">
+                <div className="flex items-start justify-between gap-2 mb-1">
                   <p className="font-semibold text-sm" style={{ color: '#fff' }}>{cta.cuenta}</p>
                   <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0"
                     style={{ background: `${cfg.color}22`, color: cfg.color }}>
                     {cfg.label}
+                  </span>
+                </div>
+                {/* Relación completa: cuenta Chatwoot ↔ cuenta Callpicker */}
+                <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                    style={{ background: 'rgba(147,197,253,0.14)', color: '#93C5FD' }}>
+                    Chatwoot ID {cta.cuentaId ?? '—'}
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>
+                    CID Callpicker {cta.cid}
                   </span>
                 </div>
 
@@ -438,82 +470,143 @@ function Detalle({ c }: { c: ChatCliente }) {
         </div>
       </div>
 
-      {/* Inboxes con tráfico */}
-      {conTrafico.length > 0 && (
-        <div>
-          <p className="text-[11px] uppercase tracking-wide font-semibold mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Inboxes con actividad ({conTrafico.length})
-          </p>
-          <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
-            <table className="w-full text-xs" style={{ minWidth: 720 }}>
-              <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.06)' }}>
-                  {['Inbox', 'Canal', 'Contratado', 'Conversaciones', 'Mensajes', '% de la cuenta', 'Medición'].map((h, i) => (
-                    <th key={i} className="px-3 py-2 text-[10px] uppercase tracking-wide font-semibold text-center whitespace-nowrap"
-                      style={{ color: 'rgba(255,255,255,0.5)' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {conTrafico.map((i, k) => (
-                  <tr key={`${i.id}-${k}`} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <td className="px-3 py-2 text-center" style={{ color: '#fff' }}>{i.nombre}</td>
-                    <td className="px-3 py-2 text-center" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                      {i.canal ? (CANAL[i.canal] ?? i.canal) : '—'}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      {i.contratado
-                        ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded"
-                            style={{ background: 'rgba(34,197,94,0.18)', color: '#22C55E' }}>Sí</span>
-                        : <span className="text-[10px] font-semibold px-2 py-0.5 rounded"
-                            style={{ background: 'rgba(249,115,22,0.18)', color: '#F97316' }}>No</span>}
-                    </td>
-                    <td className="px-3 py-2 text-center" style={{ color: 'rgba(255,255,255,0.75)' }}>{n(i.conversaciones)}</td>
-                    <td className="px-3 py-2 text-center font-semibold" style={{ color: '#fff' }}>{n(i.mensajes)}</td>
-                    <td className="px-3 py-2 text-center" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                      {i.pctCuenta != null ? `${i.pctCuenta.toFixed(1)}%` : '—'}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      {i.reconciliacion && RECONCILIACION[i.reconciliacion]
-                        ? <span className="text-[10px] font-medium"
-                            style={{ color: RECONCILIACION[i.reconciliacion].color }}>
-                            {RECONCILIACION[i.reconciliacion].label}
-                          </span>
-                        : <span style={{ color: 'rgba(255,255,255,0.25)' }}>—</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Inboxes contratados sin uso */}
-      {muertos.length > 0 && (
-        <div>
-          <p className="text-[11px] uppercase tracking-wide font-semibold mb-2" style={{ color: '#F97316' }}>
-            Inboxes contratados sin un solo mensaje ({muertos.length})
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {muertos.map((i, k) => (
-              <span key={`${i.id}-${k}`} className="text-[11px] px-2.5 py-1 rounded-lg"
-                style={{ background: 'rgba(249,115,22,0.13)', color: '#FDBA74', border: '1px solid rgba(249,115,22,0.3)' }}>
-                {i.nombre}
-                {i.canal && <span className="opacity-60"> · {CANAL[i.canal] ?? i.canal}</span>}
-              </span>
-            ))}
-          </div>
-          <p className="text-[11px] mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            Capacidad pagada que no se está usando — candidata a activación o a ajuste de plan.
-          </p>
-        </div>
-      )}
+      {/* Todas las bandejas del corte */}
+      {c.inboxes.length > 0 && <TablaInboxes inboxes={c.inboxes} />}
 
       {c.inboxes.length === 0 && (
         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
-          Sin desglose de inboxes en el corte
-          {c.inboxesRelleno > 0 && ` — la medición se hizo por respaldo de cuenta, no inbox por inbox`}.
+          El origen no trae desglose de bandejas para este corte
+          {c.inboxesRelleno > 0 && ' — la medición se hizo por respaldo de cuenta, no bandeja por bandeja'}.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/* ── Tabla de bandejas ──────────────────────────────────────────────────────
+   Se listan TODAS las del corte, tal como vienen del origen. Antes se ocultaban
+   las que no estaban contratadas ni tuvieron tráfico y 43 clientes se quedaban
+   sin ninguna. Para que la lista siga siendo legible en cuentas con decenas de
+   bandejas, las inactivas se colapsan tras las primeras.                     */
+const TOPE_VISIBLE = 14
+
+function TablaInboxes({ inboxes }: { inboxes: ChatInbox[] }) {
+  const [todo, setTodo] = useState(false)
+  const activas   = inboxes.filter(i => i.mensajes > 0)
+  const ociosas   = inboxes.filter(i => i.mensajes === 0 && i.contratado)
+  const resto     = inboxes.filter(i => i.mensajes === 0 && !i.contratado)
+  const sinTipo   = inboxes.filter(i => !i.tipo).length
+  const conError  = inboxes.filter(i => i.error).length
+
+  const visibles = todo ? inboxes : inboxes.slice(0, TOPE_VISIBLE)
+  const ocultas  = inboxes.length - visibles.length
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2">
+        <p className="text-[11px] uppercase tracking-wide font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          Bandejas del corte ({inboxes.length})
+        </p>
+        <span className="text-[10px]" style={{ color: '#22C55E' }}>{activas.length} con actividad</span>
+        {ociosas.length > 0 && <span className="text-[10px]" style={{ color: '#F97316' }}>{ociosas.length} contratadas sin uso</span>}
+        {resto.length   > 0 && <span className="text-[10px]" style={{ color: '#64748B' }}>{resto.length} observadas sin tráfico</span>}
+        {conError > 0 && <span className="text-[10px]" style={{ color: '#EF4444' }}>{conError} con error de medición</span>}
+      </div>
+
+      <div className="overflow-x-auto rounded-xl" style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+        <table className="w-full text-xs" style={{ minWidth: 860 }}>
+          <thead>
+            <tr style={{ background: 'rgba(255,255,255,0.06)' }}>
+              {['Bandeja', 'ID', 'Tipo', 'Proveedor', 'Estado', 'Contratada',
+                'Conversaciones', 'Mensajes', '% de la cuenta', 'Medición'].map((h, k) => (
+                <th key={k} className="px-3 py-2 text-[10px] uppercase tracking-wide font-semibold text-center whitespace-nowrap"
+                  style={{ color: 'rgba(255,255,255,0.5)' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visibles.map((i, k) => {
+              const est = estadoInbox(i)
+              const col = i.tipo ? (COLOR_TIPO[i.tipo] ?? '#94A3B8') : null
+              return (
+                <tr key={`${i.id}-${k}`} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <td className="px-3 py-2 text-center" style={{ color: i.mensajes > 0 ? '#fff' : 'rgba(255,255,255,0.6)' }}>
+                    {i.nombre}
+                  </td>
+                  <td className="px-3 py-2 text-center font-mono text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    {i.id ?? '—'}
+                  </td>
+                  <td className="px-3 py-2 text-center whitespace-nowrap">
+                    {col
+                      ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded"
+                          style={{ background: `${col}22`, color: col, border: `1px solid ${col}55` }}>{i.tipo}</span>
+                      : <span className="text-[10px] italic" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                          sin clasificar en el origen
+                        </span>}
+                  </td>
+                  <td className="px-3 py-2 text-center" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                    {i.proveedor ?? <span style={{ color: 'rgba(255,255,255,0.22)' }}>—</span>}
+                  </td>
+                  <td className="px-3 py-2 text-center whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: est.color }}>
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: est.color }} />
+                      {est.label}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {i.contratado
+                      ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded"
+                          style={{ background: 'rgba(34,197,94,0.18)', color: '#22C55E' }}>Sí</span>
+                      : <span className="text-[10px] font-semibold px-2 py-0.5 rounded"
+                          style={{ background: 'rgba(249,115,22,0.18)', color: '#F97316' }}>No</span>}
+                  </td>
+                  <td className="px-3 py-2 text-center" style={{ color: 'rgba(255,255,255,0.75)' }}>{n(i.conversaciones)}</td>
+                  <td className="px-3 py-2 text-center font-semibold" style={{ color: i.mensajes > 0 ? '#fff' : 'rgba(255,255,255,0.35)' }}>
+                    {n(i.mensajes)}
+                  </td>
+                  <td className="px-3 py-2 text-center" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    {i.pctCuenta != null ? `${i.pctCuenta.toFixed(1)}%` : '—'}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {i.error
+                      ? <span className="text-[10px] font-medium" style={{ color: '#EF4444' }} title={i.error}>{i.error}</span>
+                      : i.reconciliacion && RECONCILIACION[i.reconciliacion]
+                        ? <span className="text-[10px] font-medium" style={{ color: RECONCILIACION[i.reconciliacion].color }}>
+                            {RECONCILIACION[i.reconciliacion].label}
+                          </span>
+                        : <span style={{ color: 'rgba(255,255,255,0.25)' }}>—</span>}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {ocultas > 0 && (
+        <button onClick={() => setTodo(true)}
+          className="mt-2 text-[11px] font-medium px-3 py-1.5 rounded-lg"
+          style={{ background: 'rgba(255,255,255,0.08)', color: '#93C5FD' }}>
+          Ver las {ocultas} bandejas restantes
+        </button>
+      )}
+      {todo && inboxes.length > TOPE_VISIBLE && (
+        <button onClick={() => setTodo(false)}
+          className="mt-2 text-[11px] font-medium px-3 py-1.5 rounded-lg"
+          style={{ background: 'rgba(255,255,255,0.08)', color: '#93C5FD' }}>
+          Mostrar solo las primeras {TOPE_VISIBLE}
+        </button>
+      )}
+
+      {sinTipo > 0 && (
+        <p className="text-[11px] mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          {sinTipo} de {inboxes.length} bandejas no traen tipo en la hoja de origen (campo <code style={{ color: '#93C5FD' }}>inbox_type</code> vacío).
+          No se infiere aquí: se muestra lo que publica la fuente.
+        </p>
+      )}
+      {ociosas.length > 0 && (
+        <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          Las contratadas sin uso son capacidad pagada ociosa — candidatas a activación o a ajuste de plan.
         </p>
       )}
     </div>

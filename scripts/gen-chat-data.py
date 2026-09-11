@@ -244,10 +244,47 @@ def semaforos_previos():
     return prev
 
 
-CANAL = {'Channel::Api': 'API', 'Channel::Whatsapp': 'WA', 'Channel::FacebookPage': 'FB',
-         'Channel::Email': 'MAIL', 'Channel::WebWidget': 'WEB', 'Channel::TwilioSms': 'SMS'}
+# Tipo de bandeja. Se usa `inbox_type`, NO `inbox_channel_type`: esa segunda es
+# la clase interna de Chatwoot y mete WhatsApp API y WhatsApp QR en el mismo
+# `Channel::Api`, que es justo la distincion que pidio Daniel (10 sep 2026).
+# `inbox_type` si las separa, y `inbox_api_type` da el proveedor.
+TIPO = {
+    'whatsapp_api':      'WhatsApp API',
+    'whatsapp_qr':       'WhatsApp QR',
+    'facebook':          'Facebook',
+    'facebook_comments': 'Comentarios de Facebook',
+    'marketplace':       'Marketplace',
+    'email':             'Correo',
+    'web':               'Web',
+    'api_other':         'API (otro)',
+    'other':             'Otro',
+}
+PROVEEDOR = {
+    'gupshup':          'Gupshup',
+    'whatsbail':        'Whatsbail',
+    'marcatel':         'Marcatel',
+    'mercadolibre':     'MercadoLibre',
+    'facebookcomments': 'Facebook',
+    'whatsapp_qr':      'WhatsApp QR',
+}
 RECON = {'match': 'OK', 'partial_operational_error': 'ERR',
          'skipped_inbox_limit': 'LIM', 'suspended_skipped': 'SUSP'}
+
+
+def error_inbox(v):
+    """`inbox_operational_error` trae JSON como
+       {"kind":"inbox_summary","inbox_id":97,"status":500}.
+       Se reduce a algo legible para el asesor, conservando el codigo."""
+    if not v:
+        return None
+    try:
+        o = json.loads(v)
+        st = o.get('status')
+        if st:
+            return 'HTTP %s al pedir el resumen de la bandeja' % st
+        return str(o.get('kind') or v)[:80]
+    except Exception:
+        return str(v)[:80]
 
 
 def main():
@@ -298,6 +335,10 @@ def main():
             'cid': cid,
             'cliente': v.get('client_name'),
             'cuenta': nombreCuenta,
+            # Daniel (10 sep 2026): "ya que le das click que muestre el nombre y
+            # ID de la cuenta de CP chat... vale la pena tener la relacion
+            # completa". El CID ya salia; faltaba el id de la cuenta Chatwoot.
+            'cuentaId': num(v.get('chatwoot_account_id')),
             'periodo': v.get('period_start'),
             'corte': num(v.get('cutoff_day')),
             'estado': v.get('status'),
@@ -362,27 +403,37 @@ def main():
         if f.get('inbox_id') in (None, '0') or not f.get('inbox_name'):
             relleno[f.get('cid')] += 1
             continue
-        contratado = f.get('is_contracted') == 'S'
-        activo     = f.get('is_active_in_period') == 'S'
-        msgs       = num(f.get('messages_count')) or 0
-        if not contratado and not activo and msgs == 0:
-            descartados += 1          # ni contratado, ni activo, ni con trafico
-            continue
+        # Se listan TODAS las bandejas reales del periodo, incluidas las que no
+        # estan contratadas ni tuvieron actividad. Antes se descartaban 736 de
+        # 1,068 y 43 clientes se quedaban sin ninguna — Daniel lo reporto el
+        # 10 sep 2026: "veo importante enlistar las bandejas asi como aparecen
+        # pero no identifique por que no en todos salen". Era un filtro mio, no
+        # del origen. La UI las agrupa para que la lista siga siendo legible.
+        tipo = f.get('inbox_type')
+        prov = f.get('inbox_api_type')
         porCliente[f.get('cid')].append({
             'id':     num(f.get('inbox_id')),
             'nombre': f.get('inbox_name'),
-            'canal':  CANAL.get(f.get('inbox_channel_type') or '', f.get('inbox_channel_type')),
-            'contratado': contratado,
-            'activo': activo,
+            'tipo':      TIPO.get(tipo or '', tipo),          # null si el origen no lo trae
+            'proveedor': PROVEEDOR.get(prov or '', prov),
+            'contratado': f.get('is_contracted') == 'S',
+            'activo':     f.get('is_active_in_period') == 'S',
+            'observado':  f.get('is_observed_in_chatwoot') == 'S',
             'conversaciones': num(f.get('conversations_count')) or 0,
-            'mensajes': msgs,
+            'mensajes': num(f.get('messages_count')) or 0,
             'mensajesCliente': num(f.get('customer_messages_count')),
             'mensajesSalida':  num(f.get('outgoing_messages_count')),
             'pctCuenta': num(f.get('pct_account_messages'), True),
             'reconciliacion': RECON.get(f.get('reconciliation_status') or '', None),
+            'error': error_inbox(f.get('inbox_operational_error')),
         })
+    # orden: primero las que trabajan, luego contratadas ociosas, luego el resto
+    def rango(i):
+        if i['mensajes'] > 0: return 0
+        if i['contratado']:   return 1
+        return 2
     for lista in porCliente.values():
-        lista.sort(key=lambda x: (-x['mensajes'], x['nombre'] or ''))
+        lista.sort(key=lambda x: (rango(x), -x['mensajes'], x['nombre'] or ''))
 
     # 4. agrupar por CID
     porCid = collections.defaultdict(list)
@@ -410,6 +461,9 @@ def main():
             'inboxesObservados':  sum(c['inboxesObservados'] or 0 for c in cs),
             'contratadosMuertos':     sum(1 for i in inboxes if i['contratado'] and i['mensajes'] == 0),
             'sinContratoConTrafico':  sum(1 for i in inboxes if not i['contratado'] and i['mensajes'] > 0),
+            'inboxesConTrafico':      sum(1 for i in inboxes if i['mensajes'] > 0),
+            'inboxesSinClasificar':   sum(1 for i in inboxes if not i['tipo']),
+            'inboxesConError':        sum(1 for i in inboxes if i['error']),
             'periodo': max(c['periodo'] or '' for c in cs),
             'conError': sum(1 for c in cs if c['semaforo'] == 'sin_medicion'),
         })
@@ -425,8 +479,13 @@ def main():
         'distribucion': dict(dist),
         'contratadosMuertos':    sum(c['contratadosMuertos'] for c in clientes),
         'sinContratoConTrafico': sum(c['sinContratoConTrafico'] for c in clientes),
+        'inboxesConTrafico':     sum(c['inboxesConTrafico'] for c in clientes),
+        'inboxesSinClasificar':  sum(c['inboxesSinClasificar'] for c in clientes),
+        'inboxesConError':       sum(c['inboxesConError'] for c in clientes),
+        'clientesSinDesglose':   sum(1 for c in clientes if not c['inboxes']),
         'clientesSinUso':   dist.get('sin_uso', 0),
         'clientesConError': sum(1 for c in clientes if c['conError']),
+        'cuentasConError':  sum(1 for c in cuentas if c['semaforo'] == 'sin_medicion'),
         'conBolsa': sum(1 for c in cuentas if c['bolsaMensajes']),
         'periodoMin': min(c['periodo'] for c in clientes if c['periodo']),
         'periodoMax': max(c['periodo'] for c in clientes if c['periodo']),
@@ -456,15 +515,19 @@ def main():
     w("export type SemaforoChat = 'saludable' | 'intenso' | 'bajo' | 'sin_uso' | 'sin_medicion' | 'suspendida'")
     w('')
     w('export interface ChatInbox {')
-    for l in ['id: number | null', 'nombre: string', 'canal: string | null', 'contratado: boolean',
-              'activo: boolean', 'conversaciones: number', 'mensajes: number',
+    for l in ['id: number | null', 'nombre: string',
+              'tipo: string | null', 'proveedor: string | null',
+              'contratado: boolean', 'activo: boolean', 'observado: boolean',
+              'conversaciones: number', 'mensajes: number',
               'mensajesCliente: number | null', 'mensajesSalida: number | null',
-              'pctCuenta: number | null', 'reconciliacion: string | null']:
+              'pctCuenta: number | null', 'reconciliacion: string | null',
+              'error: string | null']:
         w('  ' + l)
     w('}')
     w('')
     w('export interface ChatCuenta {')
-    for l in ['cid: string', 'cliente: string', 'cuenta: string', 'periodo: string',
+    for l in ['cid: string', 'cliente: string', 'cuenta: string', 'cuentaId: number | null',
+              'periodo: string',
               'corte: number | null', 'estado: string', 'semaforo: SemaforoChat', 'motivos: string[]',
               'conversaciones: number', 'mensajes: number', 'mensajesCliente: number',
               'mensajesSalida: number', 'promedioPorConv: number | null',
@@ -483,6 +546,8 @@ def main():
               'inboxesRelleno: number', 'mensajes: number', 'conversaciones: number',
               'inboxesContratados: number', 'inboxesObservados: number',
               'contratadosMuertos: number', 'sinContratoConTrafico: number',
+              'inboxesConTrafico: number', 'inboxesSinClasificar: number',
+              'inboxesConError: number',
               'periodo: string', 'conError: number']:
         w('  ' + l)
     w('}')
