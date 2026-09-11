@@ -28,6 +28,14 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
   const contratado = chat.vinculo === 'contratado'
   const delta = chat.hsAjustado !== null ? chat.hsAjustado - chat.hsOficial : null
 
+  /* Cuando la medición falló, los ceros del origen NO son ceros del cliente.
+     Akún tiene 31 bandejas contratadas y la recolección se cayó en todas sus
+     cuentas: publicar «0 mensajes», «0 bandejas con tráfico» y un −100% de
+     caída afirma que dejó de usar el chat, cuando lo cierto es que no lo
+     pudimos medir. Donde no hay medición se dice que no la hay. */
+  const medido = chat.semaforo !== 'sin_medicion'
+  const cifra = (n: number) => (medido ? num(n) : 'sin dato')
+
   return (
     <div className="cp-card">
       {/* Encabezado */}
@@ -78,12 +86,12 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
 
       {/* Cifras del periodo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2.5">
-        <Dato label="Mensajes"      valor={num(chat.mensajes)} />
-        <Dato label="Conversaciones" valor={num(chat.conversaciones)} />
+        <Dato label="Mensajes"       valor={cifra(chat.mensajes)} />
+        <Dato label="Conversaciones" valor={cifra(chat.conversaciones)} />
         <Dato label="Bandejas contratadas"
           valor={chat.bandejasContratadas > 0 ? num(chat.bandejasContratadas) : '—'} />
-        <Dato label="Bandejas con tráfico" valor={num(chat.bandejasConTrafico)}
-          alerta={chat.contratadasMuertas > 0
+        <Dato label="Bandejas con tráfico" valor={cifra(chat.bandejasConTrafico)}
+          alerta={medido && chat.contratadasMuertas > 0
             ? `${chat.contratadasMuertas} contratada(s) sin un solo mensaje`
             : undefined} />
       </div>
@@ -104,13 +112,13 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
                   )}
                 </p>
                 <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  {num(x.mensajes)} mensajes
+                  {medido ? `${num(x.mensajes)} mensajes` : 'sin medición en el periodo'}
                   {x.agentes ? ` · ${x.agentes} agente(s) contratado(s)` : ''}
                   {x.bolsa ? ` · bolsa de ${num(x.bolsa)}` : ''}
-                  {x.pctBolsa !== null ? ` · ${x.pctBolsa.toFixed(0)}% consumido` : ''}
+                  {medido && x.pctBolsa !== null ? ` · ${x.pctBolsa.toFixed(0)}% consumido` : ''}
                 </p>
               </div>
-              {x.crecimiento !== null && (
+              {medido && x.crecimiento !== null && (
                 <span className="text-[10px] font-semibold flex items-center gap-1 flex-shrink-0"
                   style={{ color: x.crecimiento >= 0 ? '#4ADE80' : '#F87171' }}>
                   {x.crecimiento >= 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
