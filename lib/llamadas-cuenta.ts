@@ -93,8 +93,13 @@ export const U = {
   PTS_HALLAZGO: 5,
   /** Un mes con menos de esto no lleva etiqueta de porcentaje. */
   MES_ETIQUETA: 30,
-  /** El pie avisa que el archivo está congelado pasando este plazo. */
-  DIAS_ARCHIVO_VIEJO: 45,
+  /**
+   * Cadencia del archivo: SEMESTRAL, por instrucción de dirección (11 sep 2026).
+   * El aviso de archivo vencido se mide contra eso y no contra un mes: con
+   * refresco semestral, avisar a los 45 días gritaría todo el tiempo y el
+   * asesor aprendería a ignorar el aviso. 200 días = semestre más margen.
+   */
+  DIAS_ARCHIVO_VIEJO: 200,
 } as const
 
 const SIN_DESTINO = '(sin destino registrado)'
@@ -250,6 +255,90 @@ export function hallazgos(d: LlamadasCuenta, confirmado: boolean): Hallazgos | n
   return { pctCuenta, peorDia, horas, fuera: { total: fueraT, lost: fueraL }, frase }
 }
 
+/* ── Riesgo y cola de atención ────────────────────────────────────────────── */
+/**
+ * Cuántas llamadas se perdieron DE MÁS en el mes cerrado, contra lo que esa
+ * misma cuenta suele perder.
+ *
+ *     exceso = no contestadas del mes − (entrantes del mes × su base previa)
+ *
+ * Es la unidad correcta para ordenar por urgencia porque combina las dos cosas
+ * que importan sin mezclarlas artificialmente: cuánto se deterioró y sobre
+ * cuánto volumen. Un +5 pts sobre 454 llamadas (ABRL, 23 de más) no es lo mismo
+ * que un +19.6 sobre 840 (Baterías LTH, 165 de más), y ordenar solo por puntos
+ * los pondría casi a la par.
+ *
+ * Además se puede decir en voz alta: «en agosto se les quedaron sin contestar
+ * 165 llamadas más de las que normalmente pierden».
+ */
+export function excesoDelMes(d: LlamadasCuenta): number | null {
+  if (!d.cerrado || d.cerrado.t <= 0 || d.base.t <= 0) return null
+  const pctBase = d.base.l / d.base.t
+  return Math.round(d.cerrado.l - d.cerrado.t * pctBase)
+}
+
+export interface ItemCola {
+  cid: string
+  veredicto: VeredictoLlamadas
+  exceso: number | null
+  diasSilencio: number | null
+}
+
+/**
+ * Cola de atención ordenada por urgencia, sin truncar.
+ *
+ * Por instrucción de dirección (11 sep 2026): las actividades SAC se agendan
+ * por mayor urgencia, que es el riesgo más alto; el tope de 4 por semana no
+ * cambia, pero ninguna cuenta se descarta del orden — y una tarea sencilla,
+ * como preguntar qué atiende un destino, se crea igual en vez de quedarse fuera.
+ *
+ * Precedencia: un teléfono que dejó de sonar pesa más que cualquier porcentaje.
+ * Dentro de cada grupo manda el exceso de llamadas perdidas.
+ */
+/**
+ * El escalón decide QUIÉN entra a la cola; el exceso decide EN QUÉ ORDEN.
+ *
+ * `llama` y `vigilar` comparten nivel a propósito. Separarlos ordenaba por
+ * puntos porcentuales mientras el riesgo está medido en llamadas, y eso se
+ * contradecía en los datos: KOMBITEC pierde 112 llamadas de más y salía debajo
+ * de ICUSMEX con 40, solo porque el movimiento de ICUSMEX en puntos era mayor.
+ * Para el cliente 112 llamadas perdidas pesan más que 40, se mire como se mire.
+ *
+ * `en_silencio` va primero porque es otro tipo de riesgo: no es que atiendan
+ * mal, es que el teléfono dejó de sonar. `por_confirmar` va al final porque no
+ * es una alarma sino una pregunta — y aun así se crea, no se descarta.
+ */
+const PESO_COLA: Partial<Record<VeredictoLlamadas, number>> = {
+  en_silencio: 0, llama: 1, vigilar: 1, por_confirmar: 2,
+}
+
+export function colaDeRiesgo(
+  registros: Record<string, LlamadasCuenta>,
+  meta: LlamadasMeta,
+  cids?: string[],
+): ItemCola[] {
+  const universo = cids ? cids.filter(c => registros[c]) : Object.keys(registros)
+  const items: ItemCola[] = []
+  for (const cid of universo) {
+    const d = registros[cid]
+    const l = leerLlamadas(registros, meta, cid, null)
+    if (!l || PESO_COLA[l.veredicto] === undefined) continue
+    items.push({
+      cid, veredicto: l.veredicto,
+      exceso: excesoDelMes(d),
+      diasSilencio: l.diasSinLlamada,
+    })
+  }
+  return items.sort((a, b) => {
+    const pa = PESO_COLA[a.veredicto]!, pb = PESO_COLA[b.veredicto]!
+    if (pa !== pb) return pa - pb
+    // Dentro del silencio manda quién lleva más tiempo callado; en el resto,
+    // cuántas llamadas se están perdiendo de más.
+    if (pa === 0) return (b.diasSilencio ?? 0) - (a.diasSilencio ?? 0)
+    return (b.exceso ?? 0) - (a.exceso ?? 0)
+  })
+}
+
 /* ── Veredicto ────────────────────────────────────────────────────────────── */
 export interface LecturaLlamadas {
   datos: LlamadasCuenta
@@ -266,6 +355,8 @@ export interface LecturaLlamadas {
   confirmar: DestinoLlamadas | null
   hall: Hallazgos | null
   diasSinLlamada: number | null
+  /** Llamadas perdidas de más contra su propia base. Ordena la cola de riesgo. */
+  exceso: number | null
   portada: string
   decir: string[]
   archivoViejo: boolean
@@ -316,6 +407,7 @@ export function leerLlamadas(
     datos: d, via: m.via, nombreDifiere: m.nombreDifiere,
     veredicto, etiqueta: e.t, color: e.c,
     pctCerrado, delta, pctBase, confirmar, hall, diasSinLlamada,
+    exceso: excesoDelMes(d),
     portada: portada(d, meta, veredicto, pctCerrado, pctBase, delta, confirmar, diasSinLlamada),
     decir: queDecir(d, meta, veredicto, pctCerrado, confirmar, hall, diasSinLlamada),
     archivoViejo: hoy ? diasEntre(meta.corte, hoy) > U.DIAS_ARCHIVO_VIEJO : false,
@@ -375,8 +467,12 @@ function queDecir(
     out.push(`El volumen es tan bajo que no se puede hablar de atención. La conversación aquí es de uso: ` +
              `qué esperaban del servicio y qué están usando en realidad.`)
   } else if (c && pct !== null && (v === 'llama' || v === 'vigilar')) {
+    const ex = excesoDelMes(d)
     out.push(`En ${mesLargo(meta.mesCerrado)} quedaron sin contestar ${n(c.l)} de ${n(c.t)} llamadas ` +
-             `entrantes: ${Math.round(pct)} de cada 100.`)
+             `entrantes: ${Math.round(pct)} de cada 100.` +
+             (ex !== null && ex > 0
+               ? ` Son ${n(ex)} llamadas más de las que esta cuenta normalmente pierde.`
+               : ''))
   }
   if (hall && !conf) {
     if (hall.peorDia) {

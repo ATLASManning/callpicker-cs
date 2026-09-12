@@ -24,6 +24,24 @@ export const supabaseAdmin = SERVICE
 
 // ── Cuentas ─────────────────────────────────────────────────────────────────
 
+/**
+ * Solo los CID de un asesor. Existe para ordenar por riesgo sin pagar el
+ * `select('*')` + enriquecimiento de Zoho de getCuentas(): la ficha necesita
+ * saber en qué lugar de la cola va esta cuenta, no los datos de las otras.
+ */
+export async function getCidsDeAsesor(asesor: string | null | undefined): Promise<string[]> {
+  if (!asesor) return []
+  const { data, error } = await supabaseAdmin
+    .from('cuentas')
+    .select('cid')
+    .eq('asesor', asesor)
+    .not('cid', 'is', null)
+  if (error) throw error
+  return (data ?? [])
+    .map(r => String((r as { cid: unknown }).cid ?? '').trim())
+    .filter(Boolean)
+}
+
 export async function getCuentas(filters?: {
   asesor?: string
   semaforo?: string

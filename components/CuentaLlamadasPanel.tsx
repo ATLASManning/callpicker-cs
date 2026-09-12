@@ -44,7 +44,12 @@ export function LlamadasSinLectura({ cid, meta }: { cid: string | null; meta: Ll
 }
 
 /* ── El módulo ───────────────────────────────────────────────────────────── */
-export default function CuentaLlamadasPanel({ l, meta }: { l: LecturaLlamadas; meta: LlamadasMeta }) {
+export default function CuentaLlamadasPanel({ l, meta, cola }: {
+  l: LecturaLlamadas
+  meta: LlamadasMeta
+  /** Lugar en la cola de atención del asesor, ordenada por riesgo. */
+  cola?: { pos: number; total: number; asesor: string } | null
+}) {
   const d = l.datos
   const serie = serieMensual(d, meta)
   const conf = l.confirmar
@@ -88,6 +93,28 @@ export default function CuentaLlamadasPanel({ l, meta }: { l: LecturaLlamadas; m
             La cifra se publica completa; la alarma queda apagada hasta que alguien confirme qué
             atiende ahí. El archivo no lo dice.
           </p>
+        </div>
+      )}
+
+      {/* Lugar en la cola. Las SAC se agendan por mayor urgencia y siguen siendo
+          4 por semana, pero aquí no se trunca nada: se ordena y se baja por la
+          lista. La unidad del orden son llamadas perdidas de más, no puntos. */}
+      {cola && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+          padding: '7px 10px', borderRadius: 8, marginBottom: 10,
+          background: cola.pos <= 4 ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid ${cola.pos <= 4 ? 'rgba(239,68,68,0.22)' : 'rgba(255,255,255,0.08)'}`,
+        }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: cola.pos <= 4 ? RED : GRY }}>
+            #{cola.pos}
+          </span>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>
+            de {cola.total} cuenta{cola.total > 1 ? 's' : ''} que {cola.asesor} tiene marcada
+            {cola.total > 1 ? 's' : ''} por atención de llamadas, ordenadas por riesgo
+            {cola.pos <= 4 ? ' · entra en las 4 de esta semana' : ' · va después de las 4 de esta semana'}
+            {l.exceso !== null && l.exceso > 0 && ` · ${nf(l.exceso)} llamadas perdidas de más que su propio promedio`}
+          </span>
         </div>
       )}
 

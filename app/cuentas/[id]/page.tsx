@@ -9,7 +9,8 @@ import { getAuditCaseById }           from '@/app/auditoria/cases'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { chatDeCuenta } from '@/lib/chat-cuenta'
 import CuentaChatPanel from '@/components/CuentaChatPanel'
-import { leerLlamadas } from '@/lib/llamadas-cuenta'
+import { leerLlamadas, colaDeRiesgo } from '@/lib/llamadas-cuenta'
+import { getCidsDeAsesor } from '@/lib/supabase'
 import { LLAMADAS, LLAMADAS_META } from '@/app/cuentas/llamadas-data'
 import CuentaLlamadasPanel, { LlamadasSinLectura } from '@/components/CuentaLlamadasPanel'
 import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
@@ -98,6 +99,16 @@ export default async function CuentaDetailPage({ params }: Props) {
     LLAMADAS, LLAMADAS_META, cuenta.cid, cuenta.empresa,
     new Date().toISOString().slice(0, 10),
   )
+
+  // Lugar en la cola de atencion del asesor. Las actividades SAC se agendan por
+  // mayor urgencia y el tope de 4 por semana no cambia, pero ninguna cuenta se
+  // descarta del orden: se rankean todas y el asesor baja por la lista.
+  let colaLlamadas: { pos: number; total: number; asesor: string } | null = null
+  if (llamadas && cuenta.asesor) {
+    const cola = colaDeRiesgo(LLAMADAS, LLAMADAS_META, await getCidsDeAsesor(cuenta.asesor))
+    const i = cola.findIndex(x => x.cid === llamadas.datos.cid)
+    if (i >= 0) colaLlamadas = { pos: i + 1, total: cola.length, asesor: cuenta.asesor }
+  }
 
   const h       = headers()
   const rol     = h.get('x-user-rol') ?? 'viewer'
@@ -674,7 +685,7 @@ export default async function CuentaDetailPage({ params }: Props) {
 
           {/* Atención de llamadas — entrantes y salientes, debajo de los cortes */}
           {llamadas
-            ? <CuentaLlamadasPanel l={llamadas} meta={LLAMADAS_META} />
+            ? <CuentaLlamadasPanel l={llamadas} meta={LLAMADAS_META} cola={colaLlamadas} />
             : <LlamadasSinLectura cid={cuenta.cid ?? null} meta={LLAMADAS_META} />}
         </div>
       </div>
