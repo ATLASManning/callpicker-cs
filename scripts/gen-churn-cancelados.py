@@ -52,12 +52,42 @@ RX_AGREGADO = re.compile(r'^\s*\+\s*\d+|cuentas?\s+adicionales|^\s*\+\s*\d+\s*cu
 
 clientes = {}   # norm -> (nombre original, periodo)
 descartados = []
+def arreglo_de(cuerpo, clave):
+    """Contenido del arreglo `clave: [...]`, contando corchetes.
+
+    NO usar un regex tipo `clave:\\s*\\[(.*?)\\n  \\]`. Un reporte sin bajas
+    escribe `cancelados: []` en una sola línea; ese regex no puede cerrar ahí
+    y se sigue expandiendo hasta el primer `\\n  ]` posterior — que es el
+    cierre del bloque SIGUIENTE, `downgrades:`. Resultado: los downgrades
+    entraban a la lista de bajas.
+
+    Costó 17 nombres falsos de 110 (tres reportes: Semana 4 y 5 de mayo y
+    Semana 11 de julio). S&G LOCALIZACION salía como baja confirmada cuando
+    solo había reducido su Extension VyC de $9,429.02 a $6,286 — y
+    lib/elegibilidad.ts la bloqueaba para Actividades SAC como si estuviera
+    muerta. Lo detectó José Manuel el 12 sep 2026.
+    """
+    m = re.search(re.escape(clave) + r'\s*:\s*\[', cuerpo)
+    if not m:
+        return None
+    ini = m.end() - 1
+    prof = 0
+    for j in range(ini, len(cuerpo)):
+        if cuerpo[j] == '[':
+            prof += 1
+        elif cuerpo[j] == ']':
+            prof -= 1
+            if prof == 0:
+                return cuerpo[ini + 1:j]
+    return None
+
+
 for m in re.finditer(r"const (REPORTE_\w+): ChurnReporte = \{(.*?)\n\}", src, re.S):
     nombre, cuerpo = m.group(1), m.group(2)
-    blk = re.search(r'cancelados:\s*\[(.*?)\n  \]', cuerpo, re.S)
-    if not blk:
+    blk = arreglo_de(cuerpo, 'cancelados')
+    if not blk or not blk.strip():
         continue
-    for c in re.finditer(r"cliente:\s*'([^']+)'", blk.group(1)):
+    for c in re.finditer(r"cliente:\s*'([^']+)'", blk):
         crudo = c.group(1)
         if RX_AGREGADO.search(crudo):
             descartados.append(crudo)
