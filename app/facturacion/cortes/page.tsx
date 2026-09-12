@@ -431,21 +431,16 @@ export default function InformeCortesPage() {
                   {visibleCols.size}/{ALL_COLS.length}
                 </span>
               </button>
-              {/* Panel CLARO colgando de un .cp-card oscuro. globals.css fuerza
-                  a blanco, con !important, TODO p/label/h1-h5/strong/em/small/
-                  td/th y los span sin background — y el !important le gana al
-                  estilo en línea, así que el texto salía blanco sobre blanco.
-                  Aquí NO se depende de la clase de escape: se usan <div>, que
-                  es la única etiqueta que ninguna de las 28 reglas .cp-card
-                  toca. Verificado por grep, no por razonamiento sobre la
-                  cascada — el escape .cp-light empata en especificidad con
-                  `.cp-card span:not([style*="background"])` y no es de fiar. */}
+              {/* Fondo claro, letra oscura. `cp-light` es la clase de escape del
+                  proyecto: sin ella, globals.css fuerza el texto a blanco dentro
+                  de un .cp-card y queda blanco sobre blanco. El color va en el
+                  contenedor y los hijos lo heredan. */}
               {showColMenu && (
                 <div className="cp-light" style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50, background: '#fff', color: '#0f172a', border: '1.5px solid #e2e8f0', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 4px', minWidth: 220 }}>
                   <div style={{ padding: '4px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Columnas</div>
-                      <div style={{ fontSize: 10, color: '#64748B', marginTop: 1 }}>Arrastra para reordenar</div>
+                    <div style={{ color: '#475569' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Columnas</span>
+                      <p style={{ fontSize: 10, margin: '1px 0 0' }}>Arrastra para reordenar</p>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button onClick={() => setVisibleCols(new Set(ALL_COLS.map(c => c.key)))} style={{ fontSize: 10, color: '#1B3FCC', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Todas</button>
@@ -464,14 +459,14 @@ export default function InformeCortesPage() {
                         onDragStart={() => handleDragStart(idx)} onDragOver={e => handleDragOver(e, idx)}
                         onDragLeave={() => setDragOverIdx(null)} onDrop={e => handleDrop(e, idx)} onDragEnd={handleDragEnd}
                         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, margin: '1px 4px', color: checked ? '#0f172a' : '#94a3b8', background: isTarget ? '#EFF6FF' : 'transparent', borderTop: fromAbove ? '2px solid #1B3FCC' : '2px solid transparent', borderBottom: fromBelow ? '2px solid #1B3FCC' : '2px solid transparent', opacity: dragItemIdx.current === idx ? 0.35 : 1, cursor: 'grab', transition: 'background 0.1s', userSelect: 'none' }}>
-                        <div style={{ color: '#cbd5e1', fontSize: 15, lineHeight: 1, flexShrink: 0 }}>⠿</div>
+                        <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0, opacity: 0.35 }}>⠿</span>
                         <input type="checkbox" checked={checked}
                           onChange={e => { e.stopPropagation(); setVisibleCols(prev => { const next = new Set(prev); if (next.has(key)) { if (next.size > 1) next.delete(key) } else next.add(key); return next }) }}
                           onClick={e => e.stopPropagation()}
                           style={{ accentColor: '#1B3FCC', width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }}
                         />
-                        <div style={{ fontSize: 13, color: checked ? '#0f172a' : '#94a3b8', fontWeight: checked ? 600 : 400, flex: 1 }}>{col.label}</div>
-                        <div style={{ fontSize: 10, color: '#cbd5e1', fontWeight: 700, minWidth: 16, textAlign: 'right' }}>{idx + 1}</div>
+                        <span style={{ fontSize: 13, fontWeight: checked ? 600 : 400, flex: 1 }}>{col.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, minWidth: 16, textAlign: 'right', opacity: 0.4 }}>{idx + 1}</span>
                       </div>
                     )
                   })}

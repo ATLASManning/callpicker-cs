@@ -112,31 +112,31 @@ body {
 /* ── Sección con fondo claro dentro de cp-card (clase de escape) ──────────
    Aplica className="cp-light" + style={{ color:'#dark' }} en el contenedor.
    El div conserva su inline color; los hijos lo heredan en lugar del blanco.
-   IMPORTANTE: NO incluir .cp-card .cp-light (solo los hijos).              */
-.cp-card .cp-light p,
-.cp-card .cp-light span,
-.cp-card .cp-light strong,
-.cp-card .cp-light em,
-.cp-card .cp-light small,
-.cp-card .cp-light label,
-.cp-card .cp-light td, .cp-card .cp-light th,
-.cp-card .cp-light h1, .cp-card .cp-light h2,
-.cp-card .cp-light h3, .cp-card .cp-light h4, .cp-card .cp-light h5 {
+   IMPORTANTE: NO incluir .cp-card .cp-light.cp-light (solo los hijos).              */
+.cp-card .cp-light.cp-light p,
+.cp-card .cp-light.cp-light span,
+.cp-card .cp-light.cp-light strong,
+.cp-card .cp-light.cp-light em,
+.cp-card .cp-light.cp-light small,
+.cp-card .cp-light.cp-light label,
+.cp-card .cp-light.cp-light td, .cp-card .cp-light.cp-light th,
+.cp-card .cp-light.cp-light h1, .cp-card .cp-light.cp-light h2,
+.cp-card .cp-light.cp-light h3, .cp-card .cp-light.cp-light h4, .cp-card .cp-light.cp-light h5 {
   color: inherit !important;
 }
 /* Modales/secciones claras dentro de cp-card también necesitan sus propios
    inputs/textareas/selects claros — las reglas catch-all de arriba (pensadas
    para el card oscuro) no deben "filtrarse" a un modal fixed con bg-white,
    ya que position:fixed no cambia su posición en el árbol DOM/cascada CSS. */
-.cp-card .cp-light input:not(.cp-input),
-.cp-card .cp-light textarea:not(.cp-input),
-.cp-card .cp-light select:not(.cp-select) {
+.cp-card .cp-light.cp-light input:not(.cp-input),
+.cp-card .cp-light.cp-light textarea:not(.cp-input),
+.cp-card .cp-light.cp-light select:not(.cp-select) {
   background: #ffffff !important;
   color: #0F172A !important;
   border-color: #E2E8F0 !important;
 }
-.cp-card .cp-light input:not(.cp-input)::placeholder,
-.cp-card .cp-light textarea:not(.cp-input)::placeholder {
+.cp-card .cp-light.cp-light input:not(.cp-input)::placeholder,
+.cp-card .cp-light.cp-light textarea:not(.cp-input)::placeholder {
   color: #94A3B8 !important;
 }
 /* Tokens Tailwind custom (text-textHi/Mid/Low, bg-surface*, border-border) —
@@ -146,33 +146,33 @@ body {
    ya traen su propio color de Tailwind con menor especificidad que el
    !important de arriba; "inherit" dependería de que el contenedor padre
    tenga el color puesto inline, lo cual no siempre es cierto. */
-.cp-card .cp-light .text-textHi  { color: #0F172A !important; }
-.cp-card .cp-light .text-textMid { color: #334155 !important; }
-.cp-card .cp-light .text-textLow { color: #64748B !important; }
-.cp-card .cp-light .bg-surface    { background-color: #FFFFFF !important; }
-.cp-card .cp-light .bg-surfaceAlt { background-color: #F0F7FF !important; }
-.cp-card .cp-light .hover\:bg-surface:hover { background-color: #F0F7FF !important; }
-.cp-card .cp-light .border-border { border-color: #BFDBFE !important; }
+.cp-card .cp-light.cp-light .text-textHi  { color: #0F172A !important; }
+.cp-card .cp-light.cp-light .text-textMid { color: #334155 !important; }
+.cp-card .cp-light.cp-light .text-textLow { color: #64748B !important; }
+.cp-card .cp-light.cp-light .bg-surface    { background-color: #FFFFFF !important; }
+.cp-card .cp-light.cp-light .bg-surfaceAlt { background-color: #F0F7FF !important; }
+.cp-card .cp-light.cp-light .hover\:bg-surface:hover { background-color: #F0F7FF !important; }
+.cp-card .cp-light.cp-light .border-border { border-color: #BFDBFE !important; }
 /* .cp-section-title es una clase (no un tag), así que el escape genérico
    de h1-h5 de arriba no la cubre — necesita su propia regla. */
-.cp-card .cp-light .cp-section-title { color: #0F172A !important; }
+.cp-card .cp-light.cp-light .cp-section-title { color: #0F172A !important; }
 /* Tabla .cp-table y tabla genérica <table> — mismo problema que el resto:
    sus reglas ".cp-card .cp-table th/td" y ".cp-card table tr" de arriba
    asumen fondo oscuro y no deben aplicar dentro de una sección cp-light. */
-.cp-card .cp-light .cp-table th {
+.cp-card .cp-light.cp-light .cp-table th {
   background: #F0F7FF !important;
   color: #64748B !important;
   border-bottom: 1px solid #BFDBFE !important;
 }
-.cp-card .cp-light .cp-table th:hover { color: #0F172A !important; }
-.cp-card .cp-light .cp-table td {
+.cp-card .cp-light.cp-light .cp-table th:hover { color: #0F172A !important; }
+.cp-card .cp-light.cp-light .cp-table td {
   color: #334155 !important;
   border-bottom: 1px solid #E0EDFF !important;
 }
-.cp-card .cp-light .cp-table tbody tr:hover { background: #F0F7FF !important; }
-.cp-card .cp-light table tr             { background: transparent !important; }
-.cp-card .cp-light table thead tr       { background: #F0F7FF !important; }
-.cp-card .cp-light table tbody tr:hover { background: #F0F7FF !important; }
+.cp-card .cp-light.cp-light .cp-table tbody tr:hover { background: #F0F7FF !important; }
+.cp-card .cp-light.cp-light table tr             { background: transparent !important; }
+.cp-card .cp-light.cp-light table thead tr       { background: #F0F7FF !important; }
+.cp-card .cp-light.cp-light table tbody tr:hover { background: #F0F7FF !important; }
 
 /* ── Título de sección ────────────────────────────── */
 .cp-section-title {
@@ -245,14 +245,14 @@ body {
    oscuro (ej. slide-over de edición) queda con inputs oscuros aunque su
    contenedor tenga cp-light. Se necesita !important explícito aquí porque
    la regla de arriba puede aparecer después en la cascada. */
-.cp-card .cp-light .cp-input,
-.cp-card .cp-light .cp-select {
+.cp-card .cp-light.cp-light .cp-input,
+.cp-card .cp-light.cp-light .cp-select {
   background: #FFFFFF !important;
   border-color: #BFDBFE !important;
   color: #0F172A !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04) inset !important;
 }
-.cp-card .cp-light .cp-input::placeholder { color: #94A3B8 !important; }
+.cp-card .cp-light.cp-light .cp-input::placeholder { color: #94A3B8 !important; }
 /* Inputs / selects sin clase cp-* dentro de card oscura */
 .cp-card input:not(.cp-input) {
   background: rgba(255,255,255,0.08) !important;
