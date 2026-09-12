@@ -195,17 +195,48 @@ export async function GET(req: NextRequest) {
       }
 
       // Tendencia por mes (solo si no hay filtro de fecha)
-      const byMes: Record<string, { count: number; monto: number; consumo: number }> = {}
+      const byMes: Record<string, {
+        count: number; monto: number; consumo: number
+        parcial: boolean; desde: string; hasta: string
+      }> = {}
       for (const r of allData) {
-        if (!byMes[r.fechaCorte]) byMes[r.fechaCorte] = { count: 0, monto: 0, consumo: 0 }
-        byMes[r.fechaCorte].count++
-        byMes[r.fechaCorte].monto   += r.monto
-        byMes[r.fechaCorte].consumo += r.pctConsumo
+        if (!byMes[r.fechaCorte]) {
+          byMes[r.fechaCorte] = { count: 0, monto: 0, consumo: 0, parcial: false, desde: '', hasta: '' }
+        }
+        const m = byMes[r.fechaCorte]
+        m.count++
+        m.monto   += r.monto
+        m.consumo += r.pctConsumo
+        if (r.fechaCorteISO) {
+          if (!m.desde || r.fechaCorteISO < m.desde) m.desde = r.fechaCorteISO
+          if (!m.hasta || r.fechaCorteISO > m.hasta) m.hasta = r.fechaCorteISO
+        }
+      }
+
+      /* ── Meses incompletos ──────────────────────────────────────────────
+       * El archivo se entrega a media marcha: septiembre 2026 llega con
+       * cortes del día 1 al 10 (738 de los ~2,200 de un mes normal) y
+       * diciembre 2025 arranca el día 9 porque ahí empieza el archivo.
+       * Sumarlos como meses completos hunde el pronóstico 21.5% y dibuja una
+       * barra al 39% de la de agosto — un desplome que no ocurrió.
+       * La marca es un hecho estructural, no una estimación: falta mes
+       * cuando el último corte del mes cae antes de su último día, o cuando
+       * el primero cae después del día 1.                                   */
+      const meses = Object.keys(byMes).sort()
+      for (const mes of meses) {
+        const m = byMes[mes]
+        if (!m.desde || !m.hasta) continue
+        const [y, mm] = mes.split('-').map(Number)
+        const ultimoDia = new Date(Date.UTC(y, mm, 0)).getUTCDate()
+        const diaDesde = Number(m.desde.slice(8, 10))
+        const diaHasta = Number(m.hasta.slice(8, 10))
+        m.parcial = diaHasta < ultimoDia || diaDesde > 1
       }
 
       return NextResponse.json({
         total: data.length, totalMonto, avgConsumo, sinConsumo, conEventos,
         byPlan, byClas, byUso, zonas, byMes,
+        corte: meses.length ? byMes[meses[meses.length - 1]].hasta : null,
       })
     }
 

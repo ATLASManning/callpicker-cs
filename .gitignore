@@ -45,3 +45,4 @@ scripts/update-facturacion.log
 
 # Maqueta temporal para revisar el fondo animado
 aurora-preview.html
+data/cortes-facturacion.*.bak.xlsx

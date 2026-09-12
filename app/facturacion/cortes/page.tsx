@@ -15,7 +15,13 @@ interface Stats {
   byClas: Record<string, { count: number; monto: number }>
   byUso:  Record<string, number>
   zonas:  Record<string, number>
-  byMes:  Record<string, { count: number; monto: number; consumo: number }>
+  byMes:  Record<string, {
+    count: number; monto: number; consumo: number
+    /** El mes no está completo: el archivo cortó a media marcha. */
+    parcial: boolean; desde: string; hasta: string
+  }>
+  /** Última fecha de corte que trae el archivo. */
+  corte?: string | null
 }
 interface CorteRow {
   cid: string; cliente: string; fechaCorte: string; periodo: string
@@ -295,13 +301,20 @@ export default function InformeCortesPage() {
   const mesTendencia  = stats?.byMes ? Object.entries(stats.byMes).sort((a, b) => a[0].localeCompare(b[0])) : []
   const maxMonto      = Math.max(...mesTendencia.map(([, v]) => v.monto), 1)
 
+  /* El pronóstico promedia los últimos 3 meses COMPLETOS. Incluir un mes a
+     medias lo hunde por calendario, no por negocio: con septiembre 2026 —que
+     llega con cortes del día 1 al 10— el promedio caía 21.5% ($542,696) sin
+     que nadie hubiera dejado de facturar. */
+  const mesesCompletos = mesTendencia.filter(([, v]) => !v.parcial)
+  const mesesParciales = mesTendencia.filter(([, v]) => v.parcial).map(([m]) => m)
+
   const forecast = (() => {
-    if (mesTendencia.length < 3) return null
-    const last3      = mesTendencia.slice(-3)
+    if (mesesCompletos.length < 3) return null
+    const last3      = mesesCompletos.slice(-3)
     const avgMonto   = last3.reduce((s, [, v]) => s + v.monto, 0) / 3
     const avgCount   = last3.reduce((s, [, v]) => s + v.count, 0) / 3
     const avgConsumo = last3.reduce((s, [, v]) => s + v.consumo / v.count, 0) / 3
-    return { monto: avgMonto, count: avgCount, consumo: avgConsumo }
+    return { monto: avgMonto, count: avgCount, consumo: avgConsumo, base: last3.map(([m]) => m) }
   })()
 
   if (loading) return (
@@ -623,17 +636,39 @@ export default function InformeCortesPage() {
             {/* Monto por mes */}
             <div style={DC}>
               <p style={DT}>Monto Total por Mes de Corte</p>
-              <p style={DS}>Evolución histórica · {mesTendencia.length} periodos</p>
+              <p style={DS}>
+                Evolución histórica · {mesTendencia.length} periodos
+                {mesesParciales.length > 0 && (
+                  <span style={{ color: '#FBBF24' }}>
+                    {' · '}{mesesParciales.map(fmtMes).join(' y ')} {mesesParciales.length > 1 ? 'están' : 'está'} a medias
+                  </span>
+                )}
+              </p>
               <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 220, overflowX: 'auto', paddingBottom: 2 }}>
                 {mesTendencia.map(([mes, v], idx) => {
                   const h      = Math.max(6, Math.round((v.monto / maxMonto) * 170))
-                  const isLast = idx === mesTendencia.length - 1
+                  const isLast = idx === mesTendencia.length - 1 && !v.parcial
+                  /* Un mes incompleto NO se esconde —sería peor— pero tampoco se
+                     dibuja como si fuera comparable: rayado, ámbar y rotulado con
+                     los días que sí trae. */
+                  const tip = v.parcial
+                    ? `${fmtMes(mes)}: ${fmt$(v.monto)} · INCOMPLETO, solo cortes del ${v.desde?.slice(8)} al ${v.hasta?.slice(8)}`
+                    : `${fmtMes(mes)}: ${fmt$(v.monto)}`
                   return (
                     <div key={mes} style={{ minWidth: 46, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <span style={{ fontSize: 8, color: isLast ? '#fff' : 'rgba(255,255,255,0.55)', fontWeight: 700, textAlign: 'center' }}>{fmtK(v.monto)}</span>
-                      <div style={{ width: 34, height: h, background: isLast ? '#60A5FA' : 'rgba(96,165,250,0.3)', borderRadius: '4px 4px 0 0', boxShadow: isLast ? '0 4px 18px rgba(96,165,250,0.45)' : undefined, transition: 'height 0.4s' }} title={`${fmtMes(mes)}: ${fmt$(v.monto)}`} />
-                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.38)', textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtMes(mes)}</span>
-                      <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.22)' }}>{v.count}</span>
+                      <span style={{ fontSize: 8, color: v.parcial ? '#FBBF24' : isLast ? '#fff' : 'rgba(255,255,255,0.55)', fontWeight: 700, textAlign: 'center' }}>{fmtK(v.monto)}</span>
+                      <div style={{
+                        width: 34, height: h, borderRadius: '4px 4px 0 0', transition: 'height 0.4s',
+                        background: v.parcial
+                          ? 'repeating-linear-gradient(45deg, rgba(251,191,36,0.35) 0 4px, rgba(251,191,36,0.10) 4px 8px)'
+                          : isLast ? '#60A5FA' : 'rgba(96,165,250,0.3)',
+                        border: v.parcial ? '1px dashed rgba(251,191,36,0.7)' : undefined,
+                        boxShadow: isLast ? '0 4px 18px rgba(96,165,250,0.45)' : undefined,
+                      }} title={tip} />
+                      <span style={{ fontSize: 8, color: v.parcial ? '#FBBF24' : 'rgba(255,255,255,0.38)', textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtMes(mes)}</span>
+                      <span style={{ fontSize: 7, color: v.parcial ? '#FBBF24' : 'rgba(255,255,255,0.22)' }}>
+                        {v.parcial ? `1–${Number(v.hasta?.slice(8) ?? 0)}` : v.count}
+                      </span>
                     </div>
                   )
                 })}
@@ -651,17 +686,34 @@ export default function InformeCortesPage() {
             {/* Consumo % por mes */}
             <div style={DC}>
               <p style={DT}>Consumo Promedio % por Mes</p>
-              <p style={DS}>Comportamiento de uso de minutos incluidos</p>
+              <p style={DS}>
+                Comportamiento de uso de minutos incluidos
+                {mesesParciales.length > 0 && (
+                  <span style={{ color: '#FBBF24' }}>
+                    {' · '}en {mesesParciales.map(fmtMes).join(' y ')} el promedio sale de los clientes
+                    que cortan a principios de mes, no de todos
+                  </span>
+                )}
+              </p>
               <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 220, overflowX: 'auto', paddingBottom: 2 }}>
                 {mesTendencia.map(([mes, v], idx) => {
                   const avgC   = v.count ? v.consumo / v.count : 0
                   const h      = Math.max(6, Math.round((Math.min(avgC, 150) / 150) * 170))
-                  const isLast = idx === mesTendencia.length - 1
+                  const isLast = idx === mesTendencia.length - 1 && !v.parcial
                   const color  = pctColorD(avgC)
                   return (
                     <div key={mes} style={{ minWidth: 46, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                      <span style={{ fontSize: 8, color: isLast ? '#fff' : 'rgba(255,255,255,0.55)', fontWeight: 700 }}>{avgC.toFixed(0)}%</span>
-                      <div style={{ width: 34, height: h, background: isLast ? color : color + '55', borderRadius: '4px 4px 0 0', boxShadow: isLast ? `0 4px 18px ${color}50` : undefined, transition: 'height 0.4s' }} title={`${fmtMes(mes)}: ${avgC.toFixed(1)}%`} />
+                      <span style={{ fontSize: 8, color: v.parcial ? '#FBBF24' : isLast ? '#fff' : 'rgba(255,255,255,0.55)', fontWeight: 700 }}>{avgC.toFixed(0)}%</span>
+                      <div style={{
+                        width: 34, height: h, borderRadius: '4px 4px 0 0', transition: 'height 0.4s',
+                        background: v.parcial
+                          ? `repeating-linear-gradient(45deg, ${color}55 0 4px, ${color}18 4px 8px)`
+                          : isLast ? color : color + '55',
+                        border: v.parcial ? '1px dashed rgba(251,191,36,0.7)' : undefined,
+                        boxShadow: isLast ? `0 4px 18px ${color}50` : undefined,
+                      }} title={v.parcial
+                        ? `${fmtMes(mes)}: ${avgC.toFixed(1)}% · solo ${v.count} cortes, del ${v.desde?.slice(8)} al ${v.hasta?.slice(8)}`
+                        : `${fmtMes(mes)}: ${avgC.toFixed(1)}%`} />
                       <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.38)', whiteSpace: 'nowrap' }}>{fmtMes(mes)}</span>
                     </div>
                   )
@@ -682,9 +734,17 @@ export default function InformeCortesPage() {
             <div style={{ ...DC, background: 'linear-gradient(135deg, #0D1829 55%, #1e1b4b 100%)', border: '1px solid rgba(129,140,248,0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
                 <TrendingUp size={16} style={{ color: '#818CF8' }} />
-                <p style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
-                  Previsión próximo corte — promedio móvil {Math.min(mesTendencia.length, 3)} meses
-                </p>
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                    Previsión próximo corte — promedio móvil de 3 meses completos
+                  </p>
+                  {/* Decir sobre qué meses se calculó evita la pregunta obvia y,
+                      sobre todo, deja ver que el mes a medias quedó fuera. */}
+                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                    Sobre {forecast.base.map(fmtMes).join(', ')}
+                    {mesesParciales.length > 0 && ` · ${mesesParciales.map(fmtMes).join(' y ')} queda fuera por estar a medias`}
+                  </p>
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
                 {[
