@@ -9,6 +9,9 @@ import { getAuditCaseById }           from '@/app/auditoria/cases'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { chatDeCuenta } from '@/lib/chat-cuenta'
 import CuentaChatPanel from '@/components/CuentaChatPanel'
+import { leerLlamadas } from '@/lib/llamadas-cuenta'
+import { LLAMADAS, LLAMADAS_META } from '@/app/cuentas/llamadas-data'
+import CuentaLlamadasPanel, { LlamadasSinLectura } from '@/components/CuentaLlamadasPanel'
 import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
 import { getSemaforoCuenta, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
@@ -87,6 +90,14 @@ export default async function CuentaDetailPage({ params }: Props) {
   // chat no aparece todos los meses: el archivo trae un solo plan por mes.
   // cortesDeCuenta cachea, asi que esta segunda llamada no relee el archivo.
   const chat = chatDeCuenta(cuenta.cid, cuenta.health_score, await cortesDeCuenta(cuenta.cid, 6))
+
+  // Atencion de llamadas. Se concilia por CID O por nombre de cliente, por
+  // instruccion de direccion: hoy las dos rutas dan las mismas 86 cuentas, y el
+  // nombre existe para cuando un CID se capture mal o cambie en la extraccion.
+  const llamadas = leerLlamadas(
+    LLAMADAS, LLAMADAS_META, cuenta.cid, cuenta.empresa,
+    new Date().toISOString().slice(0, 10),
+  )
 
   const h       = headers()
   const rol     = h.get('x-user-rol') ?? 'viewer'
@@ -660,6 +671,11 @@ export default async function CuentaDetailPage({ params }: Props) {
             cid={cuenta.cid ?? null}
             empresa={cuenta.empresa}
           />
+
+          {/* Atención de llamadas — entrantes y salientes, debajo de los cortes */}
+          {llamadas
+            ? <CuentaLlamadasPanel l={llamadas} meta={LLAMADAS_META} />
+            : <LlamadasSinLectura cid={cuenta.cid ?? null} meta={LLAMADAS_META} />}
         </div>
       </div>
     </div>
