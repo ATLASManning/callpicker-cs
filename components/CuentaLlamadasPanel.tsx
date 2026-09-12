@@ -97,9 +97,16 @@ export default function CuentaLlamadasPanel({ l, meta }: { l: LecturaLlamadas; m
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
-        <Kpi icon={AlertTriangle} label="Sin contestar" color={kcol}
-          value={sinVol || l.pctCerrado === null ? (d.ent ? nf(d.ent.total) : '—') : `${l.pctCerrado.toFixed(1)}%`}
-          sub={sinVol ? 'entrantes en la ventana'
+        {/* La etiqueta cambia con el valor. Publicar «Sin contestar: 874» cuando
+            874 son las entrantes TOTALES —el caso de Pitahaya, que no tuvo
+            entrantes en el mes cerrado— afirma algo que el dato no dice. */}
+        <Kpi icon={AlertTriangle}
+          label={sinVol ? 'Entrantes en la ventana' : 'Sin contestar'}
+          color={kcol}
+          value={sinVol ? nf(d.ent?.total ?? 0)
+            : l.pctCerrado === null ? '—'
+            : `${l.pctCerrado.toFixed(1)}%`}
+          sub={sinVol ? 'muy pocas para medir atención'
             : d.cerrado ? `${nf(d.cerrado.l)} de ${nf(d.cerrado.t)} · ${mesLargo(meta.mesCerrado)}`
             : `sin entrantes en ${mesLargo(meta.mesCerrado)}`} />
         <Kpi icon={TrendingUp} label="Contra sí misma" color={kcol}
