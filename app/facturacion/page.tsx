@@ -353,6 +353,11 @@ export default function FacturacionPage() {
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
+              {/* El `background:'#f8fafc'` de abajo NO se aplica: globals.css
+                  línea 84 lo pisa con `.cp-card table thead tr {background:
+                  rgba(255,255,255,.05) !important}`. La fila se ve OSCURA y el
+                  blanco forzado en el <th> es lo correcto — no ponerle cp-light
+                  aquí, dejaría texto oscuro sobre fondo oscuro. */}
               <tr style={{ background: '#f8fafc' }}>
                 {['#', 'Cliente', 'MRR', 'Rango LTV', 'Clasificación', 'Semáforo'].map(h => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
@@ -443,6 +448,7 @@ export default function FacturacionPage() {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
+                      {/* Misma razón que la tabla de arriba: la fila se ve oscura. */}
                       <tr style={{ background: '#f8fafc' }}>
                         {['Cliente', 'Segmento', 'Factura Mensual', 'MRR', 'Acumulado Rec.', 'Clasif. LTV', 'Semáforo', 'Meses Activo', 'Última Factura'].map(h => (
                           <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
