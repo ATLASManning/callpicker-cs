@@ -144,6 +144,24 @@ export default async function CuentaDetailPage({ params }: Props) {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-lg font-bold text-textHi">{cuenta.empresa}</h1>
+                {/* CID de Callpicker, justo donde termina el nombre. Es la llave
+                    con la que la cuenta cruza contra llamadas, cortes, tickets y
+                    chat — tenerla a la vista evita ir a buscarla a otro lado.
+                    Cuando falta se dice, no se deja el hueco: hoy solo TATSA
+                    (D59) no la tiene capturada y sin ella no cruza con nada. */}
+                {cuenta.cid ? (
+                  <span className="font-mono text-xs px-2 py-0.5 rounded"
+                    style={{ background: 'rgba(148,163,184,0.14)', color: 'rgba(255,255,255,0.66)' }}
+                    title="CID · Customer ID de Callpicker">
+                    CID {cuenta.cid}
+                  </span>
+                ) : (
+                  <span className="font-mono text-xs px-2 py-0.5 rounded"
+                    style={{ background: 'rgba(245,158,11,0.16)', color: '#FBBF24' }}
+                    title="Sin CID capturado: esta cuenta no cruza con llamadas, cortes, tickets ni chat">
+                    sin CID
+                  </span>
+                )}
                 <span className="font-mono text-xs text-cp bg-cp/10 px-2 py-0.5 rounded">{cuenta.consecutivo}</span>
                 <EstadoCuentaBadge estado={cuenta.estado} />
                 <SemaforoBadge semaforo={semaforo} score={cuenta.health_score} />

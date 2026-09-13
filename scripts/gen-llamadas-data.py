@@ -284,6 +284,10 @@ META = {
     'baseFin': BASE_FIN,
     'meses': MESES,
     'cuentas': len(salida),
+    # Criterio del corte, confirmado por direccion el 12 sep 2026: son los
+    # clientes con consumo de 0 a 40% de su plan. Importa decirlo en pantalla:
+    # sin eso, el 20.4% de no contestadas se lee como cifra de cartera cuando
+    # es la linea base de un recorte deliberado de poco consumo.
     'fuente': 'Clientes AAA Poco Consumo — llamadas entrantes y salientes',
     'entTotal': sum(v['ent']['total'] for v in salida.values() if v['ent']),
     'entLost': sum(v['ent']['lost'] for v in salida.values() if v['ent']),

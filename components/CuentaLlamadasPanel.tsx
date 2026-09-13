@@ -244,9 +244,11 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
       {/* Pie de método */}
       <p style={{ fontSize: 9, color: GRY, lineHeight: 1.6, margin: '11px 0 0', paddingTop: 9, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         {meta.fuente} · {nf(meta.entTotal + meta.salTotal)} llamadas del {fechaCorta(meta.meses[0] + '-01')} al {fechaCorta(meta.corte)} · {meta.cuentas} de 220 cuentas con asesor.
+        El corte lo forman los clientes con <strong style={{ color: 'rgba(255,255,255,0.6)' }}>consumo de 0 a 40% de su plan</strong>,
+        así que no es una muestra de toda la cartera ni es aleatoria.
         «Sin contestar» = entró la llamada y ninguna extensión la tomó; las resueltas por el menú NO
         cuentan como falla. Los porcentajes son de entrantes y nunca se suman con los de marcación saliente.
-        El {meta.baseEnt}% general es la <strong style={{ color: 'rgba(255,255,255,0.6)' }}>línea base del archivo</strong>, no de la cartera.
+        El {meta.baseEnt}% general es la <strong style={{ color: 'rgba(255,255,255,0.6)' }}>línea base de ese corte</strong>, no de la cartera.
         {l.via === 'nombre' && ' Esta cuenta se concilió por nombre de cliente, no por CID.'}
         {l.nombreDifiere && ` Empresa en el archivo: «${d.empresa}».`}
       </p>
