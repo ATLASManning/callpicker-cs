@@ -9,6 +9,12 @@ import { detectDataGaps, gapScore, conciliarGaps, type DataGap,
  *  Permite que la actividad diga "confirma este dato" en vez de "consiguelo". */
 let GAPS_LOCALIZADOS = new Map<string, CandidatoParaConciliar[]>()
 import { contarRespuestasRadar, preguntasRadarFaltantes } from '@/lib/radar'
+// Evidencia de servicio para el bloque de hechos de la actividad. Ambos son
+// lecturas baratas: LLAMADAS es un import estatico y ticketStatsCuenta lee el
+// JSON ya cacheado. No se agrega ninguna consulta nueva a Supabase.
+import { leerLlamadas, mesLargo as mesLargoLl } from '@/lib/llamadas-cuenta'
+import { LLAMADAS, LLAMADAS_META } from '@/app/cuentas/llamadas-data'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import {
   evaluarElegibilidad, esLunes, LIMITE_SEMANAL, MSG, normalizarNombre,
   type CodigoBloqueo,
@@ -359,6 +365,74 @@ function buildRadarBlock(empresa: string, respondidas: number, faltantes: Return
 
 // ── Lógica de descripción ─────────────────────────────────────────────────────
 
+/**
+ * Los hechos medidos de la cuenta, sin interpretarlos.
+ *
+ * Es material para que el asesor piense, no un guion para que lea. Por eso van
+ * las cifras crudas con su fuente y su ventana, y ninguna conclusión: el
+ * diagnóstico lo hace quien atiende la cuenta.
+ *
+ * Lo que no se midió se dice. Una cuenta sin lectura de llamadas no es una
+ * cuenta con cero llamadas, y el asesor no puede salir a afirmar lo contrario.
+ */
+function buildEvidencia(cuenta: CuentaFull): string {
+  const cid = (cuenta as { cid?: string | null }).cid ?? null
+  const L: string[] = []
+
+  const ll = leerLlamadas(LLAMADAS, LLAMADAS_META, cid, cuenta.empresa)
+  if (ll) {
+    const c = ll.datos.cerrado
+    if (c && ll.pctCerrado !== null) {
+      let s = `· LLAMADAS · en ${mesLargoLl(LLAMADAS_META.mesCerrado)} quedaron sin contestar `
+            + `${c.l.toLocaleString('es-MX')} de ${c.t.toLocaleString('es-MX')} entrantes (${ll.pctCerrado.toFixed(1)}%).`
+      if (ll.pctBase !== null) s += ` Su propia base previa: ${ll.pctBase.toFixed(1)}%.`
+      if (ll.exceso !== null && ll.exceso > 0) {
+        s += ` Son ${ll.exceso.toLocaleString('es-MX')} llamadas más de las que esta cuenta suele perder.`
+      }
+      L.push(s)
+    } else {
+      L.push(`· LLAMADAS · ${ll.datos.ent?.total.toLocaleString('es-MX') ?? 0} entrantes en la ventana del archivo, `
+           + `sin registro en ${mesLargoLl(LLAMADAS_META.mesCerrado)}.`)
+    }
+    if (ll.hall?.peorDia) {
+      L.push(`· Su peor día es el ${ll.hall.peorDia.nombre}: ${ll.hall.peorDia.pct.toFixed(1)}% sin contestar `
+           + `sobre ${ll.hall.peorDia.total.toLocaleString('es-MX')} llamadas.`)
+    }
+    if (ll.hall?.horas.length) {
+      L.push(`· Las horas que se salen de su promedio: ${ll.hall.horas.map(h => `${h.h} h`).join(', ')}.`)
+    }
+    if (ll.diasSinLlamada !== null && ll.diasSinLlamada > 30) {
+      L.push(`· Su última llamada fue el ${ll.datos.ultima}: ${ll.diasSinLlamada} días sin una sola, al corte del archivo.`)
+    }
+    L.push(`  (Entrantes. No se suman con las salientes. Las que resolvió el menú no cuentan como falla. `
+         + `Corte del archivo: ${LLAMADAS_META.corte}.)`)
+  } else {
+    L.push('· LLAMADAS · esta cuenta no viene en la lectura de llamadas, así que no hay medición. '
+         + 'No es que no tenga llamadas: es que no las tenemos medidas. No afirmes nada sobre su tráfico.')
+  }
+
+  const tk = ticketStatsCuenta(cid, cuenta.empresa)
+  if (tk.total > 0) {
+    let s = `· TICKETS · ${tk.total} en total`
+    if (tk.fallas > 0)   s += `, de los cuales ${tk.fallas} están clasificados como FALLA`
+    if (tk.abiertos > 0) s += `, y ${tk.abiertos} siguen abiertos`
+    if (tk.ultima)       s += `. El último movimiento fue ${tk.ultima}`
+    L.push(s + '.')
+  } else {
+    L.push('· TICKETS · sin tickets registrados para esta cuenta.')
+  }
+
+  const hs = cuenta.health_score ?? null
+  const dias = cuenta.dias_sin_actividad ?? null
+  const est: string[] = []
+  if (hs !== null)   est.push(`Health Score ${hs}`)
+  if (dias !== null) est.push(`${dias} días sin actividad registrada`)
+  if (cuenta.estado) est.push(`estatus ${cuenta.estado}`)
+  if (est.length) L.push(`· CUENTA · ${est.join(' · ')}. (El Health Score es interno: nunca se le menciona al cliente.)`)
+
+  return `━━ LO QUE YA SE MIDIÓ ━━\n${L.join('\n')}\n`
+}
+
 function buildDescripcion(
   tipo:             TipoActividad,
   hs:               number,
@@ -405,22 +479,65 @@ function buildDescripcion(
     case 'validacion': {
       const noDeseable  = gaps.filter(g => g.nivel !== 'deseable').slice(0, 6)
       const sinDecisor  = gaps.some(g => g.campo === 'Mapa de decisores')
-      const introRiesgo = criticos.length > 0
-        ? `El perfil de ${empresa} tiene ${criticos.length} dato(s) CRÍTICO(S) sin registrar.`
-        : `El perfil de ${empresa} tiene ${gaps.length} campo(s) sin completar que limitan la previsión de riesgo.`
 
-      return `COMPLETAR PERFIL${topTag} — ${empresa}
+      return `TU CUENTA ESTA SEMANA${topTag} — ${empresa}
 
-⚠️  LECCIÓN KOMBITEC: En una cuenta real en nuestra cartera, el asesor no tenía ningún dato de perfil, sin seguimientos y sin mapa de decisores. Cuando el cliente solicitó un cambio contractual, no había contexto para responder — ni siquiera sabíamos quién más podía tomar esa decisión. ¿Podría ocurrirte esto con ${empresa} hoy?
+Esta cuenta es tuya. No es una tarea del tablero: es un cliente que hoy no tiene
+a nadie más viendo por él.
 
-${introRiesgo} En tu próxima interacción OBTÉN y registra:
+━━ EL ESTÁNDAR ━━
+Un asesor profesional llega a la llamada sabiendo más de cómo el cliente usa
+Callpicker que el cliente mismo. Si es él quien te explica a ti su propia
+operación, la conversación ya se perdió antes de marcar.
 
-${noDeseable.map((g, i) => `${i + 1}. ${g.campo.toUpperCase()}: "${g.pregunta}"`).join('\n')}
-${sinDecisor ? `\n🔑 DECISORES — Pregunta obligatoria: "¿Hay alguien más en ${empresa} involucrado en decisiones sobre herramientas como Callpicker?" Registra nombre, cargo y correo de cada persona adicional que mencionen. Un solo contacto es un punto de falla.` : ''}
+${buildEvidencia(cuenta)}
+━━ ESTO NO ES TU DIAGNÓSTICO ━━
+Arriba hay hechos medidos, no conclusiones. Qué significan para ESTE cliente lo
+decides tú: nadie conoce su operación mejor que quien la atiende.
 
-Actualiza en: Dashboard → Cuentas → ${empresa} → Editar.${isTop ? '\n\n★ CUENTA TOP: por el volumen e historial de esta cuenta, tener el perfil al 100% NO es opcional. Escala con tu coordinador si el cliente se niega a compartir datos básicos — es una señal de riesgo en sí misma.' : ''}${radar ? buildRadarBlock(empresa, radar.respondidas, radar.faltantes) : ''}
+No traigas los cinco temas. Si traes todo, no traes nada. Elige el que de verdad
+le duele, entiéndelo a fondo y defiéndelo con datos. Un tema bien trabajado vale
+más que cinco mencionados.
 
-✅ Esta actividad solo se puede marcar como Completada cuando los datos críticos de arriba estén guardados en la cuenta y las 12 preguntas del Radar tengan respuesta — el sistema lo valida automáticamente al guardar.`
+Y no leas esta pantalla en voz alta. El camino a esta cuenta lo construyes tú —
+no viene pavimentado, y por eso es tuyo.
+
+━━ LO QUE SE ESPERA DE TI, Y NO SE NEGOCIA ━━
+1. LLEGA PREPARADO. Antes de marcar, revisa su historial, sus tickets y su
+   consumo. Presentarte sin eso le dice al cliente exactamente cuánto vale su
+   cuenta para nosotros.
+
+2. VE CON UNA TESIS, NO CON UN CUESTIONARIO. Ten una hipótesis de qué le está
+   pasando y ve a confirmarla o a tumbarla. Preguntar "¿cómo va todo?" no es
+   gestión de cuenta, es llenar el minuto.
+
+3. HABLA CON QUIEN DECIDE. Si solo conoces a una persona en ${empresa}, no
+   tienes la cuenta: tienes un contacto. Un solo interlocutor es un punto de
+   falla, y el día que se vaya te quedas sin cuenta y sin historia.
+
+4. SAL CON UN COMPROMISO CON NOMBRE Y FECHA. Quién hace qué y para cuándo. Una
+   conversación que termina en "quedamos en revisarlo" no terminó.
+
+5. DEJA LA CUENTA MEJOR DE COMO LA ENCONTRASTE. Lo que aprendas hoy tiene que
+   quedar escrito. Si mañana esta cuenta pasa a otro asesor y no puede
+   retomarla con lo que dejaste, el trabajo no está hecho.
+
+━━ LO QUE NO CUENTA COMO TRABAJO ━━
+· "Se contactó al cliente, quedó de revisar." Eso no dice qué pasó ni qué sigue.
+· Cerrar la semana sin haber hablado con nadie del cliente.
+· Repetirle al cliente una cifra que no entendiste y no puedes defender si te
+  la discute.
+· Enterarte por el reporte de churn de algo que tu cliente ya sabía.
+
+━━ LO QUE FALTA REGISTRAR DE ESTA CUENTA ━━
+${noDeseable.length > 0
+  ? noDeseable.map((g, i) => `${i + 1}. ${g.campo.toUpperCase()}: "${g.pregunta}"`).join('\n')
+  : 'Su perfil está completo. Úsalo: llega a la llamada con el contexto puesto.'}
+${sinDecisor ? `\n🔑 Sin mapa de decisores no hay gestión de cuenta. Pregunta: "¿Hay alguien más en ${empresa} involucrado en decisiones sobre herramientas como Callpicker?" y registra nombre, cargo y correo de cada quien mencionen.` : ''}
+
+Se captura en: Dashboard → Cuentas → ${empresa} → Editar.${isTop ? `\n\n★ CUENTA TOP: por su volumen e historial, aquí el estándar no baja. Si el cliente se niega a darte datos básicos de su operación, eso ya es la señal — escálalo con tu coordinador el mismo día.` : ''}${radar ? buildRadarBlock(empresa, radar.respondidas, radar.faltantes) : ''}
+
+✅ Esta actividad solo se puede marcar como Completada cuando los datos críticos estén guardados en la cuenta y las 12 preguntas del Radar tengan respuesta — el sistema lo valida al guardar. El candado es el mínimo, no la meta.`
     }
 
     case 'reunion':
