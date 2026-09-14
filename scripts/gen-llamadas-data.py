@@ -1,56 +1,69 @@
-"""Genera app/cuentas/llamadas-data.ts desde los dos archivos de llamadas.
+"""Genera app/cuentas/llamadas-data.ts desde TODOS los archivos de llamadas.
 
-   Mismo patron que gen-chat-data.py: una pasada por archivo, se agrega por CID
-   y se vuelca a un .ts estatico. En runtime no se lee un solo renglon de las
-   1,541,124 llamadas.
+   Dos entregas con criterio distinto, que NO se solapan (verificado: 0 CIDs en
+   común) y que juntas cubren 148 de las 219 cuentas con asesor y CID:
 
-   ── POR QUE NO SE REUSA analiza-llamadas.py ────────────────────────────────
-   Aquel script fue de reconocimiento y tiene dos defectos que aqui NO se
-   repiten, ambos detectados al revisar el diseno contra los datos:
-     · truncaba los destinos con .most_common(15), asi que restar el top-15 del
-       total daba 44.8% de «sin destino» en vez del 41.5% real. Aqui el bucket
-       «(sin destino registrado)» tiene su propio contador y hay un bucket
-       explicito «otros destinos» que cierra la suma.
-     · guardaba solo los marginales de dia y hora, sin las CONTESTADAS ni los
-       MINUTOS por destino — que es justo lo que sostiene la compuerta del
-       destino por confirmar.
+     · corte «0-40»  — clientes con consumo de 0 a 40% de su plan.  86 CIDs.
+     · corte «40+»   — el resto de la cartera medida.               62 CIDs.
 
-   ── LA COMPUERTA DEL DESTINO POR CONFIRMAR ─────────────────────────────────
-   D2 «Grupo System ooapas» marca 99.7% sin contestar y las 2,625 van al destino
-   llamado «Agente Virtual OOAPAS». Publicarlo como falla seria una falsa alarma.
-   La forma de detectarlo NO es leer el nombre: un filtro de palabras clave marco
-   «CLAUDIA ROMAN» como agente virtual porque contiene la subcadena "ia ".
-   Lo que si distingue es la estructura: un destino que nunca sostuvo una
-   conversacion. Medido sobre el archivo completo:
-       solo concentracion (>=50% de lo no contestado, >=200) -> 25 destinos, 24 falsos positivos
-       + contestadas == 0 y minutos == 0                     ->  1 destino,   0 falsos positivos
-   Por eso este generador emite `cont` y `min` por destino. La regla vive en
-   lib/llamadas-cuenta.ts; aqui solo se emiten los hechos.
+   ── LAS COLUMNAS NO SON IGUALES ENTRE ARCHIVOS ─────────────────────────────
+   Por eso todo se resuelve POR NOMBRE DE COLUMNA y nunca por posición:
+     · la empresa viene como `empresa`, `Nombre Empresa` o `Nombre de Empresa`
+     · «Entrantes Mayor consumo 40 Parte 1» NO trae `destination_data_1`: trae
+       `src`. Son 799,999 filas del 20 may al 14 sep —el 45% de las entrantes
+       del corte 40+— sin destino. Esas filas van a un bucket propio,
+       «(destino no venía en el archivo)», y NO al de «(sin destino
+       registrado)»: una cosa es que la llamada no llegara a ninguna extensión
+       y otra que la columna no se haya exportado. Confundirlas inventaría un
+       hallazgo de configuración que nadie midió.
 
-   ── CONCILIACION ───────────────────────────────────────────────────────────
-   Por instruccion de direccion, el modulo se detona por CID O por nombre de
-   cliente. Se emite `empresa` tal como viene en el archivo y su forma
-   normalizada `norm`, para que lib pueda cruzar por cualquiera de las dos.
-   Hoy las dos rutas dan las mismas 86 cuentas; el nombre existe para cuando un
-   CID se capture mal. Unica discrepancia viva: C9, «Neruc Sede Central» en la
-   cartera contra «Grupo Neruc» en el archivo, mismo CID 73660.
+   ── LO QUE NO SE USA ───────────────────────────────────────────────────────
+   «Salientes Mayor consumo 40 Parte 2» es copia byte a byte de la Parte 1
+   (mismas 900,000 filas, mismos 54 CIDs, mismo hash, filas idénticas a toda
+   profundidad; ambas traen la hoja `xaa`, que es lo que deja `split`). Se lee
+   UNA sola vez: sumarlas duplicaría cada llamada saliente de 54 cuentas.
+
+   ── VENTANAS DISTINTAS POR FUENTE ──────────────────────────────────────────
+   Las entrantes del corte 40+ cubren del 1 ene al 14 sep, pero sus salientes
+   arrancan el 9 de abril: al archivo le falta el tramo anterior. Cada cuenta
+   guarda la ventana real de cada dirección para que la pantalla pueda decirlo
+   en vez de dar por hecho que ausencia es cero.
 """
 import sys, io, os, re, json, unicodedata, datetime, collections
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 import openpyxl
 
-ENT = r"C:\Users\manni\OneDrive\Escritorio\Llamadas_entrantes_Clientes_AAA_Poco_Consumo_Actualizado.xlsx"
-SAL = r"C:\Users\manni\OneDrive\Escritorio\Llamadas Salientes Clientes AAA Poco Consumo.xlsx"
+ARCH = r"D:\Archivos"
 SALIDA = r"D:\Windows\Projects\callpicker-cs\app\cuentas\llamadas-data.ts"
 
+# (archivo, direccion, corte)
+FUENTES = [
+    ('Llamadas_entrantes_Clientes_AAA_Poco_Consumo_Actualizado.xlsx', 'ent', '0-40'),
+    ('Llamadas Salientes Clientes AAA Poco Consumo.xlsx',             'sal', '0-40'),
+    ('Entrantes Mayor consumo 40 Parte 1.xlsx',                       'ent', '40+'),
+    ('Entrantes Mayor consumo 40 Parte 2.xlsx',                       'ent', '40+'),
+    ('Entrantes Mayor consumo 40 Parte 3.xlsx',                       'ent', '40+'),
+    ('Salientes Mayor consumo 40 Parte 1.xlsx',                       'sal', '40+'),
+    # 'Salientes Mayor consumo 40 Parte 2.xlsx' — copia exacta de la Parte 1.
+]
+
 SIN_DESTINO = '(sin destino registrado)'
+NO_EXPORTADO = '(destino no venía en el archivo)'
 TOP_DESTINOS = 8
 RAZON = r'\b(s\.?a\.?p\.?i\.?|s\.?a\.?|s\.?\s?de\s?r\.?l\.?|c\.?v\.?|de\s?c\.?v\.?|sc|sofom|e\.?n\.?r\.?|spr|rl)\b'
 
+ALIAS = {
+    'tipo':    ['destination_type'],
+    'fecha':   ['date'],
+    'cid':     ['customer_id'],
+    'empresa': ['empresa', 'Nombre Empresa', 'Nombre de Empresa'],
+    'destino': ['destination_data_1'],
+    'caller':  ['caller_id'],
+    'minutos': ['total_minutes'],
+}
+
 
 def norma(s):
-    """Forma normalizada para conciliar por nombre. Conservadora: solo quita
-       acentos, puntuacion y sufijos de razon social."""
     s = unicodedata.normalize('NFD', str(s or ''))
     s = ''.join(c for c in s if unicodedata.category(c) != 'Mn').lower()
     s = s.replace('&', ' y ')
@@ -86,211 +99,184 @@ def texto(v):
     return '' if s.upper() == 'NULL' else s
 
 
-# ── ENTRANTES ───────────────────────────────────────────────────────────────
-def nueva_ent():
+def nueva():
     return {
-        'empresa': collections.Counter(),
-        'meses': collections.defaultdict(collections.Counter),
-        'dow': collections.Counter(), 'dowL': collections.Counter(),
-        'hora': collections.Counter(), 'horaL': collections.Counter(),
-        'dest': collections.defaultdict(lambda: {'l': 0, 'c': 0, 'm': 0.0, 'n': set()}),
-        'primera': None, 'ultima': None,
-        'lostSinNum': 0, 'lost': 0, 'total': 0,
+        'empresa': collections.Counter(), 'cortes': set(),
+        'ent': {'total': 0, 'lost': 0, 'lostSinNum': 0,
+                'meses': collections.defaultdict(collections.Counter),
+                'dow': collections.Counter(), 'dowL': collections.Counter(),
+                'hora': collections.Counter(), 'horaL': collections.Counter(),
+                'dest': collections.defaultdict(lambda: {'l': 0, 'c': 0, 'm': 0.0, 'n': set()}),
+                'desde': None, 'hasta': None, 'sinCol': 0},
+        'sal': {'total': 0, 'noCon': 0, 'meses': collections.defaultdict(collections.Counter),
+                'desde': None, 'hasta': None},
     }
 
 
-print('=== ENTRANTES ===')
-wb = openpyxl.load_workbook(ENT, data_only=True, read_only=True)
-ws = wb[wb.sheetnames[0]]
-it = ws.iter_rows(values_only=True)
-cab = [str(c).strip() for c in next(it)]
-ix = {c: k for k, c in enumerate(cab)}
-ENTR = collections.defaultdict(nueva_ent)
-n = 0
-for r in it:
-    n += 1
-    if n % 250000 == 0:
-        print('  ... %s' % format(n, ','))
-    cid = cid_de(r[ix['customer_id']])
-    if not cid:
+DATOS = collections.defaultdict(nueva)
+
+for arch, dire, corte in FUENTES:
+    ruta = os.path.join(ARCH, arch)
+    if not os.path.exists(ruta):
+        print('!! FALTA: %s' % arch)
         continue
-    v = ENTR[cid]
-    t = texto(r[ix['destination_type']]) or 'Desconocido'
-    d = texto(r[ix['destination_data_1']]) or SIN_DESTINO
-    e = texto(r[ix['empresa']])
-    if e:
-        v['empresa'][e] += 1
-    dd = v['dest'][d]
-    dd['m'] += mins(r[ix['total_minutes']])
-    v['total'] += 1
-    if t == 'Lost':
-        v['lost'] += 1
-        dd['l'] += 1
-        num = texto(r[ix['caller_id']])
-        if num:
-            dd['n'].add(num)
+    wb = openpyxl.load_workbook(ruta, data_only=True, read_only=True)
+    ws = wb[wb.sheetnames[0]]
+    it = ws.iter_rows(values_only=True)
+    cab = [str(c).strip() if c is not None else '' for c in next(it)]
+    ix = {}
+    for k, nombres in ALIAS.items():
+        ix[k] = next((cab.index(n) for n in nombres if n in cab), None)
+    falta = [k for k in ('tipo', 'fecha', 'cid') if ix[k] is None]
+    if falta:
+        raise SystemExit('%s: faltan columnas obligatorias %s' % (arch, falta))
+    print('%-46s %s · %s · destino=%s' % (arch[:46], dire, corte,
+                                          'si' if ix['destino'] is not None else 'NO'))
+    n = 0
+    for r in it:
+        n += 1
+        if n % 400000 == 0:
+            print('    ... %s' % format(n, ','))
+        cid = cid_de(r[ix['cid']])
+        if not cid:
+            continue
+        v = DATOS[cid]
+        v['cortes'].add(corte)
+        if ix['empresa'] is not None:
+            e = texto(r[ix['empresa']])
+            if e:
+                v['empresa'][e] += 1
+        t = texto(r[ix['tipo']]) or 'Desconocido'
+        f = r[ix['fecha']]
+        iso = f.strftime('%Y-%m-%d') if isinstance(f, datetime.datetime) else str(f)[:10]
+        mes = iso[:7] if len(iso) >= 7 else ''
+
+        if dire == 'ent':
+            d = v['ent']
+            d['total'] += 1
+            if ix['destino'] is not None:
+                dest = texto(r[ix['destino']]) or SIN_DESTINO
+            else:
+                dest = NO_EXPORTADO
+                d['sinCol'] += 1
+            dd = d['dest'][dest]
+            dd['m'] += mins(r[ix['minutos']]) if ix['minutos'] is not None else 0.0
+            if t == 'Lost':
+                d['lost'] += 1
+                dd['l'] += 1
+                num = texto(r[ix['caller']]) if ix['caller'] is not None else ''
+                if num:
+                    dd['n'].add(num)
+                else:
+                    d['lostSinNum'] += 1
+            else:
+                dd['c'] += 1
+            if mes:
+                d['meses'][mes][t] += 1
+                d['meses'][mes]['total'] += 1
+            if isinstance(f, datetime.datetime):
+                d['dow'][f.weekday()] += 1
+                d['hora'][f.hour] += 1
+                if t == 'Lost':
+                    d['dowL'][f.weekday()] += 1
+                    d['horaL'][f.hour] += 1
+            if iso and iso != 'None':
+                if d['desde'] is None or iso < d['desde']:
+                    d['desde'] = iso
+                if d['hasta'] is None or iso > d['hasta']:
+                    d['hasta'] = iso
         else:
-            v['lostSinNum'] += 1
-    else:
-        dd['c'] += 1
-    f = r[ix['date']]
-    if isinstance(f, datetime.datetime):
-        mes = f.strftime('%Y-%m')
-        v['meses'][mes][t] += 1
-        v['meses'][mes]['total'] += 1
-        v['dow'][f.weekday()] += 1
-        v['hora'][f.hour] += 1
-        if t == 'Lost':
-            v['dowL'][f.weekday()] += 1
-            v['horaL'][f.hour] += 1
-        iso = f.strftime('%Y-%m-%d')
-        if v['primera'] is None or iso < v['primera']:
-            v['primera'] = iso
-        if v['ultima'] is None or iso > v['ultima']:
-            v['ultima'] = iso
-wb.close()
-print('  %s filas · %d CIDs' % (format(n, ','), len(ENTR)))
+            d = v['sal']
+            d['total'] += 1
+            # Lost_by_agent se suma a «no conecto»: el archivo no define que la
+            # distingue de Lost y no se le inventa un significado propio.
+            noCon = t in ('Lost', 'Lost_by_agent')
+            if noCon:
+                d['noCon'] += 1
+            if mes:
+                d['meses'][mes]['total'] += 1
+                if noCon:
+                    d['meses'][mes]['noCon'] += 1
+            if iso and iso != 'None':
+                if d['desde'] is None or iso < d['desde']:
+                    d['desde'] = iso
+                if d['hasta'] is None or iso > d['hasta']:
+                    d['hasta'] = iso
+    wb.close()
+    print('    %s filas' % format(n, ','))
 
-# ── SALIENTES ───────────────────────────────────────────────────────────────
-print('=== SALIENTES ===')
-wb = openpyxl.load_workbook(SAL, data_only=True, read_only=True)
-ws = wb[wb.sheetnames[0]]
-it = ws.iter_rows(values_only=True)
-cab2 = [str(c).strip() for c in next(it)]
-ix2 = {c: k for k, c in enumerate(cab2)}
-SALI = collections.defaultdict(lambda: {'meses': collections.defaultdict(collections.Counter),
-                                        'total': 0, 'noCon': 0, 'ultima': None})
-n = 0
-for r in it:
-    n += 1
-    if n % 250000 == 0:
-        print('  ... %s' % format(n, ','))
-    cid = cid_de(r[ix2['customer_id']])
-    if not cid:
-        continue
-    v = SALI[cid]
-    t = texto(r[ix2['destination_type']]) or 'Desconocido'
-    # Lost_by_agent (3,138 · 0.4%) se suma a «no conecto». El archivo no define
-    # que la distingue de Lost, asi que no se le inventa un significado propio.
-    noCon = t in ('Lost', 'Lost_by_agent')
-    v['total'] += 1
-    if noCon:
-        v['noCon'] += 1
-    f = r[ix2['date']]
-    if isinstance(f, datetime.datetime):
-        mes = f.strftime('%Y-%m')
-        v['meses'][mes]['total'] += 1
-        if noCon:
-            v['meses'][mes]['noCon'] += 1
-        iso = f.strftime('%Y-%m-%d')
-        if v['ultima'] is None or iso > v['ultima']:
-            v['ultima'] = iso
-wb.close()
-print('  %s filas · %d CIDs' % (format(n, ','), len(SALI)))
+# ── Armado ──────────────────────────────────────────────────────────────────
+todas = [x for v in DATOS.values() for x in (v['ent']['hasta'], v['sal']['hasta']) if x]
+CORTE = max(todas)
+MESES = sorted({m for v in DATOS.values() for m in list(v['ent']['meses']) + list(v['sal']['meses']) if m})
 
-# ── ARMADO ──────────────────────────────────────────────────────────────────
-CORTE = max([v['ultima'] for v in ENTR.values() if v['ultima']] +
-            [v['ultima'] for v in SALI.values() if v['ultima']])
-MESES = sorted({m for v in ENTR.values() for m in v['meses']} |
-               {m for v in SALI.values() for m in v['meses']})
 MES_CERRADO = None
 for m in reversed(MESES):
-    # el mes del corte esta incompleto salvo que el corte caiga en su ultimo dia
     y, mm = int(m[:4]), int(m[5:7])
     ultimoDia = (datetime.date(y + (mm == 12), (mm % 12) + 1, 1) - datetime.timedelta(days=1)).isoformat()
     if CORTE >= ultimoDia:
         MES_CERRADO = m
         break
+BASE_FIN = MESES[MESES.index(MES_CERRADO) - 1] if MES_CERRADO and MESES.index(MES_CERRADO) > 0 else None
 print()
 print('corte del archivo : %s' % CORTE)
-print('meses             : %s' % ', '.join(MESES))
-print('ultimo mes CERRADO: %s' % MES_CERRADO)
-
-BASE_FIN = MESES[MESES.index(MES_CERRADO) - 1] if MES_CERRADO and MESES.index(MES_CERRADO) > 0 else None
+print('meses             : %s → %s' % (MESES[0], MESES[-1]))
+print('ultimo mes CERRADO: %s · base hasta: %s' % (MES_CERRADO, BASE_FIN))
 
 salida = {}
-for cid in sorted(set(ENTR) | set(SALI)):
-    e, s = ENTR.get(cid), SALI.get(cid)
-    emp = e['empresa'].most_common(1)[0][0] if (e and e['empresa']) else ''
+for cid in sorted(DATOS):
+    v = DATOS[cid]
+    e, s = v['ent'], v['sal']
+    emp = v['empresa'].most_common(1)[0][0] if v['empresa'] else ''
 
     dest = []
-    if e:
+    if e['total']:
         ordenados = sorted(e['dest'].items(), key=lambda x: -x[1]['l'])
-        # el bucket sin destino va SIEMPRE y primero; nunca compite por el top
-        sd = e['dest'].get(SIN_DESTINO)
-        if sd and sd['l'] > 0:
-            dest.append({'d': SIN_DESTINO, 'l': sd['l'], 'c': sd['c'], 'min': round(sd['m']), 'n': len(sd['n'])})
-        conNombre = [(d, v) for d, v in ordenados if d != SIN_DESTINO and v['l'] > 0]
-        for d, v in conNombre[:TOP_DESTINOS]:
-            dest.append({'d': d, 'l': v['l'], 'c': v['c'], 'min': round(v['m']), 'n': len(v['n'])})
+        for especial in (SIN_DESTINO, NO_EXPORTADO):
+            x = e['dest'].get(especial)
+            if x and x['l'] > 0:
+                dest.append({'d': especial, 'l': x['l'], 'c': x['c'], 'min': round(x['m']), 'n': len(x['n'])})
+        conNombre = [(d, x) for d, x in ordenados if d not in (SIN_DESTINO, NO_EXPORTADO) and x['l'] > 0]
+        for d, x in conNombre[:TOP_DESTINOS]:
+            dest.append({'d': d, 'l': x['l'], 'c': x['c'], 'min': round(x['m']), 'n': len(x['n'])})
         resto = conNombre[TOP_DESTINOS:]
         if resto:
-            dest.append({'d': 'otros destinos', 'l': sum(v['l'] for _, v in resto),
-                         'c': sum(v['c'] for _, v in resto),
-                         'min': round(sum(v['m'] for _, v in resto)), 'n': -1,
-                         'otros': len(resto)})
-        # cierre de la suma: lo listado debe igualar el total de no contestadas
+            dest.append({'d': 'otros destinos', 'l': sum(x['l'] for _, x in resto),
+                         'c': sum(x['c'] for _, x in resto),
+                         'min': round(sum(x['m'] for _, x in resto)), 'n': -1, 'otros': len(resto)})
         assert sum(x['l'] for x in dest) == e['lost'], 'destinos no cierran en CID %s' % cid
 
-    def mesesEnt():
-        out = {}
-        for m in MESES:
-            v = e['meses'].get(m) if e else None
-            if not v:
-                continue
-            out[m] = {'t': v['total'], 'l': v.get('Lost', 0), 'r': v.get('Redirected', 0),
-                      's': v.get('Self_service', 0), 'v': v.get('Voicemail', 0)}
-        return out
+    me = {m: {'t': mv['total'], 'l': mv.get('Lost', 0), 'r': mv.get('Redirected', 0),
+              's': mv.get('Self_service', 0), 'v': mv.get('Voicemail', 0)}
+          for m, mv in sorted(e['meses'].items())}
+    ms = {m: {'t': mv['total'], 'n': mv.get('noCon', 0)} for m, mv in sorted(s['meses'].items())}
 
-    def mesesSal():
-        out = {}
-        for m in MESES:
-            v = s['meses'].get(m) if s else None
-            if not v:
-                continue
-            out[m] = {'t': v['total'], 'n': v.get('noCon', 0)}
-        return out
-
-    me = mesesEnt()
     cerrado = me.get(MES_CERRADO) if MES_CERRADO else None
-    prevs = [v for m, v in me.items() if BASE_FIN and m <= BASE_FIN]
-    baseT = sum(v['t'] for v in prevs)
-    baseL = sum(v['l'] for v in prevs)
+    prevs = [x for m, x in me.items() if BASE_FIN and m <= BASE_FIN]
 
     salida[cid] = {
-        'cid': cid,
-        'empresa': emp,
-        'norm': norma(emp),
-        'ent': ({
-            'total': e['total'], 'lost': e['lost'],
-            'meses': me,
-            'dow':  [e['dow'].get(i, 0) for i in range(7)],
-            'dowL': [e['dowL'].get(i, 0) for i in range(7)],
-            'hora':  [e['hora'].get(h, 0) for h in range(24)],
-            'horaL': [e['horaL'].get(h, 0) for h in range(24)],
-            'dest': dest,
-            'primera': e['primera'], 'ultima': e['ultima'],
-            'lostSinNum': e['lostSinNum'],
-        } if e else None),
-        'sal': ({'total': s['total'], 'noCon': s['noCon'], 'meses': mesesSal(), 'ultima': s['ultima']} if s else None),
+        'cid': cid, 'empresa': emp, 'norm': norma(emp),
+        'corte': sorted(v['cortes'])[0] if v['cortes'] else '',
+        'ent': ({'total': e['total'], 'lost': e['lost'], 'meses': me,
+                 'dow':  [e['dow'].get(i, 0) for i in range(7)],
+                 'dowL': [e['dowL'].get(i, 0) for i in range(7)],
+                 'hora':  [e['hora'].get(h, 0) for h in range(24)],
+                 'horaL': [e['horaL'].get(h, 0) for h in range(24)],
+                 'dest': dest, 'primera': e['desde'], 'ultima': e['hasta'],
+                 'lostSinNum': e['lostSinNum'], 'sinCol': e['sinCol']} if e['total'] else None),
+        'sal': ({'total': s['total'], 'noCon': s['noCon'], 'meses': ms,
+                 'desde': s['desde'], 'ultima': s['hasta']} if s['total'] else None),
         'cerrado': ({'t': cerrado['t'], 'l': cerrado['l']} if cerrado else None),
-        'base': {'t': baseT, 'l': baseL},
-        'ultima': max([x for x in [e['ultima'] if e else None, s['ultima'] if s else None] if x], default=None),
+        'base': {'t': sum(x['t'] for x in prevs), 'l': sum(x['l'] for x in prevs)},
+        'ultima': max([x for x in (e['hasta'], s['hasta']) if x], default=None),
     }
 
 META = {
-    'corte': CORTE,
-    'mesCerrado': MES_CERRADO,
-    'baseFin': BASE_FIN,
-    'meses': MESES,
+    'corte': CORTE, 'mesCerrado': MES_CERRADO, 'baseFin': BASE_FIN, 'meses': MESES,
     'cuentas': len(salida),
-    # Criterio del corte, confirmado por direccion el 12 sep 2026: son los
-    # clientes con consumo de 0 a 40% de su plan. Importa decirlo en pantalla:
-    # sin eso, el 20.4% de no contestadas se lee como cifra de cartera cuando
-    # es la linea base de un recorte deliberado de poco consumo.
-    'fuente': 'Clientes AAA Poco Consumo — llamadas entrantes y salientes',
+    'fuente': 'Llamadas entrantes y salientes de Callpicker — dos entregas: clientes con consumo de 0 a 40% de su plan y el resto de la cartera medida',
     'entTotal': sum(v['ent']['total'] for v in salida.values() if v['ent']),
-    'entLost': sum(v['ent']['lost'] for v in salida.values() if v['ent']),
+    'entLost':  sum(v['ent']['lost']  for v in salida.values() if v['ent']),
     'salTotal': sum(v['sal']['total'] for v in salida.values() if v['sal']),
     'salNoCon': sum(v['sal']['noCon'] for v in salida.values() if v['sal']),
 }
@@ -300,15 +286,13 @@ META['baseSalCon'] = round(100 * (META['salTotal'] - META['salNoCon']) / max(MET
 os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
 with io.open(SALIDA, 'w', encoding='utf-8', newline='\n') as f:
     f.write('/* GENERADO por scripts/gen-llamadas-data.py — NO editar a mano.\n')
-    f.write(' * Fuente: %s\n' % META['fuente'])
-    f.write(' * Corte del archivo: %s · ultimo mes cerrado: %s\n' % (CORTE, MES_CERRADO))
-    f.write(' * %s entrantes / %s salientes en %d cuentas.\n'
-            % (format(META['entTotal'], ','), format(META['salTotal'], ','), len(salida)))
+    f.write(' * %s\n' % META['fuente'])
+    f.write(' * Corte: %s · ultimo mes cerrado: %s · %d cuentas.\n' % (CORTE, MES_CERRADO, len(salida)))
+    f.write(' * %s entrantes / %s salientes.\n'
+            % (format(META['entTotal'], ','), format(META['salTotal'], ',')))
     f.write(' */\n')
-    f.write('import type { LlamadasCuenta, LlamadasMeta } from '
-            "'@/lib/llamadas-cuenta'\n\n")
-    f.write('export const LLAMADAS_META: LlamadasMeta = %s\n\n'
-            % json.dumps(META, ensure_ascii=False))
+    f.write("import type { LlamadasCuenta, LlamadasMeta } from '@/lib/llamadas-cuenta'\n\n")
+    f.write('export const LLAMADAS_META: LlamadasMeta = %s\n\n' % json.dumps(META, ensure_ascii=False))
     f.write('export const LLAMADAS: Record<string, LlamadasCuenta> = {\n')
     for cid, v in salida.items():
         f.write('  %s: %s,\n' % (json.dumps(cid), json.dumps(v, ensure_ascii=False, separators=(',', ':'))))
@@ -316,10 +300,11 @@ with io.open(SALIDA, 'w', encoding='utf-8', newline='\n') as f:
 
 print()
 print('escrito %s (%.0f KB)' % (SALIDA, os.path.getsize(SALIDA) / 1024))
-print('  entrantes %s · no contestadas %s (%.1f%%)'
+print('  cuentas   : %d' % len(salida))
+print('  entrantes : %s · no contestadas %s (%.1f%%)'
       % (format(META['entTotal'], ','), format(META['entLost'], ','), META['baseEnt']))
-print('  salientes %s · conectaron %.1f%%' % (format(META['salTotal'], ','), META['baseSalCon']))
-print('  cuentas: %d' % len(salida))
-sinDest = sum(x['l'] for v in salida.values() if v['ent'] for x in v['ent']['dest'] if x['d'] == SIN_DESTINO)
-print('  sin destino registrado: %s de %s no contestadas (%.1f%%)'
-      % (format(sinDest, ','), format(META['entLost'], ','), 100 * sinDest / max(META['entLost'], 1)))
+print('  salientes : %s · conectaron %.1f%%' % (format(META['salTotal'], ','), META['baseSalCon']))
+sc = sum(v['ent']['sinCol'] for v in salida.values() if v['ent'])
+print('  filas entrantes sin columna de destino: %s (%.1f%%)' % (format(sc, ','), 100 * sc / max(META['entTotal'], 1)))
+por = collections.Counter(v['corte'] for v in salida.values())
+print('  por corte de consumo: %s' % dict(por))

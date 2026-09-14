@@ -22,8 +22,23 @@
  * 4. Se dice «llamadas» y «números distintos», nunca «personas»: D2 registra
  *    2,625 llamadas desde 1,237 números. Y «sin contestar» para entrantes,
  *    «no conectó» para salientes; nunca «perdidas» a secas.
- * 5. El 20.4% es la «línea base del archivo», no de la cartera: son 86 de 220
- *    cuentas de un corte deliberado de poco consumo.
+ * 5. La cifra general es la «línea base de lo medido», no de la cartera. La
+ *    lectura viene de DOS extracciones con criterio distinto y cero CIDs en
+ *    común —clientes con consumo de 0 a 40% de su plan (86 cuentas) y el resto
+ *    de la cartera medida (62)— que juntas cubren 148 de las 219 cuentas con
+ *    asesor y CID. Las otras 71 no tienen lectura y ahí no se afirma nada.
+ *    Cada cuenta se compara contra su PROPIA base previa, nunca contra ese
+ *    general.
+ * 6. Las ventanas no coinciden entre direcciones. Las entrantes del corte 40+
+ *    cubren de enero a septiembre, pero sus salientes arrancan el 9 de abril:
+ *    al archivo le falta el tramo anterior. Por eso cada cuenta guarda su
+ *    ventana real y la pantalla la declara en vez de dar por hecho que lo que
+ *    no aparece es cero.
+ * 7. «Entrantes Mayor consumo 40 Parte 1» no trae la columna de destino: son
+ *    799,999 filas —el 31% de todas las entrantes— cuyo destino nunca se
+ *    exportó. Esas van a un bucket propio y JAMÁS al de «(sin destino
+ *    registrado)»: una cosa es que la llamada no llegara a ninguna extensión
+ *    y otra que la columna no viniera en el archivo.
  */
 
 export interface DestinoLlamadas {
@@ -46,6 +61,8 @@ export interface LlamadasCuenta {
   cid: string
   empresa: string
   norm: string
+  /** De qué entrega vino: '0-40' (consumo de 0 a 40% del plan) o '40+'. */
+  corte: string
   ent: {
     total: number; lost: number
     meses: Record<string, MesEntrantes>
@@ -54,8 +71,10 @@ export interface LlamadasCuenta {
     dest: DestinoLlamadas[]
     primera: string | null; ultima: string | null
     lostSinNum: number
+    /** Filas cuyo archivo no traía la columna de destino. No es «sin destino». */
+    sinCol: number
   } | null
-  sal: { total: number; noCon: number; meses: Record<string, MesSalientes>; ultima: string | null } | null
+  sal: { total: number; noCon: number; meses: Record<string, MesSalientes>; desde: string | null; ultima: string | null } | null
   cerrado: { t: number; l: number } | null
   base: { t: number; l: number }
   ultima: string | null

@@ -176,7 +176,13 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
           </div>
           <p style={{ ...nota, marginBottom: 12 }}>
             {pctCon.toFixed(1)}% de sus {nf(d.sal!.total)} salientes conectó · la marca blanca es {meta.baseSalCon}%,
-            la línea base del archivo. Métrica invertida a propósito: no se puede restar contra el indicador de arriba.
+            la línea base de lo medido. Métrica invertida a propósito: no se puede restar contra el indicador de arriba.
+            {/* La ventana de salientes no siempre coincide con la de entrantes: al archivo del
+                corte 40+ le falta el tramo de enero a marzo. Se dice, no se disimula. */}
+            {d.sal?.desde && d.ent?.primera && d.sal.desde > d.ent.primera && (
+              <> Sus salientes empiezan el {fechaCorta(d.sal.desde)} y sus entrantes el {fechaCorta(d.ent.primera)}:
+                al archivo le falta el tramo anterior, así que las dos direcciones no cubren el mismo periodo.</>
+            )}
           </p>
         </>
       )}
@@ -227,6 +233,13 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
           <p style={{ ...nota, marginTop: 5 }}>
             Nombres tal como los tiene configurados el cliente. El archivo no dice qué hay detrás de
             cada uno — por eso no se clasifica ninguno.
+            {/* Distinguir «no llegó a ninguna extensión» de «la columna no venía en el archivo»
+                es la diferencia entre un hallazgo de configuración y un hueco de exportación. */}
+            {d.ent && d.ent.sinCol > 0 && (
+              <> Ojo: {nf(d.ent.sinCol)} de sus {nf(d.ent.total)} entrantes vienen de una parte del
+                archivo que <strong style={{ color: '#FBBF24' }}>no exportó la columna de destino</strong>.
+                Esas no se sabe a dónde entraron, y eso no es lo mismo que no haber llegado a ninguna extensión.</>
+            )}
           </p>
         </>
       )}
@@ -244,11 +257,15 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
       {/* Pie de método */}
       <p style={{ fontSize: 9, color: GRY, lineHeight: 1.6, margin: '11px 0 0', paddingTop: 9, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         {meta.fuente} · {nf(meta.entTotal + meta.salTotal)} llamadas del {fechaCorta(meta.meses[0] + '-01')} al {fechaCorta(meta.corte)} · {meta.cuentas} de 220 cuentas con asesor.
-        El corte lo forman los clientes con <strong style={{ color: 'rgba(255,255,255,0.6)' }}>consumo de 0 a 40% de su plan</strong>,
-        así que no es una muestra de toda la cartera ni es aleatoria.
+        Esta cuenta viene de la entrega de{' '}
+        <strong style={{ color: 'rgba(255,255,255,0.6)' }}>
+          {d.corte === '0-40' ? 'clientes con consumo de 0 a 40% de su plan' : 'clientes con consumo mayor al 40% de su plan'}
+        </strong>. Son dos extracciones distintas que juntas cubren 148 de las 219 cuentas con asesor
+        y CID: las otras 71 no tienen lectura.
         «Sin contestar» = entró la llamada y ninguna extensión la tomó; las resueltas por el menú NO
         cuentan como falla. Los porcentajes son de entrantes y nunca se suman con los de marcación saliente.
-        El {meta.baseEnt}% general es la <strong style={{ color: 'rgba(255,255,255,0.6)' }}>línea base de ese corte</strong>, no de la cartera.
+        El {meta.baseEnt}% general es la <strong style={{ color: 'rgba(255,255,255,0.6)' }}>línea base de lo medido</strong>, no
+        de la cartera — por eso esta cuenta se compara contra su propia base previa y no contra ese número.
         {l.via === 'nombre' && ' Esta cuenta se concilió por nombre de cliente, no por CID.'}
         {l.nombreDifiere && ` Empresa en el archivo: «${d.empresa}».`}
       </p>
