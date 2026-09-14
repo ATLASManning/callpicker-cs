@@ -7,7 +7,7 @@ import {
   Settings, ChevronRight, Phone, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
-  Archive, BarChart2, Target, MessageCircle,
+  Archive, BarChart2, Target, MessageCircle, PhoneCall,
 } from 'lucide-react'
 import type { SessionPayload } from '@/lib/auth'
 
@@ -42,6 +42,7 @@ const NAV: NavEntry[] = [
   },
 
   { href: '/activaciones',    label: 'Activaciones 2.0',     icon: Zap },
+  { href: '/analisis-llamadas', label: 'Análisis de Llamadas', icon: PhoneCall },
   { href: '/perfil-rol',      label: 'Perfil del Rol',       icon: Target },
   { href: '/base-cs',         label: 'Base de Conocimiento', icon: Library },
   { href: '/chat',            label: 'Atlas IA',          icon: MessageSquare },
