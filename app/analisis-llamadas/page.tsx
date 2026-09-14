@@ -44,6 +44,7 @@ interface Datos {
   dia: { f: string; t: number; l: number }[]
   destinos: { d: string; l: number; c: number; min: number; n: number }[]
   ranking: Rank[]
+  rankingBajoBase: number; rankingBaseMinima: number
 }
 
 /* ── Paleta y formato ──────────────────────────────────────────────────── */
@@ -247,7 +248,13 @@ export default function AnalisisLlamadas() {
             )}
             <div style={DC}>
               <p style={DT}>{cid ? 'Cuenta seleccionada' : 'Cuentas ordenadas por % ' + (esEnt ? 'sin contestar' : 'que no conectó')}</p>
-              <p style={DS}>{cid ? 'Quita el filtro de cliente para comparar contra el resto.' : 'Cada cuenta se mide contra su propio volumen. No es un ranking de desempeño del asesor.'}</p>
+              <p style={DS}>
+                {cid ? 'Quita el filtro de cliente para comparar contra el resto.' : 'Cada cuenta se mide contra su propio volumen. No es un ranking de desempeño del asesor.'}
+                {!cid && d.rankingBajoBase > 0 && (
+                  <> Quedan fuera {d.rankingBajoBase} cuenta{d.rankingBajoBase === 1 ? '' : 's'} con menos
+                    de {d.rankingBaseMinima} llamadas en este corte: un porcentaje sobre esa base no dice nada.</>
+                )}
+              </p>
               <Tabla cabeceras={['Cuenta', 'Asesor', 'Total', esEnt ? 'Sin contestar' : 'No conectó', '%']}
                 filas={d.ranking.map(r => [
                   `${r.consecutivo ? r.consecutivo + ' · ' : ''}${r.empresa}`,

@@ -169,7 +169,15 @@ export async function GET(req: NextRequest) {
       }
     }).filter(x => x.total > 0 || !mes)
 
-    // Ranking de cuentas: solo tiene sentido sin filtro de una sola cuenta.
+    /* Ranking de cuentas: solo tiene sentido sin filtro de una sola cuenta.
+     *
+     * Y exige BASE MÍNIMA. Sin ella, una cuenta con 1 llamada y 1 sin contestar
+     * encabeza la lista con 100% y desplaza a la que perdió 3,000 de 10,000:
+     * el ranking deja de medir atención y pasa a medir cuán poco volumen tiene
+     * una cuenta. Las que no llegan al mínimo no se esconden — se cuentan
+     * aparte y la pantalla dice cuántas quedaron fuera. */
+    const BASE_MINIMA_RANKING = 100
+    let bajoBase = 0
     const ranking = cid ? [] : sel.map(c => {
       const d = c[dir]
       if (!d) return null
@@ -180,6 +188,7 @@ export async function GET(req: NextRequest) {
         : (mes ? (v?.['Lost'] ?? 0) + (v?.['Lost_by_agent'] ?? 0)
                : (d.tipos['Lost'] ?? 0) + (d.tipos['Lost_by_agent'] ?? 0))
       if (t === 0) return null
+      if (t < BASE_MINIMA_RANKING) { bajoBase++; return null }
       return {
         cid: c.cid, empresa: c.empresa, corte: c.corte,
         asesor: mapa[c.cid]?.asesor ?? '[fuera de cartera]',
@@ -211,6 +220,7 @@ export async function GET(req: NextRequest) {
       serie, dh: a.dh, dhL: a.dhL, dow, dowL, hora, horaL,
       dia: Object.keys(a.dia).sort().map(f => ({ f, t: a.dia[f], l: a.diaL[f] ?? 0 })),
       destinos, ranking: ranking.slice(0, 60),
+      rankingBajoBase: bajoBase, rankingBaseMinima: BASE_MINIMA_RANKING,
     })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
