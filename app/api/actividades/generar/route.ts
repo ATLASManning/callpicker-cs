@@ -502,32 +502,50 @@ más que cinco mencionados.
 Y no leas esta pantalla en voz alta. El camino a esta cuenta lo construyes tú —
 no viene pavimentado, y por eso es tuyo.
 
-━━ LO QUE SE ESPERA DE TI, Y NO SE NEGOCIA ━━
-1. LLEGA PREPARADO. Antes de marcar, revisa su historial, sus tickets y su
-   consumo. Presentarte sin eso le dice al cliente exactamente cuánto vale su
-   cuenta para nosotros.
+━━ LO QUE TIENES QUE ENTREGAR ESTA SEMANA COMO KAM ━━
+No son pasos de un guion. Son las seis cosas que definen si esta cuenta está
+gestionada o solo atendida. Si no puedes responderlas, no las inventes: ve y
+consíguelas.
 
-2. VE CON UNA TESIS, NO CON UN CUESTIONARIO. Ten una hipótesis de qué le está
-   pasando y ve a confirmarla o a tumbarla. Preguntar "¿cómo va todo?" no es
-   gestión de cuenta, es llenar el minuto.
+1. PLAN DE CUENTA — ¿para qué te contrataron?
+   Tienes que poder decir en UNA frase qué problema de negocio le resuelve
+   Callpicker a ${empresa} y cómo mide ÉL si se lo estamos resolviendo. Si tu
+   respuesta es "usan el conmutador", no tienes un plan de cuenta: tienes un
+   inventario de servicios.
 
-3. HABLA CON QUIEN DECIDE. Si solo conoces a una persona en ${empresa}, no
-   tienes la cuenta: tienes un contacto. Un solo interlocutor es un punto de
-   falla, y el día que se vaya te quedas sin cuenta y sin historia.
+2. MAPA DE PODER — ¿quién firma, quién lo usa, quién puede cancelarlo?
+   No es la lista de contactos. Es saber quién autoriza el gasto, quién sufre
+   cuando el servicio falla y quién tiene poder de veto. Los tres pueden ser
+   personas distintas, y si solo conoces a una, no tienes la cuenta: tienes
+   suerte. El día que esa persona se vaya, te quedas sin cliente y sin historia.
 
-4. SAL CON UN COMPROMISO CON NOMBRE Y FECHA. Quién hace qué y para cuándo. Una
-   conversación que termina en "quedamos en revisarlo" no terminó.
+3. DEFENSA DEL VALOR — ¿qué paga y qué recibe?
+   Llega sabiendo cuánto factura y cuánto consume, y sé capaz de sostener que
+   le conviene. Si no puedes justificar su factura con datos de su propia
+   operación, el día que revisen costos no vas a tener con qué defenderla —
+   y esa junta ocurre sin ti.
 
-5. DEJA LA CUENTA MEJOR DE COMO LA ENCONTRASTE. Lo que aprendas hoy tiene que
-   quedar escrito. Si mañana esta cuenta pasa a otro asesor y no puede
-   retomarla con lo que dejaste, el trabajo no está hecho.
+4. RIESGO NOMBRADO — ¿qué haría que se fuera?
+   Escribe el riesgo real de esta cuenta. "Ninguno" no es una respuesta: toda
+   cuenta tiene uno, y si de verdad no lo ves, ese desconocimiento ES el
+   riesgo. Ponle nombre, di qué tan cerca está y qué estás haciendo.
+
+5. COMPROMISO CON DUEÑO Y FECHA — de él o tuyo.
+   Quién hace qué y para cuándo. "Quedamos en revisarlo" no es un compromiso;
+   es una conversación que no terminó. Y un compromiso tuyo que no cumples
+   cuesta más que no haberlo ofrecido.
+
+6. LO QUE NO ESTÁ USANDO Y LE SERVIRÍA.
+   No se trata de venderle de más. Se trata de que no se vaya sin haber sabido
+   lo que ya estaba pagando. Un cliente que cancela sin haber usado lo que
+   contrató es una falla nuestra, no suya.
 
 ━━ LO QUE NO CUENTA COMO TRABAJO ━━
-· "Se contactó al cliente, quedó de revisar." Eso no dice qué pasó ni qué sigue.
+· "Se contactó al cliente, quedó de revisar." No dice qué pasó ni qué sigue.
 · Cerrar la semana sin haber hablado con nadie del cliente.
-· Repetirle al cliente una cifra que no entendiste y no puedes defender si te
-  la discute.
+· Repetirle una cifra que no entendiste y no puedes defender si te la discute.
 · Enterarte por el reporte de churn de algo que tu cliente ya sabía.
+· Saber quién contesta el teléfono y no saber quién firma el contrato.
 
 ━━ LO QUE FALTA REGISTRAR DE ESTA CUENTA ━━
 ${noDeseable.length > 0
