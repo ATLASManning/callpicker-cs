@@ -189,7 +189,19 @@ export async function GET(req: NextRequest) {
                : (d.tipos['Lost'] ?? 0) + (d.tipos['Lost_by_agent'] ?? 0))
       if (t === 0) return null
       if (t < BASE_MINIMA_RANKING) { bajoBase++; return null }
+      /* Misma compuerta que la ficha de cuenta: un destino que NUNCA sostuvo
+       * una conversacion -cero contestadas y cero minutos- y que concentra lo
+       * no contestado no es una falla de atencion. D2 marca 99.7% y sus 2,625
+       * entran a «Agente Virtual OOAPAS». Sin esta marca, el mismo numero sale
+       * con la alarma apagada en su ficha y encabezando la cartera aqui. */
+      const perdTot = dir === 'ent' ? (d.tipos['Lost'] ?? 0) : 0
+      const confirmar = dir === 'ent' && perdTot > 0
+        ? (d.dest ?? []).find(x =>
+            x.c === 0 && x.min === 0 && x.l >= 200 && x.l / perdTot >= 0.60 &&
+            !x.d.startsWith('(') && x.d !== 'otros destinos')
+        : undefined
       return {
+        porConfirmar: confirmar ? confirmar.d : null,
         cid: c.cid, empresa: c.empresa, corte: c.corte,
         asesor: mapa[c.cid]?.asesor ?? '[fuera de cartera]',
         consecutivo: mapa[c.cid]?.consecutivo ?? '',

@@ -30,7 +30,7 @@ interface FilaCuenta {
   ent: number; sal: number
 }
 interface Serie { mes: string; total: number; atendidas: number; ivr: number; buzon: number; perdidas: number; pct: number | null }
-interface Rank { cid: string; empresa: string; corte: string; asesor: string; consecutivo: string; total: number; perdidas: number; pct: number }
+interface Rank { cid: string; empresa: string; corte: string; asesor: string; consecutivo: string; total: number; perdidas: number; pct: number; porConfirmar?: string | null }
 interface Datos {
   meta: Meta
   alcance: {
@@ -257,9 +257,17 @@ export default function AnalisisLlamadas() {
               </p>
               <Tabla cabeceras={['Cuenta', 'Asesor', 'Total', esEnt ? 'Sin contestar' : 'No conectó', '%']}
                 filas={d.ranking.map(r => [
-                  `${r.consecutivo ? r.consecutivo + ' · ' : ''}${r.empresa}`,
+                  `${r.consecutivo ? r.consecutivo + ' · ' : ''}${r.empresa}${r.porConfirmar ? '  ⚠ destino por confirmar' : ''}`,
                   r.asesor, nf(r.total), nf(r.perdidas), `${r.pct.toFixed(1)}%`,
                 ])} destacarUltima />
+              {d.ranking.some(r => r.porConfirmar) && (
+                <p style={{ fontSize: 9, color: AMB, marginTop: 6, lineHeight: 1.6 }}>
+                  ⚠ Las marcadas concentran lo no contestado en un destino que nunca registró una
+                  conversación —cero contestadas y cero minutos—. Su porcentaje se publica completo,
+                  pero antes de reportarlo hay que confirmar qué atiende ese destino: puede ser un
+                  asistente virtual, y entonces no es una falla de atención.
+                </p>
+              )}
             </div>
           </div>
 
