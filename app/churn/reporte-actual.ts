@@ -8,116 +8,118 @@
 import type { ChurnReporte } from './tipos'
 
 /* ═══════════════════════════════════════════════════════════════════════
-   REPORTE SEMANAL — SEMANA 19 · SEPTIEMBRE 2026  (8 sep 2026)
-   Cierre de agosto y arranque de septiembre. Remitente: Valeria Zepeda
-   Hernández (equipo Data).
+   REPORTE SEMANAL — SEMANA 20 · SEPTIEMBRE 2026  (15 sep 2026)
+   Cierre de agosto con escenario de recuperación y septiembre en curso.
+   Remitente: Valeria Zepeda Hernández (equipo Data).
+
+   CONCILIACIÓN DE ESTE CORTE. A diferencia del de la semana 19 —que traía un
+   descuadre de $2,868.27 sin explicar entre la alerta y la tabla— éste cuadra
+   en todo lo verificable:
+     · Hard 17,811.98 + Soft 11,844.00 + Cancelados 0 = 29,655.98 ✓ y 10+17+0 = 27 ✓
+     · los cinco tramos de antigüedad suman 425,458.20 ✓
+     · los tramos vencidos (12,263.00 + 17,392.98) son EXACTAMENTE Hard + Soft ✓
+     · los tres downgrades suman 6,530.00 ✓, y el detalle por artículo reconstruye
+       cada pérdida: Elyon 99+90+490−99 = 580 ✓ · Dicap 2,779−570 = 2,209 ✓ ·
+       IBC 5,800−2,059 = 3,741 ✓
+     · escenario de agosto: 68,784.18 − 22,212.40 = 46,571.78 ✓
 ═══════════════════════════════════════════════════════════════════════ */
-export const REPORTE_S19_SEPTIEMBRE_2026: ChurnReporte = {
-  id:      's19-septiembre-2026',
-  periodo: 'Semana 19 · Sep 2026',
-  fecha:   '08/09/2026',
-  notas:   'Gross Revenue Churn · Semana 19. Al 8 de septiembre del 2026. Cierra agosto con los pocos clientes Activos que quedaron con pago pendiente de julio, y arranca septiembre con el Top 10 de cuentas Activas, el resumen de Hard Suspend / Soft Suspend / Cancelados, la antigüedad de la cartera por cobrar y los downgrades del mes ordenados de mayor a menor reducción. Próxima revisión: miércoles 16 de septiembre.',
-  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 16 de septiembre.',
+export const REPORTE_S20_SEPTIEMBRE_2026: ChurnReporte = {
+  id:      's20-septiembre-2026',
+  periodo: 'Semana 20 · Sep 2026',
+  fecha:   '15/09/2026',
+  notas:   'Gross Revenue Churn · Semana 20. Al 15 de septiembre del 2026. Cierra agosto con el escenario de recuperación de las cuentas en Hard Suspend y sigue septiembre en curso: Top 10 de cuentas Activas, resumen de Hard Suspend / Soft Suspend / Cancelados, antigüedad de la cartera por cobrar y los downgrades de la semana. Próxima revisión: miércoles 23 de septiembre.',
+  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 23 de septiembre.',
 
   grc: {
     evolucion: [
-      { mes: 'Julio',                pct: 2.1 },
-      { mes: 'Agosto',               pct: 3.4, anterior: 4.9 },
+      { mes: 'Julio',  pct: 2.0, anterior: 2.1 },
+      { mes: 'Agosto', pct: 2.4, anterior: 3.4 },
     ],
-    acumulado: 18.6,
-    anterior:  20.1,
-    notaClave: 'Churn Q3: Julio 2.1% · Agosto corregido a la baja de 4.9% a 3.4%. Churn acumulado hasta agosto 2026: 18.6% — MES CORRIENDO, NO DEFINITIVO (ant. 20.1%).',
+    acumulado: 17.4,
+    anterior:  18.6,
+    notaClave: 'Churn Q3: Julio corregido a la baja de 2.1% a 2.0% · Agosto corregido a la baja de 3.4% a 2.4% por el ajuste de reestructura de facturación de las subcuentas de GTC. Churn acumulado hasta agosto 2026: 17.4% — MES CORRIENDO, NO DEFINITIVO (ant. 18.6%).',
     notaEspecial:
-      '🚨 ALERTA DE DOWNGRADE POR ENCIMA DEL PROMEDIO: a sólo 8 días de septiembre ya se acumula más de la mitad del downgrade que correspondería al mes completo. El promedio mensual ronda los $39,092.19 y al 8 de septiembre el reporte declara $37,398.30. ' +
-      '⚠️ DESCUADRE A CONCILIAR: esa cifra de alerta ($37,398.30) NO coincide con la tabla de downgrades del mismo correo, que lista 9 clientes y suma exactamente $34,530.03. La diferencia es de $2,868.27 y el reporte no la explica. Las dos cifras se conservan tal como llegaron: no se elige una sobre la otra hasta que el equipo Data aclare qué incluye la de la alerta. ' +
-      '💰 DINERO FUERA DE LA CARTERA: $34,573.96 en 16 cuentas — Hard Suspend 4 cuentas · $2,105.00 · 18.8 días promedio pendiente de pago · Soft Suspend 6 cuentas · $14,697.98 · 10.7 días · Cancelados 6 cuentas · $17,770.98. ' +
-      '📌 CIERRE DE AGOSTO — 5 clientes siguen en estatus Activo (ni Hard ni Soft Suspend) pero su última factura pagada es de julio, $24,533.28 en total: TATSA $11,086.00 (24/07) · AS CONSULTING $4,745.00 (07/07) · GVA - República Dominicana $3,884.28 (21/07) · TAQUERIA EL PARIENTE $3,500.00 (29/07) · syndeX $1,318.00 (21/07). Ese monto es exactamente el tramo "Más de 30 días" de la antigüedad de saldos. ' +
-      '🔗 NOTA GTC: el cliente unió dos de sus cuentas — las subcuentas GTC - CARRANZA y GTC - LOMAS juntaron su cuenta de facturación. Conviene tenerlo presente al comparar contra cortes anteriores, donde aparecían por separado. ' +
-      '📋 MOTIVOS DE CANCELACIÓN del mes: Cambio interno 3 · Migración a otro proveedor 1 · Falta de valor percibido 1. El sexto caso (Mexico Development Center) fue por Cierre de operaciones, motivo fuera de esas tres categorías. Las notas provienen del equipo de SAC directamente del cliente.',
+      '🔴 CONCENTRACIÓN EN UN SOLO GRUPO: nueve de las diez cuentas del Top 10 son subcuentas de GTC y suman $230,154.22 — el 58.1% de TODA la cartera Activo de $395,802.22. La única cuenta del Top 10 que no es GTC es ADSA ($32,375.00, 92 meses activo). El Top 10 completo pesa $262,529.22, el 66.3% de la cartera; los $133,273.00 restantes se reparten entre el resto de las cuentas, cuyo número este corte no declara. Esto no es un dato del reporte: sale de sumar su propia tabla. Un impago o una renegociación de GTC no es un evento de cuenta, es un evento de cartera. ' +
+      '⚠️ NO COMPARABLE CONTRA LA SEMANA 19: la cartera Activo pasó de $136,410.47 (90 cuentas) a $395,802.22 — un factor de 2.90x en una semana. El salto viene de que las subcuentas de GTC entran ahora con su facturación reestructurada, no de crecimiento comercial. Cualquier lectura de "la cartera casi se triplicó" es falsa. ' +
+      '🔁 AGOSTO SE HA CORREGIDO DOS VECES POR LA MISMA CAUSA: 4.9% → 3.4% (semana 19) → 2.4% (semana 20), una corrección acumulada de 2.5 puntos, toda ella atribuida a la reestructura de facturación de GTC - CARRANZA y GTC - LOMAS. La nota del corte declara una reducción de 30k por ese ajuste. El número no termina de asentarse: conviene preguntarle al equipo Data si la revisión ya cerró o si agosto puede moverse otra vez. ' +
+      '📌 DOS CIFRAS DISTINTAS DE HARD SUSPEND, Y NO SE CONTRADICEN: el escenario de cierre de agosto habla de 23 cuentas · $22,212.40, y la tabla de septiembre en curso de 10 cuentas · $17,811.98. Son periodos distintos —cierre de agosto contra mes corriendo— y no deben restarse ni compararse entre sí. ' +
+      '✅ CERO CANCELADOS EN LA SEMANA: el corte no registra ningún cliente cancelado, contra 6 cuentas y $17,770.98 en la semana 19. Es la primera semana sin bajas del trimestre. ' +
+      '💰 DINERO FUERA DE LA CARTERA: $29,655.98 en 27 cuentas — Hard Suspend 10 cuentas · $17,811.98 · 19.5 días promedio pendiente de pago · Soft Suspend 17 cuentas · $11,844.00 · 10.5 días · Cancelados 0 · $0.00. Ese monto es exactamente la suma de los tramos vencidos de la antigüedad de saldos. ' +
+      '📉 DOWNGRADE POCO DINERO, MUCHA PROFUNDIDAD: los tres únicos downgrades de la semana suman $6,530.00 —poco contra el promedio mensual— pero los tres recortaron más del 40% de su facturación, y dos de ellos más del 79%. El riesgo aquí no es el monto de la semana: es que un cliente que corta el 85% de lo que paga rara vez se queda en el 15% restante.',
   },
 
-  /* Top 10 · Cuentas Activo de septiembre — total cartera Activo $136,410.47 en 90 cuentas.
-     Las 5 cuentas Activas con pago pendiente de julio ($24,533.28) NO están incluidas
-     en esta cifra: son un tramo aparte de la antigüedad de saldos (+30 días) y se
-     detallan íntegras en notaEspecial. */
-  pendientesTotalReal:   136410.47,
-  pendientesCuentasReal: 90,
+  /* Top 10 · Cuentas Activo de septiembre — total cartera Activo $395,802.22.
+     El corte NO declara cuántas cuentas componen ese total, así que no se
+     inventa el número: la fila de cierre lleva el monto y dice que el conteo
+     no viene en el reporte. */
+  pendientesTotalReal: 395802.22,
   pendientes: [
-    { cliente: '🔝 Neruc Sede Central',              monto: 13538.97, mesesActivo: 63, ultimaFactura: 'Activo' },
-    { cliente: 'ALARMAS GUARDIAN',                   monto: 11324.00, mesesActivo: 40, ultimaFactura: 'Activo' },
-    { cliente: 'Grupo Guía',                         monto: 5589.00,  mesesActivo: 87, ultimaFactura: 'Activo' },
-    { cliente: 'Petroil - Centro de Ayuda TI',       monto: 4771.00,  mesesActivo: 36, ultimaFactura: 'Activo' },
-    { cliente: 'Colegio NWL - Campus Juriquilla',    monto: 4526.00,  mesesActivo: 41, ultimaFactura: 'Activo' },
-    { cliente: 'PIXKITEC',                           monto: 4424.00,  mesesActivo: 80, ultimaFactura: 'Activo' },
-    { cliente: 'X-Gas',                              monto: 4100.00,  mesesActivo: 4,  ultimaFactura: 'Activo' },
-    { cliente: 'Petroil - Colosio Mzt',              monto: 3893.00,  mesesActivo: 51, ultimaFactura: 'Activo' },
-    { cliente: 'Petroil - Torre de Control',         monto: 3839.00,  mesesActivo: 50, ultimaFactura: 'Activo' },
-    { cliente: 'Instituto Simon Bolivar',            monto: 3748.00,  mesesActivo: 27, ultimaFactura: 'Activo' },
-    { cliente: '+ 80 cuentas adicionales en Activo de septiembre — el reporte no desglosa sus nombres.', monto: 76657.50, mesesActivo: 0, ultimaFactura: 'Activo' },
+    { cliente: '🔝 GTC - CENTRO MAX',     monto: 34601.46, mesesActivo: 6,  ultimaFactura: 'Activo' },
+    { cliente: 'GTC - NAVA',              monto: 34189.46, mesesActivo: 6,  ultimaFactura: 'Activo' },
+    { cliente: 'GTC - CARRANZA, LOMAS',   monto: 33021.73, mesesActivo: 0,  ultimaFactura: 'Activo' },
+    { cliente: 'ADSA',                    monto: 32375.00, mesesActivo: 92, ultimaFactura: 'Activo' },
+    { cliente: 'GTC - FORUM',             monto: 28484.81, mesesActivo: 6,  ultimaFactura: 'Activo' },
+    { cliente: 'GTC - BMW',               monto: 26297.55, mesesActivo: 6,  ultimaFactura: 'Activo' },
+    { cliente: 'GTC - SENDERO',           monto: 23255.06, mesesActivo: 6,  ultimaFactura: 'Activo' },
+    { cliente: 'GTC - MG POLIFORUM',      monto: 19694.24, mesesActivo: 6,  ultimaFactura: 'Activo' },
+    { cliente: 'GTC - MG LOMAS',          monto: 16626.24, mesesActivo: 6,  ultimaFactura: 'Activo' },
+    { cliente: 'GTC - MATEHUALA',         monto: 13983.67, mesesActivo: 6,  ultimaFactura: 'Activo' },
+    /* El «+» de arranque NO es decorativo: lib/atlas-context.ts filtra por él
+       (`!p.cliente.startsWith('+')`) para no pasarle esta fila de cierre al
+       modelo como si fuera un cliente. Sin el prefijo, Atlas reportaría un
+       cliente llamado «Resto de la cartera Activo» con $133,273.00. */
+    { cliente: '+ Resto de la cartera Activo — el corte no desglosa nombres ni declara cuántas cuentas son.', monto: 133273.00, mesesActivo: 0, ultimaFactura: 'Activo' },
   ],
 
-  /* Cancelados al 8 de septiembre — 6 cuentas · $17,770.98.
-     El reporte SÍ trae el motivo declarado por el cliente vía SAC: se conserva
-     íntegro en la nota, porque es la información que el ritual de aclaración de
-     bajas exige y la que más cuesta recuperar después. */
-  cancelados: [
-    { cliente: '🔝 Mas Suites',              mrr: 7372.98, mesesActivo: 70, acumulado: 393693.64 },
-    { cliente: 'Sofia',                      mrr: 6543.00, mesesActivo: 7,  acumulado: 49783.00  },
-    { cliente: 'GESTICAL',                   mrr: 2589.00, mesesActivo: 12, acumulado: 33657.00  },
-    { cliente: 'VAQCSA Corregidora',         mrr: 928.00,  mesesActivo: 22, acumulado: 39143.00  },
-    { cliente: 'Orion',                      mrr: 169.00,  mesesActivo: 48, acumulado: 6891.85   },
-    { cliente: 'Mexico Development Center',  mrr: 169.00,  mesesActivo: 72, acumulado: 10690.00  },
-  ],
+  /* Cancelados: NINGUNO en la semana. El corte lo dice con todas sus letras
+     —«No contamos con registros de clientes cancelados en la semana»— así que
+     la lista va vacía a propósito. Vacío por ausencia de bajas, no por falta
+     de dato: son cosas distintas y la de aquí es la buena. */
+  cancelados: [],
 
-  /* Downgrades septiembre (al día 8) — 9 clientes · $34,530.03, ordenados por
-     % de reducción de mayor a menor. Ver el descuadre señalado en notaEspecial:
-     la alerta del propio correo declara $37,398.30. */
-  downgradeTotalReal: 34530.03,
+  /* Downgrades de la semana — 3 clientes · $6,530.00, ordenados por % de
+     reducción de mayor a menor. El detalle por artículo reconstruye exactamente
+     la pérdida declarada de cada uno (ver la conciliación del encabezado). */
+  downgradeTotalReal: 6530.00,
   downgrades: [
-    { cliente: '🔝 Mas clic',                              perdida: 9238.01, nota: '97% de baja — la mayor reducción porcentual del mes. DiD Nacional $345 → $207 · canceló paquete 800 ($135) y paquete Min Calltracking ($8,965.01).' },
-    { cliente: 'Sermedi Mx',                               perdida: 1189.00, nota: '92% de baja. Canceló paquete Min CE ($1,189).' },
-    { cliente: 'Hound Express',                            perdida: 4481.00, nota: '64% de baja. Paquete Min VyC $7,000 → $4,481.' },
-    { cliente: 'Lineacel',                                 perdida: 9618.00, nota: '58% de baja — el mayor monto del mes. Agente CP Chat $1,400 → $519 · paquete WhatsApp API $22,020 → $8,165. Adquirió Extensión Callcenter, Ofuscador y paquete Campañas (upsell parcial en la misma cuenta).' },
-    { cliente: 'Corporativo grupo funerario San Javier',   perdida: 1959.00, nota: '44% de baja. Canceló paquete Min VyC ($1,959).' },
-    { cliente: 'Multiburó',                                perdida: 1189.00, nota: '37% de baja. Paquete Min CE $3,068 → $1,879.' },
-    { cliente: 'ISAGAS',                                   perdida: 1047.00, nota: '33% de baja. Canceló Extensión Callcenter ($2,792) y adquirió 5 Extensiones SIP Visibilidad y Control ($1,745) — es una sustitución, no una baja limpia.' },
-    { cliente: 'GBS Cuenta Maestra',                       perdida: 2408.00, nota: '22% de baja. DiD Nacional $1,050 → $660 · paquete Min VyC $9,790 → $7,772.' },
-    { cliente: 'Salud y Hogar',                            perdida: 3401.02, nota: '12% de baja. Quitó Plan Celular, paquete Chatbot y paquete Min Voicebot ($5,801 en total), con upsell en DiD Nacional y Extensión VyC con SIM que compensa parte de la pérdida.' },
+    { cliente: '🔝 Sellos de Seguridad Grupo Elyon', perdida: 580.00,  nota: '85% de baja — la mayor reducción porcentual de la semana. Quitó DiD Nacional ($99), paquete 800 ($90) y Paquete Min VyC ($490); adquirió DiD Internacional ($99). Neto $580. Se queda con una fracción mínima de lo que pagaba.' },
+    { cliente: 'Dicap Desarrollos',                  perdida: 2209.00, nota: '79% de baja. Paquete Min VyC $2,779.00 → $570.00.' },
+    { cliente: 'IBC SUITES',                         perdida: 3741.00, nota: '46% de baja — el mayor monto de la semana. Paquete Min VyC $5,800.00 → $2,059.00.' },
   ],
 
   downgradeArticulos: [
-    { articulo: 'Paquete Min VyC',            vecesAfectado: 3, clientes: ['Hound Express', 'Corporativo grupo funerario San Javier', 'GBS Cuenta Maestra'] },
-    { articulo: 'DiD Nacional',               vecesAfectado: 2, clientes: ['Mas clic', 'GBS Cuenta Maestra'] },
-    { articulo: 'Paquete Min CE',             vecesAfectado: 2, clientes: ['Sermedi Mx', 'Multiburó'] },
-    { articulo: 'Extensión Callcenter',       vecesAfectado: 1, clientes: ['ISAGAS'] },
-    { articulo: 'Agente CP Chat',             vecesAfectado: 1, clientes: ['Lineacel'] },
-    { articulo: 'Paquete WhatsApp API',       vecesAfectado: 1, clientes: ['Lineacel'] },
-    { articulo: 'Paquete Min Calltracking',   vecesAfectado: 1, clientes: ['Mas clic'] },
-    { articulo: 'Paquete 800',                vecesAfectado: 1, clientes: ['Mas clic'] },
-    { articulo: 'Plan Celular',               vecesAfectado: 1, clientes: ['Salud y Hogar'] },
-    { articulo: 'Paquete Chatbot',            vecesAfectado: 1, clientes: ['Salud y Hogar'] },
-    { articulo: 'Paquete Min Voicebot',       vecesAfectado: 1, clientes: ['Salud y Hogar'] },
+    { articulo: 'Paquete Min VyC',      vecesAfectado: 3, clientes: ['Sellos de Seguridad Grupo Elyon', 'Dicap Desarrollos', 'IBC SUITES'] },
+    { articulo: 'DiD Nacional',         vecesAfectado: 1, clientes: ['Sellos de Seguridad Grupo Elyon'] },
+    { articulo: 'Paquete 800',          vecesAfectado: 1, clientes: ['Sellos de Seguridad Grupo Elyon'] },
   ],
 
-  /* Antigüedad de la cartera por cobrar — total $177,746.73.
-     Incluye Activo + Hard Suspend + Soft Suspend. Cancelado NO se considera
-     parte de la cartera por cobrar. "Por vencer" es el total Activo de
-     septiembre: este corte no trae desglose de días por cuenta. */
+  /* Antigüedad de la cartera por cobrar — total $425,458.20.
+     Incluye Activo + Hard Suspend + Soft Suspend; Cancelado no forma parte de
+     la cartera por cobrar. «Por vencer» es el total Activo al corriente.
+     Los dos tramos vencidos suman exactamente el dinero fuera de cartera. */
   antiguedadSaldos: [
-    { rango: 'Por vencer',          monto: 136410.47 },
-    { rango: '1 – 7 días vencido',  monto: 419.00 },
-    { rango: '8 – 15 días vencido', monto: 14278.98 },
-    { rango: '16 – 30 días vencido',monto: 2105.00 },
-    { rango: 'Más de 30 días',      monto: 24533.28 },
+    { rango: 'Por vencer',           monto: 395802.22 },
+    { rango: '1 – 7 días vencido',   monto: 0.00 },
+    { rango: '8 – 15 días vencido',  monto: 12263.00 },
+    { rango: '16 – 30 días vencido', monto: 17392.98 },
+    { rango: 'Más de 30 días',       monto: 0.00 },
   ],
 
-  /* Fuera de cartera — Hard Suspend 4 cuentas · $2,105.00 · 18.8 días promedio
-     y Soft Suspend 6 cuentas · $14,697.98 · 10.7 días. El reporte no desglosa
-     nombres en ninguno de los dos estados. Total 10 cuentas · $16,802.98. */
-  suspendidosTotalReal:   16802.98,
-  suspendidosCuentasReal: 10,
+  /* Fuera de cartera — Hard Suspend 10 cuentas · $17,811.98 · 19.5 días
+     promedio y Soft Suspend 17 cuentas · $11,844.00 · 10.5 días. El reporte no
+     desglosa nombres en ninguno de los dos estados. Total 27 cuentas ·
+     $29,655.98. Ojo: el escenario de CIERRE DE AGOSTO habla de 23 cuentas en
+     Hard Suspend por $22,212.40 — es otro periodo, no se compara con éste.
+
+     Y un detalle que el corte no explica: el TOTAL de Hard + Soft empata exacto
+     con los tramos vencidos, pero el reparto cruza por $419.00 — Hard tiene
+     $419.00 MÁS que el tramo de 16 a 30 días y Soft exactamente $419.00 MENOS
+     que el de 8 a 15. No se le inventa una correspondencia cuenta por cuenta:
+     se deja anotado para preguntarlo. */
+  suspendidosTotalReal:   29655.98,
+  suspendidosCuentasReal: 27,
   suspendidos: [
-    { cliente: 'Hard Suspend — 4 cuentas · 18.8 días promedio pendiente de pago. El reporte no desglosa nombres. Corresponde al tramo de 16 a 30 días vencido de la antigüedad de saldos.', importe: 2105.00,  mesesActivo: 0, estado: 'Suspendido' },
-    { cliente: 'Soft Suspend — 6 cuentas · 10.7 días promedio pendiente de pago. El reporte no desglosa nombres. Corresponde a los tramos de 1 a 7 y de 8 a 15 días vencido ($419.00 + $14,278.98).', importe: 14697.98, mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Hard Suspend — 10 cuentas · 19.5 días promedio pendiente de pago. El reporte no desglosa nombres.', importe: 17811.98, mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Soft Suspend — 17 cuentas · 10.5 días promedio pendiente de pago. El reporte no desglosa nombres.', importe: 11844.00, mesesActivo: 0, estado: 'Suspendido' },
   ],
 }
