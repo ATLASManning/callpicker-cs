@@ -25,6 +25,10 @@
 import sys, io, os, re, json, datetime, collections
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 import openpyxl
+# Los nombres llegan con la codificación rota desde el origen («Bit√°cora»).
+# El mismo helper lo usa gen-llamadas-data.py: los dos paneles tienen que decir
+# lo mismo del mismo destino.
+from _texto_roto import arregla, reporte as reporteTexto
 
 ARCH = r"D:\Archivos"
 SALIDA = r"D:\Windows\Projects\callpicker-cs\data\analisis-llamadas.json"
@@ -117,7 +121,7 @@ for arch, dire, corte in FUENTES:
         v = D[cid]
         v['corte'] = v['corte'] or corte
         if ix['empresa'] is not None:
-            e = texto(r[ix['empresa']])
+            e = arregla(texto(r[ix['empresa']]))
             if e:
                 v['empresa'][e] += 1
         t = texto(r[ix['tipo']]) or 'Desconocido'
@@ -143,7 +147,9 @@ for arch, dire, corte in FUENTES:
 
         if dire == 'ent':
             if ix['destino'] is not None:
-                dest = texto(r[ix['destino']]) or SIN_DESTINO
+                # Se repara ANTES de usarlo como llave, para que «Bit√°cora 1»
+                # y «Bitácora 1» dejen de ser dos destinos distintos.
+                dest = arregla(texto(r[ix['destino']])) or SIN_DESTINO
             else:
                 dest = NO_EXPORTADO
                 d['sinCol'] += 1
@@ -276,3 +282,4 @@ print('  salientes : %s · no conecto %s (%.1f%%)'
          100 * META['salNoCon'] / max(META['salTotal'], 1)))
 print('  entrantes sin columna de destino: %s (%.1f%%)'
       % (format(META['sinCol'], ','), 100 * META['sinCol'] / max(META['entTotal'], 1)))
+reporteTexto('nombres con codificación reparada')

@@ -32,6 +32,10 @@
 import sys, io, os, re, json, unicodedata, datetime, collections
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 import openpyxl
+# Los nombres llegan con la codificación rota desde el origen («Bit√°cora»).
+# El mismo helper lo usa gen-analisis-llamadas.py: los dos paneles tienen que
+# decir lo mismo del mismo destino.
+from _texto_roto import arregla, reporte as reporteTexto
 
 ARCH = r"D:\Archivos"
 SALIDA = r"D:\Windows\Projects\callpicker-cs\app\cuentas\llamadas-data.ts"
@@ -143,7 +147,7 @@ for arch, dire, corte in FUENTES:
         v = DATOS[cid]
         v['cortes'].add(corte)
         if ix['empresa'] is not None:
-            e = texto(r[ix['empresa']])
+            e = arregla(texto(r[ix['empresa']]))
             if e:
                 v['empresa'][e] += 1
         t = texto(r[ix['tipo']]) or 'Desconocido'
@@ -155,7 +159,9 @@ for arch, dire, corte in FUENTES:
             d = v['ent']
             d['total'] += 1
             if ix['destino'] is not None:
-                dest = texto(r[ix['destino']]) or SIN_DESTINO
+                # Se repara ANTES de usarlo como llave, para que «Bit√°cora 1»
+                # y «Bitácora 1» dejen de ser dos destinos distintos.
+                dest = arregla(texto(r[ix['destino']])) or SIN_DESTINO
             else:
                 dest = NO_EXPORTADO
                 d['sinCol'] += 1
@@ -308,3 +314,4 @@ sc = sum(v['ent']['sinCol'] for v in salida.values() if v['ent'])
 print('  filas entrantes sin columna de destino: %s (%.1f%%)' % (format(sc, ','), 100 * sc / max(META['entTotal'], 1)))
 por = collections.Counter(v['corte'] for v in salida.values())
 print('  por corte de consumo: %s' % dict(por))
+reporteTexto('nombres con codificación reparada')
