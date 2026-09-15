@@ -4,9 +4,17 @@
  * /api/cortes) — fuente viva, nunca columnas guardadas.
  */
 import path from 'path'
+import { baseMinutos, type OrigenBase } from '@/lib/plan-minutos'
 
 export interface CorteCuenta {
   mes: string; plan: string; incl: number; cons: number; pct: number; monto: number; uso: string
+  /**
+   * Minutos reales del plan y de dónde salen. En los planes por extensiones la
+   * columna «Minutos Incluidos» del archivo trae 1, no minutos: `base` aplica
+   * la regla de 1,500 por extensión. Ver lib/plan-minutos.ts.
+   * `pct` se recalcula contra `base`; el % del archivo no se usa.
+   */
+  base: number | null; extensiones: number | null; origenBase: OrigenBase
   /** Suma de visitas a las secciones del panel en ese corte. */
   panel: number
   /** Visitas a la sección Desarrolladores (señal de integración API). */
@@ -63,12 +71,19 @@ async function leerArchivo(): Promise<Map<string, CorteCuenta[]>> {
     const cid = String(r['CID'] ?? '').trim()
     if (!cid) continue
     if (!map.has(cid)) map.set(cid, [])
+    const plan = String(r['Nombre del Plan'] ?? '').trim()
+    const incl = num(r['Minutos Incluidos'])
+    const cons = num(r['Minutos Consumidos'])
+    // El % del archivo NO se usa: en los planes por extensiones divide entre 1
+    // y publica cosas como 3,417,300%. Se recalcula contra la base real.
+    const b = baseMinutos(plan, incl)
     map.get(cid)!.push({
       mes:   excelSerialToMonth(r['Fecha de corte']),
-      plan:  String(r['Nombre del Plan'] ?? '').trim(),
-      incl:  num(r['Minutos Incluidos']),
-      cons:  num(r['Minutos Consumidos']),
-      pct:   num(r['% Consumo']),
+      plan,
+      incl,
+      cons,
+      pct:   b.base && b.base > 0 ? (100 * cons) / b.base : 0,
+      base:  b.base, extensiones: b.extensiones, origenBase: b.origen,
       monto: num(r['Monto del plan']),
       uso:   String(r['Uso Principal de llamadas'] ?? '').trim(),
       panel: COLS_PANEL.reduce((s, c) => s + num(r[c]), 0),

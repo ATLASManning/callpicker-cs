@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
 import { supabaseAdmin } from '@/lib/supabase'
-import { evaluarRadar, extraerExtensiones, type CorteSerie, type EntradaRadar } from '@/lib/radar'
+import { evaluarRadar, type CorteSerie, type EntradaRadar } from '@/lib/radar'
+import { baseMinutos } from '@/lib/plan-minutos'
 import { NOMBRES_CANCELACION, normalizarNombre } from '@/lib/elegibilidad'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 
@@ -90,15 +91,19 @@ export async function GET(req: NextRequest) {
   const serie: CorteSerie[] = (cortes.get(cid) ?? [])
     .sort((a, b) => a.mes.localeCompare(b.mes))
     .map(c => {
-      const ilimitado = c.incl === 1
-      const ext = extraerExtensiones(c.plan)
-      const base = ilimitado ? (ext ? ext * 1500 : null) : c.incl
+      /* Este módulo ya traía su propia versión de la regla (`incl === 1` como
+       * señal de ilimitado, extensiones leídas del nombre). Funcionaba para el
+       * caso común y fallaba en dos: los planes IL cuyo archivo trae 6, 20 o
+       * 100 en vez de 1, y los planes por extensiones CON bolsa real —«50
+       * Extensiones … IP» de LI Financiera, 12,500 minutos— a los que habría
+       * que respetarles su bolsa. Ahora usa la fuente única. */
+      const b = baseMinutos(c.plan, c.incl)
       return {
         mes: c.mes, plan: c.plan,
         minutosIncl: c.incl, minutosCons: c.cons,
-        pctConsumo: base && base > 0 ? (c.cons / base) * 100 : null,
+        pctConsumo: b.base && b.base > 0 ? (c.cons / b.base) * 100 : null,
         pctEntrantes: c.ent, pctSalientes: c.sal, usoPrincipal: c.uso,
-        ilimitado, extensiones: ext,
+        ilimitado: b.origen === 'extensiones', extensiones: b.extensiones,
       }
     })
 

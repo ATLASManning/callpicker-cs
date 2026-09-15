@@ -268,9 +268,15 @@ export default async function CuentaDetailPage({ params }: Props) {
               <div>
                 <p className="text-[10px] text-textLow mb-0.5">Plan contratado (último corte)</p>
                 <p className="text-xs text-textHi font-medium">{planVigente.plan}</p>
+                {/* Los minutos salen de la base REAL, no de la columna del
+                    archivo: en los planes por extensiones esa columna trae 1 y
+                    aquí se leía «1 min incluidos · 175% consumido». La regla de
+                    1,500 minutos por extensión vive en lib/plan-minutos.ts. */}
                 <p className="text-[10px] text-textLow">
                   {planVigente.mes}
-                  {planVigente.incl > 0 && ` · ${planVigente.incl.toLocaleString('es-MX')} min incluidos`}
+                  {planVigente.base !== null && ` · ${planVigente.base.toLocaleString('es-MX')} min incluidos`}
+                  {planVigente.origenBase === 'extensiones' && planVigente.extensiones
+                    && ` (${planVigente.extensiones} ext × 1,500)`}
                   {planVigente.pct > 0 && ` · ${planVigente.pct.toFixed(0)}% consumido`}
                   {planVigente.uso && ` · uso ${planVigente.uso}`}
                 </p>

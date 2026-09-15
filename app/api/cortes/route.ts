@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
+import { baseMinutos, type OrigenBase } from '@/lib/plan-minutos'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,10 +12,15 @@ interface CorteRow {
   fechaCorteISO:  string   // "YYYY-MM-DD"
   periodo:        string   // "2025-11-09 - 2025-12-08"
   plan:           string
-  minutosIncl:    number
+  minutosIncl:    number   // tal como viene en el archivo (en planes IL trae 1)
   minutosConsum:  number
   monto:          number
+  /** Recalculado SIEMPRE contra `baseMinutos`. El % del archivo no se usa. */
   pctConsumo:     number
+  /** Minutos reales del plan: la bolsa, o extensiones × 1,500. */
+  baseMinutos:    number | null
+  extensiones:    number | null
+  origenBase:     OrigenBase
   extIlimitadas:  string
   clasificacion:  string
   pctEntrantes:   number
@@ -67,17 +73,26 @@ async function loadData(): Promise<CorteRow[]> {
       const serial  = toNum(r['Fecha de corte'])
       const iso     = excelSerialToISO(serial)
       const mes     = excelSerialToMonth(serial)
+      const plan    = toStr(r['Nombre del Plan'])
+      const incl    = toNum(r['Minutos Incluidos'])
+      const cons    = toNum(r['Minutos Consumidos'])
+      // La base real: la bolsa del plan, o extensiones × 1,500 cuando el
+      // archivo trae 1 en vez de minutos. Ver lib/plan-minutos.ts.
+      const b       = baseMinutos(plan, incl)
       return {
         cid:           toStr(r['CID']),
         cliente:       toStr(r['Nombre del Cliente']),
         fechaCorte:    mes,
         fechaCorteISO: iso,
         periodo:       toStr(r['Periodo']),
-        plan:          toStr(r['Nombre del Plan']),
-        minutosIncl:   toNum(r['Minutos Incluidos']),
-        minutosConsum: toNum(r['Minutos Consumidos']),
+        plan,
+        minutosIncl:   incl,
+        minutosConsum: cons,
         monto:         toNum(r['Monto del plan']),
-        pctConsumo:    toNum(r['% Consumo']),
+        // Rebasar el 100% no es un error: los minutos no son rollover y el
+        // excedente se cobra al precio del plan. El % se publica completo.
+        pctConsumo:    b.base && b.base > 0 ? (100 * cons) / b.base : 0,
+        baseMinutos:   b.base, extensiones: b.extensiones, origenBase: b.origen,
         extIlimitadas: toStr(r['Extensiones ilimitadas']),
         clasificacion: toStr(r['Clasificación de empresa']),
         pctEntrantes:  toNum(r['% Llamadas entrantes']),
