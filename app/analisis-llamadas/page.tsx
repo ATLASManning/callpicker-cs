@@ -256,7 +256,11 @@ export default function AnalisisLlamadas() {
                   filas={d.destinos.map(x => [
                     x.d === 'otros destinos' && x.otros ? `otros destinos (${nf(x.otros)})` : x.d,
                     nf(x.l), nf(x.c), x.n > 0 ? nf(x.n) : '—',
-                  ])} />
+                  ])}
+                  // El renglón que cierra la tabla va clavado al pie: es el que
+                  // avisa cuánto queda fuera del top, y si hay que buscarlo
+                  // scrolleando es como si no estuviera.
+                  fijarUltima={d.destinos[d.destinos.length - 1]?.d === 'otros destinos'} />
               </div>
             )}
             <div style={DC}>
@@ -488,8 +492,17 @@ function SerieDiaria({ dia }: { dia: { f: string; t: number; l: number }[] }) {
   )
 }
 
-function Tabla({ cabeceras, filas, destacarUltima }: {
-  cabeceras: string[]; filas: (string | number)[][]; destacarUltima?: boolean
+/**
+ * `fijarUltima` clava el último renglón al pie del área que hace scroll.
+ *
+ * Nace de un error mío: la tabla de destinos ahora cierra contra su KPI porque
+ * lo que no cabe se acumula en «otros destinos», pero ese renglón caía al final
+ * de un área de 340px con scroll y no se veía. Quien mirara la tabla seguía
+ * leyendo 324 mil de 482 mil sin enterarse de que faltaba un tercio. Hacer que
+ * el dato exista no sirve si hay que buscarlo.
+ */
+function Tabla({ cabeceras, filas, destacarUltima, fijarUltima }: {
+  cabeceras: string[]; filas: (string | number)[][]; destacarUltima?: boolean; fijarUltima?: boolean
 }) {
   if (!filas.length) return <p style={{ fontSize: 11, color: '#94a3b8' }}>Sin datos para este filtro.</p>
   return (
@@ -507,18 +520,27 @@ function Tabla({ cabeceras, filas, destacarUltima }: {
           </tr>
         </thead>
         <tbody>
-          {filas.map((f, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-              {f.map((v, j) => (
-                <td key={j} style={{
-                  padding: '5px 8px', textAlign: j === 0 || j === 1 ? 'left' : 'right',
-                  color: destacarUltima && j === f.length - 1 ? RED : 'rgba(255,255,255,0.75)',
-                  fontWeight: destacarUltima && j === f.length - 1 ? 700 : 400,
-                  maxWidth: j === 0 ? 240 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }} title={String(v)}>{v}</td>
-              ))}
-            </tr>
-          ))}
+          {filas.map((f, i) => {
+            const fijada = !!fijarUltima && i === filas.length - 1
+            return (
+              <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                {f.map((v, j) => (
+                  <td key={j} style={{
+                    padding: '5px 8px', textAlign: j === 0 || j === 1 ? 'left' : 'right',
+                    color: destacarUltima && j === f.length - 1 ? RED : 'rgba(255,255,255,0.75)',
+                    fontWeight: (destacarUltima && j === f.length - 1) || fijada ? 700 : 400,
+                    maxWidth: j === 0 ? 240 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    // Fondo propio y opaco: sin él, los renglones que pasan por
+                    // debajo al hacer scroll se transparentan encima.
+                    ...(fijada ? {
+                      position: 'sticky' as const, bottom: 0, background: '#16243D',
+                      borderTop: '1px solid rgba(255,255,255,0.18)',
+                    } : null),
+                  }} title={String(v)}>{v}</td>
+                ))}
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     </div>
