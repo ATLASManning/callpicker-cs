@@ -38,11 +38,12 @@ interface Datos {
     desde: string | null; hasta: string | null
     total: number; perdidas: number; sinCol: number; pct: number | null
     matrizDelPeriodoCompleto: boolean
+    destinosDelPeriodoCompleto: boolean
   }
   serie: Serie[]
   dh: number[]; dhL: number[]; dow: number[]; dowL: number[]; hora: number[]; horaL: number[]
   dia: { f: string; t: number; l: number }[]
-  destinos: { d: string; l: number; c: number; min: number; n: number }[]
+  destinos: { d: string; l: number; c: number; min: number; n: number; otros?: number }[]
   ranking: Rank[]
   rankingBajoBase: number; rankingBaseMinima: number
 }
@@ -238,12 +239,24 @@ export default function AnalisisLlamadas() {
             {esEnt && (
               <div style={DC}>
                 <p style={DT}>A dónde entran las que no se contestan</p>
-                <p style={DS}>
+                <p style={{ ...DS, marginBottom: 6 }}>
                   Nombres tal como los configuró el cliente. El archivo no dice qué hay detrás de cada uno.
                   {d.alcance.sinCol > 0 && ` ${nf(d.alcance.sinCol)} entrantes vienen de una parte del archivo que no exportó el destino.`}
+                  {d.alcance.destinosDelPeriodoCompleto && (
+                    <strong style={{ color: AMB }}> El filtro de mes no aplica a esta tabla: cubre todo el periodo.</strong>
+                  )}
+                </p>
+                <p style={DS}>
+                  <strong style={{ color: '#CBD5E1' }}>Números</strong> son teléfonos distintos que llamaron
+                  y <em>no</em> fueron contestados: quien marcó nueve veces sin respuesta cuenta una vez. No se suma
+                  entre renglones —un mismo teléfono perdido en dos destinos cuenta en los dos— y no son personas:
+                  una línea puede ser un conmutador con cien empleados detrás.
                 </p>
                 <Tabla cabeceras={['Destino', 'Sin contestar', 'Contestadas', 'Números']}
-                  filas={d.destinos.map(x => [x.d, nf(x.l), nf(x.c), x.n > 0 ? nf(x.n) : '—'])} />
+                  filas={d.destinos.map(x => [
+                    x.d === 'otros destinos' && x.otros ? `otros destinos (${nf(x.otros)})` : x.d,
+                    nf(x.l), nf(x.c), x.n > 0 ? nf(x.n) : '—',
+                  ])} />
               </div>
             )}
             <div style={DC}>

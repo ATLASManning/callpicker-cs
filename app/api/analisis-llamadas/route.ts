@@ -26,10 +26,13 @@ interface Dir {
   meses: Record<string, Record<string, number>>
   dh: number[]; dhL: number[]
   dia: Record<string, number>; diaL: Record<string, number>
-  dest?: { d: string; l: number; c: number; min: number; n: number }[]
+  dest?: { d: string; l: number; c: number; min: number; n: number; otros?: number }[]
   desde: string | null; hasta: string | null
   sinCol?: number
 }
+
+/** La bolsa de lo que no cabe en la tabla. Existe para que la tabla cierre. */
+const OTROS = 'otros destinos'
 interface Cuenta { cid: string; empresa: string; corte: string; ent: Dir | null; sal: Dir | null }
 interface Meta {
   corte: string; desde: string; meses: string[]; cuentas: number
@@ -70,7 +73,7 @@ function agregar(cuentas: Cuenta[], dir: 'ent' | 'sal', mes: string) {
   const dh = vacio(168), dhL = vacio(168)
   const meses: Record<string, Record<string, number>> = {}
   const dia: Record<string, number> = {}, diaL: Record<string, number> = {}
-  const dest: Record<string, { l: number; c: number; min: number; n: number }> = {}
+  const dest: Record<string, { l: number; c: number; min: number; n: number; nDesconocido: boolean; otros: number }> = {}
   let total = 0, perdidas = 0, sinCol = 0
   let desde: string | null = null, hasta: string | null = null
 
@@ -106,8 +109,14 @@ function agregar(cuentas: Cuenta[], dir: 'ent' | 'sal', mes: string) {
     }
     if (dir === 'ent' && d.dest) {
       for (const x of d.dest) {
-        const e = dest[x.d] ?? { l: 0, c: 0, min: 0, n: 0 }
-        e.l += x.l; e.c += x.c; e.min += x.min; e.n += x.n
+        const e = dest[x.d] ?? { l: 0, c: 0, min: 0, n: 0, nDesconocido: false, otros: 0 }
+        e.l += x.l; e.c += x.c; e.min += x.min
+        // n < 0 es «no se puede saber»: la bolsa «otros destinos» junta
+        // conjuntos de números distintos que no se pueden unir sumando. Se
+        // contagia, porque una suma con un sumando desconocido es desconocida.
+        if (x.n < 0) e.nDesconocido = true
+        else e.n += x.n
+        e.otros += x.otros ?? 0
         dest[x.d] = e
       }
     }
@@ -215,9 +224,33 @@ export async function GET(req: NextRequest) {
       hora[i % 24] += a.dh[i]; horaL[i % 24] += a.dhL[i]
     }
 
-    const destinos = Object.entries(a.dest)
-      .map(([d, x]) => ({ d, ...x }))
-      .sort((x, y) => y.l - x.l).slice(0, 15)
+    /* La tabla tiene que cerrar contra el KPI de su propia cabecera.
+     *
+     * El generador ya no tira destinos —lo que no entra a su top-14 por cuenta
+     * viene en «otros destinos»—, pero aquí el corte a 15 volvería a romperlo:
+     * lo cortado desaparecía y la columna «Sin contestar» de la tabla sumaba
+     * menos que el KPI de arriba, sin decirlo. Ahora lo que se corta cae en esa
+     * misma bolsa en lugar de evaporarse. */
+    const todos = Object.entries(a.dest).map(([d, x]) => ({
+      d, l: x.l, c: x.c, min: x.min,
+      n: x.nDesconocido ? -1 : x.n,
+      otros: x.otros,
+    }))
+    const conNombre = todos.filter(x => x.d !== OTROS).sort((x, y) => y.l - x.l)
+    const bolsa = [...conNombre.slice(15), ...todos.filter(x => x.d === OTROS)]
+    const destinos = conNombre.slice(0, 15)
+    if (bolsa.length) {
+      destinos.push({
+        d: OTROS,
+        l: bolsa.reduce((s, x) => s + x.l, 0),
+        c: bolsa.reduce((s, x) => s + x.c, 0),
+        min: bolsa.reduce((s, x) => s + x.min, 0),
+        n: -1,
+        // Cuántos destinos distintos quedaron dentro: los cortados aquí valen
+        // uno, y los que ya venían agrupados traen su propio conteo.
+        otros: bolsa.reduce((s, x) => s + (x.otros || 1), 0),
+      })
+    }
 
     return NextResponse.json({
       meta,
@@ -226,8 +259,12 @@ export async function GET(req: NextRequest) {
         desde: a.desde, hasta: a.hasta,
         total: a.total, perdidas: a.perdidas, sinCol: a.sinCol,
         pct: a.total > 0 ? (100 * a.perdidas) / a.total : null,
-        // La matriz no se puede filtrar por mes: se declara en vez de mentir.
+        // Ni la matriz ni la tabla de destinos se pueden filtrar por mes: el
+        // JSON no guarda desglose mensual de ninguna de las dos. Se declara en
+        // vez de mentir. La de destinos faltaba y por eso, con filtro de mes,
+        // esa tabla mostraba todo el periodo sin avisar.
         matrizDelPeriodoCompleto: !!mes,
+        destinosDelPeriodoCompleto: !!mes,
       },
       serie, dh: a.dh, dhL: a.dhL, dow, dowL, hora, horaL,
       dia: Object.keys(a.dia).sort().map(f => ({ f, t: a.dia[f], l: a.diaL[f] ?? 0 })),

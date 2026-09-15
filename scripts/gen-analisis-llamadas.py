@@ -165,10 +165,66 @@ def matriz(cnt):
     return [cnt.get(i, 0) for i in range(168)]
 
 
+TOP_DESTINOS = 14
+
+
+def destinos_de(e):
+    """Los destinos de una cuenta SIN perder nada en el camino.
+
+       Antes esto era `sorted(...)[:14]` a secas, y mentía de tres formas a la
+       vez: la tabla del panel no sumaba el KPI de su propia cabecera (quedaban
+       fuera 19,320 no contestadas y 281,919 contestadas de la cartera); un
+       destino visible publicaba solo las cuentas donde alcanzó a entrar en su
+       top-14, así que «Ventas» mostraba menos de lo que el archivo tenía; y
+       como el orden del agregado se calcula sobre esas sumas mutiladas, el
+       orden mismo podía salir mal.
+
+       El generador de la ficha de cuenta ya resolvía esto bien
+       (gen-llamadas-data.py:243-247). Aquí se aplica lo mismo: lo que no entra
+       al top se acumula en «otros destinos» y el assert obliga a que cierre.
+       Cerrar es la parte que importa — el bucket sin la verificación vuelve a
+       permitir que algo se pierda en silencio.
+
+       Los dos buckets de calidad de dato no compiten por las 14 ranuras: no
+       son destinos que el cliente haya configurado, son huecos del archivo.
+    """
+    dest, vistos = [], set()
+    for especial in (SIN_DESTINO, NO_EXPORTADO):
+        x = e['dest'].get(especial)
+        if x:
+            dest.append({'d': especial, 'l': x['l'], 'c': x['c'],
+                         'min': round(x['m']), 'n': len(x['n'])})
+            vistos.add(especial)
+    conNombre = sorted(((d, x) for d, x in e['dest'].items() if d not in vistos),
+                       key=lambda p: -p[1]['l'])
+    for d, x in conNombre[:TOP_DESTINOS]:
+        dest.append({'d': d, 'l': x['l'], 'c': x['c'],
+                     'min': round(x['m']), 'n': len(x['n'])})
+    resto = conNombre[TOP_DESTINOS:]
+    if resto:
+        # n va en -1 a propósito: son conjuntos de números DISTINTOS por cada
+        # destino y no se pueden unir sumándolos. Publicar «no se sabe» es
+        # correcto; sumarlos sería inventar un conteo de distintos que nadie
+        # calculó.
+        dest.append({'d': 'otros destinos',
+                     'l': sum(x['l'] for _, x in resto),
+                     'c': sum(x['c'] for _, x in resto),
+                     'min': round(sum(x['m'] for _, x in resto)),
+                     'n': -1, 'otros': len(resto)})
+    return dest
+
+
 cuentas = {}
 for cid, v in D.items():
     e, s = v['ent'], v['sal']
-    dest = sorted(v['ent']['dest'].items(), key=lambda x: -x[1]['l'])[:14]
+    dest = destinos_de(v['ent']) if v['ent']['tipos'] else []
+    if dest:
+        lost = e['tipos'].get('Lost', 0)
+        total = sum(e['tipos'].values())
+        assert sum(x['l'] for x in dest) == lost, \
+            'destinos no cierran en no contestadas, CID %s' % cid
+        assert sum(x['c'] for x in dest) == total - lost, \
+            'destinos no cierran en contestadas, CID %s' % cid
     cuentas[cid] = {
         'cid': cid,
         'empresa': v['empresa'].most_common(1)[0][0] if v['empresa'] else '',
@@ -178,8 +234,7 @@ for cid, v in D.items():
             'meses': {m: dict(c) for m, c in sorted(e['meses'].items())},
             'dh': matriz(e['dh']), 'dhL': matriz(e['dhL']),
             'dia': dict(sorted(e['dia'].items())), 'diaL': dict(sorted(e['diaL'].items())),
-            'dest': [{'d': d, 'l': x['l'], 'c': x['c'], 'min': round(x['m']), 'n': len(x['n'])}
-                     for d, x in dest],
+            'dest': dest,
             'desde': e['desde'], 'hasta': e['hasta'], 'sinCol': e['sinCol'],
         } if e['tipos'] else None,
         'sal': {
