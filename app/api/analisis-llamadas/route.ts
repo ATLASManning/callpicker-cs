@@ -216,7 +216,28 @@ export async function GET(req: NextRequest) {
         consecutivo: mapa[c.cid]?.consecutivo ?? '',
         total: t, perdidas: perd, pct: (100 * perd) / t,
       }
-    }).filter(Boolean).sort((x, y) => (y!.pct - x!.pct))
+    }).filter(Boolean)
+
+    /* Dos órdenes, no uno.
+     *
+     * El % es el orden justo —cada cuenta contra su propio volumen— pero entierra
+     * a la que más llamadas pierde: Ancona Autopartes deja 59,429 sin contestar y
+     * su 46.1% la manda abajo, mientras una cuenta de 1,150 llamadas encabeza con
+     * 61.9%. Las dos lecturas son ciertas y sirven para cosas distintas, así que
+     * se mandan las dos y la pantalla elige.
+     *
+     * Se envía la UNIÓN de los dos top-60: ordenar en el cliente sobre un corte
+     * hecho por el otro criterio dejaría fuera justo a las que el segundo orden
+     * quiere mostrar. */
+    const porPct  = [...ranking].sort((x, y) => (y!.pct - x!.pct)).slice(0, 60)
+    const porCant = [...ranking].sort((x, y) => (y!.perdidas - x!.perdidas)).slice(0, 60)
+    const vistos = new Set<string>()
+    const rankingSalida: typeof porPct = []
+    for (const r of [...porPct, ...porCant]) {
+      if (!r || vistos.has(r.cid)) continue
+      vistos.add(r.cid)
+      rankingSalida.push(r)
+    }
 
     const dow = vacio(7), dowL = vacio(7), hora = vacio(24), horaL = vacio(24)
     for (let i = 0; i < 168; i++) {
@@ -268,7 +289,7 @@ export async function GET(req: NextRequest) {
       },
       serie, dh: a.dh, dhL: a.dhL, dow, dowL, hora, horaL,
       dia: Object.keys(a.dia).sort().map(f => ({ f, t: a.dia[f], l: a.diaL[f] ?? 0 })),
-      destinos, ranking: ranking.slice(0, 60),
+      destinos, ranking: rankingSalida,
       rankingBajoBase: bajoBase, rankingBaseMinima: BASE_MINIMA_RANKING,
     })
   } catch (e) {

@@ -70,6 +70,8 @@ export default function AnalisisLlamadas() {
   const [cid, setCid]   = useState('')
   const [mes, setMes]   = useState('')
   const [ases, setAses] = useState('')
+  // El ranking se ordena en pantalla: el API manda la unión de los dos top-60.
+  const [orden, setOrden] = useState<'pct' | 'cant'>('pct')
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
@@ -264,19 +266,44 @@ export default function AnalisisLlamadas() {
               </div>
             )}
             <div style={DC}>
-              <p style={DT}>{cid ? 'Cuenta seleccionada' : 'Cuentas ordenadas por % ' + (esEnt ? 'sin contestar' : 'que no conectó')}</p>
-              <p style={DS}>
-                {cid ? 'Quita el filtro de cliente para comparar contra el resto.' : 'Cada cuenta se mide contra su propio volumen. No es un ranking de desempeño del asesor.'}
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <p style={{ ...DT, marginBottom: 0 }}>
+                  {cid ? 'Cuenta seleccionada'
+                       : `Cuentas ordenadas por ${orden === 'pct' ? '%' : 'cantidad'} ${esEnt ? 'sin contestar' : 'que no conectó'}`}
+                </p>
+                {/* Las dos lecturas son ciertas y sirven para cosas distintas:
+                    el % no castiga a la cuenta chica, la cantidad enseña dónde
+                    se está perdiendo más volumen. */}
+                {!cid && (
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {([['pct', '%'], ['cant', 'Cantidad']] as const).map(([k, lbl]) => (
+                      <button key={k} onClick={() => setOrden(k)} style={{
+                        padding: '3px 10px', borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                        border: `1px solid ${orden === k ? BLU : 'rgba(255,255,255,0.18)'}`,
+                        background: orden === k ? BLU : 'transparent',
+                        color: orden === k ? '#fff' : 'rgba(255,255,255,0.6)',
+                      }}>{lbl}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p style={{ ...DS, marginTop: 5 }}>
+                {cid ? 'Quita el filtro de cliente para comparar contra el resto.'
+                     : orden === 'pct'
+                       ? 'Cada cuenta se mide contra su propio volumen. No es un ranking de desempeño del asesor.'
+                       : 'Por número de llamadas perdidas. Aquí pesan las cuentas grandes, que es justo lo que el % esconde.'}
                 {!cid && d.rankingBajoBase > 0 && (
                   <> Quedan fuera {d.rankingBajoBase} cuenta{d.rankingBajoBase === 1 ? '' : 's'} con menos
                     de {d.rankingBaseMinima} llamadas en este corte: un porcentaje sobre esa base no dice nada.</>
                 )}
               </p>
               <Tabla cabeceras={['Cuenta', 'Asesor', 'Total', esEnt ? 'Sin contestar' : 'No conectó', '%']}
-                filas={d.ranking.map(r => [
-                  `${r.consecutivo ? r.consecutivo + ' · ' : ''}${r.empresa}${r.porConfirmar ? '  ⚠ destino por confirmar' : ''}`,
-                  r.asesor, nf(r.total), nf(r.perdidas), `${r.pct.toFixed(1)}%`,
-                ])} destacarUltima />
+                filas={[...d.ranking]
+                  .sort((a, b) => orden === 'pct' ? b.pct - a.pct : b.perdidas - a.perdidas)
+                  .map(r => [
+                    `${r.consecutivo ? r.consecutivo + ' · ' : ''}${r.empresa}${r.porConfirmar ? '  ⚠ destino por confirmar' : ''}`,
+                    r.asesor, nf(r.total), nf(r.perdidas), `${r.pct.toFixed(1)}%`,
+                  ])} destacarUltima />
               {d.ranking.some(r => r.porConfirmar) && (
                 <p style={{ fontSize: 9, color: AMB, marginTop: 6, lineHeight: 1.6 }}>
                   ⚠ Las marcadas concentran lo no contestado en un destino que nunca registró una
