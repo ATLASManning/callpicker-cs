@@ -42,21 +42,44 @@ export const MSG: Record<CodigoBloqueo, string> = {
 }
 
 /**
- * Exclusiones manuales del programa SAC — cuentas que siguen en cartera pero
- * NO deben recibir actividades, por decisión de dirección. Cada entrada
- * documenta quién la pidió y por qué, para poder revisarla después.
- * El cruce es por nombre normalizado (normalizarNombre).
+ * Exclusiones manuales del programa SAC — cuentas que siguen en cartera,
+ * activas y facturando, pero que NO deben recibir actividades por decisión de
+ * dirección. Excluir NO es cancelar: la cuenta sigue viva (ver `sigueViva` en
+ * bloqueoComercialDeCuenta) y sigue contando en la cartera del asesor.
+ *
+ * Cada entrada documenta quién la pidió y por qué, para poder revisarla después.
+ *
+ * El cruce es por CID cuando se conoce, y por nombre normalizado como respaldo.
+ * El CID es la llave fuerte: el nombre puede cambiar en la base o repetirse
+ * entre dos cuentas, y entonces la exclusión se rompe en silencio o alcanza a
+ * quien no debía. Por eso se piden los dos y basta con que empate uno.
  */
-const EXCLUSIONES_SAC: Array<{ nombre: string; razon: string }> = [
+const EXCLUSIONES_SAC: Array<{ nombre: string; cid?: string; razon: string }> = [
   {
     nombre: 'Pitahaya',
     razon:  '25 Ago 2026 · Fátima vía Slack, confirmado por dirección: downgrade en junio a CE 60 minutos — dejó de ser cuenta TOP/AAA. Pasa a seguimiento de retención, fuera del ritual SAC.',
+  },
+  {
+    nombre: 'Centinela Property',
+    cid:    '140527',
+    razon:  '15 Sep 2026 · José Manuel, dirección: no es cuenta TOP y su facturación es un paquete de 400 minutos que paga de forma ANUAL. El ritual SAC está armado sobre el ciclo mensual —corte, consumo, seguimiento—; en una cuenta con un solo momento comercial al año esa cadencia genera tareas sin sustento. Se retira del SAC SIN cancelarla ni borrarla: sigue activa, sigue en la cartera de Claudia y sigue midiéndose. Revisar en la renovación anual.',
   },
 ]
 
 const NOMBRES_EXCLUSION_MANUAL: Set<string> = new Set(
   EXCLUSIONES_SAC.map(e => normalizarNombre(e.nombre))
 )
+
+const CIDS_EXCLUSION_MANUAL: Set<string> = new Set(
+  EXCLUSIONES_SAC.map(e => String(e.cid ?? '').trim()).filter(Boolean)
+)
+
+/** ¿Dirección retiró esta cuenta del programa SAC? CID primero, nombre después. */
+export function esExclusionManual(c: { cid?: string | null; empresa?: string | null }): boolean {
+  const cid = String(c.cid ?? '').trim()
+  if (cid && CIDS_EXCLUSION_MANUAL.has(cid)) return true
+  return NOMBRES_EXCLUSION_MANUAL.has(normalizarNombre(c.empresa))
+}
 
 /** Normaliza un nombre de empresa para cruzarlo entre fuentes sin CID común. */
 export function normalizarNombre(s: string | null | undefined): string {
@@ -174,8 +197,10 @@ export function evaluarElegibilidad(
   const no = (codigo: CodigoBloqueo, contactoFaltante: string[] = []): ResultadoElegibilidad =>
     ({ elegible: false, codigo, motivo: MSG[codigo], contactoFaltante })
 
-  // 0. Exclusión manual por dirección — aplica a TODOS los tipos de actividad.
-  if (NOMBRES_EXCLUSION_MANUAL.has(normalizarNombre(c.empresa))) return no('exclusion_manual')
+  // 0. Exclusión manual por dirección — aplica a TODOS los tipos de actividad,
+  //    incluidos los de captura: si dirección la sacó del ritual, no se le
+  //    genera nada, ni siquiera para completarle la ficha.
+  if (esExclusionManual(c)) return no('exclusion_manual')
 
   // 1. Conciliación con Churn indisponible → no se puede afirmar que está activa.
   if (dormidasZoho === null) return no('estatus_no_validable')
@@ -235,22 +260,23 @@ export interface BloqueoComercial {
    * ¿La cuenta SIGUE siendo cliente pese a estar bloqueada?
    *
    * Bloqueada y muerta no son lo mismo. `exclusion_manual` retira del ritual
-   * SAC a cuentas que siguen en cartera y facturando (hoy: Pitahaya, un
-   * downgrade). Sin esta bandera, la ficha mostraría el badge ACTIVA y, dos
-   * líneas abajo, un aviso diciendo que su Health Score es historial — falso,
-   * y justo el error inverso al que este módulo vino a corregir.
+   * SAC a cuentas que siguen en cartera y facturando (hoy: Pitahaya por
+   * downgrade, y Centinela Property por facturar de forma anual). Sin esta
+   * bandera, la ficha mostraría el badge ACTIVA y, dos líneas abajo, un aviso
+   * diciendo que su Health Score es historial — falso, y justo el error inverso
+   * al que este módulo vino a corregir.
    */
   sigueViva: boolean
 }
 
 export function bloqueoComercialDeCuenta(
-  c: { empresa: string; estado?: string | null },
+  c: { empresa: string; cid?: string | null; estado?: string | null },
 ): BloqueoComercial {
   const codigos: CodigoBloqueo[] = []
   const n = normalizarNombre(c.empresa)
   const estado = String(c.estado ?? '').trim()
 
-  if (NOMBRES_EXCLUSION_MANUAL.has(n)) codigos.push('exclusion_manual')
+  if (esExclusionManual(c)) codigos.push('exclusion_manual')
   if (estado === '')                            codigos.push('estatus_no_validable')
   else if (estado === 'hibernacion')            codigos.push('dormida')
   else if (estado !== 'activo' && estado !== 'en_riesgo') codigos.push('estado_no_activo')
