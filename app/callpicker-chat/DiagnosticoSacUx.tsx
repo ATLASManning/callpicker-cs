@@ -12,7 +12,14 @@
  *     ni identidad. En WhatsApp el cliente final escribe en ráfaga y una sola
  *     respuesta atiende cinco líneas. Se publica como pregunta, nunca como acusación.
  *  3. La lectura de canal declara que solo explica el 9.7% del volumen. Decir
- *     "el QR mueve 14× más que la API" sin eso sería mentir por omisión.
+ *     "el QR mueve 14× más que la API" sin eso sería mentir por omisión — y
+ *     declarar la cobertura tampoco basta, porque el problema no es el TAMAÑO
+ *     de la muestra sino su concentración: los 63,075 mensajes clasificados
+ *     salen de 21 de 129 clientes, Gas Económico solo es el 44.9% de todo el
+ *     QR, y los 9 clientes que concentran el 64.3% del volumen no aportan un
+ *     solo mensaje clasificado. Por eso cada cifra de canal lleva su parte del
+ *     portafolio al lado, y por eso el inventario de bandejas —banda 6— se
+ *     mide en CANTIDAD de bandejas, que sí cubre el universo del corte.
  *  4. Los umbrales no se calibran contra percentiles del propio portafolio: eso
  *     garantiza que siempre haya un cuarto en rojo y es un ranking disfrazado.
  *  5. Nada de score 0-100. Promediar esconde justo el riesgo que mueve la junta.
@@ -23,9 +30,10 @@
 import { useState } from 'react'
 import {
   ShieldAlert, GitBranch, MessageSquareWarning, CalendarCheck,
-  Bot, Info, ArrowRight,
+  Bot, Info, ArrowRight, Inbox,
 } from 'lucide-react'
 import { CHAT_SACUX } from './chat-data'
+import { inventarioBandejas } from '@/lib/chat-bandejas'
 
 const S = CHAT_SACUX as any
 
@@ -37,13 +45,16 @@ const COLOR_TIPO: Record<string, string> = {
   'Web': '#06B6D4', 'API (otro)': '#94A3B8', 'Otro': '#94A3B8', 'Sin clasificar': '#475569',
 }
 
-type Banda = 'cobertura' | 'continuidad' | 'canales' | 'operacion' | 'agenda'
+const INV = inventarioBandejas()
+
+type Banda = 'cobertura' | 'continuidad' | 'canales' | 'operacion' | 'agenda' | 'inventario'
 
 const BANDAS: { id: Banda; label: string; icon: React.ElementType; sub: string }[] = [
   { id: 'agenda',      label: 'Agenda de la semana',   icon: CalendarCheck,        sub: `${S.agenda.length} cuentas priorizadas` },
   { id: 'continuidad', label: 'Riesgo de continuidad', icon: ShieldAlert,          sub: `${S.riesgoQR.length} dependen de WhatsApp QR` },
   { id: 'canales',     label: 'Arquitectura de canales', icon: GitBranch,          sub: `${S.concentradas.length} con enrutamiento concentrado` },
   { id: 'operacion',   label: 'Señales de operación',  icon: MessageSquareWarning, sub: `${S.noCierran.length} no cierran conversaciones` },
+  { id: 'inventario',  label: 'Inventario de bandejas', icon: Inbox,               sub: `${INV.totalBandejas.toLocaleString('es-MX')} bandejas · ${INV.medicion.ok} medidas` },
   { id: 'cobertura',   label: 'Sobre qué se concluye', icon: Info,                 sub: `${S.cobertura.medibles} de ${S.cobertura.clientes} medibles` },
 ]
 
@@ -80,7 +91,143 @@ export default function DiagnosticoSacUx() {
       {banda === 'continuidad' && <BandaContinuidad />}
       {banda === 'canales'     && <BandaCanales />}
       {banda === 'operacion'   && <BandaOperacion />}
+      {banda === 'inventario'  && <BandaInventario />}
       {banda === 'cobertura'   && <BandaCobertura />}
+    </div>
+  )
+}
+
+/* ── 6 · Inventario de bandejas ─────────────────────────────────────────── */
+/**
+ * Mide en CANTIDAD de bandejas, no en mensajes. Es la diferencia que hace útil
+ * a esta banda: los conteos cubren las 1,068 bandejas del corte, mientras que
+ * cualquier cifra de volumen por canal descansa sobre el 4.4% clasificado.
+ *
+ * Tres columnas que parecen redundantes y no lo son: «medidas» son las de
+ * reconciliación OK, «sin ver» las que el recolector nunca abrió, y «ociosas»
+ * SOLO las medidas que dieron cero. Un cero sin medición no es una bandeja
+ * apagada, es una bandeja que no miramos — y confundirlas manda al asesor a
+ * proponerle al cliente que apague algo que quizá está usando.
+ */
+function BandaInventario() {
+  const I = INV
+  const pct = (a: number, b: number) => (b > 0 ? (100 * a) / b : 0)
+
+  return (
+    <div className="space-y-4">
+      <Bloque
+        titulo="Qué tenemos montado, y cuánto de eso podemos ver"
+        base={`${n(I.totalBandejas)} bandejas en ${I.clientesTotales} clientes. ${n(I.conTipo)} traen tipo y ${n(I.sinTipo)} no — y ese corte es de FECHA, no de calidad: las tipificadas se midieron entre el 2 y el 6 de agosto de 2026 y las demás entre junio y julio, porque el campo entró al export en esa ventana. El inventario por tipo no es una muestra aleatoria del portafolio: es lo que se midió con el esquema nuevo. Por lo mismo, el renglón «sin tipo» marca cero en «medidas» y cero en «sin ver»: esas ${n(I.medicion.sinDato)} bandejas son anteriores al campo de reconciliación, así que no traen veredicto de medición aunque ${n(I.tipos.find(t => t.tipo.startsWith('(sin tipo'))?.conTrafico ?? 0)} de ellas sí registraron tráfico.`}
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full" style={{ borderCollapse: 'collapse', fontSize: 11 }}>
+            <thead>
+              <tr>
+                {['Tipo', 'Bandejas', 'Clientes', 'Medidas', 'Sin ver', 'Con tráfico', 'Ociosas', 'Cliente que domina'].map((h, i) => (
+                  <th key={h} style={{
+                    padding: '6px 8px', textAlign: i === 0 || i === 7 ? 'left' : 'right',
+                    color: 'rgba(255,255,255,0.45)', fontWeight: 700, fontSize: 10, whiteSpace: 'nowrap',
+                    borderBottom: '1px solid rgba(255,255,255,0.12)',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {I.tipos.map(t => {
+                const domPct = pct(t.dominanteBandejas, t.bandejas)
+                return (
+                  <tr key={t.tipo} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <td style={{ padding: '5px 8px', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      <span className="inline-block w-2 h-2 rounded-sm mr-2 align-middle"
+                        style={{ background: COLOR_TIPO[t.tipo] ?? '#475569' }} />
+                      {t.tipo}
+                    </td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', color: '#fff', fontWeight: 700 }}>{n(t.bandejas)}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{t.clientes}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', color: t.medidas > 0 ? '#22C55E' : 'rgba(255,255,255,0.3)' }}>{t.medidas}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', color: t.sinMedicion > 0 ? '#F97316' : 'rgba(255,255,255,0.3)' }}>{n(t.sinMedicion)}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{t.conTrafico}</td>
+                    <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{t.ociosas}</td>
+                    <td style={{ padding: '5px 8px', color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}>
+                      {t.dominante
+                        ? <>{t.dominante.slice(0, 26)} <span style={{ color: domPct >= 50 ? '#F97316' : 'rgba(255,255,255,0.35)' }}>
+                            {t.dominanteBandejas} ({domPct.toFixed(0)}%)</span></>
+                        : '—'}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          Un total sin su cliente dominante engaña. Parece que hay más bandejas de
+          <span className="font-semibold" style={{ color: '#22C55E' }}> WhatsApp API</span> que de
+          <span className="font-semibold" style={{ color: '#84CC16' }}> QR</span>, pero
+          <span className="font-semibold" style={{ color: '#fff' }}> 127 de esas 208 son de un solo cliente</span> sin
+          contrato y sin medición. Descontándolo quedan 81 API contra 196 QR: el QR gana 2.4 a 1. Y los ceros de la API
+          casi nunca son ocio — de sus 208 bandejas solo 9 tienen medición válida. Ociosas comprobadas: 7 de API contra
+          17 de QR.
+        </p>
+      </Bloque>
+
+      <Bloque
+        titulo="Quién atiende por una conexión no oficial y no tiene respaldo"
+        base={`${I.clientesWhatsbail} clientes tienen al menos una bandeja Whatsbail —la conexión por QR, no oficial— y ${I.clientesSoloWhatsbail} de ellos no tienen NI UNA bandeja Gupshup, que es la API oficial. Este conteo no depende de haber podido clasificar su tráfico, así que alcanza a clientes que la banda de continuidad no ve: aquélla nombra ${S.riesgoQR.length} porque exige mensajes clasificados.`}
+      >
+        <div className="space-y-1.5">
+          {I.soloWhatsbail.slice(0, 12).map(c => (
+            <div key={c.nombre} className="flex items-center gap-3 rounded-lg px-3 py-2"
+              style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <span className="text-[11px] font-semibold flex-1 truncate" style={{ color: '#fff' }}>{c.nombre}</span>
+              {c.tier && <span className="text-[9px] px-1.5 py-0.5 rounded"
+                style={{ background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.7)' }}>{c.tier}</span>}
+              <span className="text-[10px] w-20 text-right" style={{ color: 'rgba(255,255,255,0.45)' }}>{c.bandejas} bandejas</span>
+              <span className="text-[11px] w-24 text-right font-semibold" style={{ color: '#84CC16' }}>{n(c.mensajes)}</span>
+            </div>
+          ))}
+          {I.soloWhatsbail.length > 12 && (
+            <p className="text-[10px] pt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              + {I.soloWhatsbail.length - 12} clientes más en la misma condición.
+            </p>
+          )}
+        </div>
+      </Bloque>
+
+      <Bloque
+        titulo="La bandeja principal de cada cliente"
+        base={`Es la bandeja con más mensajes del cliente. Se calcula por CLIENTE y no por cuenta a propósito: la bandeja no trae identificador de cuenta en el dato publicado, así que pedirlo por cuenta no es que falte — es que no se puede responder sin inventarlo. Cubre ${I.clientesConPrincipal} de ${I.clientesTotales} clientes, que son el ${pct(I.volumenConPrincipal, I.volumenTotal).toFixed(1)}% del volumen: los demás mueven mensajes pero ninguna de sus bandejas quedó medida.`}
+      >
+        <div className="flex flex-wrap gap-2 mb-3">
+          {I.principalPorTipo.map(p => (
+            <div key={p.tipo} className="rounded-lg px-3 py-1.5" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <span className="inline-block w-2 h-2 rounded-sm mr-2 align-middle"
+                style={{ background: COLOR_TIPO[p.tipo] ?? '#475569' }} />
+              <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.7)' }}>{p.tipo}</span>
+              <span className="text-[11px] font-bold ml-2" style={{ color: '#fff' }}>{p.clientes}</span>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-1.5">
+          {I.principales.slice(0, 12).map(p => (
+            <div key={p.nombre} className="flex items-center gap-3 rounded-lg px-3 py-2"
+              style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <span className="text-[11px] font-semibold truncate" style={{ color: '#fff', flex: '1 1 30%' }}>{p.nombre}</span>
+              <span className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.5)', flex: '1 1 26%' }}>{p.bandeja}</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded whitespace-nowrap"
+                style={{ background: `${COLOR_TIPO[p.tipo] ?? '#475569'}22`, color: COLOR_TIPO[p.tipo] ?? '#94A3B8' }}>{p.tipo}</span>
+              <span className="text-[11px] w-20 text-right font-semibold" style={{ color: '#fff' }}>{n(p.mensajes)}</span>
+              <span className="text-[10px] w-28 text-right" style={{ color: p.pesoEnCliente >= 90 ? '#F97316' : 'rgba(255,255,255,0.4)' }}>
+                {p.pesoEnCliente.toFixed(0)}% de {p.bandejasCliente} bandejas
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+          Cuando una sola bandeja concentra el 90% o más del tráfico de un cliente que tiene varias, las demás no son
+          neutrales: están publicadas en algún lado y mandan al cliente final a un buzón que nadie atiende.
+        </p>
+      </Bloque>
     </div>
   )
 }
@@ -242,16 +389,33 @@ function BandaCanales() {
                 style={{ background: COLOR_TIPO[t] ?? '#475569', opacity: t === 'Sin clasificar' ? 0.35 : 1 }} />
               <span className="text-[11px] flex-1 truncate" style={{ color: 'rgba(255,255,255,0.7)' }}>{t}</span>
               <span className="text-[11px] font-semibold" style={{ color: '#fff' }}>{n(v)}</span>
-              <span className="text-[10px] w-11 text-right" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              {/* DOS porcentajes, nunca uno.
+                  Con un solo número, «34%» junto a WhatsApp QR se lee como su
+                  parte del portafolio. No lo es: es su parte del 9.7% que tiene
+                  desglose. Su participación real es 3.3%. El de la derecha, en
+                  gris, es el que cuenta para una junta. */}
+              <span className="text-[10px] w-12 text-right" style={{ color: 'rgba(255,255,255,0.4)' }}>
                 {((v / totalMezcla) * 100).toFixed(0)}%
+              </span>
+              <span className="text-[10px] w-14 text-right" style={{ color: 'rgba(255,255,255,0.28)' }}>
+                {((v / S.volumen.total) * 100).toFixed(1)}%
               </span>
             </div>
           ))}
         </div>
+        <div className="flex gap-4 mt-1.5 justify-end">
+          <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.4)' }}>% de lo desglosado</span>
+          <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.28)' }}>% del portafolio</span>
+        </div>
         <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
           Dentro de lo clasificable, <span className="font-semibold" style={{ color: '#84CC16' }}>WhatsApp QR</span> mueve
-          más tráfico que la API oficial. Es el hallazgo que sostiene la banda de continuidad — pero la conclusión se
-          limita a estas cuentas, no al portafolio entero.
+          más tráfico que la API oficial. Pero no es una muestra del portafolio, son unas pocas cuentas nombrables:
+          <span className="font-semibold" style={{ color: '#fff' }}> Gas Económico Metropolitano es por sí solo el 44.9%
+          de todo el QR</span> y el top 5 es el 83%. Y los nueve clientes más grandes —PVnube, HomiRent, IML, MUMBII,
+          Vanzar Link, VISION100, PC ONE, AJ PENNY y Plennia, que juntos son el 64.3% del volumen— no aportan
+          <span className="font-semibold" style={{ color: '#fff' }}> ni un solo mensaje clasificado</span>. La
+          participación real del QR en el portafolio no está entre el 30 y el 40%: está indeterminada. Sirve para
+          nombrar a quién visitar, no para dimensionar el canal.
         </p>
       </Bloque>
 
