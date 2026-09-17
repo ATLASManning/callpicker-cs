@@ -104,10 +104,19 @@ for r in it:
     # quedarse con la ultima perderia contratos sin avisar.
     d = porCliente.setdefault(k, {
         'nombre': nom, 'acumulado': 0.0, 'mrrInicio': 0.0, 'contratos': 0,
-        'clasif': None, 'mesesActivo': None, 'movimientos': [],
+        'cerrados': 0, 'clasif': None, 'mesesActivo': None, 'movimientos': [],
     })
+    cerrado = 'churn' in mov.lower()
     d['acumulado'] += num(r[ix['acumulado']]) or 0.0
-    d['mrrInicio'] += num(r[ix['mrrIni']]) or 0.0
+    # EL MENSUAL EXCLUYE LOS CONTRATOS CERRADOS. Un contrato en «Churn
+    # confirmado» no paga nada este mes: sumarlo inflaria la factura mensual
+    # con dinero que ya no entra. El ACUMULADO si los incluye, porque ese
+    # dinero si se cobro en su momento — son dos preguntas distintas y por eso
+    # se tratan distinto.
+    if not cerrado:
+        d['mrrInicio'] += num(r[ix['mrrIni']]) or 0.0
+    else:
+        d['cerrados'] += 1
     d['contratos'] += 1
     if ix['clasif'] is not None and d['clasif'] is None:
         d['clasif'] = str(r[ix['clasif']] or '').strip() or None
@@ -152,3 +161,33 @@ print('los 6 de mayor acumulado:')
 for k, d in sorted(porCliente.items(), key=lambda x: -x[1]['acumulado'])[:6]:
     print('  %-38s acumulado $%-14s mensual $%s'
           % (d['nombre'][:38], format(round(d['acumulado']), ','), format(round(d['mrrInicio']), ',')))
+
+# ── EL RIESGO DE LA REESTRUCTURA ───────────────────────────────────────────
+# Direccion confirmo (17 sep 2026) que el churn de $1.7M de septiembre NO es
+# churn: es la reestructura de facturacion de GTC. Una reestructura crea DOS
+# representaciones del mismo dinero — las subcuentas viejas cerrando y la
+# fusionada abriendo— y ese fue exactamente el mecanismo que inflo el churn.
+#
+# El mismo mecanismo amenaza a la cartera por otro lado: lookupZoho() de
+# lib/zoho-enrich.ts suma TODAS las claves cuya primera palabra es la sigla de
+# la empresa. Para «GRUPO TORRES CORZO» (sigla gtc) eso alcanza a cada
+# «GTC - ...» del archivo. Si conviven las subcuentas viejas y la fusionada,
+# esa plata se suma dos veces y la cuenta aparece facturando el doble.
+#
+# Aqui no se decide por nadie: se NOMBRA el caso para poder mirarlo.
+print()
+print('=== POSIBLE DOBLE CONTEO POR REESTRUCTURA ===')
+grupos = collections.defaultdict(list)
+for k, d in porCliente.items():
+    ini = d['nombre'].split('-')[0].strip()
+    if len(ini) >= 3 and len(ini.split()) <= 2:
+        grupos[ini.lower()].append(d)
+sosp = {g: v for g, v in grupos.items() if len(v) > 1}
+print('  familias de subcuentas con prefijo comun: %d' % len(sosp))
+for g, v in sorted(sosp.items(), key=lambda x: -sum(y['acumulado'] for y in x[1]))[:5]:
+    cerr = sum(1 for y in v if y['cerrados'])
+    print('    %-14s %2d subcuentas · %2d con contrato cerrado · acumulado $%s'
+          % (g.upper()[:14], len(v), cerr, format(round(sum(y['acumulado'] for y in v)), ',')))
+    if cerr:
+        print('      ojo: conviven cerradas y activas. Si la cerrada y la nueva son el')
+        print('      mismo dinero reestructurado, sumarlas lo cuenta dos veces.')
