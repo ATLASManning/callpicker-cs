@@ -7,7 +7,7 @@ import {
   Settings, ChevronRight, Phone, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
-  Archive, BarChart2, Target, MessageCircle, PhoneCall,
+  Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox,
 } from 'lucide-react'
 import type { SessionPayload } from '@/lib/auth'
 
@@ -49,6 +49,7 @@ const NAV: NavEntry[] = [
   { href: '/auditoria',       label: 'Auditoría Cuentas', icon: ClipboardList },
   { href: '/churn',           label: 'Churn',             icon: TrendingDown },
   { href: '/callpicker-chat', label: 'Callpicker Chat',   icon: MessageCircle },
+  { href: '/buzon',           label: 'Buzón del Cliente', icon: Inbox },
   {
     group: 'Facturación',
     icon: Receipt,

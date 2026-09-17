@@ -10,6 +10,7 @@ const SECTION_MAP: Array<[string, string]> = [
   ['/seguimiento',       'Seguimiento'],
   ['/activaciones',      'Activaciones 2.0'],
   ['/analisis-llamadas', 'Análisis de Llamadas'],
+  ['/buzon', 'Buzón del Cliente'],
   ['/perfil-rol',        'Perfil del Rol'],
   ['/base-cs',           'Base de Conocimiento'],
   ['/chat',              'Atlas IA'],
