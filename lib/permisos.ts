@@ -39,17 +39,26 @@ const COMUNES_PAGINAS = ['/acceso', '/docs/']
 const COMUNES_APIS    = ['/api/auth/', '/api/analytics', '/api/admin/me']
 
 export const ROLES: Record<Rol, DefinicionRol> = {
+  /* `inicio` es la pantalla con la que arranca cada rol al entrar, y la que
+     recibe a quien pide un módulo que no le toca. Instrucción de dirección
+     (17 sep 2026): al iniciar se muestra Asesores.
+
+     Perfilamiento queda en /cuentas A PROPÓSITO y no es un olvido: su lista de
+     `paginas` no incluye /asesores, así que darle esa pantalla de inicio lo
+     metería en un bucle de redirección — pide Asesores, no puede abrirla, el
+     middleware lo manda a su inicio, que sería Asesores otra vez. Un rol cuya
+     pantalla de inicio no puede abrir no entra nunca. */
   admin: {
     label: 'Admin', color: '#60A5FA',
-    paginas: null, apis: null, inicio: '/',
+    paginas: null, apis: null, inicio: '/asesores',
   },
   asesor: {
     label: 'Asesor', color: '#34D399',
-    paginas: null, apis: null, inicio: '/',
+    paginas: null, apis: null, inicio: '/asesores',
   },
   viewer: {
     label: 'Viewer', color: '#FBBF24',
-    paginas: null, apis: null, inicio: '/',
+    paginas: null, apis: null, inicio: '/asesores',
   },
   perfilamiento: {
     label: 'Perfilamiento', color: '#A855F7',

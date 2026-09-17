@@ -1,4 +1,5 @@
 ﻿'use client'
+import { ROLES, type Rol } from '@/lib/permisos'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Phone, Mail, Lock, ArrowRight, RefreshCw, AlertCircle, Eye, EyeOff } from 'lucide-react'
@@ -51,7 +52,13 @@ export default function AccesoPage() {
       })
       const data = await res.json()
 
-      if (res.ok) { router.push('/'); return }
+      if (res.ok) {
+        // A la pantalla de inicio de SU rol, no a una fija: perfilamiento no
+        // puede abrir /asesores y mandarlo ahí lo dejaría rebotando.
+        const destino = ROLES[data.rol as Rol]?.inicio ?? '/asesores'
+        router.push(destino)
+        return
+      }
 
       if (data.error === 'password_expirado') { setEstado('expirado'); return }
       if (data.error === 'usuario_invalido')  { setEstado('inactivo'); return }

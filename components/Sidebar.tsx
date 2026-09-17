@@ -30,7 +30,7 @@ type NavEntry  = NavItem | NavGroup
 
 function isGroup(e: NavEntry): e is NavGroup { return 'group' in e }
 
-const NAV: NavEntry[] = [
+const NAV_ENTRADAS: NavEntry[] = [
   // ── Grupo: Asesores ──────────────────────────────────────────────────────
   {
     group: 'Asesores',
@@ -72,6 +72,30 @@ const NAV: NavEntry[] = [
   { href: '/tickets',         label: 'Tickets',           icon: Ticket },
   { href: '/upsell',          label: 'Upsell / Cross',    icon: TrendingUp },
 ]
+
+/**
+ * El menú se ordena SOLO, no a mano.
+ *
+ * Instrucción de dirección (17 sep 2026): los apartados en orden alfabético.
+ * Se hace por código y no reacomodando el arreglo porque un orden fijado a
+ * mano dura hasta la siguiente entrada: quien agregue un módulo lo va a pegar
+ * al final —como pasó con Buzón del Cliente, que quedó después de Callpicker
+ * Chat— y el alfabeto se rompe otra vez sin que nadie lo note.
+ *
+ * `localeCompare` con locale 'es' y sensibilidad 'base' es lo que hace que
+ * «Análisis» caiga entre «Activaciones» y «Asesores»: compara ignorando el
+ * acento en vez de mandar las palabras acentuadas al final, que es lo que
+ * haría un ordenamiento por código de carácter.
+ *
+ * Los sub-items de cada grupo conservan su orden: dentro de Facturación, LTV
+ * es la vista principal y el Informe de Cortes su detalle. Ese orden dice algo
+ * que el alfabeto no.
+ */
+const etiquetaDe = (e: NavEntry) => (isGroup(e) ? e.group : e.label)
+
+const NAV: NavEntry[] = [...NAV_ENTRADAS].sort((a, b) =>
+  etiquetaDe(a).localeCompare(etiquetaDe(b), 'es', { sensitivity: 'base', numeric: true }),
+)
 
 // ── NavLink simple ────────────────────────────────────────────────────────────
 function NavLink({ href, label, icon: Icon, indent = false }: NavItem & { indent?: boolean }) {
