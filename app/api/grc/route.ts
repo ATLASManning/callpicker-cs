@@ -105,10 +105,65 @@ const suma = (f: FilaGRC[], k: 'perdida' | 'mrrIni' | 'mrrFin' | 'ganado' | 'acu
 
 const pct = (a: number, b: number) => (b ? Math.round((1000 * a) / b) / 10 : 0)
 
+const norm = (s: string) =>
+  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
+/**
+ * Consulta de UNA cuenta, para la ficha: `?cid=134571`.
+ *
+ * Dirección: en la ficha, «Factura Mensual» toma «MRR Inicio Contrato (BCY)» y
+ * «MRR» toma «Importe Acumulado Recurrente».
+ *
+ * ── POR QUÉ SE CRUZA POR CID Y NO POR NOMBRE ───────────────────────────────
+ * Trece cuentas de la cartera tienen en el export una línea adicional de otro
+ * servicio —«Gas Economico Metropolitano Chat», por ejemplo— que llega SIN CID
+ * porque no existe como cuenta propia. Sumarlas por prefijo de nombre inflaría
+ * la factura de esas trece en $56,464 y repetiría el error que ya se cometió
+ * antes con GRUPO TORRES CORZO.
+ *
+ * Así que la cifra sale de las filas que casan por CID, y las líneas hermanas
+ * se devuelven APARTE, con su nombre y su monto, para que la ficha las muestre
+ * sin sumarlas. El servicio lo dicta la factura, no el parecido del nombre.
+ */
+function porCuenta(d: Archivo, cid: string, nombre: string) {
+  const propias = d.filas.filter(f => f.cid && f.cid === cid)
+  const base = propias.length ? norm(propias[0].cliente) : norm(nombre)
+  const hermanas = base
+    ? d.filas.filter(f => !f.cid && norm(f.cliente).startsWith(base) && norm(f.cliente) !== base)
+    : []
+  return {
+    encontrado: propias.length > 0,
+    mes: (d.meta as { mesVivo?: string }).mesVivo ?? null,
+    origen: (d.meta as { origen?: string }).origen ?? null,
+    /* Factura Mensual ← MRR Inicio Contrato (BCY) */
+    facturaMensual: suma(propias, 'mrrIni'),
+    /* MRR ← Importe Acumulado Recurrente */
+    acumuladoRecurrente: suma(propias, 'acumulado'),
+    mrrFin: suma(propias, 'mrrFin'),
+    perdida: suma(propias, 'perdida'),
+    ganado: suma(propias, 'ganado'),
+    movimiento: propias.length === 1 ? propias[0].movimiento : null,
+    verificacion: propias.length === 1 ? propias[0].verificacion : null,
+    clasif: propias.length ? propias[0].clasif : null,
+    meses: propias.length ? Math.max(...propias.map(f => f.meses)) : null,
+    facturas: propias.length ? Math.max(...propias.map(f => f.facturas)) : null,
+    rango: propias.length === 1 ? propias[0].rango : null,
+    filas: propias.length,
+    hermanas: hermanas.map(f => ({
+      cliente: f.cliente, mrrIni: f.mrrIni, acumulado: f.acumulado, movimiento: f.movimiento,
+    })),
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const d = await datos()
     const p = req.nextUrl.searchParams
+
+    const cid = (p.get('cid') ?? '').trim()
+    if (cid || p.get('mode') === 'cuenta') {
+      return NextResponse.json(porCuenta(d, cid, (p.get('nombre') ?? '').trim()))
+    }
 
     const clasif = p.get('clasif') ?? ''
     const mov = p.get('movimiento') ?? ''

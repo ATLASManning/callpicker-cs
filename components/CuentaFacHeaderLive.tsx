@@ -1,44 +1,122 @@
 'use client'
+/**
+ * Las dos cifras de la esquina de la ficha de cuenta.
+ *
+ * Dirección (17 sep 2026): se alimentan del nuevo reporte GRC —
+ *   «Factura Mensual» ← MRR Inicio Contrato (BCY)
+ *   «MRR»             ← Importe Acumulado Recurrente
+ *
+ * Antes las dos mostraban EL MISMO número (`mrrGrupo` de /api/facturacion), que
+ * es por lo que en la ficha se leía dos veces $23,707.
+ *
+ * ── DOS DECISIONES QUE SOSTIENEN ESTO ──────────────────────────────────────
+ * 1. Se cruza por CID, nunca por nombre. Trece cuentas de la cartera tienen en
+ *    el export una línea de otro servicio —«… Chat»— que llega sin CID. Sumarla
+ *    por parecido de nombre inflaría la factura de esas trece en $56,464. Se
+ *    muestran aparte, con su nombre: el servicio lo dicta la factura.
+ * 2. Si la cuenta no está en el corte, NO se pinta cero. Se conserva el dato de
+ *    Zoho que había y se dice de dónde viene cada cifra, porque un cero aquí se
+ *    lee como «no factura» y significaría «no vino en el export».
+ */
 import { useEffect, useState } from 'react'
+
+type Grc = {
+  encontrado: boolean
+  mes: string | null
+  facturaMensual: number
+  acumuladoRecurrente: number
+  movimiento: string | null
+  verificacion: 'baja' | 'sigue_viva' | 'sin_verificar' | 'na' | null
+  hermanas: { cliente: string; mrrIni: number; acumulado: number; movimiento: string | null }[]
+}
 
 export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
   cid: string | null
   empresa: string
   fallback: number | null
 }) {
-  const [mrr, setMrr] = useState<number | null>(null)
+  const [grc, setGrc] = useState<Grc | null>(null)
+  const [zoho, setZoho] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const params = new URLSearchParams({ mode: 'by-cid' })
-    if (cid) params.set('cid', cid)
-    if (empresa) params.set('nombre', empresa)
-    fetch(`/api/facturacion?${params}`)
-      .then(r => r.json())
-      .then(d => { if (d.mrrGrupo > 0) setMrr(d.mrrGrupo) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    let vivo = true
+    const p = new URLSearchParams({ mode: 'cuenta' })
+    if (cid) p.set('cid', cid)
+    if (empresa) p.set('nombre', empresa)
+
+    const pz = new URLSearchParams({ mode: 'by-cid' })
+    if (cid) pz.set('cid', cid)
+    if (empresa) pz.set('nombre', empresa)
+
+    Promise.allSettled([
+      fetch(`/api/grc?${p}`).then(r => r.json()),
+      fetch(`/api/facturacion?${pz}`).then(r => r.json()),
+    ]).then(([g, z]) => {
+      if (!vivo) return
+      if (g.status === 'fulfilled' && g.value && !g.value.error) setGrc(g.value as Grc)
+      if (z.status === 'fulfilled' && z.value?.mrrGrupo > 0) setZoho(z.value.mrrGrupo)
+    }).finally(() => { if (vivo) setLoading(false) })
+
+    return () => { vivo = false }
   }, [cid, empresa])
 
   const fmt = (n: number | null) =>
     n == null ? '—' : '$' + Math.round(n).toLocaleString('es-MX')
+
+  const enCorte = !!grc?.encontrado
+  const factura = enCorte ? grc!.facturaMensual : (zoho ?? fallback)
+  const acumulado = enCorte ? grc!.acumuladoRecurrente : null
+  const hermanas = grc?.hermanas ?? []
+  const extra = hermanas.reduce((s, h) => s + h.mrrIni, 0)
 
   return (
     <div className="text-right flex flex-col gap-1">
       <div>
         <p className="text-[10px] text-textLow font-medium">Factura Mensual</p>
         <p className={`text-xl font-bold leading-tight ${loading ? 'text-textLow/50' : 'text-textHi'}`}>
-          {loading ? fmt(fallback) : fmt(mrr ?? fallback)}
+          {loading ? fmt(fallback) : fmt(factura)}
         </p>
       </div>
-      {!loading && mrr != null && (
+
+      {!loading && enCorte && (
         <div>
           <p className="text-[10px] text-textLow font-medium">MRR</p>
-          <p className="text-sm font-bold text-cp">{fmt(mrr)}</p>
+          <p className="text-sm font-bold text-cp">{fmt(acumulado)}</p>
         </div>
       )}
-      {!loading && mrr != null && (
-        <p className="text-[9px] text-cp/70">Zoho · en vivo</p>
+
+      {/* Sin dato en el corte: se dice, no se pinta cero. */}
+      {!loading && !enCorte && (
+        <div>
+          <p className="text-[10px] text-textLow font-medium">MRR</p>
+          <p className="text-[11px] italic text-textLow">sin dato en el corte</p>
+        </div>
+      )}
+
+      {!loading && (
+        <p className="text-[9px] text-cp/70">
+          {enCorte
+            ? `GRC · ${grc!.mes ?? 'corte del mes'}`
+            : zoho != null ? 'Zoho · en vivo' : 'ficha'}
+        </p>
+      )}
+
+      {/* Se nombran, nunca se suman. No son líneas de esta cuenta: el export las
+          trae como CLIENTES aparte, con nombre parecido y sin CID — «Odontoprev
+          ATC» junto a «Odontoprev», «Grupo Frisa - ACISA» junto a «Grupo
+          Frisa». En dos casos la de al lado factura más que la cuenta, así que
+          fundirlas por parecido de nombre habría inventado la facturación. */}
+      {!loading && hermanas.length > 0 && (
+        <div className="text-[9px] text-textLow leading-snug max-w-[210px] ml-auto mt-0.5">
+          <p className="font-semibold">No sumado · {fmt(extra)}</p>
+          {hermanas.map((h, i) => (
+            <p key={i}>«{h.cliente}» {fmt(h.mrrIni)}</p>
+          ))}
+          <p className="italic">
+            {hermanas.length === 1 ? 'Viene' : 'Vienen'} en el export como cliente aparte, sin CID.
+          </p>
+        </div>
       )}
     </div>
   )
