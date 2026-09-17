@@ -47,3 +47,7 @@ scripts/update-facturacion.log
 aurora-preview.html
 data/cortes-facturacion.*.bak.xlsx
 .tmp-contraste/
+
+# Cache de los scripts de Python (scripts/*.py)
+__pycache__/
+*.pyc
