@@ -42,7 +42,8 @@ export async function GET(req: NextRequest) {
         // Sobrescribe la columna guardada en la tabla (nadie la sincronizaba):
         // los abiertos se calculan SIEMPRE del dataset vivo de Zoho Desk.
         tickets_abiertos:     stats.abiertos,
-        mrr_zoho:             z?.mrr            ?? null,
+        // Trae el ACUMULADO desde el 17 sep 2026, no una mensualidad.
+        mrr_zoho:             z?.acumulado      ?? null,
         factura_mensual_zoho: z?.factura_mensual ?? null,
         semaforo_zoho:        z?.semaforo        ?? null,
         segmento_zoho:        z?.segmento        ?? null,

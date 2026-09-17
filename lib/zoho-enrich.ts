@@ -1,17 +1,37 @@
 /**
  * lib/zoho-enrich.ts
- * Enriquecimiento de cuentas con MRR y Factura Mensual en vivo desde Zoho Analytics.
+ * Enriquecimiento de cuentas en vivo desde Zoho Analytics.
  *
  * Fuente única de verdad para los datos de facturación que se muestran en
- * los módulos Facturación, Cuentas y Asesores:
- *   · Factura Mensual = "Ticket Limpio Promedio"  (ticket_limpio_promedio)
- *   · MRR             = "MRR Limpio"               (mrr_limpio)
+ * Facturación, Cuentas y Asesores:
+ *   · Factura Mensual     = "ticket_limpio_promedio"
+ *   · Acumulado recurrente = "importe_acumulado_recurrente"
+ *
+ * ── EL CAMBIO DEL 17 SEP 2026 ──────────────────────────────────────────────
+ * Dirección sustituyó el origen: lo que antes salía de "mrr_limpio" ahora sale
+ * de "importe_acumulado_recurrente". NO es el mismo dato con otro nombre — es
+ * otra pregunta. `mrr_limpio` es lo que el cliente paga al mes;
+ * `importe_acumulado_recurrente` es lo que ha pagado en toda su vida. Entre
+ * uno y otro hay de 35 a 65 veces de diferencia.
+ *
+ * Por eso el campo se llama aquí `acumulado` y no `mrr`: la columna de la base
+ * conserva el nombre `mrr_zoho` porque así se pidió, pero dentro del código y
+ * en pantalla se le dice lo que es. Un campo mal nombrado es una trampa que se
+ * arma sola: alguien lo suma con mensualidades seis meses después y nadie
+ * entiende por qué el total no cuadra.
  *
  * Cache en memoria de 15 min compartido por todos los consumidores.
  */
 import { queryZohoView, parseNum, isZohoConfigured } from '@/lib/zoho-analytics'
 
-export interface ZohoAcct { mrr: number; factura_mensual: number; semaforo: string; segmento: string }
+export interface ZohoAcct {
+  /** Lo que el cliente ha pagado en TODA su vida. No es mensual. */
+  acumulado: number
+  /** Lo que paga al mes. Ésta sí es la mensualidad. */
+  factura_mensual: number
+  semaforo: string
+  segmento: string
+}
 
 const SEG_RANK: Record<string, number> = { Enterprise: 5, Large: 4, 'Mid-Market': 3, SMB: 2, Micro: 1 }
 
@@ -38,14 +58,18 @@ export async function getZohoMap(): Promise<Record<string, ZohoAcct>> {
       const name = normStr(row['nombre_cliente'] ?? '')
       if (!name) continue
       // Registrar semáforo para todas las filas (incluyendo dormidas)
-      if (!map[name]) map[name] = { mrr: 0, factura_mensual: 0, semaforo: sema, segmento: seg }
+      if (!map[name]) map[name] = { acumulado: 0, factura_mensual: 0, semaforo: sema, segmento: seg }
       // Acumular segmento más alto (Enterprise > Large > Mid-Market > SMB > Micro)
       if ((SEG_RANK[seg] ?? 0) > (SEG_RANK[map[name].segmento] ?? 0)) map[name].segmento = seg
       if (sema !== '4 - Dormido') {
         // Solo acumular MRR en filas activas — conserva la suma original de Facturación
-        const mrr     = parseNum(row['mrr_limpio']?.replace(/[$,]/g, '')) ?? 0
-        const factura = parseNum(row['ticket_limpio_promedio']?.replace(/[$,]/g, '')) ?? 0
-        map[name].mrr            += mrr
+        /* EL ORIGEN CAMBIO (17 sep 2026). Antes `mrr_limpio`, que es la
+         * mensualidad; ahora `importe_acumulado_recurrente`, que es lo
+         * cobrado en toda la vida del cliente. Son preguntas distintas y por
+         * eso el campo dejo de llamarse mrr. */
+        const acumulado = parseNum(row['importe_acumulado_recurrente']?.replace(/[$,]/g, '')) ?? 0
+        const factura   = parseNum(row['ticket_limpio_promedio']?.replace(/[$,]/g, '')) ?? 0
+        map[name].acumulado      += acumulado
         map[name].factura_mensual += factura
         map[name].semaforo = sema   // semáforo activo prevalece
       }
@@ -89,22 +113,28 @@ export function lookupZoho(empresa: string, zmap: Record<string, ZohoAcct>): Zoh
   }
 
   if (matched.size > 0) {
-    let mrr = 0, factura_mensual = 0, semaforo = '4 - Dormido', segmento = ''
+    let acumulado = 0, factura_mensual = 0, semaforo = '4 - Dormido', segmento = ''
     for (const key of Array.from(matched)) {
       const val = zmap[key]
-      mrr            += val.mrr
+      acumulado      += val.acumulado
       factura_mensual += val.factura_mensual
       if (val.semaforo && val.semaforo !== '4 - Dormido') semaforo = val.semaforo
       if ((SEG_RANK[val.segmento] ?? 0) > (SEG_RANK[segmento] ?? 0)) segmento = val.segmento
     }
-    return { mrr, factura_mensual, semaforo, segmento }
+    return { acumulado, factura_mensual, semaforo, segmento }
   }
 
   // Fallback exact key
   return zmap[n] ? { ...zmap[n] } : null
 }
 
-/** Devuelve las cuentas con `mrr_zoho`, `factura_mensual_zoho` y `semaforo_zoho` desde Zoho. */
+/**
+ * Devuelve las cuentas con `mrr_zoho`, `factura_mensual_zoho` y `semaforo_zoho`.
+ *
+ * `mrr_zoho` conserva ese nombre en la base por instrucción de dirección, pero
+ * desde el 17 sep 2026 trae el ACUMULADO, no una mensualidad. En pantalla se
+ * rotula «Acumulado recurrente» y queda fuera de toda suma mensual.
+ */
 export async function enrichCuentasWithZoho<T extends { empresa: string }>(
   cuentas: T[],
 ): Promise<(T & { mrr_zoho: number | null; factura_mensual_zoho: number | null; semaforo_zoho: string | null })[]> {
@@ -113,7 +143,7 @@ export async function enrichCuentasWithZoho<T extends { empresa: string }>(
     const z = lookupZoho(c.empresa, zmap)
     return {
       ...c,
-      mrr_zoho:             z?.mrr             ?? null,
+      mrr_zoho:             z?.acumulado       ?? null,
       factura_mensual_zoho: z?.factura_mensual ?? null,
       semaforo_zoho:        z?.semaforo        ?? null,
     }
