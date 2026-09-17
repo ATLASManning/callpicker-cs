@@ -76,7 +76,10 @@ export const ROLES: Record<Rol, DefinicionRol> = {
       '/api/activaciones', '/api/activaciones-excel',
       '/api/chat',
       '/api/cuentas', '/api/adopcion', '/api/radar', '/api/zoho-lookup',
-      '/api/facturacion', '/api/facturacion-excel', '/api/cortes',
+      // /api/ltv es la fuente nueva del apartado LTV. Sin esto, el rol abre
+      // /facturacion y recibe 403: la pagina carga y la tabla sale vacia,
+      // que es peor que un error porque nadie sabe que falta un permiso.
+      '/api/facturacion', '/api/facturacion-excel', '/api/cortes', '/api/ltv',
       '/api/tickets', '/api/tickets-excel',
       '/api/enriquecimiento',
       '/api/customer-tenure',

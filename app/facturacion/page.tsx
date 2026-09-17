@@ -1,501 +1,376 @@
-﻿'use client'
-import { useState, useEffect, useCallback } from 'react'
+'use client'
+/**
+ * LTV — reconstruido sobre la nueva fuente (17 sep 2026).
+ *
+ * Dirección sustituyó el origen: la vista de Zoho que alimentaba este módulo
+ * traía datos incorrectos. Ahora viene del detalle del tablero GRC —el desglose
+ * que abre la cifra de «MRR inicio» del mes— con las doce columnas que fijó:
+ *
+ *   Cliente · clasificacion_cliente · Facturas_2026 · Meses Activo ·
+ *   Importe Acumulado Recurrente · MRR Inicio Contrato (BCY) ·
+ *   MRR Fin Contrato (BCY) · Ingreso Ganado Contrato (BCY) · Movimiento MRR ·
+ *   Ingreso Perdido Contrato (BCY) Real ·
+ *   Ingreso Perdido Contrato (BCY) Fraude-Reestructura · Rango MRR Fin Contrato
+ *
+ * ── LA DECISIÓN DE DISEÑO QUE SOSTIENE TODO ────────────────────────────────
+ * La pérdida se publica PARTIDA EN DOS y nunca junta. El corte se toma con el
+ * mes en curso, y el archivo marca «Churn confirmado» a todo contrato que
+ * todavía no se ha facturado: las 1,085 filas así marcadas traen MRR Fin en
+ * cero y pérdida exactamente igual al MRR inicio, sin una sola parcial. De
+ * ésas, 61 son cuentas que siguen activas o en riesgo en la propia base —una
+ * con 95 meses de antigüedad— y suman $546,811.
+ *
+ * Una sola cifra de pérdida convertiría este módulo en una alarma falsa de
+ * medio millón. Por eso el KPI grande es la confirmada, la provisional va al
+ * lado con su propio color, y hay una pestaña que las nombra una por una.
+ */
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import {
-  DollarSign, Users, TrendingUp, AlertCircle, RefreshCw,
-  Search, ChevronLeft, ChevronRight, Wifi, WifiOff,
+  DollarSign, TrendingUp, TrendingDown, Users, AlertTriangle,
+  RefreshCw, Search, Layers, Clock, ArrowUpRight,
 } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
 
-/* ── Tipos ─────────────────────────────────────────────────────────────────── */
-interface FactRow {
-  CID: string
-  'Nombre del Cliente': string
-  'Tamaño Empresa': string
-  'Clasificación LTV': string
-  'Clasificación Cliente': string
-  'Segmento Factura': string
-  'MRR Limpio': number | null
-  'Importe Acumulado Recurrente': number | null
-  'Importe Acumulado Bruto': number | null
-  'Meses Activo': number | null
-  'Meses con Factura': number | null
-  'Primera Factura': string
-  'Última Factura': string
-  'Semáforo Actividad': string
-  'Es One Timer': string
-  'MRR por Mes Facturado': number | null
-  'Total Facturas': number | null
-  'Cohorte Periodo': string
-  'Días sin Factura': number | null
-  'Ticket Promedio': number | null
-  'Rango LTV': string
-  'RFC': string
-  'Correo': string
+type Fila = {
+  cliente: string; clasif: string | null; facturas: number; meses: number
+  acumulado: number; mrrIni: number; mrrFin: number; ganado: number
+  movimiento: string | null; perdidaReal: number; perdidaFraude: number
+  rango: string | null; consecutivo: string | null; asesor: string | null
+  cid: string | null; estadoBase: string | null; enCartera: boolean; provisional: boolean
+}
+type Grupo = { clave: string; n: number; acumulado: number; mrrIni: number; perdida: number }
+type Datos = {
+  meta: { mes: string | null; origen: string; filas: number; clientes: number
+    mrrInicio: number; mrrFin: number; descuadre: number; provisionales: number
+    provisionalMonto: number; advertencia: string }
+  alcance: { filas: number; clientes: number; enCartera: number; acumulado: number
+    mrrInicio: number; mrrFin: number; ganado: number
+    perdidaConfirmada: number; perdidaProvisional: number; provisionales: number
+    perdidaFraude: number }
+  porClasif: Grupo[]; porMovimiento: Grupo[]; porRango: Grupo[]; porAsesor: Grupo[]
+  top: Fila[]; provisionales: Fila[]
+  opciones: { clasif: string[]; movimiento: string[]; rango: string[]; asesor: string[] }
 }
 
-interface PeriodoItem { fecha: string; count: number; mrr: number }
+const AZUL = '#1B3FCC', VERDE = '#15803D', ROJO = '#B91C1C', AMBAR = '#B45309'
+const f$ = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
+const nf = (n: number) => n.toLocaleString('es-MX')
 
-interface Stats {
-  total: number; totalMrr: number; avgMrr: number
-  activos: number; dormidos: number; onTimers: number
-  bySegmento: Record<string, { count: number; mrr: number }>
-  byLTV: Record<string, { count: number; mrr: number }>
-  byRango: Record<string, { count: number; mrr: number }>
-  bySemaforo: Record<string, number>
-  topClientes: { nombre: string; mrr: number; clas: string; semaforo: string; rango: string }[]
-  source: string
-}
+type Tab = 'clientes' | 'cortes' | 'provisional'
 
-interface ListResult { total: number; page: number; size: number; rows: FactRow[]; source: string }
+export default function LTVPage() {
+  const [d, setD] = useState<Datos | null>(null)
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>('clientes')
 
-interface FilterOpts {
-  meses: string[]; ltvs: string[]; segmentos: string[]; tamanos: string[]; semaforos: string[]
-}
-
-/* ── Helpers ───────────────────────────────────────────────────────────────── */
-const fmt$ = (n: number | null | undefined) =>
-  n == null ? '—' : '$' + Math.round(n).toLocaleString('es-MX')
-
-const SEMAFORO_COLOR: Record<string, string> = {
-  '1 - Activo':    '#22c55e',
-  '2 - En riesgo': '#f59e0b',
-  '3 - Irregular': '#f97316',
-  '4 - Dormido':   '#94a3b8',
-}
-
-// Color por prefijo numérico — funciona con cualquier etiqueta que Zoho devuelva (VIP, Alto, etc.)
-function getLtvColor(val: string): string {
-  const n = parseInt(val)
-  if (n === 1) return '#1B3FCC'
-  if (n === 2) return '#6366f1'
-  if (n === 3) return '#f59e0b'
-  if (n === 4) return '#f97316'
-  if (n === 5) return '#ef4444'
-  return '#94a3b8'
-}
-
-function getBadgeStyle(val: string, map: Record<string, string>, colorFn?: (v: string) => string) {
-  const color = colorFn ? colorFn(val) : (map[val] ?? '#94a3b8')
-  return { background: color + '18', color, fontWeight: 700 as const, fontSize: 10, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' as const }
-}
-
-function KpiCard({ icon: Icon, label, value, sub, color }: {
-  icon: React.ElementType; label: string; value: string; sub?: string; color: string
-}) {
-  return (
-    <div className="cp-card" style={{ borderRadius: 14, padding: '18px 20px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-      <div style={{ width: 40, height: 40, borderRadius: 10, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon size={17} style={{ color }} />
-      </div>
-      <div>
-        <p style={{ fontSize: 11, color: '#64748b', fontWeight: 600, marginBottom: 2 }}>{label}</p>
-        <p style={{ fontSize: 20, fontWeight: 800, color: '#fff', lineHeight: 1 }}>{value}</p>
-        {sub && <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>{sub}</p>}
-      </div>
-    </div>
-  )
-}
-
-function BarGroup({ title, data, colorMap, colorFn, mrr }: {
-  title: string
-  data: Record<string, { count: number; mrr: number } | number>
-  colorMap?: Record<string, string>
-  colorFn?: (key: string) => string
-  mrr?: boolean
-}) {
-  const entries = Object.entries(data).sort((a, b) => {
-    const av = typeof a[1] === 'number' ? a[1] : a[1].mrr
-    const bv = typeof b[1] === 'number' ? b[1] : b[1].mrr
-    return bv - av
-  })
-  const max = entries.reduce((m, [, v]) => {
-    const val = typeof v === 'number' ? v : (mrr ? v.mrr : v.count)
-    return Math.max(m, val)
-  }, 1)
-
-  return (
-    <div className="cp-card" style={{ borderRadius: 14, padding: 20 }}>
-      <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 14 }}>{title}</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {entries.map(([key, v]) => {
-          const val = typeof v === 'number' ? v : (mrr ? v.mrr : v.count)
-          const count = typeof v === 'number' ? v : v.count
-          const pct = Math.round((val / max) * 100)
-          const color = colorFn ? colorFn(key) : (colorMap?.[key] ?? '#1B3FCC')
-          return (
-            <div key={key}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>{key || 'Sin datos'}</span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
-                  {mrr && typeof v !== 'number' ? fmt$(v.mrr) + ' · ' : ''}{count} ctas
-                </span>
-              </div>
-              <div style={{ height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 99 }}>
-                <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 99 }} />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-/* ── Componente principal ──────────────────────────────────────────────────── */
-export default function FacturacionPage() {
-  const [periodos, setPeriodos] = useState<PeriodoItem[]>([])
-  const [totalGeneral, setTotalGeneral] = useState(0)
-  const [filtroActivo, setFiltroActivo] = useState('__all__')
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [list, setList] = useState<ListResult | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [loadingList, setLoadingList] = useState(false)
-  const [error, setError] = useState('')
-  const [source, setSource] = useState('')
+  const [clasif, setClasif] = useState('')
+  const [mov, setMov] = useState('')
+  const [rango, setRango] = useState('')
+  const [asesor, setAsesor] = useState('')
+  const [cartera, setCartera] = useState(false)
   const [q, setQ] = useState('')
-  const [page, setPage] = useState(1)
-  const [tab, setTab] = useState<'resumen' | 'clientes' | 'top'>('resumen')
 
-  /* ── Filtros de tabla ────────────────────────────────────────────── */
-  const [filterOpts, setFilterOpts] = useState<FilterOpts>({ meses: [], ltvs: [], segmentos: [], tamanos: [], semaforos: [] })
-  const [filtroMes,     setFiltroMes]     = useState('')
-  const [filtroLtv,     setFiltroLtv]     = useState('')
-  const [filtroSeg,     setFiltroSeg]     = useState('')
-  const [filtroTamano,  setFiltroTamano]  = useState('')
-  const [filtroSemaforo, setFiltroSemaforo] = useState('')
+  const cargar = useCallback(async () => {
+    setCargando(true); setError(null)
+    const p = new URLSearchParams()
+    if (clasif) p.set('clasif', clasif)
+    if (mov) p.set('movimiento', mov)
+    if (rango) p.set('rango', rango)
+    if (asesor) p.set('asesor', asesor)
+    if (cartera) p.set('cartera', '1')
+    if (q.trim()) p.set('q', q.trim())
+    try {
+      const r = await fetch('/api/ltv?' + p.toString())
+      const j = await r.json()
+      if (!r.ok || j.error) { setError(j.error ?? 'No se pudo cargar.'); setD(null) }
+      else setD(j)
+    } catch (e) { setError(String(e)) } finally { setCargando(false) }
+  }, [clasif, mov, rango, asesor, cartera, q])
 
-  useEffect(() => {
-    setLoading(true)
-    Promise.all([
-      fetch('/api/facturacion?mode=periodos').then(r => r.json()),
-      fetch('/api/facturacion?mode=filters').then(r => r.json()),
-    ]).then(([periodos, filters]) => {
-      if (periodos.error) { setError(periodos.error); return }
-      setPeriodos(periodos.periodos ?? [])
-      setTotalGeneral(periodos.total ?? 0)
-      setSource(periodos.source ?? '')
-      if (!filters.error) setFilterOpts({
-        meses:     filters.meses     ?? [],
-        ltvs:      filters.ltvs      ?? [],
-        segmentos: filters.segmentos ?? [],
-        tamanos:   filters.tamanos   ?? [],
-        semaforos: filters.semaforos ?? [],
-      })
-    })
-      .catch(() => setError('No se pudo conectar con la API'))
-      .finally(() => setLoading(false))
-  }, [])
+  useEffect(() => { const t = setTimeout(cargar, q ? 350 : 0); return () => clearTimeout(t) }, [cargar, q])
 
-  useEffect(() => {
-    const url = filtroActivo === '__all__'
-      ? '/api/facturacion?mode=stats'
-      : `/api/facturacion?mode=stats&fecha=${encodeURIComponent(filtroActivo)}`
-    fetch(url).then(r => r.json()).then(d => { if (!d.error) setStats(d) })
-  }, [filtroActivo])
-
-  const fetchList = useCallback(() => {
-    setLoadingList(true)
-    const params = new URLSearchParams({ mode: 'list', page: String(page), size: '25' })
-    if (filtroActivo !== '__all__') params.set('fecha', filtroActivo)
-    if (q)             params.set('q',      q)
-    if (filtroMes)     params.set('mes',    filtroMes)
-    if (filtroLtv)     params.set('ltv',    filtroLtv)
-    if (filtroSeg)     params.set('seg',    filtroSeg)
-    if (filtroTamano)  params.set('tamano', filtroTamano)
-    if (filtroSemaforo) params.set('sema',  filtroSemaforo)
-    fetch(`/api/facturacion?${params}`)
-      .then(r => r.json())
-      .then(d => { if (!d.error) setList(d) })
-      .finally(() => setLoadingList(false))
-  }, [filtroActivo, page, q, filtroMes, filtroLtv, filtroSeg, filtroTamano, filtroSemaforo])
-
-  useEffect(() => { if (tab === 'clientes') fetchList() }, [tab, fetchList])
-
-  const totalPages = list ? Math.ceil(list.total / 25) : 0
-
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', flexDirection: 'column', gap: 12 }}>
-      <RefreshCw size={28} style={{ color: '#1B3FCC', animation: 'spin 1s linear infinite' }} />
-      <p style={{ color: '#64748b', fontSize: 14 }}>Cargando datos de Zoho Analytics…</p>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
-  )
-
-  if (error || (!loading && periodos.length === 0)) return (
-    <div style={{ padding: 32 }}>
-      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 14, padding: 28, maxWidth: 540 }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <WifiOff size={20} style={{ color: '#ef4444', flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <p style={{ fontWeight: 700, color: '#dc2626', marginBottom: 6 }}>Sin conexión a Zoho Analytics</p>
-            <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>
-              {error || 'No se encontraron datos LTV. Verifica que las credenciales de Zoho estén configuradas y el usuario tenga acceso al workspace.'}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+  const a = d?.alcance
+  const hayFiltro = !!(clasif || mov || rango || asesor || cartera || q.trim())
 
   return (
-    <div style={{ padding: '28px 32px', background: '#f8fafc', minHeight: '100vh' }}>
+    <div className="p-6 max-w-[1500px] mx-auto">
+      <PageHeader
+        title="LTV"
+        subtitle={d?.meta.mes
+          ? `Valor de vida por cliente · corte de ${d.meta.mes} · ${nf(d.meta.clientes)} clientes`
+          : 'Valor de vida por cliente'}
+      />
 
-      {/* Header */}
-      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', margin: 0 }}>Facturación · LTV</h1>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-            {totalGeneral.toLocaleString()} clientes · {' '}
-            {source === 'zoho'
-              ? <><Wifi size={11} style={{ color: '#22c55e' }} /><span style={{ color: '#22c55e', fontWeight: 600 }}>Zoho en vivo</span></>
-              : source === 'supabase'
-              ? <><WifiOff size={11} style={{ color: '#d97706' }} /><span style={{ color: '#d97706', fontWeight: 600 }}>Datos locales (Supabase)</span></>
-              : <><WifiOff size={11} style={{ color: '#ef4444' }} /><span style={{ color: '#ef4444', fontWeight: 600 }}>Sin datos</span></>
-            }
+      {error && (
+        <div className="rounded-xl px-4 py-3 mb-5" style={{ background: '#FEE2E2', border: '1px solid #FCA5A5' }}>
+          <p className="text-sm font-semibold" style={{ color: '#B91C1C' }}>{error}</p>
+          <p className="text-xs mt-1" style={{ color: '#7F1D1D' }}>
+            El módulo se alimenta de <code>data/ltv-zoho.json</code>. Se genera con el export del mes:
+            en el tablero GRC, clic derecho sobre el MRR inicio → «Ver datos subyacentes» → Más → Exportar Vista.
           </p>
         </div>
-        <button onClick={() => window.location.reload()}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#374151', fontWeight: 600 }}>
-          <RefreshCw size={13} /> Actualizar
+      )}
+
+      {/* ── El aviso del mes en curso. Va arriba y no en una nota al pie:
+             es lo que evita que alguien lea medio millón de pérdida falsa. ── */}
+      {d && d.alcance.provisionales > 0 && (
+        <div className="rounded-xl px-4 py-3 mb-5"
+          style={{ background: '#FEF3C7', border: '1px solid #FCD34D' }}>
+          <p className="text-sm font-bold mb-1" style={{ color: '#92400E' }}>
+            El mes está en curso: {d.alcance.provisionales} cuentas marcadas como baja siguen vivas
+          </p>
+          <p className="text-xs leading-relaxed" style={{ color: '#92400E' }}>
+            El corte clasifica «Churn confirmado» a todo contrato que aún no se factura este mes —MRR Fin en cero
+            y pérdida exactamente igual al MRR inicio, sin una sola parcial—. De esas cuentas,
+            <strong> {d.alcance.provisionales} siguen activas o en riesgo</strong> en la base del tablero y suman
+            <strong> {f$(d.alcance.perdidaProvisional)}</strong>. No están sumadas a la pérdida confirmada.
+            Se listan una por una en la pestaña «Por confirmar».
+          </p>
+        </div>
+      )}
+
+      {/* ── Indicadores ────────────────────────────────────────────── */}
+      <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))' }}>
+        <Kpi icon={DollarSign} color={AZUL} label="Acumulado recurrente"
+          valor={a ? f$(a.acumulado) : '—'} nota="Lo que han pagado en toda su vida" />
+        <Kpi icon={Users} color="#0891B2" label="Clientes"
+          valor={a ? nf(a.clientes) : '—'} nota={a ? `${a.enCartera} en cartera gestionada` : undefined} />
+        <Kpi icon={TrendingUp} color={VERDE} label="MRR inicio del mes"
+          valor={a ? f$(a.mrrInicio) : '—'} nota={a ? `Fin: ${f$(a.mrrFin)}` : undefined} />
+        <Kpi icon={TrendingDown} color={ROJO} label="Pérdida confirmada"
+          valor={a ? f$(a.perdidaConfirmada) : '—'} nota="Cuentas que sí se fueron" />
+        <Kpi icon={Clock} color={AMBAR} label="Por confirmar"
+          valor={a ? f$(a.perdidaProvisional) : '—'} nota="Aún no facturado, no es baja" />
+        <Kpi icon={ArrowUpRight} color="#7C3AED" label="Ingreso ganado"
+          valor={a ? f$(a.ganado) : '—'} nota="Upsell y reactivaciones" />
+      </div>
+
+      {/* ── Filtros ────────────────────────────────────────────────── */}
+      <div className="flex gap-2 flex-wrap items-center mb-4">
+        <div className="relative" style={{ minWidth: 230 }}>
+          <Search size={14} className="absolute left-3 top-2.5" style={{ color: '#94A3B8' }} />
+          <input value={q} onChange={e => setQ(e.target.value)}
+            placeholder="Cliente, CID o consecutivo…"
+            className="w-full text-sm"
+            style={{ padding: '7px 12px 7px 32px', borderRadius: 9, border: '1.5px solid #E2E8F0', color: '#0F172A', background: '#fff' }} />
+        </div>
+        <CustomSelect value={clasif} onChange={setClasif} placeholder="Toda clasificación"
+          options={[{ value: '', label: 'Toda clasificación' }, ...(d?.opciones.clasif ?? []).map(v => ({ value: v, label: v }))]} />
+        <CustomSelect value={mov} onChange={setMov} placeholder="Todo movimiento"
+          options={[{ value: '', label: 'Todo movimiento' }, ...(d?.opciones.movimiento ?? []).map(v => ({ value: v, label: v }))]} />
+        <CustomSelect value={rango} onChange={setRango} placeholder="Todo rango"
+          options={[{ value: '', label: 'Todo rango' }, ...(d?.opciones.rango ?? []).map(v => ({ value: v, label: v }))]} />
+        <CustomSelect value={asesor} onChange={setAsesor} placeholder="Todo asesor"
+          options={[{ value: '', label: 'Todo asesor' }, ...(d?.opciones.asesor ?? []).map(v => ({ value: v, label: v }))]} />
+        <button onClick={() => setCartera(c => !c)} style={{
+          padding: '7px 14px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+          border: `1.5px solid ${cartera ? AZUL : '#E2E8F0'}`,
+          background: cartera ? AZUL : '#fff', color: cartera ? '#fff' : '#475569',
+        }}>Solo mi cartera</button>
+        {hayFiltro && (
+          <button onClick={() => { setClasif(''); setMov(''); setRango(''); setAsesor(''); setCartera(false); setQ('') }}
+            style={{ padding: '7px 12px', borderRadius: 9, fontSize: 12.5, border: '1.5px solid #E2E8F0', background: '#fff', color: '#B91C1C', cursor: 'pointer' }}>
+            Limpiar
+          </button>
+        )}
+        <button onClick={cargar} title="Recargar"
+          style={{ padding: '7px 11px', borderRadius: 9, border: '1.5px solid #E2E8F0', background: '#fff', cursor: 'pointer' }}>
+          <RefreshCw size={14} className={cargando ? 'animate-spin' : ''} style={{ color: '#475569' }} />
         </button>
       </div>
 
-      {/* Banner modo local */}
-      {source === 'supabase' && (
-        <div style={{
-          marginBottom: 20, padding: '12px 18px',
-          background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12,
-          display: 'flex', alignItems: 'flex-start', gap: 10,
-        }}>
-          <WifiOff size={15} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
-          <div>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#92400e' }}>
-              Zoho Analytics no disponible — mostrando datos de Supabase
-            </p>
-            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#78350f', lineHeight: 1.5 }}>
-              MRR desde registros manuales · Sin segmentación LTV avanzada · La clasificación LTV se calcula por rango de MRR.
-              Para restaurar la conexión, renueva el <strong>ZOHO_REFRESH_TOKEN</strong> en Vercel.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Selector de actividad */}
-      <div className="cp-card" style={{ borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          Filtrar por Semáforo de Actividad
-        </p>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={() => setFiltroActivo('__all__')} style={{
-            padding: '7px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700,
-            border: filtroActivo === '__all__' ? '2px solid #1B3FCC' : '1.5px solid #e2e8f0',
-            background: filtroActivo === '__all__' ? '#1B3FCC' : '#fff',
-            color: filtroActivo === '__all__' ? '#fff' : '#374151',
-          }}>
-            Todos · {totalGeneral.toLocaleString()}
-          </button>
-          {periodos.map(p => {
-            const active = filtroActivo === p.fecha
-            const color = SEMAFORO_COLOR[p.fecha] ?? '#94a3b8'
-            return (
-              <button key={p.fecha} onClick={() => { setFiltroActivo(p.fecha); setPage(1) }} style={{
-                padding: '7px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700,
-                border: active ? `2px solid ${color}` : '1.5px solid #e2e8f0',
-                background: active ? color : '#fff',
-                color: active ? '#fff' : '#374151',
-              }}>
-                {p.fecha} · {p.count}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* KPIs */}
-      {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
-          <KpiCard icon={DollarSign} label="MRR Total (limpio)" value={fmt$(stats.totalMrr)} sub={`Promedio ${fmt$(stats.avgMrr)} / cliente`} color="#1B3FCC" />
-          <KpiCard icon={Users} label="Clientes activos" value={String(stats.activos)} color="#22c55e" />
-          <KpiCard icon={TrendingUp} label="Clientes filtrados" value={String(stats.total)} sub={filtroActivo === '__all__' ? 'Base activa' : filtroActivo} color="#6366f1" />
-          <KpiCard icon={AlertCircle} label="One Timers" value={String(stats.onTimers)} sub={`${stats.total ? ((stats.onTimers / stats.total) * 100).toFixed(1) : 0}% del total`} color="#f59e0b" />
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-        {(['resumen', 'clientes', 'top'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-            background: tab === t ? '#1B3FCC' : '#fff',
-            color: tab === t ? '#fff' : '#374151',
-            boxShadow: tab === t ? '0 2px 8px rgba(27,63,204,0.25)' : '0 1px 3px rgba(0,0,0,0.08)',
-          }}>
-            {t === 'resumen' ? 'Resumen' : t === 'clientes' ? 'Clientes' : 'Top MRR'}
-          </button>
+      {/* ── Pestañas ───────────────────────────────────────────────── */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {([['clientes', `Clientes (${a ? nf(a.filas) : 0})`, Users],
+           ['cortes', 'Cómo se reparte', Layers],
+           ['provisional', `Por confirmar (${a?.provisionales ?? 0})`, Clock]] as const).map(([k, lbl, Icon]) => (
+          <button key={k} onClick={() => setTab(k)} style={{
+            display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 10,
+            border: `1.5px solid ${tab === k ? AZUL : '#E2E8F0'}`,
+            background: tab === k ? AZUL : '#fff', color: tab === k ? '#fff' : '#475569',
+            cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
+          }}><Icon size={14} /> {lbl}</button>
         ))}
       </div>
 
-      {/* ── Tab: Resumen ─────────────────────────────────────── */}
-      {tab === 'resumen' && stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <BarGroup title="MRR por Segmento" data={stats.bySegmento} mrr />
-          <BarGroup title="Clientes por Clasificación LTV" data={stats.byLTV} colorFn={getLtvColor} mrr />
-          <BarGroup title="Distribución por Rango LTV" data={stats.byRango} mrr />
-          <BarGroup title="Semáforo de Actividad" data={stats.bySemaforo} colorMap={SEMAFORO_COLOR} />
-        </div>
+      {cargando && !d && <p className="text-sm" style={{ color: '#94A3B8' }}>Cargando…</p>}
+
+      {d && tab === 'clientes' && (
+        <Tarjeta titulo="Los 100 de mayor acumulado"
+          sub="Ordenados por lo que han pagado en toda su vida, que es la pregunta de LTV — no por lo que pagan este mes. Las doce columnas son las del reporte de origen.">
+          <TablaClientes filas={d.top} />
+        </Tarjeta>
       )}
 
-      {/* ── Tab: Top MRR ─────────────────────────────────────── */}
-      {tab === 'top' && stats && (
-        <div className="cp-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
-            <p style={{ fontWeight: 700, fontSize: 13, color: '#fff' }}>Top 10 clientes por MRR</p>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              {/* El `background:'#f8fafc'` de abajo NO se aplica: globals.css
-                  línea 84 lo pisa con `.cp-card table thead tr {background:
-                  rgba(255,255,255,.05) !important}`. La fila se ve OSCURA y el
-                  blanco forzado en el <th> es lo correcto — no ponerle cp-light
-                  aquí, dejaría texto oscuro sobre fondo oscuro. */}
-              <tr style={{ background: '#f8fafc' }}>
-                {['#', 'Cliente', 'MRR', 'Rango LTV', 'Clasificación', 'Semáforo'].map(h => (
-                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {stats.topClientes.map((c, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '10px 14px', color: '#94a3b8', fontWeight: 700 }}>#{i + 1}</td>
-                  <td style={{ padding: '10px 14px', fontWeight: 600, color: '#fff' }}>{c.nombre}</td>
-                  <td style={{ padding: '10px 14px', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(c.mrr)}</td>
-                  <td style={{ padding: '10px 14px' }}><span style={getBadgeStyle(c.rango, {})}>{c.rango || '—'}</span></td>
-                  <td style={{ padding: '10px 14px' }}><span style={getBadgeStyle(c.clas, {}, getLtvColor)}>{c.clas || '—'}</span></td>
-                  <td style={{ padding: '10px 14px' }}><span style={getBadgeStyle(c.semaforo, SEMAFORO_COLOR)}>{c.semaforo || '—'}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* ── Tab: Clientes ─────────────────────────────────────── */}
-      {tab === 'clientes' && (
-        <div className="cp-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
-
-          {/* ── Barra de filtros ──────────────────────────────────── */}
-          <div style={{ padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', background: 'rgba(255,255,255,0.04)' }}>
-            {([
-              { label: 'MES',           placeholder: 'Todos los meses',          opts: filterOpts.meses,     val: filtroMes,      set: setFiltroMes },
-              { label: 'CLASIFICACIÓN', placeholder: 'Todas las clasificaciones', opts: filterOpts.ltvs,      val: filtroLtv,      set: setFiltroLtv },
-              { label: 'SEGMENTO',      placeholder: 'Todos los segmentos',       opts: filterOpts.segmentos, val: filtroSeg,      set: setFiltroSeg },
-              { label: 'TAMAÑO',        placeholder: 'Todos los tamaños',         opts: filterOpts.tamanos,   val: filtroTamano,   set: setFiltroTamano },
-              { label: 'SEMÁFORO',      placeholder: 'Todos los estados',         opts: filterOpts.semaforos, val: filtroSemaforo, set: setFiltroSemaforo },
-            ] as { label: string; placeholder: string; opts: string[]; val: string; set: (v: string) => void }[]).map(f => (
-              <div key={f.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{f.label}</span>
-                <CustomSelect
-                  value={f.val}
-                  onChange={v => { f.set(v); setPage(1) }}
-                  options={[{ value: '', label: f.placeholder }, ...f.opts.map(o => ({ value: o, label: o }))]}
-                  style={{
-                    padding: '7px 32px 7px 12px', borderRadius: 8,
-                    border: f.val ? '1.5px solid #1B3FCC' : '1.5px solid #e2e8f0',
-                    fontSize: 13, background: '#fff',
-                    color: f.val ? '#1B3FCC' : '#374151',
-                    fontWeight: f.val ? 600 : 400, outline: 'none',
-                    minWidth: 170, maxWidth: 220,
-                  }}
-                />
-              </div>
-            ))}
-
-            {/* Limpiar filtros */}
-            {(filtroMes || filtroLtv || filtroSeg || filtroTamano || filtroSemaforo) && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <span style={{ fontSize: 10, color: 'transparent' }}>x</span>
-                <button
-                  onClick={() => { setFiltroMes(''); setFiltroLtv(''); setFiltroSeg(''); setFiltroTamano(''); setFiltroSemaforo(''); setPage(1) }}
-                  style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Limpiar filtros
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* ── Buscador ──────────────────────────────────────────── */}
-          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 10, alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1 }}>
-              <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input value={q} onChange={e => { setQ(e.target.value); setPage(1) }}
-                onKeyDown={e => e.key === 'Enter' && fetchList()}
-                placeholder="Buscar por cliente, segmento…"
-                style={{ width: '100%', padding: '8px 10px 8px 30px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
-            <button onClick={fetchList} style={{ padding: '8px 14px', borderRadius: 8, background: '#1B3FCC', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-              Buscar
-            </button>
-            {list && <span style={{ fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>{list.total.toLocaleString()} clientes</span>}
-          </div>
-
-          {loadingList
-            ? <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Cargando…</div>
-            : list && list.rows.length > 0
-              ? (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                    <thead>
-                      {/* Misma razón que la tabla de arriba: la fila se ve oscura. */}
-                      <tr style={{ background: '#f8fafc' }}>
-                        {['Cliente', 'Segmento', 'Factura Mensual', 'MRR', 'Acumulado Rec.', 'Clasif. LTV', 'Semáforo', 'Meses Activo', 'Última Factura'].map(h => (
-                          <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: '#374151', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {list.rows.map((r, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '9px 12px', maxWidth: 200 }}>
-                            <div style={{ fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r['Nombre del Cliente'] || '—'}</div>
-                            <div style={{ fontSize: 10, color: '#94a3b8' }}>{r['Tamaño Empresa']}</div>
-                          </td>
-                          <td style={{ padding: '9px 12px', color: '#374151' }}>{r['Segmento Factura'] || '—'}</td>
-                          <td style={{ padding: '9px 12px', fontWeight: 700, color: '#fff' }}>{fmt$(r['Ticket Promedio'])}</td>
-                          <td style={{ padding: '9px 12px', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(r['MRR Limpio'])}</td>
-                          <td style={{ padding: '9px 12px', color: '#374151' }}>{fmt$(r['Importe Acumulado Recurrente'])}</td>
-                          <td style={{ padding: '9px 12px' }}><span style={getBadgeStyle(r['Clasificación LTV'], {}, getLtvColor)}>{r['Clasificación LTV'] || '—'}</span></td>
-                          <td style={{ padding: '9px 12px' }}><span style={getBadgeStyle(r['Semáforo Actividad'], SEMAFORO_COLOR)}>{r['Semáforo Actividad'] || '—'}</span></td>
-                          <td style={{ padding: '9px 12px', color: '#374151', textAlign: 'center' }}>{r['Meses Activo'] ?? '—'}</td>
-                          <td style={{ padding: '9px 12px', color: '#64748b' }}>{r['Última Factura'] || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )
-              : <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Sin resultados</div>
-          }
-
-          {list && totalPages > 1 && (
-            <div style={{ padding: '12px 18px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Página {page} de {totalPages}</span>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}>
-                  <ChevronLeft size={13} />
-                </button>
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}>
-                  <ChevronRight size={13} />
-                </button>
-              </div>
-            </div>
+      {d && tab === 'cortes' && (
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))' }}>
+          <Tarjeta titulo="Por clasificación de cliente" sub="AAA, AA, A, B y C.">
+            <TablaGrupo filas={d.porClasif} />
+          </Tarjeta>
+          <Tarjeta titulo="Por movimiento del MRR"
+            sub="Lo que le pasó al contrato este mes. «Churn confirmado» incluye lo que aún no se factura — ver la pestaña Por confirmar.">
+            <TablaGrupo filas={d.porMovimiento} />
+          </Tarjeta>
+          <Tarjeta titulo="Por rango de MRR fin" sub="El tamaño con el que cierran el mes.">
+            <TablaGrupo filas={d.porRango} />
+          </Tarjeta>
+          {d.porAsesor.length > 0 && (
+            <Tarjeta titulo="Por asesor" sub="Solo las cuentas que están en la cartera gestionada.">
+              <TablaGrupo filas={d.porAsesor} />
+            </Tarjeta>
           )}
         </div>
       )}
+
+      {d && tab === 'provisional' && (
+        <Tarjeta titulo="Marcadas como baja, pero siguen vivas"
+          sub={`${d.provisionales.length} cuentas que el corte clasifica «Churn confirmado» y que siguen activas o en riesgo en la base del tablero. Antes de reportar cualquiera como baja hay que confirmarla: el mes todavía corre.`}>
+          {d.provisionales.length === 0
+            ? <p className="text-sm" style={{ color: '#94A3B8' }}>Ninguna con este filtro.</p>
+            : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead><tr>
+                    {['#', 'Cliente', 'Asesor', 'Estado en base', 'Meses activo', 'Lo que declararía perdido'].map((h, i) => (
+                      <th key={h} style={{ ...th, textAlign: i > 3 ? 'right' : 'left' }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {d.provisionales.map((f, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                        <td style={td}>{f.consecutivo ?? '—'}</td>
+                        <td style={{ ...td, fontWeight: 600, color: '#0F172A' }}>{f.cliente}</td>
+                        <td style={td}>{f.asesor ?? '—'}</td>
+                        <td style={td}>
+                          <span style={{
+                            fontSize: 10.5, padding: '2px 8px', borderRadius: 6, fontWeight: 700,
+                            background: f.estadoBase === 'activo' ? '#DCFCE7' : '#FEF3C7',
+                            color: f.estadoBase === 'activo' ? VERDE : AMBAR,
+                          }}>{f.estadoBase}</span>
+                        </td>
+                        <td style={{ ...td, textAlign: 'right', fontWeight: f.meses >= 60 ? 700 : 400, color: f.meses >= 60 ? AMBAR : '#334155' }}>{f.meses}</td>
+                        <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: AMBAR }}>{f$(f.perdidaReal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="text-[11px] mt-3 leading-relaxed" style={{ color: '#64748B' }}>
+                  Las de 60 meses o más van resaltadas: una cuenta con esa antigüedad no se da de baja en silencio,
+                  y su aparición aquí es la señal más clara de que la etiqueta del corte va adelantada.
+                </p>
+              </div>
+            )}
+        </Tarjeta>
+      )}
     </div>
+  )
+}
+
+/* ── Piezas ───────────────────────────────────────────────────────────── */
+
+const th: React.CSSProperties = {
+  padding: '7px 9px', color: '#64748B', fontWeight: 700, fontSize: 10.5,
+  whiteSpace: 'nowrap', borderBottom: '1.5px solid #E2E8F0', textAlign: 'left',
+}
+const td: React.CSSProperties = { padding: '6px 9px', color: '#334155', whiteSpace: 'nowrap' }
+
+function Kpi({ icon: Icon, label, valor, nota, color }: {
+  icon: React.ElementType; label: string; valor: string; nota?: string; color: string
+}) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '13px 16px' }}>
+      <div className="flex items-center gap-2 mb-1">
+        <Icon size={14} style={{ color }} />
+        <span className="text-[11px] font-semibold" style={{ color: '#64748B' }}>{label}</span>
+      </div>
+      <p className="text-xl font-extrabold tabular-nums" style={{ color, margin: 0 }}>{valor}</p>
+      {nota && <p className="text-[10px] mt-0.5" style={{ color: '#94A3B8' }}>{nota}</p>}
+    </div>
+  )
+}
+
+function Tarjeta({ titulo, sub, children }: { titulo: string; sub?: string; children: React.ReactNode }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
+      <p className="text-sm font-bold" style={{ color: '#0F172A', marginBottom: 3 }}>{titulo}</p>
+      {sub && <p className="text-[11.5px] leading-relaxed mb-3" style={{ color: '#64748B' }}>{sub}</p>}
+      {children}
+    </div>
+  )
+}
+
+/** Las doce columnas del reporte de origen, en su orden. */
+function TablaClientes({ filas }: { filas: Fila[] }) {
+  const CAB = ['Cliente', 'Clasif.', 'Facturas 2026', 'Meses activo', 'Acumulado recurrente',
+    'MRR inicio', 'MRR fin', 'Ingreso ganado', 'Movimiento MRR',
+    'Pérdida real', 'Fraude / reestructura', 'Rango MRR fin']
+  return (
+    <div style={{ overflowX: 'auto', maxHeight: 620, overflowY: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+        <thead><tr>
+          {CAB.map((h, i) => (
+            <th key={h} style={{ ...th, textAlign: i >= 2 && i !== 8 && i !== 11 ? 'right' : 'left', position: 'sticky', top: 0, background: '#fff' }}>{h}</th>
+          ))}
+        </tr></thead>
+        <tbody>
+          {filas.map((f, i) => (
+            <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+              <td style={{ ...td, fontWeight: 600, color: '#0F172A', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {f.consecutivo && <span style={{ color: AZUL, fontWeight: 700, marginRight: 6 }}>{f.consecutivo}</span>}
+                {f.cliente}
+              </td>
+              <td style={td}>{f.clasif ?? '—'}</td>
+              <td style={{ ...td, textAlign: 'right' }}>{f.facturas}</td>
+              <td style={{ ...td, textAlign: 'right' }}>{f.meses}</td>
+              <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: AZUL }}>{f$(f.acumulado)}</td>
+              <td style={{ ...td, textAlign: 'right' }}>{f$(f.mrrIni)}</td>
+              <td style={{ ...td, textAlign: 'right' }}>{f$(f.mrrFin)}</td>
+              <td style={{ ...td, textAlign: 'right', color: f.ganado > 0 ? VERDE : '#94A3B8' }}>{f$(f.ganado)}</td>
+              <td style={td}>
+                <span style={{
+                  fontSize: 10, padding: '2px 7px', borderRadius: 5, fontWeight: 600,
+                  background: f.provisional ? '#FEF3C7' : '#F1F5F9',
+                  color: f.provisional ? AMBAR : '#475569',
+                }}>
+                  {f.movimiento ?? '—'}{f.provisional ? ' · por confirmar' : ''}
+                </span>
+              </td>
+              <td style={{ ...td, textAlign: 'right', color: f.perdidaReal > 0 ? (f.provisional ? AMBAR : ROJO) : '#94A3B8' }}>
+                {f$(f.perdidaReal)}
+              </td>
+              <td style={{ ...td, textAlign: 'right', color: f.perdidaFraude > 0 ? AMBAR : '#94A3B8' }}>{f$(f.perdidaFraude)}</td>
+              <td style={td}>{f.rango ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function TablaGrupo({ filas }: { filas: Grupo[] }) {
+  const total = filas.reduce((s, f) => s + f.acumulado, 0)
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+      <thead><tr>
+        {['', 'Clientes', 'Acumulado', '% del total'].map((h, i) => (
+          <th key={h} style={{ ...th, textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>
+        ))}
+      </tr></thead>
+      <tbody>
+        {filas.map(f => (
+          <tr key={f.clave} style={{ borderBottom: '1px solid #F1F5F9' }}>
+            <td style={{ ...td, fontWeight: 600, color: '#0F172A' }}>{f.clave}</td>
+            <td style={{ ...td, textAlign: 'right' }}>{nf(f.n)}</td>
+            <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: AZUL }}>{f$(f.acumulado)}</td>
+            <td style={{ ...td, textAlign: 'right', color: '#64748B' }}>
+              {total > 0 ? ((100 * f.acumulado) / total).toFixed(1) + '%' : '—'}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
