@@ -223,6 +223,13 @@ function BandaInventario() {
             </div>
           ))}
         </div>
+        {I.principales.length > 12 && (
+          <p className="text-[11px] mt-2" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            Se listan las 12 de mayor volumen; hay {I.principales.length - 12} clientes más con bandeja principal
+            medida. El corte se declara porque una lista que anuncia {I.clientesConPrincipal} y dibuja 12 sin decirlo
+            miente por omisión.
+          </p>
+        )}
         <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
           Cuando una sola bandeja concentra el 90% o más del tráfico de un cliente que tiene varias, las demás no son
           neutrales: están publicadas en algún lado y mandan al cliente final a un buzón que nadie atiende.
@@ -452,9 +459,21 @@ function BandaCanales() {
 /* ── 4 · Operación ──────────────────────────────────────────────────────── */
 function BandaOperacion() {
   const nc = S.noCierran as any[]
-  const bal = (S.balance as any[]).filter(x => x.valor < 0.6)
   const bots = S.automatizadas as any[]
   const maxNc = Math.max(...nc.map(x => x.valor), 1)
+
+  /* El balance tiene DOS colas y antes solo se dibujaba una.
+   *
+   * El filtro era `valor < 0.6` y se renderizaban 5 de 73 filas. Las 14 que
+   * están por encima de 1.5 no aparecían nunca, y no son «una versión leve»
+   * del mismo problema: son el problema contrario. Por debajo de 0.6 se
+   * responde menos de lo que entra —posible desatención—; por encima de 1.5
+   * sale mucho más de lo que entra, que es difusión o cobranza saliente, no
+   * conversación. San Javier marca 6.87 y FINSUS COBRANZA 5.84: ninguno de
+   * los dos había salido jamás en esta pantalla. */
+  const todosBal = S.balance as any[]
+  const balBajo = todosBal.filter(x => x.valor < 0.6)
+  const balAlto = todosBal.filter(x => x.valor > 1.5).sort((a, b) => b.valor - a.valor)
 
   return (
     <div className="space-y-4">
@@ -462,8 +481,13 @@ function BandaOperacion() {
         titulo="Conversaciones que no se cierran"
         base={`${nc.length} clientes con 100 o más mensajes por conversación. El corte NO es un percentil del portafolio: 100 mensajes en un mismo hilo no es "arriba del promedio", es un proceso que no marca resolución.`}
       >
+        {/* Se pintan TODAS. Antes había un .slice(0, 10) mientras el título y
+            la pestaña decían 13: tres clientes se caían sin que nada lo
+            dijera, y eran justo los del final de la lista —los que nadie
+            revisa— con el mismo problema que los de arriba. Una tabla que
+            anuncia un número y dibuja otro miente por omisión. */}
         <div className="space-y-2.5">
-          {nc.slice(0, 10).map(x => (
+          {nc.map(x => (
             <div key={x.cid} className="flex items-center gap-3">
               <div className="w-44 flex-shrink-0 text-right">
                 <p className="text-xs font-semibold truncate" style={{ color: '#fff' }}>{x.nombre}</p>
@@ -485,8 +509,8 @@ function BandaOperacion() {
       </Bloque>
 
       <Bloque
-        titulo="Balance de la conversación"
-        base={`${bal.length} clientes por debajo de 0.60, calculado solo sobre cuentas con al menos ${n(S.baseMinimaBalance)} mensajes entrantes. Es una pregunta a investigar, no un hallazgo cerrado.`}
+        titulo="Balance de la conversación · se responde menos de lo que entra"
+        base={`${balBajo.length} clientes por debajo de 0.60, sobre ${todosBal.length} cuentas medidas con al menos ${n(S.baseMinimaBalance)} mensajes entrantes. Es una pregunta a investigar, no un hallazgo cerrado. La cola contraria —los que mandan mucho más de lo que reciben— va en el bloque siguiente: es otro problema, no una versión leve de éste.`}
       >
         <div className="rounded-xl px-4 py-3 mb-4"
           style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)' }}>
@@ -499,7 +523,7 @@ function BandaOperacion() {
           </p>
         </div>
         <div className="space-y-2">
-          {bal.map(x => (
+          {balBajo.map(x => (
             <div key={x.cid} className="flex items-center gap-3 rounded-lg px-3 py-2"
               style={{ background: 'rgba(255,255,255,0.04)' }}>
               <div className="flex-1 min-w-0">
@@ -516,6 +540,47 @@ function BandaOperacion() {
           ))}
         </div>
       </Bloque>
+
+      {balAlto.length > 0 && (
+        <Bloque
+          titulo="La cola contraria · se manda mucho más de lo que entra"
+          base={`${balAlto.length} clientes por encima de 1.50. No es lo mismo al revés: por debajo de 0.60 la pregunta es si alguien está contestando; por encima de 1.50 la pregunta es si esto sigue siendo conversación. Esta lista nunca se había publicado.`}
+        >
+          <div className="rounded-xl px-4 py-3 mb-4"
+            style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)' }}>
+            <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              <span className="font-semibold" style={{ color: '#D8B4FE' }}>Por qué importa, y por qué no es una queja.</span>{' '}
+              Mandar seis mensajes por cada uno que entra es el patrón de la difusión o la cobranza saliente, no el de
+              atender. Puede ser exactamente lo que el cliente quiere hacer — y entonces no está usando un buzón de
+              atención, está usando un canal de campañas, que se dimensiona distinto y se cotiza distinto. También
+              puede ser un envío masivo sin consentimiento, y ahí el riesgo de que Meta tumbe el número es del cliente
+              y nuestro. En los dos casos la conversación con él es sobre para qué está usando el canal.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {balAlto.map(x => (
+              <div key={x.cid} className="flex items-center gap-3 rounded-lg px-3 py-2"
+                style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold truncate" style={{ color: '#fff' }}>{x.nombre}</p>
+                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    {n(x.base)} entrantes · {n(x.mensajes)} mensajes en total
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold" style={{ color: '#A855F7' }}>{x.valor.toFixed(2)}</p>
+                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>salen / entran</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            Entre los dos bloques quedan {balBajo.length + balAlto.length} de {todosBal.length} cuentas medidas.
+            Las {todosBal.length - balBajo.length - balAlto.length} restantes están entre 0.60 y 1.50, que es el rango
+            donde el ida y vuelta se parece a una conversación: no aparecen porque no hay nada que preguntar.
+          </p>
+        </Bloque>
+      )}
 
       {bots.length > 0 && (
         <Bloque
