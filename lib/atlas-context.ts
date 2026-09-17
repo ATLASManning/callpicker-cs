@@ -192,7 +192,7 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
   Identidad: ${c.consecutivo} | CID ${c.cid ?? 'sin CID'} | Asesor: ${c.asesor} | Estado: ${c.estado} | HS ${hsFalta ? 'FALTA (sin calcular)' : c.health_score ?? '?'} | Adopción ${c.score_adopcion ?? '?'}/100 | ${antig}${alertaChurn ? `
   ALERTA CHURN: ${alertaChurn} — NO ofrecer portafolio de crecimiento; el enfoque correcto es retencion/reactivacion.` : ''}
   Facturación: ${z
-    ? `Factura mensual (Zoho EN VIVO, con subcuentas): $${Math.round(z.factura_mensual).toLocaleString('es-MX')} | MRR: $${Math.round(z.mrr).toLocaleString('es-MX')}${z.segmento ? ` | Segmento: ${z.segmento}` : ''} — ESTA es la cifra oficial cuando pregunten cuanto factura`
+    ? `Factura mensual (Zoho EN VIVO, con subcuentas): $${Math.round(z.factura_mensual).toLocaleString('es-MX')} | Acumulado recurrente (lo pagado en toda su vida, NO mensual): $${Math.round(z.acumulado).toLocaleString('es-MX')}${z.segmento ? ` | Segmento: ${z.segmento}` : ''} — ESTA es la cifra oficial cuando pregunten cuanto factura`
     : `$${Number(c.facturacion ?? 0).toLocaleString('es-MX')}/mes (dato CRM guardado, PUEDE ESTAR DESACTUALIZADO — sin dato Zoho en vivo)`}
   Cortes de facturación del CID ${c.cid ?? '—'} (montos por plan individual — si el grupo tiene subcuentas son PARCIALES, no la factura total):
 ${cortesTxt}

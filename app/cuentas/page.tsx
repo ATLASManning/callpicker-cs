@@ -320,7 +320,6 @@ function CuentasPageInner() {
    * acumulados de toda la vida dentro de un total mensual inflaba la cifra
    * decenas de veces en cuanto una cuenta no tenia factura de Zoho. */
   const totalFac      = sorted.reduce((s, c) => s + (c.factura_mensual_zoho ?? c.facturacion ?? 0), 0)
-  const totalAcum     = sorted.reduce((s, c) => s + (c.mrr_zoho ?? 0), 0)
   const totalTickets  = sorted.reduce((s, c) => s + (c.zoho_tickets?.total ?? 0), 0)
   const totalFallas   = sorted.reduce((s, c) => s + (c.zoho_tickets?.fallas ?? 0), 0)
 
