@@ -149,18 +149,12 @@ export async function GET(req: NextRequest) {
     const hayFiltro = !!(clasif || mov || rango || asesor || verif || soloCartera || q)
     const grc = (n: number) => (hayFiltro ? null : pct(n, mrrInicio))
 
-    /* El detalle corta en 300 filas. Cuánto dinero queda fuera se calcula aquí
-     * y no en la pantalla: un corte que solo dice cuántas filas escondió, sin
-     * decir cuánto valían, es un top-N que miente a medias. */
+    /* El detalle va COMPLETO: las 3,574 filas del export, no un top-N. Este es
+     * el dato que dirección compartió y el que el tablero de Zoho no deja ver
+     * cruzado con asesor y CID; recortarlo aquí sería devolver otra vez un
+     * resumen. La pantalla pagina y ofrece descarga, pero el servidor no
+     * esconde filas. */
     const ordenado = [...sel].sort((a, b) => (b.perdida - a.perdida) || (b.acumulado - a.acumulado))
-    const TOPE = 300
-    const fuera = ordenado.slice(TOPE)
-    const omitidas = {
-      filas: fuera.length,
-      perdida: suma(fuera, 'perdida'),
-      conPerdida: fuera.filter(f => f.perdida > 0).length,
-      sinVerificar: fuera.filter(f => f.verificacion === 'sin_verificar').length,
-    }
 
     return NextResponse.json({
       meta: d.meta,
@@ -186,7 +180,6 @@ export async function GET(req: NextRequest) {
         grcSinDesmentidas: grc(perdida - churnViva),
         grcVerificado: grc(churnBaja + downgrade),
         hayFiltro,
-        omitidas,
         filtros: { clasif, mov, rango, asesor, verif, soloCartera, q },
       },
       /* Los cortes NO se recalculan con el filtro: son la foto del mes completo.
@@ -198,8 +191,8 @@ export async function GET(req: NextRequest) {
       porAsesor: d.porAsesor,
       /* Detalle: el que más pesa primero. Es la pregunta operativa —a quién hay
        * que llamar— y por eso ordena por pérdida, no por acumulado. Lo que
-       * queda fuera va contado y valorizado en `alcance.omitidas`. */
-      detalle: ordenado.slice(0, TOPE),
+       * va completo: la pantalla pagina, el servidor no recorta. */
+      detalle: ordenado,
       desmentidas: sel.filter(f => f.verificacion === 'sigue_viva')
         .sort((a, b) => b.perdida - a.perdida),
       opciones: {

@@ -151,6 +151,26 @@ for r in D['porRango']:
            f_(r['montoMaximo']))
 
 print()
+print('=== 10 · LAS DOCE COLUMNAS DEL EXPORT LLEGAN AL DETALLE ===')
+# El detalle es el archivo que compartio direccion. Si una columna del export no
+# viaja hasta la fila, la pestana «Detalle» deja de ser el detalle y vuelve a ser
+# un resumen — que es justo lo que este modulo vino a dejar de ser.
+DOCE = [('Cliente', 'cliente'), ('clasificacion_cliente', 'clasif'),
+        ('Facturas_2026', 'facturas'), ('Meses Activo', 'meses'),
+        ('Importe Acumulado Recurrente', 'acumulado'),
+        ('MRR Inicio Contrato (BCY)', 'mrrIni'), ('MRR Fin Contrato (BCY)', 'mrrFin'),
+        ('Ingreso Ganado Contrato (BCY)', 'ganado'), ('Movimiento MRR', 'movimiento'),
+        ('Ingreso Perdido Contrato (BCY) Real', 'perdida'),
+        ('Ingreso Perdido Contrato (BCY) Fraude-Reestructura', 'fraude'),
+        ('Rango MRR Fin Contrato', 'rango')]
+for etq, k in DOCE:
+    presentes = sum(1 for f in F if k in f)
+    conDato = sum(1 for f in F if f.get(k) not in (None, ''))
+    prueba('%-50s en las %s filas' % (etq, format(len(F), ',')), presentes == len(F),
+           '%s con dato' % format(conDato, ','))
+prueba('el detalle NO se recorta: van las %s filas' % format(len(F), ','), len(F) == M['filas'])
+
+print()
 print('=== LO QUE VERA LA PANTALLA ===')
 print('  MRR inicio            %14s' % f_(ini))
 print('  GRC publicado         %13.1f%%   (%s de perdida)' % (vivo['grcMensual'], f_(per)))

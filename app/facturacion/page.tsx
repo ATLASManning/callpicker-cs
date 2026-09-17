@@ -36,7 +36,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   TrendingDown, TrendingUp, DollarSign, AlertTriangle, HelpCircle, ShieldCheck,
-  RefreshCw, Search, Layers, CalendarRange, Users, Target,
+  RefreshCw, Search, Layers, CalendarRange, Users, Target, Columns3,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
@@ -104,7 +104,6 @@ type Datos = {
     perdida: number; cuentasBaja: number; cuentasViva: number; cuentasSinVerificar: number
     grcMensual: number | null; grcSinDesmentidas: number | null; grcVerificado: number | null
     hayFiltro: boolean
-    omitidas: { filas: number; perdida: number; conPerdida: number; sinVerificar: number }
   }
   porRango: Grupo[]; porClasif: Grupo[]; porMovimiento: Grupo[]; porAsesor: Grupo[]
   detalle: Fila[]; desmentidas: Fila[]
@@ -343,9 +342,9 @@ export default function GrossRevenueChurnPage() {
       )}
 
       {d && tab === 'detalle' && (
-        <Tarjeta titulo="Detalle por cliente"
-          sub={`Las ${nf(d.detalle.length)} de mayor pérdida del corte. Es la pregunta operativa —a quién hay que llamar—, por eso ordena por pérdida y no por antigüedad. Esto el tablero de Zoho no lo da cruzado con asesor y CID.`}>
-          <TablaDetalle filas={d.detalle} omitidas={d.alcance.omitidas} total={d.alcance.perdida} />
+        <Tarjeta titulo={`Detalle del export — las ${nf(d.detalle.length)} filas, cliente por cliente`}
+          sub="Es el archivo que compartiste, completo, con sus doce columnas y con los títulos tal como vienen en él, en su mismo orden. Está ordenado por pérdida porque esa es la pregunta operativa: a quién hay que llamar. Las tres últimas columnas no vienen del export —las aporta el cruce con la cartera— y por eso van separadas al final.">
+          <TablaDetalle filas={d.detalle} mes={d.meta.mesVivo} />
         </Tarjeta>
       )}
 
@@ -391,6 +390,10 @@ const thSticky: React.CSSProperties = {
 const td: React.CSSProperties = { padding: '6px 9px', color: '#334155', whiteSpace: 'nowrap' }
 const tdNum: React.CSSProperties = { ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }
 const filaTotal: React.CSSProperties = { borderTop: '2px solid #E2E8F0', background: '#F8FAFC' }
+const botonChico: React.CSSProperties = {
+  padding: '5px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
+  border: '1.5px solid #E2E8F0', background: '#fff', color: '#475569',
+}
 
 function Kpi({ icon: Icon, label, valor, nota, color }: {
   icon: React.ElementType; label: string; valor: string; nota?: string; color: string
@@ -677,63 +680,335 @@ const CHIP: Record<string, { txt: string; bg: string; col: string }> = {
   na: { txt: '—', bg: 'transparent', col: TENUE },
 }
 
-function TablaDetalle({ filas, omitidas, total }: {
-  filas: Fila[]; omitidas: Datos['alcance']['omitidas']; total: number
-}) {
+/* Las doce columnas del export, en su orden, más las tres que aporta el cruce
+ * con la cartera. La pantalla pagina de 300 en 300 —3,574 renglones de golpe
+ * ahogan al navegador— pero el dato está completo en el cliente y la descarga
+ * se lleva todo lo filtrado. */
+/* LOS TÍTULOS SON LOS DEL EXPORT, LITERALES. Dirección los fijó así y no se
+ * abrevian ni se acentúan «para que se vean mejor»: quien compare esta tabla
+ * contra el archivo tiene que encontrar la misma palabra, sin traducir de
+ * «Pérdida real» a «Ingreso Perdido Contrato (BCY) Real» en la cabeza. Van en
+ * el orden del archivo. Las tres últimas no vienen del export: las aporta el
+ * cruce con la cartera y por eso van al final, después de las doce.
+ *
+ * Las columnas son datos y no celdas escritas a mano, porque de aquí salen
+ * cuatro cosas a la vez: los encabezados, el orden, el selector de columnas y
+ * las cabeceras del CSV. Con celdas fijas, agregar una columna obligaba a
+ * tocar los cuatro lugares y tarde o temprano uno se quedaba atrás. */
+type ColDet = {
+  h: string
+  k: keyof Fila
+  num?: boolean
+  dinero?: boolean
+  cruce?: boolean
+  /** Para ordenar cuando el valor de pantalla no sirve de llave. */
+  llave?: (f: Fila) => number | string
+  celda?: (f: Fila) => React.ReactNode
+}
+
+/** El rango es texto pero se ordena por tamaño: alfabéticamente «$10,001» cae antes que «$3,001». */
+const RANGO_ORDEN = ['$1 - $300', '$301 - $500', '$501 - $1,000', '$1,001 - $3,000',
+  '$3,001 - $5,000', '$5,001 - $10,000', '$10,001 - $20,000', '$20,001 - $40,000',
+  '$40,001 - $80,000', '$80,001 en adelante']
+
+const COLUMNAS: ColDet[] = [
+  {
+    h: 'Cliente', k: 'cliente',
+    celda: f => (
+      <span style={{ fontWeight: 600, color: '#0F172A' }}>
+        {f.consecutivo && <span style={{ color: AZUL, fontWeight: 700, marginRight: 6 }}>{f.consecutivo}</span>}
+        {f.cliente}
+      </span>
+    ),
+  },
+  { h: 'clasificacion_cliente', k: 'clasif' },
+  { h: 'Facturas_2026', k: 'facturas', num: true },
+  {
+    h: 'Meses Activo', k: 'meses', num: true,
+    celda: f => (
+      <span style={{ fontWeight: f.meses >= 60 ? 700 : 400, color: f.meses >= 60 ? AMBAR : '#334155' }}>
+        {f.meses}
+      </span>
+    ),
+  },
+  {
+    h: 'Importe Acumulado Recurrente', k: 'acumulado', num: true, dinero: true,
+    celda: f => <span style={{ fontWeight: 700, color: AZUL }}>{f$(f.acumulado)}</span>,
+  },
+  { h: 'MRR Inicio Contrato (BCY)', k: 'mrrIni', num: true, dinero: true },
+  { h: 'MRR Fin Contrato (BCY)', k: 'mrrFin', num: true, dinero: true },
+  {
+    h: 'Ingreso Ganado Contrato (BCY)', k: 'ganado', num: true, dinero: true,
+    celda: f => <span style={{ color: f.ganado > 0 ? VERDE : TENUE }}>{f$(f.ganado)}</span>,
+  },
+  {
+    h: 'Movimiento MRR', k: 'movimiento',
+    celda: f => <span style={{ fontSize: 10.5, color: '#475569' }}>{f.movimiento ?? '—'}</span>,
+  },
+  {
+    h: 'Ingreso Perdido Contrato (BCY) Real', k: 'perdida', num: true, dinero: true,
+    celda: f => <span style={{ fontWeight: 700, color: f.perdida > 0 ? ROJO : TENUE }}>{f$(f.perdida)}</span>,
+  },
+  {
+    h: 'Ingreso Perdido Contrato (BCY) Fraude-Reestructura', k: 'fraude', num: true, dinero: true,
+    celda: f => <span style={{ color: f.fraude > 0 ? AMBAR : TENUE }}>{f$(f.fraude)}</span>,
+  },
+  {
+    h: 'Rango MRR Fin Contrato', k: 'rango',
+    llave: f => RANGO_ORDEN.indexOf(f.rango ?? ''),
+    celda: f => <span style={{ fontSize: 10.5, color: TENUE }}>{f.rango ?? '—'}</span>,
+  },
+  {
+    h: 'Asesor', k: 'asesor', cruce: true,
+    celda: f => (
+      <span style={{ color: f.asesor ? '#475569' : TENUE, fontStyle: f.asesor ? undefined : 'italic' }}>
+        {f.asesor ?? 'sin asesor'}
+      </span>
+    ),
+  },
+  {
+    h: 'Estado en base', k: 'estadoBase', cruce: true,
+    llave: f => (f.enCartera ? estadoTxt(f.estadoBase) : 'zz'),
+    celda: f => (
+      <span style={{ fontSize: 10.5, color: f.enCartera ? '#475569' : TENUE, fontStyle: f.enCartera ? undefined : 'italic' }}>
+        {f.enCartera ? estadoTxt(f.estadoBase) : 'fuera de cartera'}
+      </span>
+    ),
+  },
+  {
+    h: 'Verificación', k: 'verificacion', cruce: true,
+    celda: f => {
+      const c = CHIP[f.verificacion]
+      if (f.verificacion === 'na') return <span style={{ color: TENUE }}>—</span>
+      return (
+        <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 5, fontWeight: 700, background: c.bg, color: c.col }}>
+          {c.txt}
+        </span>
+      )
+    },
+  },
+]
+
+const CSV_CAB = [...COLUMNAS.map(c => c.h), 'Consecutivo', 'CID']
+const LS_COLS = 'grc.detalle.columnas'
+
+function descargaCsv(filas: Fila[], mes: string) {
+  const esc = (v: unknown) => {
+    const s = v === null || v === undefined ? '' : String(v)
+    return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
+  }
+  /* La descarga sale del MISMO arreglo de columnas que la tabla, así que nunca
+   * puede quedarse con una columna de menos. Va completa aunque en pantalla
+   * haya columnas ocultas: lo que se esconde es la vista, no el dato. */
+  const lineas = [CSV_CAB.join(',')]
+  for (const f of filas) {
+    lineas.push([...COLUMNAS.map(c => f[c.k]), f.consecutivo, f.cid].map(esc).join(','))
+  }
+  // BOM para que Excel abra los acentos bien en Windows.
+  const blob = new Blob(['﻿' + lineas.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `GRC-detalle-${mes}-${filas.length}-filas.csv`
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
+  const PASO = 300
+  const [visibles, setVisibles] = useState(PASO)
+  const [orden, setOrden] = useState<{ h: string; desc: boolean }>({
+    h: 'Ingreso Perdido Contrato (BCY) Real', desc: true,
+  })
+  const [ocultas, setOcultas] = useState<string[]>([])
+  const [abrePicker, setAbrePicker] = useState(false)
+
+  /* La elección de columnas es del lector, así que se recuerda. Va en un
+   * efecto y no en el estado inicial para que el servidor y el cliente pinten
+   * lo mismo en el primer render. */
+  useEffect(() => {
+    try {
+      const g = window.localStorage.getItem(LS_COLS)
+      if (g) setOcultas(JSON.parse(g))
+    } catch { /* modo privado o almacenamiento bloqueado: se ven todas */ }
+  }, [])
+  const guardarOcultas = (v: string[]) => {
+    setOcultas(v)
+    try { window.localStorage.setItem(LS_COLS, JSON.stringify(v)) } catch { /* idem */ }
+  }
+
+  useEffect(() => { setVisibles(PASO) }, [filas, orden])
+
+  const cols = COLUMNAS.filter(c => !ocultas.includes(c.h))
+
+  const ordenadas = useMemo(() => {
+    const col = COLUMNAS.find(c => c.h === orden.h)
+    if (!col) return filas
+    const llave = col.llave ?? ((f: Fila) => {
+      const v = f[col.k]
+      return v === null || v === undefined ? (col.num ? -Infinity : '') : (v as number | string)
+    })
+    const signo = orden.desc ? -1 : 1
+    return [...filas].sort((a, b) => {
+      const x = llave(a), y = llave(b)
+      if (typeof x === 'number' && typeof y === 'number') return signo * (x - y)
+      return signo * String(x).localeCompare(String(y), 'es', { sensitivity: 'base', numeric: true })
+    })
+  }, [filas, orden])
+
   if (filas.length === 0) {
     return <p className="text-sm" style={{ color: TENUE }}>Ninguna fila con este filtro.</p>
   }
+
+  const mostradas = ordenadas.slice(0, visibles)
+  const conPerdida = filas.filter(f => f.perdida > 0).length
+  const clic = (h: string) =>
+    setOrden(o => (o.h === h ? { h, desc: !o.desc } : { h, desc: true }))
+
   return (
     <div>
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+        <p className="text-[11.5px]" style={{ color: TENUE }}>
+          {nf(filas.length)} filas · {nf(conPerdida)} con pérdida ·
+          {' '}{nf(filas.filter(f => f.enCartera).length)} en la cartera gestionada ·
+          {' '}ordenado por <strong style={{ color: '#475569' }}>{orden.h}</strong>
+          {' '}{orden.desc ? 'de mayor a menor' : 'de menor a mayor'}
+        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div style={{ position: 'relative' }}>
+            <button onClick={() => setAbrePicker(v => !v)} style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 13px', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              border: `1.5px solid ${ocultas.length ? AZUL : '#E2E8F0'}`,
+              background: '#fff', color: ocultas.length ? AZUL : '#475569',
+            }}>
+              <Columns3 size={14} />
+              Columnas ({cols.length} de {COLUMNAS.length})
+            </button>
+            {abrePicker && (
+              <>
+                {/* Capa para cerrar al hacer clic afuera, sin escuchar en document. */}
+                <div onClick={() => setAbrePicker(false)}
+                  style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                <div style={{
+                  position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 41,
+                  background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12,
+                  boxShadow: '0 12px 28px rgba(15,23,42,.14)', padding: '12px 14px',
+                  minWidth: 330, maxHeight: 420, overflowY: 'auto',
+                }}>
+                  <p className="text-[11px] font-bold mb-2" style={{ color: '#334155' }}>
+                    Qué columnas se ven
+                  </p>
+                  {COLUMNAS.map(c => {
+                    const visible = !ocultas.includes(c.h)
+                    return (
+                      <label key={c.h} className="flex items-start gap-2 py-1 cursor-pointer">
+                        <input type="checkbox" checked={visible}
+                          onChange={() => guardarOcultas(visible
+                            ? [...ocultas, c.h]
+                            : ocultas.filter(x => x !== c.h))}
+                          style={{ marginTop: 2, accentColor: AZUL }} />
+                        <span className="text-[11.5px] leading-snug"
+                          style={{ color: visible ? '#334155' : TENUE }}>
+                          {c.h}
+                          {c.cruce && (
+                            <span style={{ color: AZUL, fontSize: 10, marginLeft: 5 }}>· del cruce</span>
+                          )}
+                        </span>
+                      </label>
+                    )
+                  })}
+                  <div className="flex gap-2 mt-2 pt-2" style={{ borderTop: '1px solid #F1F5F9' }}>
+                    <button onClick={() => guardarOcultas([])} style={botonChico}>Ver todas</button>
+                    <button onClick={() => guardarOcultas(COLUMNAS.filter(c => c.cruce).map(c => c.h))}
+                      style={botonChico}>Solo las del export</button>
+                  </div>
+                  <p className="text-[10.5px] mt-2 leading-relaxed" style={{ color: TENUE }}>
+                    Esconder una columna no la quita del dato: la descarga sale siempre completa.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+          <button onClick={() => descargaCsv(ordenadas, mes)} style={{
+            padding: '6px 13px', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            border: `1.5px solid ${AZUL}`, background: '#fff', color: AZUL,
+          }}>
+            Descargar las {nf(filas.length)} filas (CSV)
+          </button>
+        </div>
+      </div>
+
       <div style={{ overflowX: 'auto', maxHeight: 620, overflowY: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
           <thead><tr>
-            {['Cliente', 'Asesor', 'Clasif.', 'Meses', 'MRR inicio', 'MRR fin',
-              'Pérdida', 'Ganado', 'Movimiento', 'Verificación', 'Rango'].map((h, i) => (
-              <th key={h} style={{ ...thSticky, textAlign: i >= 3 && i <= 7 ? 'right' : 'left' }}>{h}</th>
-            ))}
-          </tr></thead>
-          <tbody>
-            {filas.map((f, i) => {
-              const c = CHIP[f.verificacion]
+            {cols.map((c, i) => {
+              const activa = orden.h === c.h
+              const primeraDelCruce = c.cruce && !cols[i - 1]?.cruce
               return (
-                <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ ...td, fontWeight: 600, color: '#0F172A', maxWidth: 230, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {f.consecutivo && <span style={{ color: AZUL, fontWeight: 700, marginRight: 6 }}>{f.consecutivo}</span>}
-                    {f.cliente}
-                  </td>
-                  <td style={{ ...td, color: f.asesor ? '#475569' : TENUE, fontStyle: f.asesor ? undefined : 'italic' }}>
-                    {f.asesor ?? 'sin asesor'}
-                  </td>
-                  <td style={td}>{f.clasif ?? '—'}</td>
-                  <td style={{ ...tdNum, fontWeight: f.meses >= 60 ? 700 : 400, color: f.meses >= 60 ? AMBAR : '#334155' }}>{f.meses}</td>
-                  <td style={tdNum}>{f$(f.mrrIni)}</td>
-                  <td style={tdNum}>{f$(f.mrrFin)}</td>
-                  <td style={{ ...tdNum, fontWeight: 700, color: f.perdida > 0 ? ROJO : TENUE }}>{f$(f.perdida)}</td>
-                  <td style={{ ...tdNum, color: f.ganado > 0 ? VERDE : TENUE }}>{f$(f.ganado)}</td>
-                  <td style={{ ...td, fontSize: 10.5, color: '#475569' }}>{f.movimiento ?? '—'}</td>
-                  <td style={td}>
-                    {f.verificacion === 'na' ? <span style={{ color: TENUE }}>—</span> : (
-                      <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 5, fontWeight: 700, background: c.bg, color: c.col }}>
-                        {c.txt}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ ...td, fontSize: 10.5, color: TENUE }}>{f.rango ?? '—'}</td>
-                </tr>
+                <th key={c.h} onClick={() => clic(c.h)} title={`Ordenar por ${c.h}`}
+                  style={{
+                    ...thSticky, cursor: 'pointer', userSelect: 'none',
+                    textAlign: c.num ? 'right' : 'left',
+                    color: activa ? AZUL : (c.cruce ? '#475569' : TENUE),
+                    borderLeft: primeraDelCruce ? '2px solid #E2E8F0' : undefined,
+                  }}>
+                  {c.h}
+                  <span style={{ marginLeft: 4, opacity: activa ? 1 : 0.25 }}>
+                    {activa ? (orden.desc ? '▼' : '▲') : '↕'}
+                  </span>
+                </th>
               )
             })}
+          </tr></thead>
+          <tbody>
+            {mostradas.map((f, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                {cols.map((c, j) => {
+                  const primeraDelCruce = c.cruce && !cols[j - 1]?.cruce
+                  return (
+                    <td key={c.h} style={{
+                      ...(c.num ? tdNum : td),
+                      borderLeft: primeraDelCruce ? '2px solid #F1F5F9' : undefined,
+                      maxWidth: c.k === 'cliente' ? 260 : undefined,
+                      overflow: c.k === 'cliente' ? 'hidden' : undefined,
+                      textOverflow: c.k === 'cliente' ? 'ellipsis' : undefined,
+                    }}>
+                      {c.celda
+                        ? c.celda(f)
+                        : c.dinero ? f$(f[c.k] as number)
+                          : (f[c.k] === null || f[c.k] === undefined || f[c.k] === ''
+                            ? <span style={{ color: TENUE }}>—</span>
+                            : String(f[c.k]))}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
-      {omitidas.filas > 0 && (
-        <p className="text-[11px] mt-3 leading-relaxed" style={{ color: TENUE }}>
-          Quedan fuera <strong>{nf(omitidas.filas)} filas</strong> que suman <strong>{f$(omitidas.perdida)}</strong>
-          {total > 0 && <> — el {((100 * omitidas.perdida) / total).toFixed(1)}% de la pérdida del corte</>},
-          de las cuales {nf(omitidas.conPerdida)} tienen pérdida y {nf(omitidas.sinVerificar)} son de la canasta sin
-          cotejar. Para verlas, filtra: la lista no se corta en silencio.
+
+      <div className="flex items-center gap-3 flex-wrap mt-3">
+        <p className="text-[11px]" style={{ color: TENUE }}>
+          Mostrando {nf(mostradas.length)} de {nf(filas.length)}.
         </p>
-      )}
+        {visibles < filas.length && (
+          <>
+            <button onClick={() => setVisibles(v => v + PASO)} style={botonChico}>
+              Ver {nf(Math.min(PASO, filas.length - visibles))} más
+            </button>
+            <button onClick={() => setVisibles(filas.length)} style={botonChico}>
+              Ver las {nf(filas.length)}
+            </button>
+          </>
+        )}
+        {ocultas.length > 0 && (
+          <p className="text-[11px]" style={{ color: AMBAR }}>
+            {ocultas.length} {ocultas.length === 1 ? 'columna oculta' : 'columnas ocultas'} en la vista —
+            la descarga las trae igual.
+          </p>
+        )}
+      </div>
     </div>
   )
 }
