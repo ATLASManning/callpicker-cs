@@ -41,10 +41,46 @@ import {
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
 
-const AZUL = '#1B3FCC', VERDE = '#15803D', ROJO = '#B91C1C', AMBAR = '#B45309'
-const GRIS = '#64748B'
-/** Piso de contraste sobre blanco: #64748B da 4.76:1. Nada más claro lleva texto. */
-const TENUE = '#64748B'
+/* Paleta sobre FONDO OSCURO. La regla es fondo oscuro -> letra clara, y al
+ * reves: por eso aqui van los tonos CLAROS de cada color (#F87171 y no
+ * #B91C1C). Un rojo oscuro sobre #0D1829 no se lee.
+ *
+ * AZUL_SOLIDO es la excepcion: se usa como RELLENO de botones y pestanas
+ * activas, con letra blanca encima — ahi el que va oscuro es el fondo. */
+const AZUL = '#60A5FA', VERDE = '#4ADE80', ROJO = '#F87171', AMBAR = '#FBBF24'
+/* Para pintar SOBRE blanco: los botones y las pestanas son islas claras
+ * dentro del fondo oscuro, y ahi el texto tiene que ir oscuro. */
+const AZUL_SOLIDO = '#1B3FCC', ROJO_OSCURO = '#B91C1C'
+/* Neutro para el KPI de «sin cotejar»: va en hexadecimal y no en rgba porque
+ * la tarjeta arma el fondo del icono concatenando `color + '22'`, y un rgba
+ * concatenado no es un color válido. */
+const NEUTRO = '#94A3B8'
+const TXT_HI = 'rgba(255,255,255,0.92)'
+const TXT_MID = 'rgba(255,255,255,0.72)'
+/** El mas tenue que se admite sobre #0D1829. Nada por debajo lleva texto. */
+const TENUE = 'rgba(255,255,255,0.48)'
+const FONDO_TENUE = 'rgba(255,255,255,0.04)'
+
+/**
+ * Color semantico dentro de una .cp-card.
+ *
+ * globals.css fuerza a blanco `!important` todo <span> que NO declare
+ * `background` en su atributo style (regla `.cp-card span:not([style*=
+ * "background"])`), y lo mismo con cada <td>. Declarar el background
+ * —aunque sea transparente— es la salida que el propio sistema dejo para
+ * conservar un color. Sin esto, cada cifra en rojo o en verde de esta
+ * pantalla se pintaria blanca y el color dejaria de decir nada.
+ */
+function C({ c, b, i, children }: {
+  c: string; b?: boolean; i?: boolean; children: React.ReactNode
+}) {
+  return (
+    <span style={{
+      background: 'transparent', color: c,
+      fontWeight: b ? 700 : undefined, fontStyle: i ? 'italic' : undefined,
+    }}>{children}</span>
+  )
+}
 
 const f$ = (n: number | null | undefined) =>
   n === null || n === undefined ? '—' : '$' + Math.round(n).toLocaleString('es-MX')
@@ -163,6 +199,7 @@ export default function GrossRevenueChurnPage() {
   return (
     <div className="p-6 max-w-[1500px] mx-auto">
       <PageHeader
+        dark
         title="Gross Revenue Churn"
         subtitle={m
           ? `Pérdida bruta de ingreso recurrente · mes en curso: ${m.mesVivo} · ${nf(m.clientes)} clientes`
@@ -170,9 +207,10 @@ export default function GrossRevenueChurnPage() {
       />
 
       {error && (
-        <div className="rounded-xl px-4 py-3 mb-5" style={{ background: '#FEE2E2', border: '1px solid #FCA5A5' }}>
+        <div className="rounded-xl px-4 py-3 mb-5"
+          style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)' }}>
           <p className="text-sm font-semibold" style={{ color: ROJO }}>{error}</p>
-          <p className="text-xs mt-1" style={{ color: '#7F1D1D' }}>
+          <p className="text-xs mt-1" style={{ color: '#FCA5A5' }}>
             Se alimenta de <code>data/grc-zoho.json</code>. Se regenera con el export del mes: en el tablero GRC,
             clic derecho sobre el MRR inicio del mes → «Ver datos subyacentes» → Más → Exportar Vista, y después
             {' '}<code>python scripts/gen-grc-zoho.py &lt;archivo&gt;</code>.
@@ -183,11 +221,12 @@ export default function GrossRevenueChurnPage() {
       {/* ── El aviso va arriba, no al pie: es lo que evita leer $1.7M de pérdida
              que en su única muestra verificable resultó 95% falsa. ────────── */}
       {m && vivo && m.cuentasViva > 0 && (
-        <div className="rounded-xl px-4 py-3 mb-5" style={{ background: '#FEF3C7', border: '1px solid #FCD34D' }}>
-          <p className="text-sm font-bold mb-1" style={{ color: '#92400E' }}>
+        <div className="rounded-xl px-4 py-3 mb-5"
+          style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.32)' }}>
+          <p className="text-sm font-bold mb-1" style={{ color: '#FDE68A' }}>
             {m.mesVivo} está en curso — la pérdida va en tres canastas y no se suma en una
           </p>
-          <p className="text-[12px] leading-relaxed" style={{ color: '#92400E' }}>
+          <p className="text-[12px] leading-relaxed" style={{ color: '#FDE68A' }}>
             El corte marca «Churn confirmado» a todo contrato que aún no se factura. De esas cuentas solo
             <strong> {m.cuentasBaja + m.cuentasViva}</strong> están en la cartera y se pueden cotejar contra la base:
             <strong> {m.cuentasViva} siguen activas o en riesgo</strong> ({f$(m.churnViva)}). Las otras
@@ -216,7 +255,7 @@ export default function GrossRevenueChurnPage() {
         <Kpi icon={ShieldCheck} color={VERDE} label="GRC cotejado"
           valor={fp(a?.grcVerificado)}
           nota={a ? `${f$(a.churnBaja)} de baja + ${f$(a.downgrade)} de downgrade` : undefined} />
-        <Kpi icon={HelpCircle} color={GRIS} label="Sin cotejar"
+        <Kpi icon={HelpCircle} color={NEUTRO} label="Sin cotejar"
           valor={f$(a?.churnSinVerificar)}
           nota={a ? `${nf(a.cuentasSinVerificar)} filas fuera de cartera` : undefined} />
         <Kpi icon={TrendingUp} color="#7C3AED" label="Ingreso ganado"
@@ -255,12 +294,12 @@ export default function GrossRevenueChurnPage() {
           options={[{ value: '', label: 'Todo asesor' }, ...(d?.opciones.asesor ?? []).map(v => ({ value: v, label: v }))]} />
         <button onClick={() => setCartera(c => !c)} style={{
           padding: '7px 14px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-          border: `1.5px solid ${cartera ? AZUL : '#E2E8F0'}`,
-          background: cartera ? AZUL : '#fff', color: cartera ? '#fff' : '#475569',
+          border: `1.5px solid ${cartera ? AZUL_SOLIDO : '#E2E8F0'}`,
+          background: cartera ? AZUL_SOLIDO : '#fff', color: cartera ? '#fff' : '#475569',
         }}>Solo mi cartera</button>
         {hayFiltro && (
           <button onClick={() => { setClasif(''); setMov(''); setRango(''); setAsesor(''); setVerif(''); setCartera(false); setQ('') }}
-            style={{ padding: '7px 12px', borderRadius: 9, fontSize: 12.5, border: '1.5px solid #E2E8F0', background: '#fff', color: ROJO, cursor: 'pointer' }}>
+            style={{ padding: '7px 12px', borderRadius: 9, fontSize: 12.5, border: '1.5px solid #E2E8F0', background: '#fff', color: ROJO_OSCURO, cursor: 'pointer' }}>
             Limpiar
           </button>
         )}
@@ -289,8 +328,9 @@ export default function GrossRevenueChurnPage() {
         ] as const).map(([k, lbl, Icon]) => (
           <button key={k} onClick={() => setTab(k)} style={{
             display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 10,
-            border: `1.5px solid ${tab === k ? AZUL : '#E2E8F0'}`,
-            background: tab === k ? AZUL : '#fff', color: tab === k ? '#fff' : '#475569',
+            border: `1.5px solid ${tab === k ? AZUL_SOLIDO : '#E2E8F0'}`,
+            background: tab === k ? AZUL_SOLIDO : '#fff', color: tab === k ? '#fff' : '#475569',
+            boxShadow: tab === k ? '0 2px 8px rgba(27,63,204,0.30)' : '0 1px 3px rgba(0,0,0,0.20)',
             cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
           }}><Icon size={14} /> {lbl}</button>
         ))}
@@ -356,8 +396,8 @@ export default function GrossRevenueChurnPage() {
       )}
 
       {d && (
-        <div className="rounded-xl px-4 py-3 mt-5" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-          <p className="text-[11.5px] font-bold mb-1.5" style={{ color: '#334155' }}>
+        <div className="cp-card rounded-xl px-4 py-3 mt-5">
+          <p className="text-[11.5px] font-bold mb-1.5" style={{ color: TXT_HI }}>
             Lo que este módulo NO puede decir, y por qué
           </p>
           <ul className="text-[11px] leading-relaxed" style={{ color: TENUE, paddingLeft: 16, listStyle: 'disc' }}>
@@ -377,43 +417,61 @@ export default function GrossRevenueChurnPage() {
 /* ── Piezas ───────────────────────────────────────────────────────────── */
 
 const th: React.CSSProperties = {
-  padding: '7px 9px', color: TENUE, fontWeight: 700, fontSize: 10.5,
-  whiteSpace: 'nowrap', borderBottom: '1.5px solid #E2E8F0', textAlign: 'left',
+  padding: '8px 9px', color: TENUE, fontWeight: 700, fontSize: 10.5,
+  whiteSpace: 'nowrap', borderBottom: '1px solid rgba(255,255,255,0.07)',
+  textAlign: 'left', background: FONDO_TENUE,
 }
 /* En un th sticky el borde de celda se queda atrás al hacer scroll porque
  * border-collapse lo pinta en la tabla, no en la celda. La sombra interior sí
  * viaja con la celda desplazada. */
 const thSticky: React.CSSProperties = {
-  ...th, position: 'sticky', top: 0, background: '#fff',
-  borderBottom: 'none', boxShadow: 'inset 0 -1.5px 0 #E2E8F0',
+  /* Opaco a proposito: el encabezado fijo tiene que tapar las filas que
+     pasan por debajo, y un rgba translucido las deja ver. */
+  ...th, position: 'sticky', top: 0, background: '#16233A',
+  borderBottom: 'none', boxShadow: 'inset 0 -1px 0 rgba(255,255,255,0.10)',
 }
-const td: React.CSSProperties = { padding: '6px 9px', color: '#334155', whiteSpace: 'nowrap' }
+const td: React.CSSProperties = { padding: '7px 9px', color: TXT_MID, whiteSpace: 'nowrap' }
 const tdNum: React.CSSProperties = { ...td, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }
-const filaTotal: React.CSSProperties = { borderTop: '2px solid #E2E8F0', background: '#F8FAFC' }
+const filaTotal: React.CSSProperties = {
+  borderTop: '2px solid rgba(255,255,255,0.14)', background: FONDO_TENUE,
+}
+/** Para el menu de columnas, que es una isla clara dentro de la tarjeta. */
+const botonClaro: React.CSSProperties = {
+  padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+  border: '1px solid #E2E8F0', background: '#fff', color: '#1B3FCC',
+}
 const botonChico: React.CSSProperties = {
   padding: '5px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
-  border: '1.5px solid #E2E8F0', background: '#fff', color: '#475569',
+  border: '1px solid rgba(255,255,255,0.14)', background: 'rgba(255,255,255,0.08)',
+  color: TXT_MID,
 }
 
 function Kpi({ icon: Icon, label, valor, nota, color }: {
   icon: React.ElementType; label: string; valor: string; nota?: string; color: string
 }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, padding: '13px 16px' }}>
-      <div className="flex items-center gap-2 mb-1">
-        <Icon size={14} style={{ color }} />
-        <span className="text-[11px] font-semibold" style={{ color: TENUE }}>{label}</span>
+    <div className="cp-card" style={{ borderRadius: 14, padding: '14px 16px' }}>
+      <div className="flex items-center gap-2 mb-1.5">
+        <span style={{
+          background: color + '22', borderRadius: 8, padding: 5,
+          display: 'inline-flex', lineHeight: 0,
+        }}><Icon size={13} style={{ color }} /></span>
+        <span className="text-[10.5px] font-bold uppercase"
+          style={{ background: 'transparent', color: TENUE, letterSpacing: '0.05em' }}>{label}</span>
       </div>
-      <p className="text-xl font-extrabold tabular-nums" style={{ color, margin: 0 }}>{valor}</p>
-      {nota && <p className="text-[10px] mt-0.5" style={{ color: TENUE }}>{nota}</p>}
+      {/* El valor va dentro de <C>: un <p> suelto en .cp-card sale blanco. */}
+      <p className="text-xl font-extrabold tabular-nums" style={{ margin: 0 }}>
+        <C c={color} b>{valor}</C>
+      </p>
+      {nota && <p className="text-[10px] mt-1" style={{ color: TENUE }}>{nota}</p>}
     </div>
   )
 }
 
 function Tarjeta({ titulo, sub, children }: { titulo: string; sub?: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14, padding: '18px 20px' }}>
-      <p className="text-sm font-bold" style={{ color: '#0F172A', marginBottom: 3 }}>{titulo}</p>
+    <div className="cp-card" style={{ borderRadius: 14, padding: '18px 20px' }}>
+      <p className="text-sm font-bold" style={{ color: TXT_HI, marginBottom: 3 }}>{titulo}</p>
       {sub && <p className="text-[11.5px] leading-relaxed mb-3" style={{ color: TENUE }}>{sub}</p>}
       {children}
     </div>
@@ -439,39 +497,40 @@ function TablaSerie({ serie, promHist }: { serie: Mes[]; promHist: number | null
         </tr></thead>
         <tbody>
           {serie.map(m => (
+            /* El mes vivo va con un tinte ámbar OSCURO. Con el #FFFBEB de antes
+               quedaba un parche claro encima de la tabla oscura. */
             <tr key={m.mes} style={{
-              borderBottom: '1px solid #F1F5F9', background: m.cerrado ? undefined : '#FFFBEB',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              background: m.cerrado ? undefined : 'rgba(251,191,36,0.09)',
             }}>
-              <td style={{ ...td, fontWeight: m.cerrado ? 600 : 800, color: '#0F172A' }}>{m.mes}</td>
+              <td style={{ ...td, fontWeight: m.cerrado ? 600 : 800 }}><C c={TXT_HI}>{m.mes}</C></td>
               <td style={tdNum}>{f$(m.mrrInicio)}</td>
-              <td style={{ ...tdNum, color: m.churn > 0 ? ROJO : TENUE }}>{f$(m.churn)}</td>
-              <td style={{ ...tdNum, color: m.downgrade > 0 ? AMBAR : TENUE }}>{f$(m.downgrade)}</td>
+              <td style={{ ...tdNum }}><C c={m.churn > 0 ? ROJO : TENUE}>{f$(m.churn)}</C></td>
+              <td style={{ ...tdNum }}><C c={m.downgrade > 0 ? AMBAR : TENUE}>{f$(m.downgrade)}</C></td>
               <td style={{ ...tdNum, fontWeight: 700 }}>{f$(m.perdida)}</td>
-              <td style={{ ...tdNum, fontWeight: 800, color: m.grcMensual > 5 ? ROJO : '#334155' }}>
+              <td style={{ ...tdNum, fontWeight: 800 }}><C c={m.grcMensual > 5 ? ROJO : TXT_HI}>
                 {fp(m.grcMensual)}
-              </td>
-              <td style={{ ...tdNum, color: TENUE }}>{fp(m.grcAcumulado)}</td>
+              </C></td>
+              <td style={{ ...tdNum }}><C c={TENUE}>{fp(m.grcAcumulado)}</C></td>
               <td style={{
                 ...tdNum, fontWeight: m.grcVerificado !== null ? 800 : 400,
-                color: m.grcVerificado !== null ? VERDE : TENUE,
-                fontStyle: m.grcVerificado === null ? 'italic' : undefined,
-              }}>
+                fontStyle: m.grcVerificado === null ? 'italic' : undefined }}><C c={m.grcVerificado !== null ? VERDE : TENUE}>
                 {m.grcVerificado === null ? 'sin cotejar' : fp(m.grcVerificado)}
-              </td>
-              <td style={{ ...td, fontSize: 10.5, color: m.cerrado ? TENUE : AMBAR }}>
+              </C></td>
+              <td style={{ ...td, fontSize: 10.5 }}><C c={m.cerrado ? TENUE : AMBAR}>
                 {m.cerrado ? 'Zoho · cerrado' : `${m.origen} · en curso`}
-              </td>
+              </C></td>
             </tr>
           ))}
           <tr style={filaTotal}>
-            <td style={{ ...td, fontWeight: 800, color: '#0F172A' }}>Total</td>
+            <td style={{ ...td, fontWeight: 800 }}><C c={TXT_HI}>Total</C></td>
             <td style={{ ...tdNum, fontWeight: 700 }}>{f$(tot.mrr)}</td>
             <td style={{ ...tdNum, fontWeight: 700 }}>{f$(tot.churn)}</td>
             <td style={{ ...tdNum, fontWeight: 700 }}>{f$(tot.down)}</td>
             <td style={{ ...tdNum, fontWeight: 800 }}>{f$(tot.per)}</td>
             <td style={{ ...tdNum, fontWeight: 800 }}>{tot.mrr ? fp((100 * tot.per) / tot.mrr) : '—'}</td>
             <td style={tdNum} />
-            <td style={{ ...tdNum, color: TENUE, fontStyle: 'italic' }}>sin cotejar</td>
+            <td style={{ ...tdNum, fontStyle: 'italic'  }}><C c={TENUE}>sin cotejar</C></td>
             <td style={td} />
           </tr>
         </tbody>
@@ -508,22 +567,22 @@ function TablaRango({ filas }: { filas: Grupo[] }) {
                 : f.cumpleSiTodoFueraReal === false ? { txt: '✅ Cumple · en riesgo', col: AMBAR }
                   : { txt: '✅ Cumple', col: VERDE }
             return (
-              <tr key={f.clave} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                <td style={{ ...td, fontWeight: 600, color: '#0F172A' }}>{f.clave}</td>
-                <td style={{ ...tdNum, color: TENUE }}>{sinObj ? '—' : fp(f.objetivo, 2)}</td>
+              <tr key={f.clave} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <td style={{ ...td, fontWeight: 600 }}><C c={TXT_HI}>{f.clave}</C></td>
+                <td style={{ ...tdNum }}><C c={TENUE}>{sinObj ? '—' : fp(f.objetivo, 2)}</C></td>
                 <td style={tdNum}>{f$(f.mrrInicio)}</td>
-                <td style={{ ...tdNum, color: TENUE }}>{f$(f.montoMaximo)}</td>
-                <td style={{ ...tdNum, color: cotejada > 0 ? ROJO : TENUE }}>{f$(cotejada)}</td>
-                <td style={{ ...tdNum, color: f.churnViva > 0 ? AMBAR : TENUE }}>{f$(f.churnViva)}</td>
-                <td style={{ ...tdNum, color: TENUE }}>{f$(f.churnSinVerificar)}</td>
-                <td style={{ ...tdNum, fontWeight: 700, color: sinObj ? TENUE : (f.cumple ? VERDE : ROJO) }}>
+                <td style={{ ...tdNum }}><C c={TENUE}>{f$(f.montoMaximo)}</C></td>
+                <td style={{ ...tdNum }}><C c={cotejada > 0 ? ROJO : TENUE}>{f$(cotejada)}</C></td>
+                <td style={{ ...tdNum }}><C c={f.churnViva > 0 ? AMBAR : TENUE}>{f$(f.churnViva)}</C></td>
+                <td style={{ ...tdNum }}><C c={TENUE}>{f$(f.churnSinVerificar)}</C></td>
+                <td style={{ ...tdNum, fontWeight: 700 }}><C c={sinObj ? TENUE : (f.cumple ? VERDE : ROJO)}>
                   {f$(f.objetivoVsReal)}
-                </td>
+                </C></td>
                 <td style={{ ...tdNum, fontWeight: 700 }}>{fp(f.grc, 2)}</td>
                 <td style={tdNum}>{fp(f.grcVerificado, 2)}</td>
-                <td style={{ ...td, fontSize: 11, fontWeight: 700, color: estado?.col ?? TENUE }}>
+                <td style={{ ...td, fontSize: 11, fontWeight: 700 }}><C c={estado?.col ?? TENUE}>
                   {estado?.txt ?? '—'}
-                </td>
+                </C></td>
               </tr>
             )
           })}
@@ -534,7 +593,7 @@ function TablaRango({ filas }: { filas: Grupo[] }) {
         cotejada. Los objetivos exactos son 11.25 / 11.25 / 8.75 / 7.5 / 3.75 / 3 / 2 / 2 / 2 / 2 — el tablero los
         pinta redondeados pero los calcula así, y solo con estos cuadra el tope al centavo.
         {enRiesgo.length > 0 && (
-          <> <strong style={{ color: AMBAR }}>{enRiesgo.length} de {conObjetivo.length} bandas</strong> cumplen hoy
+          <> <C c={AMBAR} b>{enRiesgo.length} de {conObjetivo.length} bandas</C> cumplen hoy
           pero se pasarían si lo que no se pudo cotejar resultara pérdida real; van marcadas «en riesgo».</>
         )}
       </p>
@@ -559,18 +618,17 @@ function TablaGrupo({ filas }: { filas: Grupo[] }) {
         </tr></thead>
         <tbody>
           {filas.map(f => (
-            <tr key={f.clave} style={{ borderBottom: '1px solid #F1F5F9' }}>
+            <tr key={f.clave} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <td style={{
-                ...td, fontWeight: 600, color: f.fueraDeCartera ? TENUE : '#0F172A',
+                ...td, fontWeight: 600,
                 fontStyle: f.fueraDeCartera ? 'italic' : undefined,
-                maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>{f.clave}</td>
+                maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}><C c={f.fueraDeCartera ? TENUE : TXT_HI}>{f.clave}</C></td>
               <td style={tdNum}>{nf(f.n)}</td>
               <td style={tdNum}>{f$(f.mrrInicio)}</td>
-              <td style={{ ...tdNum, fontWeight: 700, color: f.perdida > 0 ? ROJO : TENUE }}>{f$(f.perdida)}</td>
-              <td style={{ ...tdNum, color: ROJO }}>{f$(f.churnBaja + f.downgrade)}</td>
-              <td style={{ ...tdNum, color: f.churnViva > 0 ? AMBAR : TENUE }}>{f$(f.churnViva)}</td>
-              <td style={{ ...tdNum, color: TENUE }}>{f$(f.churnSinVerificar)}</td>
+              <td style={{ ...tdNum, fontWeight: 700 }}><C c={f.perdida > 0 ? ROJO : TENUE}>{f$(f.perdida)}</C></td>
+              <td style={{ ...tdNum }}><C c={ROJO}>{f$(f.churnBaja + f.downgrade)}</C></td>
+              <td style={{ ...tdNum }}><C c={f.churnViva > 0 ? AMBAR : TENUE}>{f$(f.churnViva)}</C></td>
+              <td style={{ ...tdNum }}><C c={TENUE}>{f$(f.churnSinVerificar)}</C></td>
               <td style={tdNum}>{fp(f.grc)}</td>
             </tr>
           ))}
@@ -605,27 +663,27 @@ function TablaDetallePerdida({ series, meses }: { series: Datos['detallePerdida'
             const fs = mapa.get(mes)
             if (!fs) {
               return [
-                <tr key={mes} style={{ background: '#F8FAFC', borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ ...td, fontWeight: 800, color: '#0F172A' }}>{mes}</td>
-                  <td style={{ ...tdNum, color: TENUE, fontStyle: 'italic' }} colSpan={2}>
+                <tr key={mes} style={{ background: FONDO_TENUE, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <td style={{ ...td, fontWeight: 800 }}><C c={TXT_HI}>{mes}</C></td>
+                  <td style={{ ...tdNum, fontStyle: 'italic'  }} colSpan={2}><C c={TENUE}>
                     Zoho no publicó el desglose de este mes
-                  </td>
+                  </C></td>
                 </tr>,
               ]
             }
             /* Se devuelve un arreglo, no un fragmento: un <> dentro de un map
              * necesitaría key y no la admite sin React.Fragment. */
             return [
-              <tr key={mes} style={{ background: '#F8FAFC' }}>
-                <td style={{ ...td, fontWeight: 800, color: '#0F172A' }}>{mes}</td>
+              <tr key={mes} style={{ background: FONDO_TENUE }}>
+                <td style={{ ...td, fontWeight: 800 }}><C c={TXT_HI}>{mes}</C></td>
                 <td style={{ ...tdNum, fontWeight: 700 }}>{f$(fs.reduce((a, f) => a + f.perdida, 0))}</td>
                 <td style={{ ...tdNum, fontWeight: 700 }}>{f$(fs.reduce((a, f) => a + f.fraude, 0))}</td>
               </tr>,
               ...fs.map((f, i) => (
-                <tr key={mes + i} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ ...td, paddingLeft: 24, color: '#475569' }}>{f.movimiento}</td>
-                  <td style={{ ...tdNum, color: f.perdida > 0 ? ROJO : TENUE }}>{f$(f.perdida)}</td>
-                  <td style={{ ...tdNum, color: f.fraude > 0 ? AMBAR : TENUE }}>{f$(f.fraude)}</td>
+                <tr key={mes + i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                  <td style={{ ...td, paddingLeft: 24 }}><C c={TXT_MID}>{f.movimiento}</C></td>
+                  <td style={{ ...tdNum }}><C c={f.perdida > 0 ? ROJO : TENUE}>{f$(f.perdida)}</C></td>
+                  <td style={{ ...tdNum }}><C c={f.fraude > 0 ? AMBAR : TENUE}>{f$(f.fraude)}</C></td>
                 </tr>
               )),
             ]
@@ -651,22 +709,20 @@ function TablaReactivaciones({ filas, meses, hasta }: {
         {meses.map(m => {
           const v = mapa.get(m)
           return (
-            <tr key={m} style={{ borderBottom: '1px solid #F1F5F9' }}>
-              <td style={{ ...td, fontWeight: 600, color: '#0F172A' }}>{m}</td>
+            <tr key={m} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <td style={{ ...td, fontWeight: 600 }}><C c={TXT_HI}>{m}</C></td>
               <td style={{
-                ...tdNum, fontWeight: v != null ? 700 : 400,
-                color: v != null ? VERDE : TENUE, fontStyle: v == null ? 'italic' : undefined,
-              }}>
+                ...tdNum, fontWeight: v != null ? 700 : 400, fontStyle: v == null ? 'italic' : undefined }}><C c={v != null ? VERDE : TENUE}>
                 {v != null ? f$(v) : 'sin medir'}
-              </td>
+              </C></td>
             </tr>
           )
         })}
         <tr style={filaTotal}>
           <td style={{ ...td, fontWeight: 800 }}>Total hasta {hasta}</td>
-          <td style={{ ...tdNum, fontWeight: 800, color: VERDE }}>
+          <td style={{ ...tdNum, fontWeight: 800 }}><C c={VERDE}>
             {f$(filas.reduce((s, f) => s + f.monto, 0))}
-          </td>
+          </C></td>
         </tr>
       </tbody>
     </table>
@@ -674,9 +730,11 @@ function TablaReactivaciones({ filas, meses, hasta }: {
 }
 
 const CHIP: Record<string, { txt: string; bg: string; col: string }> = {
-  baja: { txt: 'baja cotejada', bg: '#FEE2E2', col: ROJO },
-  sigue_viva: { txt: 'sigue viva', bg: '#FEF3C7', col: AMBAR },
-  sin_verificar: { txt: 'sin cotejar', bg: '#E2E8F0', col: '#475569' },
+  /* Tinte oscuro del color + letra clara del mismo tono. Con el fondo claro
+     que tenian antes, el rojo claro quedaba sobre rosa claro y no se leia. */
+  baja: { txt: 'baja cotejada', bg: 'rgba(248,113,113,0.18)', col: '#FCA5A5' },
+  sigue_viva: { txt: 'sigue viva', bg: 'rgba(251,191,36,0.18)', col: '#FCD34D' },
+  sin_verificar: { txt: 'sin cotejar', bg: 'rgba(255,255,255,0.10)', col: TXT_MID },
   na: { txt: '—', bg: 'transparent', col: TENUE },
 }
 
@@ -715,8 +773,8 @@ const COLUMNAS: ColDet[] = [
   {
     h: 'Cliente', k: 'cliente',
     celda: f => (
-      <span style={{ fontWeight: 600, color: '#0F172A' }}>
-        {f.consecutivo && <span style={{ color: AZUL, fontWeight: 700, marginRight: 6 }}>{f.consecutivo}</span>}
+      <span style={{ background: 'transparent', fontWeight: 600, color: TXT_HI }}>
+        {f.consecutivo && <span style={{ background: 'transparent', color: AZUL, fontWeight: 700, marginRight: 6 }}>{f.consecutivo}</span>}
         {f.cliente}
       </span>
     ),
@@ -726,42 +784,42 @@ const COLUMNAS: ColDet[] = [
   {
     h: 'Meses Activo', k: 'meses', num: true,
     celda: f => (
-      <span style={{ fontWeight: f.meses >= 60 ? 700 : 400, color: f.meses >= 60 ? AMBAR : '#334155' }}>
+      <span style={{ background: 'transparent', fontWeight: f.meses >= 60 ? 700 : 400, color: f.meses >= 60 ? AMBAR : TXT_MID }}>
         {f.meses}
       </span>
     ),
   },
   {
     h: 'Importe Acumulado Recurrente', k: 'acumulado', num: true, dinero: true,
-    celda: f => <span style={{ fontWeight: 700, color: AZUL }}>{f$(f.acumulado)}</span>,
+    celda: f => <span style={{ background: 'transparent', fontWeight: 700, color: AZUL }}>{f$(f.acumulado)}</span>,
   },
   { h: 'MRR Inicio Contrato (BCY)', k: 'mrrIni', num: true, dinero: true },
   { h: 'MRR Fin Contrato (BCY)', k: 'mrrFin', num: true, dinero: true },
   {
     h: 'Ingreso Ganado Contrato (BCY)', k: 'ganado', num: true, dinero: true,
-    celda: f => <span style={{ color: f.ganado > 0 ? VERDE : TENUE }}>{f$(f.ganado)}</span>,
+    celda: f => <span style={{ background: 'transparent', color: f.ganado > 0 ? VERDE : TENUE }}>{f$(f.ganado)}</span>,
   },
   {
     h: 'Movimiento MRR', k: 'movimiento',
-    celda: f => <span style={{ fontSize: 10.5, color: '#475569' }}>{f.movimiento ?? '—'}</span>,
+    celda: f => <span style={{ background: 'transparent', fontSize: 10.5, color: TXT_MID }}>{f.movimiento ?? '—'}</span>,
   },
   {
     h: 'Ingreso Perdido Contrato (BCY) Real', k: 'perdida', num: true, dinero: true,
-    celda: f => <span style={{ fontWeight: 700, color: f.perdida > 0 ? ROJO : TENUE }}>{f$(f.perdida)}</span>,
+    celda: f => <span style={{ background: 'transparent', fontWeight: 700, color: f.perdida > 0 ? ROJO : TENUE }}>{f$(f.perdida)}</span>,
   },
   {
     h: 'Ingreso Perdido Contrato (BCY) Fraude-Reestructura', k: 'fraude', num: true, dinero: true,
-    celda: f => <span style={{ color: f.fraude > 0 ? AMBAR : TENUE }}>{f$(f.fraude)}</span>,
+    celda: f => <span style={{ background: 'transparent', color: f.fraude > 0 ? AMBAR : TENUE }}>{f$(f.fraude)}</span>,
   },
   {
     h: 'Rango MRR Fin Contrato', k: 'rango',
     llave: f => RANGO_ORDEN.indexOf(f.rango ?? ''),
-    celda: f => <span style={{ fontSize: 10.5, color: TENUE }}>{f.rango ?? '—'}</span>,
+    celda: f => <span style={{ background: 'transparent', fontSize: 10.5, color: TENUE }}>{f.rango ?? '—'}</span>,
   },
   {
     h: 'Asesor', k: 'asesor', cruce: true,
     celda: f => (
-      <span style={{ color: f.asesor ? '#475569' : TENUE, fontStyle: f.asesor ? undefined : 'italic' }}>
+      <span style={{ background: 'transparent', color: f.asesor ? TXT_MID : TENUE, fontStyle: f.asesor ? undefined : 'italic' }}>
         {f.asesor ?? 'sin asesor'}
       </span>
     ),
@@ -770,7 +828,7 @@ const COLUMNAS: ColDet[] = [
     h: 'Estado en base', k: 'estadoBase', cruce: true,
     llave: f => (f.enCartera ? estadoTxt(f.estadoBase) : 'zz'),
     celda: f => (
-      <span style={{ fontSize: 10.5, color: f.enCartera ? '#475569' : TENUE, fontStyle: f.enCartera ? undefined : 'italic' }}>
+      <span style={{ background: 'transparent', fontSize: 10.5, color: f.enCartera ? TXT_MID : TENUE, fontStyle: f.enCartera ? undefined : 'italic' }}>
         {f.enCartera ? estadoTxt(f.estadoBase) : 'fuera de cartera'}
       </span>
     ),
@@ -779,7 +837,7 @@ const COLUMNAS: ColDet[] = [
     h: 'Verificación', k: 'verificacion', cruce: true,
     celda: f => {
       const c = CHIP[f.verificacion]
-      if (f.verificacion === 'na') return <span style={{ color: TENUE }}>—</span>
+      if (f.verificacion === 'na') return <span style={{ background: 'transparent', color: TENUE }}>—</span>
       return (
         <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 5, fontWeight: 700, background: c.bg, color: c.col }}>
           {c.txt}
@@ -870,7 +928,7 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
         <p className="text-[11.5px]" style={{ color: TENUE }}>
           {nf(filas.length)} filas · {nf(conPerdida)} con pérdida ·
           {' '}{nf(filas.filter(f => f.enCartera).length)} en la cartera gestionada ·
-          {' '}ordenado por <strong style={{ color: '#475569' }}>{orden.h}</strong>
+          {' '}ordenado por <C c={TXT_HI} b>{orden.h}</C>
           {' '}{orden.desc ? 'de mayor a menor' : 'de menor a mayor'}
         </p>
         <div className="flex items-center gap-2 flex-wrap">
@@ -878,8 +936,8 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
             <button onClick={() => setAbrePicker(v => !v)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '6px 13px', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              border: `1.5px solid ${ocultas.length ? AZUL : '#E2E8F0'}`,
-              background: '#fff', color: ocultas.length ? AZUL : '#475569',
+              border: `1.5px solid ${ocultas.length ? AZUL_SOLIDO : '#E2E8F0'}`,
+              background: '#fff', color: ocultas.length ? AZUL_SOLIDO : '#475569',
             }}>
               <Columns3 size={14} />
               Columnas ({cols.length} de {COLUMNAS.length})
@@ -889,8 +947,13 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
                 {/* Capa para cerrar al hacer clic afuera, sin escuchar en document. */}
                 <div onClick={() => setAbrePicker(false)}
                   style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                <div style={{
+                {/* `cp-light` es la clase de escape del proyecto: sin ella,
+                    globals.css fuerza a blanco el texto dentro de una
+                    .cp-card y este menu queda blanco sobre blanco. El color
+                    va en el contenedor y los hijos lo heredan. */}
+                <div className="cp-light" style={{
                   position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 41,
+                  color: '#0F172A',
                   background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12,
                   boxShadow: '0 12px 28px rgba(15,23,42,.14)', padding: '12px 14px',
                   minWidth: 330, maxHeight: 420, overflowY: 'auto',
@@ -906,23 +969,23 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
                           onChange={() => guardarOcultas(visible
                             ? [...ocultas, c.h]
                             : ocultas.filter(x => x !== c.h))}
-                          style={{ marginTop: 2, accentColor: AZUL }} />
+                          style={{ marginTop: 2, accentColor: AZUL_SOLIDO }} />
                         <span className="text-[11.5px] leading-snug"
-                          style={{ color: visible ? '#334155' : TENUE }}>
+                          style={{ color: visible ? '#334155' : '#94A3B8' }}>
                           {c.h}
                           {c.cruce && (
-                            <span style={{ color: AZUL, fontSize: 10, marginLeft: 5 }}>· del cruce</span>
+                            <span style={{ color: AZUL_SOLIDO, fontSize: 10, marginLeft: 5 }}>· del cruce</span>
                           )}
                         </span>
                       </label>
                     )
                   })}
-                  <div className="flex gap-2 mt-2 pt-2" style={{ borderTop: '1px solid #F1F5F9' }}>
-                    <button onClick={() => guardarOcultas([])} style={botonChico}>Ver todas</button>
+                  <div className="flex gap-2 mt-2 pt-2" style={{ borderTop: '1px solid #E2E8F0' }}>
+                    <button onClick={() => guardarOcultas([])} style={botonClaro}>Ver todas</button>
                     <button onClick={() => guardarOcultas(COLUMNAS.filter(c => c.cruce).map(c => c.h))}
-                      style={botonChico}>Solo las del export</button>
+                      style={botonClaro}>Solo las del export</button>
                   </div>
-                  <p className="text-[10.5px] mt-2 leading-relaxed" style={{ color: TENUE }}>
+                  <p className="text-[10.5px] mt-2 leading-relaxed" style={{ color: '#64748B' }}>
                     Esconder una columna no la quita del dato: la descarga sale siempre completa.
                   </p>
                 </div>
@@ -931,7 +994,7 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
           </div>
           <button onClick={() => descargaCsv(ordenadas, mes)} style={{
             padding: '6px 13px', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            border: `1.5px solid ${AZUL}`, background: '#fff', color: AZUL,
+            border: `1.5px solid ${AZUL_SOLIDO}`, background: '#fff', color: AZUL_SOLIDO,
           }}>
             Descargar las {nf(filas.length)} filas (CSV)
           </button>
@@ -949,7 +1012,7 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
                   style={{
                     ...thSticky, cursor: 'pointer', userSelect: 'none',
                     textAlign: c.num ? 'right' : 'left',
-                    color: activa ? AZUL : (c.cruce ? '#475569' : TENUE),
+                    color: activa ? AZUL : (c.cruce ? TXT_MID : TENUE),
                     borderLeft: primeraDelCruce ? '2px solid #E2E8F0' : undefined,
                   }}>
                   {c.h}
@@ -962,7 +1025,7 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
           </tr></thead>
           <tbody>
             {mostradas.map((f, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+              <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 {cols.map((c, j) => {
                   const primeraDelCruce = c.cruce && !cols[j - 1]?.cruce
                   return (
@@ -977,7 +1040,7 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
                         ? c.celda(f)
                         : c.dinero ? f$(f[c.k] as number)
                           : (f[c.k] === null || f[c.k] === undefined || f[c.k] === ''
-                            ? <span style={{ color: TENUE }}>—</span>
+                            ? <span style={{ background: 'transparent', color: TENUE }}>—</span>
                             : String(f[c.k]))}
                     </td>
                   )
@@ -1026,28 +1089,29 @@ function TablaDesmentidas({ filas }: { filas: Fila[] }) {
         </tr></thead>
         <tbody>
           {filas.map((f, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid #F1F5F9' }}>
+            <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <td style={td}>{f.consecutivo ?? '—'}</td>
-              <td style={{ ...td, fontWeight: 600, color: '#0F172A' }}>{f.cliente}</td>
-              <td style={{ ...td, color: f.asesor ? '#475569' : TENUE, fontStyle: f.asesor ? undefined : 'italic' }}>
+              <td style={{ ...td, fontWeight: 600 }}><C c={TXT_HI}>{f.cliente}</C></td>
+              <td style={{ ...td, fontStyle: f.asesor ? undefined : 'italic'  }}><C c={f.asesor ? TXT_MID : TENUE}>
                 {f.asesor ?? 'sin asesor'}
-              </td>
+              </C></td>
               <td style={td}>
                 <span style={{
                   fontSize: 10.5, padding: '2px 8px', borderRadius: 6, fontWeight: 700,
-                  background: f.estadoBase === 'activo' ? '#DCFCE7' : '#FEF3C7',
-                  color: f.estadoBase === 'activo' ? VERDE : AMBAR,
+                  background: f.estadoBase === 'activo'
+                    ? 'rgba(74,222,128,0.18)' : 'rgba(251,191,36,0.18)',
+                  color: f.estadoBase === 'activo' ? '#86EFAC' : '#FCD34D',
                 }}>{estadoTxt(f.estadoBase)}</span>
               </td>
-              <td style={{ ...tdNum, fontWeight: f.meses >= 60 ? 700 : 400, color: f.meses >= 60 ? AMBAR : '#334155' }}>{f.meses}</td>
-              <td style={{ ...tdNum, fontWeight: 700, color: AMBAR }}>{f$(f.perdida)}</td>
+              <td style={{ ...tdNum, fontWeight: f.meses >= 60 ? 700 : 400 }}><C c={f.meses >= 60 ? AMBAR : TXT_MID}>{f.meses}</C></td>
+              <td style={{ ...tdNum, fontWeight: 700 }}><C c={AMBAR}>{f$(f.perdida)}</C></td>
             </tr>
           ))}
           <tr style={filaTotal}>
-            <td style={{ ...td, fontWeight: 800, color: '#0F172A' }} colSpan={5}>Total desmentido</td>
-            <td style={{ ...tdNum, fontWeight: 800, color: AMBAR }}>
+            <td style={{ ...td, fontWeight: 800 }} colSpan={5}><C c={TXT_HI}>Total desmentido</C></td>
+            <td style={{ ...tdNum, fontWeight: 800 }}><C c={AMBAR}>
               {f$(filas.reduce((s, f) => s + f.perdida, 0))}
-            </td>
+            </C></td>
           </tr>
         </tbody>
       </table>
