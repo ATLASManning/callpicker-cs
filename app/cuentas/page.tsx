@@ -221,6 +221,7 @@ function CuentasPageInner() {
   // ── Nuevos filtros de columna ─────────────────────────────────────────────
   const [estadoFilter, setEstadoFilter]         = useState('')
   const [facturacionFilter, setFacturacionFilter] = useState('')
+  const [acumuladoFilter, setAcumuladoFilter] = useState('')
   const [hsFilter, setHsFilter]                 = useState('')
   const [ticketsFilter, setTicketsFilter]       = useState('')
 
@@ -243,12 +244,35 @@ function CuentasPageInner() {
     .filter(c => !warningFilter    || getDataWarning(c) === warningFilter)
     .filter(c => !topFilter        || isTopCustomer(c.consecutivo))
     .filter(c => !estadoFilter     || getEstadoKey(c) === estadoFilter)
+    /* Filtro de FACTURA MENSUAL. `mrr_zoho` sale de la cadena a propósito: ya
+     * no es un monto mensual sino el acumulado de toda la vida del cliente, y
+     * mezclarlo aquí metía acumulados de cientos de miles en cubos pensados
+     * para mensualidades — con eso, casi todo caía en «más de $15,000» y el
+     * filtro dejaba de servir. Los tres rangos se quedan como estaban porque
+     * son los correctos para una mensualidad; el acumulado tiene su propio
+     * filtro, con su propia escala. */
     .filter(c => {
       if (!facturacionFilter) return true
-      const f = c.factura_mensual_zoho ?? c.mrr_zoho ?? c.facturacion ?? 0
+      const f = c.factura_mensual_zoho ?? c.facturacion ?? 0
       if (facturacionFilter === 'lt5')  return f < 5000
       if (facturacionFilter === '5-15') return f >= 5000 && f < 15000
       if (facturacionFilter === 'gt15') return f >= 15000
+      return true
+    })
+    /* Filtro de ACUMULADO RECURRENTE. Los cortes no son redondos por gusto:
+     * salen de los cuartiles reales de la cartera gestionada —p25 $173,652,
+     * mediana $346,280, p75 $650,497 sobre 152 cuentas— así que cada tramo
+     * contiene aproximadamente un cuarto, la mitad y un cuarto. Un corte
+     * inventado habría dejado un cubo vacío y otro con todo dentro.
+     * REVISAR cuando llegue el export completo: esos cuartiles son de la
+     * cartera AAA/AA/A, y la fuente nueva cubre un universo más ancho. */
+    .filter(c => {
+      if (!acumuladoFilter) return true
+      const a = c.mrr_zoho
+      if (a == null) return false
+      if (acumuladoFilter === 'lt175')  return a < 175000
+      if (acumuladoFilter === '175-650') return a >= 175000 && a < 650000
+      if (acumuladoFilter === 'gt650')  return a >= 650000
       return true
     })
     .filter(c => {
@@ -288,11 +312,15 @@ function CuentasPageInner() {
     setHsFilter(''); setTicketsFilter('')
   }
 
-  const hayFiltros = !!(search || asesorFilter || semaforoFilter || warningFilter ||
+  const hayFiltros = !!(search || asesorFilter || semaforoFilter || warningFilter || acumuladoFilter ||
     topFilter || estadoFilter || facturacionFilter || hsFilter || ticketsFilter)
 
   // ── Totales rápidos ───────────────────────────────────────────────────────
-  const totalFac      = sorted.reduce((s, c) => s + (c.factura_mensual_zoho ?? c.mrr_zoho ?? c.facturacion ?? 0), 0)
+  /* Facturacion MENSUAL de la cartera. `mrr_zoho` queda fuera: sumar
+   * acumulados de toda la vida dentro de un total mensual inflaba la cifra
+   * decenas de veces en cuanto una cuenta no tenia factura de Zoho. */
+  const totalFac      = sorted.reduce((s, c) => s + (c.factura_mensual_zoho ?? c.facturacion ?? 0), 0)
+  const totalAcum     = sorted.reduce((s, c) => s + (c.mrr_zoho ?? 0), 0)
   const totalTickets  = sorted.reduce((s, c) => s + (c.zoho_tickets?.total ?? 0), 0)
   const totalFallas   = sorted.reduce((s, c) => s + (c.zoho_tickets?.fallas ?? 0), 0)
 
@@ -479,6 +507,19 @@ function CuentasPageInner() {
                     />
 
                     <Th
+                      label="Acumulado"
+                      field="mrr_zoho"
+                      filterEl={
+                        <HeaderSelect value={acumuladoFilter} onChange={setAcumuladoFilter} placeholder="Todo el acumulado"
+                          options={[
+                            { value: 'lt175',   label: 'Menos de $175,000' },
+                            { value: '175-650', label: '$175,000 – $650,000' },
+                            { value: 'gt650',   label: 'Más de $650,000' },
+                          ]} />
+                      }
+                    />
+
+                    <Th
                       label="Health Score"
                       field="health_score"
                       filterEl={
@@ -574,15 +615,27 @@ function CuentasPageInner() {
                                 {c.factura_mensual_zoho != null ? formatMXN(c.factura_mensual_zoho) : '—'}
                               </span>
                             </div>
-                            {c.mrr_zoho != null && (
-                              <div>
-                                <p className="text-[9px] text-textLow font-medium">MRR</p>
-                                <span className="text-xs font-semibold text-cp tabular-nums">
-                                  {formatMXN(c.mrr_zoho)}
-                                </span>
-                              </div>
-                            )}
                           </div>
+                        </td>
+
+                        {/* Acumulado recurrente — columna propia.
+                            NO se rotula «MRR»: desde el 17 sep 2026 este campo
+                            trae el «Importe Acumulado Recurrente» del tablero de
+                            Zoho, o sea lo que el cliente ha pagado en toda su
+                            vida. Contra la mensualidad son magnitudes distintas
+                            por 35 a 65 veces —LIV BIENES RAÍCES: $918 al mes
+                            contra $44,302 acumulados— y llamarlo MRR haría que
+                            la pantalla mintiera con una cifra correcta.
+                            Va aparte y no debajo de la factura para que nadie
+                            los lea como dos versiones del mismo número. */}
+                        <td>
+                          {c.mrr_zoho != null ? (
+                            <span className="text-sm font-semibold text-cp tabular-nums">
+                              {formatMXN(c.mrr_zoho)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-textLow">—</span>
+                          )}
                         </td>
 
                         {/* Health Score */}

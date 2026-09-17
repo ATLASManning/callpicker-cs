@@ -188,8 +188,12 @@ function DormidasPageInner() {
     return acc
   }, {})
 
+  /* Total MENSUAL. `mrr_zoho` queda fuera: desde el 17 sep 2026 ese campo trae
+   * el acumulado de toda la vida del cliente, no una mensualidad, y sumarlo
+   * aquí inflaba el total decenas de veces en cuanto una cuenta no tenía
+   * factura de Zoho. */
   const totalFac = sorted.reduce((s, c) =>
-    s + (c.factura_mensual_zoho ?? c.mrr_zoho ?? c.facturacion ?? 0), 0)
+    s + (c.factura_mensual_zoho ?? c.facturacion ?? 0), 0)
 
   // Header de columna
   function Th({ label, field }: { label: string; field?: keyof Cuenta }) {
