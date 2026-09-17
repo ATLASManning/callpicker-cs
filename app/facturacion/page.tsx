@@ -55,6 +55,11 @@ const AZUL_SOLIDO = '#1B3FCC', ROJO_OSCURO = '#B91C1C'
  * la tarjeta arma el fondo del icono concatenando `color + '22'`, y un rgba
  * concatenado no es un color válido. */
 const NEUTRO = '#94A3B8'
+/* Texto sobre superficie CLARA o transparente: todo lo que vive FUERA de
+ * una .cp-card —el encabezado, los avisos, las notas al pie de los
+ * filtros—. Ahi el fondo de la pagina es claro y la letra va azul marino;
+ * los tonos claros de arriba solo sirven dentro de las tarjetas oscuras. */
+const MARINO = '#122E5E', MARINO_TENUE = '#3A5085'
 const TXT_HI = 'rgba(255,255,255,0.92)'
 const TXT_MID = 'rgba(255,255,255,0.72)'
 /** El mas tenue que se admite sobre #0D1829. Nada por debajo lleva texto. */
@@ -198,8 +203,8 @@ export default function GrossRevenueChurnPage() {
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto">
+      {/* Sin `dark`: el encabezado va sobre el fondo claro de la pagina. */}
       <PageHeader
-        dark
         title="Gross Revenue Churn"
         subtitle={m
           ? `Pérdida bruta de ingreso recurrente · mes en curso: ${m.mesVivo} · ${nf(m.clientes)} clientes`
@@ -208,9 +213,9 @@ export default function GrossRevenueChurnPage() {
 
       {error && (
         <div className="rounded-xl px-4 py-3 mb-5"
-          style={{ background: 'rgba(248,113,113,0.12)', border: '1px solid rgba(248,113,113,0.35)' }}>
-          <p className="text-sm font-semibold" style={{ color: ROJO }}>{error}</p>
-          <p className="text-xs mt-1" style={{ color: '#FCA5A5' }}>
+          style={{ background: '#FEE2E2', border: '1px solid #FCA5A5' }}>
+          <p className="text-sm font-semibold" style={{ color: ROJO_OSCURO }}>{error}</p>
+          <p className="text-xs mt-1" style={{ color: MARINO }}>
             Se alimenta de <code>data/grc-zoho.json</code>. Se regenera con el export del mes: en el tablero GRC,
             clic derecho sobre el MRR inicio del mes → «Ver datos subyacentes» → Más → Exportar Vista, y después
             {' '}<code>python scripts/gen-grc-zoho.py &lt;archivo&gt;</code>.
@@ -222,11 +227,11 @@ export default function GrossRevenueChurnPage() {
              que en su única muestra verificable resultó 95% falsa. ────────── */}
       {m && vivo && m.cuentasViva > 0 && (
         <div className="rounded-xl px-4 py-3 mb-5"
-          style={{ background: 'rgba(251,191,36,0.10)', border: '1px solid rgba(251,191,36,0.32)' }}>
-          <p className="text-sm font-bold mb-1" style={{ color: '#FDE68A' }}>
+          style={{ background: '#FEF3C7', border: '1px solid #FCD34D' }}>
+          <p className="text-sm font-bold mb-1" style={{ color: MARINO }}>
             {m.mesVivo} está en curso — la pérdida va en tres canastas y no se suma en una
           </p>
-          <p className="text-[12px] leading-relaxed" style={{ color: '#FDE68A' }}>
+          <p className="text-[12px] leading-relaxed" style={{ color: MARINO }}>
             El corte marca «Churn confirmado» a todo contrato que aún no se factura. De esas cuentas solo
             <strong> {m.cuentasBaja + m.cuentasViva}</strong> están en la cartera y se pueden cotejar contra la base:
             <strong> {m.cuentasViva} siguen activas o en riesgo</strong> ({f$(m.churnViva)}). Las otras
@@ -310,7 +315,7 @@ export default function GrossRevenueChurnPage() {
       </div>
 
       {hayFiltro && (
-        <p className="text-[11px] mb-3 leading-relaxed" style={{ color: TENUE }}>
+        <p className="text-[11px] mb-3 leading-relaxed" style={{ color: MARINO_TENUE }}>
           Con un filtro puesto los porcentajes se apagan: el GRC es pérdida sobre el MRR del mes completo, y si el
           denominador se encoge el cociente deja de significar eso. La serie mensual y los cortes tampoco cambian —
           son la foto del mes entero, y si se movieran al filtrar dejarían de poder compararse entre sí.
@@ -336,7 +341,7 @@ export default function GrossRevenueChurnPage() {
         ))}
       </div>
 
-      {cargando && !d && <p className="text-sm" style={{ color: TENUE }}>Cargando…</p>}
+      {cargando && !d && <p className="text-sm" style={{ color: MARINO_TENUE }}>Cargando…</p>}
 
       {d && tab === 'serie' && (
         <div className="grid gap-4">
