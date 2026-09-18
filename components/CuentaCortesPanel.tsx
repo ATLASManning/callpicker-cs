@@ -35,12 +35,16 @@ function pctColor(p: number) {
   return '#6366f1'
 }
 
+/* Variantes CLARAS de la paleta, porque estas pastillas se pintan dentro de la
+   tarjeta azul marino: el `#1B3FCC` de antes daba azul sobre azul (~2:1) y el
+   fondo de la pastilla es el mismo color al 9%, así que no ayudaba. Mismos
+   valores que usa app/facturacion/cortes/page.tsx en su tabla oscura. */
 const CLAS_COLOR: Record<string, string> = {
-  'AAA': '#1B3FCC', 'Grande': '#6366f1', 'Mediana': '#f59e0b',
-  'Pequeña': '#22c55e', 'Micro': '#94a3b8',
+  'AAA': '#60A5FA', 'Grande': '#818CF8', 'Mediana': '#FBBF24',
+  'Pequeña': '#4ADE80', 'Micro': '#94A3B8',
 }
 const USO_COLOR: Record<string, string> = {
-  'entrantes': '#1B3FCC', 'salientes': '#f59e0b', 'mixtas': '#6366f1',
+  'entrantes': '#60A5FA', 'salientes': '#FBBF24', 'mixtas': '#A78BFA',
 }
 
 export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null; empresa: string }) {

@@ -79,14 +79,12 @@ const PLAN_COLORS = [
   '#60A5FA','#818CF8','#A78BFA','#F472B6','#34D399',
   '#FB923C','#22D3EE','#A3E635','#F87171','#FBBF24',
 ]
-const CLAS_COLOR: Record<string, string> = {
-  'AAA':'#1B3FCC','Grande':'#6366f1','Mediana':'#f59e0b','Pequeña':'#22c55e','Micro':'#94a3b8',
-}
+/* Solo existen las paletas `_D`. Las claras se borraron el 18 sep 2026: toda
+   esta pantalla —tabla, badges y gráficas— vive dentro de tarjetas oscuras, y
+   tener las dos versiones lado a lado hacía que se tomara la equivocada sin
+   que nada fallara. Si algún día hace falta una isla clara, se declara ahí. */
 const CLAS_COLOR_D: Record<string, string> = {
   'AAA':'#60A5FA','Grande':'#818CF8','Mediana':'#FBBF24','Pequeña':'#4ADE80','Micro':'#94A3B8',
-}
-const USO_COLOR: Record<string, string> = {
-  'entrantes':'#1B3FCC','salientes':'#f59e0b','mixtas':'#6366f1','':'#94a3b8','equilibrado':'#6366f1',
 }
 const USO_COLOR_D: Record<string, string> = {
   'entrantes':'#60A5FA','salientes':'#FBBF24','mixtas':'#A78BFA','equilibrado':'#34D399',
@@ -326,7 +324,9 @@ export default function InformeCortesPage() {
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', flexDirection: 'column', gap: 12 }}>
       <RefreshCw size={28} style={{ color: '#1B3FCC', animation: 'spin 1s linear infinite' }} />
-      <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14 }}>Cargando cortes de facturación…</p>
+      {/* Este return temprano NO está dentro de una .cp-card: se pinta sobre el
+          fondo claro de la página. Blanco al 45% aquí es invisible. */}
+      <p style={{ color: '#64748B', fontSize: 14 }}>Cargando cortes de facturación…</p>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
@@ -346,7 +346,10 @@ export default function InformeCortesPage() {
           <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Análisis de consumo y comportamiento por periodo de corte</p>
         </div>
         <button onClick={() => { setStats(null); setLoading(true); setTimeout(() => window.location.reload(), 100) }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>
+          {/* El header vive sobre el fondo claro de la página, no dentro de una
+              tarjeta: paleta clara. Con los blancos translúcidos de antes el
+              botón quedaba a ~1.05:1 — un recuadro vacío. */}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#475569', fontWeight: 600 }}>
           <RefreshCw size={13} /> Actualizar
         </button>
       </div>
@@ -506,10 +509,17 @@ export default function InformeCortesPage() {
                       const active = sortBy === k
                       const SortIcon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
                       return (
-                        <th key={k} onClick={() => handleSort(k as ColKey)} style={{ padding: '10px 10px', textAlign: isNum ? 'right' : 'left', fontWeight: 700, color: active ? '#1B3FCC' : '#374151', borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap', fontSize: 11, cursor: noSort ? 'default' : 'pointer', userSelect: 'none', background: active ? '#EFF6FF' : undefined }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {/* La columna ordenada se marca con un TINTE OSCURO, no
+                            con el azul pálido de antes: esta tabla vive dentro
+                            de una .cp-card y un fondo claro aquí convertía el
+                            encabezado en blanco sobre casi blanco. El `color`
+                            del <th> es decorativo —`.cp-card th` lo pisa con
+                            !important—, así que el color real lo pone el span,
+                            que declara `background` para escapar de la regla. */}
+                        <th key={k} onClick={() => handleSort(k as ColKey)} style={{ padding: '10px 10px', textAlign: isNum ? 'right' : 'left', fontWeight: 700, borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap', fontSize: 11, cursor: noSort ? 'default' : 'pointer', userSelect: 'none', background: active ? 'rgba(96,165,250,0.16)' : undefined }}>
+                          <span style={{ background: 'transparent', color: active ? '#60A5FA' : undefined, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             {col.label}
-                            {!noSort && <SortIcon size={11} style={{ color: active ? '#1B3FCC' : '#cbd5e1', flexShrink: 0 }} />}
+                            {!noSort && <SortIcon size={11} style={{ color: active ? '#60A5FA' : '#cbd5e1', flexShrink: 0 }} />}
                           </span>
                         </th>
                       )
@@ -535,8 +545,12 @@ export default function InformeCortesPage() {
                           <span style={{ fontWeight: 700, color: r.medible ? pctColor(r.pctConsumo) : '#94A3B8' }}>
                             {r.medible ? `${r.pctConsumo.toFixed(1)}%` : 'sin medición'}</span></td>
                         if (k === 'monto')         return <td key={k} style={{ padding: '8px 10px', fontWeight: 700, color: '#1B3FCC', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>
-                        if (k === 'clasificacion') return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR)}>{r.clasificacion || '—'}</span></td>
-                        if (k === 'uso')           return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR)}>{r.usoPrincipal || '—'}</span></td>
+                        {/* Paletas `_D`: la tabla está en una tarjeta oscura y
+                            las claras (#1B3FCC, #f59e0b) daban azul marino
+                            sobre azul marino. Las gráficas de más abajo ya
+                            usaban las `_D` — estas dos se habían quedado. */}
+                        if (k === 'clasificacion') return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR_D)}>{r.clasificacion || '—'}</span></td>
+                        if (k === 'uso')           return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR_D)}>{r.usoPrincipal || '—'}</span></td>
                         if (k === 'eventos')       return <td key={k} style={{ padding: '8px 10px', textAlign: 'center' }}>{r.eventosAnal === 'Si' ? <CheckCircle size={13} style={{ color: '#22c55e' }} /> : <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>}</td>
                         return null
                       })}

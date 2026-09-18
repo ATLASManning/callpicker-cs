@@ -53,7 +53,12 @@ export default function SeguimientoStatusSelect({
 
   if (!canEdit) {
     return (
-      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${cls}`} style={{ color: '#0F172A' }}>
+      {/* Los fondos de `COLOR` son tintes al 10%: sobre la `.cp-card` azul
+          marino en la que vive esto, siguen siendo OSCUROS. El texto va claro.
+          (Antes decía '#0F172A' y se veía bien solo por accidente: globals.css
+          fuerza a blanco los <span> sin `background`. En cuanto alguien le
+          añadiera un `background` al style, se habría roto en silencio.) */}
+      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${cls}`} style={{ color: '#FFFFFF' }}>
         {valor}
       </span>
     )
@@ -66,10 +71,13 @@ export default function SeguimientoStatusSelect({
         disabled={saving}
         className={`w-full text-[10px] font-semibold px-1.5 py-0.5 rounded border cursor-pointer
           transition-opacity flex justify-between items-center ${cls} ${saving ? 'opacity-50' : ''}`}
-        style={{ color: '#0F172A' }}
+        style={{ color: '#FFFFFF' }}
       >
+        {/* Este es el que de verdad estaba roto: los <button> NO los fuerza
+            globals.css, así que el '#0F172A' de antes sobrevivía — oscuro
+            sobre el tinte oscuro de la tarjeta. Solo se leía al sombrearlo. */}
         {valor}
-        <span>▼</span>
+        <span style={{ background: 'transparent', color: 'inherit' }}>▼</span>
       </button>
 
       {open && (

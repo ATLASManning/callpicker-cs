@@ -189,8 +189,13 @@ export default function UsoDashboardPage() {
           Seleccionar asesor / usuario
         </p>
         <form onSubmit={handleSearch} className="flex gap-3 flex-wrap">
-          {/* Dropdown de usuarios */}
-          <div className="relative">
+          {/* Dropdown de usuarios.
+              `cp-light` va en este contenedor y cubre de una vez el botón y el
+              menú: los dos son islas BLANCAS dentro de la `.cp-card` de arriba,
+              y sin la clase de escape globals.css pinta de blanco sus <span> y
+              sus <p>/.text-textHi. El combo se veía vacío —solo el chevron— y
+              la lista de asesores salía en blanco sobre blanco. */}
+          <div className="relative cp-light" style={{ color: '#0F172A' }}>
             <button
               type="button"
               onClick={() => setOpen(v => !v)}
@@ -358,8 +363,13 @@ export default function UsoDashboardPage() {
             <div className="grid grid-cols-7 gap-2">
               {DIAS.map((d, i) => (
                 <div key={d} className="flex flex-col items-center gap-1.5">
+                  {/* `cp-light` para que los <span> de dentro HEREDEN el color
+                      de la baldosa en vez de que globals.css los pinte blancos:
+                      en las casillas de valor bajo el fondo es claro y el
+                      número desaparecía. El ternario ya resuelve las dos
+                      direcciones — solo hacía falta dejarlo llegar. */}
                   <div
-                    className="w-full aspect-square rounded-xl flex flex-col items-center justify-center text-xs font-bold"
+                    className="w-full aspect-square rounded-xl flex flex-col items-center justify-center text-xs font-bold cp-light"
                     style={{
                       background: heatColor(stats.byDow[i], stats.maxDow),
                       color: stats.byDow[i] / stats.maxDow >= 0.5 ? '#fff' : '#1E293B',
@@ -433,7 +443,11 @@ export default function UsoDashboardPage() {
                 Pico de actividad
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl">
+                {/* Islas claras dentro de la tarjeta oscura: sin `cp-light`,
+                    `.cp-card p` y los tokens `.text-textHi/.text-textMid` se
+                    fuerzan a blanco y estos dos bloques salen en blanco sobre
+                    azul/gris muy claro. */}
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl cp-light" style={{ color: '#0F172A' }}>
                   <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
                     <TrendingUp size={14} />
                   </div>
@@ -443,7 +457,7 @@ export default function UsoDashboardPage() {
                   </div>
                 </div>
                 {stats.lowDay && (
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cp-light" style={{ color: '#0F172A' }}>
                     <div className="w-8 h-8 rounded-lg bg-gray-300 flex items-center justify-center text-white">
                       <Calendar size={14} />
                     </div>
