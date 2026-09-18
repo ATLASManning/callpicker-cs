@@ -461,113 +461,12 @@ export default async function CuentaDetailPage({ params }: Props) {
             </div>
           )}
 
-          {/* Seguimientos */}
-          <div className="cp-card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide flex items-center gap-2">
-                <MessageSquare size={13} /> Seguimiento KAM
-              </h3>
-              <span className="text-xs text-textLow">{seguimientos.length} registros</span>
-            </div>
-            <SeguimientoForm cuentaId={cuenta.id} asesor={cuenta.asesor} canEdit={canEdit} />
-            <div className="mt-4 space-y-3">
-              {seguimientos.length === 0 ? (
-                <p className="text-xs text-textLow text-center py-6">Sin actividad registrada</p>
-              ) : seguimientos.map(s => (
-                <div key={s.id} className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cp/10 flex items-center justify-center text-cp">
-                    <MessageSquare size={13} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-semibold text-textHi capitalize">{s.tipo}</span>
-                      <SeguimientoStatusSelect seguimientoId={s.id} resultado={s.resultado} canEdit={canEdit} />
-                      <span className="text-[10px] text-textLow ml-auto flex-shrink-0">
-                        {(() => { const d = new Date(s.fecha); return isNaN(d.getTime()) ? s.fecha : d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) })()}
-                      </span>
-                    </div>
-                    {s.descripcion && <p className="text-xs text-textMid">{s.descripcion}</p>}
-                    {s.asesor && <p className="text-[11px] text-textLow mt-0.5">{s.asesor}</p>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Relacionamiento y reuniones — alimenta score_relacional (15% del HS) */}
           <CuentaRelacionPanel
             relacion={relacion}
             reuniones={reunionesCuenta.rows}
             migracionPendiente={!reunionesCuenta.vinculoDisponible}
           />
-
-          {/* Notas KAM — Server Actions, build válido */}
-          {(() => {
-            const obs = cuenta.observaciones_kam?.trim() || null
-            return (
-              <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:12, padding:'14px 16px' }}>
-                {/* Encabezado */}
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                  <span style={{ fontSize:11, fontWeight:700, color:'#0F172A', textTransform:'uppercase', letterSpacing:'0.06em' }}>
-                    Observaciones KAM
-                  </span>
-                  {obs && canEdit && (
-                    <form action={deleteKam} style={{ margin:0 }}>
-                      <input type="hidden" name="cuenta_id" value={cuenta.id} />
-                      <button type="submit"
-                        style={{ fontSize:13, color:'#DC2626', background:'none', border:'none', cursor:'pointer', fontWeight:600 }}
-                      >
-                        🗑 Borrar
-                      </button>
-                    </form>
-                  )}
-                </div>
-
-                {/* Texto actual */}
-                {obs ? (
-                  <p style={{ fontSize:13, color:'#0F172A', lineHeight:1.65, whiteSpace:'pre-wrap', margin:'0 0 12px' }}>{obs}</p>
-                ) : (
-                  <p style={{ fontSize:12, color:'#94A3B8', fontStyle:'italic', margin:'0 0 12px' }}>Sin observaciones registradas.</p>
-                )}
-
-                {/* Formulario edición — solo para quienes pueden editar */}
-                {canEdit && (
-                  <details style={{ marginTop:4 }}>
-                    <summary style={{
-                      fontSize:13, fontWeight:700, color:'#1B3FCC',
-                      background:'#EFF6FF', border:'1px solid #BFDBFE',
-                      borderRadius:6, padding:'7px 14px', cursor:'pointer',
-                      listStyle:'none',
-                    }}>
-                      ✏ {obs ? 'Editar observaciones' : 'Agregar observaciones'}
-                    </summary>
-                    <form action={updateKam} style={{ marginTop:10 }}>
-                      <input type="hidden" name="cuenta_id" value={cuenta.id} />
-                      <textarea
-                        name="observaciones_kam"
-                        defaultValue={obs ?? ''}
-                        rows={6}
-                        placeholder="Estado de la relación, compromisos, riesgos, acuerdos..."
-                        style={{
-                          width:'100%', padding:'10px 12px', borderRadius:8,
-                          border:'1px solid #CBD5E1', fontSize:13, color:'#0F172A',
-                          fontFamily:'inherit', resize:'vertical', boxSizing:'border-box',
-                          lineHeight:1.6,
-                        }}
-                      />
-                      <button type="submit" style={{
-                        marginTop:8, padding:'7px 18px', borderRadius:7, border:'none',
-                        background:'#1B3FCC', color:'#fff',
-                        fontSize:12, fontWeight:700, cursor:'pointer',
-                      }}>
-                        💾 Guardar
-                      </button>
-                    </form>
-                  </details>
-                )}
-              </div>
-            )
-          })()}
 
           {/* Observaciones Auditoría */}
           {auditoriaCase && (() => {
@@ -695,7 +594,7 @@ export default async function CuentaDetailPage({ params }: Props) {
           {/* Actividades SAC */}
           <CuentaActividadesSAC actividades={actividades} canEdit={canEdit} />
 
-          {/* Facturación LTV — datos desde Zoho Analytics */}
+          {/* Facturación — Factura Mensual y MRR salen del corte GRC */}
           <CuentaFacturacionPanel
             cid={cuenta.cid ?? null}
             empresa={cuenta.empresa}
@@ -711,6 +610,113 @@ export default async function CuentaDetailPage({ params }: Props) {
           {llamadas
             ? <CuentaLlamadasPanel l={llamadas} meta={LLAMADAS_META} cola={colaLlamadas} />
             : <LlamadasSinLectura cid={cuenta.cid ?? null} meta={LLAMADAS_META} />}
+
+          {/* Seguimiento KAM y Observaciones KAM cierran la ficha.
+              Dirección los bajó al final, después de Atención de llamadas:
+              lo de arriba es diagnóstico —lo que la cuenta ES— y esto es
+              lo que el KAM escribe. Se lee después de haber visto el caso,
+              no antes. */}
+          {/* Seguimientos */}
+          <div className="cp-card">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide flex items-center gap-2">
+                <MessageSquare size={13} /> Seguimiento KAM
+              </h3>
+              <span className="text-xs text-textLow">{seguimientos.length} registros</span>
+            </div>
+            <SeguimientoForm cuentaId={cuenta.id} asesor={cuenta.asesor} canEdit={canEdit} />
+            <div className="mt-4 space-y-3">
+              {seguimientos.length === 0 ? (
+                <p className="text-xs text-textLow text-center py-6">Sin actividad registrada</p>
+              ) : seguimientos.map(s => (
+                <div key={s.id} className="flex gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cp/10 flex items-center justify-center text-cp">
+                    <MessageSquare size={13} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold text-textHi capitalize">{s.tipo}</span>
+                      <SeguimientoStatusSelect seguimientoId={s.id} resultado={s.resultado} canEdit={canEdit} />
+                      <span className="text-[10px] text-textLow ml-auto flex-shrink-0">
+                        {(() => { const d = new Date(s.fecha); return isNaN(d.getTime()) ? s.fecha : d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) })()}
+                      </span>
+                    </div>
+                    {s.descripcion && <p className="text-xs text-textMid">{s.descripcion}</p>}
+                    {s.asesor && <p className="text-[11px] text-textLow mt-0.5">{s.asesor}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Notas KAM — Server Actions, build válido */}
+          {(() => {
+            const obs = cuenta.observaciones_kam?.trim() || null
+            return (
+              <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:12, padding:'14px 16px' }}>
+                {/* Encabezado */}
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#0F172A', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                    Observaciones KAM
+                  </span>
+                  {obs && canEdit && (
+                    <form action={deleteKam} style={{ margin:0 }}>
+                      <input type="hidden" name="cuenta_id" value={cuenta.id} />
+                      <button type="submit"
+                        style={{ fontSize:13, color:'#DC2626', background:'none', border:'none', cursor:'pointer', fontWeight:600 }}
+                      >
+                        🗑 Borrar
+                      </button>
+                    </form>
+                  )}
+                </div>
+
+                {/* Texto actual */}
+                {obs ? (
+                  <p style={{ fontSize:13, color:'#0F172A', lineHeight:1.65, whiteSpace:'pre-wrap', margin:'0 0 12px' }}>{obs}</p>
+                ) : (
+                  <p style={{ fontSize:12, color:'#94A3B8', fontStyle:'italic', margin:'0 0 12px' }}>Sin observaciones registradas.</p>
+                )}
+
+                {/* Formulario edición — solo para quienes pueden editar */}
+                {canEdit && (
+                  <details style={{ marginTop:4 }}>
+                    <summary style={{
+                      fontSize:13, fontWeight:700, color:'#1B3FCC',
+                      background:'#EFF6FF', border:'1px solid #BFDBFE',
+                      borderRadius:6, padding:'7px 14px', cursor:'pointer',
+                      listStyle:'none',
+                    }}>
+                      ✏ {obs ? 'Editar observaciones' : 'Agregar observaciones'}
+                    </summary>
+                    <form action={updateKam} style={{ marginTop:10 }}>
+                      <input type="hidden" name="cuenta_id" value={cuenta.id} />
+                      <textarea
+                        name="observaciones_kam"
+                        defaultValue={obs ?? ''}
+                        rows={6}
+                        placeholder="Estado de la relación, compromisos, riesgos, acuerdos..."
+                        style={{
+                          width:'100%', padding:'10px 12px', borderRadius:8,
+                          border:'1px solid #CBD5E1', fontSize:13, color:'#0F172A',
+                          fontFamily:'inherit', resize:'vertical', boxSizing:'border-box',
+                          lineHeight:1.6,
+                        }}
+                      />
+                      <button type="submit" style={{
+                        marginTop:8, padding:'7px 18px', borderRadius:7, border:'none',
+                        background:'#1B3FCC', color:'#fff',
+                        fontSize:12, fontWeight:700, cursor:'pointer',
+                      }}>
+                        💾 Guardar
+                      </button>
+                    </form>
+                  </details>
+                )}
+              </div>
+            )
+          })()}
+
         </div>
       </div>
     </div>
