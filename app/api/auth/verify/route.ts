@@ -1,6 +1,21 @@
 /**
  * POST /api/auth/verify
  * Verifica el código de 6 dígitos y emite la cookie de sesión JWT.
+ *
+ * ── UNA SOLA POLÍTICA, DOS PUERTAS (18 sep 2026) ───────────────────────────
+ * Esta ruta emitía sesión sin mirar `password_expira`: quien tuviera acceso a
+ * su correo entraba aunque su contraseña estuviera vencida, y sin contraseña
+ * alguna. O sea que la caducidad de 30 días no se estaba aplicando de verdad —
+ * había una puerta de al lado que la ignoraba.
+ *
+ * Ahora exige lo mismo que `/api/auth/login`. Si la contraseña venció, el
+ * código tampoco abre: se recupera con `scripts/restablece-password.py`, que
+ * es el único camino y deja rastro de quién lo hizo.
+ *
+ * OJO: `app/acceso/page.tsx` NO ofrece este flujo — no hay ningún botón que
+ * pida un código. La ruta es pública (`/api/auth/` está en PUBLIC_PATHS) y solo
+ * se alcanza llamándola directo. Queda por decidir si se conecta a la pantalla
+ * o se retira; mientras tanto, al menos ya no salta la política.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -24,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const { data: user } = await supabaseAdmin
     .from('usuarios')
-    .select('id, nombre, rol, asesor_nombre, activo, codigo, codigo_expira')
+    .select('id, nombre, rol, asesor_nombre, activo, codigo, codigo_expira, password_expira')
     .eq('email', clean)
     .single()
 
@@ -37,9 +52,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'codigo_invalido' }, { status: 401 })
   }
 
-  /* Validar expiración */
+  /* Validar expiración del código */
   if (!user.codigo_expira || new Date(user.codigo_expira) < new Date()) {
     return NextResponse.json({ error: 'codigo_expirado' }, { status: 401 })
+  }
+
+  /* Y la MISMA regla que el login: sin esto, el código era una puerta de al
+   * lado que ignoraba la caducidad de la contraseña. */
+  if (!user.password_expira || new Date(user.password_expira) < new Date()) {
+    return NextResponse.json({ error: 'password_expirado' }, { status: 401 })
   }
 
   /* Firmar JWT primero — si falla, el código sigue válido en DB */

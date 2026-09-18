@@ -81,6 +81,31 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url)
     }
 
+    /* ── POR QUE `res.headers.set()` Y NO `next({ request: { headers } })` ──
+     *
+     * Parece un error —la forma documentada para reescribir cabeceras de la
+     * PETICION es `next({ request: { headers } })`— y el 18 sep 2026 una
+     * revision lo reporto como tal: «las x-user-* nunca llegan al handler, los
+     * ~40 sitios con `?? 'viewer'` caen siempre al default».
+     *
+     * ES FALSO, y se comprobo en el Next instalado (14.2.3):
+     * `router-utils/resolve-routes.js:389-392` recorre TODAS las cabeceras de
+     * respuesta del middleware y hace `req.headers[key] = value`. O sea que
+     * estas cuatro llegan igual al route handler y a `headers()` de los Server
+     * Components. La evidencia de campo lo confirma: el boton «Borrar» de
+     * Observaciones KAM depende de `canEdit = rol === 'admin' || 'asesor'` y se
+     * pinta correctamente.
+     *
+     * NO cambiar esto a `next({ request: { headers } })` sin poder probarlo en
+     * vivo: esa ruta pasa por el override, que BORRA toda cabecera de la
+     * peticion que no venga en la lista, y aqui se juega la autorizacion de
+     * toda la aplicacion.
+     *
+     * Lo que si conviene revisar algun dia: en las rutas PUBLICAS el middleware
+     * sale antes (linea 31) y no pone nada, asi que una x-user-* que mandara el
+     * cliente sobreviviria. Hoy no se explota porque ninguna ruta publica lee
+     * esas cabeceras — /api/auth/me se paso a leer la cookie justamente por
+     * eso—, pero es una invariante que nadie esta vigilando. */
     const res = NextResponse.next()
     res.headers.set('x-user-email',  email)
     res.headers.set('x-user-rol',    rol)
