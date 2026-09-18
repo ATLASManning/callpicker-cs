@@ -50,6 +50,8 @@ export interface FilaGRC {
   estadoBase: string | null
   enCartera: boolean
   firma: boolean
+  /** Fila sin cuenta propia que dirección confirmó como la MISMA empresa. */
+  agrupada?: boolean
   /** 'baja' verificada · 'sigue_viva' desmentida · 'sin_verificar' · 'na' */
   verificacion: 'baja' | 'sigue_viva' | 'sin_verificar' | 'na'
 }
@@ -115,15 +117,13 @@ const norm = (s: string) =>
  * «MRR» toma «Importe Acumulado Recurrente».
  *
  * ── POR QUÉ SE CRUZA POR CID Y NO POR NOMBRE ───────────────────────────────
- * Trece cuentas de la cartera tienen en el export una línea adicional de otro
- * servicio —«Gas Economico Metropolitano Chat», por ejemplo— que llega SIN CID
- * porque no existe como cuenta propia. Sumarlas por prefijo de nombre inflaría
- * la factura de esas trece en $56,464 y repetiría el error que ya se cometió
- * antes con GRUPO TORRES CORZO.
- *
- * Así que la cifra sale de las filas que casan por CID, y las líneas hermanas
- * se devuelven APARTE, con su nombre y su monto, para que la ficha las muestre
- * sin sumarlas. El servicio lo dicta la factura, no el parecido del nombre.
+ * Catorce filas del export tienen nombre parecido al de una cuenta y llegan SIN
+ * CID. No se agrupan por parecido —«Odontoprev ATC» factura $20,018 contra los
+ * $3,505 de «Odontoprev»; fundirlas a ciegas inventaría la facturación de esa
+ * ficha—: se agrupan por la lista MISMA_CUENTA de scripts/gen-grc-zoho.py, que
+ * llenó dirección a mano. Trece son la misma empresa y el generador les asigna
+ * el CID de su cuenta; «Justo Etiquetas» NO lo es y por eso sigue llegando sin
+ * CID, y esta función la devuelve en `hermanas` para mostrarla sin sumarla.
  */
 function porCuenta(d: Archivo, cid: string, nombre: string) {
   const propias = d.filas.filter(f => f.cid && f.cid === cid)
@@ -149,6 +149,12 @@ function porCuenta(d: Archivo, cid: string, nombre: string) {
     facturas: propias.length ? Math.max(...propias.map(f => f.facturas)) : null,
     rango: propias.length === 1 ? propias[0].rango : null,
     filas: propias.length,
+    /* Lo que se sumó viniendo de otra fila del export. Va nombrado: una ficha
+     * que pasa de $3,505 a $23,523 tiene que poder explicar el salto sin que
+     * nadie abra el Excel. */
+    incluye: propias.filter(f => f.agrupada).map(f => ({
+      cliente: f.cliente, mrrIni: f.mrrIni, acumulado: f.acumulado,
+    })),
     hermanas: hermanas.map(f => ({
       cliente: f.cliente, mrrIni: f.mrrIni, acumulado: f.acumulado, movimiento: f.movimiento,
     })),

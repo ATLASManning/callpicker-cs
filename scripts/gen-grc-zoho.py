@@ -123,6 +123,35 @@ OBJETIVO_RANGO = [
 ORDEN_RANGO = [r for r, _ in OBJETIVO_RANGO]
 VIVO = ('activo', 'en_riesgo')
 
+# ── Filas del export que son la MISMA empresa que una cuenta de la cartera ───
+# El export trae catorce filas cuyo nombre empieza igual que el de una cuenta
+# pero llega SIN CID. El parecido del nombre no basta para decidir —«Odontoprev
+# ATC» factura $20,018 contra los $3,505 de «Odontoprev», y fundirlas a ciegas
+# habria inventado la facturacion de esa ficha—, asi que la lista se llena a
+# mano y la confirma quien atiende las cuentas.
+#
+# Direccion confirmo el 17 sep 2026: todas son la misma empresa MENOS «Justo
+# Etiquetas», que es otra. Esa es la unica de las catorce que no esta aqui, y
+# por eso se queda visible aparte en la ficha de Justo.
+#
+# Al agregar una nueva: va el nombre EXACTO como viene en el export.
+MISMA_CUENTA = {
+    'Baterias LTH Chat':                 '24520',   # Baterias LTH
+    'Cargo lift USA':                    '439',     # Cargo Lift
+    'GRUPO 2711 (BATERIAS SENDERO)':     '12283',   # GRUPO 2711
+    'Gas Economico Metropolitano Chat':  '134571',  # Gas Economico Metropolitano
+    'Grupo Frisa - ACISA':               '168973',  # Grupo Frisa
+    'lunasoft.net':                      '47100',   # LUNA SOFT
+    'Lunasoft - Advans':                 '47100',   # LUNA SOFT
+    'Odontoprev ATC':                    '162545',  # Odontoprev
+    'Pastelería Antares Chat':           '35312',   # Pastelería Antares
+    'Remax Homelife One':                '1743',    # Remax Homelife
+    'Salud y Hogar - USA':               '946',     # Salud y Hogar
+    'Taquería El Pariente Puebla':       '23381',   # TAQUERIA EL PARIENTE
+    'Tech People Soluciones':            '2094',    # Tech People
+    # 'Justo Etiquetas': NO — direccion confirmo que es otra empresa.
+}
+
 
 def num(v):
     if isinstance(v, (int, float)):
@@ -184,6 +213,16 @@ for r in crudas:
         continue
     m = str(g(r, 'movimiento') or '').strip()
     c = CART.get(norm(nom))
+
+    # Fila sin cuenta propia que direccion confirmo como la MISMA empresa: se
+    # cuelga de su cuenta. `agrupada` la deja marcada para que la ficha pueda
+    # decir de donde sale cada peso en vez de solo mostrar un total mas grande.
+    agrupada = False
+    if c is None and nom in MISMA_CUENTA:
+        cid_padre = MISMA_CUENTA[nom]
+        c = next((x for x in CART.values() if x['cid'] == cid_padre), None)
+        agrupada = c is not None
+
     ini, fin, per = num(g(r, 'mrrIni')), num(g(r, 'mrrFin')), num(g(r, 'perdida'))
 
     # La firma del contrato que aun no se factura: fin en cero y perdida
@@ -217,9 +256,19 @@ for r in crudas:
         'cid': c['cid'] if c else None,
         'estadoBase': c['estado'] if c else None,
         'enCartera': bool(c),
+        'agrupada': agrupada,
         'firma': firma,
         'verificacion': verif,
     })
+
+nombres = {f['cliente'] for f in filas}
+huerfanos = [k for k in MISMA_CUENTA if k not in nombres]
+if huerfanos:
+    print('AVISO: estos nombres de MISMA_CUENTA ya no vienen en el export: %s' % huerfanos)
+sin_padre = [k for k, v in MISMA_CUENTA.items()
+             if k in nombres and not any(f['cliente'] == k and f['cid'] for f in filas)]
+if sin_padre:
+    raise SystemExit('MISMA_CUENTA apunta a un CID que no existe en la cartera: %s' % sin_padre)
 
 MES = str(crudas[0][ix['mes']]).strip() if crudas else None
 if MES not in MESES:

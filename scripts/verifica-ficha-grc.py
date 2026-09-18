@@ -75,9 +75,12 @@ for h in g['hermanas']:
     print('    aparte: %-34s %s  (no se suma)' % (h['cliente'][:34], f_(h['mrrIni'])))
 prueba('la ficha ya NO pinta la misma cifra dos veces',
        abs(g['facturaMensual'] - g['acumuladoRecurrente']) > 1)
-prueba('la linea Chat NO entra en la factura',
-       abs(g['facturaMensual'] - 18659) < 1, f_(g['facturaMensual']))
-prueba('la linea Chat se reporta aparte', len(g['hermanas']) == 1)
+# Direccion confirmo el 17 sep 2026 que la linea Chat SI es esta misma empresa,
+# asi que ahora suma: 18,659 de voz + 4,500 de chat.
+prueba('la linea Chat ya SUMA en la factura (18,659 + 4,500)',
+       abs(g['facturaMensual'] - 23159) < 1, f_(g['facturaMensual']))
+prueba('a Gas Economico no le queda ninguna fila sin decidir',
+       len(g['hermanas']) == 0, '%d' % len(g['hermanas']))
 
 print()
 print('=== COBERTURA SOBRE LA CARTERA ===')
@@ -92,18 +95,31 @@ prueba('ninguna cuenta sin dato devuelve cero como si fuera factura',
        all(not r['encontrado'] for _, r in sin))
 
 print()
-print('=== NINGUNA FACTURA INFLADA POR NOMBRE ===')
-inflan = []
-for c, r in con:
-    extra = sum(h['mrrIni'] for h in r['hermanas'])
-    if extra > 0:
-        inflan.append((c['empresa'], r['facturaMensual'], extra))
-print('  cuentas con lineas hermanas: %d · suman %s que NO se cuentan'
-      % (len(inflan), f_(sum(x[2] for x in inflan))))
-for nom, fac, ex in sorted(inflan, key=lambda x: -x[2])[:6]:
-    print('    %-34s factura %12s   aparte %10s' % (nom[:34], f_(fac), f_(ex)))
-prueba('el monto no sumado coincide con las 13 lineas detectadas',
-       abs(sum(x[2] for x in inflan) - 56464) < 2000, f_(sum(x[2] for x in inflan)))
+print('=== LO QUE DIRECCION MANDO AGRUPAR ===')
+# Direccion confirmo el 17 sep 2026 que las catorce filas de nombre parecido son
+# la misma empresa MENOS «Justo Etiquetas». El generador les asigna el CID de su
+# cuenta; la ficha las suma y las nombra debajo.
+agr = [f for f in F if f.get('agrupada')]
+print('  filas agrupadas: %d' % len(agr))
+for f in sorted(agr, key=lambda x: -x['mrrIni']):
+    print('    %-36s -> CID %-8s %12s' % (f['cliente'][:36], f['cid'], f_(f['mrrIni'])))
+prueba('las 13 filas confirmadas quedaron agrupadas', len(agr) == 13, '%d' % len(agr))
+prueba('todas las agrupadas traen el CID de su cuenta',
+       all(f['cid'] for f in agr))
+
+je = [f for f in F if f['cliente'] == 'Justo Etiquetas']
+prueba('«Justo Etiquetas» NO se agrupo — direccion dijo que es otra empresa',
+       len(je) == 1 and not je[0]['cid'] and not je[0].get('agrupada'))
+j = por_cuenta('30023', 'Justo')
+prueba('la ficha de Justo la muestra aparte, sin sumarla',
+       len(j['hermanas']) == 1 and j['hermanas'][0]['cliente'] == 'Justo Etiquetas')
+
+print()
+print('=== NINGUNA FACTURA SE INFLA POR PARECIDO DE NOMBRE ===')
+inflan = [(c['empresa'], r['facturaMensual'], sum(h['mrrIni'] for h in r['hermanas']))
+          for c, r in con if sum(h['mrrIni'] for h in r['hermanas']) > 0]
+prueba('ya no queda ninguna fila hermana con monto sin decidir',
+       not inflan, '%d' % len(inflan))
 
 print()
 print('=== LAS DOS CIFRAS SON DISTINTAS, CUENTA POR CUENTA ===')

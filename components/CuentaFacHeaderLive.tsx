@@ -10,10 +10,11 @@
  * es por lo que en la ficha se leía dos veces $23,707.
  *
  * ── DOS DECISIONES QUE SOSTIENEN ESTO ──────────────────────────────────────
- * 1. Se cruza por CID, nunca por nombre. Trece cuentas de la cartera tienen en
- *    el export una línea de otro servicio —«… Chat»— que llega sin CID. Sumarla
- *    por parecido de nombre inflaría la factura de esas trece en $56,464. Se
- *    muestran aparte, con su nombre: el servicio lo dicta la factura.
+ * 1. Nada se agrupa por parecido de nombre. Catorce filas del export se llaman
+ *    casi igual que una cuenta y llegan sin CID; dirección confirmó una por una
+ *    cuáles son la misma empresa (trece sí, «Justo Etiquetas» no). Lo que se
+ *    sumó se NOMBRA debajo: una ficha que pasa de $3,505 a $23,523 tiene que
+ *    poder explicar el salto sin que nadie abra el Excel.
  * 2. Si la cuenta no está en el corte, NO se pinta cero. Se conserva el dato de
  *    Zoho que había y se dice de dónde viene cada cifra, porque un cero aquí se
  *    lee como «no factura» y significaría «no vino en el export».
@@ -28,6 +29,7 @@ type Grc = {
   movimiento: string | null
   verificacion: 'baja' | 'sigue_viva' | 'sin_verificar' | 'na' | null
   hermanas: { cliente: string; mrrIni: number; acumulado: number; movimiento: string | null }[]
+  incluye: { cliente: string; mrrIni: number; acumulado: number }[]
 }
 
 export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
@@ -69,6 +71,7 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
   const acumulado = enCorte ? grc!.acumuladoRecurrente : null
   const hermanas = grc?.hermanas ?? []
   const extra = hermanas.reduce((s, h) => s + h.mrrIni, 0)
+  const incluye = grc?.incluye ?? []
 
   return (
     <div className="text-right flex flex-col gap-1">
@@ -102,20 +105,24 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
         </p>
       )}
 
-      {/* Se nombran, nunca se suman. No son líneas de esta cuenta: el export las
-          trae como CLIENTES aparte, con nombre parecido y sin CID — «Odontoprev
-          ATC» junto a «Odontoprev», «Grupo Frisa - ACISA» junto a «Grupo
-          Frisa». En dos casos la de al lado factura más que la cuenta, así que
-          fundirlas por parecido de nombre habría inventado la facturación. */}
+      {/* Lo que SÍ se sumó viniendo de otra fila del export, nombrado. */}
+      {!loading && incluye.length > 0 && (
+        <div className="text-[9px] text-textLow leading-snug max-w-[210px] ml-auto mt-0.5">
+          <p className="font-semibold">Incluye</p>
+          {incluye.map((h, i) => (
+            <p key={i}>«{h.cliente}» {fmt(h.mrrIni)}</p>
+          ))}
+        </div>
+      )}
+
+      {/* Lo que NO se sumó: nombre parecido pero es otra empresa. */}
       {!loading && hermanas.length > 0 && (
         <div className="text-[9px] text-textLow leading-snug max-w-[210px] ml-auto mt-0.5">
           <p className="font-semibold">No sumado · {fmt(extra)}</p>
           {hermanas.map((h, i) => (
             <p key={i}>«{h.cliente}» {fmt(h.mrrIni)}</p>
           ))}
-          <p className="italic">
-            {hermanas.length === 1 ? 'Viene' : 'Vienen'} en el export como cliente aparte, sin CID.
-          </p>
+          <p className="italic">Otra empresa, no esta cuenta.</p>
         </div>
       )}
     </div>
