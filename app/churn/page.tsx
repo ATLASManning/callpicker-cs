@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import PageHeader from '@/components/PageHeader'
 import { REPORTE_S20_SEPTIEMBRE_2026 } from './reporte-actual'
 import ConciliacionChurn from '@/components/ConciliacionChurn'
@@ -9,11 +9,8 @@ import type {
 import GrcAaaSection from '@/components/GrcAaaSection'
 import CustomSelect from '@/components/CustomSelect'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from 'recharts'
-import {
-  TrendingDown, AlertTriangle, XCircle, ArrowDownRight,
-  Clock, DollarSign, BarChart3, CalendarDays, ChevronDown, ChevronUp,
+  TrendingDown, XCircle, ArrowDownRight,
+  Clock, BarChart3, CalendarDays, ChevronDown, ChevronUp,
   Plus, Trash2, X, ChevronLeft, ChevronRight, Check, Database, FileBarChart2,
   RefreshCw,
 } from 'lucide-react'
@@ -22,7 +19,7 @@ import {
    TIPOS
 ═══════════════════════════════════════════════════════════════════════ */
 type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
-type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'zoho' | 'aaa' | 'conciliacion'
+type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'aaa' | 'conciliacion'
 
 
 /* ─── Tipos GRC Detalle AAA ───────────────────────────────────────── */
@@ -49,18 +46,6 @@ type AAAData = {
     muestraFechasAAA: string[]
     hint: string
   }
-}
-
-/* ─── Tipos Zoho Dormidos ─────────────────────────────────────────── */
-type ZohoDormidoRow = {
-  cid: string; nombre: string; segmento: string; ltv: string; mrr: number
-  ultimaFactura: string; diasSinFactura: number | null; semaforo: string
-  matched: boolean; cuenta_id: number | null; estado_cs: string | null
-  asesor_cs: string | null; consecutivo: string | null; alerta: boolean
-}
-type ZohoDormido = {
-  total: number; totalMrr: number; alertas: number; matched: number
-  rows: ZohoDormidoRow[]; source: string
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1826,7 +1811,9 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
     tabs.push({ id: 'desactivados', label: `🟣 Desactivados (${r.desactivadosCuentasReal ?? r.desactivados.length})`, color: '#7C3AED' })
   }
   tabs.push({ id: 't1',   label: 'Resumen T1 2026',                                   color: INDIGO })
-  // NOTA: 'zoho' y 'aaa' NO van aquí — son secciones independientes del submenú
+  // NOTA: 'aaa' y 'conciliacion' NO van aquí — son secciones independientes
+  // del submenú. ('zoho' vivía aquí hasta que se eliminó el módulo Zoho ·
+  // Dormidos; el endpoint sigue vivo porque lo usa la conciliación.)
   // lateral, no tabs del Análisis DATA. Mezclarlos hacía que el selector de
   // períodos y los KPIs del análisis siguieran visibles sobre su contenido.
   return tabs
@@ -1891,118 +1878,13 @@ export default function ChurnPage() {
   const [acumCancelSort, setAcumCancelSort] = useState<{ col: 'cliente' | 'mrr' | 'mesesActivo' | 'acumulado' | 'periodo'; dir: 'asc' | 'desc' }>({ col: 'mrr', dir: 'desc' })
   const [acumDgSort,     setAcumDgSort]     = useState<{ col: 'cliente' | 'perdida' | 'periodo' | 'nota'; dir: 'asc' | 'desc' }>({ col: 'perdida', dir: 'desc' })
   const [delConfirm,   setDelConfirm]   = useState<string | null>(null)
-  const [zohoLoading,    setZohoLoading]    = useState(false)
-  const [zohoData,       setZohoData]       = useState<ZohoDormido | null>(null)
-  const [zohoSort,       setZohoSort]       = useState<{col: string; dir: 'asc'|'desc'}>({ col: 'ultimaFactura', dir: 'desc' })
-  const [zohoFilters,    setZohoFilters]    = useState<Record<string, string[]>>({})
-  const [zohoFilterOpen, setZohoFilterOpen] = useState<string | null>(null)
-  const zohoDropRef = useRef<HTMLDivElement>(null)
   const [aaaOpenMes,     setAaaOpenMes]     = useState<Record<string, boolean>>({})
 
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
-  useEffect(() => {
-    if (tab !== 'zoho' || zohoData !== null || zohoLoading) return
-    setZohoLoading(true)
-    fetch('/api/facturacion?mode=dormidos')
-      .then(r => r.json())
-      .then((d: ZohoDormido) => setZohoData(d))
-      .catch(() => {})
-      .finally(() => setZohoLoading(false))
-  }, [tab, zohoData, zohoLoading])
-
-
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026', 's2-julio-2026']
   const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, REPORTE_S2_AGOSTO_2026, REPORTE_S3_AGOSTO_2026, REPORTE_S18_AGOSTO_2026, REPORTE_S19_SEPTIEMBRE_2026, REPORTE_S20_SEPTIEMBRE_2026, ...userReportes]
   const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S20_SEPTIEMBRE_2026
-
-  // Pre-filtrar a Enterprise y Large cuando llegan los datos
-  useEffect(() => {
-    if (!zohoData?.rows || Object.keys(zohoFilters).length > 0) return
-    const segs = Array.from(new Set(zohoData.rows.map(r => r.segmento || '').filter(Boolean)))
-    const presel = segs.filter(s => s === 'Enterprise' || s === 'Large')
-    setZohoFilters({ segmento: presel.length > 0 ? presel : [] })
-  }, [zohoData]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Cerrar dropdown al hacer clic fuera
-  useEffect(() => {
-    if (!zohoFilterOpen) return
-    const handler = (e: MouseEvent) => {
-      if (zohoDropRef.current && !zohoDropRef.current.contains(e.target as Node))
-        setZohoFilterOpen(null)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [zohoFilterOpen])
-
-  // Valores únicos por columna (de todos los rows, no los filtrados)
-  const zohoUnique = useMemo<Record<string, string[]>>(() => {
-    if (!zohoData?.rows) return {}
-    const get = (r: ZohoDormidoRow, col: string) => {
-      if (col === 'nombre')         return r.nombre || ''
-      if (col === 'segmento')       return r.segmento || ''
-      if (col === 'ltv')            return r.ltv || ''
-      if (col === 'mrr')            return r.mrr > 0 ? String(Math.round(r.mrr)) : '0'
-      if (col === 'diasSinFactura') return r.diasSinFactura != null ? String(r.diasSinFactura) : ''
-      if (col === 'ultimaFactura')  return r.ultimaFactura || ''
-      return ''
-    }
-    const cols = ['nombre', 'segmento', 'ltv', 'mrr', 'diasSinFactura', 'ultimaFactura']
-    const out: Record<string, string[]> = {}
-    for (const col of cols) {
-      out[col] = Array.from(new Set(zohoData.rows.map(r => get(r, col)))).filter(Boolean).sort()
-    }
-    return out
-  }, [zohoData])
-
-  // Filtrar rows
-  const filteredZohoRows = useMemo(() => {
-    if (!zohoData?.rows) return []
-    return zohoData.rows.filter(r => {
-      for (const [col, selected] of Object.entries(zohoFilters)) {
-        if (!selected || selected.length === 0) continue
-        const get = (c: string) => {
-          if (c === 'nombre')         return r.nombre || ''
-          if (c === 'segmento')       return r.segmento || ''
-          if (c === 'ltv')            return r.ltv || ''
-          if (c === 'mrr')            return r.mrr > 0 ? String(Math.round(r.mrr)) : '0'
-          if (c === 'diasSinFactura') return r.diasSinFactura != null ? String(r.diasSinFactura) : ''
-          if (c === 'ultimaFactura')  return r.ultimaFactura || ''
-          return ''
-        }
-        if (!selected.includes(get(col))) return false
-      }
-      return true
-    })
-  }, [zohoData, zohoFilters])
-
-  // Ordenar rows filtrados
-  const sortedZohoRows = useMemo(() => {
-    return [...filteredZohoRows].sort((a, b) => {
-      const d = zohoSort.dir === 'asc' ? 1 : -1
-      if (zohoSort.col === 'nombre')         return d * a.nombre.localeCompare(b.nombre)
-      if (zohoSort.col === 'segmento')       return d * (a.segmento || '').localeCompare(b.segmento || '')
-      if (zohoSort.col === 'ltv')            return d * (a.ltv || '').localeCompare(b.ltv || '')
-      if (zohoSort.col === 'mrr')            return d * (a.mrr - b.mrr)
-      if (zohoSort.col === 'diasSinFactura') return d * ((a.diasSinFactura ?? -1) - (b.diasSinFactura ?? -1))
-      if (zohoSort.col === 'ultimaFactura')  return d * (a.ultimaFactura || '').localeCompare(b.ultimaFactura || '')
-      return 0
-    })
-  }, [filteredZohoRows, zohoSort])
-
-  const toggleZohoFilter = (col: string, val: string) => {
-    setZohoFilters(prev => {
-      const all = zohoUnique[col] ?? []
-      const cur = prev[col] ?? all
-      const next = cur.includes(val) ? cur.filter(v => v !== val) : [...cur, val]
-      return { ...prev, [col]: next }
-    })
-  }
-  const isZohoFiltered = (col: string) => {
-    const all = zohoUnique[col] ?? []
-    const cur = zohoFilters[col]
-    return cur !== undefined && cur.length !== all.length
-  }
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
   const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
@@ -2017,7 +1899,7 @@ export default function ChurnPage() {
   // Análisis DATA (selector de períodos + KPIs + su tab-bar) se oculta por
   // completo para que el contenido de la sección se despliegue solo, sin
   // mezclarse con datos de otro contexto.
-  const SECCIONES_SUBMENU: Tab[] = ['zoho', 'aaa', 'conciliacion']
+  const SECCIONES_SUBMENU: Tab[] = ['aaa', 'conciliacion']
   const enSeccionSubmenu = SECCIONES_SUBMENU.includes(tab)
 
   /* Rango real del acumulado, derivado de los reportes cargados.
@@ -2166,13 +2048,6 @@ export default function ChurnPage() {
 
           <div className="border-t border-gray-100 my-2" />
 
-          <SidebarAccesoBtn
-            active={tab === 'zoho'}
-            onClick={() => setTab('zoho')}
-            icon={<span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />}
-            label="Zoho · Dormidos"
-            bg="#7f1d1d"
-          />
           <SidebarAccesoBtn
             active={tab === 'aaa'}
             onClick={() => setTab('aaa')}
@@ -3082,227 +2957,8 @@ export default function ChurnPage() {
         {/* ── GRC · AAA 2026 (Ene–Jul, corte 15 Jul) ─────────────── */}
         {tab === 'aaa' && <GrcAaaSection />}
 
-        {/* ── ALERTAS · CUENTAS CANCELACIÓN ────────────────────────── */}
-
-        {/* ── ZOHO · DORMIDOS EN VIVO ──────────────────────────────── */}
+        {/* ── CONCILIACIÓN ─────────────────────────────────────────── */}
         {tab === 'conciliacion' && <ConciliacionChurn />}
-
-        {tab === 'zoho' && (
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: '#dc262615' }}>
-                <TrendingDown size={16} style={{ color: '#dc2626' }} />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-gray-900 text-sm">Zoho · Cuentas 4-Dormido en vivo</h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Semáforo Actividad = 4-Dormido · Fuente: {zohoData?.source ?? 'cargando…'}
-                </p>
-              </div>
-              <button
-                onClick={() => { setZohoData(null); setZohoLoading(false) }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:bg-gray-100 border border-gray-200 transition-colors"
-              >
-                <RefreshCw size={12} /> Actualizar
-              </button>
-            </div>
-
-            {zohoLoading && (
-              <div className="bg-white rounded-xl border border-gray-200 p-10 shadow-sm text-center">
-                <div className="w-8 h-8 rounded-full border-2 border-red-500 border-t-transparent animate-spin mx-auto mb-3" />
-                <p className="text-sm text-gray-500">Consultando Zoho Analytics…</p>
-              </div>
-            )}
-
-            {!zohoLoading && zohoData && (
-              <>
-                {/* KPIs */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <KpiCard icon={XCircle}       label="Cuentas 4-Dormido"        value={String(zohoData.total)}
-                    sub="en Zoho Facturación" color="#dc2626" />
-                  <KpiCard icon={DollarSign}    label="MRR en riesgo"             value={fmt(zohoData.totalMrr)}
-                    sub="suma dormidas" color={ORANGE} />
-                  <KpiCard icon={AlertTriangle} label="Alertas — activas en CS"   value={String(zohoData.alertas)}
-                    sub="dormidas Zoho, activas CS" color={RED} />
-                  <KpiCard icon={BarChart3}     label="Cruzadas con CS"           value={String(zohoData.matched)}
-                    sub={`de ${zohoData.total} total`} color={GREEN} />
-                </div>
-
-                {/* Alerta crítica */}
-                {zohoData.alertas > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 flex gap-3">
-                    <AlertTriangle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-red-800">
-                        {zohoData.alertas} cuenta{zohoData.alertas !== 1 ? 's' : ''} con semáforo 4-Dormido en Zoho pero estado &quot;activo&quot; en Callpicker CS
-                      </p>
-                      <p className="text-xs text-red-600 mt-1">
-                        Revisar y actualizar en la plataforma para mantener consistencia entre sistemas.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tabla */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden" ref={zohoDropRef}>
-                  <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between" style={{ background: '#dc262608' }}>
-                    <div>
-                      <h3 className="font-semibold text-sm text-gray-900">
-                        {sortedZohoRows.length} cuentas
-                        {sortedZohoRows.length !== zohoData.total && (
-                          <span className="text-gray-400 font-normal"> de {zohoData.total} total</span>
-                        )}
-                        {' '}— Zoho Facturación
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-0.5">MRR total: {fmt(zohoData.totalMrr)}</p>
-                    </div>
-                    {Object.values(zohoFilters).some(v => v && v.length < (zohoUnique[Object.keys(zohoFilters)[0]] ?? []).length) && (
-                      <button
-                        onClick={() => setZohoFilters({})}
-                        className="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
-                        <X size={11} /> Limpiar filtros
-                      </button>
-                    )}
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-100 bg-gray-50/70">
-                          {([
-                            { col: 'nombre',         label: 'Cliente',      align: 'left'  },
-                            { col: 'segmento',       label: 'Segmento',     align: 'left'  },
-                            { col: 'ltv',            label: 'LTV',          align: 'left'  },
-                            { col: 'mrr',            label: 'MRR',          align: 'right' },
-                            { col: 'diasSinFactura', label: 'Días S/F',     align: 'right' },
-                            { col: 'ultimaFactura',  label: 'Últ. Factura', align: 'left'  },
-                          ] as const).map(({ col, label, align }) => {
-                            const sorted  = zohoSort.col === col
-                            const filtered = isZohoFiltered(col)
-                            const open    = zohoFilterOpen === col
-                            const uniqueVals = zohoUnique[col] ?? []
-                            const selected   = zohoFilters[col] ?? uniqueVals
-                            const allSelected = selected.length === uniqueVals.length
-
-                            return (
-                              <th key={col} className="py-0 px-0" style={{ position: 'relative' }}>
-                                <button
-                                  onClick={() => setZohoFilterOpen(open ? null : col)}
-                                  className={`w-full py-3 px-4 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide whitespace-nowrap
-                                    ${align === 'right' ? 'justify-end' : ''}
-                                    ${sorted || filtered ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>
-                                  {filtered && (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0" />
-                                  )}
-                                  {label}
-                                  {sorted
-                                    ? (zohoSort.dir === 'asc' ? <ChevronUp size={11} className="text-blue-500" /> : <ChevronDown size={11} className="text-blue-500" />)
-                                    : <ChevronDown size={11} className="text-gray-300" />}
-                                </button>
-
-                                {open && (
-                                  <div
-                                    className="absolute z-50 bg-white border border-gray-200 rounded-xl shadow-lg min-w-[180px] py-1 text-xs"
-                                    style={{ top: '100%', [align === 'right' ? 'right' : 'left']: 0 }}>
-
-                                    {/* Opciones de ordenación */}
-                                    <button
-                                      onClick={() => { setZohoSort({ col, dir: 'asc' }); setZohoFilterOpen(null) }}
-                                      className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 ${zohoSort.col === col && zohoSort.dir === 'asc' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}>
-                                      <ChevronUp size={12} /> Ordenar ascendente
-                                    </button>
-                                    <button
-                                      onClick={() => { setZohoSort({ col, dir: 'desc' }); setZohoFilterOpen(null) }}
-                                      className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 ${zohoSort.col === col && zohoSort.dir === 'desc' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}>
-                                      <ChevronDown size={12} /> Ordenar descendente
-                                    </button>
-
-                                    {/* Filtros de valores (solo columnas categóricas) */}
-                                    {(col === 'segmento' || col === 'ltv' || col === 'nombre' || col === 'ultimaFactura') && uniqueVals.length > 0 && (
-                                      <>
-                                        <div className="border-t border-gray-100 mx-2 my-1" />
-                                        <div className="px-3 py-1">
-                                          <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 py-1 cursor-pointer">
-                                            <input type="checkbox"
-                                              className="rounded"
-                                              checked={allSelected}
-                                              onChange={() => setZohoFilters(prev => ({
-                                                ...prev,
-                                                [col]: allSelected ? [] : uniqueVals,
-                                              }))} />
-                                            Seleccionar todo
-                                          </label>
-                                          <div className="max-h-48 overflow-y-auto space-y-0.5 mt-1">
-                                            {uniqueVals.map(val => (
-                                              <label key={val} className="flex items-center gap-2 py-1 px-1 cursor-pointer hover:bg-gray-50 rounded text-[11px] text-gray-700">
-                                                <input type="checkbox"
-                                                  className="rounded"
-                                                  checked={selected.includes(val)}
-                                                  onChange={() => toggleZohoFilter(col, val)} />
-                                                {val || '(vacío)'}
-                                              </label>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                              </th>
-                            )
-                          })}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sortedZohoRows.map((r, i) => (
-                          <tr key={i}
-                            className={`border-b border-gray-100 transition-colors ${r.alerta ? 'bg-red-50/40 hover:bg-red-50/70' : 'hover:bg-gray-50/50'}`}>
-                            <td className="py-3 px-4">
-                              <div className="flex items-center gap-2">
-                                {r.alerta && <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />}
-                                <span className="font-medium text-gray-900 text-xs">{r.nombre}</span>
-                              </div>
-                              {r.cid && <span className="text-[10px] text-gray-400 ml-3.5">CID {r.cid}</span>}
-                            </td>
-                            <td className="py-3 px-4 text-xs text-gray-600">{r.segmento || '—'}</td>
-                            <td className="py-3 px-4">
-                              {r.ltv ? (
-                                <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                                  r.ltv.startsWith('1') ? 'bg-green-100 text-green-700' :
-                                  r.ltv.startsWith('2') ? 'bg-blue-100 text-blue-700' :
-                                  'bg-gray-100 text-gray-500'
-                                }`}>{r.ltv}</span>
-                              ) : <span className="text-xs text-gray-400">—</span>}
-                            </td>
-                            <td className="py-3 px-4 text-right font-semibold text-xs"
-                              style={{ color: r.mrr > 0 ? ORANGE : '#9ca3af' }}>
-                              {r.mrr > 0 ? fmt(r.mrr) : '—'}
-                            </td>
-                            <td className="py-3 px-4 text-right text-xs">
-                              {r.diasSinFactura != null ? (
-                                <span className={`font-semibold ${
-                                  r.diasSinFactura > 90 ? 'text-red-600' :
-                                  r.diasSinFactura > 45 ? 'text-amber-600' : 'text-gray-600'
-                                }`}>{r.diasSinFactura}d</span>
-                              ) : <span className="text-gray-400">—</span>}
-                            </td>
-                            <td className="py-3 px-4 text-xs text-gray-500">{r.ultimaFactura || '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {zohoData.alertas > 0 && (
-                    <p className="px-5 py-3 text-[11px] text-gray-400 border-t border-gray-100">
-                      Filas en rojo: semáforo 4-Dormido en Zoho pero estado &quot;activo&quot; en Callpicker CS — requieren actualización.
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        )}
 
       </div>
 
