@@ -36,7 +36,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   TrendingDown, TrendingUp, DollarSign, AlertTriangle, HelpCircle, ShieldCheck,
-  RefreshCw, Search, Layers, CalendarRange, Users, Target, Columns3,
+  Search, Layers, CalendarRange, Users, Target, Columns3,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
@@ -202,6 +202,9 @@ export default function GrossRevenueChurnPage() {
   }, [d])
 
   const selCls = 'cp-select w-full'
+  /* Valor reservado del selector de asesor. No puede chocar con el nombre de un
+     asesor real: los dos guiones bajos no aparecen en ningún nombre. */
+  const CARTERA = '__cartera'
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto">
@@ -296,24 +299,28 @@ export default function GrossRevenueChurnPage() {
         <CustomSelect className={selCls} wrapperClassName="w-52 flex-shrink-0"
           value={rango} onChange={setRango} placeholder="Todo rango"
           options={[{ value: '', label: 'Todo rango' }, ...(d?.opciones.rango ?? []).map(v => ({ value: v, label: v }))]} />
-        <CustomSelect className={selCls} wrapperClassName="w-52 flex-shrink-0"
-          value={asesor} onChange={setAsesor} placeholder="Todo asesor" searchable
-          options={[{ value: '', label: 'Todo asesor' }, ...(d?.opciones.asesor ?? []).map(v => ({ value: v, label: v }))]} />
-        <button onClick={() => setCartera(c => !c)} style={{
-          padding: '7px 14px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-          border: `1.5px solid ${cartera ? AZUL_SOLIDO : '#E2E8F0'}`,
-          background: cartera ? AZUL_SOLIDO : '#fff', color: cartera ? '#fff' : '#475569',
-        }}>Solo mi cartera</button>
+        {/* El selector de asesor absorbió a «Solo mi cartera»: eran dos controles
+            para la misma pregunta —de quién es esto— y dirección los quiso en
+            uno. La opción «Toda la cartera gestionada» hace lo que hacía el
+            botón: las 216 filas que sí tienen cuenta, sin elegir asesor. */}
+        <CustomSelect className={selCls} wrapperClassName="w-60 flex-shrink-0" searchable
+          value={cartera ? CARTERA : asesor}
+          onChange={v => {
+            if (v === CARTERA) { setCartera(true); setAsesor('') }
+            else { setCartera(false); setAsesor(v) }
+          }}
+          placeholder="Todo asesor"
+          options={[
+            { value: '', label: 'Todo asesor' },
+            { value: CARTERA, label: 'Toda la cartera gestionada' },
+            ...(d?.opciones.asesor ?? []).map(v => ({ value: v, label: v })),
+          ]} />
         {hayFiltro && (
           <button onClick={() => { setClasif(''); setMov(''); setRango(''); setAsesor(''); setVerif(''); setCartera(false); setQ('') }}
             style={{ padding: '7px 12px', borderRadius: 9, fontSize: 12.5, border: '1.5px solid #E2E8F0', background: '#fff', color: ROJO_OSCURO, cursor: 'pointer' }}>
             Limpiar
           </button>
         )}
-        <button onClick={cargar} title="Recargar"
-          style={{ padding: '7px 11px', borderRadius: 9, border: '1.5px solid #E2E8F0', background: '#fff', cursor: 'pointer' }}>
-          <RefreshCw size={14} className={cargando ? 'animate-spin' : ''} style={{ color: '#475569' }} />
-        </button>
       </div>
 
       {hayFiltro && (
