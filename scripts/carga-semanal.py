@@ -1,4 +1,4 @@
-"""Carga diaria de los tres datasets que se exportan de Google Sheets.
+"""Carga semanal de los tres datasets que se exportan de Google Sheets.
 
    QUE HACE
    --------
@@ -6,16 +6,26 @@
    que hay cargado, dice cual trae datos nuevos y —solo con `--aplicar`— los
    carga y regenera lo que haga falta.
 
-       python scripts/carga-diaria.py              # solo diagnostica, no toca nada
-       python scripts/carga-diaria.py --aplicar    # carga lo que este mas nuevo
+       python scripts/carga-semanal.py              # solo diagnostica, no toca nada
+       python scripts/carga-semanal.py --aplicar    # carga lo que este mas nuevo
+
+   CADENCIA
+   --------
+   Direccion actualiza las TRES hojas los VIERNES a las 4 PM, a partir del 25
+   de septiembre de 2026. La tarea programada corre los viernes a las 5 PM,
+   una hora despues, para dar margen al export.
 
    LAS TRES FUENTES
    ----------------
    Salen de hojas de Google que direccion exporta a mano a `D:\\Archivos`:
 
-     Informe de Cortes  <- hoja «Informacion de cortes» del libro «SAC - Mixpanel»
-     Tickets            <- hoja «Desglose Tickets» del mismo libro
-     Activaciones 2.0   <- otro libro
+     Informe de Cortes  <- hoja «Informacion de cortes»
+     Tickets            <- hoja «Desglose Tickets»
+       las dos del libro «SAC - Mixpanel»:
+       docs.google.com/spreadsheets/d/1iobZHrilIpAV0nZKS6-wK1K_6fJ1aSLMNZQOjY8KjbU
+
+     Activaciones 2.0   <- PRIMERA hoja, «Registros», del libro:
+       docs.google.com/spreadsheets/d/1iarbx9a_zdFoLACnBKfiI0OVmX7At2jV_va0QzNN0sE
 
    ESTE SCRIPT NO BAJA NADA DE GOOGLE, y es a proposito: la hoja esta
    restringida y pedirla sin sesion devuelve 401. Alguien tiene que exportarla.
@@ -66,7 +76,10 @@ FUENTES = [
     {
         'nombre': 'Activaciones 2.0',
         'origen': 'Tablero de Activaciones 2.0.xlsx',
-        'hoja': 'Hoja1',
+        # En la hoja de Google la pestana se llama «Registros». Segun como se
+        # exporte, el .xlsx la trae con ese nombre o renombrada a «Hoja1». Se
+        # aceptan las dos: lo que de verdad se vigila son las columnas.
+        'hoja': ['Hoja1', 'Registros'],
         'destino': os.path.join(RAIZ, 'data', 'activaciones.xlsx'),
         'modo': 'copia',
     },
@@ -74,11 +87,15 @@ FUENTES = [
 
 
 def cabeceras(ruta, hoja):
+    """`hoja` puede ser un nombre o una lista de nombres aceptables."""
+    posibles = [hoja] if isinstance(hoja, str) else list(hoja)
     wb = openpyxl.load_workbook(ruta, data_only=True, read_only=True)
-    if hoja not in wb.sheetnames:
+    elegida = next((h for h in posibles if h in wb.sheetnames), None)
+    if elegida is None:
+        hojas = list(wb.sheetnames)
         wb.close()
-        return None, wb.sheetnames, 0
-    ws = wb[hoja]
+        return None, hojas, 0
+    ws = wb[elegida]
     it = ws.iter_rows(values_only=True)
     try:
         cab = [str(c).strip() if c is not None else '' for c in next(it)]
@@ -108,14 +125,15 @@ def revisa(f):
 
     cabN, hojasN, nN = cabeceras(src, f['hoja'])
     if cabN is None:
-        return 'estructura', 'la hoja «%s» no esta en el archivo (hay: %s)' % (f['hoja'], ', '.join(hojasN))
+        esperadas = f['hoja'] if isinstance(f['hoja'], str) else ' o '.join(f['hoja'])
+        return 'estructura', 'no encontre la hoja «%s» (el archivo trae: %s)' % (esperadas, ', '.join(hojasN))
 
     # El destino de Tickets es un JSON: ahi la estructura se compara contra el
     # ultimo .xlsx cargado, que no se conserva. Se compara solo lo que se puede.
     if f['modo'] == 'copia':
         cabA, _, nA = cabeceras(f['destino'], f['hoja'])
         if cabA is None:
-            return 'estructura', 'el archivo cargado no tiene la hoja «%s»' % f['hoja']
+            return 'estructura', 'el archivo YA CARGADO no trae la hoja esperada'
         if cabA != cabN:
             dif = [(i, cabA[i] if i < len(cabA) else '(falta)', cabN[i] if i < len(cabN) else '(falta)')
                    for i in range(max(len(cabA), len(cabN)))
@@ -154,7 +172,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('--aplicar', action='store_true', help='carga de verdad; sin esto solo diagnostica')
 args = ap.parse_args()
 
-print('=== CARGA DIARIA · %s ===' % datetime.datetime.now().strftime('%d/%m/%Y %H:%M'))
+print('=== CARGA SEMANAL · %s ===' % datetime.datetime.now().strftime('%d/%m/%Y %H:%M'))
 print('  origen: %s' % ORIGEN)
 print()
 
@@ -170,16 +188,21 @@ for f in FUENTES:
              'falta': '*** NO ENCONTRE EL ARCHIVO'}[est]
     print('  %-20s export %s  %s' % (f['nombre'], fch, marca))
     print('  %-20s %s' % ('', det))
-    if edad is not None and edad > 0 and est != 'estructura':
-        print('  %-20s OJO: el export tiene %d dia(s). Hay que volver a bajarlo de la hoja.'
+    # La hoja se actualiza los viernes: un export de mas de 7 dias significa
+    # que se salto una semana entera, no que «todavia no toca».
+    if edad is not None and edad >= 7 and est != 'estructura':
+        print('  %-20s OJO: el export tiene %d dias — se salto al menos una actualizacion.'
               % ('', edad))
+    elif edad is not None and edad > 0 and est == 'igual':
+        print('  %-20s (el export es del %s; si ya hubo corte nuevo, falta bajarlo)'
+              % ('', fecha(src).strftime('%d/%m')))
     resultados.append((f, est, det))
     print()
 
 if not args.aplicar:
     hay = [r for r in resultados if r[1] == 'nuevo']
     print('  (diagnostico; no se toco nada. %d fuente(s) con datos nuevos)' % len(hay))
-    print('  Para cargar:  python scripts/carga-diaria.py --aplicar')
+    print('  Para cargar:  python scripts/carga-semanal.py --aplicar')
     raise SystemExit(0)
 
 print('=== APLICANDO ===')
