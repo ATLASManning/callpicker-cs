@@ -16,9 +16,21 @@ const isAdminOnly = (p: string) => ADMIN_ONLY.some(x => p.startsWith(x))
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Los documentos de /docs/ (auditorías CONFIDENCIAL, one-pagers internos)
-  // NO se eximen: antes se servían sin sesión a cualquiera con la URL.
-  const esDocumento = pathname.startsWith('/docs/')
+  // Los documentos NO se eximen: antes se servían sin sesión a cualquiera con
+  // la URL. La regla de abajo deja pasar toda ruta con extensión —lo que los
+  // recursos estáticos necesitan— pero también deja pasar cualquier archivo que
+  // alguien deje caer en public/.
+  //
+  // /docs/ ya estaba cubierto (auditorías CONFIDENCIAL, one-pagers internos).
+  // /auditorias/ se suma el 18 sep 2026: ahí viven dos reportes de llamadas de
+  // clientes con nombre y apellido, enlazados desde el módulo de Auditoría, y
+  // se estaban descargando sin sesión.
+  //
+  // OJO AL AGREGAR ARCHIVOS: todo lo que se ponga en public/ fuera de estas dos
+  // carpetas queda público. El 18 sep 2026 se borraron tres exports que nadie
+  // enlazaba y que cualquiera podía bajar: el tablero de activaciones (2,609
+  // filas), los cortes de facturación (18,104) y los tickets (4,435).
+  const esDocumento = pathname.startsWith('/docs/') || pathname.startsWith('/auditorias/')
 
   if (
     !esDocumento && (

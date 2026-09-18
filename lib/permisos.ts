@@ -35,7 +35,10 @@ export interface DefinicionRol {
 
 /* Rutas que cualquier sesión válida necesita, sin importar el rol: si se
  * bloquean, la aplicación no puede ni pintarse ni cerrar sesión. */
-const COMUNES_PAGINAS = ['/acceso', '/docs/']
+/* `/auditorias/` va junto a `/docs/`: son archivos que la aplicación enlaza
+ * desde el módulo de Auditoría y que cualquier sesión válida debe poder abrir,
+ * sin importar el rol. Lo que NO deben es servirse sin sesión. */
+const COMUNES_PAGINAS = ['/acceso', '/docs/', '/auditorias/']
 const COMUNES_APIS    = ['/api/auth/', '/api/analytics', '/api/admin/me']
 
 export const ROLES: Record<Rol, DefinicionRol> = {
