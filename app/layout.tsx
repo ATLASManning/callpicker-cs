@@ -3,6 +3,7 @@ import './globals.css'
 import Sidebar from '@/components/Sidebar'
 import FondoTecnologico from '@/components/FondoTecnologico'
 import PageTracker from '@/components/PageTracker'
+import AvisoPassword from '@/components/AvisoPassword'
 
 // Sin esto, páginas sin fetch de datos en el servidor (como /tickets o
 // /acceso) se pre-generan como HTML estático en el build, y Vercel las
@@ -59,6 +60,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               que se pinta encima. Ver app/globals.css. */}
           <FondoTecnologico />
           <div className="cp-sobre-fondo">
+            {/* Va antes del contenido y en todas las pantallas: cuando la
+                contrasena vence, el modulo para renovarla queda del otro lado
+                del login. El aviso solo sirve mientras todavia se puede entrar. */}
+            <AvisoPassword />
             {children}
           </div>
         </main>

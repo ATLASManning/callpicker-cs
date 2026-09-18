@@ -30,9 +30,13 @@ function genPass() {
     + syms[Math.floor(Math.random() * syms.length)]
 }
 
+/* Redondea hacia ABAJO, igual que /api/auth/me. Con `ceil`, una contraseña que
+ * vence en dos horas se pintaba «Expira en 1d» y una de treinta horas «en 2d»:
+ * la insignia daba más tiempo del que había. En una cuenta regresiva, quedarse
+ * largo es el único error que importa. */
 function diasRestantes(expira: string | null): number {
   if (!expira) return -1
-  return Math.ceil((new Date(expira).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  return Math.floor((new Date(expira).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
 }
 
 function PassBadge({ expira }: { expira: string | null }) {
