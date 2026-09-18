@@ -6,12 +6,14 @@ interface CorteRow {
   cid: string; cliente: string; fechaCorte: string; periodo: string
   plan: string; minutosIncl: number; minutosConsum: number
   monto: number; pctConsumo: number; clasificacion: string
+  /** Si es `false`, `pctConsumo` vale 0 pero no significa «no consumió». */
+  medible: boolean
   pctEntrantes: number; pctSalientes: number; usoPrincipal: string
   eventosAnal: string
 }
 
 interface ByMes {
-  [mes: string]: { count: number; monto: number; consumo: number; min: number; minC: number }
+  [mes: string]: { count: number; monto: number; consumo: number; medibles: number; min: number; minC: number }
 }
 
 interface CortesResult { rows: CorteRow[]; byMes: ByMes; total: number }
@@ -72,7 +74,11 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
   const noData      = !data || data.total === 0
   const meses       = Object.entries(data?.byMes ?? {}).sort((a, b) => b[0].localeCompare(a[0]))
   const ultimo      = meses[0]
-  const promConsumo = ultimo ? (ultimo[1].consumo / Math.max(ultimo[1].count, 1)) : null
+  /* `null` cuando el mes no trae un solo corte medible — la pantalla ya
+     distingue el nulo, y así no se anuncia un 0% que nadie midió. */
+  const promConsumo = ultimo && ultimo[1].medibles > 0
+    ? ultimo[1].consumo / ultimo[1].medibles
+    : null
   const montoTotal  = meses.reduce((s, [, v]) => s + v.monto, 0)
   const planActual  = data?.rows?.[0]?.plan ?? ''
   const usoPrincipal = data?.rows?.[0]?.usoPrincipal ?? ''
@@ -180,7 +186,12 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                         <td style={{ padding: '5px 8px', color: 'rgba(255,255,255,0.45)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
                         <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtNum(r.minutosIncl)}</td>
                         <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtNum(r.minutosConsum)}</td>
-                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 800, color: pctColor(r.pctConsumo) }}>{r.pctConsumo.toFixed(1)}%</td>
+                        {/* Sin base de minutos no hay porcentaje: se dice, no
+                            se pinta un 0% en rojo que acusa un desuso falso. */}
+                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 800, color: r.medible ? pctColor(r.pctConsumo) : 'rgba(255,255,255,0.35)' }}
+                          title={r.medible ? undefined : 'El plan no incluye minutos de voz: no hay base contra la cual medir el consumo'}>
+                          {r.medible ? `${r.pctConsumo.toFixed(1)}%` : 's/med.'}
+                        </td>
                         <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(r.monto)}</td>
                         <td style={{ padding: '5px 8px', textAlign: 'center' }}>
                           <span style={{ background: clasColor + '18', color: clasColor, fontWeight: 700, padding: '2px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontSize: 9 }}>
@@ -220,13 +231,15 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                 </thead>
                 <tbody>
                   {meses.map(([mes, v]) => {
-                    const avg = v.count ? v.consumo / v.count : 0
+                    const avg = v.medibles ? v.consumo / v.medibles : null
                     return (
                       <tr key={mes} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                         <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtMes(mes)}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.45)' }}>{v.count}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(v.monto)}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: pctColor(avg) }}>{avg.toFixed(1)}%</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: avg === null ? 'rgba(255,255,255,0.35)' : pctColor(avg) }}>
+                          {avg === null ? 's/med.' : `${avg.toFixed(1)}%`}
+                        </td>
                       </tr>
                     )
                   })}

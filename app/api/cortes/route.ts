@@ -21,6 +21,15 @@ interface CorteRow {
   baseMinutos:    number | null
   extensiones:    number | null
   origenBase:     OrigenBase
+  /**
+   * ¿Hay contra qué medir el consumo?
+   *
+   * Cuando no la hay, `pctConsumo` queda en 0 para no romper el ordenamiento
+   * ni el CSV, pero ese 0 NO significa «no consumió»: significa «no se sabe».
+   * Todo promedio, conteo o rango de consumo tiene que filtrar por este campo
+   * antes de tocar `pctConsumo`, o vuelve a mezclar las dos cosas.
+   */
+  medible:        boolean
   extIlimitadas:  string
   clasificacion:  string
   pctEntrantes:   number
@@ -92,6 +101,7 @@ async function loadData(): Promise<CorteRow[]> {
         // Rebasar el 100% no es un error: los minutos no son rollover y el
         // excedente se cobra al precio del plan. El % se publica completo.
         pctConsumo:    b.base && b.base > 0 ? (100 * cons) / b.base : 0,
+        medible:       !!b.base && b.base > 0,
         baseMinutos:   b.base, extensiones: b.extensiones, origenBase: b.origen,
         extIlimitadas: toStr(r['Extensiones ilimitadas']),
         clasificacion: toStr(r['Clasificación de empresa']),
@@ -148,13 +158,15 @@ export async function GET(req: NextRequest) {
       const rows   = allData.filter(r =>
         (cid && r.cid === cid) || (!cid && nombre && r.cliente.toLowerCase().includes(nombre.toLowerCase()))
       )
-      const byMes = rows.reduce<Record<string, { count: number; monto: number; consumo: number; min: number; minC: number }>>((acc, r) => {
-        if (!acc[r.fechaCorte]) acc[r.fechaCorte] = { count: 0, monto: 0, consumo: 0, min: 0, minC: 0 }
+      /* `medibles` es el denominador del promedio de consumo, igual que en el
+         resumen general: un plan sin minutos no promedia 0%, no promedia. */
+      const byMes = rows.reduce<Record<string, { count: number; monto: number; consumo: number; medibles: number; min: number; minC: number }>>((acc, r) => {
+        if (!acc[r.fechaCorte]) acc[r.fechaCorte] = { count: 0, monto: 0, consumo: 0, medibles: 0, min: 0, minC: 0 }
         acc[r.fechaCorte].count++
-        acc[r.fechaCorte].monto   += r.monto
-        acc[r.fechaCorte].consumo += r.pctConsumo
-        acc[r.fechaCorte].min     += r.minutosIncl
-        acc[r.fechaCorte].minC    += r.minutosConsum
+        acc[r.fechaCorte].monto += r.monto
+        if (r.medible) { acc[r.fechaCorte].consumo += r.pctConsumo; acc[r.fechaCorte].medibles++ }
+        acc[r.fechaCorte].min  += r.minutosIncl
+        acc[r.fechaCorte].minC += r.minutosConsum
         return acc
       }, {})
       return NextResponse.json({ rows: rows.slice(0, 24), byMes, total: rows.length })
@@ -166,17 +178,33 @@ export async function GET(req: NextRequest) {
       if (!data.length) return NextResponse.json({ total: 0 })
 
       const totalMonto    = data.reduce((s, r) => s + r.monto, 0)
-      const avgConsumo    = data.reduce((s, r) => s + r.pctConsumo, 0) / data.length
-      const sinConsumo    = data.filter(r => r.pctConsumo === 0).length
+
+      /* ── Medibles y no medibles ─────────────────────────────────────────
+       * Un corte sin base de minutos —«5 Agentes CP Chat», «1 Licencia
+       * Callpicker sin saldo»— no consumió 0%: no tiene minutos que consumir.
+       * Contarlo como «sin consumo» inventa un problema de adopción donde no
+       * hay nada que adoptar, y además hunde el promedio metiendo ceros en el
+       * numerador. Se separan y se publican los dos números. */
+      const medibles      = data.filter(r => r.medible)
+      const avgConsumo    = medibles.length
+        ? medibles.reduce((s, r) => s + r.pctConsumo, 0) / medibles.length
+        : 0
+      const sinConsumo    = medibles.filter(r => r.pctConsumo === 0).length
+      const sinMedicion   = data.length - medibles.length
       const conEventos    = data.filter(r => r.eventosAnal === 'Si').length
 
       // Por plan
-      const byPlan: Record<string, { count: number; monto: number; consumo: number }> = {}
+      /* `medibles` es el denominador del promedio: `count` cuenta cortes y no
+         todos tienen consumo que medir. Dividir entre `count` diluye. */
+      const byPlan: Record<string, { count: number; monto: number; consumo: number; medibles: number }> = {}
       for (const r of data) {
-        if (!byPlan[r.plan]) byPlan[r.plan] = { count: 0, monto: 0, consumo: 0 }
+        if (!byPlan[r.plan]) byPlan[r.plan] = { count: 0, monto: 0, consumo: 0, medibles: 0 }
         byPlan[r.plan].count++
-        byPlan[r.plan].monto   += r.monto
-        byPlan[r.plan].consumo += r.pctConsumo
+        byPlan[r.plan].monto += r.monto
+        if (r.medible) {
+          byPlan[r.plan].consumo += r.pctConsumo
+          byPlan[r.plan].medibles++
+        }
       }
 
       // Por clasificacion
@@ -194,13 +222,17 @@ export async function GET(req: NextRequest) {
       }
 
       // Distribución consumo (rangos 0-20, 21-40, 41-60, 61-80, 81-100, >100)
+      /* «Sin medición» es una barra más, no un descarte: el histograma tiene
+         que sumar el total de cortes. Una tabla agregada que tira filas sin
+         decirlo miente sin que se note. */
       const zonas: Record<string, number> = {
         '0%': 0, '1-20%': 0, '21-40%': 0, '41-60%': 0,
-        '61-80%': 0, '81-100%': 0, '>100%': 0,
+        '61-80%': 0, '81-100%': 0, '>100%': 0, 'Sin medición': 0,
       }
       for (const r of data) {
         const p = r.pctConsumo
-        if (p === 0)        zonas['0%']++
+        if (!r.medible)     zonas['Sin medición']++
+        else if (p === 0)   zonas['0%']++
         else if (p <= 20)   zonas['1-20%']++
         else if (p <= 40)   zonas['21-40%']++
         else if (p <= 60)   zonas['41-60%']++
@@ -211,17 +243,17 @@ export async function GET(req: NextRequest) {
 
       // Tendencia por mes (solo si no hay filtro de fecha)
       const byMes: Record<string, {
-        count: number; monto: number; consumo: number
+        count: number; monto: number; consumo: number; medibles: number
         parcial: boolean; desde: string; hasta: string
       }> = {}
       for (const r of allData) {
         if (!byMes[r.fechaCorte]) {
-          byMes[r.fechaCorte] = { count: 0, monto: 0, consumo: 0, parcial: false, desde: '', hasta: '' }
+          byMes[r.fechaCorte] = { count: 0, monto: 0, consumo: 0, medibles: 0, parcial: false, desde: '', hasta: '' }
         }
         const m = byMes[r.fechaCorte]
         m.count++
-        m.monto   += r.monto
-        m.consumo += r.pctConsumo
+        m.monto += r.monto
+        if (r.medible) { m.consumo += r.pctConsumo; m.medibles++ }
         if (r.fechaCorteISO) {
           if (!m.desde || r.fechaCorteISO < m.desde) m.desde = r.fechaCorteISO
           if (!m.hasta || r.fechaCorteISO > m.hasta) m.hasta = r.fechaCorteISO
@@ -249,7 +281,9 @@ export async function GET(req: NextRequest) {
       }
 
       return NextResponse.json({
-        total: data.length, totalMonto, avgConsumo, sinConsumo, conEventos,
+        total: data.length, totalMonto, avgConsumo, sinConsumo, sinMedicion, conEventos,
+        // Denominador honesto de «sin consumo»: cortes que sí tenían minutos.
+        totalMedible: medibles.length,
         byPlan, byClas, byUso, zonas, byMes,
         corte: meses.length ? byMes[meses[meses.length - 1]].hasta : null,
       })

@@ -57,7 +57,16 @@ const RX_EXTENSIONES = /(\d+)\s*(?:extensi[oó]n(?:es)?|ext\b)/i
  */
 const RX_EXT_ABREVIADO = /^(\d+)\s+\S.*\bIL\b/i
 
-/** Planes que no consumen minutos de voz: no se les mide consumo. */
+/**
+ * Planes que no consumen minutos de voz: no se les mide consumo.
+ *
+ * OJO con el orden en que se aplica (ver `baseMinutos`): el nombre NO manda
+ * sobre una bolsa declarada. «Calltracking 500 minutos con 4 números virtuales»
+ * casa con esta expresión por lo de «números virtuales» y sin embargo trae 500
+ * minutos en el archivo y los consume. Hasta el 18 de septiembre de 2026 esta
+ * prueba corría primero y mandaba 89 cortes a «sin medición» —los 89 con
+ * minutos consumidos—, que el módulo pintaba después como 0% de consumo.
+ */
 const RX_SIN_VOZ = /\bchat\b|\bagentes?\s+cp\b|sin\s+saldo|n[uú]meros?\s+virtuales?|whatsapp/i
 
 /**
@@ -92,7 +101,12 @@ export function baseMinutos(plan: string | null | undefined, incl: number): Base
   const ext = m ? parseInt(m[1], 10) : null
   const vacio = { extensiones: ext, inclArchivo: incl }
 
-  if (RX_SIN_VOZ.test(nombre) && !ext) {
+  /* El nombre solo decide cuando no hay NADA que medir: ni extensiones ni una
+     bolsa plausible. Un plan que declara sus minutos los declara aunque se
+     llame «con 4 números virtuales». La separación es limpia en el archivo: de
+     los 242 cortes que casan con esta expresión sin extensiones, los 153
+     realmente sin voz traen `incl = 1` y los 89 con bolsa traen 250 o más. */
+  if (RX_SIN_VOZ.test(nombre) && !ext && incl < BOLSA_MINIMA) {
     return { base: null, origen: 'sin_medicion', ...vacio }
   }
   if (ext && ext > 0) {

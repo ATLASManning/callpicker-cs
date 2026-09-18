@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   BarChart2, TrendingUp, AlertTriangle, RefreshCw,
   ChevronLeft, ChevronRight, Search, Zap, Filter,
-  CheckCircle, Columns, ArrowUp, ArrowDown, ArrowUpDown,
+  CheckCircle, Columns, ArrowUp, ArrowDown, ArrowUpDown, HelpCircle,
 } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
 
@@ -11,12 +11,16 @@ import CustomSelect from '@/components/CustomSelect'
 interface Stats {
   total: number; totalMonto: number; avgConsumo: number
   sinConsumo: number; conEventos: number
-  byPlan: Record<string, { count: number; monto: number; consumo: number }>
+  /** Cortes de planes que no consumen minutos: no se les puede medir el %. */
+  sinMedicion: number
+  /** `total` menos `sinMedicion`. Es el denominador de `sinConsumo`. */
+  totalMedible: number
+  byPlan: Record<string, { count: number; monto: number; consumo: number; medibles: number }>
   byClas: Record<string, { count: number; monto: number }>
   byUso:  Record<string, number>
   zonas:  Record<string, number>
   byMes:  Record<string, {
-    count: number; monto: number; consumo: number
+    count: number; monto: number; consumo: number; medibles: number
     /** El mes no está completo: el archivo cortó a media marcha. */
     parcial: boolean; desde: string; hasta: string
   }>
@@ -26,7 +30,7 @@ interface Stats {
 interface CorteRow {
   cid: string; cliente: string; fechaCorte: string; periodo: string
   plan: string; minutosIncl: number; minutosConsum: number
-  monto: number; pctConsumo: number; clasificacion: string
+  monto: number; pctConsumo: number; medible: boolean; clasificacion: string
   pctEntrantes: number; pctSalientes: number; usoPrincipal: string
   eventosAnal: string
 }
@@ -90,6 +94,8 @@ const USO_COLOR_D: Record<string, string> = {
 const ZONA_COLORS: Record<string, string> = {
   '0%':'#F87171','1-20%':'#FB923C','21-40%':'#FBBF24',
   '41-60%':'#A3E635','61-80%':'#4ADE80','81-100%':'#60A5FA','>100%':'#818CF8',
+  // Gris a propósito: no es un nivel de consumo, es la ausencia de la medición.
+  'Sin medición':'#94A3B8',
 }
 
 function getBadgeSt(val: string, map: Record<string, string>) {
@@ -313,7 +319,7 @@ export default function InformeCortesPage() {
     const last3      = mesesCompletos.slice(-3)
     const avgMonto   = last3.reduce((s, [, v]) => s + v.monto, 0) / 3
     const avgCount   = last3.reduce((s, [, v]) => s + v.count, 0) / 3
-    const avgConsumo = last3.reduce((s, [, v]) => s + v.consumo / v.count, 0) / 3
+    const avgConsumo = last3.reduce((s, [, v]) => s + (v.medibles ? v.consumo / v.medibles : 0), 0) / 3
     return { monto: avgMonto, count: avgCount, consumo: avgConsumo, base: last3.map(([m]) => m) }
   })()
 
@@ -375,11 +381,21 @@ export default function InformeCortesPage() {
 
       {/* ── KPIs — dark */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.sinMedicion > 0 ? 5 : 4}, 1fr)`, gap: 14, marginBottom: 20 }}>
           <KpiCard icon={BarChart2}     label="Cortes en periodo"  value={stats.total.toLocaleString('es-MX')}      sub={filtFecha ? fmtMes(filtFecha) : 'Todos los meses'}               color="#60A5FA" />
           <KpiCard icon={TrendingUp}    label="Monto total planes" value={fmtK(stats.totalMonto)}                   sub={`Prom. ${fmtK(stats.totalMonto / Math.max(stats.total, 1))} / corte`} color="#818CF8" />
-          <KpiCard icon={Zap}           label="Consumo promedio"   value={`${stats.avgConsumo.toFixed(1)}%`}         sub="de minutos incluidos usados"                                       color="#4ADE80" />
-          <KpiCard icon={AlertTriangle} label="Sin consumo (0%)"   value={stats.sinConsumo.toLocaleString('es-MX')} sub={`${stats.total ? ((stats.sinConsumo / stats.total) * 100).toFixed(1) : 0}% del total`} color="#F87171" alert={stats.sinConsumo > stats.total * 0.2} />
+          <KpiCard icon={Zap}           label="Consumo promedio"   value={`${stats.avgConsumo.toFixed(1)}%`}         sub={`de ${stats.totalMedible.toLocaleString('es-MX')} cortes con minutos`}   color="#4ADE80" />
+          {/* El denominador es `totalMedible`, no `total`: el % de cortes sin
+              consumo solo tiene sentido entre los que podían consumir. Los de
+              planes sin voz se cuentan aparte, en su propia tarjeta. */}
+          <KpiCard icon={AlertTriangle} label="Sin consumo (0%)"   value={stats.sinConsumo.toLocaleString('es-MX')} sub={`${stats.totalMedible ? ((stats.sinConsumo / stats.totalMedible) * 100).toFixed(1) : 0}% de los medibles`} color="#F87171" alert={stats.sinConsumo > stats.totalMedible * 0.2} />
+          {/* Planes que no consumen minutos —CP Chat, agentes, números
+              virtuales sin bolsa, licencias sin saldo—. No son un 0% de uso:
+              no hay nada que medir. Se muestran para que las cuentas cierren
+              y para que nadie los busque dentro de «sin consumo». */}
+          {stats.sinMedicion > 0 && (
+            <KpiCard icon={HelpCircle} label="Sin medición" value={stats.sinMedicion.toLocaleString('es-MX')} sub="planes sin minutos de voz" color="#94A3B8" />
+          )}
         </div>
       )}
 
@@ -512,7 +528,12 @@ export default function InformeCortesPage() {
                         if (k === 'plan')          return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
                         if (k === 'minutosIncl')   return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', textAlign: 'right' }}>{r.minutosIncl.toLocaleString()}</td>
                         if (k === 'minutosConsum') return <td key={k} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#0f172a' }}>{r.minutosConsum.toLocaleString()}</td>
-                        if (k === 'pctConsumo')    return <td key={k} style={{ padding: '8px 10px', textAlign: 'right' }}><span style={{ fontWeight: 700, color: pctColor(r.pctConsumo) }}>{r.pctConsumo.toFixed(1)}%</span></td>
+                        {/* Un plan sin minutos de voz no consumió 0%: no tiene
+                            qué consumir. Rojo ahí acusaría un desuso inventado. */}
+                        if (k === 'pctConsumo')    return <td key={k} style={{ padding: '8px 10px', textAlign: 'right' }}
+                          title={r.medible ? undefined : 'El plan no incluye minutos de voz: no hay base contra la cual medir'}>
+                          <span style={{ fontWeight: 700, color: r.medible ? pctColor(r.pctConsumo) : '#94A3B8' }}>
+                            {r.medible ? `${r.pctConsumo.toFixed(1)}%` : 'sin medición'}</span></td>
                         if (k === 'monto')         return <td key={k} style={{ padding: '8px 10px', fontWeight: 700, color: '#1B3FCC', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>
                         if (k === 'clasificacion') return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR)}>{r.clasificacion || '—'}</span></td>
                         if (k === 'uso')           return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR)}>{r.usoPrincipal || '—'}</span></td>
@@ -701,7 +722,7 @@ export default function InformeCortesPage() {
               </p>
               <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', height: 220, overflowX: 'auto', paddingBottom: 2 }}>
                 {mesTendencia.map(([mes, v], idx) => {
-                  const avgC   = v.count ? v.consumo / v.count : 0
+                  const avgC   = v.medibles ? v.consumo / v.medibles : 0
                   const h      = Math.max(6, Math.round((Math.min(avgC, 150) / 150) * 170))
                   const isLast = idx === mesTendencia.length - 1 && !v.parcial
                   const color  = pctColorD(avgC)
@@ -832,7 +853,10 @@ export default function InformeCortesPage() {
               height={170}
               fmtVal={n => n.toFixed(0) + '%'}
               entries={Object.entries(stats.byPlan)
-                .map(([plan, v]) => ({ plan, avg: v.count ? v.consumo / v.count : 0, count: v.count }))
+                /* Un plan sin minutos que medir no tiene un % de uso bajo:
+                   no tiene %. Fuera de la gráfica, no en el fondo con 0. */
+                .filter(([, v]) => v.medibles > 0)
+                .map(([plan, v]) => ({ plan, avg: v.consumo / v.medibles, count: v.medibles }))
                 .sort((a, b) => b.avg - a.avg)
                 .slice(0, 8)
                 .map(({ plan, avg, count }) => ({ label: shortPlan(plan), value: avg, color: pctColorD(avg), sub: `${count}` }))}
