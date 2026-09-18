@@ -1811,11 +1811,12 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
     tabs.push({ id: 'desactivados', label: `🟣 Desactivados (${r.desactivadosCuentasReal ?? r.desactivados.length})`, color: '#7C3AED' })
   }
   tabs.push({ id: 't1',   label: 'Resumen T1 2026',                                   color: INDIGO })
-  // NOTA: 'aaa' y 'conciliacion' NO van aquí — son secciones independientes
-  // del submenú. ('zoho' vivía aquí hasta que se eliminó el módulo Zoho ·
-  // Dormidos; el endpoint sigue vivo porque lo usa la conciliación.)
-  // lateral, no tabs del Análisis DATA. Mezclarlos hacía que el selector de
-  // períodos y los KPIs del análisis siguieran visibles sobre su contenido.
+  // NOTA: 'aaa' y 'conciliacion' NO van aquí — son secciones independientes del
+  // submenú lateral, no tabs del Análisis DATA. Mezclarlos hacía que el selector
+  // de períodos y los KPIs del análisis siguieran visibles sobre su contenido.
+  // ('zoho' era otra de estas secciones hasta que se eliminó el módulo Zoho ·
+  // Dormidos el 17 sep 2026. El endpoint /api/facturacion?mode=dormidos sigue
+  // vivo: lo consumen /api/conciliacion y la compuerta de actividades SAC.)
   return tabs
 }
 

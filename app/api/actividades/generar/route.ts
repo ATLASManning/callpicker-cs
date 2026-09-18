@@ -48,8 +48,10 @@ function toISO(d: Date): string {
 // El campo `estado` de Supabase puede quedar desactualizado respecto a Zoho
 // (ver incidente Campus Residencias/Trustworthy, 10 Jul 2026: cuentas ya
 // dormidas en Zoho seguían con estado "activo"/"en_riesgo" y recibieron
-// actividades). Antes de generar, se cruza contra la misma fuente que usa
-// el módulo Churn → Zoho · Dormidos en vivo (/api/facturacion?mode=dormidos).
+// actividades). Antes de generar, se cruza contra la facturación viva de Zoho
+// (/api/facturacion?mode=dormidos). Ese endpoint NO se borra aunque el módulo
+// Churn → Zoho · Dormidos se haya eliminado (17 sep 2026): de él cuelgan esta
+// compuerta y /api/conciliacion.
 //
 // FAIL-CLOSED (24 Ago 2026): si Zoho no responde se devuelve `null` y NO se
 // genera nada. Antes era fail-open y esa fue la vía por la que cuentas ya
@@ -780,7 +782,7 @@ export async function POST(req: NextRequest) {
     // cuenta siga activa, así que no se genera nada.
     if (dormidasZoho === null)
       return NextResponse.json({
-        error: MSG.estatus_no_validable + ' No se pudo conciliar con Churn (Zoho · Dormidos). No se generaron actividades.',
+        error: MSG.estatus_no_validable + ' No se pudo conciliar contra la facturación viva de Zoho. No se generaron actividades.',
         codigo: 'estatus_no_validable' as CodigoBloqueo,
       }, { status: 503 })
 
