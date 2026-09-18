@@ -19,13 +19,13 @@ export default function HealthHistorialChart({ data }: Props) {
       <LineChart data={chartData} margin={{ top: 5, right: 5, left: -30, bottom: 0 }}>
         <XAxis dataKey="fecha" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
         <YAxis domain={[0, 100]} tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
+        {/* Tooltip OSCURO, como los de DashAlertasCriticas y MetricasCharts.
+            Recharts arma su contenido con un <p> y unos <span> sin background
+            propio; esta gráfica vive dentro de una `.cp-card`, así que
+            globals.css los fuerza a blanco con !important y le gana a
+            labelStyle/itemStyle. Con el fondo blanco que tenía antes, el
+            tooltip salía como una caja vacía. */}
         <Tooltip
-          {/* Tooltip OSCURO, como los de DashAlertasCriticas y MetricasCharts.
-              Recharts arma su contenido con <p class="recharts-tooltip-label">
-              y <span> sin background propio; esta gráfica vive dentro de una
-              `.cp-card`, así que globals.css los fuerza a blanco con
-              !important y le gana a labelStyle/itemStyle. Con el fondo blanco
-              que tenía antes, el tooltip salía como una caja vacía. */}
           contentStyle={{ background: '#0A1628', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 6, fontSize: 11, boxShadow: '0 4px 16px rgba(0,0,0,0.35)' }}
           labelStyle={{ color: 'rgba(255,255,255,0.7)' }}
           itemStyle={{ color: '#FFFFFF' }}

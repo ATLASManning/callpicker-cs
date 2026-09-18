@@ -345,10 +345,10 @@ export default function InformeCortesPage() {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', margin: 0 }}>Informe de Cortes</h1>
           <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Análisis de consumo y comportamiento por periodo de corte</p>
         </div>
+        {/* El header vive sobre el fondo claro de la página, no dentro de una
+            tarjeta: paleta clara. Con los blancos translúcidos de antes el
+            botón quedaba a ~1.05:1 — un recuadro vacío. */}
         <button onClick={() => { setStats(null); setLoading(true); setTimeout(() => window.location.reload(), 100) }}
-          {/* El header vive sobre el fondo claro de la página, no dentro de una
-              tarjeta: paleta clara. Con los blancos translúcidos de antes el
-              botón quedaba a ~1.05:1 — un recuadro vacío. */}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#475569', fontWeight: 600 }}>
           <RefreshCw size={13} /> Actualizar
         </button>
@@ -508,14 +508,14 @@ export default function InformeCortesPage() {
                       const noSort = k === 'cid' || k === 'eventos'
                       const active = sortBy === k
                       const SortIcon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+                      /* La columna ordenada se marca con un TINTE OSCURO, no
+                         con el azul pálido de antes: esta tabla vive dentro de
+                         una .cp-card y un fondo claro aquí convertía el
+                         encabezado en blanco sobre casi blanco. El `color` del
+                         <th> es decorativo —`.cp-card th` lo pisa con
+                         !important—, así que el color real lo pone el span,
+                         que declara `background` para escapar de la regla. */
                       return (
-                        {/* La columna ordenada se marca con un TINTE OSCURO, no
-                            con el azul pálido de antes: esta tabla vive dentro
-                            de una .cp-card y un fondo claro aquí convertía el
-                            encabezado en blanco sobre casi blanco. El `color`
-                            del <th> es decorativo —`.cp-card th` lo pisa con
-                            !important—, así que el color real lo pone el span,
-                            que declara `background` para escapar de la regla. */}
                         <th key={k} onClick={() => handleSort(k as ColKey)} style={{ padding: '10px 10px', textAlign: isNum ? 'right' : 'left', fontWeight: 700, borderBottom: '1px solid rgba(255,255,255,0.07)', whiteSpace: 'nowrap', fontSize: 11, cursor: noSort ? 'default' : 'pointer', userSelect: 'none', background: active ? 'rgba(96,165,250,0.16)' : undefined }}>
                           <span style={{ background: 'transparent', color: active ? '#60A5FA' : undefined, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             {col.label}
@@ -538,17 +538,17 @@ export default function InformeCortesPage() {
                         if (k === 'plan')          return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
                         if (k === 'minutosIncl')   return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', textAlign: 'right' }}>{r.minutosIncl.toLocaleString()}</td>
                         if (k === 'minutosConsum') return <td key={k} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#0f172a' }}>{r.minutosConsum.toLocaleString()}</td>
-                        {/* Un plan sin minutos de voz no consumió 0%: no tiene
-                            qué consumir. Rojo ahí acusaría un desuso inventado. */}
+                        /* Un plan sin minutos de voz no consumió 0%: no tiene
+                           qué consumir. Rojo ahí acusaría un desuso inventado. */
                         if (k === 'pctConsumo')    return <td key={k} style={{ padding: '8px 10px', textAlign: 'right' }}
                           title={r.medible ? undefined : 'El plan no incluye minutos de voz: no hay base contra la cual medir'}>
                           <span style={{ fontWeight: 700, color: r.medible ? pctColor(r.pctConsumo) : '#94A3B8' }}>
                             {r.medible ? `${r.pctConsumo.toFixed(1)}%` : 'sin medición'}</span></td>
                         if (k === 'monto')         return <td key={k} style={{ padding: '8px 10px', fontWeight: 700, color: '#1B3FCC', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>
-                        {/* Paletas `_D`: la tabla está en una tarjeta oscura y
-                            las claras (#1B3FCC, #f59e0b) daban azul marino
-                            sobre azul marino. Las gráficas de más abajo ya
-                            usaban las `_D` — estas dos se habían quedado. */}
+                        /* Paletas `_D`: la tabla está en una tarjeta oscura y
+                           las claras (#1B3FCC, #f59e0b) daban azul marino
+                           sobre azul marino. Las gráficas de más abajo ya
+                           usaban las `_D` — estas dos se habían quedado. */
                         if (k === 'clasificacion') return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR_D)}>{r.clasificacion || '—'}</span></td>
                         if (k === 'uso')           return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR_D)}>{r.usoPrincipal || '—'}</span></td>
                         if (k === 'eventos')       return <td key={k} style={{ padding: '8px 10px', textAlign: 'center' }}>{r.eventosAnal === 'Si' ? <CheckCircle size={13} style={{ color: '#22c55e' }} /> : <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>}</td>

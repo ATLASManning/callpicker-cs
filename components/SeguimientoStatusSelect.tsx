@@ -52,12 +52,12 @@ export default function SeguimientoStatusSelect({
   const cls = COLOR[valor as Resultado] ?? 'bg-surface border-border'
 
   if (!canEdit) {
+    /* Los fondos de `COLOR` son tintes al 10%: sobre la `.cp-card` azul marino
+       en la que vive esto, siguen siendo OSCUROS. El texto va claro. (Antes
+       decía '#0F172A' y se veía bien solo por accidente: globals.css fuerza a
+       blanco los span sin `background`. En cuanto alguien le añadiera un
+       `background` al style, se habría roto en silencio.) */
     return (
-      {/* Los fondos de `COLOR` son tintes al 10%: sobre la `.cp-card` azul
-          marino en la que vive esto, siguen siendo OSCUROS. El texto va claro.
-          (Antes decía '#0F172A' y se veía bien solo por accidente: globals.css
-          fuerza a blanco los <span> sin `background`. En cuanto alguien le
-          añadiera un `background` al style, se habría roto en silencio.) */}
       <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${cls}`} style={{ color: '#FFFFFF' }}>
         {valor}
       </span>

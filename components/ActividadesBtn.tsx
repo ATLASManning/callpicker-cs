@@ -621,11 +621,11 @@ function AnalisisRenderer({ text }: { text: string }) {
     // Bullets normales (• o -)
     if (trimmed.startsWith('•') || (trimmed.startsWith('- ') && trimmed.length > 2)) {
       const content = trimmed.startsWith('•') ? trimmed.slice(1).trim() : trimmed.slice(2)
+      /* Gris oscuro, no blanco: este panel tiene fondo #FFFFFF (línea ~888).
+         El blanco translúcido venía de un tema oscuro anterior y dejaba
+         ilegible todo el cuerpo del análisis IA — solo se leían los
+         encabezados y las tablas, que traen color propio. */
       return (
-        {/* Gris oscuro, no blanco: este panel tiene fondo #FFFFFF (línea ~888).
-            El blanco translúcido venía de un tema oscuro anterior y dejaba
-            ilegible todo el cuerpo del análisis IA — solo se leían los
-            encabezados y las tablas, que traen color propio. */}
         <div key={i} style={{ display: 'flex', gap: 7, paddingLeft: 8, marginBottom: 4, fontSize: 12, color: '#334155' }}>
           <span style={{ color: '#7C3AED', flexShrink: 0, marginTop: 1 }}>•</span>
           <span>{renderInline(content)}</span>
