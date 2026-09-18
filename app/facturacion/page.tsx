@@ -1,6 +1,11 @@
 'use client'
 /**
- * Gross Revenue Churn — sustituye al módulo LTV (17 sep 2026).
+ * Gross Revenue Facturación — sustituye al módulo LTV (17 sep 2026).
+ *
+ * Se llama «Facturación» y no «Churn» por instrucción de dirección: el módulo
+ * Churn ya publica su propio Gross Revenue Churn —los cortes semanales— y dos
+ * apartados con el mismo nombre se confunden. Éste mide lo mismo pero desde la
+ * facturación de Zoho, no desde los cortes.
  *
  * Dirección: «elimina la información de LTV y construye lo nuevo». Lo que vive
  * en Facturación es ahora lo que presenta el tablero «DASHBOARD GROSS REVENUE
@@ -210,7 +215,7 @@ export default function GrossRevenueChurnPage() {
     <div className="p-6 max-w-[1500px] mx-auto">
       {/* Sin `dark`: el encabezado va sobre el fondo claro de la pagina. */}
       <PageHeader
-        title="Gross Revenue Churn"
+        title="Gross Revenue Facturación"
         subtitle={m
           ? `Pérdida bruta de ingreso recurrente · mes en curso: ${m.mesVivo} · ${nf(m.clientes)} clientes`
           : 'Pérdida bruta de ingreso recurrente'}

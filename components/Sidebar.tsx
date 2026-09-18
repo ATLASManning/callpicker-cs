@@ -54,7 +54,7 @@ const NAV_ENTRADAS: NavEntry[] = [
     group: 'Facturación',
     icon: Receipt,
     children: [
-      { href: '/facturacion',        label: 'Gross Revenue Churn', icon: Receipt  },
+      { href: '/facturacion',        label: 'Gross Revenue Facturación', icon: Receipt },
       { href: '/facturacion/cortes', label: 'Informe de Cortes', icon: BarChart2  },
     ],
   },
@@ -88,8 +88,8 @@ const NAV_ENTRADAS: NavEntry[] = [
  * haría un ordenamiento por código de carácter.
  *
  * Los sub-items de cada grupo conservan su orden: dentro de Facturación, Gross
- * Revenue Churn es la vista principal y el Informe de Cortes su detalle. Ese
- * orden dice algo que el alfabeto no.
+ * Revenue Facturación es la vista principal y el Informe de Cortes su detalle.
+ * Ese orden dice algo que el alfabeto no.
  */
 const etiquetaDe = (e: NavEntry) => (isGroup(e) ? e.group : e.label)
 
