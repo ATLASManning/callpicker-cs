@@ -493,11 +493,17 @@ function TablaSerie({ serie, promHist }: { serie: Mes[]; promHist: number | null
   }
   return (
     <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+      {/* Se quitaron «GRC % cotejado» y «Origen». La primera repetía «sin
+          cotejar» en ocho de nueve renglones y su único dato vivo —el 1.4% de
+          septiembre— ya está arriba como KPI y dentro del aviso ámbar. La
+          segunda decía «Zoho · cerrado» ocho veces, y cuál es el mes en curso
+          se ve solo: va resaltado. Ninguna de las dos servía para operar. */}
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead><tr>
           {['Mes', 'MRR inicio', 'Churn', 'Downgrade', 'Pérdida', 'GRC % mensual',
-            'GRC % acumulado', 'GRC % cotejado', 'Origen'].map((h, i) => (
-            <th key={h} style={{ ...th, textAlign: i === 0 || i === 8 ? 'left' : 'right' }}>{h}</th>
+            'GRC % acumulado'].map((h, i) => (
+            <th key={h} style={{ ...th, fontSize: 11.5, padding: '10px 14px',
+              textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>
           ))}
         </tr></thead>
         <tbody>
@@ -508,23 +514,23 @@ function TablaSerie({ serie, promHist }: { serie: Mes[]; promHist: number | null
               borderBottom: '1px solid rgba(255,255,255,0.06)',
               background: m.cerrado ? undefined : 'rgba(251,191,36,0.09)',
             }}>
-              <td style={{ ...td, fontWeight: m.cerrado ? 600 : 800 }}><C c={TXT_HI}>{m.mes}</C></td>
-              <td style={tdNum}>{f$(m.mrrInicio)}</td>
-              <td style={{ ...tdNum }}><C c={m.churn > 0 ? ROJO : TENUE}>{f$(m.churn)}</C></td>
-              <td style={{ ...tdNum }}><C c={m.downgrade > 0 ? AMBAR : TENUE}>{f$(m.downgrade)}</C></td>
-              <td style={{ ...tdNum, fontWeight: 700 }}>{f$(m.perdida)}</td>
+              <td style={{ ...td, padding: '9px 14px', fontWeight: m.cerrado ? 600 : 800 }}>
+                <C c={TXT_HI}>{m.mes}</C>
+                {!m.cerrado && (
+                  <span style={{
+                    background: 'rgba(251,191,36,0.20)', color: '#FCD34D', marginLeft: 8,
+                    fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5,
+                  }}>en curso</span>
+                )}
+              </td>
+              <td style={{ ...tdNum, padding: '9px 14px' }}>{f$(m.mrrInicio)}</td>
+              <td style={{ ...tdNum, padding: '9px 14px' }}><C c={m.churn > 0 ? ROJO : TENUE}>{f$(m.churn)}</C></td>
+              <td style={{ ...tdNum, padding: '9px 14px' }}><C c={m.downgrade > 0 ? AMBAR : TENUE}>{f$(m.downgrade)}</C></td>
+              <td style={{ ...tdNum, padding: '9px 14px', fontWeight: 700 }}>{f$(m.perdida)}</td>
               <td style={{ ...tdNum, fontWeight: 800 }}><C c={m.grcMensual > 5 ? ROJO : TXT_HI}>
                 {fp(m.grcMensual)}
               </C></td>
               <td style={{ ...tdNum }}><C c={TENUE}>{fp(m.grcAcumulado)}</C></td>
-              <td style={{
-                ...tdNum, fontWeight: m.grcVerificado !== null ? 800 : 400,
-                fontStyle: m.grcVerificado === null ? 'italic' : undefined }}><C c={m.grcVerificado !== null ? VERDE : TENUE}>
-                {m.grcVerificado === null ? 'sin cotejar' : fp(m.grcVerificado)}
-              </C></td>
-              <td style={{ ...td, fontSize: 10.5 }}><C c={m.cerrado ? TENUE : AMBAR}>
-                {m.cerrado ? 'Zoho · cerrado' : `${m.origen} · en curso`}
-              </C></td>
             </tr>
           ))}
           <tr style={filaTotal}>
@@ -535,17 +541,14 @@ function TablaSerie({ serie, promHist }: { serie: Mes[]; promHist: number | null
             <td style={{ ...tdNum, fontWeight: 800 }}>{f$(tot.per)}</td>
             <td style={{ ...tdNum, fontWeight: 800 }}>{tot.mrr ? fp((100 * tot.per) / tot.mrr) : '—'}</td>
             <td style={tdNum} />
-            <td style={{ ...tdNum, fontStyle: 'italic'  }}><C c={TENUE}>sin cotejar</C></td>
-            <td style={td} />
           </tr>
         </tbody>
       </table>
       <p className="text-[11px] mt-3 leading-relaxed" style={{ color: TENUE }}>
         Los {cerrados.length} meses cerrados promedian <strong>{fp(promHist)}</strong> de GRC. El porcentaje del
         renglón Total incluye el mes en curso con toda su pérdida sin cotejar, así que sirve para reconciliar con
-        el tablero de Zoho, no para juzgar el año. La columna «cotejado» solo existe para el mes en curso: los
-        meses cerrados no se revisaron contra la base porque su detalle no viene en el export — van sin medir, no
-        en 100%.
+        el tablero de Zoho, no para juzgar el año. Los meses cerrados vienen tal como los publicó Zoho; el mes en
+        curso —resaltado— se calcula del export, y sus tres lecturas de GRC están en los indicadores de arriba.
       </p>
     </div>
   )
