@@ -95,8 +95,29 @@ export default function CustomSelect({ value, onChange, options, className = '',
         className={`${className} cursor-pointer flex items-center justify-between gap-2`}
         style={{ ...style, opacity: disabled ? 0.5 : (style?.opacity ?? 1) }}
       >
-        <span className="truncate">{selectedLabel}</span>
-        <span style={{ fontSize: '10px', flexShrink: 0, opacity: 0.6 }}>▼</span>
+        {/* ── Los dos `background` de aquí abajo NO son decoración ───────────
+            Dentro de una `.cp-card` (las tarjetas azul marino), globals.css
+            tiene esta regla:
+
+              .cp-card span:not([style*="background"]) { color: #fff !important }
+
+            Un `!important` de hoja de estilo le gana al `color` inline del
+            botón padre, así que un <span> pelado sale BLANCO — y como estos
+            combos van sobre fondo blanco, la etiqueta desaparece: hay que
+            sombrearla con el mouse para leerla. Reportado el 18 sep 2026 en
+            Informe de Cortes, pero afectaba a todos los CustomSelect claros
+            del tablero.
+
+            El selector mira la subcadena «background» en el atributo `style`,
+            así que declararlo —aunque sea transparente— basta para que la
+            regla no aplique. Con `color: inherit` el texto toma el del botón:
+            el oscuro que le pasa el llamador, o el blanco de la tarjeta si el
+            botón es oscuro. Las dos direcciones quedan bien.
+
+            NO quitar estos `background`: sin ellos el combo vuelve a ser
+            ilegible y no se nota hasta que alguien intenta leerlo. */}
+        <span className="truncate" style={{ background: 'transparent', color: 'inherit' }}>{selectedLabel}</span>
+        <span style={{ background: 'transparent', color: 'inherit', fontSize: '10px', flexShrink: 0, opacity: 0.6 }}>▼</span>
       </button>
 
       {open && (
