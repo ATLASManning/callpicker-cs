@@ -157,7 +157,9 @@ export default function GrossRevenueChurnPage() {
   const [d, setD] = useState<Datos | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('serie')
+  /* Abre en Detalle: es la primera de la fila y la pregunta operativa.
+     Abrir en la cuarta pestaña obligaba a un clic para llegar al dato. */
+  const [tab, setTab] = useState<Tab>('detalle')
 
   const [clasif, setClasif] = useState('')
   const [mov, setMov] = useState('')
@@ -325,10 +327,13 @@ export default function GrossRevenueChurnPage() {
       {/* ── Pestañas ───────────────────────────────────────────────────── */}
       <div className="flex gap-2 mb-4 flex-wrap">
         {([
-          ['serie', 'Serie mensual', CalendarRange],
+          /* Orden fijado por dirección: primero el detalle, que es la pregunta
+             operativa —a quién hay que llamar—, y al final la serie, que es
+             contexto. Las desmentidas cierran porque son la excepción. */
+          ['detalle', `Detalle (${a ? nf(a.filas) : 0})`, Users],
           ['rango', 'Por rango y objetivo', Target],
           ['cortes', 'Cómo se reparte', Layers],
-          ['detalle', `Detalle (${a ? nf(a.filas) : 0})`, Users],
+          ['serie', 'Serie mensual', CalendarRange],
           ['desmentidas', `Desmentidas (${a?.cuentasViva ?? 0})`, AlertTriangle],
         ] as const).map(([k, lbl, Icon]) => (
           <button key={k} onClick={() => setTab(k)} style={{
