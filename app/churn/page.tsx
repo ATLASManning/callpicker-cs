@@ -1811,17 +1811,19 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
     tabs.push({ id: 'desactivados', label: `🟣 Desactivados (${r.desactivadosCuentasReal ?? r.desactivados.length})`, color: '#7C3AED' })
   }
   tabs.push({ id: 't1',   label: 'Resumen T1 2026',                                   color: INDIGO })
-  // NOTA: 'aaa' y 'conciliacion' NO van aquí — son secciones independientes del
-  // submenú lateral, no tabs del Análisis DATA. Mezclarlos hacía que el selector
-  // de períodos y los KPIs del análisis siguieran visibles sobre su contenido.
+  // NOTA: 'aaa' y 'conciliacion' NO van aquí. Son secciones propias, con su
+  // botón en la barra de accesos del encabezado, no tabs del Análisis DATA.
+  // Mezclarlos hacía que el selector de períodos y los KPIs del análisis
+  // siguieran visibles encima de su contenido.
+  //
   // ('zoho' era otra de estas secciones hasta que se eliminó el módulo Zoho ·
   // Dormidos el 17 sep 2026. El endpoint /api/facturacion?mode=dormidos sigue
   // vivo: lo consumen /api/conciliacion y la compuerta de actividades SAC.)
   return tabs
 }
 
-/* ── Botón compacto de acceso rápido — sidebar lateral ─────────────────── */
-function SidebarAccesoBtn({ active, onClick, icon, label, bg, badge, href }: {
+/* ── Botón de acceso rápido — fila del encabezado ──────────────────────── */
+function AccesoBtn({ active, onClick, icon, label, bg, badge, href }: {
   active: boolean
   onClick?: () => void
   icon: React.ReactNode
@@ -1843,7 +1845,7 @@ function SidebarAccesoBtn({ active, onClick, icon, label, bg, badge, href }: {
   const content = (
     <>
       <span className="flex-shrink-0 flex items-center justify-center" style={{ width: 16 }}>{icon}</span>
-      <span className="flex-1">{label}</span>
+      <span>{label}</span>
       {badge != null && (
         <span style={{
           background: active ? 'rgba(255,255,255,0.22)' : `${bg}20`,
@@ -1853,7 +1855,9 @@ function SidebarAccesoBtn({ active, onClick, icon, label, bg, badge, href }: {
       )}
     </>
   )
-  const className = 'w-full flex items-center gap-2 rounded-lg text-left transition-all'
+  // Sin `w-full`: en una fila horizontal cada botón mide lo que mide su
+  // texto. `whitespace-nowrap` evita que «Gross Revenue Churn» se parta.
+  const className = 'flex items-center gap-2 rounded-lg transition-all whitespace-nowrap'
   if (href) {
     return (
       <a href={href} target="_blank" rel="noopener noreferrer" className={className} style={style}>
@@ -1896,7 +1900,7 @@ export default function ChurnPage() {
 
   const isAcumulado = selectedId === 'acumulado'
 
-  // Secciones independientes del submenú lateral. Cuando una está activa, el
+  // Secciones independientes de la barra de accesos. Cuando una está activa, el
   // Análisis DATA (selector de períodos + KPIs + su tab-bar) se oculta por
   // completo para que el contenido de la sección se despliegue solo, sin
   // mezclarse con datos de otro contexto.
@@ -2030,47 +2034,46 @@ export default function ChurnPage() {
       <PageHeader
         title="Churn"
         subtitle="Análisis de pérdida de clientes · DATA → Dirección de Satisfacción al Cliente"
+        actions={
+          /* Los accesos viven aquí y ya no en una barra lateral: esa columna
+             ocupaba 184px fijos en todas las pantallas de Churn, y las tablas
+             de cancelados y downgrades los necesitan. `flex-wrap` para que en
+             pantalla angosta bajen de renglón en vez de aplastar el título. */
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <AccesoBtn
+              active={!enSeccionSubmenu}
+              onClick={() => setTab('resumen')}
+              icon={<FileBarChart2 size={14} />}
+              label="Análisis DATA"
+              bg="#1B3FCC"
+              badge={allReportes.length}
+            />
+            <AccesoBtn
+              active={tab === 'aaa'}
+              onClick={() => setTab('aaa')}
+              icon={<span style={{ fontSize: 13, lineHeight: 1 }}>⭐</span>}
+              label="GRC · AAA 2026"
+              bg="#4c1d95"
+            />
+            <AccesoBtn
+              active={tab === 'conciliacion'}
+              onClick={() => setTab('conciliacion')}
+              icon={<RefreshCw size={14} />}
+              label="Conciliación"
+              bg="#0f766e"
+            />
+            <AccesoBtn
+              active={false}
+              href="https://marketingplus.zoho.com/reports/open-view/245443000007094051"
+              icon={<BarChart3 size={14} />}
+              label="Gross Revenue Churn"
+              bg="#0E2354"
+            />
+          </div>
+        }
       />
 
       <div className="flex-1 flex overflow-hidden">
-
-        {/* ── Sidebar · Submenú de Churn ───────────────────────────────── */}
-        <aside className="w-[184px] flex-shrink-0 border-r border-gray-200 bg-white px-3 py-4 space-y-1.5 overflow-y-auto">
-          <p className="px-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Churn</p>
-
-          <SidebarAccesoBtn
-            active={!enSeccionSubmenu}
-            onClick={() => setTab('resumen')}
-            icon={<FileBarChart2 size={14} />}
-            label="Análisis DATA"
-            bg="#1B3FCC"
-            badge={allReportes.length}
-          />
-
-          <div className="border-t border-gray-100 my-2" />
-
-          <SidebarAccesoBtn
-            active={tab === 'aaa'}
-            onClick={() => setTab('aaa')}
-            icon={<span style={{ fontSize: 13, lineHeight: 1 }}>⭐</span>}
-            label="GRC · AAA 2026"
-            bg="#4c1d95"
-          />
-          <SidebarAccesoBtn
-            active={tab === 'conciliacion'}
-            onClick={() => setTab('conciliacion')}
-            icon={<RefreshCw size={14} />}
-            label="Conciliación"
-            bg="#0f766e"
-          />
-          <SidebarAccesoBtn
-            active={false}
-            href="https://marketingplus.zoho.com/reports/open-view/245443000007094051"
-            icon={<BarChart3 size={14} />}
-            label="Gross Revenue Churn"
-            bg="#0E2354"
-          />
-        </aside>
 
         {/* ── Columna principal ────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -2967,7 +2970,7 @@ export default function ChurnPage() {
         {/* /Columna principal */}
 
       </div>
-      {/* /Sidebar + Columna principal */}
+      {/* /Columna principal */}
 
       {/* Modal: formulario */}
       {showForm && <ChurnForm onClose={() => setShowForm(false)} onSave={handleSave} />}
