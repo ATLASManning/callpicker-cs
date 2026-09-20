@@ -7,7 +7,11 @@ import {
 import { BarChart3, CalendarDays, XCircle, DollarSign, AlertTriangle, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
 import { AAA_GRC_2026, AAA_GRC_FLAT } from '@/app/churn/aaa-grc-data'
-import { GRC_BASE_MRR, GRC_VERIFICACION, GRC_RESUMEN_REPORTE } from '@/app/churn/grc-reporte'
+import {
+  GRC_BASE_MRR, GRC_VERIFICACION, GRC_RESUMEN_REPORTE,
+  GRC_BASE_PROVISIONAL, GRC_RESUMEN_CERRADOS, GRC_MES_EN_CURSO,
+  GRC_RECUPERACION_PAGOS,
+} from '@/app/churn/grc-reporte'
 
 const fmt = (n: number) => '$' + n.toLocaleString('es-MX', { maximumFractionDigits: 0 })
 const fmtF = (n: number) => '$' + n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -140,7 +144,13 @@ export default function GrcAaaSection() {
       const base      = GRC_BASE_MRR[mes] ?? 0
       const pct       = base ? (perdida / base) * 100 : null
       if (pct !== null) acum += pct
-      return { mes, base, churn, downgrade, perdida, pct, acum: pct !== null ? acum : null }
+      // Dos marcas distintas y no se deben mezclar: `provisional` es que el
+      // denominador no salió del reporte oficial; `enCurso` es que el mes no
+      // ha cerrado y por tanto su churn viene inflado.
+      const provisional = GRC_BASE_PROVISIONAL.includes(mes)
+      const enCurso     = mes === GRC_MES_EN_CURSO
+      return { mes, base, churn, downgrade, perdida, pct, provisional, enCurso,
+               acum: pct !== null ? acum : null }
     })
     const tot = filas.reduce((a, r) => ({
       base: a.base + r.base, churn: a.churn + r.churn,
@@ -256,10 +266,25 @@ export default function GrcAaaSection() {
             </thead>
             <tbody>
               {grc.filas.map((f, i) => (
-                <tr key={f.mes} className="border-b border-gray-100" style={{ background: i % 2 ? '#F8FAFC' : '#fff' }}>
-                  <td className="px-3 py-2 font-semibold text-gray-700">{f.mes}</td>
+                <tr key={f.mes} className="border-b border-gray-100"
+                  style={{ background: f.enCurso ? '#FFFBEB' : (i % 2 ? '#F8FAFC' : '#fff') }}>
+                  <td className="px-3 py-2 font-semibold text-gray-700 whitespace-nowrap">
+                    {f.mes}
+                    {f.enCurso && (
+                      <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded"
+                        style={{ background: '#FDE68A', color: '#92400E' }}>mes en curso · provisional</span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-right tabular-nums text-gray-600 whitespace-nowrap">
-                    {f.base ? fmtF(f.base) : <span className="text-gray-400">sin base</span>}
+                    {f.base
+                      ? <>{fmtF(f.base)}{f.provisional && (
+                          <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded"
+                            style={{ background: '#E0E7FF', color: '#3730A3' }}
+                            title="Base tomada del export completo de septiembre, no del reporte GRC oficial">
+                            provisional
+                          </span>
+                        )}</>
+                      : <span className="text-gray-400">sin base</span>}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap" style={{ color: '#DC2626' }}>{fmtF(f.churn)}</td>
                   <td className="px-3 py-2 text-right tabular-nums whitespace-nowrap" style={{ color: '#D97706' }}>{fmtF(f.downgrade)}</td>
@@ -273,6 +298,22 @@ export default function GrcAaaSection() {
                   </td>
                 </tr>
               ))}
+              {/* La cifra comparable contra el histórico: el mismo resumen sin
+                  el mes en curso, que es el único que trae churn inflado. */}
+              {GRC_MES_EN_CURSO && (
+                <tr style={{ background: '#F1F5F9' }} className="border-t-2">
+                  <td className="px-3 py-2.5 font-bold text-gray-700 whitespace-nowrap">
+                    Meses cerrados <span className="font-normal text-gray-500">(Ene–{GRC_RESUMEN_CERRADOS.hasta}):</span>
+                  </td>
+                  <td className="px-3 py-2.5 text-right tabular-nums font-semibold text-gray-700 whitespace-nowrap">{fmtF(GRC_RESUMEN_CERRADOS.base)}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap" style={{ color: '#DC2626' }}>{fmtF(GRC_RESUMEN_CERRADOS.churn)}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums font-semibold whitespace-nowrap" style={{ color: '#D97706' }}>{fmtF(GRC_RESUMEN_CERRADOS.downgrade)}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums font-bold whitespace-nowrap"
+                    style={{ color: '#B91C1C', background: '#FEF2F2' }}>{fmtF(GRC_RESUMEN_CERRADOS.perdida)}</td>
+                  <td className="px-3 py-2.5 text-right tabular-nums font-bold text-gray-700">{GRC_RESUMEN_CERRADOS.pct.toFixed(1)}%</td>
+                  <td className="px-3 py-2.5" />
+                </tr>
+              )}
               <tr style={{ background: '#EFF6FF' }} className="border-t-2" >
                 <td className="px-3 py-2.5 font-bold text-gray-900 whitespace-nowrap">Resumen amplio:</td>
                 <td className="px-3 py-2.5 text-right tabular-nums font-bold text-gray-900 whitespace-nowrap">{fmtF(grc.tot.base)}</td>
@@ -286,6 +327,21 @@ export default function GrcAaaSection() {
             </tbody>
           </table>
         </div>
+
+        {GRC_MES_EN_CURSO && (
+          <p className="px-5 py-2.5 text-[11px] border-t border-gray-100"
+            style={{ background: '#FFFBEB', color: '#92400E' }}>
+            <strong>{GRC_MES_EN_CURSO} no es el dato final: es cartera por cobrar.</strong> Zoho
+            marca «Churn confirmado» todo contrato que todavía no factura, así que el mes vivo
+            mide retraso de cobranza, no bajas. El churn real es el del <strong>mes vencido</strong>,
+            y cada mes se afina con el tiempo conforme entran los pagos: entre el corte del 17 y
+            el del 20 de septiembre, <strong>{GRC_RECUPERACION_PAGOS.cuentas} cuentas</strong>{' '}
+            facturaron y salieron del churn — {fmtF(GRC_RECUPERACION_PAGOS.total)}, de los cuales{' '}
+            {fmtF(GRC_RECUPERACION_PAGOS.porMes.find(m => m.mes === 'Agosto')?.monto ?? 0)} eran
+            de agosto. Al cierre de mes quedará lo más cercano al número con el que cierra. Para
+            comparar contra el histórico, usar el renglón de meses cerrados.
+          </p>
+        )}
 
         <p className="px-5 py-2.5 text-[11px] text-gray-400 border-t border-gray-100">
           El GRC acumulado es la suma de los porcentajes mensuales. El fraude y la reestructura

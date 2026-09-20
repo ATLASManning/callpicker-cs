@@ -33,6 +33,7 @@
  */
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
 import { GRC_EVENTOS_PREVIOS } from '@/app/churn/grc-eventos-corte'
+import { GRC_MES_EN_CURSO } from '@/app/churn/grc-reporte'
 import { normalizarNombre } from '@/lib/elegibilidad'
 
 export type MovimientoAclaracion = 'churn' | 'downgrade'
@@ -100,11 +101,34 @@ export function eventosDeAclaracion(): EventoAclaracion[] {
 
 /**
  * Los eventos POSTERIORES al corte — los únicos que generan actividad.
- * Hoy devuelve 0: el corte cubre enero–agosto y no hay meses más recientes
- * cargados. En cuanto se cargue septiembre, sus movimientos caerán aquí solos.
+ *
+ * DOS filtros, y el segundo es el importante:
+ *
+ * 1. Fuera lo anterior al corte del 9-sep-2026 (`GRC_EVENTOS_PREVIOS`), o la
+ *    primera corrida trataría ocho meses de historia como si acabaran de pasar.
+ *
+ * 2. Fuera el MES VIVO. Regla de negocio de José Manuel (20-sep-2026): el mes
+ *    en curso no es churn, son clientes que tardan en pagar; el verdadero churn
+ *    es el mes vencido. Zoho marca «Churn confirmado» todo contrato que aún no
+ *    factura, así que generar sobre el mes vivo llena la cartera del asesor de
+ *    aclaraciones de baja sobre cuentas que sólo van retrasadas — obligatorias,
+ *    fuera del tope de cuatro y que no vencen hasta documentarse.
+ *
+ *    Medido antes de ponerlo, con `scripts/mide-aclaraciones-nuevas.py`:
+ *    septiembre 2026 habría generado 58 aclaraciones (Claudia 26, Fátima 17,
+ *    Dan 15) y 57 eran falsas — 55 sobre cuentas que la base da por vivas, y
+ *    sólo UNA sobre una cuenta cancelada de verdad. En los tres días entre el
+ *    corte del 17 y el del 20 de septiembre, 26 de esas cuentas facturaron y
+ *    salieron solas del churn (ver GRC_RECUPERACION_PAGOS).
+ *
+ *    No se pierde nada: al cerrar septiembre y cargar octubre, lo que siga en
+ *    churn ya es real y genera su aclaración entonces.
  */
 export function eventosNuevosDeAclaracion(): EventoAclaracion[] {
-  return eventosDeAclaracion().filter(e => !GRC_EVENTOS_PREVIOS.has(e.clave))
+  const vivo = (GRC_MES_EN_CURSO ?? '').toUpperCase()
+  return eventosDeAclaracion()
+    .filter(e => !GRC_EVENTOS_PREVIOS.has(e.clave))
+    .filter(e => !vivo || e.mes !== vivo)
 }
 
 /**

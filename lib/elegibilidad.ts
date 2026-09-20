@@ -13,6 +13,7 @@
  */
 
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
+import { GRC_MES_EN_CURSO } from '@/app/churn/grc-reporte'
 import { CLIENTES_CANCELADOS } from '@/lib/churn-cancelados-data'
 
 /** Tope duro de actividades por cuenta y por asesor en una misma semana. */
@@ -105,16 +106,48 @@ export function normalizarNombre(s: string | null | undefined): string {
 import { esValorReal } from './valores'
 export { esValorReal }
 
+/* ── Cuentas que Zoho sigue contando como churn pero están vivas ─────────────
+ * El archivo de GRC espejea a Zoho peso por peso porque alimenta la tabla
+ * oficial que se reporta a dirección. Esta lista es la contraparte: lo que NO
+ * debe salirse de la operación aunque Zoho lo cuente como baja.
+ *
+ * Va por nombre normalizado, igual que el resto del módulo.
+ */
+export const REACTIVADAS_FUERA_DEL_CHURN: ReadonlyMap<string, string> = new Map([
+  // 9 sep 2026 · José Manuel López Delgadillo, Dirección: "te solicito sacarla
+  // del Churn". TATSA figuraba con Churn confirmado en agosto 2026 (AAA, MRR
+  // 11,086 → 0). Tras la recomendación de los dueños de CBS Compresores y la
+  // visita de dirección, la cuenta se reactiva y se da de alta como cuenta TOP
+  // (D59, cartera de Dan). Zoho la sigue contando en agosto; el número oficial
+  // la incluye, la operación no.
+  ['tatsa', 'Reactivada. Alta como cuenta TOP D59 el 9 sep 2026.'],
+])
+
 /* ── Listas de exclusión derivadas de Churn ──────────────────────────────────
  * GRC-AAA-2026: se excluyen las cuentas con "Churn confirmado" (la cuenta ya
  * no es cliente). Las de "Downgrade" NO se excluyen: siguen siendo cartera
  * viva y facturando — son precisamente las que más seguimiento requieren.
+ *
+ * DOS EXCEPCIONES, y las dos por la misma razón — que Zoho marca como baja lo
+ * que todavía no es baja:
+ *
+ *   · EL MES VIVO NO CUENTA. Regla de José Manuel (20-sep-2026): el mes en
+ *     curso son clientes que tardan en pagar, no bajas; el churn real es el
+ *     del mes vencido. Septiembre 2026 metería 755 cuentas aquí y las dejaría
+ *     sin actividades SAC estando vivas. Al cerrar el mes, las que sigan en
+ *     churn entran solas.
+ *   · Las REACTIVADAS, arriba.
  */
 export const NOMBRES_CHURN_GRC: Set<string> = (() => {
+  const vivo = (GRC_MES_EN_CURSO ?? '').toLowerCase()
   const s = new Set<string>()
   for (const mes of AAA_GRC_2026) {
+    if (vivo && String(mes.mes).toLowerCase() === vivo) continue
     for (const r of mes.clientes) {
-      if (r.movimiento.includes('Churn confirmado')) s.add(normalizarNombre(r.cliente))
+      if (!r.movimiento.includes('Churn confirmado')) continue
+      const n = normalizarNombre(r.cliente)
+      if (REACTIVADAS_FUERA_DEL_CHURN.has(n)) continue
+      s.add(n)
     }
   }
   s.delete('')

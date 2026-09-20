@@ -55,24 +55,30 @@ def num(valor):
 
 
 # ── Clientes que NO entran al Churn ──────────────────────────────────────────
-# El Excel de Zoho los sigue trayendo, pero direccion los saco del Churn. Sin
-# esta lista, la siguiente regeneracion los devolveria al tablero en silencio y
-# volveria a bloquearlos para actividades SAC.
+# VACIA A PROPOSITO desde el 20-sep-2026. No se borro la mecanica: se movio.
 #
-# Cada entrada se compara por nombre normalizado (sin acentos, sin espacios ni
-# signos, en minusculas), igual que lib/elegibilidad.ts.
+# Por que. Esta lista sacaba filas del ARCHIVO, y el archivo alimenta dos cosas
+# con necesidades opuestas:
 #
-# IMPORTANTE: si agregas uno aqui, ajusta tambien las cifras de conciliacion en
-# app/churn/grc-reporte.ts (GRC_VERIFICACION del mes y GRC_RESUMEN_REPORTE), o
-# el modulo GRC marcara ese mes como "sin cuadrar".
-FUERA_DEL_CHURN = {
-    # 9 sep 2026 - Jose Manuel Lopez Delgadillo, Direccion: "te solicito
-    # sacarla del Churn". TATSA figuraba con Churn confirmado en agosto 2026
-    # (AAA, MRR 11,086 -> 0). Tras la recomendacion de los duenos de CBS
-    # Compresores y la visita de direccion, la cuenta se reactiva y se da de
-    # alta como cuenta TOP (D59, cartera de Dan).
-    'tatsa': 'Reactivada. Alta como cuenta TOP D59 el 9 sep 2026.',
-}
+#   · la tabla oficial «Gross Revenue Churn - 2026 confirmado», que tiene que
+#     CUADRAR CON ZOHO peso por peso — es lo que se reporta a direccion;
+#   · las listas operativas (elegibilidad SAC, aclaraciones, conciliacion), que
+#     no deben tocar una cuenta reactivada.
+#
+# Sacarla del archivo servia a la segunda y rompia la primera: agosto quedaba
+# en $55,718.18 contra los $66,804.18 de Zoho, y el modulo se marcaba solo como
+# "sin cuadrar". Jose Manuel, 20-sep-2026: «asi debe verse el modulo».
+#
+# Asi que el archivo ahora ESPEJEA A ZOHO sin quitar nada, y la exclusion vive
+# donde de verdad importa: REACTIVADAS_FUERA_DEL_CHURN en lib/elegibilidad.ts,
+# que es lo que decide si una cuenta puede recibir actividades. TATSA (AAA,
+# agosto 2026, MRR 11,086 -> 0; reactivada y dada de alta como cuenta TOP D59
+# en la cartera de Dan el 9-sep-2026) vive ahi.
+#
+# Si vuelve a hacer falta sacar a alguien del NUMERO —no de la operacion—, va
+# aqui, y entonces si hay que ajustar app/churn/grc-reporte.ts o el modulo se
+# marcara "sin cuadrar". Comparacion por nombre normalizado.
+FUERA_DEL_CHURN = {}
 
 
 def normalizar(s):
