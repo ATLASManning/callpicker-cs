@@ -39,6 +39,7 @@ import { parseObservaciones } from '@/lib/observaciones-kam'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import { datosEnriquecidosDeCuenta } from '@/lib/enriquecimiento/cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
+import { didsDeCuenta } from '@/lib/dids-cuenta'
 import DatosEnriquecidosPanel from '@/components/DatosEnriquecidos'
 import CuentaRelacionPanel from '@/components/CuentaRelacionPanel'
 import { getReunionesDeCuenta } from '@/lib/supabase'
@@ -48,6 +49,9 @@ import { headers } from 'next/headers'
 export const dynamic = 'force-dynamic'
 
 const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+/** Cuántos números se pintan antes de plegar el resto. */
+const MAX_DIDS_VISIBLES = 12
 
 /**
  * `YYYY-MM-DD` → `21 sep 2026`, sin pasar por `new Date`.
@@ -96,6 +100,11 @@ export default async function CuentaDetailPage({ params }: Props) {
       notas:            cuenta.notas,
     }),
   ])
+
+  // Números (DIDs) que Callpicker le entrega a esta cuenta. Se cruzan SOLO por
+  // CID: la columna «CUENTA» del export es la etiqueta de cada número, no la
+  // razón social, y cruzar por nombre mezclaría cuentas.
+  const dids = await didsDeCuenta(cuenta.cid)
 
   // Plan contratado según el último corte de facturación (fuente viva).
   // Se muestra en Información como referencia de qué tiene el cliente.
@@ -277,6 +286,66 @@ export default async function CuentaDetailPage({ params }: Props) {
               <div><p className="text-[10px] text-textLow mb-0.5">Servicio</p>
                 <p className="text-xs text-textHi">{cuenta.servicio}</p></div>
             ) : null}
+
+            {/* ── Números Callpicker (DIDs) ──────────────────────────────
+                Azul cielo con letra blanca, como pidió dirección, para que se
+                distingan de las pastillas de servicios.
+
+                Los dos `background` de dentro NO son decorativos: esto vive en
+                una `.cp-card` y globals.css fuerza a blanco todo <span> que no
+                declare uno. Sin ellos la etiqueta desaparecería sobre el azul.
+
+                La etiqueta se pinta TAL CUAL viene del export: es como el
+                cliente bautizó ese número y puede diferir a propósito. */}
+            {dids.length > 0 && (
+              <div>
+                <p className="text-[10px] text-textLow mb-1.5">
+                  Números Callpicker · {dids.length.toLocaleString('es-MX')}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dids.slice(0, MAX_DIDS_VISIBLES).map(d => (
+                    <div key={d.numero}
+                      title={d.etiqueta ? `${d.display} — ${d.etiqueta}` : d.display}
+                      style={{ background: '#0284C7', border: '1px solid #0369A1', borderRadius: 8, padding: '3px 9px' }}>
+                      <p style={{ background: 'transparent', color: '#FFFFFF', fontSize: 12, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>
+                        {d.display}
+                      </p>
+                      {d.etiqueta && (
+                        <p style={{ background: 'transparent', color: 'rgba(255,255,255,0.88)', fontSize: 10, margin: 0, maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {d.etiqueta}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {/* Hay cuentas con cientos de números —una llega a 596—:
+                    pintarlos todos rompe la ficha. El resto va plegado, pero
+                    NO oculto: la cuenta de arriba ya dice cuántos son. */}
+                {dids.length > MAX_DIDS_VISIBLES && (
+                  <details style={{ marginTop: 6 }}>
+                    <summary style={{ fontSize: 11, color: '#7DD3FC', cursor: 'pointer', listStyle: 'none', fontWeight: 600 }}>
+                      Ver los {(dids.length - MAX_DIDS_VISIBLES).toLocaleString('es-MX')} restantes
+                    </summary>
+                    <div className="flex flex-wrap gap-1.5" style={{ marginTop: 6 }}>
+                      {dids.slice(MAX_DIDS_VISIBLES).map(d => (
+                        <div key={d.numero}
+                          title={d.etiqueta ? `${d.display} — ${d.etiqueta}` : d.display}
+                          style={{ background: '#0284C7', border: '1px solid #0369A1', borderRadius: 8, padding: '3px 9px' }}>
+                          <p style={{ background: 'transparent', color: '#FFFFFF', fontSize: 12, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>
+                            {d.display}
+                          </p>
+                          {d.etiqueta && (
+                            <p style={{ background: 'transparent', color: 'rgba(255,255,255,0.88)', fontSize: 10, margin: 0, maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {d.etiqueta}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
 
             {/* Plan contratado según el último corte de facturación. Se lee de
                 la fuente viva; no toca ningún campo de la cuenta. */}

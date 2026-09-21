@@ -83,13 +83,34 @@ FUENTES = [
         'destino': os.path.join(RAIZ, 'data', 'activaciones.xlsx'),
         'modo': 'copia',
     },
+    {
+        # Los numeros que Callpicker entrega a cada cliente. Alimenta las
+        # pastillas azul cielo del modulo Informacion en la ficha de cuenta.
+        # La hoja se llama «telephone_numbers-NN» y el NN cambia en cada
+        # export, asi que se vigilan las COLUMNAS y no el nombre exacto.
+        'nombre': 'DIDs',
+        'origen': 'DIDs en Callpicker.xlsx',
+        'hoja': None,               # None = la primera, sea cual sea su nombre
+        'destino': os.path.join(RAIZ, 'data', 'dids.json'),
+        'modo': 'generador',
+        'generador': os.path.join(RAIZ, 'scripts', 'gen-dids.py'),
+    },
 ]
 
 
 def cabeceras(ruta, hoja):
-    """`hoja` puede ser un nombre o una lista de nombres aceptables."""
-    posibles = [hoja] if isinstance(hoja, str) else list(hoja)
+    """`hoja` puede ser un nombre, una lista de nombres, o None.
+
+    `None` significa «la primera, se llame como se llame»: el export de DIDs
+    trae la hoja como «telephone_numbers-29» y el numero cambia en cada
+    descarga, asi que vigilar ese nombre seria vigilar ruido. Lo que de verdad
+    se vigila ahi son las columnas.
+    """
     wb = openpyxl.load_workbook(ruta, data_only=True, read_only=True)
+    if hoja is None:
+        posibles = wb.sheetnames[:1]
+    else:
+        posibles = [hoja] if isinstance(hoja, str) else list(hoja)
     elegida = next((h for h in posibles if h in wb.sheetnames), None)
     if elegida is None:
         hojas = list(wb.sheetnames)
@@ -125,7 +146,9 @@ def revisa(f):
 
     cabN, hojasN, nN = cabeceras(src, f['hoja'])
     if cabN is None:
-        esperadas = f['hoja'] if isinstance(f['hoja'], str) else ' o '.join(f['hoja'])
+        esperadas = ('la primera hoja' if f['hoja'] is None
+                     else f['hoja'] if isinstance(f['hoja'], str)
+                     else ' o '.join(f['hoja']))
         return 'estructura', 'no encontre la hoja «%s» (el archivo trae: %s)' % (esperadas, ', '.join(hojasN))
 
     # El destino de Tickets es un JSON: ahi la estructura se compara contra el
@@ -147,8 +170,15 @@ def revisa(f):
     # Generador: se compara el conteo del origen contra el JSON de destino.
     try:
         d = json.load(io.open(f['destino'], encoding='utf-8'))
-        R = d if isinstance(d, list) else (d.get('rows') or d.get('tickets') or [])
-        nA = len(R)
+        # Cada generador escribe una forma distinta: una lista suelta
+        # (tickets), o un objeto con su propio conteo (DIDs). Se lee el que
+        # aplique en vez de asumir uno y reportar 0 para siempre.
+        if isinstance(d, list):
+            nA = len(d)
+        elif isinstance(d.get('totalNumeros'), int):
+            nA = d['totalNumeros']
+        else:
+            nA = len(d.get('rows') or d.get('tickets') or [])
     except Exception as e:
         return 'nuevo', 'no pude leer el destino (%s)' % type(e).__name__
     if nN == nA:
