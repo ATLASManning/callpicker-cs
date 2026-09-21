@@ -174,15 +174,19 @@ export default async function CuentaDetailPage({ params }: Props) {
                     chat — tenerla a la vista evita ir a buscarla a otro lado.
                     Cuando falta se dice, no se deja el hueco: hoy solo TATSA
                     (D59) no la tiene capturada y sin ella no cruza con nada. */}
+                {/* Este encabezado NO está dentro de una `.cp-card`: vive sobre
+                    el fondo claro de la página. Las dos pastillas traían la
+                    paleta de tarjeta oscura —blanco al 66% y ámbar claro— y
+                    quedaban claro sobre claro. Van con letra oscura. */}
                 {cuenta.cid ? (
                   <span className="font-mono text-xs px-2 py-0.5 rounded"
-                    style={{ background: 'rgba(148,163,184,0.14)', color: 'rgba(255,255,255,0.66)' }}
+                    style={{ background: '#E2E8F0', color: '#334155', border: '1px solid #CBD5E1' }}
                     title="CID · Customer ID de Callpicker">
                     CID {cuenta.cid}
                   </span>
                 ) : (
                   <span className="font-mono text-xs px-2 py-0.5 rounded"
-                    style={{ background: 'rgba(245,158,11,0.16)', color: '#FBBF24' }}
+                    style={{ background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A' }}
                     title="Sin CID capturado: esta cuenta no cruza con llamadas, cortes, tickets ni chat">
                     sin CID
                   </span>
