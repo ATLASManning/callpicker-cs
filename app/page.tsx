@@ -35,6 +35,12 @@ const TX_MID = 'rgba(255,255,255,0.70)'
 const TX_LOW = 'rgba(255,255,255,0.45)'
 const CYAN   = '#00B4FF'
 
+/* Los TX_* de arriba son para DENTRO de los paneles oscuros (PANEL/PANEL2).
+   Los títulos de sección cuelgan del `min-h-screen` sin fondo propio, o sea
+   sobre el #EFF6FF claro de la página: ahí TX_LOW es blanco al 45% y no se
+   lee. Este es su tono. */
+const TX_SECCION = '#475569'
+
 const SEM_COLOR: Record<string, string> = {
   verde: '#22C55E', azul: '#3B82F6', amarillo: '#EAB308', naranja: '#F97316', rojo: '#EF4444',
 }
@@ -1082,13 +1088,13 @@ export default async function DashboardPage() {
         <div className="mx-6 mb-4 flex flex-wrap gap-3">
           {kpis.faltaTC > 0 && (
             <Link href="/cuentas?warning=FALTA_TC" className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold"
-              style={{ border: '1px solid rgba(249,115,22,0.35)', background: 'rgba(249,115,22,0.10)', color: '#FB923C' }}>
+              style={{ border: '1px solid rgba(249,115,22,0.45)', background: 'rgba(249,115,22,0.12)', color: '#C2410C' }}>
               <AlertCircle size={14} /> {kpis.faltaTC} cuentas sin ficha Top Customer
             </Link>
           )}
           {kpis.faltaHS > 0 && (
             <Link href="/cuentas?warning=FALTA_HS" className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold"
-              style={{ border: '1px solid rgba(234,179,8,0.35)', background: 'rgba(234,179,8,0.10)', color: '#EAB308' }}>
+              style={{ border: '1px solid rgba(234,179,8,0.45)', background: 'rgba(234,179,8,0.14)', color: '#B45309' }}>
               <AlertCircle size={14} /> {kpis.faltaHS} cuentas sin Health Score Callpicker
             </Link>
           )}
@@ -1162,10 +1168,10 @@ export default async function DashboardPage() {
       {/* ══ §5 Tacómetros por Asesor ═══════════════════════════════════════ */}
       <div className="px-6 pb-2">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_LOW }}>
+          <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_SECCION }}>
             Salud Promedio por Asesor
           </p>
-          <span style={{ fontSize: 12, color: TX_LOW }}>— Health Score promedio de toda la cartera</span>
+          <span style={{ fontSize: 12, color: TX_SECCION }}>— Health Score promedio de toda la cartera</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {asesorStats.map(st => <GaugeCard key={st.asesor} st={st} />)}
@@ -1175,10 +1181,10 @@ export default async function DashboardPage() {
       {/* ══ §6 Análisis detallado por Asesor ══════════════════════════════ */}
       <div className="px-6 pb-5">
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_LOW }}>
+          <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_SECCION }}>
             Análisis por Asesor
           </p>
-          <span style={{ fontSize: 12, color: TX_LOW }}>— sub-scores, adopción de producto, completitud de fichas</span>
+          <span style={{ fontSize: 12, color: TX_SECCION }}>— sub-scores, adopción de producto, completitud de fichas</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {asesorStats.map(st => <AsesorDetailCard key={st.asesor} st={st} />)}

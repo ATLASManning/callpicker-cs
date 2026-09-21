@@ -6,6 +6,7 @@ import type { AuditoriaCase, EstadoAuditoria } from './types'
 import { STATIC_CASES, STATIC_CASE_IDS } from './cases'
 import AuditoriaDetail from './AuditoriaDetail'
 import AuditoriaForm from './AuditoriaForm'
+import { tonoSobreClaro } from '@/lib/contraste'
 
 const LS_KEY = 'auditoria_casos'
 
@@ -146,7 +147,7 @@ export default function AuditoriaPage() {
                     <span className="text-xs font-semibold text-gray-700 flex-1">{label}</span>
                     <span
                       className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ background: `${color}18`, color }}
+                      style={{ background: `${color}18`, color: tonoSobreClaro(color, 0.09) }}
                     >
                       {cases.length}
                     </span>

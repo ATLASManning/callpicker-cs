@@ -276,7 +276,10 @@ export default function ReunionesPage() {
         <div className="flex items-center justify-between pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold" style={{ color: '#fff', letterSpacing: '-0.02em' }}>
+              {/* Marino, no blanco: este encabezado va sobre el fondo claro de
+                  la página —el enlace «Volver al Dashboard» de arriba ya usa
+                  #64748b—, así que en blanco el título no se veía. */}
+              <h1 className="text-2xl font-extrabold" style={{ color: '#0F172A', letterSpacing: '-0.02em' }}>
                 Reuniones
               </h1>
               {tableExists === true && (
@@ -312,7 +315,9 @@ export default function ReunionesPage() {
       {/* Estado cargando */}
       {loading && (
         <div className="flex items-center justify-center py-16">
-          <RefreshCw size={20} className="animate-spin" style={{ color: '#BFDBFE' }} />
+          {/* Azul de marca: #BFDBFE sobre la página clara era casi invisible,
+              y esto es lo ÚNICO que se ve mientras carga. */}
+          <RefreshCw size={20} className="animate-spin" style={{ color: '#1B3FCC' }} />
         </div>
       )}
 

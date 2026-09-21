@@ -11,6 +11,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, Cell,
 } from 'recharts'
+import { tonoSobreClaro } from '@/lib/contraste'
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
 type Tab = 'overview' | 'explorador' | 'conciliacion' | 'fallas' | 'nuevo' | 'graficos'
@@ -84,7 +85,9 @@ function mesLabelLargo(m: string) {
 function PillBadge({ label, color }: { label: string; color: string }) {
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border whitespace-nowrap"
-      style={{ background: `${color}18`, color, borderColor: `${color}35` }}>
+      /* El texto se oscurece; el fondo conserva el tono. Antes la letra
+         y el fondo eran el MISMO color y la pastilla daba ~2:1. */
+      style={{ background: `${color}18`, color: tonoSobreClaro(color, 0.09), borderColor: `${color}35` }}>
       {label}
     </span>
   )

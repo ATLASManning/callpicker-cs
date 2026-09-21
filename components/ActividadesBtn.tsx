@@ -285,7 +285,7 @@ function ActividadCard({
               {tc.icon} {tc.label}
             </span>
             <span style={{
-              background: '#0A0F1C', color: '#1B3FCC',
+              background: '#0A0F1C', color: '#7DD3FC',
               fontSize: 10, fontWeight: 700, padding: '2px 7px',
               borderRadius: 99, fontFamily: 'monospace',
             }}>
@@ -1387,8 +1387,8 @@ export default function ActividadesBtn({
                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🔬</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: '#fff' }}>Ejecutando análisis SAC...</p>
-                        <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.45)', fontStyle: 'italic' }}>{IA_STEPS[iaStep]}</p>
+                        <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 700, color: '#0F172A' }}>Ejecutando análisis SAC...</p>
+                        <p style={{ margin: 0, fontSize: 12, color: '#64748B', fontStyle: 'italic' }}>{IA_STEPS[iaStep]}</p>
                       </div>
                       <p style={{ margin: 0, fontSize: 11, color: '#94A3B8', textAlign: 'center', maxWidth: 260 }}>
                         El motor de inteligencia analiza toda la cartera. Puede tomar 20–40 segundos.
@@ -1407,7 +1407,7 @@ export default function ActividadesBtn({
                       <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #7C3AED20 0%, #0E30CC20 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>
                         🔬
                       </div>
-                      <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 800, color: '#fff' }}>Motor de Inteligencia SAC</p>
+                      <p style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Motor de Inteligencia SAC</p>
                       <p style={{ margin: '0 auto 16px', fontSize: 13, color: '#6B7280', lineHeight: 1.6, maxWidth: 320 }}>
                         Analiza toda la cartera de <strong>{asesor}</strong> con IA: riesgo de churn, instrucciones quirúrgicas por cuenta, oportunidades de upsell y coaching táctico al asesor.
                       </p>

@@ -14,6 +14,7 @@ import {
   Plus, Trash2, X, ChevronLeft, ChevronRight, Check, Database, FileBarChart2,
   RefreshCw,
 } from 'lucide-react'
+import { tonoSobreClaro } from '@/lib/contraste'
 
 /* ═══════════════════════════════════════════════════════════════════════
    TIPOS
@@ -1455,7 +1456,9 @@ function SemaforoDot({ tipo }: { tipo: SemaforoChurn }) {
   const s = SEMAFORO_MAP[tipo]
   return (
     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
-      style={{ background: `${s.color}15`, color: s.color, borderColor: `${s.color}35` }}>
+      /* El punto de color de al lado sigue siendo `s.color`: ese es el
+         que comunica. Lo que se oscurece es la LETRA. */
+      style={{ background: `${s.color}15`, color: tonoSobreClaro(s.color, 0.08), borderColor: `${s.color}35` }}>
       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
       {s.label}
     </span>

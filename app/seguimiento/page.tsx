@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { headers } from 'next/headers'
+import { tonoSobreClaro } from '@/lib/contraste'
 
 export const dynamic = 'force-dynamic'
 
@@ -401,7 +402,7 @@ function CuentaCard({ cuenta, acciones, preguntas }: {
           )}
           <span className="text-[10px] text-textLow">{formatMXN(cuenta.facturacion)}</span>
           <span className="text-xs font-bold px-1.5 py-0.5 rounded"
-            style={{ background: `${cfg.color}15`, color: cfg.color }}>
+            style={{ background: `${cfg.color}15`, color: tonoSobreClaro(cfg.color, 0.08) }}>
             HS {cuenta.health_score}
           </span>
           {!cuenta.pagos_al_corriente && (
@@ -656,7 +657,7 @@ export default async function SeguimientoPage() {
                     {semPills.map((s, i) => (
                       <span key={i}
                         className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-lg"
-                        style={{ background: `${s.c}15`, color: s.c, border: `1px solid ${s.c}25` }}>
+                        style={{ background: `${s.c}15`, color: tonoSobreClaro(s.c, 0.08), border: `1px solid ${s.c}25` }}>
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.c }} />
                         {s.v}
                       </span>

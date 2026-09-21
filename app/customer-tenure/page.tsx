@@ -571,7 +571,8 @@ export default function CustomerTenurePage() {
                         <div className="absolute inset-y-0 left-0 rounded-lg flex items-center pl-2"
                           style={{ width: `${c.pctRetention}%`, background: retColor + 'cc', minWidth: c.activos > 0 ? 4 : 0 }} />
                         <div className="absolute inset-0 flex items-center px-2 justify-between">
-                          <span className="text-[10px] font-semibold text-white drop-shadow-sm">
+                          <span className="text-[10px] font-semibold drop-shadow-sm"
+                            style={{ color: c.pctRetention >= 18 ? '#FFFFFF' : '#334155' }}>
                             {c.activos > 0 ? `${fmtN(c.activos)} activos` : ''}
                           </span>
                           <span className="text-[10px] font-bold" style={{ color: retColor }}>

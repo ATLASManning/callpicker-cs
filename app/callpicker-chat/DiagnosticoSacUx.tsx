@@ -72,16 +72,21 @@ export default function DiagnosticoSacUx() {
           return (
             <button key={b.id} onClick={() => setBanda(b.id)}
               className="rounded-xl px-3 py-3 text-left transition-all"
+              /* Este selector vive sobre el fondo CLARO de la página, no dentro
+                 de una tarjeta oscura: traía blancos translúcidos —que no
+                 oscurecen nada, heredan el claro de detrás— con letra blanca.
+                 Se veían los recuadros y no el texto. Va con fondos sólidos:
+                 azul de marca el elegido, blanco los demás. */
               style={{
-                background: on ? 'rgba(59,130,246,0.18)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${on ? '#3B82F6' : 'rgba(255,255,255,0.10)'}`,
-                boxShadow: on ? '0 0 0 3px rgba(59,130,246,0.18)' : 'none',
+                background: on ? '#1B3FCC' : '#FFFFFF',
+                border: `1px solid ${on ? '#1B3FCC' : '#CBD5E1'}`,
+                boxShadow: on ? '0 0 0 3px rgba(27,63,204,0.18)' : 'none',
               }}>
               <div className="flex items-center gap-2 mb-1">
-                <Icon size={15} style={{ color: on ? '#93C5FD' : 'rgba(255,255,255,0.55)' }} />
-                <span className="text-[11px] font-semibold leading-tight" style={{ color: '#fff' }}>{b.label}</span>
+                <Icon size={15} style={{ color: on ? '#FFFFFF' : '#64748B' }} />
+                <span className="text-[11px] font-semibold leading-tight" style={{ background: 'transparent', color: on ? '#FFFFFF' : '#0F172A' }}>{b.label}</span>
               </div>
-              <p className="text-[10px]" style={{ color: on ? '#93C5FD' : 'rgba(255,255,255,0.42)' }}>{b.sub}</p>
+              <p className="text-[10px]" style={{ color: on ? 'rgba(255,255,255,0.85)' : '#475569' }}>{b.sub}</p>
             </button>
           )
         })}

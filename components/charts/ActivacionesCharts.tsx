@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import { formatMXN } from '@/lib/types'
 import CustomSelect from '@/components/CustomSelect'
+import { tonoSobreClaro } from '@/lib/contraste'
 
 // ── Paleta clara ──────────────────────────────────────────────────────────────
 const BG      = '#EFF6FF'
@@ -145,7 +146,8 @@ function Chip({label,color,capitalize=false}:{label:string;color:string;capitali
     <span style={{
       fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:6,
       textTransform:capitalize?'capitalize':'none',
-      color,background:`${color}1A`,
+      /* Mismo caso: el tono se queda en el fondo, la letra se oscurece. */
+      color:tonoSobreClaro(color,0.10),background:`${color}1A`,
     }}>{label}</span>
   )
 }
