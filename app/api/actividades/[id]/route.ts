@@ -8,6 +8,7 @@ import {
   type CuentaElegibilidadInput, type ResultadoElegibilidad,
 } from '@/lib/elegibilidad'
 import { evaluarCierre } from '@/lib/actividades/cierre'
+import { anteponerEntrada } from '@/lib/observaciones-kam'
 import {
   TIPO_ACLARACION, validarCierreAclaracion, componerResultadoAclaracion,
 } from '@/lib/aclaraciones'
@@ -94,9 +95,10 @@ async function etiquetarSiHayIntencionDeCancelacion(cuentaId: string, texto: str
 
     const fecha = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
     const nota  = `🔴 [Detectado automáticamente ${fecha} · actividad] Posible intención de cancelación en el reporte del asesor — verificar con el cliente antes de dar de baja. Texto: "${texto.slice(0, 240)}"`
-    const observacionesNuevas = cuenta.observaciones_kam
-      ? `${nota}\n\n${cuenta.observaciones_kam}`
-      : nota
+    // Pasa por `anteponerEntrada` para que la nota quede fechada como una
+    // entrada más de la bitácora. Antes se pegaba suelta y, al no traer
+    // separador, la ficha la leía como parte del resumen de esa semana.
+    const observacionesNuevas = anteponerEntrada(cuenta.observaciones_kam, nota, 'sistema')
 
     const patch: Record<string, unknown> = { observaciones_kam: observacionesNuevas }
     if (cuenta.estado === 'activo') patch.estado = 'en_riesgo'

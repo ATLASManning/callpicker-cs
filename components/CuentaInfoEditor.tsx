@@ -479,8 +479,13 @@ export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
                 <p className="text-[10px] font-semibold text-textLow uppercase tracking-widest mb-1 pb-1.5 border-b border-border">
                   Observaciones KAM
                 </p>
+                {/* Este cuadro REEMPLAZA la bitácora entera. El alta normal de
+                    un resumen semanal se hace desde la ficha, que solo agrega. */}
                 <p className="text-[11px] text-textLow mb-3">
-                  Notas internas sobre el estado de la relación, acuerdos, riesgos y contexto de la cuenta.
+                  Notas internas sobre el estado de la relación, acuerdos, riesgos y contexto.
+                  Aquí se edita <strong>todo el historial</strong>: cada entrada abre con su
+                  línea <code>━━ fecha ━━</code> y borrarla le quita la fecha a esa entrada.
+                  Para sumar el resumen de la semana, usa «Agregar resumen» en la ficha.
                 </p>
                 <textarea
                   value={obsKam}

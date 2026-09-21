@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { resumenParaIA } from '@/lib/observaciones-kam'
 import { headers } from 'next/headers'
 import OpenAI from 'openai'
 
@@ -136,7 +137,12 @@ function buildContext(asesor: string, cuentas: Record<string, unknown>[], seguim
     if (c.nps_score)       ctx += `  NPS: ${c.nps_score}/10\n`
 
     // Notes
-    if (c.observaciones_kam) ctx += `  KAM: ${String(c.observaciones_kam).slice(0, 150)}\n`
+    // Se recorta por ENTRADAS, no por caracteres: un slice(0,150) sobre la
+    // bitácora ya fechada devolvía la línea separadora y cero contenido, y el
+    // modelo recibía «━━ 2026-09-21 · Semana 39 ━━» como si fuera la
+    // observación. `resumenParaIA` además dice cuántas entradas quedaron fuera.
+    const kamCtx = resumenParaIA(c.observaciones_kam)
+    if (kamCtx) ctx += `  KAM: ${kamCtx}\n`
     if (c.notas)             ctx += `  Notas: ${String(c.notas).slice(0, 120)}\n`
 
     // Opportunities

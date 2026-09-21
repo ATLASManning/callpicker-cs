@@ -34,7 +34,8 @@ import CuentaActividadesSAC from '@/components/CuentaActividadesSAC'
 import CuentaCortesPanel from '@/components/CuentaCortesPanel'
 import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
 import CuentaReunionButton from '@/components/CuentaReunionButton'
-import { updateKam, deleteKam } from '@/app/actions/updateKam'
+import { updateKam, deleteKam, agregarObservacionKam } from '@/app/actions/updateKam'
+import { parseObservaciones } from '@/lib/observaciones-kam'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import { datosEnriquecidosDeCuenta } from '@/lib/enriquecimiento/cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
@@ -45,6 +46,21 @@ import { relacionamientoDeCuenta } from '@/lib/relacionamiento'
 import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
+
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+/**
+ * `YYYY-MM-DD` → `21 sep 2026`, sin pasar por `new Date`.
+ *
+ * `new Date('2026-09-21')` se interpreta como medianoche UTC, y al pintarlo en
+ * una zona con desfase negativo sale el día ANTERIOR. La fecha ya viene en
+ * partes: se formatea con ellas y no hay nada que desplazar.
+ */
+function fmtFechaKam(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  if (!m) return iso
+  return `${parseInt(m[3], 10)} ${MESES_CORTOS[parseInt(m[2], 10) - 1] ?? m[2]} ${m[1]}`
+}
 
 interface Props { params: { id: string } }
 
@@ -652,6 +668,7 @@ export default async function CuentaDetailPage({ params }: Props) {
           {/* Notas KAM — Server Actions, build válido */}
           {(() => {
             const obs = cuenta.observaciones_kam?.trim() || null
+            const entradas = parseObservaciones(cuenta.observaciones_kam)
             return (
               <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:12, padding:'14px 16px' }}>
                 {/* Encabezado */}
@@ -671,30 +688,100 @@ export default async function CuentaDetailPage({ params }: Props) {
                   )}
                 </div>
 
-                {/* Texto actual */}
-                {obs ? (
-                  <p style={{ fontSize:13, color:'#0F172A', lineHeight:1.65, whiteSpace:'pre-wrap', margin:'0 0 12px' }}>{obs}</p>
-                ) : (
+                {/* Bitácora: una entrada por resumen, con su separador de fecha */}
+                {entradas.length === 0 ? (
                   <p style={{ fontSize:12, color:'#94A3B8', fontStyle:'italic', margin:'0 0 12px' }}>Sin observaciones registradas.</p>
+                ) : (
+                  <div style={{ margin:'0 0 12px' }}>
+                    {entradas.map((e, i) => (
+                      <div key={i} style={{ marginBottom: i === entradas.length - 1 ? 0 : 14 }}>
+                        {/* El separador de fecha que pidió dirección: deja ver
+                            de un vistazo qué semanas tienen resumen y cuáles
+                            se saltaron. */}
+                        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
+                          <span style={{
+                            background: e.fecha ? '#EFF6FF' : '#F1F5F9',
+                            color: e.fecha ? '#1B3FCC' : '#64748B',
+                            border: `1px solid ${e.fecha ? '#BFDBFE' : '#E2E8F0'}`,
+                            fontSize:10.5, fontWeight:700, padding:'2px 8px', borderRadius:99, whiteSpace:'nowrap',
+                          }}>
+                            {e.fecha ? fmtFechaKam(e.fecha) : 'Sin fecha'}
+                            {e.semana ? ` · Sem. ${e.semana}` : ''}
+                          </span>
+                          {e.autor && (
+                            <span style={{ background:'transparent', fontSize:10.5, color:'#64748B', fontWeight:600 }}>{e.autor}</span>
+                          )}
+                          {e.automatica && (
+                            <span style={{ background:'#FEF3C7', color:'#B45309', border:'1px solid #FDE68A', fontSize:9.5, fontWeight:700, padding:'1px 7px', borderRadius:99 }}>
+                              automático
+                            </span>
+                          )}
+                          <span style={{ flex:1, height:1, background:'#E2E8F0' }} />
+                        </div>
+                        <p style={{ fontSize:13, color:'#0F172A', lineHeight:1.65, whiteSpace:'pre-wrap', margin:0, paddingLeft:2 }}>
+                          {e.cuerpo}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 )}
 
-                {/* Formulario edición — solo para quienes pueden editar */}
+                {/* Alta de resumen semanal — el camino normal del asesor.
+                    Va SEPARADO del editor de abajo a propósito: aquí solo se
+                    agrega, así que un resumen nuevo no puede borrar por
+                    descuido el historial anterior. */}
+                {canEdit && (
+                  <form action={agregarObservacionKam} style={{ marginTop:4, marginBottom:10 }}>
+                    <input type="hidden" name="cuenta_id" value={cuenta.id} />
+                    <textarea
+                      name="resumen"
+                      rows={4}
+                      required
+                      placeholder={'Resumen de la semana — breve.\n• Comportamiento de la cuenta\n• Tickets\n• Reuniones internas'}
+                      style={{
+                        width:'100%', padding:'10px 12px', borderRadius:8,
+                        border:'1px solid #CBD5E1', fontSize:13, color:'#0F172A',
+                        fontFamily:'inherit', resize:'vertical', boxSizing:'border-box',
+                        lineHeight:1.6,
+                      }}
+                    />
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8 }}>
+                      <button type="submit" style={{
+                        padding:'7px 18px', borderRadius:7, border:'none',
+                        background:'#1B3FCC', color:'#fff',
+                        fontSize:12, fontWeight:700, cursor:'pointer',
+                      }}>
+                        ＋ Agregar resumen
+                      </button>
+                      <span style={{ fontSize:11, color:'#64748B' }}>
+                        Se guarda con la fecha de hoy y tu nombre. No reemplaza lo anterior.
+                      </span>
+                    </div>
+                  </form>
+                )}
+
+                {/* Editor del texto completo — para CORREGIR lo ya escrito */}
                 {canEdit && (
                   <details style={{ marginTop:4 }}>
                     <summary style={{
-                      fontSize:13, fontWeight:700, color:'#1B3FCC',
-                      background:'#EFF6FF', border:'1px solid #BFDBFE',
-                      borderRadius:6, padding:'7px 14px', cursor:'pointer',
+                      fontSize:12, fontWeight:600, color:'#64748B',
+                      background:'#F8FAFC', border:'1px solid #E2E8F0',
+                      borderRadius:6, padding:'6px 12px', cursor:'pointer',
                       listStyle:'none',
                     }}>
-                      ✏ {obs ? 'Editar observaciones' : 'Agregar observaciones'}
+                      ✏ Corregir el historial completo
                     </summary>
+                    <p style={{ fontSize:11, color:'#B45309', background:'#FFFBEB', border:'1px solid #FDE68A', borderRadius:6, padding:'7px 10px', margin:'8px 0 0' }}>
+                      Esto reemplaza TODA la bitácora, no agrega. Úsalo solo para corregir
+                      algo ya escrito. Cada entrada abre con su línea <code>━━ fecha ━━</code>:
+                      si la borras, esa entrada pierde su fecha.
+                    </p>
                     <form action={updateKam} style={{ marginTop:10 }}>
                       <input type="hidden" name="cuenta_id" value={cuenta.id} />
                       <textarea
                         name="observaciones_kam"
                         defaultValue={obs ?? ''}
-                        rows={6}
+                        rows={12}
                         placeholder="Estado de la relación, compromisos, riesgos, acuerdos..."
                         style={{
                           width:'100%', padding:'10px 12px', borderRadius:8,
@@ -708,7 +795,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                         background:'#1B3FCC', color:'#fff',
                         fontSize:12, fontWeight:700, cursor:'pointer',
                       }}>
-                        💾 Guardar
+                        💾 Reemplazar historial
                       </button>
                     </form>
                   </details>

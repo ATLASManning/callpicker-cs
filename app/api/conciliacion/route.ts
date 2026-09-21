@@ -4,6 +4,7 @@ import {
   conciliar, notaReclasificacion, ESTADO_DORMIDA, ESTADOS_VIVOS,
   type CuentaConciliable, type FilaZohoDormido,
 } from '@/lib/conciliacion'
+import { anteponerEntrada } from '@/lib/observaciones-kam'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -90,12 +91,14 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      const anterior = (prev?.observaciones_kam ?? '').trim()
+      // Antes esta nota se añadía al FINAL y la de actividades al principio:
+      // la bitácora quedaba intercalada y nadie lo notaba. Ahora las dos pasan
+      // por el mismo helper y todo queda de lo más nuevo a lo más viejo.
       const { error } = await supabaseAdmin
         .from('cuentas')
         .update({
           estado: ESTADO_DORMIDA,
-          observaciones_kam: anterior ? `${anterior}\n\n${nota}` : nota,
+          observaciones_kam: anteponerEntrada(prev?.observaciones_kam, nota, 'sistema'),
         })
         .eq('id', h.cuenta.id)
 
