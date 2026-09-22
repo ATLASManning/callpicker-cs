@@ -18,9 +18,9 @@ from openpyxl.utils import get_column_letter
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FECHA = '2026-09-21'
+FECHA = '2026-09-22'
 DEST = os.path.join('D:' + os.sep, 'Proyectos', 'CP',
-                    'Candidatos_Crecimiento_%s_V7.xlsx' % FECHA)
+                    'Candidatos_Crecimiento_%s_V8.xlsx' % FECHA)
 
 D = json.load(io.open(os.path.join(RAIZ, 'data', 'veredicto-candidatura.json'), encoding='utf-8'))
 F = D['cuentas']
@@ -86,7 +86,7 @@ ws = wb.active
 ws.title = 'Veredicto'
 ws.sheet_view.showGridLines = False
 r = titulo(ws, 2, 'A QUÉ ES CANDIDATO CADA CLIENTE',
-           'Callpicker · Dirección de Satisfacción al Cliente · 21 de septiembre de 2026 · '
+           'Callpicker · Dirección de Satisfacción al Cliente · 22 de septiembre de 2026 · '
            'las 221 cuentas de la cartera, ninguna sin respuesta')
 
 cc = Counter(f['candidato_a'] for f in F)
@@ -290,7 +290,7 @@ for hoja in wb.worksheets:
 os.makedirs(os.path.dirname(DEST), exist_ok=True)
 wb.save(DEST)
 
-print('=== REPORTE V7 ===')
+print('=== REPORTE V8 ===')
 print('  %s  (%.0f KB)' % (DEST, os.path.getsize(DEST) / 1024.0))
 print()
 for p, n in cc.most_common():
