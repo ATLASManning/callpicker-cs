@@ -130,9 +130,28 @@ RX = {
     'CE_abrev': re.compile(r'(?<![A-Za-z])CE(?![A-Za-z])'),          # mayuscula
     'VyC':  re.compile(r'visibilidad\s*y\s*control|(?<![A-Za-z])VyC(?![A-Za-z])|\bV\s*y\s*C\b', re.I),
     'Chat': re.compile(r'cp\s*chat|callpicker\s+chat|agentes?\s+(?:de\s+)?chat|\bchat\b|whats', re.I),
-    'AV':   re.compile(r'agentes?\s+virtual|asistente\s+virtual|(?<![A-Za-z])AV(?![A-Za-z])'),
+    # Las formas escritas van sin distinguir mayusculas —una ficha dice
+    # «Asistente Virtual», no «asistente virtual»— pero la abreviatura AV se
+    # queda sensible a mayusculas para no morder cualquier «av» suelto.
+    'AV':   re.compile(r'(?i:agentes?\s+virtual|asistente\s+virtual)|(?<![A-Za-z])AV(?![A-Za-z])'),
     'API':  re.compile(r'(?<![A-Za-z])API(?![A-Za-z])|integraci[oó]n', re.I),
 }
+
+# Un producto NEGADO no es un producto contratado. Las fichas y los nombres de
+# plan dicen «sin API», «Sin Callpicker Chat», «no incluye integración»; buscar
+# el nombre a secas los contaba como si el cliente ya los tuviera, y entonces
+# la cuenta dejaba de ser candidata a justo lo que le falta. PRAXIS GLOBE venia
+# marcada con API teniendo «sin API» en su plan.
+#
+# El hueco entre la negacion y el producto no puede contener «con»: sin eso,
+# «plan sin costo CON Callpicker Chat» se leeria como una negacion del Chat.
+_NEG = r'(?:\bsin\b|\bno\s+(?:tiene|cuenta\s+con|usa|incluye|aplica)\b|\bcarece\s+de\b)'
+_PROD = (r'(?:cp\s*chat|callpicker\s*chat|agentes?\s+(?:de\s+)?chat|\bchat\b|whats'
+         r'|agentes?\s+virtual|asistente\s+virtual|(?<![A-Za-z])AV(?![A-Za-z])'
+         r'|(?<![A-Za-z])API(?![A-Za-z])|integraci[oó]n|\bcrm\b'
+         r'|visibilidad\s*y\s*control|(?<![A-Za-z])VyC(?![A-Za-z])'
+         r'|comunicaci[oó]n\s+empresarial)')
+RX_NEGADO = re.compile(_NEG + r'(?:(?!\bcon\b)[^.;|]){0,20}?' + _PROD, re.I)
 
 
 def texto_servicio(c):
@@ -144,6 +163,9 @@ def texto_servicio(c):
 
 
 def familias_texto(t):
+    # Se borra primero todo tramo donde el producto viene negado, para que
+    # «sin API» no acabe contando como API. Ver RX_NEGADO.
+    t = RX_NEGADO.sub(' ', t or '')
     f = set()
     if RX['CE'].search(t) or RX['CE_abrev'].search(t):
         f.add('CE')

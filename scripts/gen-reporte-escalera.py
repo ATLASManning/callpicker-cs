@@ -365,5 +365,8 @@ print('  P2 · VyC a API o AV:     %3d' % n2)
 print('  P3 · Callpicker Chat:    %3d' % n3)
 print('  Datos a corregir:        %3d sin producto · %3d vivas sin corte'
       % (len(sin_fuente), len(sin_corte)))
-assert len(F) == 221, 'se perdieron cuentas'
-print('\n  las 221 cuentas estan en la hoja de detalle  OK')
+# Que la hoja de detalle lleve TODAS las cuentas de la fuente. Antes esto
+# comparaba contra un 221 escrito a mano, que no comprueba lo que dice y
+# convierte un alta legitima (CBS Compresores, 22 sep) en un falso error.
+assert len(datos) == len(F), 'la hoja de detalle lleva %d de %d cuentas' % (len(datos), len(F))
+print('\n  las %d cuentas estan en la hoja de detalle  OK' % len(datos))

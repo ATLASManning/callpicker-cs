@@ -295,5 +295,7 @@ print('  %s  (%.0f KB)' % (DEST, os.path.getsize(DEST) / 1024.0))
 print()
 for p, n in cc.most_common():
     print('  %-24s %3d   hoy: %3d' % (p, n, sum(1 for f in F if f['candidato_a'] == p and not f['bloqueado'])))
-assert sum(cc.values()) == 221, 'no cierra'
+# Contra el total real de veredictos, no contra un literal.
+assert sum(cc.values()) == len(F), 'no cierra: %d veredictos de %d cuentas' % (
+    sum(cc.values()), len(F))
 print('  %-24s %3d   (cierra)' % ('TOTAL', sum(cc.values())))

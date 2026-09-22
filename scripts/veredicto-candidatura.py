@@ -2,7 +2,9 @@
 """EL VEREDICTO: a qué es candidato cada cuenta, o por qué no lo es.
 
    Instruccion de direccion (21 sep 2026): «el resultado debe ser a que es
-   candidato cada uno, o no». Ninguna de las 221 se queda sin respuesta.
+   candidato cada uno, o no». Ninguna cuenta de la cartera se queda sin
+   respuesta — hoy son 222, y el cierre se mide contra ese total, no contra un
+   numero escrito a mano.
 
    COMO SE DECIDE, EN ESTE ORDEN
    -----------------------------
@@ -404,7 +406,11 @@ for p, n in cc.most_common():
     hoy = sum(1 for f in filas if f['candidato_a'] == p and not f['bloqueado'])
     print('  %-24s %3d   (abordables hoy: %3d)' % (p, n, hoy))
 print('  %-24s %3d   (cierra)' % ('TOTAL', sum(cc.values())))
-assert sum(cc.values()) == 221, 'no cierra'
+# Contra el numero REAL de cuentas, no contra un literal: la cartera crece
+# (CBS Compresores entro el 22 sep) y un 221 escrito a mano convierte un alta
+# legitima en un falso error.
+assert sum(cc.values()) == len(filas), 'no cierra: %d veredictos de %d cuentas' % (
+    sum(cc.values()), len(filas))
 
 print('\n=== DE DONDE SALE CADA VEREDICTO ===')
 for s, n in Counter(f['fuente_veredicto'] for f in filas).most_common():
