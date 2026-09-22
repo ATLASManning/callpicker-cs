@@ -114,7 +114,11 @@ function fmtFecha(iso: string) {
 }
 
 function isOverdue(a: Actividad): boolean {
-  if (a.completada || a.estado === 'completada') return false
+  // Una bloqueada tampoco vence. No es trabajo pendiente del asesor: su motivo
+  // ya dice por qué no se puede avanzar —la cuenta se dio de baja, falta el
+  // contacto—. Sin esta salida, al pasar su fecha empezaba a contar como
+  // vencida y a pedir en rojo «justificación» que ya está escrita ahí mismo.
+  if (a.completada || a.estado === 'completada' || a.estado === 'bloqueada') return false
   return new Date(a.fecha_vencimiento + 'T23:59:59') < new Date()
 }
 
@@ -296,9 +300,14 @@ function ActividadCard({
                 CID: {act.cid}
               </span>
             )}
-            {act.prioridad === 'alta' && !act.completada && (
+            {act.prioridad === 'alta' && !act.completada && act.estado !== 'bloqueada' && (
               <span style={{ background: '#FEF2F2', color: '#DC2626', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, border: '1px solid #FECACA' }}>
                 Alta prioridad
+              </span>
+            )}
+            {act.estado === 'bloqueada' && (
+              <span style={{ background: '#F1F5F9', color: '#64748B', fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, border: '1px solid #E2E8F0' }}>
+                Cerrada
               </span>
             )}
             {overdue && (
@@ -710,7 +719,9 @@ export default function ActividadesBtn({
 
   const overdueCount  = actividades.filter(a => isOverdue(a)).length
   const completadas   = actividades.filter(a => a.completada).length
-  const totalPend     = actividades.filter(a => !a.completada).length
+  // Las bloqueadas no cuentan como pendientes: el asesor no puede avanzarlas.
+  // Sumarlas inflaba «N pendientes» con trabajo que nadie espera que haga.
+  const totalPend     = actividades.filter(a => !a.completada && a.estado !== 'bloqueada').length
   const pct           = actividades.length > 0 ? Math.round((completadas / actividades.length) * 100) : 0
 
   const load = useCallback(async () => {
