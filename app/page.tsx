@@ -14,6 +14,8 @@ import DashMetricasSection from '@/components/DashMetricasSection'
 import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVersatil'
 import CandidatoA from '@/components/CandidatoA'
 import { evaluarCandidato, type EntradaCandidatura, type ResultadoCandidato } from '@/lib/candidato-a'
+import { resumenLlamadas } from '@/lib/llamadas-resumen'
+import { didsDeCuenta } from '@/lib/dids-cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
 import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor, type SemaforoSalud } from '@/lib/types'
@@ -40,6 +42,15 @@ const CYAN   = '#00B4FF'
    sobre el #EFF6FF claro de la página: ahí TX_LOW es blanco al 45% y no se
    lee. Este es su tono. */
 const TX_SECCION = '#475569'
+
+/* ── Etiquetas de los números, para leer la intención del cliente ─────────
+   Lo que el cliente escribió en su propio panel. «WhatsApp», «Campaña» o
+   «Landing» son evidencia de que ya opera canales digitales; «Available» es
+   la etiqueta por defecto, o sea un número que se paga y nadie asignó.
+   Ninguna de las dos se infiere del giro — ver lib/candidato-a.ts. */
+const RX_CANAL_DIGITAL =
+  /whats\s*app|\bwa\b|facebook|\bfb\b|instagram|tiktok|linkedin|redes|\bgoogle\b|\bads\b|adwords|campa[nñ]a|landing|marketing|\bmkt\b|publicidad/i
+const ETIQUETA_LIBRE = new Set(['available', 'disponible', ''])
 
 const SEM_COLOR: Record<string, string> = {
   verde: '#22C55E', azul: '#3B82F6', amarillo: '#EAB308', naranja: '#F97316', rojo: '#EF4444',
@@ -999,7 +1010,14 @@ export default async function DashboardPage() {
   const candidatos: ResultadoCandidato[] = await Promise.all(
     cuentas.map(async (c): Promise<ResultadoCandidato> => {
       const tix = getTicketsByCuenta(c.cid ?? null, c.empresa)
-      const cortes = await cortesDeCuenta(c.cid, 6)
+      // Las tres fuentes MEDIDAS que sostienen las candidaturas de producto.
+      // Las tres cachean por módulo, así que las 221 cuentas comparten una
+      // sola lectura de cada archivo.
+      const [cortes, llam, nums] = await Promise.all([
+        cortesDeCuenta(c.cid, 6),
+        resumenLlamadas(c.cid),
+        didsDeCuenta(c.cid),
+      ])
       const ult3 = cortes.slice(-3)
       const prom = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null
       const consumoPct = ult3.length ? prom(ult3.map(x => x.pct)) : null
@@ -1031,6 +1049,26 @@ export default async function DashboardPage() {
         consumoPct, caidaConsumo: caida,
         panelPromedio: ult3.length ? prom(ult3.map(x => x.panel)) : null,
         adopcion,
+
+        /* Medidas. `null` cuando no hay lectura, y el evaluador lo distingue:
+           no medir no es medir cero. */
+        entrantes:       llam?.entrantes ?? null,
+        sinContestar:    llam?.sinContestar ?? null,
+        pctSinContestar: llam?.pctSinContestar ?? null,
+        pctMenu:         llam?.pctMenu ?? null,
+        ventanaLlamadas: llam?.ventana ?? null,
+        // Desarrolladores se SUMA sobre los cortes, no se promedia: una visita
+        // ocurrió o no ocurrió, y promediarla la diluye hasta desaparecer.
+        visitasDesarrolladores: cortes.length
+          ? cortes.reduce((s, x) => s + (x.desarrolladores ?? 0), 0) : null,
+        extensiones:     cortes.at(-1)?.extensiones ?? null,
+        minPorExtension: (() => {
+          const u = cortes.at(-1)
+          return u?.extensiones ? u.cons / u.extensiones : null
+        })(),
+        dids:        nums.length,
+        didsDigital: nums.filter(d => RX_CANAL_DIGITAL.test(d.etiqueta)).length,
+        didsLibres:  nums.filter(d => ETIQUETA_LIBRE.has(d.etiqueta.trim().toLowerCase())).length,
       }
       return evaluarCandidato(entrada)
     }),

@@ -66,6 +66,37 @@ export interface EntradaCandidatura {
   panelPromedio: number | null
   /** Nivel por producto, del módulo de Adopción. */
   adopcion: Record<string, string>
+
+  /* ── Señales MEDIDAS (21 sep 2026) ────────────────────────────────────
+   * Antes de éstas, el Asistente Virtual se justificaba con «parte de ese
+   * volumen es repetitivo» y el Chat con «hoy el cliente final escribe tanto
+   * como llama»: frases que valen para cualquier cuenta y por tanto no
+   * sostienen ninguna. Éstas son del propio cliente.
+   * Todas son `null` cuando no hay lectura — y `null` NO es cero. */
+
+  /** Total de llamadas entrantes en la ventana medida. */
+  entrantes: number | null
+  /** De ésas, las que ninguna extensión contestó. */
+  sinContestar: number | null
+  pctSinContestar: number | null
+  /** % que el menú resolvió sin agente. NO es un fallo: ya automatiza. */
+  pctMenu: number | null
+  /** El periodo que cubre la lectura, para poder declararlo. */
+  ventanaLlamadas: string | null
+
+  /** Visitas a la sección DESARROLLADORES del panel. La señal de API. */
+  visitasDesarrolladores: number | null
+  /** Extensiones declaradas en el nombre del plan. */
+  extensiones: number | null
+  /** Minutos consumidos ÷ extensiones. La referencia del plan IL es 1,500. */
+  minPorExtension: number | null
+
+  /** Números (DIDs) que tiene contratados. */
+  dids: number | null
+  /** De ésos, los que traen etiqueta de canal digital en el propio panel. */
+  didsDigital: number | null
+  /** Y los que siguen con la etiqueta por defecto, sin asignar. */
+  didsLibres: number | null
 }
 
 export interface ResultadoCandidato {
@@ -91,10 +122,25 @@ const RX_CHAT = /cp\s*chat|callpicker\s+chat|agentes?\s+cp\s+chat/i
 const RX_API  = /minutos\s+api|whatsapp\s+api/i
 const RX_CALLTRACKING = /calltracking/i
 
-/** Giros donde el rastreo de campañas rinde de inmediato. */
+/**
+ * Giros donde el rastreo de campañas rinde de inmediato.
+ *
+ * OJO: es un MODULADOR, nunca un disparador. El reporte de crecimiento del 17
+ * de septiembre concluyó, cuenta por cuenta, que «WhatsApp y las integraciones
+ * se están deduciendo del sector y no del registro». Y el campo tampoco
+ * agrupa: 189 cuentas con valor escrito de 183 formas distintas. Solo entra
+ * acompañado de una señal medida.
+ */
 const RX_GIRO_CAMPANAS = /marketing|publicidad|inmobili|automotr|educa|turismo|viaje|seguros|credito|financ/i
 
-const SENALES_TOTALES = 9
+/** % de entrantes sin contestar desde el que se propone un Asistente Virtual. */
+const PCT_SIN_CONTESTAR = 20
+/** Por encima de esto, la cuenta YA automatiza: la conversación es otra. */
+const PCT_MENU_ALTO = 50
+
+const fmt = (n: number) => n.toLocaleString('es-MX')
+
+const SENALES_TOTALES = 12
 
 function mesesDesde(fecha: string | null): number | null {
   if (!fecha) return null
@@ -114,6 +160,12 @@ function contarSenales(c: EntradaCandidatura): number {
   if (c.tieneContacto)                 n++
   if (c.giro)                          n++
   if (c.numOficinas)                   n++
+  /* Las tres medidas. Se cuentan aparte porque son las que de verdad suben la
+     certeza: una cuenta con lectura de llamadas admite una recomendación que
+     una sin ella no admite. */
+  if (c.pctSinContestar !== null)      n++
+  if (c.dids !== null)                 n++
+  if (c.extensiones !== null)          n++
   return n
 }
 
@@ -224,11 +276,14 @@ export function evaluarCandidato(c: EntradaCandidatura): ResultadoCandidato {
   }
 
   if (RX_VYC.test(plan) && usaBien) {
-    if (!RX_CHAT.test(plan) && c.adopcion['Callpicker Chat'] !== 'alto') {
+    /* Chat: solo con evidencia REGISTRADA en sus propios números. Etiquetas
+       como «WhatsApp», «Campaña» o «Landing» las escribió el cliente en su
+       panel; eso es un hecho suyo, no una generalidad del mercado. */
+    if (!RX_CHAT.test(plan) && c.adopcion['Callpicker Chat'] !== 'alto' && (c.didsDigital ?? 0) > 0) {
       out.push({
         producto: 'Callpicker Chat', tipo: 'cross_sell', prioridad: 3,
-        razon: `Ya tiene Visibilidad y Control con ${consumo!.toFixed(0)}% de consumo: la operación telefónica ` +
-               `está madura y hoy el cliente final escribe tanto como llama.`,
+        razon: `De sus ${c.dids} números, ${c.didsDigital} están etiquetados como canal digital en su ` +
+               `propio panel: ya operan campañas y mensajería, hoy por fuera de Callpicker.`,
         ventajas: [
           'WhatsApp, webchat y redes en la misma bandeja que la telefonía',
           'Un solo historial por cliente, sin importar por dónde llegó',
@@ -237,23 +292,38 @@ export function evaluarCandidato(c: EntradaCandidatura): ResultadoCandidato {
         siguientePaso: 'Preguntar cuántas consultas les llegan hoy por WhatsApp personal de los agentes y quién las responde.',
       })
     }
-    if (!RX_AV.test(plan) && c.adopcion['IA de Voz'] !== 'alto') {
+    /* Asistente Virtual: lo decide cuánto NO se contesta, no cuánto entra.
+       Por debajo del umbral no se propone, y sin lectura tampoco: no medir
+       no es medir cero. */
+    if (!RX_AV.test(plan) && c.adopcion['IA de Voz'] !== 'alto'
+        && c.pctSinContestar !== null && c.pctSinContestar >= PCT_SIN_CONTESTAR) {
+      const yaAutomatiza = (c.pctMenu ?? 0) >= PCT_MENU_ALTO
       out.push({
-        producto: 'Agentes Virtuales (IA de Voz)', tipo: 'cross_sell', prioridad: 3,
-        razon: `Volumen sostenido de llamadas con ${consumo!.toFixed(0)}% de la bolsa consumida. ` +
-               `Parte de ese volumen es repetitivo y no necesita a una persona.`,
+        producto: 'Agentes Virtuales (IA de Voz)', tipo: 'cross_sell', prioridad: 2,
+        razon: `${fmt(c.sinContestar!)} de sus ${fmt(c.entrantes!)} llamadas entrantes se quedaron sin ` +
+               `contestar (${c.pctSinContestar.toFixed(0)}%) entre ${c.ventanaLlamadas}. Eso es negocio que ` +
+               `llegó y nadie atendió.` +
+               (yaAutomatiza
+                 ? ` Ya resuelve el ${c.pctMenu!.toFixed(0)}% por menú: la conversación es ampliar lo que ya automatiza.`
+                 : ''),
         ventajas: [
           'Atención fuera de horario sin contratar turnos',
           'Filtrado y clasificación antes de llegar al agente',
           'Las llamadas repetitivas dejan de consumir tiempo del equipo',
         ],
-        siguientePaso: 'Identificar las tres consultas más repetidas de su operación: son las candidatas naturales a automatizarse.',
+        siguientePaso: `Mostrarle esas ${fmt(c.sinContestar!)} llamadas y preguntar qué pasa con un cliente ` +
+                       `que llama y no obtiene respuesta.`,
       })
     }
-    if (!RX_API.test(plan) && c.adopcion['Integración API'] !== 'alto') {
+    /* API: la señal es haber entrado a la sección Desarrolladores del panel.
+       Límite conocido y heredado del reporte V4: una a tres visitas no son un
+       proyecto, son una pregunta pendiente. Abre la conversación, no la cierra. */
+    if (!RX_API.test(plan) && c.adopcion['Integración API'] !== 'alto'
+        && (c.visitasDesarrolladores ?? 0) > 0) {
       out.push({
         producto: 'Integración API con CRM', tipo: 'cross_sell', prioridad: 4,
-        razon: 'Usa la plataforma con constancia pero la información de llamadas vive separada de su CRM.',
+        razon: `Entró ${c.visitasDesarrolladores} vez(ces) a la sección Desarrolladores del panel: ` +
+               `hay interés técnico registrado. La información de llamadas sigue viviendo separada de su CRM.`,
         ventajas: [
           'La llamada queda registrada en el expediente del cliente sin captura manual',
           'Marcación desde el CRM: menos errores y menos tiempo por contacto',
@@ -292,12 +362,40 @@ export function evaluarCandidato(c: EntradaCandidatura): ResultadoCandidato {
       ],
       siguientePaso: 'Preguntar cómo miden hoy qué sucursal recibe más contactos y con qué dato lo deciden.',
     })
-  } else if (sitios >= 3 && RX_GIRO_CAMPANAS.test(String(c.giro ?? ''))) {
+  } else if ((c.didsDigital ?? 0) > 0 && sitios >= 3) {
+    /* El giro ya NO dispara solo. Hace falta evidencia registrada —números
+       etiquetados como campaña o canal digital en su propio panel— y el giro
+       queda como contexto de la frase, que es para lo que sirve. */
+    const ctx = RX_GIRO_CAMPANAS.test(String(c.giro ?? '')) ? ` Su giro, "${c.giro}", vive de eso.` : ''
     out.push({
       producto: 'Calltracking de campañas', tipo: 'cross_sell', prioridad: 5,
-      razon: `Giro "${c.giro}" con ${sitios} ubicaciones: invierten en generar demanda sin medir qué la produce.`,
+      razon: `${c.didsDigital} de sus ${c.dids} números están etiquetados como campaña o canal digital, ` +
+             `repartidos en ${sitios} ubicaciones: ya invierten en generar demanda.${ctx}`,
       ventajas: ['Atribución por campaña', 'Presupuesto de marketing defendible con datos'],
       siguientePaso: 'Validar si tienen campañas activas y quién decide el presupuesto de marketing.',
+    })
+  }
+
+  /* Números que se pagan y nadie asignó. No es una venta: es dinero visible en
+     la primera llamada, y abre la conversación sin pedir presupuesto.
+     Indicio, no prueba: la etiqueta dice que nadie lo nombró en el panel, no
+     que el número no timbre — eso necesitaría cruzar con llamadas, y el export
+     de DIDs no trae todavía la columna que lo permite. */
+  const pctLibres = (c.dids ?? 0) > 0 ? (100 * (c.didsLibres ?? 0)) / c.dids! : 0
+  // Piso absoluto de 3 Y además que pese: la mitad de sus números, o cinco.
+  // Tres sueltos de cien no sostienen una llamada al cliente, y un aviso que
+  // no aguanta la llamada se vuelve ruido que el asesor aprende a ignorar.
+  if ((c.didsLibres ?? 0) >= 3 && (pctLibres >= 50 || (c.didsLibres ?? 0) >= 5)) {
+    const pct = pctLibres
+    out.push({
+      producto: 'Revisar números sin asignar', tipo: 'estabilizar', prioridad: 2,
+      razon: `Paga ${c.didsLibres} de sus ${c.dids} números sin asignar (${pct.toFixed(0)}%): ` +
+             `siguen con la etiqueta por defecto en su panel.`,
+      ventajas: [
+        'O se asignan a una sede, campaña o área, o se liberan del cobro',
+        'Es una conversación de servicio, no de venta: construye credibilidad',
+      ],
+      siguientePaso: 'Llevarle la lista de esos números y decidir con él cuáles usa y cuáles suelta.',
     })
   }
 
