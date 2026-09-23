@@ -151,11 +151,23 @@ export default function UsoDashboardPage() {
     setBuscado(email)
     try {
       const res = await fetch(`/api/analytics/uso?email=${encodeURIComponent(email)}`)
-      if (!res.ok) { setError('No se pudo cargar los datos'); return }
+      if (!res.ok) {
+        // El motivo REAL, no «No se pudo cargar los datos». Un 403 por permisos
+        // y un 500 de base se arreglan de forma distinta, y con el mensaje
+        // genérico había que adivinar cuál era. Esta pantalla ya estuvo muda
+        // una vez; que al menos diga qué la calló.
+        let detalle = ''
+        try {
+          const j = await res.json()
+          detalle = j?.error ? ` — ${j.error}` : ''
+        } catch { /* la respuesta no era JSON */ }
+        setError(`No se pudo cargar los datos (HTTP ${res.status})${detalle}`)
+        return
+      }
       const d = await res.json()
-      setRows(d.rows ?? [])
-    } catch {
-      setError('Error de conexión')
+      setRows(Array.isArray(d) ? d : (d?.rows ?? []))
+    } catch (e) {
+      setError(`Error de conexión: ${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setLoading(false)
     }
