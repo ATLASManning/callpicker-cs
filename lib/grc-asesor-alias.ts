@@ -96,6 +96,52 @@ export const ALIAS_GRC: ReglaAlias[] = [
   },
 ]
 
+/**
+ * Construye el resolutor nombre-de-GRC → asesor a partir de la cartera.
+ *
+ * Vive aquí para que la ruta `/api/churn/asesores` y la página de Asesores
+ * usen LA MISMA resolución. Con dos copias, un día la carátula del asesor y la
+ * concentración de GRC dirían cosas distintas sobre el mismo churn.
+ *
+ * Devuelve null cuando no se puede afirmar de quién es. Nunca adivina.
+ */
+export function construirResolutor(
+  cuentas: Array<{ empresa: string; asesor?: string | null }>,
+): (nombreGrc: string) => string | null {
+  const porNombre: Record<string, string> = {}
+  const ambiguos = new Set<string>()
+  const porEmpresa: Record<string, string> = {}
+
+  for (const c of cuentas) {
+    if (!c.asesor) continue
+    porEmpresa[c.empresa] = c.asesor
+    const k = normalizaFuerte(c.empresa)
+    if (!k) continue
+    if (porNombre[k] && porNombre[k] !== c.asesor) { ambiguos.add(k); continue }
+    porNombre[k] = c.asesor
+  }
+  ambiguos.forEach(k => { delete porNombre[k] })
+
+  return (nombreGrc: string): string | null => {
+    const directo = porNombre[normalizaFuerte(nombreGrc)]
+    if (directo) return directo
+    const r = reglaPara(nombreGrc)
+    if (!r) return null
+    if (r.cuenta) return porEmpresa[r.cuenta] ?? null   // la cuenta manda: sigue viva
+    return r.asesor ?? null
+  }
+}
+
+/** Sin acentos, sin espacios ni signos. Igual que `normalizarNombre`; se repite
+ *  aquí para que este módulo no arrastre los datasets que importa elegibilidad. */
+function normalizaFuerte(s: string | null | undefined): string {
+  return String(s ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
 /** ¿Alguna regla cubre este nombre de GRC? */
 export function reglaPara(nombreGrc: string): ReglaAlias | null {
   const k = claveAlias(nombreGrc)

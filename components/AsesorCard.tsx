@@ -4,9 +4,11 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   ChevronDown, ChevronUp, ArrowUpRight, AlertTriangle,
-  TrendingUp, DollarSign, LifeBuoy, Phone, Mail, Hash,
+  DollarSign, LifeBuoy, Phone, Mail, Hash,
   Search, X, ArrowUpDown,
+  Activity, Moon, TrendingDown, ArrowDownRight, Sparkles, UserX,
 } from 'lucide-react'
+import type { ChurnAsesor } from '@/lib/churn-por-asesor'
 import type { Cuenta } from '@/lib/types'
 import {
   getSemaforoCuenta, formatMXN, ASESOR_CONFIG,
@@ -118,6 +120,11 @@ interface Props {
    * se declara el número para que la exclusión sea visible y no un hueco mudo.
    */
   fueraDeCartera?: number
+  /** Churn y Downgrade del año atribuidos a este asesor. Lo calcula la página
+   *  con `churnPorAsesor`, que es la fuente única — no se recalcula aquí. */
+  churn?: ChurnAsesor
+  /** Qué período cubre ese churn, para que el número no flote sin fecha. */
+  periodoChurn?: string
   defaultOpen?: boolean
 }
 
@@ -178,7 +185,14 @@ function KpiCard({
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export default function AsesorCard({ asesor, cuentas, resumen, fueraDeCartera = 0, defaultOpen = false }: Props) {
+const SIN_CHURN: ChurnAsesor = {
+  churns: 0, mrrChurn: 0, downgrades: 0, mrrDowngrade: 0, mrrTotal: 0,
+}
+
+export default function AsesorCard({
+  asesor, cuentas, resumen, fueraDeCartera = 0,
+  churn = SIN_CHURN, periodoChurn = '—', defaultOpen = false,
+}: Props) {
   const [expanded, setExpanded] = useState(defaultOpen)
   const [busqueda, setBusqueda] = useState('')
   const [orden, setOrden]       = useState<{ col: ColOrden; dir: 'asc' | 'desc' }>({ col: 'health_score', dir: 'asc' })
@@ -216,12 +230,37 @@ export default function AsesorCard({ asesor, cuentas, resumen, fueraDeCartera = 
     color: '#94A3B8', initial: '?', fullName: asesor, ext: '—', email: '—',
   }
 
-  const saludables  = cuentas.filter(c => c.health_score >= 60).length
-  const observacion = cuentas.filter(c => c.health_score >= 40 && c.health_score < 60).length
-  const enRiesgo    = cuentas.filter(c => c.health_score < 40).length
   const totalTix    = cuentas.reduce((s, c) => s + c.zoho_tickets.total,  0)
   const totalFallas = cuentas.reduce((s, c) => s + c.zoho_tickets.fallas, 0)
-  const conOportunidad = cuentas.filter(c => c.upsell_producto || c.crossell_producto).length
+
+  /* ── Los KPIs de la carátula ────────────────────────────────────────────
+     Se retiraron tres que estaban muertos y hacían ruido: «En Riesgo» marcaba
+     0 para los tres asesores porque ninguna cuenta baja de HS 40;
+     «Oportunidades» tenía 1 en toda la empresa; y «Saludables/Observación»
+     repetía lo que el mini-semáforo de abajo ya desglosa. Un indicador que
+     siempre dice lo mismo no informa: ocupa lugar y entrena a no mirarlo.
+
+     Lo que entra en su lugar tiene fuente comprobada y se mueve: estado real
+     de la cartera, lo que se le fue por churn y downgrade, y lo que sumó. */
+  const activas  = cuentas.filter(c => esCuentaViva(c.estado)).length
+  const dormidas = cuentas.filter(c => esCuentaSinServicio(c.estado)).length
+  const pctViva  = cuentas.length ? Math.round((activas / cuentas.length) * 100) : 0
+
+  /* Altas del último año. Se mide con `activo_desde`, que tienen 218 de las
+     222 cuentas. NO se usa la columna «Ejecutivo» del archivo de activaciones:
+     ésa trae al ejecutivo que EJECUTA la activación (Cecilia, Pepe Toño…), no
+     al Ejecutivo CS dueño de la cuenta. Son dos roles distintos. */
+  const haceUnAnio = useMemo(() => {
+    const d = new Date()
+    d.setFullYear(d.getFullYear() - 1)
+    return d.toISOString().slice(0, 10)
+  }, [])
+  const nuevas = cuentas.filter(c => (c.activo_desde ?? '') >= haceUnAnio).length
+
+  /* Perfiles sin un contacto localizable: es justo lo que bloquea las
+     Actividades SAC, así que es trabajo pendiente, no una curiosidad. */
+  const sinContacto = cuentas.filter(c =>
+    !(c.contacto_nombre && c.contacto_email && c.contacto_tel)).length
 
   return (
     <div className="rounded-2xl overflow-hidden shadow-lg"
@@ -329,15 +368,23 @@ export default function AsesorCard({ asesor, cuentas, resumen, fueraDeCartera = 
 
         {/* ── Fila KPIs ─────────────────────────────────────────────────── */}
         <div className="px-6 pb-5 flex gap-3 flex-wrap">
-          <KpiCard icon={<DollarSign size={14} />} label="Facturación"
-            value={formatMXN(resumen.facturacion_total)} accent="#3B82F6" />
-          <KpiCard icon={<span className="text-sm">✓</span>} label="Saludables"
-            value={String(saludables)} accent="#22C55E"
-            sub={`${Math.round((saludables / (cuentas.length || 1)) * 100)}% de cartera`} />
-          <KpiCard icon={<AlertTriangle size={14} />} label="Observación"
-            value={String(observacion)} accent="#EAB308" />
-          <KpiCard icon={<AlertTriangle size={14} />} label="En Riesgo"
-            value={String(enRiesgo)} accent="#EF4444" />
+          <KpiCard icon={<DollarSign size={14} />} label="Facturación viva"
+            value={formatMXN(resumen.facturacion_total)} accent="#3B82F6"
+            sub={`${activas} cuenta${activas !== 1 ? 's' : ''} facturando`} />
+          <KpiCard icon={<Activity size={14} />} label="Activas"
+            value={String(activas)} accent="#22C55E"
+            sub={`${pctViva}% de su cartera`} />
+          <KpiCard icon={<Moon size={14} />} label="Dormidas"
+            value={String(dormidas)} accent="#8B5CF6"
+            sub={dormidas > 0 ? 'siguen siendo suyas' : 'ninguna de baja'} />
+          <KpiCard icon={<TrendingDown size={14} />} label="Churn"
+            value={String(churn.churns)} accent="#EF4444"
+            sub={churn.churns > 0 ? `${formatMXN(churn.mrrChurn)} · ${periodoChurn}` : periodoChurn} />
+          <KpiCard icon={<ArrowDownRight size={14} />} label="Downgrades"
+            value={String(churn.downgrades)} accent="#F59E0B"
+            sub={churn.downgrades > 0 ? `${formatMXN(churn.mrrDowngrade)} · ${periodoChurn}` : periodoChurn} />
+          <KpiCard icon={<Sparkles size={14} />} label="Nuevas"
+            value={String(nuevas)} accent="#14B8A6" sub="altas en 12 meses" />
           {totalTix > 0 && (
             <KpiCard
               icon={<AlertTriangle size={14} />}
@@ -346,9 +393,10 @@ export default function AsesorCard({ asesor, cuentas, resumen, fueraDeCartera = 
               accent={totalFallas > 0 ? '#EF4444' : '#F97316'}
             />
           )}
-          {conOportunidad > 0 && (
-            <KpiCard icon={<TrendingUp size={14} />} label="Oportunidades"
-              value={String(conOportunidad)} accent="#14B8A6" />
+          {sinContacto > 0 && (
+            <KpiCard icon={<UserX size={14} />} label="Sin contacto"
+              value={String(sinContacto)} accent="#F97316"
+              sub="bloquean actividades SAC" />
           )}
         </div>
 

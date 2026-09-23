@@ -6,6 +6,8 @@ import PageHeader from '@/components/PageHeader'
 import AsesorCard from '@/components/AsesorCard'
 import AutoRefresh from '@/components/AutoRefresh'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
+import { construirResolutor } from '@/lib/grc-asesor-alias'
+import { churnPorAsesor, deAsesor, PERIODO_GRC } from '@/lib/churn-por-asesor'
 import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -22,10 +24,16 @@ export default async function AsesoresPage() {
     ? ALL_ASESORES.filter(a => a === asesorHeader)
     : ALL_ASESORES
 
-  const [cuentasDb, resumenList] = await Promise.all([
+  // `cuentasTodas` va SIN filtrar aunque el usuario sea asesor: el resolutor de
+  // churn cruza nombres de GRC contra la cartera completa. Con la cartera
+  // recortada, un cliente de otro asesor quedaría sin resolver y el churn del
+  // que sí se muestra saldría igual, pero el «sin atribuir» mentiría.
+  const [cuentasDb, resumenList, cuentasTodas] = await Promise.all([
     getCuentas(isAsesor ? { asesor: asesorHeader } : undefined),
     getSemaforoByAsesor(),
+    isAsesor ? getCuentas() : Promise.resolve(null),
   ])
+  const churn = churnPorAsesor(construirResolutor(cuentasTodas ?? cuentasDb))
   // Regla 30 Ago 2026: tickets abiertos del dataset vivo, no de la columna.
   const cuentasRaw = cuentasDb.map(c => ({ ...c, tickets_abiertos: ticketStatsCuenta(c.cid ?? null, c.empresa).abiertos }))
 
@@ -101,6 +109,8 @@ export default async function AsesoresPage() {
               cuentas={listaRich}
               resumen={resumen}
               fueraDeCartera={fueraDeCartera}
+              churn={deAsesor(churn, asesor)}
+              periodoChurn={PERIODO_GRC}
               defaultOpen={idx === 0}   // Primer asesor abierto por defecto
             />
           )
