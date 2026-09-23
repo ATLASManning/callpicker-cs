@@ -1,12 +1,17 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell, LineChart, Line, Legend,
 } from 'recharts'
-import { BarChart3, CalendarDays, XCircle, DollarSign, AlertTriangle, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react'
+import {
+  BarChart3, CalendarDays, XCircle, DollarSign, AlertTriangle,
+  ChevronDown, ChevronUp, CheckCircle2, ArrowUpDown, Users,
+} from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
 import { AAA_GRC_2026, AAA_GRC_FLAT } from '@/app/churn/aaa-grc-data'
+import type { AAAGrcRow } from '@/app/churn/aaa-grc-data'
+import { normalizarNombre } from '@/lib/elegibilidad'
 import {
   GRC_BASE_MRR, GRC_VERIFICACION, GRC_RESUMEN_REPORTE,
   GRC_BASE_PROVISIONAL, GRC_RESUMEN_CERRADOS, GRC_MES_EN_CURSO,
@@ -56,19 +61,66 @@ const PERIODO_CORTO = `${ABREV[MES_INI] ?? MES_INI}–${ABREV[MES_FIN] ?? MES_FI
    export de Zoho y se muestra como tooltip al pasar el cursor, igual que en
    el Excel. La columna destacada es "Ingreso Perdido Contrato (BCY) Real":
    es la que alimenta el Gross Revenue Churn. */
-const COLUMNAS_MES: { corto: string; largo: string; destacada?: boolean }[] = [
-  { corto: 'Cliente',           largo: 'Cliente' },
-  { corto: 'Clas.',             largo: 'clasificacion_cliente' },
-  { corto: 'Movimiento',        largo: 'Movimiento MRR' },
-  { corto: 'MRR Inicio',        largo: 'MRR Inicio Contrato (BCY)' },
-  { corto: 'MRR Fin',           largo: 'MRR Fin Contrato (BCY)' },
-  { corto: 'Ing. Perdido Real', largo: 'Ingreso Perdido Contrato (BCY) Real', destacada: true },
-  { corto: 'Fraude',            largo: 'Ingreso Perdido Contrato (BCY) Fraude-Reestructura' },
-  { corto: 'Pérdida Total',     largo: 'Real + Fraude-Reestructura — cálculo del dashboard, no es un campo del export' },
-  { corto: 'Acumulado',         largo: 'Importe Acumulado Recurrente' },
-  { corto: 'Meses',             largo: 'Meses Activo' },
-  { corto: 'Facts.',            largo: 'Facturas_2026' },
+type ClaveMes = 'cliente' | 'clas' | 'movimiento' | 'mrrInicio' | 'mrrFin'
+              | 'perdido' | 'perdido2' | 'perdidaTotal' | 'acumulado' | 'meses' | 'facturas'
+
+const COLUMNAS_MES: { corto: string; largo: string; clave: ClaveMes; destacada?: boolean }[] = [
+  { corto: 'Cliente',           largo: 'Cliente', clave: 'cliente' },
+  { corto: 'Clas.',             largo: 'clasificacion_cliente', clave: 'clas' },
+  { corto: 'Movimiento',        largo: 'Movimiento MRR', clave: 'movimiento' },
+  { corto: 'MRR Inicio',        largo: 'MRR Inicio Contrato (BCY)', clave: 'mrrInicio' },
+  { corto: 'MRR Fin',           largo: 'MRR Fin Contrato (BCY)', clave: 'mrrFin' },
+  { corto: 'Ing. Perdido Real', largo: 'Ingreso Perdido Contrato (BCY) Real', clave: 'perdido', destacada: true },
+  { corto: 'Fraude',            largo: 'Ingreso Perdido Contrato (BCY) Fraude-Reestructura', clave: 'perdido2' },
+  { corto: 'Pérdida Total',     largo: 'Real + Fraude-Reestructura — cálculo del dashboard, no es un campo del export', clave: 'perdidaTotal' },
+  { corto: 'Acumulado',         largo: 'Importe Acumulado Recurrente', clave: 'acumulado' },
+  { corto: 'Meses',             largo: 'Meses Activo', clave: 'meses' },
+  { corto: 'Facts.',            largo: 'Facturas_2026', clave: 'facturas' },
 ]
+
+/** Columnas que se leen como texto: su primer clic ordena A→Z. Las de dinero y
+ *  conteo arrancan de mayor a menor, que es como se busca una pérdida. */
+const CLAVES_TEXTO: ClaveMes[] = ['cliente', 'movimiento']
+
+type OrdenMes = { clave: ClaveMes; dir: 'asc' | 'desc' }
+
+/**
+ * Ordena las filas de UN mes. El orden elegido se aplica a todos los meses
+ * abiertos, que es lo que se pidió: un clic en el encabezado ordena la tabla
+ * en cualquier mes, no solo en el que se tocó.
+ *
+ * `Clas.` NO se ordena alfabéticamente: AAA · AA · A · B · C es una escala, y
+ * de la A a la Z pondría «AA» antes que «AAA». Lo desconocido va al final en
+ * vez de colarse arriba.
+ */
+function ordenarMes<T extends AAAGrcRow>(filas: T[], orden: OrdenMes | null): T[] {
+  if (!orden) return filas
+  const valor = (r: AAAGrcRow): string | number => {
+    switch (orden.clave) {
+      case 'cliente':      return r.cliente ?? ''
+      case 'movimiento':   return r.movimiento ?? ''
+      case 'clas':         { const i = ORDEN_CLAS.indexOf(r.clas); return i < 0 ? 99 : i }
+      case 'mrrInicio':    return r.mrrInicio ?? 0
+      case 'mrrFin':       return r.mrrFin ?? 0
+      case 'perdido':      return r.perdido ?? 0
+      case 'perdido2':     return r.perdido2 ?? 0
+      case 'perdidaTotal': return (r.perdido ?? 0) + (r.perdido2 ?? 0)
+      case 'acumulado':    return r.acumulado ?? 0
+      case 'meses':        return r.meses ?? 0
+      case 'facturas':     return r.facturas ?? 0
+    }
+  }
+  const signo = orden.dir === 'asc' ? 1 : -1
+  // Copia: `filas` viene de los datos estáticos y ordenarlo en el sitio
+  // reordenaría el módulo importado para todo el resto de la página.
+  return [...filas].sort((a, b) => {
+    const va = valor(a), vb = valor(b)
+    if (typeof va === 'string' || typeof vb === 'string') {
+      return signo * String(va).localeCompare(String(vb), 'es')
+    }
+    return signo * (va - vb)
+  })
+}
 
 const ORDEN_CLAS = ['AAA','AA','A','B','C']
 const ORDEN_RANGO = ['$1 - $300','$301 - $500','$501 - $1,000','$1,001 - $3,000',
@@ -84,6 +136,36 @@ export default function GrcAaaSection() {
   const [fClas, setFClas]         = useState('')
   const [fMov, setFMov]           = useState('')
   const [openMes, setOpenMes]     = useState<Record<string, boolean>>({})
+  /* Un solo orden para TODOS los meses: se pidió poder ejecutarlo en todos, no
+     ordenar mes por mes. `null` = el orden original del export. */
+  const [ordenMes, setOrdenMes]   = useState<OrdenMes | null>(null)
+
+  /* ── Asesor responsable de cada cuenta ──────────────────────────────────
+     El export de GRC viene de Zoho Analytics y NO trae asesor ni CID, así que
+     el único cruce posible es por nombre normalizado contra la cartera.
+     `null` mientras carga: sin esa distinción, la tabla diría «sin asesor»
+     para todos durante el primer render y eso se lee como un dato, no como una
+     espera. Ver la regla de no rellenar huecos con un valor. */
+  const [asesores, setAsesores] = useState<
+    { porNombre: Record<string, { asesor: string; consecutivo: string }>; ambiguos: string[] } | null
+  >(null)
+  const [asesoresError, setAsesoresError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let vivo = true
+    fetch('/api/churn/asesores')
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(d => { if (vivo) setAsesores({ porNombre: d.porNombre ?? {}, ambiguos: d.ambiguos ?? [] }) })
+      .catch(e => { if (vivo) setAsesoresError(e instanceof Error ? e.message : 'error') })
+    return () => { vivo = false }
+  }, [])
+
+  /** Asesor de un cliente del export, o null si no se puede afirmar. */
+  const asesorDe = useMemo(() => (cliente: string): string | null => {
+    if (!asesores) return null
+    const k = normalizarNombre(cliente)
+    return asesores.porNombre[k]?.asesor ?? null
+  }, [asesores])
 
   /* ── Filtrado ── */
   const filas = useMemo(() => AAA_GRC_FLAT.filter(r =>
@@ -423,8 +505,13 @@ export default function GrcAaaSection() {
 
       {/* ── Detalle por mes ── */}
       {AAA_GRC_2026.map(mesData => {
-        const clientes = mesData.clientes.filter(c =>
-          (!fClas || c.clas === fClas) && (!fMov || c.movimiento === fMov))
+        // El orden se aplica DESPUÉS de filtrar y sobre una copia, para que los
+        // totales de abajo sigan sumando exactamente las mismas filas.
+        const clientes = ordenarMes(
+          mesData.clientes.filter(c =>
+            (!fClas || c.clas === fClas) && (!fMov || c.movimiento === fMov)),
+          ordenMes,
+        )
         if (clientes.length === 0) return null
         const open = openMes[mesData.mes] ?? false
         /* "Ingreso Perdido Contrato (BCY) Real" y el fraude/reestructura se
@@ -472,15 +559,37 @@ export default function GrcAaaSection() {
                 <table className="w-full text-xs" style={{ minWidth: 960 }}>
                   <thead>
                     <tr className="bg-gray-50/80 border-b border-gray-100">
-                      {COLUMNAS_MES.map((col, i) => (
-                        <th key={col.corto} title={col.largo}
-                          className={`py-2.5 px-3 font-semibold uppercase tracking-wide text-[10px] whitespace-nowrap
-                            ${i >= 3 ? 'text-right' : 'text-left'}
-                            ${col.destacada ? 'text-red-700' : 'text-gray-500'}`}
-                          style={col.destacada ? { background: '#FEF2F2' } : undefined}>
-                          {col.corto}
-                        </th>
-                      ))}
+                      {COLUMNAS_MES.map((col, i) => {
+                        const activa = ordenMes?.clave === col.clave
+                        return (
+                          <th key={col.corto} title={`${col.largo} — clic para ordenar`}
+                            className={`py-2.5 px-3 font-semibold uppercase tracking-wide text-[10px] whitespace-nowrap
+                              ${i >= 3 ? 'text-right' : 'text-left'}
+                              ${col.destacada ? 'text-red-700' : 'text-gray-500'}`}
+                            style={col.destacada ? { background: '#FEF2F2' } : undefined}>
+                            <button
+                              type="button"
+                              onClick={() => setOrdenMes(prev => {
+                                // Tercer clic: se vuelve al orden original del export.
+                                if (prev?.clave === col.clave) {
+                                  return prev.dir === (CLAVES_TEXTO.includes(col.clave) ? 'asc' : 'desc')
+                                    ? { clave: col.clave, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                    : null
+                                }
+                                return { clave: col.clave, dir: CLAVES_TEXTO.includes(col.clave) ? 'asc' : 'desc' }
+                              })}
+                              className={`inline-flex items-center gap-1 uppercase tracking-wide font-semibold
+                                hover:opacity-70 transition-opacity cursor-pointer
+                                ${i >= 3 ? 'flex-row-reverse' : ''}`}
+                              style={{ color: 'inherit', background: 'transparent' }}>
+                              {col.corto}
+                              {activa
+                                ? (ordenMes!.dir === 'asc' ? <ChevronUp size={11} /> : <ChevronDown size={11} />)
+                                : <ArrowUpDown size={10} style={{ opacity: 0.35 }} />}
+                            </button>
+                          </th>
+                        )
+                      })}
                     </tr>
                   </thead>
                   <tbody>
@@ -594,9 +703,252 @@ export default function GrcAaaSection() {
         )
       })()}
 
+      {/* ── Concentración AAA + AA, por asesor ─────────────────────────────
+             Instrucción de dirección (22 sep 2026): el total de Churn
+             confirmado y Downgrade SOLO de cuentas AAA y AA, con el asesor
+             responsable. Sustituye al botón ACUMULADO de Análisis DATA.
+
+             Se calcula sobre AAA_GRC_FLAT completo y NO sobre `filas`: los
+             combos de arriba son para explorar, y este bloque tiene un recorte
+             fijo que se declara en su propio título. Si dependiera de los
+             filtros, el mismo encabezado mostraría cifras distintas según lo
+             que alguien hubiera tocado antes. */}
+      <ConcentracionAaaAa asesorDe={asesorDe} cargando={!asesores && !asesoresError}
+        error={asesoresError} ambiguos={asesores?.ambiguos.length ?? 0} />
+
       <p className="text-[11px] text-gray-400 text-center">
         Fuente: GRC_AAA_2026.xlsx · Zoho Analytics · {PERIODO_CORTO} · {AAA_GRC_FLAT.length} registros
       </p>
+    </div>
+  )
+}
+
+/* ── Concentración AAA + AA ──────────────────────────────────────────── */
+
+const MOV_CHURN = 'Churn confirmado'
+const MOV_DOWNGRADE = 'Downgrade'
+
+/** ¿La fila entra en la concentración? Solo AAA y AA, solo churn y downgrade. */
+function esDeLaConcentracion(r: AAAGrcRow): 'churn' | 'downgrade' | null {
+  if (r.clas !== 'AAA' && r.clas !== 'AA') return null
+  const m = r.movimiento ?? ''
+  // «Churn confirmado + Fraude» cuenta como churn: es la misma baja, con la
+  // pérdida clasificada aparte. El importe de fraude se lleva en su columna.
+  if (m.startsWith(MOV_CHURN)) return 'churn'
+  if (m === MOV_DOWNGRADE) return 'downgrade'
+  return null
+}
+
+function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos }: {
+  asesorDe: (cliente: string) => string | null
+  cargando: boolean
+  error: string | null
+  ambiguos: number
+}) {
+  const [abierto, setAbierto] = useState(false)
+
+  const datos = useMemo(() => {
+    const eventos = AAA_GRC_FLAT
+      .map(r => ({ r, tipo: esDeLaConcentracion(r) }))
+      .filter((x): x is { r: typeof AAA_GRC_FLAT[number]; tipo: 'churn' | 'downgrade' } => x.tipo !== null)
+      .map(({ r, tipo }) => ({
+        cliente: r.cliente, clas: r.clas, mes: r.mes, movimiento: r.movimiento,
+        tipo, real: r.perdido, fraude: r.perdido2, mrrInicio: r.mrrInicio,
+        asesor: asesorDe(r.cliente),
+      }))
+
+    // Roll-up por asesor. `null` (no está en la cartera) es su propio grupo y
+    // se nombra: una cuenta sin asesor NO se reparte entre los que sí tienen.
+    const porAsesor = new Map<string, {
+      asesor: string; churn: number; dgs: number
+      realChurn: number; realDg: number; fraude: number
+    }>()
+    for (const e of eventos) {
+      const k = e.asesor ?? '\u0000sin'
+      const cur = porAsesor.get(k) ?? {
+        asesor: e.asesor ?? 'Sin asesor en la cartera',
+        churn: 0, dgs: 0, realChurn: 0, realDg: 0, fraude: 0,
+      }
+      if (e.tipo === 'churn') { cur.churn++; cur.realChurn += e.real }
+      else                    { cur.dgs++;   cur.realDg    += e.real }
+      cur.fraude += e.fraude
+      porAsesor.set(k, cur)
+    }
+    const filas = Array.from(porAsesor.values())
+      .sort((a, b) => (b.realChurn + b.realDg) - (a.realChurn + a.realDg))
+
+    const tot = {
+      churn:     eventos.filter(e => e.tipo === 'churn').length,
+      dgs:       eventos.filter(e => e.tipo === 'downgrade').length,
+      realChurn: eventos.filter(e => e.tipo === 'churn').reduce((s, e) => s + e.real, 0),
+      realDg:    eventos.filter(e => e.tipo === 'downgrade').reduce((s, e) => s + e.real, 0),
+      fraude:    eventos.reduce((s, e) => s + e.fraude, 0),
+      sinAsesor: eventos.filter(e => e.asesor === null).length,
+    }
+    // La tabla por asesor tiene que sumar lo mismo que el total: si un día se
+    // filtra un grupo sin querer, esto lo delata en pantalla en vez de cuadrar
+    // solo en apariencia.
+    const cierra = filas.reduce((s, f) => s + f.churn + f.dgs, 0) === tot.churn + tot.dgs
+
+    return { eventos, filas, tot, cierra }
+  }, [asesorDe])
+
+  const { eventos, filas, tot, cierra } = datos
+  const totalReal = tot.realChurn + tot.realDg
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100" style={{ background: '#F5F3FF' }}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Users size={15} style={{ color: '#6B21A8' }} />
+          <h3 className="text-sm font-bold text-gray-900">
+            Concentración por asesor — Churn confirmado y Downgrade
+          </h3>
+          <Pill bg="#F3E8FF" fg="#6B21A8">solo AAA y AA</Pill>
+          <Pill bg="#EFF6FF" fg="#1D4ED8">{PERIODO_CORTO}</Pill>
+        </div>
+        <p className="text-[11px] text-gray-500 mt-1">
+          Recorte fijo: no lo cambian los combos de arriba. {eventos.length} evento
+          {eventos.length !== 1 ? 's' : ''} de {AAA_GRC_FLAT.length} registros del período.
+        </p>
+      </div>
+
+      {/* Totales */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4">
+        <KpiMini icon={XCircle} label="Churn confirmado" value={fmtF(tot.realChurn)}
+          sub={`${tot.churn} cuenta${tot.churn !== 1 ? 's' : ''} AAA/AA`} color="#DC2626" />
+        <KpiMini icon={AlertTriangle} label="Downgrade" value={fmtF(tot.realDg)}
+          sub={`${tot.dgs} cuenta${tot.dgs !== 1 ? 's' : ''} AAA/AA`} color="#D97706" />
+        <KpiMini icon={DollarSign} label="Ingreso perdido real" value={fmtF(totalReal)}
+          sub="Churn + Downgrade · es lo que alimenta el GRC" color="#B91C1C" />
+        <KpiMini icon={AlertTriangle} label="Fraude / reestructura" value={fmtF(tot.fraude)}
+          sub="Va aparte: el GRC NO lo incluye" color="#C2410C" />
+      </div>
+
+      {/* Aviso de cobertura del asesor — el hueco se dice, no se rellena */}
+      {(cargando || error || tot.sinAsesor > 0 || ambiguos > 0 || !cierra) && (
+        <div className="mx-4 mb-3 rounded-lg px-3 py-2 text-[11px] leading-relaxed"
+          style={{ background: '#FFF7ED', border: '1px solid #FED7AA', color: '#9A3412' }}>
+          {cargando && 'Cargando la cartera para atribuir el asesor…'}
+          {error && `No se pudo leer la cartera (${error}): la columna de asesor va vacía. El resto de las cifras no depende de ella.`}
+          {!cargando && !error && tot.sinAsesor > 0 && (
+            <>
+              <strong>{tot.sinAsesor}</strong> de {eventos.length} evento{eventos.length !== 1 ? 's' : ''} no
+              tiene asesor porque su cliente no está en la cartera CS —el export de GRC viene de Zoho sin
+              CID y el cruce es por nombre—. Van en su propio grupo, <strong>no</strong> repartidos entre
+              los asesores.
+            </>
+          )}
+          {ambiguos > 0 && ` ${ambiguos} nombre(s) coinciden con más de una cuenta de distinto asesor: a ésos no se les atribuye ninguno.`}
+          {!cierra && ' ⚠ La tabla por asesor NO suma el total: revisar antes de reportar.'}
+        </div>
+      )}
+
+      {/* Por asesor */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs" style={{ minWidth: 640 }}>
+          <thead>
+            <tr className="bg-gray-50/80 border-b border-gray-100">
+              {['Asesor', 'Churns', 'Perdido por churn', 'Downgrades', 'Perdido por downgrade', 'Total real'].map((h, i) => (
+                <th key={h} className={`py-2.5 px-3 font-semibold uppercase tracking-wide text-[10px] text-gray-500 whitespace-nowrap ${i === 0 ? 'text-left' : 'text-right'}`}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map(f => {
+              const sinAsesor = f.asesor === 'Sin asesor en la cartera'
+              return (
+                <tr key={f.asesor} className="border-b border-gray-100 hover:bg-gray-50/40">
+                  <td className="py-2.5 px-3 font-semibold" style={{ color: sinAsesor ? '#9A3412' : '#111827' }}>
+                    {f.asesor}
+                  </td>
+                  <td className="py-2.5 px-3 text-right tabular-nums text-gray-700">{f.churn || '—'}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realChurn > 0 ? '#B91C1C' : '#CBD5E1' }}>
+                    {f.realChurn > 0 ? fmtF(f.realChurn) : '—'}
+                  </td>
+                  <td className="py-2.5 px-3 text-right tabular-nums text-gray-700">{f.dgs || '—'}</td>
+                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realDg > 0 ? '#D97706' : '#CBD5E1' }}>
+                    {f.realDg > 0 ? fmtF(f.realDg) : '—'}
+                  </td>
+                  <td className="py-2.5 px-3 text-right tabular-nums font-bold text-gray-900">
+                    {fmtF(f.realChurn + f.realDg)}
+                  </td>
+                </tr>
+              )
+            })}
+            <tr className="border-t-2 border-gray-200" style={{ background: '#F8FAFC' }}>
+              <td className="py-3 px-3 font-bold text-gray-900">TOTAL AAA + AA</td>
+              <td className="py-3 px-3 text-right tabular-nums font-bold text-gray-900">{tot.churn}</td>
+              <td className="py-3 px-3 text-right tabular-nums font-bold" style={{ color: '#B91C1C' }}>{fmtF(tot.realChurn)}</td>
+              <td className="py-3 px-3 text-right tabular-nums font-bold text-gray-900">{tot.dgs}</td>
+              <td className="py-3 px-3 text-right tabular-nums font-bold" style={{ color: '#D97706' }}>{fmtF(tot.realDg)}</td>
+              <td className="py-3 px-3 text-right tabular-nums font-bold text-gray-900">{fmtF(totalReal)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Detalle cuenta por cuenta */}
+      <button onClick={() => setAbierto(o => !o)}
+        className="w-full flex items-center justify-between gap-2 px-5 py-3 border-t border-gray-100 hover:bg-gray-50/60 transition-colors">
+        <span className="text-xs font-semibold text-gray-600">
+          {abierto ? 'Ocultar' : 'Ver'} las {eventos.length} cuentas, una por una
+        </span>
+        {abierto ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
+      </button>
+
+      {abierto && (
+        <div className="border-t border-gray-100 overflow-x-auto">
+          <table className="w-full text-xs" style={{ minWidth: 780 }}>
+            <thead>
+              <tr className="bg-gray-50/80 border-b border-gray-100">
+                {['Cliente', 'Clas.', 'Mes', 'Movimiento', 'Asesor', 'Perdido real', 'Fraude'].map((h, i) => (
+                  <th key={h} className={`py-2.5 px-3 font-semibold uppercase tracking-wide text-[10px] text-gray-500 whitespace-nowrap ${i >= 5 ? 'text-right' : 'text-left'}`}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...eventos]
+                .sort((a, b) => b.real - a.real)
+                .map((e, i) => (
+                  <tr key={`${e.cliente}-${e.mes}-${i}`}
+                    className={`border-b border-gray-100 ${e.tipo === 'churn' ? 'bg-red-50/25' : ''} hover:bg-gray-50/40`}>
+                    <td className="py-2.5 px-3 font-semibold text-gray-900">{e.cliente}</td>
+                    <td className="py-2.5 px-3">
+                      <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold"
+                        style={{ background: '#F3E8FF', color: '#6B21A8' }}>{e.clas}</span>
+                    </td>
+                    <td className="py-2.5 px-3 text-gray-500">{e.mes}</td>
+                    <td className="py-2.5 px-3">
+                      <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap"
+                        style={e.tipo === 'churn' ? { background: '#FEE2E2', color: '#B91C1C' }
+                                                  : { background: '#FEF3C7', color: '#B45309' }}>
+                        {e.movimiento}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3">
+                      {e.asesor
+                        ? <span className="font-medium text-gray-700">{e.asesor}</span>
+                        : <span className="text-[11px]" style={{ color: '#9A3412' }}>
+                            {cargando ? 'cargando…' : 'sin asesor en la cartera'}
+                          </span>}
+                    </td>
+                    <td className="py-2.5 px-3 text-right tabular-nums font-bold" style={{ color: e.real > 0 ? '#B91C1C' : '#CBD5E1' }}>
+                      {e.real > 0 ? fmtF(e.real) : '—'}
+                    </td>
+                    <td className="py-2.5 px-3 text-right tabular-nums" style={{ color: e.fraude > 0 ? '#C2410C' : '#CBD5E1' }}>
+                      {e.fraude > 0 ? fmtF(e.fraude) : '—'}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

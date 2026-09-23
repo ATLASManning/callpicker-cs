@@ -2106,30 +2106,16 @@ export default function ChurnPage() {
           </div>
 
           <div className="flex overflow-x-auto gap-1 p-2">
-            {/* Botón ACUMULADO */}
-            <div className="flex-shrink-0 mr-1">
-              <button
-                onClick={() => { setSelectedId('acumulado'); setTab('cancelados') }}
-                className="flex flex-col items-start px-4 py-2.5 rounded-lg transition-all min-w-[140px] text-left"
-                style={{
-                  background: '#0A1628',
-                  border: isAcumulado ? '2px solid #4B7BF5' : '2px solid rgba(75,123,245,0.25)',
-                }}
-              >
-                <p className="text-[11px] font-bold text-white tracking-widest">ACUMULADO</p>
-                <p className="text-[9px] text-blue-300 font-medium mt-0.5">{rangoAcumulado || 'Desde Abr 2026'}</p>
-                <div className="flex gap-1 mt-1.5">
-                  <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
-                    style={{ background: 'rgba(239,68,68,0.30)', color: '#fca5a5' }}>
-                    {acumuladoCancelados.length} canc.
-                  </span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
-                    style={{ background: 'rgba(245,158,11,0.30)', color: '#fcd34d' }}>
-                    {acumuladoDowngrades.length} dg.
-                  </span>
-                </div>
-              </button>
-            </div>
+            {/* El botón ACUMULADO se retiró por instrucción de dirección (22 sep
+                2026): la concentración de Churn confirmado y Downgrade vive
+                ahora en GRC AAA 2026, acotada a AAA y AA y con el asesor
+                responsable de cada cuenta.
+
+                `selectedId` ya no puede valer 'acumulado', así que `isAcumulado`
+                es siempre false y las ramas que dependen de él quedan sin
+                alcanzar. Se dejan en pie a propósito: borrarlas es una poda de
+                ~200 líneas en un archivo de 3,000 sin compilador local que la
+                respalde, y eso es otro cambio, no éste. */}
 
             {[...allReportes].reverse().map(r => {
               const active   = selectedId === r.id
