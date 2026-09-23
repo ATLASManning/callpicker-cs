@@ -87,6 +87,25 @@ export interface AuditoriaCase {
   gana:                 string[]
   recomendacion_central:string
 
+  /* ── Auditoría de servicio (mesa de ayuda) ───────────────────────
+   * Opcional: no todos los casos la traen. Nace con FINSUS (sep 2026),
+   * donde la auditoría comercial se quedaba corta — el 38.5% de sus 91
+   * tickets era el MISMO trámite repetido, y eso no se ve en ninguna de
+   * las secciones comerciales. Es una dimensión distinta: la comercial
+   * pregunta qué se dejó de cobrar; ésta, qué se está atendiendo de más.
+   */
+  auditoria_servicio?: {
+    fuente:      string
+    periodo:     string
+    diagnostico: string
+    /** Las cifras del corte: métrica, valor y qué significa. */
+    metricas:    { metrica: string; valor: string; lectura: string }[]
+    /** Lo que se repite. `veces` es el conteo; `causa` lo que nadie resolvió. */
+    reincidencias: { patron: string; veces: string; causa: string }[]
+    /** Hallazgos del servicio que no caben en una tabla. */
+    hallazgos:   string[]
+  }
+
   /* ── Documentos adjuntos ─────────────────────────────────────── */
   documentos?: { nombre: string; ruta: string; descripcion?: string }[]
 }

@@ -5,6 +5,7 @@ import {
   AlertTriangle, CheckCircle2, Clock, TrendingUp,
   User, Users, Zap, Target, Shield, ChevronDown, ChevronUp,
   FileText, BarChart3, Lightbulb, Search, AlertCircle, Printer, Download,
+  LifeBuoy,
 } from 'lucide-react'
 
 /* ─── Tipos locales ──────────────────────────────────────────────────── */
@@ -16,6 +17,9 @@ const AMBER  = '#f59e0b'
 const GREEN  = '#22c55e'
 const BLUE   = '#3b82f6'
 const INDIGO = '#6366f1'
+/** Mesa de ayuda. Naranja y no rojo a propósito: la auditoría de servicio no
+ *  es una alarma, es una carga repetida que se puede quitar. */
+const ORANGE = '#f97316'
 
 /* ─── Mapa de colores por estado ─────────────────────────────────────── */
 const ESTADO_COLOR: Record<string, string> = {
@@ -348,6 +352,71 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                     </div>
                   ))}
                 </div>
+              </SectionCard>
+            )}
+
+            {/* ── Auditoría de servicio ─────────────────────────────────
+                Opcional: solo los casos que la traen. Nace con FINSUS, donde
+                la auditoría comercial se quedaba corta — el 38.5% de sus 91
+                tickets era el mismo trámite repetido, y eso no aparecía en
+                ninguna sección comercial. */}
+            {caso.auditoria_servicio && (
+              <SectionCard
+                title="Auditoría de Servicio — Mesa de Ayuda"
+                icon={LifeBuoy}
+                color={ORANGE}
+              >
+                <p className="text-xs text-gray-500 mb-1">{caso.auditoria_servicio.fuente}</p>
+                <p className="text-xs font-semibold text-gray-700 mb-3">{caso.auditoria_servicio.periodo}</p>
+
+                <div className="rounded-lg p-4 mb-5" style={{ background: `${ORANGE}10`, border: `1px solid ${ORANGE}33` }}>
+                  <p className="text-sm leading-relaxed text-gray-800">{caso.auditoria_servicio.diagnostico}</p>
+                </div>
+
+                <div className="overflow-x-auto mb-5">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-2 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Métrica</th>
+                        <th className="text-left py-2 pr-4 text-xs font-semibold uppercase tracking-wide" style={{ color: ORANGE }}>Valor</th>
+                        <th className="text-left py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Qué significa</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {caso.auditoria_servicio.metricas.map(m => (
+                        <tr key={m.metrica} className="border-b border-gray-100 last:border-0">
+                          <td className="py-3 pr-4 font-medium text-gray-900 align-top text-xs">{m.metrica}</td>
+                          <td className="py-3 pr-4 align-top text-xs font-bold" style={{ color: ORANGE }}>{m.valor}</td>
+                          <td className="py-3 align-top text-xs text-gray-600">{m.lectura}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Lo que se repite</p>
+                <div className="space-y-2 mb-5">
+                  {caso.auditoria_servicio.reincidencias.map(r => (
+                    <div key={r.patron} className="rounded-lg p-3" style={{ background: '#FFF7ED', border: '1px solid #FED7AA' }}>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-gray-900">{r.patron}</span>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                          style={{ background: `${RED}18`, color: RED }}>{r.veces}</span>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">{r.causa}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Hallazgos del servicio</p>
+                <ul className="space-y-2">
+                  {caso.auditoria_servicio.hallazgos.map((h, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-gray-700 leading-relaxed">
+                      <span style={{ color: ORANGE }} className="flex-shrink-0 font-bold">·</span>
+                      <span>{h}</span>
+                    </li>
+                  ))}
+                </ul>
               </SectionCard>
             )}
 

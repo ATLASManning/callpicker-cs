@@ -5,26 +5,32 @@ export const FINSUS: AuditoriaCase = {
   asesor: 'Fátima',
   nombre: 'FINSUS – Economía Móvil Inteligente S.A. de C.V.',
   sector: 'Fintech – Sector Financiero / Economía Móvil',
-  fecha_periodo: 'Junio 2023 – Junio 2026',
-  fecha_auditoria: 'June 2026',
+  fecha_periodo: 'Junio 2023 – Septiembre 2026',
+  fecha_auditoria: 'Sep 2026',
   tipo_cliente: 'Cuenta AAA – Auditoría Forense Integral',
-  descripcion_contexto: '36 meses documentados · Auditoría + FODA + Proyección + Resolución Parcial · RFC: EMI180423NV8',
+  descripcion_contexto: '39 meses documentados · Auditoría comercial + FODA + Escenarios + Resolución parcial + AUDITORÍA DE SERVICIO (91 tickets) · RFC: EMI180423NV8',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',
-  version: '2.0',
+  version: '3.0',
 
   kpis: [
     { label: 'Exposición acumulada',   value: '>$456,910 MXN',  color: '#ef4444' },
     { label: 'Recuperado jun 2026',    value: '$242,912 MXN',   color: '#22c55e' },
-    { label: 'Meses sin gobernanza',   value: '36 meses',       color: '#f59e0b' },
+    { label: 'Meses sin gobernanza',   value: '39 meses',       color: '#f59e0b' },
+    { label: 'Tickets 2026 · plantillas', value: '91 · 38.5%',  color: '#f97316' },
     { label: 'Potencial 12 meses',     value: '$2.6M MXN',      color: '#6366f1' },
   ],
 
-  resumen_ejecutivo: 'Callpicker construyó durante 36 meses una cuenta AAA sobre una arquitectura completamente informal. El asesor comercial operó sistemáticamente fuera de su rol — cediendo precios, firmando contratos, quitando rubros de facturación — mientras el equipo detectaba los problemas pero no los detenía.\n\nEn mayo-junio 2026, la primera intervención formal de SAC logró cobrar dos facturas OTP que el cliente intentaba diferir. El desenlace parcial positivo confirma que el cliente sí paga cuando Callpicker sostiene su posición. También confirma que sin estructura, el siguiente ciclo de concesiones informales ya está en curso.\n\nLa diferencia entre actuar y no actuar es $1,944,356 MXN en 12 meses.',
+  resumen_ejecutivo: 'Callpicker construyó durante 36 meses una cuenta AAA sobre una arquitectura completamente informal. El asesor comercial operó sistemáticamente fuera de su rol — cediendo precios, firmando contratos, quitando rubros de facturación — mientras el equipo detectaba los problemas pero no los detenía.\n\nEn mayo-junio 2026, la primera intervención formal de SAC logró cobrar dos facturas OTP que el cliente intentaba diferir. El desenlace parcial positivo confirma que el cliente sí paga cuando Callpicker sostiene su posición. También confirma que sin estructura, el siguiente ciclo de concesiones informales ya está en curso.\n\nLa diferencia entre actuar y no actuar es $1,944,356 MXN en 12 meses.\n\nSEPTIEMBRE 2026 — LA OTRA MITAD DEL PROBLEMA. La auditoría de servicio sobre 91 tickets de Zoho Desk muestra que, mientras la cuenta se construía sin gobernanza comercial, la mesa de ayuda absorbía el mismo trámite una y otra vez: 35 tickets (38.5%) son plantillas verificadas de WhatsApp, uno cada 7 días, y 29 los abrió la misma persona. No es un problema de capacidad: es una capacitación que nunca se dio. Y 1 de cada 4 tickets tardó más de una semana en cerrarse.',
 
   resultado_positivo: 'En junio 2026, por primera vez en 3 años, Callpicker sostuvo su posición contractual con Finsus y cobró. El cliente pagó ~$242,912 MXN en dos facturas OTP. La fórmula que funcionó: "ya cumplimos + está listo + te lo cobro." El problema nunca fue el cliente — fue que Callpicker no tenía protocolo para decir "esto se cobra."\n\nA pesar de 36 meses de informalidad, Callpicker conserva activos estratégicos valiosos: relación genuina con 4+ contactos, 7 de 10 oportunidades cerradas, expansión orgánica de 1 a 5 áreas activas. Finsus está en proceso de licencia bancaria — lo que convierte a Callpicker en proveedor preferente si formaliza los contratos a tiempo.',
 
   hallazgos: [
+    'SERVICIO — 35 de 91 tickets (38.5%) son el MISMO trámite: plantillas verificadas de WhatsApp. Uno cada 7 días durante 8 meses; 29 los abrió Andrea Guerra (a.guerra@finsus.mx). Ocho meses atendiendo una capacitación que nunca se dio.',
+    'SERVICIO — Agosto 2026 repuntó a 8 tickets de plantillas, el pico del año, sin justificación documentada. Ninguna mejora estructural se aplicó en todo el período.',
+    'SERVICIO — 22 tickets (24.2%) tardaron más de 7 días. La mediana real es de 27.7 h, pero el promedio sube a 279.1 h por casos extremos como el #104289, con 3,548 horas abiertas.',
+    'SERVICIO — Las actualizaciones de Ingeniería rompen cosas sin aviso: la caída del 90% en plantillas Utility (oct–nov 2025) y el error 131049 (may 2026) los detectó el CLIENTE, no Callpicker.',
+    'SERVICIO — 51.7% de los tickets recae en dos agentes (Néstor C. 24 · Edith B. 23). El canal dominante es correo (73 de 91), más un canal de WhatsApp grupal donde se atienden fallas SIN abrir ticket — trabajo real que no queda registrado en ningún lado.',
     'El asesor comercial operó fuera de su rol durante 36 meses sin supervisión — cediendo precios, firmando contratos y quitando rubros sin autorización formal.',
     'Decisión unilateral de no cobrar OTPs de mayo 2026: $121,456 MXN — precedente que el cliente usa como argumento para objetar la factura 186208.',
     'Contrato marco redactado por el cliente fue firmado sin revisión jurídica interna. Instrumento legal a favor de la contraparte.',
@@ -149,6 +155,7 @@ export const FINSUS: AuditoriaCase = {
   ],
 
   areas_oportunidad: [
+    { area: 'Capacitación de plantillas a Andrea Guerra',  impacto: 'Elimina 35 tickets/año del mismo trámite. Es la reincidencia más cara de la cuenta y se resuelve con una sesión, no con más agentes.', responsable: 'Dir. SAC + Mesa de Ayuda' },
     { area: 'OTPs 500K base activos',                    impacto: '~$121,500 MXN/mes adicional recurrente. Oportunidad más grande del pipeline.', responsable: 'Galván + Ingeniería + Dir. SAC' },
     { area: 'Pipeline OTP $100K (80% probabilidad)',     impacto: 'Prioridad 1. Actualmente "en buzón" — requiere seguimiento activo urgente.', responsable: 'Galván + Dir. SAC' },
     { area: 'Expansión Crédito + Cobranza usuarios',     impacto: '+$11,911–$15,271 MXN/mes con adendum de plazo forzoso.', responsable: 'Galván' },
@@ -287,5 +294,45 @@ export const FINSUS: AuditoriaCase = {
     'Finsus como banco → Callpicker como proveedor institucional formalizado y auditable',
     'Ingreso proyectado Escenario C: $2,644,356 MXN/año',
   ],
+  /* ── Auditoría de servicio — septiembre 2026 ─────────────────────────
+     La auditoría comercial pregunta qué se dejó de cobrar. Ésta pregunta qué
+     se está atendiendo de más, y da un número incómodo: 4 de cada 10 tickets
+     de esta cuenta son el mismo trámite repetido. */
+  auditoria_servicio: {
+    fuente:  'Zoho Desk · Mesa de Ayuda Callpicker — extracción del 23 de septiembre de 2026',
+    periodo: 'Febrero – Septiembre 2026 · 91 tickets · 4 cuentas Finsus',
+    diagnostico:
+      'El 38.5% de los tickets de Finsus es el mismo trámite: plantillas verificadas de WhatsApp. '
+      'Mismo proceso, mismo solicitante, ocho meses seguidos. No es un problema de capacidad de la '
+      'mesa de ayuda — es una capacitación que nunca se dio, y cada semana cuesta un ticket. '
+      'En paralelo, las actualizaciones de Ingeniería generan fallas que detecta el cliente antes '
+      'que Callpicker, y una parte del soporte ocurre en un canal de WhatsApp grupal sin ticket, '
+      'así que ni siquiera aparece en estas cifras.',
+    metricas: [
+      { metrica: 'Total de tickets 2026',   valor: '91',                          lectura: '4 cuentas Finsus, de febrero a septiembre' },
+      { metrica: 'Estado al corte',         valor: '87 cerrados · 3 pendientes · 1 abierto', lectura: '95.6% de cierre — 4 siguen activos' },
+      { metrica: 'Mediana de cierre',       valor: '27.7 horas',                  lectura: 'La mitad se resuelve en menos de 1.2 días' },
+      { metrica: 'Promedio de cierre',      valor: '279.1 horas',                 lectura: 'Distorsionado por casos extremos: el #104289 acumuló 3,548 h' },
+      { metrica: 'Tickets de más de 7 días',valor: '22 (24.2%)',                  lectura: '1 de cada 4 tardó más de una semana' },
+      { metrica: 'Subcategoría dominante',  valor: 'Plantillas verificadas (35)', lectura: '38.5% del total — la reincidencia crítica' },
+      { metrica: 'Contacto más activo',     valor: 'a.guerra@finsus.mx (30)',     lectura: 'Casi todos suyos son de plantillas' },
+      { metrica: 'Canal dominante',         valor: 'Correo (73 · 80.2%)',         lectura: 'Más un WhatsApp grupal que NO genera ticket' },
+      { metrica: 'Concentración de carga',  valor: 'Néstor C. 24 · Edith B. 23',  lectura: '51.7% de los tickets en dos personas' },
+    ],
+    reincidencias: [
+      { patron: 'Plantillas verificadas de WhatsApp', veces: '35 tickets (38.5%)', causa: 'Uno cada 7 días. 29 los abrió la misma persona. Repunte a 8 en agosto, el pico del año, sin justificación. Nunca se aplicó una mejora estructural.' },
+      { patron: 'Ajuste en flujo (voz)',              veces: '7 tickets',          causa: 'Los flujos IVR se ajustan una y otra vez y nunca queda documentación final.' },
+      { patron: 'APIs y webhooks',                    veces: '7 tickets',          causa: 'El cliente desarrolla sus integraciones sin guía proactiva de Callpicker.' },
+      { patron: 'Onboarding',                         veces: '6 tickets',          causa: 'De 45 a 147 días para cerrar. No existe un proceso estándar documentado.' },
+      { patron: 'Duda operativa (chat)',              veces: '5 tickets',          causa: 'Preguntas de uso que se resuelven con capacitación, no con tickets.' },
+    ],
+    hallazgos: [
+      'Las actualizaciones de Ingeniería impactan al cliente sin aviso previo. La caída del 90% en plantillas Utility (oct–nov 2025) fue una recategorización de Meta que Callpicker no detectó; el error 131049 de mayo 2026 fue lo mismo. En ambos casos lo reportó el cliente.',
+      'Existe un canal de WhatsApp grupal donde se reportan y atienden fallas SIN abrir ticket — el 28 de mayo Jocelyn reportó ahí una falla de filtro y soporte respondió en el mismo canal. Ese trabajo no existe para ninguna métrica.',
+      'La distancia entre la mediana (27.7 h) y el promedio (279.1 h) es el dato a vigilar: el servicio típico es bueno, pero la cola larga es muy larga y ahí es donde el cliente pierde la confianza.',
+      'Septiembre cierra con una falla SIP activa y 2 tickets de plantillas aún pendientes.',
+    ],
+  },
+
   recomendacion_central: 'El modelo de gobernanza comercial debe cambiar ahora — no después del siguiente incidente. Cada cuenta AAA requiere: contrato ejecutable al 100% antes de facturar, caso de negocio firmado antes de cualquier concesión, CRM como canal oficial de registro (no Slack), y revisión ejecutiva trimestral. Finsus no es un problema de Galván — es un espejo del sistema que lo permitió durante 36 meses.',
 }
