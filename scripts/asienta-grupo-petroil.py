@@ -72,6 +72,10 @@ CIDS_DIRECCION = [
                                                 'Petroil - Observatorio 1873 (Chat)']),
     ('Petroil - Torre de Control',   '119552', ['Petroil - Torre de Control']),
     ('Petroil - Corporativo',        '95890',  ['Petroil - Corporativo']),
+    # Oceánica no lleva el prefijo del grupo y es otro giro —clínica de
+    # servicios de salud—, pero dirección la incluyó expresamente. Su CID sale
+    # de su propia cuenta C54, no de la lista que mandó.
+    ('Oceánica',                     '46962',  ['Oceánica']),
 ]
 
 _env = {}
@@ -113,8 +117,24 @@ def mx(n):
 
 # ── Fuentes ──────────────────────────────────────────────────────────────
 G = json.load(io.open(os.path.join(RAIZ, 'data', 'grc-zoho.json'), encoding='utf-8'))
-LINEAS = [f for f in G['filas'] if re.search(r'petroil', str(f.get('cliente') or ''), re.I)]
+
+# El grupo NO es «lo que se llama Petroil». Dirección incluyó expresamente a
+# Oceánica, cuya línea en GRC se llama solo «Oceánica» y que además es otro
+# giro (servicios de salud, clínica). Filtrar por el nombre la habría dejado
+# fuera del asiento del grupo que ella misma definió. Por eso se toman también
+# las líneas de las cuentas marcadas con `grupo_empresarial` de Petroil.
+EXTRA_DEL_GRUPO = ['Oceánica']   # confirmadas por dirección, sin el prefijo
+
+
+def es_del_grupo(f):
+    n = str(f.get('cliente') or '')
+    return bool(re.search(r'petroil', n, re.I)) or n in EXTRA_DEL_GRUPO
+
+
+LINEAS = [f for f in G['filas'] if es_del_grupo(f)]
 LINEAS.sort(key=lambda f: -float(f.get('mrrIni') or 0))
+assert any(str(f.get('cliente')) == 'Oceánica' for f in LINEAS), \
+    'Oceánica no entró: dirección la puso en el grupo y tiene que estar'
 por_k = {}
 for f in LINEAS:
     por_k.setdefault(k(f['cliente']), []).append(f)
@@ -165,36 +185,62 @@ print('  sin CID              : %d líneas · %s' % (len(sin_cid), mx(total_sin_
 print('  cobertura atribuida  : %.0f%% del MRR del grupo' % (100.0 * total_con_cid / total_grupo))
 
 # ── servicios_json: el desglose por nombre y CID ─────────────────────────
+#
+# EL OBJETIVO ES VISIBILIDAD: «en una sola cuenta tener la visibilidad de todas
+# las empresas que tienen servicio con Callpicker» (dirección, 23 sep 2026).
+# Por eso va UNA ENTRADA POR EMPRESA, las 25, y no un resumen. Agrupar las que
+# no tienen CID en un solo renglón —como estaba— es justo lo contrario de
+# visibilidad: esconde 17 empresas detrás de un total.
 SERVICIOS = []
-orden = sorted(CIDS_DIRECCION, key=lambda x: -mrr(lineas_por_cid[x[1]]))
-for nombre, cid, _ in orden:
-    fs = lineas_por_cid[cid]
-    c = por_cid.get(cid)
-    tk_n, did_n = tickets.get(cid, 0), len(DIDS.get(cid) or [])
-    marca = 'cuenta %s' % c['consecutivo'] if c else 'sin cuenta propia'
-    movs = sorted(set(str(f.get('movimiento') or '') for f in fs))
-    detalle = ''
-    if len(fs) > 1:
-        # Observatorio son dos servicios y se suman: decir de qué se compone,
-        # porque un total sin desglose esconde que hay voz Y chat.
-        detalle = ' Suma %d servicios: %s.' % (
-            len(fs), ' + '.join('%s %s' % (str(f['cliente']).replace(nombre, '').strip(' -()')
-                                           or 'voz', mx(f.get('mrrIni'))) for f in fs))
-    SERVICIOS.append({
-        'nombre': '%s — CID %s' % (nombre, cid),
-        'descripcion': '%s/mes en GRC · %s · %s · %d ticket(s) · %d número(s).%s%s'
-                       % (mx(mrr(fs)), marca, ' / '.join(movs), tk_n, did_n, detalle,
-                          ' BAJA CONFIRMADA.' if any('churn' in m.lower() for m in movs) else ''),
-    })
-# Y las 20 líneas que facturan sin CID conocido, agrupadas en una sola entrada
-# para que el desglose no mienta por omisión.
+
+# 1 · Encabezado con el total, para que el importe del grupo se vea de entrada.
+n_empresas = len(LINEAS) - sum(len(v) - 1 for v in lineas_por_cid.values())
+con_cuenta = sum(1 for _, cid, _ in CIDS_DIRECCION if por_cid.get(cid))
 SERVICIOS.append({
-    'nombre': 'Líneas de GRC sin CID identificado (%d)' % len(sin_cid),
-    'descripcion': '%s/mes en total. No tienen CID en la lista que entregó dirección, así que '
-                   'no se pueden cruzar contra cortes, tickets ni números: %s.'
-                   % (mx(total_sin_cid), ', '.join(str(f['cliente']) for f in sin_cid[:8])
-                      + (' y %d más' % (len(sin_cid) - 8) if len(sin_cid) > 8 else '')),
+    'nombre': 'GRUPO PETROIL Y CÍAS — %d empresas con servicio · %s/mes'
+              % (n_empresas, mx(total_grupo)),
+    'descripcion': 'Visibilidad completa del grupo, una entrada por empresa. %d tienen CID '
+                   'identificado (%s) y %d todavía no (%s) — sin CID no se pueden cruzar contra '
+                   'cortes, tickets ni números. Solo %d tienen cuenta propia en la cartera. '
+                   'El importe de esta ficha NO es el del grupo: es el de esta cuenta, para no '
+                   'contar dos veces lo que ya suman Z47 y C54.'
+                   % (len(CIDS_DIRECCION), mx(total_con_cid), len(sin_cid), mx(total_sin_cid),
+                      con_cuenta),
 })
+
+# 2 · Una entrada por empresa, de mayor a menor importe.
+for f in LINEAS:
+    nombre_grc = str(f.get('cliente') or '')
+    cid = asignadas.get(k(nombre_grc))
+    # La empresa que suma dos servicios (Observatorio: voz y chat) se pinta una
+    # sola vez, con el total y el desglose; su segunda línea se salta.
+    if cid and len(lineas_por_cid[cid]) > 1:
+        if f is not lineas_por_cid[cid][0]:
+            continue
+        fs = lineas_por_cid[cid]
+        etiqueta = next(n for n, c, _ in CIDS_DIRECCION if c == cid)
+        importe, detalle = mrr(fs), ' Suma %d servicios: %s.' % (
+            len(fs), ' + '.join('%s %s' % (str(x['cliente']).replace(etiqueta, '').strip(' -()')
+                                           or 'voz', mx(x.get('mrrIni'))) for x in fs))
+        movs = sorted(set(str(x.get('movimiento') or '') for x in fs))
+    else:
+        fs, etiqueta, importe, detalle = [f], nombre_grc, float(f.get('mrrIni') or 0), ''
+        movs = [str(f.get('movimiento') or '')]
+
+    c = por_cid.get(cid) if cid else None
+    partes = [mx(importe) + '/mes']
+    partes.append('CID %s' % cid if cid else 'CID sin identificar')
+    partes.append('cuenta %s' % c['consecutivo'] if c else 'sin cuenta en la cartera')
+    if cid:
+        partes.append('%d ticket(s)' % tickets.get(cid, 0))
+        partes.append('%d número(s)' % len(DIDS.get(cid) or []))
+    partes.append(' / '.join(movs))
+    SERVICIOS.append({
+        'nombre': etiqueta,
+        'descripcion': ' · '.join(partes) + '.' + detalle
+                       + (' BAJA CONFIRMADA.' if any('churn' in m.lower() for m in movs) else '')
+                       + (' Desactivada.' if any('desactivado' in m.lower() for m in movs) else ''),
+    })
 
 print('\n=== servicios_json: %d entradas ===' % len(SERVICIOS))
 for s in SERVICIOS:
