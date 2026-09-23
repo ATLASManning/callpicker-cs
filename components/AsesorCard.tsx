@@ -8,7 +8,10 @@ import {
   Search, X, ArrowUpDown,
 } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
-import { getSemaforoCuenta, formatMXN, ASESOR_CONFIG } from '@/lib/types'
+import {
+  getSemaforoCuenta, formatMXN, ASESOR_CONFIG,
+  esCuentaSinServicio, esCuentaViva,
+} from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import ActividadesBtn from '@/components/ActividadesBtn'
@@ -36,10 +39,10 @@ export type CuentaRich = Cuenta & { zoho_tickets: ZohoStats }
 
 // ── Ordenamiento de la tabla ──────────────────────────────────────────────────
 type ColOrden = 'consecutivo' | 'empresa' | 'facturacion' | 'health_score'
-              | 'semaforo' | 'dias_sin_actividad' | 'tickets' | 'ultimo_contacto' | 'oportunidad'
+              | 'semaforo' | 'dias_sin_actividad' | 'tickets' | 'ultimo_contacto' | 'estado'
 
 /** Columnas de texto: su primer clic ordena A→Z; las numéricas, de mayor a menor. */
-const COLS_TEXTO: ColOrden[] = ['consecutivo', 'empresa', 'oportunidad']
+const COLS_TEXTO: ColOrden[] = ['consecutivo', 'empresa', 'estado']
 
 const COLUMNAS: { col: ColOrden | null; label: string }[] = [
   { col: 'consecutivo',        label: '#' },
@@ -50,7 +53,7 @@ const COLUMNAS: { col: ColOrden | null; label: string }[] = [
   { col: 'dias_sin_actividad', label: 'Días sin act.' },
   { col: 'tickets',            label: 'Tickets Zoho Desk' },
   { col: 'ultimo_contacto',    label: 'Último contacto' },
-  { col: 'oportunidad',        label: 'Oportunidad' },
+  { col: 'estado',             label: 'Estado' },
   { col: null,                 label: '' },
 ]
 
@@ -68,8 +71,36 @@ function valorOrden(c: CuentaRich, col: ColOrden): string | number | null {
     case 'dias_sin_actividad': return c.dias_sin_actividad ?? null
     case 'tickets':            return c.zoho_tickets?.total ?? 0
     case 'ultimo_contacto':    return c.ultimo_contacto ?? null
-    case 'oportunidad':        return c.upsell_producto ?? c.crossell_producto ?? null
+    // Se ordena por la etiqueta visible, no por el estatus crudo: así el orden
+    // A→Z de la columna es el que el asesor está leyendo (Activa, Dormida).
+    case 'estado':             return estadoCartera(c).label
   }
+}
+
+/**
+ * Estado de cartera que muestra la columna «Estado»: Activa o Dormida.
+ *
+ * Lo decide `esCuentaSinServicio`, EL MISMO predicado que apaga el semáforo a
+ * «Sin servicio» y que cuenta el aviso de arriba («N están dormidas o
+ * canceladas»). Si esta columna tuviera su propio criterio, una fila podría
+ * decir «Activa» junto a un semáforo gris y el panel se contradiría solo.
+ *
+ * El tercer caso no sobra. `lib/types` es explícito en que un estatus vacío o
+ * desconocido NO está vivo pero tampoco se puede dar por muerto, así que no se
+ * elige ninguna de las dos etiquetas: se marca el hueco. Hoy no hay ninguna
+ * cuenta así de las 222; si aparece una mal capturada, se ve como lo que es en
+ * vez de colarse como «Activa».
+ */
+function estadoCartera(c: { estado?: string | null }): {
+  label: string; color: string; bg: string; borde: string
+} {
+  if (esCuentaSinServicio(c.estado)) {
+    return { label: 'Dormida', color: '#475569', bg: '#F1F5F9', borde: '#CBD5E1' }
+  }
+  if (esCuentaViva(c.estado)) {
+    return { label: 'Activa', color: '#047857', bg: '#ECFDF5', borde: '#A7F3D0' }
+  }
+  return { label: 'Sin estatus', color: '#92400E', bg: '#FFF7ED', borde: '#FED7AA' }
 }
 
 interface SemaforoResumen {
@@ -463,6 +494,7 @@ export default function AsesorCard({ asesor, cuentas, resumen, fueraDeCartera = 
                 )}
                 {cuentasVisibles.map((c, ri) => {
                   const semaforo = getSemaforoCuenta(c)
+                  const estadoDeFila = estadoCartera(c)
                   // 'inactivo' explícito: sin este caso caía en el `else` y
                   // pintaba de ROJO ("riesgo alto") una cuenta ya dada de baja.
                   const hsColor = semaforo === 'inactivo' ? '#64748B'
@@ -509,21 +541,24 @@ export default function AsesorCard({ asesor, cuentas, resumen, fueraDeCartera = 
                         </span>
                       </td>
                       <td style={cell}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {c.upsell_producto && (
-                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: '#F0FDF4', color: '#059669', border: '1px solid #BBF7D0', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                              ↑ {c.upsell_producto}
-                            </span>
-                          )}
-                          {c.crossell_producto && (
-                            <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: '#FAF5FF', color: '#7C3AED', border: '1px solid #DDD6FE', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                              ⇄ {c.crossell_producto}
-                            </span>
-                          )}
-                          {!c.upsell_producto && !c.crossell_producto && (
-                            <span style={{ color: L_TX_LOW, fontSize: 12 }}>—</span>
-                          )}
-                        </div>
+                        <Link href={`/cuentas/${c.id}`}
+                          title={`Abrir la ficha de ${c.empresa} — ${estadoDeFila.label}`}
+                          style={{ textDecoration: 'none', display: 'inline-block' }}
+                          className="hover:opacity-75 transition-opacity">
+                          {/* El `background` en línea NO es decoración: dentro de una
+                              `.cp-card` el CSS global fuerza a blanco el texto de los
+                              `<span>` y solo respeta los que declaran fondo propio.
+                              Sin él, la etiqueta se vería en blanco sobre blanco.
+                              Ver la arquitectura de contraste del proyecto. */}
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99,
+                            background: estadoDeFila.bg, color: estadoDeFila.color,
+                            border: `1px solid ${estadoDeFila.borde}`,
+                            whiteSpace: 'nowrap', display: 'inline-block',
+                          }}>
+                            {estadoDeFila.label}
+                          </span>
+                        </Link>
                       </td>
                       <td style={cell}>
                         <Link href={`/cuentas/${c.id}`}
