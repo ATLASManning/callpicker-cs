@@ -331,6 +331,7 @@ export const FINSUS: AuditoriaCase = {
       'Existe un canal de WhatsApp grupal donde se reportan y atienden fallas SIN abrir ticket — el 28 de mayo Jocelyn reportó ahí una falla de filtro y soporte respondió en el mismo canal. Ese trabajo no existe para ninguna métrica.',
       'La distancia entre la mediana (27.7 h) y el promedio (279.1 h) es el dato a vigilar: el servicio típico es bueno, pero la cola larga es muy larga y ahí es donde el cliente pierde la confianza.',
       'Septiembre cierra con una falla SIP activa y 2 tickets de plantillas aún pendientes.',
+      '⚠ NOTA DE CUSTOMER SUCCESS (23 sep 2026) — ESTAS CIFRAS NO COINCIDEN CON EL DATASET DEL MÓDULO TICKETS. El documento declara 91 tickets de febrero a septiembre, con 35 de plantillas (38.5%). El export de Zoho Desk que alimenta el tablero trae, para las MISMAS cuatro cuentas Finsus (CID 163014, 178133, 180640 y 165379), solo 73 tickets, de marzo a septiembre —ninguno en febrero— y 21 de plantillas (28.8%). Se comprobó contra el .xlsx crudo: el generador no filtra nada, la diferencia viene de origen. Las dos fuentes coinciden en el diagnóstico —plantillas es la subcategoría dominante y la reincidencia crítica— pero NO en la magnitud. Aquí se conservan las cifras del documento porque es el entregable firmado; el tablero mostrará las suyas. Antes de citar un número a dirección, decir de cuál de las dos fuentes sale.',
     ],
   },
 
