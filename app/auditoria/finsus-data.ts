@@ -303,11 +303,11 @@ export const FINSUS: AuditoriaCase = {
     periodo: 'Febrero – Septiembre 2026 · 91 tickets · 4 cuentas Finsus',
     diagnostico:
       'El 38.5% de los tickets de Finsus es el mismo trámite: plantillas verificadas de WhatsApp. '
-      'Mismo proceso, mismo solicitante, ocho meses seguidos. No es un problema de capacidad de la '
-      'mesa de ayuda — es una capacitación que nunca se dio, y cada semana cuesta un ticket. '
-      'En paralelo, las actualizaciones de Ingeniería generan fallas que detecta el cliente antes '
-      'que Callpicker, y una parte del soporte ocurre en un canal de WhatsApp grupal sin ticket, '
-      'así que ni siquiera aparece en estas cifras.',
+      + 'Mismo proceso, mismo solicitante, ocho meses seguidos. No es un problema de capacidad de '
+      + 'la mesa de ayuda — es una capacitación que nunca se dio, y cada semana cuesta un ticket. '
+      + 'En paralelo, las actualizaciones de Ingeniería generan fallas que detecta el cliente antes '
+      + 'que Callpicker, y una parte del soporte ocurre en un canal de WhatsApp grupal sin ticket, '
+      + 'así que ni siquiera aparece en estas cifras.',
     metricas: [
       { metrica: 'Total de tickets 2026',   valor: '91',                          lectura: '4 cuentas Finsus, de febrero a septiembre' },
       { metrica: 'Estado al corte',         valor: '87 cerrados · 3 pendientes · 1 abierto', lectura: '95.6% de cierre — 4 siguen activos' },
