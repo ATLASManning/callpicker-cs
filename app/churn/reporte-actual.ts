@@ -180,7 +180,14 @@ export const REPORTE_S21_SEPTIEMBRE_2026: ChurnReporte = {
       + '💰 $68,247.98 EN 53 CUENTAS NO HAN ENTRADO A LA CARTERA — 27.4% de los $249,215.25 por cobrar. '
       + '⛽ TRES CUENTAS DE GRUPO PETROIL EN EL TOP 10 ACTIVO: Centro de Ayuda TI ($4,771), Colosio Mzt ($3,893) y Torre de Control ($3,839), $12,503 entre las tres. Coincide con lo que GRC ya marcaba como Churn confirmado para esas mismas tres líneas. '
       + '🆕 «Mi Hospedaje Travel» entra al Top 10 con $4,914.00 y CERO meses activo: una cuenta que nunca llegó a facturar un mes completo y ya está en cartera por cobrar. '
-      + '📌 EL TOP 10 PESA EL 60.0% de la cartera Activo ($115,771.52 de $193,111.27). Ese porcentaje sale de sumar su propia tabla: el corte no declara cuántas cuentas tiene la cartera en total.',
+      + '📌 EL TOP 10 PESA EL 60.0% de la cartera Activo ($115,771.52 de $193,111.27). Ese porcentaje sale de sumar su propia tabla: el corte no declara cuántas cuentas tiene la cartera en total. '
+      + '\n\n━━ OBSERVACIONES DE CUSTOMER SUCCESS ━━ '
+      + 'Lo que sigue lo detectamos NOSOTROS al conciliar el corte contra sus propias tablas. Por instrucción de dirección queda REGISTRADO de nuestra parte y NO se consultó al equipo Data. No corregimos ninguna cifra publicada: se respeta lo que el corte declara y se anota la diferencia. '
+      + '① LOS DOWNGRADES NO CIERRAN POR $2,962.00. La tabla suma $8,115.55 y con Neruc $19,221.52, pero el corte declara $22,183.52. No es un cliente sin listar: dice «6 clientes identificados» y hay 5 + Neruc = 6. O una cifra publicada está mal, o hay un importe que no se desglosó. Se conserva el total declarado. '
+      + '② DOS IMPORTES CRUZADOS ENTRE DOS CLIENTES. CAMPESTRE LOS VIVEROS quitó un artículo de $1,245 y se le carga una pérdida de $1,460; al HOTEL REAL DE MINAS le ocurre justo al revés. Cada uno lleva la cifra del otro. La suma de los dos no cambia ($2,705 de cualquier modo), pero sus porcentajes de baja sí: el 55% y el 24% están calculados sobre el importe equivocado. '
+      + '③ LOS TRAMOS VENCIDOS SE CRUZAN POR $489.00, Y VAN DOS CORTES SEGUIDOS. El tramo de 8–15 días tiene $489.00 más que Soft Suspend y el de 16–30 exactamente $489.00 menos que Hard. En la semana 20 el mismo cruce fue de $419.00. El neto es cero y el total general no se mueve, así que no es un error de suma: parece que alguna cuenta se clasifica por fecha en un lado y por estado en el otro. Dos cortes seguidos ya no es casualidad. '
+      + '④ EL CORREO SE CONTRADICE EN EL NÚMERO DE SEMANA. El asunto dice «Semana 21» y el cuerpo dice «semana 13» dos veces. Se registra como 21 por continuidad con el corte anterior. '
+      + '⑤ LO QUE SÍ CUADRA, para que conste: Hard Suspend (6+17 = 23 cuentas, $31,996.98), los 7 cancelados ($12,144.00), el total fuera de cartera ($68,247.98 en 53 cuentas) y los cinco tramos de antigüedad ($249,215.25). Contempo BR se reconstruye al centavo desde sus propios datos: 1,959.00 − 1,029.00 = 930.00, el 47%.',
   },
 
   /* Top 10 de cuentas Activo. `ultimaFactura` no viene en este corte. */
@@ -218,7 +225,10 @@ export const REPORTE_S21_SEPTIEMBRE_2026: ChurnReporte = {
     { cliente: 'Contempo BR', perdida: 930.00, nota: '47% de baja. Paquete Min VyC de $1,959.00 a $1,029.00. Es el único que se reconstruye al centavo desde sus propios datos.' },
     { cliente: 'Terralta Residencial', perdida: 781.00, nota: '79% de baja, la mayor en proporción. Quitó paquete Min VyC ($979) y adquirió DiD Nacional ($198): 979 − 198 = 781 ✓.' },
     { cliente: 'Neruc Sede Central — CASO ESPECIAL, NO ENTRA AL RANKING', perdida: 11105.97, nota: 'Facturaba Min Calltracking ($6,099.97) + DiD Nacional ($7,139.00) + DiD Internacional ($300.00) y ahora solo Min VyC ($475.00) + DiD Nacional ($1,958.00). El corte NO define si es un downgrade real por cambio de artículos o un upsell cuyos conceptos del mes anterior faltan por facturar. Requiere revisión antes de contarlo como pérdida.' },
-    { cliente: '⚠ DESCUADRE DEL CORTE — $2,962.00 sin explicar', perdida: 0, nota: 'La tabla suma $8,115.55 y con Neruc $19,221.52, pero el corte declara $22,183.52. No es un cliente sin listar: dice «6 clientes identificados» y hay 5 + Neruc = 6. O una cifra publicada está mal, o hay un importe que no se desglosó. Se registra el total declarado ($22,183.52) y se deja el hueco a la vista en vez de cuadrarlo por la fuerza.' },
+    /* El descuadre de $2,962.00 NO va aquí. Estuvo un momento como una fila más
+       y era un error: la tabla es de CLIENTES, y meter ahí una observación
+       nuestra la convierte en un cliente que no existe. Vive en `notaEspecial`,
+       bajo el bloque de observaciones de Customer Success. */
   ],
 
   suspendidosTotalReal:   56103.98,
