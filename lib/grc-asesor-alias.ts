@@ -70,6 +70,26 @@ export const ALIAS_GRC: ReglaAlias[] = [
         + 'Se apunta a esa cuenta para que el asesor siga vivo.',
   },
   {
+    patron: 'petroil', tipo: 'grupo', cuenta: 'Petroil - Corp de Estaciones',
+    nota: 'Dirección, 22 sep 2026: «Petroil - Torre de Control, Petroil - Corp de '
+        + 'Estaciones e incluso Oceánica son del mismo Grupo; Grupo Petroil debe '
+        + 'atenderlas Dan». GRC lo parte en cinco líneas (Centro de Ayuda TI, Colosio '
+        + 'Mzt, GASCYTSA, Prebiem Oceanica, Torre de Control) y solo dos tienen cuenta '
+        + 'propia. Se apunta a F32 para que el asesor siga vivo. OJO: «Oceánica» NO '
+        + 'entra por esta regla porque no empieza por «Petroil» — cruza sola contra su '
+        + 'cuenta C54, que el 22 sep pasó también a Dan.',
+  },
+  {
+    patron: 'prebiem', tipo: 'grupo', cuenta: 'Petroil - Corp de Estaciones',
+    nota: 'Dirección, 22 sep 2026: «existe también una cuenta con el nombre de PREBIEM, '
+        + 'es de Grupo Petroil» — «si algún día sale, ya sabes a quién corresponde». Al '
+        + '22 sep NO existe como cuenta suelta en ninguna fuente: ni en `cuentas`, ni en '
+        + 'los cortes, ni en GRC, ni en tickets. Solo aparece como ETIQUETA de dos '
+        + 'números (CIDs 146201 y 148385), o sea una línea dentro del grupo. Esta regla '
+        + 'queda puesta por adelantado: el día que Zoho la facture con nombre propio se '
+        + 'atribuye sola, en vez de caer en «sin asesor» y tener que descubrirlo otra vez.',
+  },
+  {
     patron: 'hoteles y servicios', tipo: 'exacto', asesor: 'Dan',
     nota: 'Dirección, 22 sep 2026: «Hoteles y Servicios es de DAN». No hay cuenta '
         + 'con ese nombre en la cartera, así que la atribución es directa.',
