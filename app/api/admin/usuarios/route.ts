@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword, passwordExpira } from '@/lib/password'
 import { esAdminDelTablero } from '@/lib/auth'
@@ -17,9 +16,8 @@ export const dynamic = 'force-dynamic'
  * `x-user-email` la pone el middleware en cada request; sin él no hay sesión y
  * se niega, que es el lado seguro de equivocarse.
  */
-function guardia(): NextResponse | null {
-  const email = headers().get('x-user-email')
-  if (!esAdminDelTablero(email)) {
+function guardia(req: NextRequest): NextResponse | null {
+  if (!esAdminDelTablero(req.headers.get('x-user-email'))) {
     return NextResponse.json(
       { error: 'Solo la administración del tablero puede usar este módulo.' },
       { status: 403 },
@@ -29,8 +27,8 @@ function guardia(): NextResponse | null {
 }
 
 /* GET — listar todos */
-export async function GET() {
-  const no = guardia()
+export async function GET(req: NextRequest) {
+  const no = guardia(req)
   if (no) return no
   const { data, error } = await supabaseAdmin
     .from('usuarios')
@@ -42,7 +40,7 @@ export async function GET() {
 
 /* POST — crear usuario */
 export async function POST(req: NextRequest) {
-  const no = guardia()
+  const no = guardia(req)
   if (no) return no
   const body = await req.json()
   const { email, nombre, rol, asesor_nombre, activo } = body
@@ -59,7 +57,7 @@ export async function POST(req: NextRequest) {
 
 /* PATCH — actualizar usuario o asignar contraseña */
 export async function PATCH(req: NextRequest) {
-  const no = guardia()
+  const no = guardia(req)
   if (no) return no
   const body = await req.json()
   const { id, action, new_password, ...updates } = body
@@ -92,7 +90,7 @@ export async function PATCH(req: NextRequest) {
 
 /* DELETE — eliminar usuario */
 export async function DELETE(req: NextRequest) {
-  const no = guardia()
+  const no = guardia(req)
   if (no) return no
   const { id } = await req.json()
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })

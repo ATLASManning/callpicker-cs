@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase'
 import { esAdminDelTablero } from '@/lib/auth'
 
@@ -15,9 +14,15 @@ import { esAdminDelTablero } from '@/lib/auth'
  * OJO: esto es la ruta de LECTURA. `/api/analytics/pageview` —la que escribe—
  * tiene que seguir abierta a todos: es la que registra la navegación de cada
  * quien, y cerrarla dejaría de alimentar la tabla.
+ *
+ * Se lee `req.headers`, NO `headers()` de next/headers: es el patrón que usa
+ * todo el repo —/api/cuentas, /api/actividades— y por tanto el único que aquí
+ * está probado en producción. El middleware inyecta estas cabeceras con
+ * `res.headers.set()`, una vía poco común, y no es el sitio para estrenar una
+ * forma distinta de leerlas.
  */
 export async function GET(req: NextRequest) {
-  if (!esAdminDelTablero(headers().get('x-user-email'))) {
+  if (!esAdminDelTablero(req.headers.get('x-user-email'))) {
     return NextResponse.json(
       { error: 'Solo la administración del tablero puede consultar el uso.' },
       { status: 403 },
