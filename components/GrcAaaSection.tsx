@@ -146,16 +146,14 @@ export default function GrcAaaSection() {
      `null` mientras carga: sin esa distinción, la tabla diría «sin asesor»
      para todos durante el primer render y eso se lee como un dato, no como una
      espera. Ver la regla de no rellenar huecos con un valor. */
-  const [asesores, setAsesores] = useState<
-    { porNombre: Record<string, { asesor: string; consecutivo: string }>; ambiguos: string[] } | null
-  >(null)
+  const [asesores, setAsesores] = useState<RespuestaAsesores | null>(null)
   const [asesoresError, setAsesoresError] = useState<string | null>(null)
 
   useEffect(() => {
     let vivo = true
     fetch('/api/churn/asesores')
       .then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then(d => { if (vivo) setAsesores({ porNombre: d.porNombre ?? {}, ambiguos: d.ambiguos ?? [] }) })
+      .then(d => { if (vivo) setAsesores(d as RespuestaAsesores) })
       .catch(e => { if (vivo) setAsesoresError(e instanceof Error ? e.message : 'error') })
     return () => { vivo = false }
   }, [])
@@ -163,8 +161,7 @@ export default function GrcAaaSection() {
   /** Asesor de un cliente del export, o null si no se puede afirmar. */
   const asesorDe = useMemo(() => (cliente: string): string | null => {
     if (!asesores) return null
-    const k = normalizarNombre(cliente)
-    return asesores.porNombre[k]?.asesor ?? null
+    return asesores.porCliente?.[normalizarNombre(cliente)]?.asesor ?? null
   }, [asesores])
 
   /* ── Filtrado ── */
@@ -714,7 +711,8 @@ export default function GrcAaaSection() {
              filtros, el mismo encabezado mostraría cifras distintas según lo
              que alguien hubiera tocado antes. */}
       <ConcentracionAaaAa asesorDe={asesorDe} cargando={!asesores && !asesoresError}
-        error={asesoresError} ambiguos={asesores?.ambiguos.length ?? 0} />
+        error={asesoresError} ambiguos={asesores?.ambiguos?.length ?? 0}
+        sugerencias={asesores?.sugerencias ?? []} />
 
       <p className="text-[11px] text-gray-400 text-center">
         Fuente: GRC_AAA_2026.xlsx · Zoho Analytics · {PERIODO_CORTO} · {AAA_GRC_FLAT.length} registros
@@ -728,6 +726,18 @@ export default function GrcAaaSection() {
 const MOV_CHURN = 'Churn confirmado'
 const MOV_DOWNGRADE = 'Downgrade'
 
+/** Lo que devuelve /api/churn/asesores. */
+type Sugerencia = {
+  cliente: string; parecido: number
+  cuenta?: string; consecutivo?: string; asesor?: string
+}
+type RespuestaAsesores = {
+  porCliente: Record<string, { asesor: string; via: 'cartera' | 'alias' | 'directo'; cuenta?: string }>
+  sugerencias: Sugerencia[]
+  sinParecido: string[]
+  ambiguos: string[]
+}
+
 /** ¿La fila entra en la concentración? Solo AAA y AA, solo churn y downgrade. */
 function esDeLaConcentracion(r: AAAGrcRow): 'churn' | 'downgrade' | null {
   if (r.clas !== 'AAA' && r.clas !== 'AA') return null
@@ -739,13 +749,15 @@ function esDeLaConcentracion(r: AAAGrcRow): 'churn' | 'downgrade' | null {
   return null
 }
 
-function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos }: {
+function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos, sugerencias }: {
   asesorDe: (cliente: string) => string | null
   cargando: boolean
   error: string | null
   ambiguos: number
+  sugerencias: Sugerencia[]
 }) {
   const [abierto, setAbierto] = useState(false)
+  const [verSug, setVerSug] = useState(false)
 
   const datos = useMemo(() => {
     const eventos = AAA_GRC_FLAT
@@ -795,6 +807,19 @@ function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos }: {
 
   const { eventos, filas, tot, cierra } = datos
   const totalReal = tot.realChurn + tot.realDg
+
+  /* Las sugerencias las calcula la ruta sobre TODO el export; aquí solo
+     interesan las que caen dentro del recorte AAA/AA de churn y downgrade. */
+  const perdidoPorCliente = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const e of eventos) m.set(e.cliente, (m.get(e.cliente) ?? 0) + e.real)
+    return m
+  }, [eventos])
+  const sugDelRecorte = useMemo(
+    () => sugerencias
+      .filter(s => perdidoPorCliente.has(s.cliente))
+      .sort((a, b) => (perdidoPorCliente.get(b.cliente) ?? 0) - (perdidoPorCliente.get(a.cliente) ?? 0)),
+    [sugerencias, perdidoPorCliente])
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -889,6 +914,65 @@ function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos }: {
           </tbody>
         </table>
       </div>
+
+      {/* ── Por confirmar ──────────────────────────────────────────────────
+             De los que no cruzan, éstos se PARECEN a una cuenta de la cartera.
+             No se asignan: el parecido se equivoca y no avisa —propone
+             «ADSA» ≈ «TATSA» con 0.67 y son dos empresas distintas—. Se
+             muestran aquí para que dirección confirme, y al confirmarse suben
+             a la tabla de lib/grc-asesor-alias.ts. Mientras tanto NO suman a
+             ningún asesor: siguen contados en «Sin asesor en la cartera». */}
+      {sugDelRecorte.length > 0 && (
+        <div className="border-t border-gray-100">
+          <button onClick={() => setVerSug(o => !o)}
+            className="w-full flex items-center justify-between gap-2 px-5 py-3 hover:bg-amber-50/40 transition-colors"
+            style={{ background: '#FFFBEB' }}>
+            <span className="text-xs font-semibold" style={{ color: '#92400E' }}>
+              {sugDelRecorte.length} se parecen a una cuenta de la cartera, pero nadie lo ha confirmado
+            </span>
+            {verSug ? <ChevronUp size={15} style={{ color: '#B45309' }} />
+                    : <ChevronDown size={15} style={{ color: '#B45309' }} />}
+          </button>
+          {verSug && (
+            <div className="overflow-x-auto">
+              <p className="text-[11px] px-5 py-2" style={{ color: '#92400E', background: '#FFFBEB' }}>
+                Sugerencias, no atribuciones. No suman a ningún asesor. Confirma las que sean
+                correctas y se agregan a la tabla de alias.
+              </p>
+              <table className="w-full text-xs" style={{ minWidth: 720 }}>
+                <thead>
+                  <tr className="bg-gray-50/80 border-b border-gray-100">
+                    {['Nombre en GRC', 'Se parece a', 'Asesor de esa cuenta', 'Parecido', 'Perdido real'].map((h, i) => (
+                      <th key={h} className={`py-2.5 px-3 font-semibold uppercase tracking-wide text-[10px] text-gray-500 whitespace-nowrap ${i >= 3 ? 'text-right' : 'text-left'}`}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sugDelRecorte.map(s => (
+                    <tr key={s.cliente} className="border-b border-gray-100 hover:bg-gray-50/40">
+                      <td className="py-2.5 px-3 font-semibold text-gray-900">{s.cliente}</td>
+                      <td className="py-2.5 px-3 text-gray-600">
+                        <span className="font-mono text-[10px] text-gray-400 mr-1.5">{s.consecutivo}</span>
+                        {s.cuenta}
+                      </td>
+                      <td className="py-2.5 px-3 text-gray-700">{s.asesor}</td>
+                      <td className="py-2.5 px-3 text-right tabular-nums"
+                        style={{ color: s.parecido >= 0.85 ? '#B45309' : '#94A3B8' }}>
+                        {(s.parecido * 100).toFixed(0)}%
+                      </td>
+                      <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: '#B91C1C' }}>
+                        {fmtF(perdidoPorCliente.get(s.cliente) ?? 0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Detalle cuenta por cuenta */}
       <button onClick={() => setAbierto(o => !o)}
