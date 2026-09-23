@@ -123,3 +123,116 @@ export const REPORTE_S20_SEPTIEMBRE_2026: ChurnReporte = {
     { cliente: 'Soft Suspend — 17 cuentas · 10.5 días promedio pendiente de pago. El reporte no desglosa nombres.', importe: 11844.00, mesesActivo: 0, estado: 'Suspendido' },
   ],
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   REPORTE SEMANAL — SEMANA 21 · SEPTIEMBRE 2026  (22 sep 2026)
+   Remitente: Valeria Zepeda Hernández (equipo Data).
+
+   CONCILIACIÓN DE ESTE CORTE. Cuadra en casi todo, y donde no, se dice:
+     · Hard: 15,917.98 (6 previas) + 16,079.00 (17 nuevas) = 31,996.98 ✓ y 6+17 = 23 ✓
+     · Cancelados: los 7 importes suman 12,144.00 ✓
+     · Fuera de cartera: 31,996.98 + 24,107.00 + 12,144.00 = 68,247.98 ✓ y 23+23+7 = 53 ✓
+     · Antigüedad: los cinco tramos suman 249,215.25 ✓
+     · Contempo BR se puede reconstruir: 1,959.00 → 1,029.00 = 930.00, el 47% ✓
+
+   ✗ LOS DOWNGRADES NO CIERRAN. La tabla suma 8,115.55 y con Neruc (11,105.97)
+     da 19,221.52, pero el corte declara 22,183.52: faltan $2,962.00. Y NO es
+     un cliente sin listar —dice «6 clientes identificados» y hay 5 + Neruc = 6—,
+     así que o una cifra publicada está mal o hay un importe sin desglosar.
+
+   ✗ DOS IMPORTES CRUZADOS entre CAMPESTRE LOS VIVEROS y HOTEL REAL DE MINAS:
+     CAMPESTRE quitó un artículo de $1,245 y se le carga una pérdida de $1,460;
+     al HOTEL le pasa justo al revés. Cada uno lleva la cifra del otro. El total
+     no cambia (2,705 de cualquier modo), pero los porcentajes sí.
+
+   ⚠ LOS TRAMOS VENCIDOS VUELVEN A CRUZARSE, y ya van dos cortes seguidos: el
+     de 8–15 días tiene $489.00 MÁS que Soft Suspend y el de 16–30 exactamente
+     $489.00 MENOS que Hard. En la semana 20 el cruce fue de $419.00. El neto
+     es cero y el total general no se mueve, así que no es un error de suma —
+     parece que una cuenta se clasifica por fecha en un lado y por estado en el
+     otro. Dos veces seguidas ya no es casualidad: hay que preguntarlo.
+
+   ⚠ EL CORREO SE CONTRADICE EN EL NÚMERO DE SEMANA: el asunto dice «Semana 21»
+     y el cuerpo dice «semana 13» dos veces (en la entrada y en el título de
+     los downgrades). Por continuidad con el corte anterior —que fue la 20— se
+     registra como 21, y queda dicho que el original no es consistente.
+═══════════════════════════════════════════════════════════════════════ */
+export const REPORTE_S21_SEPTIEMBRE_2026: ChurnReporte = {
+  id:      's21-septiembre-2026',
+  periodo: 'Semana 21 · Sep 2026',
+  fecha:   '22/09/2026',
+  notas:   'Gross Revenue Churn · Semana 21. Al 22 de septiembre del 2026. Top 10 de cuentas Activas, Hard Suspend / Soft Suspend / Cancelados con el seguimiento de quiénes escalaron de Soft a Hard, antigüedad de la cartera por cobrar y downgrades ordenados por % de reducción, incluido el caso especial de Neruc Sede Central. Próxima revisión: miércoles 30 de septiembre.',
+  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 30 de septiembre.',
+
+  grc: {
+    evolucion: [
+      { mes: 'Julio',      pct: 1.9,  anterior: 2.0 },
+      { mes: 'Agosto',     pct: 2.3,  anterior: 2.4 },
+      { mes: 'Septiembre', pct: 23.6 },
+    ],
+    acumulado: 17.2,
+    anterior:  17.4,
+    notaClave: 'Churn Q3: Julio baja de 2.0% a 1.9% · Agosto baja de 2.4% a 2.3% · Septiembre 23.6%, MES CORRIENDO Y NO DEFINITIVO. Acumulado hasta agosto 2026: 17.2% (ant. 17.4%).',
+    notaEspecial:
+      '🔴 EL 23.6% DE SEPTIEMBRE NO ES UNA CAÍDA DEL NEGOCIO. Es el mes sin cerrar: Zoho marca como churn todo contrato que aún no se factura. Julio y agosto, ya cerrados, están en 1.9% y 2.3%. Leer el 23.6% como resultado sería el mismo error que ya documentamos en el corte de la semana 20 — el mes vivo mide retraso de cobranza, no bajas. '
+      + '📉 TERCERA CORRECCIÓN A LA BAJA CONSECUTIVA de julio y agosto, ahora de una décima cada uno. Después de los vaivenes de agosto (4.9% → 3.4% → 2.4% → 2.3%) el número por fin se está asentando. '
+      + '🟠 LA ESCALACIÓN ES EL DATO DE LA SEMANA: de las 17 cuentas que estaban en Soft Suspend, 11 pasaron a Hard — el 64%. No es una foto de morosidad, es una tendencia: quien entra en Soft acaba en Hard dos de cada tres veces. El Hard Suspend pasó de 10 cuentas y $17,811.98 (semana 20) a 23 cuentas y $31,996.98, y el promedio de días pendientes subió de 19.5 a 17.9 sobre una base mucho mayor. '
+      + '💰 $68,247.98 EN 53 CUENTAS NO HAN ENTRADO A LA CARTERA — 27.4% de los $249,215.25 por cobrar. '
+      + '⛽ TRES CUENTAS DE GRUPO PETROIL EN EL TOP 10 ACTIVO: Centro de Ayuda TI ($4,771), Colosio Mzt ($3,893) y Torre de Control ($3,839), $12,503 entre las tres. Coincide con lo que GRC ya marcaba como Churn confirmado para esas mismas tres líneas. '
+      + '🆕 «Mi Hospedaje Travel» entra al Top 10 con $4,914.00 y CERO meses activo: una cuenta que nunca llegó a facturar un mes completo y ya está en cartera por cobrar. '
+      + '📌 EL TOP 10 PESA EL 60.0% de la cartera Activo ($115,771.52 de $193,111.27). Ese porcentaje sale de sumar su propia tabla: el corte no declara cuántas cuentas tiene la cartera en total.',
+  },
+
+  /* Top 10 de cuentas Activo. `ultimaFactura` no viene en este corte. */
+  pendientesTotalReal:   193111.27,
+  pendientes: [
+    { cliente: 'ADSA',                          monto: 32375.00, mesesActivo: 92, ultimaFactura: '—' },
+    { cliente: 'Ancona Autopartes',             monto: 27707.00, mesesActivo: 83, ultimaFactura: '—' },
+    { cliente: 'VAEO',                          monto: 15995.52, mesesActivo:  4, ultimaFactura: '—' },
+    { cliente: 'HomiRent',                      monto: 11998.00, mesesActivo: 51, ultimaFactura: '—' },
+    { cliente: 'KW - Pedregal',                 monto:  6481.00, mesesActivo: 93, ultimaFactura: '—' },
+    { cliente: 'Mi Hospedaje Travel',           monto:  4914.00, mesesActivo:  0, ultimaFactura: '—' },
+    { cliente: 'Petroil - Centro de Ayuda TI',  monto:  4771.00, mesesActivo: 36, ultimaFactura: '—' },
+    { cliente: 'Petroil - Colosio Mzt',         monto:  3893.00, mesesActivo: 51, ultimaFactura: '—' },
+    { cliente: 'Petroil - Torre de Control',    monto:  3839.00, mesesActivo: 50, ultimaFactura: '—' },
+    { cliente: 'EKTARIS GRUPO INMOBILIARIO',    monto:  3798.00, mesesActivo:  9, ultimaFactura: '—' },
+  ],
+
+  /* El corte da el motivo de cada baja pero NO los meses activos ni el
+     acumulado histórico: van en 0 porque no se miden, no porque valgan cero. */
+  cancelados: [
+    { cliente: 'VEMEPE — proyecto en pausa: es para un tercero que aún no tiene equipo de atención listo; posible reactivación en ~2 meses.', mrr: 6890.00, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'INBROTEK SERVICIOS — problema financiero: no puede seguir pagando y requiere capitalizarse; rechazó el plan de extensiones ilimitadas en CE.', mrr: 2801.00, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'Bodegard — cambios organizacionales internos.', mrr: 979.00, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'ISESA GENERADORES — falla técnica: la plataforma se desconectaba con frecuencia.', mrr: 967.00, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'Visium Supplies — falta de valor percibido, sin respuesta del cliente.', mrr: 169.00, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'GMG Inmuebles — reducción de operaciones: cliente en proceso de jubilación, ya no usaba el servicio.', mrr: 169.00, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'Espacio Mexico — motivo desconocido, sin respuesta del cliente.', mrr: 169.00, mesesActivo: 0, acumulado: 0 },
+  ],
+
+  downgradeTotalReal: 22183.52,
+  downgrades: [
+    { cliente: 'IML', perdida: 3699.55, nota: '23% de baja. Quitó CALLPICKER ($3,699.55) — artículo «PND Mensaje en Conversación Nov 25». Es la mayor pérdida de la tabla.' },
+    { cliente: 'CAMPESTRE LOS VIVEROS', perdida: 1460.00, nota: '55% de baja. Quitó Agente CP Chat ($1,245). ⚠ La cifra de pérdida y la del artículo NO coinciden, y están cruzadas con las del Hotel Real de Minas: ese quitó $1,460 y se le carga $1,245. Cada uno lleva el importe del otro.' },
+    { cliente: 'HOTEL REAL DE MINAS SAN MIGUEL DE ALLENDE', perdida: 1245.00, nota: '24% de baja. Quitó Extensión VyC ($1,460). ⚠ Mismo cruce que CAMPESTRE: el artículo vale más que la pérdida declarada.' },
+    { cliente: 'Contempo BR', perdida: 930.00, nota: '47% de baja. Paquete Min VyC de $1,959.00 a $1,029.00. Es el único que se reconstruye al centavo desde sus propios datos.' },
+    { cliente: 'Terralta Residencial', perdida: 781.00, nota: '79% de baja, la mayor en proporción. Quitó paquete Min VyC ($979) y adquirió DiD Nacional ($198): 979 − 198 = 781 ✓.' },
+    { cliente: 'Neruc Sede Central — CASO ESPECIAL, NO ENTRA AL RANKING', perdida: 11105.97, nota: 'Facturaba Min Calltracking ($6,099.97) + DiD Nacional ($7,139.00) + DiD Internacional ($300.00) y ahora solo Min VyC ($475.00) + DiD Nacional ($1,958.00). El corte NO define si es un downgrade real por cambio de artículos o un upsell cuyos conceptos del mes anterior faltan por facturar. Requiere revisión antes de contarlo como pérdida.' },
+    { cliente: '⚠ DESCUADRE DEL CORTE — $2,962.00 sin explicar', perdida: 0, nota: 'La tabla suma $8,115.55 y con Neruc $19,221.52, pero el corte declara $22,183.52. No es un cliente sin listar: dice «6 clientes identificados» y hay 5 + Neruc = 6. O una cifra publicada está mal, o hay un importe que no se desglosó. Se registra el total declarado ($22,183.52) y se deja el hueco a la vista en vez de cuadrarlo por la fuerza.' },
+  ],
+
+  suspendidosTotalReal:   56103.98,
+  suspendidosCuentasReal: 46,
+  suspendidos: [
+    { cliente: 'Hard Suspend — 23 cuentas · 17.9 días promedio pendiente de pago. 6 vienen de la semana anterior ($15,917.98) y 17 son nuevas ($16,079.00); de ellas, 11 escalaron desde Soft Suspend.', importe: 31996.98, mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Soft Suspend — 23 cuentas · 11.7 días promedio pendiente de pago. El corte solo desglosa las 5 mayores: iELO ($3,969), EM SOLUCIONES ($3,217), DOSATEC ($2,382), COTERRA AGROBSNSS ($2,356) y MUMBII ($1,745).', importe: 24107.00, mesesActivo: 0, estado: 'Suspendido' },
+  ],
+
+  antiguedadSaldos: [
+    { rango: 'Por vencer (total Activo)', monto: 193111.27 },
+    { rango: '1–7 días vencido',          monto: 0.00 },
+    { rango: '8–15 días vencido',         monto: 24596.00 },
+    { rango: '16–30 días vencido',        monto: 31507.98 },
+    { rango: 'Más de 30 días',            monto: 0.00 },
+  ],
+}
