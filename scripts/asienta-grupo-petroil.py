@@ -52,15 +52,26 @@ FECHA = '2026-09-23'
 CONSECUTIVO = 'F32'
 NOMBRE_NUEVO = 'Grupo Petroil y Cías'
 
-# Los 7 CID tal como los entregó dirección el 23 sep 2026.
+# Los 7 CID que entregó dirección el 23 sep 2026, con las líneas de GRC que le
+# corresponden a cada uno. El tercer elemento es el mapeo EXPLÍCITO: no se
+# deduce por parecido de nombres, se declara.
+#
+# Cinco emparejaban solas por nombre exacto. Las otras dos las confirmó
+# dirección el mismo día, y por eso están aquí y no adivinadas:
+#   · CID 95890 = «Petroil - Corporativo» — el nombre que mandó era solo
+#     «Petroil», genérico. Cuadra con lo que ya se veía: es el CID con más peso
+#     operativo del grupo (28 números, 7 tickets), o sea el paraguas.
+#   · CID 134502 = Observatorio 1873 **con sus dos servicios, voz Y chat**. Son
+#     dos líneas en GRC y se SUMAN; tomar solo una habría perdido la mitad.
 CIDS_DIRECCION = [
-    ('Petroil - Geogas',             '160933'),
-    ('Petroil - Manzanillo',         '160484'),
-    ('Petroil - Prebiem Oceanica',   '148385'),
-    ('Petroil - Corp de Estaciones', '146201'),
-    ('PETROIL Observatorio',         '134502'),
-    ('Petroil - Torre de Control',   '119552'),
-    ('Petroil',                      '95890'),
+    ('Petroil - Geogas',             '160933', ['Petroil - Geogas']),
+    ('Petroil - Manzanillo',         '160484', ['Petroil - Manzanillo']),
+    ('Petroil - Prebiem Oceanica',   '148385', ['Petroil - Prebiem Oceanica']),
+    ('Petroil - Corp de Estaciones', '146201', ['Petroil - Corp de Estaciones']),
+    ('Petroil - Observatorio 1873',  '134502', ['Petroil - Observatorio 1873',
+                                                'Petroil - Observatorio 1873 (Chat)']),
+    ('Petroil - Torre de Control',   '119552', ['Petroil - Torre de Control']),
+    ('Petroil - Corporativo',        '95890',  ['Petroil - Corporativo']),
 ]
 
 _env = {}
@@ -119,52 +130,62 @@ cuentas = rest('cuentas?select=id,cid,consecutivo,empresa,asesor,estado,facturac
 por_cid = dict((norm(c['cid']), c) for c in cuentas if norm(c['cid']))
 F32 = [c for c in cuentas if c['consecutivo'] == CONSECUTIVO][0]
 
-# ── Emparejar CID ↔ línea de GRC ─────────────────────────────────────────
-mrr_por_cid, sin_importe = {}, []
-for nombre, cid in CIDS_DIRECCION:
-    hits = por_k.get(k(nombre), [])
-    if len(hits) == 1:
-        mrr_por_cid[cid] = hits[0]
-    else:
-        sin_importe.append((nombre, cid))
+# ── Emparejar CID ↔ línea(s) de GRC, por el mapeo declarado ──────────────
+# Se valida en las dos direcciones: que cada nombre declarado exista una sola
+# vez en GRC, y que ninguna línea quede asignada a dos CID. Un mapeo a mano sin
+# validar es igual de peligroso que uno adivinado.
+lineas_por_cid, asignadas = {}, {}
+for nombre, cid, nombres_grc in CIDS_DIRECCION:
+    hits = []
+    for n in nombres_grc:
+        c = por_k.get(k(n), [])
+        assert len(c) == 1, 'la línea «%s» aparece %d veces en GRC, no 1' % (n, len(c))
+        assert k(n) not in asignadas, \
+            'la línea «%s» ya está asignada al CID %s' % (n, asignadas.get(k(n)))
+        asignadas[k(n)] = cid
+        hits.append(c[0])
+    lineas_por_cid[cid] = hits
 
-usados = set(k(f['cliente']) for f in mrr_por_cid.values())
-sin_cid = [f for f in LINEAS if k(f['cliente']) not in usados]
+sin_cid = [f for f in LINEAS if k(f['cliente']) not in asignadas]
 
-total_grupo = sum(float(f.get('mrrIni') or 0) for f in LINEAS)
-total_con_cid = sum(float(f.get('mrrIni') or 0) for f in mrr_por_cid.values())
-total_sin_cid = sum(float(f.get('mrrIni') or 0) for f in sin_cid)
+def mrr(fs):
+    return sum(float(f.get('mrrIni') or 0) for f in fs)
+
+total_grupo = mrr(LINEAS)
+total_con_cid = sum(mrr(v) for v in lineas_por_cid.values())
+total_sin_cid = mrr(sin_cid)
+n_con_cid = sum(len(v) for v in lineas_por_cid.values())
 assert abs(total_con_cid + total_sin_cid - total_grupo) < 0.01, 'el dinero no cierra'
-assert len(mrr_por_cid) + len(sin_cid) == len(LINEAS), 'las lineas no cierran'
+assert n_con_cid + len(sin_cid) == len(LINEAS), 'las lineas no cierran'
 
 print('=== GRUPO PETROIL, CONCILIADO ===')
 print('  líneas en GRC        : %d · %s' % (len(LINEAS), mx(total_grupo)))
-print('  con CID de dirección : %d · %s' % (len(mrr_por_cid), mx(total_con_cid)))
-print('  sin CID              : %d · %s' % (len(sin_cid), mx(total_sin_cid)))
-print('  CIDs sin importe     : %d — %s' % (len(sin_importe), [c for _, c in sin_importe]))
+print('  con CID (7 cuentas)  : %d líneas · %s' % (n_con_cid, mx(total_con_cid)))
+print('  sin CID              : %d líneas · %s' % (len(sin_cid), mx(total_sin_cid)))
+print('  cobertura atribuida  : %.0f%% del MRR del grupo' % (100.0 * total_con_cid / total_grupo))
 
 # ── servicios_json: el desglose por nombre y CID ─────────────────────────
 SERVICIOS = []
-for nombre, cid in CIDS_DIRECCION:
-    f = mrr_por_cid.get(cid)
+orden = sorted(CIDS_DIRECCION, key=lambda x: -mrr(lineas_por_cid[x[1]]))
+for nombre, cid, _ in orden:
+    fs = lineas_por_cid[cid]
     c = por_cid.get(cid)
     tk_n, did_n = tickets.get(cid, 0), len(DIDS.get(cid) or [])
-    marca = ' · cuenta %s' % c['consecutivo'] if c else ' · sin cuenta propia'
-    if f:
-        mov = str(f.get('movimiento') or '')
-        SERVICIOS.append({
-            'nombre': '%s — CID %s' % (nombre, cid),
-            'descripcion': '%s/mes en GRC%s. %s · %d ticket(s) · %d número(s). %s'
-                           % (mx(f.get('mrrIni')), marca, mov, tk_n, did_n,
-                              'BAJA CONFIRMADA.' if 'churn' in mov.lower() else ''),
-        })
-    else:
-        SERVICIOS.append({
-            'nombre': '%s — CID %s' % (nombre, cid),
-            'descripcion': 'IMPORTE SIN ATRIBUIR%s. GRC no tiene una línea con ese nombre '
-                           'exacto, y no se le asigna una a la fuerza. %d ticket(s) · '
-                           '%d número(s).' % (marca, tk_n, did_n),
-        })
+    marca = 'cuenta %s' % c['consecutivo'] if c else 'sin cuenta propia'
+    movs = sorted(set(str(f.get('movimiento') or '') for f in fs))
+    detalle = ''
+    if len(fs) > 1:
+        # Observatorio son dos servicios y se suman: decir de qué se compone,
+        # porque un total sin desglose esconde que hay voz Y chat.
+        detalle = ' Suma %d servicios: %s.' % (
+            len(fs), ' + '.join('%s %s' % (str(f['cliente']).replace(nombre, '').strip(' -()')
+                                           or 'voz', mx(f.get('mrrIni'))) for f in fs))
+    SERVICIOS.append({
+        'nombre': '%s — CID %s' % (nombre, cid),
+        'descripcion': '%s/mes en GRC · %s · %s · %d ticket(s) · %d número(s).%s%s'
+                       % (mx(mrr(fs)), marca, ' / '.join(movs), tk_n, did_n, detalle,
+                          ' BAJA CONFIRMADA.' if any('churn' in m.lower() for m in movs) else ''),
+    })
 # Y las 20 líneas que facturan sin CID conocido, agrupadas en una sola entrada
 # para que el desglose no mienta por omisión.
 SERVICIOS.append({
@@ -181,7 +202,7 @@ for s in SERVICIOS:
 
 # ── La bitácora ──────────────────────────────────────────────────────────
 def fila(f):
-    cid = next((c for c, x in mrr_por_cid.items() if x is f), None)
+    cid = asignadas.get(k(f['cliente']))
     return '  · %-38s %12s  %-18s%s' % (
         str(f['cliente'])[:38], mx(f.get('mrrIni')), str(f.get('movimiento'))[:18],
         ('  CID %s' % cid) if cid else '')
@@ -190,20 +211,19 @@ def fila(f):
 NOTA = (
     'GRUPO PETROIL Y CÍAS — asiento consolidado (%s).\n\n'
     'Dirección entregó los 7 CID del grupo para asentarlo todo en una cuenta con los importes '
-    'separados por nombre y CID. Esta cuenta (antes «Petroil - Corp de Estaciones», F32) pasa a '
-    'ser el asiento del grupo; el desglose vive en Servicios contratados.\n\n'
-    'LA CONCILIACIÓN, Y DÓNDE NO CIERRA:\n'
-    '· %d líneas en el export de GRC, %s/mes en total.\n'
-    '· %d de los 7 CID emparejan con una línea por nombre exacto: %s/mes.\n'
-    '· %d líneas NO tienen CID en la lista y suman %s/mes — o sea, **el 65%% del dinero del '
-    'grupo sigue sin poder cruzarse** contra cortes, tickets o números.\n'
-    '· 2 CID se quedaron SIN importe atribuido, y no se les forzó uno:\n'
-    '    – «PETROIL Observatorio» (CID 134502): GRC tiene DOS líneas parecidas, '
-    '«Observatorio 1873» (%s) y «Observatorio 1873 (Chat)» (%s). Elegir una sería inventar.\n'
-    '    – «Petroil» (CID 95890): nombre genérico. Es el CID con MÁS peso operativo del grupo '
-    '(28 números y 7 tickets), probablemente el paraguas, pero GRC no tiene una línea llamada '
-    'solo «Petroil». La candidata natural es «Petroil - Corporativo» (%s), que hoy es la '
-    'segunda mayor del grupo y no tiene cuenta — pero eso lo confirma dirección, no yo.\n\n'
+    'separados por nombre y CID. Esta cuenta (antes «Petroil - Corp de Estaciones», F32) es el '
+    'asiento del grupo; el desglose vive en Servicios contratados.\n\n'
+    'LOS 7 CID CUBREN %s/mes de los %s del grupo — el %.0f%%.\n\n'
+    'DOS ATRIBUCIONES LAS CONFIRMÓ DIRECCIÓN, no se dedujeron:\n'
+    '· **CID 95890 = «Petroil - Corporativo»** (%s). El nombre que venía en la lista era solo '
+    '«Petroil», genérico. Cuadra con lo que ya se veía: es el CID con más peso operativo del '
+    'grupo —28 números y 7 tickets—, o sea el paraguas.\n'
+    '· **CID 134502 = Observatorio 1873, con sus DOS servicios: voz Y chat.** Son dos líneas '
+    'en GRC y se SUMAN (%s + %s). Tomar solo una habría perdido la mitad del importe. Y tiene '
+    'una consecuencia de producto: **Grupo Petroil YA tiene Callpicker Chat contratado.**\n\n'
+    'LO QUE SIGUE SIN CUBRIR: %d líneas sin CID por %s/mes (el %.0f%% del grupo). Sin CID no se '
+    'pueden cruzar contra cortes, tickets ni números. Las mayores son «Centro de Ayuda TI» '
+    '(baja confirmada), «MG Mazatlán», «Colosio Mzt» (baja) y «GC Motors Culiacán».\n\n'
     'LAS %d LÍNEAS, de mayor a menor:\n%s\n\n'
     'LO QUE ESTE ASIENTO **NO** HIZO, a propósito:\n'
     '· NO se cambió `facturacion`. Sigue en %s. Subirla al total del grupo duplicaría lo que ya '
@@ -215,11 +235,11 @@ NOTA = (
     'facturación.** Cero cortes en los siete. Así que para este grupo no hay medición de '
     'consumo, minutos ni extensiones por ningún lado, y el único importe posible es el MRR que '
     'declara Zoho.'
-    % (FECHA, len(LINEAS), mx(total_grupo), len(mrr_por_cid), mx(total_con_cid),
-       len(sin_cid), mx(total_sin_cid),
-       mx(next((f['mrrIni'] for f in LINEAS if 'Observatorio 1873' == str(f['cliente']).split(' - ')[-1]), 0)),
-       mx(next((f['mrrIni'] for f in LINEAS if '(Chat)' in str(f['cliente'])), 0)),
-       mx(next((f['mrrIni'] for f in LINEAS if str(f['cliente']).endswith('Corporativo')), 0)),
+    % (FECHA, mx(total_con_cid), mx(total_grupo), 100.0 * total_con_cid / total_grupo,
+       mx(mrr(lineas_por_cid['95890'])),
+       mx(lineas_por_cid['134502'][0].get('mrrIni')),
+       mx(lineas_por_cid['134502'][1].get('mrrIni')),
+       len(sin_cid), mx(total_sin_cid), 100.0 * total_sin_cid / total_grupo,
        len(LINEAS), '\n'.join(fila(f) for f in LINEAS), mx(F32['facturacion']))
 )
 
@@ -230,9 +250,9 @@ print('  … %d líneas, %d caracteres' % (len(NOTA.split('\n')), len(NOTA)))
 
 NOTAS = ((F32.get('notas') or '') +
          '\n\n[GRUPO PETROIL %s] Huecos abiertos del grupo: (1) ninguno de los 7 CID tiene cortes, '
-         'así que no hay medición de consumo; (2) %s/mes en %d líneas de GRC sin CID, que no se '
-         'pueden cruzar con nada; (3) los CID 134502 y 95890 quedaron sin importe atribuido; '
-         '(4) falta decidir si Z47 y C54 se absorben en este asiento.'
+         'así que no hay medición de consumo, minutos ni extensiones; (2) %s/mes en %d líneas de '
+         'GRC sin CID, que no se pueden cruzar con nada; (3) falta decidir si Z47 y C54 se '
+         'absorben en este asiento y si `facturacion` sube al total del grupo.'
          % (FECHA, mx(total_sin_cid), len(sin_cid)))
 
 cuerpo = {
