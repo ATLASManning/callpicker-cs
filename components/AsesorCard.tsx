@@ -6,9 +6,10 @@ import {
   ChevronDown, ChevronUp, ArrowUpRight, AlertTriangle,
   DollarSign, LifeBuoy, Phone, Mail, Hash,
   Search, X, ArrowUpDown,
-  Activity, Moon, TrendingDown, ArrowDownRight, Sparkles, UserX,
+  Activity, Moon, TrendingDown, ArrowDownRight, Sparkles, UserX, ClipboardList,
 } from 'lucide-react'
 import type { ChurnAsesor } from '@/lib/churn-por-asesor'
+import type { AuditoriasAsesor } from '@/lib/auditorias-por-asesor'
 import type { Cuenta } from '@/lib/types'
 import {
   getSemaforoCuenta, formatMXN, ASESOR_CONFIG,
@@ -125,6 +126,9 @@ interface Props {
   churn?: ChurnAsesor
   /** Qué período cubre ese churn, para que el número no flote sin fecha. */
   periodoChurn?: string
+  /** Auditorías del asesor y su estatus. Lo calcula la página en el servidor:
+   *  los 33 casos pesan ~1 MB y aquí solo llega el resumen. */
+  auditorias?: AuditoriasAsesor
   defaultOpen?: boolean
 }
 
@@ -188,10 +192,18 @@ function KpiCard({
 const SIN_CHURN: ChurnAsesor = {
   churns: 0, mrrChurn: 0, downgrades: 0, mrrDowngrade: 0, mrrTotal: 0,
 }
+const SIN_AUDITORIAS: AuditoriasAsesor = { total: 0, porEstado: [], abiertas: 0 }
+
+/* Un solo estilo para los cinco botones del encabezado. Antes cada uno
+   repetía la clase completa y dos ya habían quedado con tamaños distintos. */
+const BTN_ACCION = 'inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg '
+  + 'text-[11px] font-bold text-white shadow-sm transition-all duration-150 '
+  + 'whitespace-nowrap hover:brightness-110'
 
 export default function AsesorCard({
   asesor, cuentas, resumen, fueraDeCartera = 0,
-  churn = SIN_CHURN, periodoChurn = '—', defaultOpen = false,
+  churn = SIN_CHURN, periodoChurn = '—', auditorias = SIN_AUDITORIAS,
+  defaultOpen = false,
 }: Props) {
   const [expanded, setExpanded] = useState(defaultOpen)
   const [busqueda, setBusqueda] = useState('')
@@ -300,6 +312,35 @@ export default function AsesorCard({
                 style={{ background: 'rgba(255,255,255,0.08)', color: TX_MID }}>
                 {cuentas.length} cuentas
               </span>
+
+              {/* ── Acciones, en línea ──────────────────────────────────────
+                  Antes vivían en una columna fija de 280px a la derecha, que
+                  dejaba muerto todo el ancho intermedio y empujaba la tarjeta
+                  a lo alto. Aquí siguen al contador de cuentas y bajan solas
+                  cuando no caben. Un separador las distingue de las etiquetas,
+                  que informan y no se tocan. */}
+              <span aria-hidden className="self-stretch w-px mx-1"
+                style={{ background: 'rgba(255,255,255,0.14)' }} />
+
+              <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
+                className={BTN_ACCION} style={{ background: '#0F766E' }}>
+                <LifeBuoy size={12} /> Centro de Ayuda
+              </a>
+              <a href="https://callpicker.slack.com" target="_blank" rel="noopener noreferrer"
+                className={BTN_ACCION} style={{ background: '#4A154B' }}>
+                <SlackIcon size={12} /> Slack Callpicker
+              </a>
+              <a href="https://my.callpicker.com/" target="_blank" rel="noopener noreferrer"
+                className={BTN_ACCION} style={{ background: '#0E30CC' }}>
+                <Phone size={12} /> Callpicker
+              </a>
+              <button onClick={() => setExpanded(v => !v)}
+                className={BTN_ACCION} style={{ background: ac.color }}>
+                {expanded
+                  ? <><ChevronUp size={12} /> Compactar</>
+                  : <><ChevronDown size={12} /> Ver cuentas</>}
+              </button>
+              <ActividadesBtn asesor={asesor} acColor={ac.color} inline />
             </div>
 
             {/* Datos de contacto */}
@@ -325,45 +366,6 @@ export default function AsesorCard({
             </div>
           </div>
 
-          {/* Acciones — 2×2 + botón ACTIVIDADES full-width */}
-          <div className="flex flex-col gap-2 flex-shrink-0 self-start" style={{ minWidth: 280 }}>
-            <div className="grid grid-cols-2 gap-2">
-              {/* 1 — Centro de Ayuda */}
-              <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold
-                  text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
-                style={{ background: '#0F766E' }}>
-                <LifeBuoy size={13} /> Centro de Ayuda
-              </a>
-              {/* 2 — Slack */}
-              <a href="https://callpicker.slack.com" target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold
-                  text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
-                style={{ background: '#4A154B' }}>
-                <SlackIcon size={13} /> Slack Callpicker
-              </a>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {/* 3 — My Callpicker */}
-              <a href="https://my.callpicker.com/" target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold
-                  text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
-                style={{ background: '#0E30CC' }}>
-                <Phone size={13} /> Callpicker
-              </a>
-              {/* 4 — Compactar / Expandir */}
-              <button onClick={() => setExpanded(v => !v)}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl
-                  text-xs font-bold text-white shadow-sm transition-all duration-150 whitespace-nowrap hover:brightness-110"
-                style={{ background: ac.color }}>
-                {expanded
-                  ? <><ChevronUp size={13} /> Compactar</>
-                  : <><ChevronDown size={13} /> Ver cuentas</>}
-              </button>
-            </div>
-            {/* 5 — Actividades SAC (full-width) */}
-            <ActividadesBtn asesor={asesor} acColor={ac.color} />
-          </div>
         </div>
 
         {/* ── Fila KPIs ─────────────────────────────────────────────────── */}
@@ -398,7 +400,35 @@ export default function AsesorCard({
               value={String(sinContacto)} accent="#F97316"
               sub="bloquean actividades SAC" />
           )}
+          {auditorias.total > 0 && (
+            <KpiCard icon={<ClipboardList size={14} />} label="Auditorías"
+              value={String(auditorias.total)} accent="#6366F1"
+              sub={auditorias.abiertas > 0
+                ? `${auditorias.abiertas} sin cerrar`
+                : 'todas cerradas'} />
+          )}
         </div>
+
+        {/* ── Auditorías por estatus ─────────────────────────────────────
+             El número solo no dice nada: diez auditorías «activo» y diez
+             «perdido» son dos realidades opuestas. El desglose va con el
+             color del estatus, que es el mismo que usa el módulo Auditoría.
+             El `background` en línea es obligatorio: dentro de una tarjeta
+             oscura el CSS global fuerza a blanco el texto de los `<span>` y
+             solo respeta los que declaran fondo propio. */}
+        {auditorias.total > 0 && (
+          <div className="px-6 pb-5 flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-bold uppercase tracking-widest"
+              style={{ color: TX_LOW }}>Auditorías</span>
+            {auditorias.porEstado.map(e => (
+              <span key={e.estado}
+                className="text-[10px] font-bold px-2.5 py-1 rounded-full"
+                style={{ background: `${e.color}22`, color: e.color, border: `1px solid ${e.color}44` }}>
+                {e.n} {e.label}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* ── Mini semáforo ─────────────────────────────────────────────── */}
         <div className="px-6 pb-5 flex gap-2 flex-wrap">

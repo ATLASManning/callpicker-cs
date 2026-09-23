@@ -680,9 +680,14 @@ function renderInline(text: string): React.ReactNode {
 export default function ActividadesBtn({
   asesor,
   acColor,
+  inline = false,
 }: {
   asesor:  string
   acColor: string
+  /** El botón nace a ancho completo porque vivía en una columna propia. En
+   *  línea con los demás botones del encabezado eso lo estiraría sobre todo el
+   *  renglón, así que esta variante lo deja a su ancho natural. */
+  inline?: boolean
 }) {
   const [open,        setOpen]        = useState(false)
   const [actividades, setActividades] = useState<Actividad[]>([])
@@ -863,7 +868,8 @@ export default function ActividadesBtn({
           background: '#7C3AED', color: '#fff',
           fontSize: 11, fontWeight: 700, cursor: 'pointer',
           transition: 'filter 0.15s',
-          position: 'relative', width: '100%',
+          position: 'relative', width: inline ? 'auto' : '100%',
+          whiteSpace: 'nowrap',
         }}
         onMouseEnter={e => (e.currentTarget.style.filter = 'brightness(1.15)')}
         onMouseLeave={e => (e.currentTarget.style.filter = '')}

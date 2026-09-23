@@ -8,6 +8,7 @@ import AutoRefresh from '@/components/AutoRefresh'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import { construirResolutor } from '@/lib/grc-asesor-alias'
 import { churnPorAsesor, deAsesor, PERIODO_GRC } from '@/lib/churn-por-asesor'
+import { auditoriasPorAsesor, auditoriasDe } from '@/lib/auditorias-por-asesor'
 import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -34,6 +35,9 @@ export default async function AsesoresPage() {
     isAsesor ? getCuentas() : Promise.resolve(null),
   ])
   const churn = churnPorAsesor(construirResolutor(cuentasTodas ?? cuentasDb))
+  // Se calcula aquí, en el servidor: los 33 casos pesan ~1 MB y a la tarjeta
+  // solo le llega el resumen.
+  const auditorias = auditoriasPorAsesor()
   // Regla 30 Ago 2026: tickets abiertos del dataset vivo, no de la columna.
   const cuentasRaw = cuentasDb.map(c => ({ ...c, tickets_abiertos: ticketStatsCuenta(c.cid ?? null, c.empresa).abiertos }))
 
@@ -111,6 +115,7 @@ export default async function AsesoresPage() {
               fueraDeCartera={fueraDeCartera}
               churn={deAsesor(churn, asesor)}
               periodoChurn={PERIODO_GRC}
+              auditorias={auditoriasDe(auditorias, asesor)}
               defaultOpen={idx === 0}   // Primer asesor abierto por defecto
             />
           )
