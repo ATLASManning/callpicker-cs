@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase'
+import { esAdminDelTablero } from '@/lib/auth'
 
+/**
+ * LECTURA de la analítica de navegación. Cerrada a la administración del
+ * tablero (23 sep 2026), igual que la pantalla que la consume.
+ *
+ * No estaba: `/api/analytics` entero vive en COMUNES_APIS de lib/permisos.ts,
+ * así que cualquier rol podía pedir el uso de CUALQUIER persona con solo poner
+ * el correo en la URL. Cerrar «Uso Dashboard» en el menú y dejar esto abierto
+ * habría sido cerrar la puerta y dejar la ventana.
+ *
+ * OJO: esto es la ruta de LECTURA. `/api/analytics/pageview` —la que escribe—
+ * tiene que seguir abierta a todos: es la que registra la navegación de cada
+ * quien, y cerrarla dejaría de alimentar la tabla.
+ */
 export async function GET(req: NextRequest) {
+  if (!esAdminDelTablero(headers().get('x-user-email'))) {
+    return NextResponse.json(
+      { error: 'Solo la administración del tablero puede consultar el uso.' },
+      { status: 403 },
+    )
+  }
   const { searchParams } = new URL(req.url)
   const email  = searchParams.get('email')
   const asesor = searchParams.get('asesor')

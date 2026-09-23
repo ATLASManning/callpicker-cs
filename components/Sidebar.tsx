@@ -10,6 +10,7 @@ import {
   Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox,
 } from 'lucide-react'
 import type { SessionPayload } from '@/lib/auth'
+import { esAdminDelTablero } from '@/lib/auth'
 
 // ── Navy oscuro profundo ──────────────────────────────────────────────────────
 const SB   = '#0D1829'
@@ -269,8 +270,15 @@ export default function Sidebar() {
             ? <NavGroupItem key={entry.group} {...entry} />
             : <NavLink key={(entry as NavItem).href} {...(entry as NavItem)} />
         )}
-        {/* Admin: gestión de usuarios + reporte de uso */}
-        {me?.rol === 'admin' && (
+        {/* Administración del tablero — solo los correos de dirección.
+            Antes se mostraba con `rol === 'admin'`, que funcionaba de
+            casualidad: los dos únicos admin eran justo esos correos. Con el rol
+            bastaba darle `admin` a alguien desde esta misma pantalla para que
+            se viera. Ahora va por correo, y el menú usa EL MISMO predicado que
+            el middleware — ocultar el enlace no protege nada por sí solo, pero
+            si el menú y el guardia no coinciden aparece un enlace que lleva a
+            una pantalla que rebota. */}
+        {esAdminDelTablero(me?.email) && (
           <>
             <NavLink href="/admin/usuarios" label="Usuarios"       icon={Users} />
             <NavLink href="/admin/uso"      label="Uso Dashboard"  icon={Activity} />

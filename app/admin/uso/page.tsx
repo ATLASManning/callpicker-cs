@@ -123,15 +123,23 @@ export default function UsoDashboardPage() {
   const [selected,  setSelected]  = useState<UsuarioMin | null>(null)
   const [emailInput, setEmailInput] = useState('')
   const [rows,      setRows]      = useState<Row[]>([])
+  /** El correo que se consultó. Es lo único que siempre se tiene: el usuario
+   *  seleccionado puede faltar si se buscó tecleando, y sin esto no había
+   *  forma de titular el reporte ni el aviso de «sin registros». */
+  const [buscado,   setBuscado]   = useState('')
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [open,      setOpen]      = useState(false)
 
   // Cargar lista de usuarios al montar
   useEffect(() => {
+    // `/api/admin/usuarios` devuelve un ARREGLO, no `{ usuarios: [...] }`.
+    // Leer `d.usuarios` daba siempre undefined, así que el combo «Elegir
+    // usuario…» salía vacío SIEMPRE — y como no fallaba, no había error que
+    // mirar. Se aceptan las dos formas por si la ruta cambia algún día.
     fetch('/api/admin/usuarios')
-      .then(r => r.ok ? r.json() : { usuarios: [] })
-      .then(d => setUsuarios(d.usuarios ?? []))
+      .then(r => r.ok ? r.json() : [])
+      .then(d => setUsuarios(Array.isArray(d) ? d : (d?.usuarios ?? [])))
       .catch(() => {})
   }, [])
 
@@ -140,6 +148,7 @@ export default function UsoDashboardPage() {
     setLoading(true)
     setError('')
     setRows([])
+    setBuscado(email)
     try {
       const res = await fetch(`/api/analytics/uso?email=${encodeURIComponent(email)}`)
       if (!res.ok) { setError('No se pudo cargar los datos'); return }
@@ -263,25 +272,37 @@ export default function UsoDashboardPage() {
       {error && (
         <div className="cp-card p-5 text-sm text-red-600 font-medium">{error}</div>
       )}
-      {!loading && !error && rows.length === 0 && selected && (
+      {/* El aviso de «sin registros» ya NO exige `selected`. Cuando el correo
+          se teclea a mano —que es justo lo que hay que hacer si el combo viene
+          vacío— `selected` se queda en null, así que no salía ni el reporte ni
+          este mensaje: la pantalla quedaba muda, sin siquiera un «no hay
+          datos». Ahora basta con haber buscado algo. */}
+      {!loading && !error && rows.length === 0 && buscado && (
         <div className="cp-card p-10 text-center text-textMid text-sm">
-          Sin registros de uso para <strong>{selected.nombre}</strong>.
+          Sin registros de uso para <strong>{selected?.nombre ?? buscado}</strong>.
           El tracking comienza a registrarse a partir de esta versión del dashboard.
         </div>
       )}
 
       {/* ── Reporte ─────────────────────────────────────────────── */}
-      {stats && selected && (
+      {/* Antes exigía `selected` y por eso no pintaba nada al buscar por
+          correo. Lo que de verdad hace falta son los datos; el usuario
+          seleccionado solo aporta el nombre y el color, y ambos tienen
+          alternativa. */}
+      {stats && (
         <>
           {/* Header del asesor */}
           <div className="cp-card p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
               style={{ background: asesorColor }}>
-              {selected.nombre.charAt(0)}
+              {(selected?.nombre ?? buscado).charAt(0).toUpperCase()}
             </div>
             <div className="flex-1">
-              <p className="text-base font-bold text-textHi">{selected.nombre}</p>
-              <p className="text-xs text-textMid">{selected.email}</p>
+              {/* Si se buscó por correo y ese correo no está en `usuarios` —el
+                  caso de Aurora, que sí tiene 19 registros de uso—, el nombre
+                  no existe. Se muestra el correo, que es el dato que sí hay. */}
+              <p className="text-base font-bold text-textHi">{selected?.nombre ?? buscado}</p>
+              <p className="text-xs text-textMid">{selected?.email ?? buscado}</p>
             </div>
             {firstDate && (
               <div className="text-right text-xs text-textMid">

@@ -65,6 +65,49 @@ export function esEmailAutorizado(email: string | null | undefined): boolean {
   return emailsAutorizados().has(email.trim().toLowerCase())
 }
 
+/**
+ * Administración del tablero: Gestión de Usuarios y Uso Dashboard.
+ *
+ * Instrucción de dirección (23 sep 2026): «de estos apartados nadie debe tener
+ * acceso, solo josel@callpicker.com y lopezdjosemanuel@gmail.com», y «no debe
+ * aparecer en sus accesos salvo en los 2 que son el administrador».
+ *
+ * POR QUÉ NO BASTA CON EL ROL `admin`
+ * -----------------------------------
+ * Hasta hoy `/admin` se protegía con `rol === 'admin'`, y funcionaba porque da
+ * la casualidad de que los dos únicos admin son justo esos dos correos. Pero
+ * eso es una coincidencia, no una regla: el día que alguien reciba el rol desde
+ * Gestión de Usuarios —que es exactamente lo que esa pantalla hace— entraría a
+ * administrar accesos sin que nadie lo hubiera decidido. La lista por correo
+ * cierra esa puerta.
+ *
+ * Va AQUÍ y no en `lib/permisos.ts` porque los permisos son por ROL y esto es
+ * por PERSONA. Mezclarlos habría hecho creer que se gobierna creando un rol.
+ *
+ * Se puede sobreescribir con la variable ADMIN_TABLERO en Vercel, igual que la
+ * lista blanca general, por si hay que rotar a alguien sin desplegar.
+ */
+const ADMIN_TABLERO_DEFAULT = [
+  'josel@callpicker.com',
+  'lopezdjosemanuel@gmail.com',
+]
+
+export function adminsDelTablero(): Set<string> {
+  const raw  = process.env.ADMIN_TABLERO
+  const list = raw ? raw.split(',') : ADMIN_TABLERO_DEFAULT
+  return new Set(list.map(e => e.trim().toLowerCase()).filter(Boolean))
+}
+
+/** ¿Este correo puede entrar a /admin y a /api/admin? */
+export function esAdminDelTablero(email: string | null | undefined): boolean {
+  if (!email) return false
+  const e = email.trim().toLowerCase()
+  // Doble compuerta: además de estar en la lista de administración, tiene que
+  // seguir en la lista blanca general. Una baja general da de baja también su
+  // acceso de administrador, sin tener que acordarse de dos sitios.
+  return adminsDelTablero().has(e) && esEmailAutorizado(e)
+}
+
 function getSecret() {
   const s = process.env.JWT_SECRET
   if (!s) throw new Error('JWT_SECRET no configurado')

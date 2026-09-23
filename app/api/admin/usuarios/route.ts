@@ -1,11 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword, passwordExpira } from '@/lib/password'
+import { esAdminDelTablero } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * Segunda cerradura, a propósito.
+ *
+ * El middleware ya bloquea todo `/api/admin/`, y es ahí donde se decide. Pero
+ * esta ruta devuelve la lista de accesos del tablero y puede CREARLOS, así que
+ * no se queda dependiendo de una sola comprobación que vive en otro archivo: si
+ * alguien toca `ADMIN_ONLY` en el middleware, esto sigue cerrado.
+ *
+ * `x-user-email` la pone el middleware en cada request; sin él no hay sesión y
+ * se niega, que es el lado seguro de equivocarse.
+ */
+function guardia(): NextResponse | null {
+  const email = headers().get('x-user-email')
+  if (!esAdminDelTablero(email)) {
+    return NextResponse.json(
+      { error: 'Solo la administración del tablero puede usar este módulo.' },
+      { status: 403 },
+    )
+  }
+  return null
+}
+
 /* GET — listar todos */
 export async function GET() {
+  const no = guardia()
+  if (no) return no
   const { data, error } = await supabaseAdmin
     .from('usuarios')
     .select('id, email, nombre, rol, asesor_nombre, activo, ultimo_acceso, creado_en, password_expira')
@@ -16,6 +42,8 @@ export async function GET() {
 
 /* POST — crear usuario */
 export async function POST(req: NextRequest) {
+  const no = guardia()
+  if (no) return no
   const body = await req.json()
   const { email, nombre, rol, asesor_nombre, activo } = body
   if (!email || !nombre || !rol) {
@@ -31,6 +59,8 @@ export async function POST(req: NextRequest) {
 
 /* PATCH — actualizar usuario o asignar contraseña */
 export async function PATCH(req: NextRequest) {
+  const no = guardia()
+  if (no) return no
   const body = await req.json()
   const { id, action, new_password, ...updates } = body
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
@@ -62,6 +92,8 @@ export async function PATCH(req: NextRequest) {
 
 /* DELETE — eliminar usuario */
 export async function DELETE(req: NextRequest) {
+  const no = guardia()
+  if (no) return no
   const { id } = await req.json()
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
   const { error } = await supabaseAdmin.from('usuarios').delete().eq('id', id)

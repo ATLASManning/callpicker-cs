@@ -4,7 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
-import { COOKIE_NAME, esEmailAutorizado } from '@/lib/auth'
+import { COOKIE_NAME, esEmailAutorizado, esAdminDelTablero } from '@/lib/auth'
 import { puedeAbrir, definicionRol } from '@/lib/permisos'
 
 const PUBLIC_PATHS  = ['/acceso', '/api/auth/']
@@ -70,7 +70,23 @@ export async function middleware(req: NextRequest) {
       return res
     }
 
-    if (isAdminOnly(pathname) && rol !== 'admin') {
+    /* Administración del tablero —Gestión de Usuarios y Uso Dashboard— cerrada
+     * a dos correos por instrucción de dirección (23 sep 2026). Ya NO basta el
+     * rol `admin`: ver el porqué en `esAdminDelTablero`, lib/auth.ts.
+     *
+     * Aquí es donde se decide de verdad. Ocultar los enlaces del menú no
+     * protege nada —la URL se puede teclear— y una comprobación dentro de la
+     * página tampoco alcanza a sus APIs. Esto corre antes que ambas.
+     *
+     * A las llamadas de API se les responde 403 y no un redirect, que el
+     * cliente no sabría interpretar. */
+    if (isAdminOnly(pathname) && !esAdminDelTablero(email)) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Solo la administración del tablero puede usar este módulo.' },
+          { status: 403 },
+        )
+      }
       const url = req.nextUrl.clone()
       url.pathname = '/'
       return NextResponse.redirect(url)
