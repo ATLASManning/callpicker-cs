@@ -139,6 +139,47 @@ por_k = {}
 for f in LINEAS:
     por_k.setdefault(k(f['cliente']), []).append(f)
 
+# ── Los números del CID paraguas, con su `id` ────────────────────────────
+# Dirección compartió el 23 sep el export de números del CID 95890. Los 28
+# números ya estaban en data/dids.json; lo NUEVO es la columna `id`, que es
+# `telephone_number_id` — la llave que faltaba para cruzar números con el
+# archivo de llamadas (pendiente abierto desde el 21 sep).
+#
+# Y lo que destapa: 14 de las 17 líneas de GRC «sin CID» tienen su número aquí.
+# O sea que el Corporativo es el paraguas OPERATIVO del grupo: Zoho las factura
+# como contratos separados, pero en Callpicker son números de una misma cuenta.
+NUMEROS_95890 = []
+_p = os.path.join(RAIZ, 'data', 'dids-petroil-95890.xlsx')
+if os.path.exists(_p):
+    import openpyxl
+    _wb = openpyxl.load_workbook(_p, data_only=True, read_only=True)
+    _ws = _wb[_wb.sheetnames[0]]
+    _it = _ws.iter_rows(values_only=True)
+    _cab = [str(x).strip() for x in next(_it)]
+    for _r in _it:
+        _d = dict(zip(_cab, _r))
+        _desc = str(_d.get('description') or '').strip()
+        try:                      # mojibake Mac Roman, igual que en gen-dids
+            _rt = _desc.encode('mac_roman').decode('utf-8')
+            if _rt.encode('utf-8').decode('mac_roman') == _desc:
+                _desc = _rt
+        except Exception:
+            pass
+        NUMEROS_95890.append({'id': _d.get('id'), 'numero': str(_d.get('number') or ''),
+                              'etiqueta': _desc})
+
+
+def numero_de(nombre_linea):
+    """Número que opera esa línea, si su etiqueta lo identifica sin ambigüedad."""
+    corto = str(nombre_linea).replace('Petroil - ', '').strip()
+    if not corto:
+        return None
+    hits = [x for x in NUMEROS_95890
+            if x['etiqueta'] and (k(corto) in k(x['etiqueta']) or k(x['etiqueta']) in k(corto))]
+    # Con más de una coincidencia no se elige: se dice que hay varias.
+    return hits[0] if len(hits) == 1 else (hits if hits else None)
+
+
 TK = json.load(io.open(os.path.join(RAIZ, 'lib', 'tickets-data.json'), encoding='utf-8'))
 TK = TK if isinstance(TK, list) else (TK.get('rows') or TK.get('tickets') or [])
 import collections
@@ -234,6 +275,17 @@ for f in LINEAS:
     if cid:
         partes.append('%d ticket(s)' % tickets.get(cid, 0))
         partes.append('%d número(s)' % len(DIDS.get(cid) or []))
+    else:
+        # Sin CID propio, pero puede estar operando por un número del paraguas.
+        n = numero_de(etiqueta)
+        if isinstance(n, dict):
+            partes.append('opera por el %s («%s», id %s) bajo el CID 95890'
+                          % (n['numero'], n['etiqueta'], n['id']))
+        elif isinstance(n, list):
+            partes.append('%d números candidatos bajo el CID 95890 (%s) — sin definir cuál'
+                          % (len(n), ', '.join(x['etiqueta'] for x in n)))
+        else:
+            partes.append('SIN número identificado')
     partes.append(' / '.join(movs))
     SERVICIOS.append({
         'nombre': etiqueta,
