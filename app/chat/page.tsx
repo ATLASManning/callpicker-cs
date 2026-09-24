@@ -71,6 +71,35 @@ const SUGERENCIAS = [
   'Muéstrame las cuentas en auditoría de Claudia',
 ]
 
+/* ── Negritas ──────────────────────────────────────────────────────────────
+ *
+ * El prompt le pide al modelo que NO use markdown con asteriscos, y aun así
+ * los manda. Pedirlo más fuerte no lo garantiza: un modelo generativo no es
+ * determinista, y la pantalla mostraba «**Facturación:**» en crudo en cada
+ * bullet — sucio, y encima delata el andamio.
+ *
+ * Así que se resuelve donde SÍ es determinista: al pintar. Lo que venga entre
+ * dobles asteriscos se pone en negrita y los asteriscos desaparecen.
+ *
+ * Deliberadamente NO es un intérprete de markdown: solo negritas. Meter aquí
+ * un renderizador completo abriría la puerta a que el modelo decida la
+ * estructura de la pantalla, y esa decisión no es suya.
+ */
+const RX_NEGRITA = /\*\*([^*]+)\*\*/g
+
+function conNegritas(texto: string): React.ReactNode {
+  // `split` con grupo de captura intercala: [texto, negrita, texto, ...].
+  // Nunca `RX_NEGRITA.test()` — al ser global guarda `lastIndex` entre
+  // llamadas y alternaría true/false sobre la misma cadena.
+  const partes = texto.split(RX_NEGRITA)
+  if (partes.length === 1) return texto
+  return partes.map((p, i) =>
+    i % 2 === 1
+      ? <strong key={i} style={{ color: '#FFFFFF', fontWeight: 700 }}>{p}</strong>
+      : <span key={i}>{p}</span>
+  )
+}
+
 // ── Badge por tipo de respuesta ───────────────────────────────────────────────
 /* Los tres avisos que puedo dar sobre mi propia respuesta. Van INVERTIDOS
  * respecto al resto del tablero: allí el badge es un relleno pastel con texto
@@ -492,7 +521,7 @@ export default function ChatPage() {
                 m.confianza === 'baja' ? s.mioBaja
                   : m.confianza === 'media' ? s.mioMedia : s.mioAlta,
               ].join(' ')}>
-                <p className={s.texto}>{m.content}</p>
+                <p className={s.texto}>{conNegritas(m.content)}</p>
                 <TipoBadge tipo={m.tipo ?? 'normal'} confianza={m.confianza} />
                 {(m.msTardado !== undefined || (m.confianza && m.confianza !== 'alta')) && (
                   <p className={s.meta}>

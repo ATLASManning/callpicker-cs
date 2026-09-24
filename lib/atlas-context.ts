@@ -127,14 +127,51 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
   if (!mejor) return null
   const c = mejor
 
-  // Cruce con las listas vivas de churn: a una cuenta perdida no se le ofrece
-  // portafolio de crecimiento — el dossier lo advierte y el prompt lo respeta.
+  /* ── LO QUE FALTABA: EL RIESGO ────────────────────────────────────────
+   *
+   * INCIDENTE GRUPO 2711 (24 sep 2026). A la pregunta «¿cómo va Grupo 2711?»
+   * Atlas contestó «activo, Health Score 84, buena salud general». La cuenta
+   * tenía a la vez: CHURN CONFIRMADO en GRC ($2,732 perdidos), una auditoría
+   * estratégica completa con `estado: 'en_riesgo'`, tres incidentes de
+   * plataforma, una disculpa formal de dirección y un Agente Virtual ya pagado
+   * que hoy RESTA valor. Nada de eso llegaba al dossier.
+   *
+   * Dos huecos, los dos arreglados abajo:
+   *   1. El cruce con GRC era por nombre EXACTO. La cuenta se llama «GRUPO
+   *      2711» y GRC la llama «GRUPO 2711 (BATERIAS SENDERO)»: normalizados no
+   *      empatan. Le pasa a 10 cuentas vivas más.
+   *   2. La AUDITORÍA no entraba. Es la fuente que dice `en_riesgo` con nombre
+   *      y apellido, y contradice al `estado` de la tabla `cuentas`.
+   */
   const nEmp = normalizarNombre(c.empresa)
+
+  /* Coincidencia por PREFIJO, no solo exacta: GRC añade la marca comercial
+   * entre paréntesis y eso rompe la igualdad. Se exigen 7 caracteres para que
+   * un prefijo corto no arrastre cuentas ajenas — y NUNCA se afirma que sean
+   * la misma: se dice bajo qué nombre aparece y se pide verificar. Una alerta
+   * que se equivoca al acusar se deja de mirar igual que una que no avisa. */
+  const casiIgual = (a: string, b: string) =>
+    a.length >= 7 && b.length >= 7 && (a.startsWith(b) || b.startsWith(a))
+  const grcParecido = !NOMBRES_CHURN_GRC.has(nEmp)
+    ? Array.from(NOMBRES_CHURN_GRC).find(n => casiIgual(nEmp, n))
+    : null
+
   const alertaChurn =
     NOMBRES_CANCELACION.has(nEmp) ? 'aparece en cancelaciones confirmadas (Churn > Analisis DATA)' :
     NOMBRES_CHURN_GRC.has(nEmp)   ? 'aparece como Churn confirmado (GRC AAA 2026)' :
+    grcParecido
+      ? `GRC AAA 2026 registra PERDIDA bajo un nombre casi igual ("${grcParecido}") — ` +
+        'verificar si es esta misma cuenta antes de darla por sana' :
     (c.estado && c.estado !== 'activo' && c.estado !== 'en_riesgo')
       ? `estado "${c.estado}" en la plataforma (no es cartera activa)` : null
+
+  /* LA AUDITORÍA DE ESTA CUENTA. Si existe, manda sobre el Health Score: es un
+   * trabajo humano con fechas, responsables y hallazgos, y el score es un
+   * número calculado. Cuando los dos no coinciden, eso MISMO es la noticia. */
+  const auditoria = STATIC_CASES.find(a => {
+    const na = normalizarNombre(a.nombre)
+    return na === nEmp || casiIgual(na, nEmp)
+  }) ?? null
 
   // Fuentes vivas en paralelo (facturación SIEMPRE desde Zoho en vivo — la
   // columna cuentas.facturacion es una copia guardada que envejece; incidente
@@ -191,7 +228,26 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
 
   const antig = c.activo_desde ? `cliente desde ${String(c.activo_desde).slice(0, 10)}` : 'antigüedad sin registrar'
 
-  const text = `DOSSIER DE CUENTA — ${c.empresa} (pregunta del usuario la menciona; USA ESTOS DATOS, la cuenta SI existe):
+  /* EL RIESGO VA PRIMERO, ANTES QUE EL HEALTH SCORE.
+   *
+   * Aquí estaba el error de fondo del incidente de Grupo 2711: el dossier
+   * abría con «Estado: activo | HS 84» y la advertencia venía después, si es
+   * que venía. Quien lee —persona o modelo— se queda con lo primero, y lo
+   * primero era un número tranquilizador.
+   *
+   * Ahora, si hay auditoría o alerta de churn, eso encabeza el dossier y dice
+   * explícitamente que el Health Score NO es la conclusión. */
+  const bloqueRiesgo = (auditoria || alertaChurn) ? `
+  ⚠️ LEE ESTO ANTES QUE EL HEALTH SCORE — esta cuenta tiene señales de riesgo:${alertaChurn ? `
+  · CHURN: ${alertaChurn}` : ''}${auditoria ? `
+  · AUDITORIA ESTRATEGICA "${auditoria.nombre}" (v${auditoria.version}, ${auditoria.fecha_auditoria}) — estado declarado: ${auditoria.estado.toUpperCase()}.
+    Contexto: ${auditoria.tipo_cliente}
+    ${auditoria.hallazgos?.length ? `Hallazgos (${auditoria.hallazgos.length}): ${auditoria.hallazgos.slice(0, 4).map(h => h.replace(/\s+/g, ' ').slice(0, 180)).join(' | ')}` : ''}
+    ${auditoria.estado !== c.estado ? `OJO: la auditoria dice "${auditoria.estado}" y la tabla de cuentas dice "${c.estado}". NO son lo mismo y la auditoria es trabajo humano con fechas y responsables — si se contradicen, DILO en la respuesta en vez de elegir la cifra mas comoda.` : ''}` : ''}
+  REGLA: con estas señales NO se concluye "buena salud" por un Health Score alto. El score es un calculo; esto son hechos. Nombra el riesgo en la PRIMERA linea de tu respuesta.
+` : ''
+
+  const text = `DOSSIER DE CUENTA — ${c.empresa} (pregunta del usuario la menciona; USA ESTOS DATOS, la cuenta SI existe):${bloqueRiesgo}
   Identidad: ${c.consecutivo} | CID ${c.cid ?? 'sin CID'} | Asesor: ${c.asesor} | Estado: ${c.estado} | HS ${hsFalta ? 'FALTA (sin calcular)' : c.health_score ?? '?'} | Adopción ${c.score_adopcion ?? '?'}/100 | ${antig}${alertaChurn ? `
   ALERTA CHURN: ${alertaChurn} — NO ofrecer portafolio de crecimiento; el enfoque correcto es retencion/reactivacion.` : ''}
   Facturación: ${z
