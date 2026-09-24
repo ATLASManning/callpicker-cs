@@ -29,6 +29,15 @@ const ACCENT = '#0057FF'
 
 const NIVEL_COLOR = { green: GREEN, amber: AMBER, red: RED }
 
+/** La forma de las pastillas de acción de un artículo. Estaba copiada cuatro
+ *  veces con los mismos ocho valores: cambiar el tamaño obligaba a acertar en
+ *  las cuatro, y bastaba fallar en una para que la fila quedara desalineada. */
+const ACCION_BASE: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 5,
+  fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 6,
+  transition: 'opacity 150ms', lineHeight: 1.4,
+}
+
 // ── Enlaces dentro de texto ───────────────────────────────────────────────────
 // Los artículos de Integraciones traen la URL de documentación oficial dentro
 // del propio texto del alcance. Sin esto quedaban como texto muerto: el asesor
@@ -221,118 +230,40 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
   const [verDoc, setVerDoc] = useState(false)
   const hasExtra = !!(art.tarificacion || art.funcionamiento || art.consideraciones ||
     art.modalidades || art.acciones || art.graficas || art.apis || art.subtitulos || art.utilidad || art.bloques)
+  /** ¿Hay fila de acciones que pintar debajo del título? 24 de los 88
+   *  artículos traen PDF, y unos pocos enlace externo. */
+  const hayAcciones = !!(art.pdfUrl || art.linkUrl)
 
   return (
     <div style={{
       borderRadius: 12, background: PANEL, border: `1px solid ${BORDER}`,
       overflow: 'hidden', marginBottom: 12,
     }}>
-      {/* Header del artículo */}
+      {/* HEADER — solo el título, la descripción y el acordeón.
+          Las acciones (ver aquí / PDF / descargar / enlace) VIVÍAN AQUÍ
+          DENTRO, y eso es HTML inválido: un <button> no puede contener otro
+          elemento interactivo. Funcionaba por los `e.stopPropagation()` de
+          cada uno, pero quien navega con teclado recorría botones dentro de
+          botones con un orden de foco impredecible, y un lector de pantalla
+          anunciaba el artículo entero como etiqueta del botón de dentro.
+          Ahora las acciones son una fila HERMANA, justo debajo: desaparecen
+          los stopPropagation y el «Ver aquí» deja de ser un botón falso. */}
       <button
         onClick={() => hasExtra && setOpen(v => !v)}
+        aria-expanded={hasExtra ? open : undefined}
         style={{
-          width: '100%', padding: '18px 22px', textAlign: 'left',
+          width: '100%', padding: hayAcciones ? '18px 22px 0' : '18px 22px',
+          textAlign: 'left',
           background: 'transparent', border: 'none',
           cursor: hasExtra ? 'pointer' : 'default',
           display: 'flex', alignItems: 'flex-start', gap: 14,
         }}
       >
         <div style={{ flex: 1 }}>
-          {/* Título + badge + PDF */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
             <p style={{ fontSize: 17, fontWeight: 700, color: TX }}>{art.titulo}</p>
+            {/* El badge se queda: es texto, no es interactivo. */}
             {art.badge && <Badge type={art.badge} />}
-            {/* Lectura DENTRO de la Base de Conocimiento, sin abrir otra
-                pestaña ni descargar. */}
-            {art.pdfUrl && (
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={e => { e.stopPropagation(); setVerDoc(v => !v) }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault(); e.stopPropagation(); setVerDoc(v => !v)
-                  }
-                }}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-                  background: verDoc ? catColor : `${catColor}18`,
-                  color: verDoc ? '#fff' : catColor,
-                  border: `1px solid ${catColor}${verDoc ? '' : '35'}`,
-                  cursor: 'pointer', transition: 'opacity 150ms',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-              >
-                {verDoc ? <EyeOff size={11} /> : <Eye size={11} />}
-                {verDoc ? 'Ocultar documento' : 'Ver aquí'}
-              </span>
-            )}
-            {art.pdfUrl && (
-              <a
-                href={art.pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={e => e.stopPropagation()}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-                  background: `${catColor}18`, color: catColor,
-                  border: `1px solid ${catColor}35`, textDecoration: 'none',
-                  transition: 'opacity 150ms',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-              >
-                <FileText size={11} />
-                Ver PDF
-              </a>
-            )}
-            {/* Descarga directa. "Ver PDF" abre el visor del navegador; este
-                botón guarda el archivo. El atributo `download` sólo surte
-                efecto en mismo origen — los PDF viven en /public/docs, así
-                que se cumple. */}
-            {art.pdfUrl && (
-              <a
-                href={art.pdfUrl}
-                download
-                onClick={e => e.stopPropagation()}
-                title={`Descargar ${art.pdfUrl.split('/').pop()}`}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-                  background: `${catColor}18`, color: catColor,
-                  border: `1px solid ${catColor}35`, textDecoration: 'none',
-                  transition: 'opacity 150ms',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-              >
-                <Download size={11} />
-                Descargar
-              </a>
-            )}
-            {art.linkUrl && (
-              <a
-                href={art.linkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={e => e.stopPropagation()}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 6,
-                  background: `${catColor}18`, color: catColor,
-                  border: `1px solid ${catColor}35`, textDecoration: 'none',
-                  transition: 'opacity 150ms',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-              >
-                <ExternalLink size={11} />
-                {art.linkLabel ?? 'Ver enlace'}
-              </a>
-            )}
           </div>
           <p style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>{art.descripcion}</p>
           {art.ubicacion && (
@@ -356,6 +287,78 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           </div>
         )}
       </button>
+
+      {/* ── Acciones ──────────────────────────────────────────────────────
+          Fuera del <button> de arriba, que es de lo que se trataba. Cada una
+          es ya el elemento que le corresponde —<button> lo que alterna algo,
+          <a> lo que navega— así que el teclado y los lectores de pantalla las
+          anuncian por lo que son, sin `stopPropagation` de por medio. */}
+      {hayAcciones && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+          padding: '12px 22px 18px',
+        }}>
+          {/* Lectura DENTRO de la Base de Conocimiento, sin abrir otra
+              pestaña ni descargar. Ahora es un <button> de verdad: ya no
+              necesita `role`, ni `tabIndex`, ni su propio manejo de Enter y
+              Espacio — el navegador lo hace. */}
+          {art.pdfUrl && (
+            <button
+              type="button"
+              onClick={() => setVerDoc(v => !v)}
+              aria-expanded={verDoc}
+              style={{ ...ACCION_BASE, background: verDoc ? catColor : `${catColor}18`,
+                color: verDoc ? '#fff' : catColor,
+                border: `1px solid ${catColor}${verDoc ? '' : '35'}`, cursor: 'pointer' }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              {verDoc ? <EyeOff size={11} /> : <Eye size={11} />}
+              {verDoc ? 'Ocultar documento' : 'Ver aquí'}
+            </button>
+          )}
+          {art.pdfUrl && (
+            <a
+              href={art.pdfUrl} target="_blank" rel="noopener noreferrer"
+              style={{ ...ACCION_BASE, background: `${catColor}18`, color: catColor,
+                border: `1px solid ${catColor}35`, textDecoration: 'none' }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              <FileText size={11} />
+              Ver PDF
+            </a>
+          )}
+          {/* Descarga directa. «Ver PDF» abre el visor del navegador; ésta
+              guarda el archivo. El atributo `download` sólo surte efecto en
+              mismo origen — los PDF viven en /public/docs, así que se cumple. */}
+          {art.pdfUrl && (
+            <a
+              href={art.pdfUrl} download
+              title={`Descargar ${art.pdfUrl.split('/').pop()}`}
+              style={{ ...ACCION_BASE, background: `${catColor}18`, color: catColor,
+                border: `1px solid ${catColor}35`, textDecoration: 'none' }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              <Download size={11} />
+              Descargar
+            </a>
+          )}
+          {art.linkUrl && (
+            <a
+              href={art.linkUrl} target="_blank" rel="noopener noreferrer"
+              style={{ ...ACCION_BASE, background: `${catColor}18`, color: catColor,
+                border: `1px solid ${catColor}35`, textDecoration: 'none' }}
+              onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+              onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+            >
+              <ExternalLink size={11} />
+              {art.linkLabel ?? 'Ver enlace'}
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Visor del documento — se lee aquí mismo, sin salir del módulo */}
       {art.pdfUrl && verDoc && (
@@ -656,7 +659,12 @@ export default function BaseCSPage() {
                   {grupo}
                 </p>
               )}
-              <button onClick={() => { setActiva(c.id); setQuery('') }} style={{
+              {/* `aria-current` dice cuál está abierta a quien no ve el
+                  color ni el borde izquierdo: sin esto, un lector de pantalla
+                  anuncia diecisiete botones idénticos. */}
+              <button onClick={() => { setActiva(c.id); setQuery('') }}
+                aria-current={isActive ? 'page' : undefined}
+                style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 12px', borderRadius: 9, width: '100%',
                 textAlign: 'left', cursor: 'pointer', transition: 'all 150ms',
