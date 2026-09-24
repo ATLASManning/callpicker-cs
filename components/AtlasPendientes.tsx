@@ -19,7 +19,7 @@ const BORDER = '#E2E8F0'
 const TX     = '#0F172A'
 const TX_MID = '#475569'
 const TX_LOW = '#94A3B8'
-const AMBAR  = '#A75C05'
+const AMBAR  = '#D97706'
 
 export interface Pendiente {
   id: string; pregunta: string; motivo: string | null
