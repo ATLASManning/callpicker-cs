@@ -480,3 +480,107 @@ body {
 
 /* El contenido de la aplicación va por encima del fondo. */
 .cp-sobre-fondo { position: relative; z-index: 1; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ATLAS IA — la única pantalla oscura del tablero
+   ══════════════════════════════════════════════════════════════════════════
+
+   POR QUE ROMPE CON EL RESTO. Todo el dashboard es claro porque son tablas,
+   cifras y fichas: superficies para leer datos. Esta pantalla no es eso. Es
+   una conversación, y una conversación con algo que escucha no se sostiene
+   sobre una hoja en blanco. El cambio de fondo es la señal de que aquí se
+   entra a otra cosa.
+
+   `html, body` llevan `background: #EFF6FF !important`, así que el oscuro no
+   se consigue pintando el body: se consigue con una superficie propia que
+   cubre el hueco. `.atlas-fondo` es esa superficie.                         */
+.atlas-fondo {
+  background:
+    radial-gradient(1200px 520px at 50% 108%, rgba(56,132,255,0.16), transparent 70%),
+    radial-gradient(900px 420px at 12% -10%, rgba(125,211,252,0.07), transparent 65%),
+    #070C16;
+  color: #E8F0FF;
+}
+
+/* LA GEOMETRIA, QUE ES LO QUE SE ME ROMPIO PRIMERO.
+   El chat pedia `h-screen` —100vh exactos— y `main` mide justo 100vh. Con eso,
+   cualquier cosa que el layout ponga ENCIMA del contenido desborda: el aviso de
+   contrasena por vencer (`AvisoPassword`, que va antes de {children} en
+   app/layout.tsx y aparece los 7 dias previos) anadia ~100px y empujaba la
+   senal y el campo de texto por debajo del borde inferior. Habia que hacer
+   scroll para poder escribir.
+
+   Ahora el contenedor se vuelve una columna flexible SOLO en esta ruta y el
+   chat toma lo que quede. `:has()` mantiene el cambio acotado: ninguna otra
+   pantalla se entera. Y `main` se pinta oscuro para que el aviso quede como una
+   tarjeta clara sobre el fondo —que es lo que es, una alerta del sistema— en
+   vez de como una franja rota. */
+main:has(.atlas-fondo) {
+  background: #070C16 !important;
+}
+main:has(.atlas-fondo) > .cp-sobre-fondo {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+main:has(.atlas-fondo) > .cp-sobre-fondo > .atlas-fondo {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* El texto fantasma del campo. Sin esto lo pinta el NAVEGADOR con su gris por
+   omision —rgba(0,0,0,0.54) en varios—, que sobre este fondo es negro sobre
+   negro: la frase de ayuda desaparecia. Este tono da 5.55:1. */
+.atlas-fondo textarea::placeholder {
+  color: #7C90B2;
+  opacity: 1;               /* Firefox lo baja a 0.54 por su cuenta */
+}
+
+/* Firefox no entiende ::-webkit-scrollbar: sin esto, la barra de la
+   conversacion salia gris clara sobre el fondo oscuro SIEMPRE. Es heredable,
+   asi que cubre a los hijos. */
+.atlas-fondo {
+  scrollbar-color: rgba(125,211,252,0.30) transparent;
+  scrollbar-width: thin;
+}
+
+/* El texto dentro de la pantalla oscura. No se usa `.cp-card` a propósito:
+   aquella clase fuerza colores con !important pensando en tarjetas pequeñas
+   dentro de páginas claras, y aquí la oscura es la página entera. */
+.atlas-fondo ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
+.atlas-fondo ::-webkit-scrollbar-thumb { background: rgba(125,211,252,0.22); }
+.atlas-fondo ::-webkit-scrollbar-thumb:hover { background: rgba(125,211,252,0.42); }
+
+/* El cajon de la bitacora es BLANCO y cuelga de la pantalla oscura, asi que
+   heredaba esta barra: pista al 4% de blanco sobre blanco y pulgar cian al 22%,
+   o sea invisible. Con la bitacora llena parecia que la lista no scrolleaba. */
+.atlas-fondo .cp-light ::-webkit-scrollbar-track { background: #BFDBFE; }
+.atlas-fondo .cp-light ::-webkit-scrollbar-thumb { background: #93C5FD; }
+.atlas-fondo .cp-light ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+.atlas-fondo .cp-light { scrollbar-color: #93C5FD #BFDBFE; }
+
+/* El latido del punto de presencia. Lento a propósito: es una respiración, no
+   una alarma. Dos segundos es el ritmo de alguien tranquilo. */
+@keyframes atlas-latido {
+  0%, 100% { opacity: 1;    transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.82); }
+}
+.atlas-latido { animation: atlas-latido 2.4s ease-in-out infinite; }
+
+/* La entrada de cada mensaje. Sube un poco y aparece: lo justo para que se
+   note que llegó algo, sin que la pantalla salte. */
+@keyframes atlas-entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.atlas-entra { animation: atlas-entra 260ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Quien pidió menos movimiento recibe la pantalla quieta: el punto deja de
+   latir y los mensajes aparecen sin desplazarse. La señal del canvas se apaga
+   por su cuenta, leyendo la misma preferencia desde JavaScript.
+   Una animación permanente que no se puede apagar es hostil para quien tiene
+   sensibilidad vestibular, y esta pantalla se abre toda la jornada. */
+@media (prefers-reduced-motion: reduce) {
+  .atlas-latido { animation: none; }
+  .atlas-entra  { animation: none; }
+}

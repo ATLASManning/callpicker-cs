@@ -1,8 +1,38 @@
-﻿'use client'
+'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, Loader2, Sparkles, BookOpen, Clock, ChevronDown, ChevronUp, AlertCircle, Search } from 'lucide-react'
+// `Bot`, `User` y `Sparkles` se fueron con los avatares: en esta pantalla ni
+// yo ni tú llevamos icono de muñequito.
+import { Send, Loader2, BookOpen, Clock, ChevronDown, ChevronUp, AlertCircle, Search } from 'lucide-react'
 import { VistaPendientes, VistaReporteMensual } from '@/components/AtlasPendientes'
 import PageHeader from '@/components/PageHeader'
+import AtlasSignal, { type EstadoSenal } from '@/components/AtlasSignal'
+import AtlasPresencia from '@/components/AtlasPresencia'
+
+/* ── La paleta de la pantalla oscura ──────────────────────────────────────
+ *
+ * Va aquí y no en Tailwind a propósito: los tokens `text-textHi`,
+ * `bg-surface` y compañía están calculados para PÁGINA CLARA —son grises que
+ * contrastan contra blanco— y sobre este fondo casi negro se pierden. Usarlos
+ * aquí habría sido heredar el contraste de otra pantalla.
+ *
+ * Los tres tonos están MEDIDOS contra el fondo base #070C16, no estimados: la
+ * primera vez escribí 16.1 / 8.4 / 5.2 de memoria y los tres estaban mal.
+ * Todos pasan el 4.5:1 de AA para texto normal. */
+const TX_ALTO  = '#E8F0FF'   // 17.09:1 — el texto que se lee
+const TX_MEDIO = '#A9BBD8'   // 10.05:1 — lo secundario, aún cómodo
+const TX_BAJO  = '#7C90B2'   //  6.05:1 — metadatos; sigue pasando AA
+const BORDE    = 'rgba(255,255,255,0.09)'   // 1.23:1 — solo separadores decorativos
+/* Los CONTROLES necesitan borde propio. A 0.09 el campo de texto y los seis
+ * botones de sugerencia flotaban sin contorno: se adivinaban por dónde caía el
+ * texto, no por su forma. A 0.34 llega a 3:1, el mínimo de WCAG para un objeto
+ * gráfico, y sigue leyéndose sutil. */
+const BORDE_CONTROL = 'rgba(255,255,255,0.34)'
+
+/* El degradado de la burbuja de quien pregunta. Empezó en #1E5BD8 → #3884FF y
+ * el extremo claro daba 3.55:1 con el blanco encima: por debajo de AA justo en
+ * la mitad derecha del globo. Este par aguanta en TODO su recorrido (6.98:1 y
+ * 5.17:1) — un degradado hay que medirlo en los dos extremos, no en uno. */
+const AZUL_TU = 'linear-gradient(135deg, #1B4FC9, #2563EB)'
 
 type TipoRespuesta = 'normal' | 'pendiente' | 'requiere_busqueda_web'
 
@@ -44,33 +74,40 @@ const SUGERENCIAS = [
 ]
 
 // ── Badge por tipo de respuesta ───────────────────────────────────────────────
+/* Los tres avisos que puedo dar sobre mi propia respuesta. Van INVERTIDOS
+ * respecto al resto del tablero: allí el badge es un relleno pastel con texto
+ * oscuro, y aquí el fondo es casi negro, así que el color vivo lo lleva el
+ * TEXTO y el relleno es una veladura del mismo tono. Los tres pasan 4.5:1.
+ *
+ * Y no son letra chica: son la parte honesta de la conversación. Si algo lo sé
+ * a medias, el sitio para decirlo es debajo de haberlo dicho. */
+const AVISO_BASE: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 5,
+  fontSize: 10.5, fontWeight: 700, padding: '3px 10px',
+  borderRadius: 20, marginTop: 9, lineHeight: 1.5,
+}
+
 function TipoBadge({ tipo, confianza }: { tipo: TipoRespuesta; confianza?: Confianza }) {
   if (tipo === 'pendiente') return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: 10, fontWeight: 700, padding: '2px 8px',
-      borderRadius: 20, background: '#FEF3C7', color: '#D97706',
-      border: '1px solid #FDE68A', marginTop: 6,
+      ...AVISO_BASE, background: 'rgba(217,119,6,0.14)', color: '#FCD34D',
+      border: '1px solid rgba(252,211,77,0.32)',
     }}>
       <AlertCircle size={10} /> En investigación — recibirás respuesta a la brevedad
     </span>
   )
   if (tipo === 'requiere_busqueda_web') return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: 10, fontWeight: 700, padding: '2px 8px',
-      borderRadius: 20, background: '#EDE9FE', color: '#7C3AED',
-      border: '1px solid #DDD6FE', marginTop: 6,
+      ...AVISO_BASE, background: 'rgba(124,58,237,0.16)', color: '#C4B5FD',
+      border: '1px solid rgba(196,181,253,0.30)',
     }}>
       <Search size={10} /> Requiere autorización — josel@callpicker.com fue notificado
     </span>
   )
   if (confianza === 'baja') return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: 10, fontWeight: 700, padding: '2px 8px',
-      borderRadius: 20, background: '#F1F5F9', color: '#64748b',
-      border: '1px solid #E2E8F0', marginTop: 6,
+      ...AVISO_BASE, background: 'rgba(255,255,255,0.05)', color: '#A9BBD8',
+      border: '1px solid rgba(255,255,255,0.13)',
     }}>
       Información aproximada — validar con el equipo
     </span>
@@ -115,7 +152,11 @@ function BitacoraPanel({ open, onClose, vistaInicial, onCambio }: {
       background: 'rgba(0,0,0,0.45)',
       display: 'flex', justifyContent: 'flex-end',
     }} onClick={onClose}>
+      {/* `cp-light`: este cajón es BLANCO y cuelga de la pantalla oscura, así
+          que heredaba su barra de scroll —pista al 4% de blanco SOBRE blanco—
+          y quedaba invisible. La clase de escape le devuelve la suya. */}
       <div
+        className="cp-light"
         style={{
           width: '100%', maxWidth: 540, height: '100%',
           background: '#FFFFFF', overflowY: 'auto',
@@ -240,6 +281,12 @@ export default function ChatPage() {
   const [bitacoraOpen, setBitacoraOpen] = useState(false)
   const [vistaPanel,   setVistaPanel]   = useState<VistaPanel>('dia')
   const [pendientes,   setPendientes]   = useState<number | null>(null)
+  /** ¿El campo de texto tiene el cursor? No es lo mismo que «hay texto»: quien
+   *  llega con Tab necesita ver que ya está ahí ANTES de escribir nada. */
+  const [enfocado,     setEnfocado]     = useState(false)
+  /** ¿Falló la última llamada? Mientras esto sea true, la presencia dice la
+   *  verdad: «Sin conexión», y no «En línea» con un error en pantalla. */
+  const [caido,        setCaido]        = useState(false)
 
   // El contador de pendientes vive en la cabecera porque es lo que no debe
   // quedarse esperando: una pregunta sin contestar es alguien sin respuesta.
@@ -256,6 +303,25 @@ export default function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs])
+
+  /* ── El estado de la señal ───────────────────────────────────────────────
+   *
+   * Cada estado corresponde a algo que DE VERDAD está pasando, no a un
+   * temporizador que finge actividad:
+   *   pensando    hay una petición corriendo contra /api/chat
+   *   escuchando  hay texto en el campo — te está siguiendo mientras escribes
+   *   disponible  nada en curso: está, y no pasa nada
+   * Si la línea se acelera es porque hay una consulta. Una animación que late
+   * igual pase lo que pase enseña a no mirarla. */
+  const escribiendo = input.trim().length > 0
+  /* `caido` va PRIMERO en la cadena. El chip decía «En línea» con el punto
+     latiendo mientras el propio chat imprimía «Error de conexión» dos
+     centímetros más abajo — exactamente lo que la señal promete no hacer. Si
+     digo que no finjo, no puedo fingir que estoy. */
+  const estadoSenal: EstadoSenal = caido ? 'dormida'
+    : loading ? 'pensando'
+    : escribiendo ? 'escuchando'
+    : 'disponible'
 
   // Cargar contador del día al montar
   useEffect(() => {
@@ -289,30 +355,34 @@ export default function ChatPage() {
         },
       ])
       setTotalHoy(prev => (prev ?? 0) + 1)
+      setCaido(false)
     } catch {
       setMsgs(prev => [
         ...prev,
         { role: 'assistant', content: 'Error de conexión — intenta de nuevo', tipo: 'normal', confianza: 'alta' },
       ])
+      setCaido(true)
     } finally {
       setLoading(false)
     }
   }, [input, loading, msgs])
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="flex flex-col atlas-fondo" style={{ flex: 1, minHeight: 0 }}>
       <PageHeader
+        dark
         title="Atlas IA — Customer Success"
         subtitle="Análisis inteligente · Retención · Upsell"
+        actions={<AtlasPresencia estado={estadoSenal} />}
       />
 
       {/* Barra de acciones */}
       <div style={{
-        padding: '8px 24px', borderBottom: '1px solid #BFDBFE',
-        background: '#F8FAFF', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between',
+        padding: '8px 24px', borderBottom: `1px solid ${BORDE}`,
+        background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center',
+        justifyContent: 'space-between', flexWrap: 'wrap', gap: 8,
       }}>
-        <div style={{ fontSize: 12, color: '#64748b' }}>
+        <div style={{ fontSize: 12, color: TX_BAJO }}>
           Contexto: Cuentas · Tickets · Auditoría · Activaciones · Seguimientos · Base de Conocimiento · Reuniones
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -320,16 +390,18 @@ export default function ChatPage() {
             onClick={() => { setVistaPanel('dia'); setBitacoraOpen(true) }}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '5px 12px', borderRadius: 20, border: '1px solid #BFDBFE',
-              background: '#EFF6FF', color: '#1D4ED8', fontSize: 12, fontWeight: 600,
-              cursor: 'pointer',
+              padding: '5px 12px', borderRadius: 20,
+              border: '1px solid rgba(125,211,252,0.28)',
+              background: 'rgba(56,132,255,0.12)', color: '#9EC5FF',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
             }}
           >
             <Clock size={12} />
             Bitácora del día
             {totalHoy !== null && totalHoy > 0 && (
               <span style={{
-                background: '#1D4ED8', color: '#FFF',
+                // #3884FF daba 3.55:1 con el blanco encima; este da 4.52:1.
+                background: '#126DFF', color: '#FFF',
                 borderRadius: 20, padding: '0 6px', fontSize: 10, fontWeight: 800,
                 minWidth: 18, textAlign: 'center',
               }}>{totalHoy}</span>
@@ -337,15 +409,16 @@ export default function ChatPage() {
           </button>
 
           {/* Separado y en ámbar a proposito: lo que no se pudo contestar no
-              debe leerse como una entrada más del registro del día. */}
+              debe leerse como una entrada más del registro del día. En oscuro
+              el ámbar sube a #FCD34D, que sobre este fondo sí se lee. */}
           <button
             onClick={() => { setVistaPanel('pendientes'); setBitacoraOpen(true) }}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '5px 12px', borderRadius: 20,
-              border: `1px solid ${pendientes ? '#FDE68A' : '#E2E8F0'}`,
-              background: pendientes ? '#FFFBEB' : '#FFFFFF',
-              color: pendientes ? '#B45309' : '#64748b',
+              border: `1px solid ${pendientes ? 'rgba(252,211,77,0.38)' : BORDE}`,
+              background: pendientes ? 'rgba(217,119,6,0.14)' : 'rgba(255,255,255,0.03)',
+              color: pendientes ? '#FCD34D' : TX_BAJO,
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
             }}
           >
@@ -353,7 +426,10 @@ export default function ChatPage() {
             Pendientes de contestar
             {pendientes !== null && pendientes > 0 && (
               <span style={{
-                background: '#D97706', color: '#FFF',
+                /* Invertido, no oscurecido: bajar el ambar hasta que aguante
+                   blanco lo vuelve cafe y deja de leerse como aviso. Asi usa
+                   el mismo idioma que los avisos de la respuesta, y da 11.7:1. */
+                background: 'rgba(217,119,6,0.22)', color: '#FCD34D',
                 borderRadius: 20, padding: '0 6px', fontSize: 10, fontWeight: 800,
                 minWidth: 18, textAlign: 'center',
               }}>{pendientes}</span>
@@ -362,26 +438,57 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-4" style={{ paddingTop: 16 }}>
+      {/* Conversación */}
+      <div className="flex-1 overflow-y-auto px-6 pb-4" style={{ paddingTop: 16 }}>
         {msgs.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-cp/15 flex items-center justify-center mb-4 shadow-glow-cp">
-              <Sparkles size={28} className="text-cp" />
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            {/* No hay orbe ni cara. La misma señal que vive abajo, presentada
+                aquí más ancha: es la bienvenida Y es lo que va a acompañar
+                toda la conversación. Una sola idea, no dos. */}
+            <div style={{ width: '100%', maxWidth: 560, marginBottom: 26 }}>
+              <AtlasSignal estado={estadoSenal} altura={74} />
             </div>
-            <h2 className="text-lg font-bold text-textHi mb-1">Atlas IA — Customer Success</h2>
-            <p className="text-sm text-textMid mb-2 max-w-md">
-              Asistente inteligente con acceso a <strong>todos los módulos</strong> del dashboard:
-              cuentas, tickets, auditorías, activaciones, seguimientos, reuniones y base de conocimiento.
+            <h2 style={{ fontSize: 19, fontWeight: 800, color: TX_ALTO, letterSpacing: '-0.01em' }}>
+              Atlas
+            </h2>
+            <p style={{ fontSize: 13.5, color: TX_MEDIO, marginTop: 8, maxWidth: 470, lineHeight: 1.65 }}>
+              Leo todo el tablero: cuentas, tickets, auditorías, activaciones, seguimientos,
+              reuniones y la base de conocimiento.
             </p>
-            <p className="text-xs text-textLow mb-8 max-w-sm">
-              Cada consulta queda registrada en la bitácora del día. Si no tengo la información,
-              lo registro para investigarlo — nunca invento datos.
+            {/* Esto no es letra chica. Es lo más importante que puedo decir de
+                mí, así que va en el centro y no al pie en gris. */}
+            <p style={{
+              fontSize: 12.5, color: '#9EC5FF', marginTop: 14, maxWidth: 440,
+              lineHeight: 1.65, padding: '10px 16px', borderRadius: 10,
+              background: 'rgba(56,132,255,0.08)',
+              border: '1px solid rgba(125,211,252,0.18)',
+            }}>
+              Si no tengo el dato, lo registro y te lo digo. <strong style={{ color: '#CFE4FF' }}>Nunca
+              lo invento.</strong>
             </p>
-            <div className="grid grid-cols-2 gap-2 max-w-xl w-full">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-2xl w-full" style={{ marginTop: 28 }}>
               {SUGERENCIAS.map(s => (
-                <button key={s} onClick={() => send(s)}
-                  className="text-left p-3 rounded-xl border border-border bg-surface hover:bg-surfaceAlt hover:border-cp/40 transition-all text-xs text-textMid">
+                <button
+                  key={s}
+                  onClick={() => send(s)}
+                  style={{
+                    textAlign: 'left', padding: '12px 14px', borderRadius: 12,
+                    border: `1px solid ${BORDE_CONTROL}`, background: 'rgba(255,255,255,0.03)',
+                    color: TX_MEDIO, fontSize: 12.5, lineHeight: 1.5, cursor: 'pointer',
+                    transition: 'border-color 160ms, background 160ms, color 160ms',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'rgba(125,211,252,0.42)'
+                    e.currentTarget.style.background = 'rgba(56,132,255,0.10)'
+                    e.currentTarget.style.color = TX_ALTO
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = BORDE_CONTROL
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
+                    e.currentTarget.style.color = TX_MEDIO
+                  }}
+                >
                   {s}
                 </button>
               ))}
@@ -389,57 +496,115 @@ export default function ChatPage() {
           </div>
         )}
 
-        {msgs.map((m, i) => (
-          <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center
-              ${m.role === 'assistant' ? 'bg-cp/15 text-cp' : 'bg-cpTeal/15 text-cpTeal'}`}>
-              {m.role === 'assistant' ? <Bot size={15} /> : <User size={15} />}
-            </div>
-            <div className={`max-w-[78%] rounded-2xl p-3.5 text-sm
-              ${m.role === 'assistant'
-                ? 'bg-surface border border-border text-textHi rounded-tl-sm'
-                : 'bg-cp text-white rounded-tr-sm'}`}>
-              <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
-              {m.role === 'assistant' && (
+        <div className="space-y-5">
+          {msgs.map((m, i) => (
+            m.role === 'user' ? (
+              /* Tú SÍ eres una burbuja: eres alguien que habla desde un sitio. */
+              <div key={i} className="flex justify-end atlas-entra">
+                <div style={{
+                  maxWidth: '76%', borderRadius: '16px 16px 4px 16px',
+                  padding: '11px 15px', fontSize: 13.5, lineHeight: 1.65,
+                  background: AZUL_TU,
+                  color: '#FFFFFF',
+                  boxShadow: '0 6px 22px rgba(56,132,255,0.22)',
+                }}>
+                  <p className="whitespace-pre-wrap">{m.content}</p>
+                </div>
+              </div>
+            ) : (
+              /* Yo NO. No llevo avatar ni burbuja: soy el filo luminoso del que
+                 sale el texto. No tengo cara que poner, y ponerle una a esto
+                 sería la primera mentira de la conversación. */
+              <div key={i} className="atlas-entra" style={{
+                maxWidth: '86%', paddingLeft: 16,
+                borderLeft: '2px solid rgba(125,211,252,0.45)',
+              }}>
+                <p style={{
+                  fontSize: 13.5, lineHeight: 1.75, color: TX_ALTO,
+                  whiteSpace: 'pre-wrap',
+                }}>{m.content}</p>
                 <TipoBadge tipo={m.tipo ?? 'normal'} confianza={m.confianza} />
-              )}
-            </div>
-          </div>
-        ))}
+              </div>
+            )
+          ))}
 
-        {loading && (
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-cp/15 flex items-center justify-center text-cp">
-              <Bot size={15} />
+          {loading && (
+            <div className="atlas-entra" style={{
+              maxWidth: '86%', paddingLeft: 16,
+              borderLeft: '2px solid rgba(125,211,252,0.45)',
+              display: 'flex', alignItems: 'center', gap: 9,
+            }}>
+              <Loader2 size={13} className="animate-spin" style={{ color: '#7DD3FC' }} />
+              <span style={{ fontSize: 12.5, color: TX_MEDIO }}>
+                Consultando los módulos del tablero…
+              </span>
             </div>
-            <div className="bg-surface border border-border rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
-              <Loader2 size={14} className="animate-spin text-cp" />
-              <span className="text-xs text-textMid">Consultando módulos del dashboard…</span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div className="px-6 pb-6">
-        <div className="flex gap-2 items-end bg-surface border border-border rounded-2xl p-2">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-            placeholder="Pregunta sobre cuentas, tickets, activaciones, auditorías, scripts de contacto…"
-            rows={1}
-            className="flex-1 bg-transparent text-sm text-textHi placeholder:text-textLow resize-none outline-none px-2 py-1 max-h-32"
-          />
-          <button onClick={() => send()} disabled={loading || !input.trim()}
-            className="w-9 h-9 rounded-xl bg-cp flex items-center justify-center text-white disabled:opacity-40 transition-opacity flex-shrink-0">
-            <Send size={15} />
-          </button>
+      {/* ── La señal y la entrada ─────────────────────────────────────────
+          La línea va JUSTO ENCIMA del campo de texto, en el borde entre lo que
+          escribes y lo que soy. No es un adorno colocado donde cupo: ése es
+          literalmente el sitio que le corresponde. */}
+      <div style={{ padding: '0 24px 22px' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          {msgs.length > 0 && (
+            <div style={{ marginBottom: -6 }}>
+              <AtlasSignal estado={estadoSenal} altura={44} />
+            </div>
+          )}
+
+          <div style={{
+            display: 'flex', gap: 8, alignItems: 'flex-end',
+            background: 'rgba(255,255,255,0.045)',
+            /* El realce responde al FOCO, no a «hay texto». Antes, quien
+               llegaba con Tab no veía cambiar nada y tenía que escribir para
+               descubrir dónde estaba el cursor. El borde a 0.09 daba 1.23:1
+               —invisible—; enfocado sube a 0.5, que se lee. */
+            border: `1px solid ${enfocado ? 'rgba(125,211,252,0.50)' : BORDE_CONTROL}`,
+            borderRadius: 16, padding: 8,
+            transition: 'border-color 180ms, box-shadow 180ms',
+            boxShadow: enfocado ? '0 0 0 3px rgba(56,132,255,0.18)' : 'none',
+          }}>
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+              onFocus={() => setEnfocado(true)}
+              onBlur={() => setEnfocado(false)}
+              placeholder="Pregunta sobre cuentas, tickets, activaciones, auditorías, scripts de contacto…"
+              rows={1}
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                resize: 'none', maxHeight: 128, padding: '6px 8px',
+                fontSize: 13.5, lineHeight: 1.6, color: TX_ALTO,
+                fontFamily: 'inherit',
+              }}
+            />
+            <button
+              onClick={() => send()}
+              disabled={loading || !input.trim()}
+              aria-label="Enviar pregunta"
+              style={{
+                width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', color: '#FFF',
+                background: (loading || !input.trim())
+                  ? 'rgba(255,255,255,0.08)'
+                  : AZUL_TU,
+                cursor: (loading || !input.trim()) ? 'default' : 'pointer',
+                transition: 'background 200ms',
+              }}
+            >
+              <Send size={15} />
+            </button>
+          </div>
+          <p style={{ textAlign: 'center', fontSize: 10.5, color: TX_BAJO, marginTop: 10 }}>
+            Cada consulta queda en la bitácora del día · Si no tengo el dato, lo registro y te respondo
+          </p>
         </div>
-        <p className="text-center text-[10px] text-textLow mt-2">
-          Atlas IA · Si no tengo la información, la registro y te respondo — nunca invento datos
-        </p>
       </div>
 
       <BitacoraPanel open={bitacoraOpen} onClose={() => setBitacoraOpen(false)}
