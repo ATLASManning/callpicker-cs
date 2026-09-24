@@ -30,12 +30,15 @@ import {
   agruparPorTema, resumirBuzon,
   type EntradaBuzon, type Prioridad, type Area, type Canal, type EstadoBuzon,
 } from '@/lib/buzon'
+import { hoyLocal } from '@/lib/fecha-local'
 
 type CuentaOpcion = { id: string; consecutivo: string | null; cid: string | null; empresa: string; asesor: string | null }
 type Pestana = 'registrar' | 'solicitudes' | 'temas'
 
 const AZUL = '#1B3FCC'
-const hoyISO = () => new Date().toISOString().slice(0, 10)
+/* Antes usaba toISOString(), que da la fecha en UTC: después de las 18:00
+   locales sellaba con el día siguiente. Ver lib/fecha-local.ts. */
+const hoyISO = () => hoyLocal()
 const nf = (n: number) => n.toLocaleString('es-MX')
 
 const VACIO = {

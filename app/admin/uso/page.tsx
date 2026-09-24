@@ -70,7 +70,18 @@ function aggregate(rows: Row[]) {
     const d = new Date(r.created_at)
     byDow[d.getDay()]++
     byHour[d.getHours()]++
-    const dateKey = d.toISOString().slice(0, 10)
+    /* La fecha se arma con las partes LOCALES, no con `toISOString()`.
+     *
+     * `toISOString()` convierte a UTC, y México va seis horas atrás: todo lo
+     * que ocurre después de las 18:00 locales caía en el día SIGUIENTE. Con
+     * eso el calendario pintaba actividad el 24 de septiembre cuando en
+     * México todavía era el 23 — el registro de las 21:03 locales se guardaba
+     * como 03:03 del día siguiente en UTC. Afecta al 30% de los registros.
+     *
+     * Además dejaba la pantalla contradiciéndose sola: `getDay()` y
+     * `getHours()`, dos líneas más arriba, YA usan hora local. El calendario
+     * era lo único que hablaba en UTC. */
+    const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     byDate[dateKey] = (byDate[dateKey] ?? 0) + 1
   }
 

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import CustomSelect from '@/components/CustomSelect'
+import { hoyLocal } from '@/lib/fecha-local'
 
 type TipoReunion = 'junta_semanal' | 'one_on_one' | 'cliente' | 'estrategia' | 'otro'
 
@@ -37,7 +38,9 @@ const TIPOS: Record<TipoReunion, { label: string; color: string; bg: string }> =
 }
 
 const STORAGE_KEY = 'cp_reuniones'
-const hoy = () => new Date().toISOString().slice(0, 10)
+/* En hora local, no UTC: después de las 18:00 en México toISOString()
+   devolvía el día siguiente. Ver lib/fecha-local.ts. */
+const hoy = () => hoyLocal()
 
 const emptyForm = (): Omit<Reunion, 'id' | 'creado_en'> => ({
   fecha: hoy(), tipo: 'junta_semanal',
