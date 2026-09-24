@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import type { Cuenta, ContactoCuenta, ServicioCuenta } from '@/lib/types'
 import CustomSelect from './CustomSelect'
+import { hoyLocal } from '@/lib/fecha-local'
 
 interface Props { cuenta: Cuenta; canEdit?: boolean }
 
@@ -341,7 +342,7 @@ export default function CuentaInfoEditor({ cuenta, canEdit = false }: Props) {
                   <Field label="Cliente activo desde" icon={<CalendarDays size={11} />}>
                     <input type="date" value={info.activo_desde}
                       onChange={e => setInfoField('activo_desde', e.target.value)}
-                      className="cp-input" max={new Date().toISOString().slice(0, 10)} />
+                      className="cp-input" max={hoyLocal()} />
                   </Field>
                 </div>
                 {!info.activo_desde && (

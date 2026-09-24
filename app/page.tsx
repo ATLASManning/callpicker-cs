@@ -24,6 +24,7 @@ import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import Link from 'next/link'
 import rawTickets from '@/lib/tickets-data.json'
 import { headers } from 'next/headers'
+import { ahoraEnMexico, fechaLocal } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -893,11 +894,13 @@ export default async function DashboardPage() {
   const isAsesor     = rol === 'asesor' && !!asesorHeader
 
   // semana_inicio de hace 3 semanas (para traer 4 semanas de actividades SAC)
+  // Esto corre en el SERVIDOR, que va en UTC: con `new Date()` el domingo a
+  // partir de las 18:00 de México ya contaba la semana siguiente.
   const getMondayOffset = (offsetWeeks: number): string => {
-    const d = new Date(); d.setHours(0,0,0,0)
+    const d = ahoraEnMexico(); d.setHours(0,0,0,0)
     const dow = d.getDay()
     d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow) - offsetWeeks * 7)
-    return d.toISOString().slice(0, 10)
+    return fechaLocal(d)
   }
   const semana3back = getMondayOffset(3)
 

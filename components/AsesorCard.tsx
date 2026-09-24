@@ -18,6 +18,7 @@ import {
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import ActividadesBtn from '@/components/ActividadesBtn'
+import { fechaLocal } from '@/lib/fecha-local'
 
 // ── Paleta azul marino (header) ───────────────────────────────────────────────
 const NAVY      = '#0A1628'
@@ -265,7 +266,7 @@ export default function AsesorCard({
   const haceUnAnio = useMemo(() => {
     const d = new Date()
     d.setFullYear(d.getFullYear() - 1)
-    return d.toISOString().slice(0, 10)
+    return fechaLocal(d)
   }, [])
   const nuevas = cuentas.filter(c => (c.activo_desde ?? '') >= haceUnAnio).length
 

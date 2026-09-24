@@ -45,6 +45,7 @@ import CuentaRelacionPanel from '@/components/CuentaRelacionPanel'
 import { getReunionesDeCuenta } from '@/lib/supabase'
 import { relacionamientoDeCuenta } from '@/lib/relacionamiento'
 import { headers } from 'next/headers'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -122,7 +123,7 @@ export default async function CuentaDetailPage({ params }: Props) {
   // nombre existe para cuando un CID se capture mal o cambie en la extraccion.
   const llamadas = leerLlamadas(
     LLAMADAS, LLAMADAS_META, cuenta.cid, cuenta.empresa,
-    new Date().toISOString().slice(0, 10),
+    hoyEnMexico(),
   )
 
   // Lugar en la cola de atencion del asesor. Las actividades SAC se agendan por

@@ -26,6 +26,7 @@
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 import { normalizarNombre } from './elegibilidad'
+import { ahoraEnMexico, fechaLocal } from './fecha-local'
 
 /** Frontera entre limpieza de histórico y exigencia de expediente. */
 export const CORTE_HISTORICO = '2026-08-31'
@@ -188,7 +189,7 @@ export interface FilaZohoDormido {
  * Esa es la fecha que separa una baja vieja de una reciente, así que es la que
  * se usa. Si no viene, se reconstruye desde los días sin factura.
  */
-export function fechaDormidoZoho(f: FilaZohoDormido, hoy = new Date()): string {
+export function fechaDormidoZoho(f: FilaZohoDormido, hoy = ahoraEnMexico()): string {
   const raw = (f.ultimaFactura ?? '').trim()
   if (raw) {
     const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
@@ -198,7 +199,7 @@ export function fechaDormidoZoho(f: FilaZohoDormido, hoy = new Date()): string {
   }
   const dias = Number(f.diasSinFactura ?? NaN)
   if (Number.isFinite(dias) && dias >= 0) {
-    return new Date(hoy.getTime() - dias * 86400000).toISOString().slice(0, 10)
+    return fechaLocal(new Date(hoy.getTime() - dias * 86400000))
   }
   return ''
 }
@@ -300,7 +301,7 @@ export const EXIGENCIA_EXPEDIENTE = [
 ] as const
 
 /** Nota que queda escrita en la cuenta al reclasificarla. */
-export function notaReclasificacion(h: HallazgoConciliacion, hoy = new Date()): string {
-  const f = hoy.toISOString().slice(0, 10)
+export function notaReclasificacion(h: HallazgoConciliacion, hoy = ahoraEnMexico()): string {
+  const f = fechaLocal(hoy)
   return `[Conciliación ${f}] ${h.motivo}`
 }

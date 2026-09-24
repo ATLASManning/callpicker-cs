@@ -23,6 +23,7 @@ import {
   TIPO_ACLARACION, eventosNuevosDeAclaracion, marcadorAclaracion,
   descripcionAclaracion,
 } from '@/lib/aclaraciones'
+import { ahoraEnMexico, fechaLocal, selloMexico } from '@/lib/fecha-local'
 
 export const dynamic   = 'force-dynamic'
 // 55s (antes 30s) — deja margen al fetch interno a /api/facturacion?mode=dormidos
@@ -40,8 +41,12 @@ function getMondayOfWeek(date: Date): Date {
   return d
 }
 
+// OJO: `fechaLocal`, no `toISOString()`. Las fechas de aquí se construyen con
+// partes locales —`getMondayOfWeek` acaba en `setHours(0,0,0,0)`, y los anclajes
+// son `'…T12:00:00'`, que se parsea como local— así que serializarlas en UTC las
+// puede correr un día. Ver `lib/fecha-local.ts`.
 function toISO(d: Date): string {
-  return d.toISOString().split('T')[0]
+  return fechaLocal(d)
 }
 
 // ── Conciliación con Churn (Zoho dormidas en vivo) ────────────────────────────
@@ -650,12 +655,17 @@ export async function POST(req: NextRequest) {
     }
     if (!asesor) return NextResponse.json({ error: 'asesor requerido' }, { status: 400 })
 
-    const monday       = semanaParam ? new Date(semanaParam + 'T12:00:00') : getMondayOfWeek(new Date())
+    // `ahoraEnMexico()` y no `new Date()`: el servidor de Vercel va en UTC y a
+    // partir de las 18:00 de México ya está en el día siguiente. Con `new Date()`
+    // esto se bloqueaba solo durante 6 de las 24 horas del lunes —justo al final
+    // de la jornada— y en cambio abría la puerta el domingo por la noche. Medido
+    // el 23 sep 2026; el detalle está en `lib/fecha-local.ts`.
+    const monday       = semanaParam ? new Date(semanaParam + 'T12:00:00') : getMondayOfWeek(ahoraEnMexico())
     const semanaInicio = toISO(getMondayOfWeek(monday))
 
     // Las actividades SAC solo se disparan en lunes. La única salida es una
     // excepción administrativa explícita, que queda registrada en auditoría.
-    const hoy = new Date()
+    const hoy = ahoraEnMexico()
     if (!esLunes(hoy)) {
       if (!excepcionAdministrativa) {
         return NextResponse.json({
@@ -665,7 +675,10 @@ export async function POST(req: NextRequest) {
       }
       await auditar([{
         asesor, semana_inicio: semanaInicio, accion: 'excepcion_administrativa',
-        codigo: 'fuera_de_lunes', motivo: `Generación fuera de lunes autorizada (${hoy.toISOString()})`,
+        // La hora de México, no la del servidor: quien audite no debería tener
+        // que restar seis horas de cabeza. Y `hoy` ya no es un instante real —
+        // trae las partes de México—, así que `toISOString()` aquí mentiría.
+        codigo: 'fuera_de_lunes', motivo: `Generación fuera de lunes autorizada (${selloMexico()} hora de México)`,
         creado_en: new Date().toISOString(),
       }])
     }

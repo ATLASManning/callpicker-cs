@@ -4,6 +4,7 @@ import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { resumenParaIA } from '@/lib/observaciones-kam'
 import { headers } from 'next/headers'
 import OpenAI from 'openai'
+import { ahoraEnMexico, fechaLocal, hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic    = 'force-dynamic'
 export const maxDuration = 55
@@ -100,7 +101,9 @@ Responde en español. Sé específico y accionable. No repitas datos sin agregar
 // ── Construcción del contexto ─────────────────────────────────────────────────
 
 function buildContext(asesor: string, cuentas: Record<string, unknown>[], seguimientos: Record<string, unknown>[], actividades: Record<string, unknown>[]): string {
-  const today = new Date().toISOString().split('T')[0]
+  // La fecha que ve la IA en su contexto. Si dice «hoy es 24» cuando en México
+  // es 23, razona sobre un día que no ha pasado — ver `lib/fecha-local.ts`.
+  const today = hoyEnMexico()
 
   let ctx = `ANALISTA SAC — CARTERA DE ${asesor.toUpperCase()}\nFECHA: ${today}\nTOTAL CUENTAS: ${cuentas.length}\n\n`
   ctx += '═'.repeat(60) + '\nCUENTAS (ordenadas por Health Score ascendente)\n' + '═'.repeat(60) + '\n\n'
@@ -218,9 +221,9 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) return NextResponse.json({ error: 'OPENAI_API_KEY no configurado en Vercel' }, { status: 503 })
 
-    const hace30 = new Date()
+    const hace30 = ahoraEnMexico()
     hace30.setDate(hace30.getDate() - 30)
-    const desde30 = hace30.toISOString().split('T')[0]
+    const desde30 = fechaLocal(hace30)
 
     const [cuentasRes, seguimientosRes, actividadesRes] = await Promise.all([
       supabaseAdmin

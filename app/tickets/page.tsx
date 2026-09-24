@@ -12,6 +12,7 @@ import {
   ResponsiveContainer, Cell,
 } from 'recharts'
 import { tonoSobreClaro } from '@/lib/contraste'
+import { fechaLocal } from '@/lib/fecha-local'
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
 type Tab = 'overview' | 'explorador' | 'conciliacion' | 'fallas' | 'nuevo' | 'graficos'
@@ -617,7 +618,7 @@ export default function TicketsPage() {
                     lunes.setDate(hoy.getDate() + (hoy.getDay() === 0 ? -6 : 1 - hoy.getDay()))
                     const domingo = new Date(lunes)
                     domingo.setDate(lunes.getDate() + 6)
-                    const iso = (d: Date) => d.toISOString().slice(0, 10)
+                    const iso = fechaLocal
                     setFilterDesde(iso(lunes)); setFilterHasta(iso(domingo))
                     setTimeout(() => fetchList(1), 0)
                   }}

@@ -7,6 +7,7 @@ import {
   BarChart2, FileText, TrendingUp, ChevronDown, History,
   AlertCircle, ListChecks,
 } from 'lucide-react'
+import { fechaLocal } from '@/lib/fecha-local'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -106,7 +107,9 @@ function getMondayOfWeek(date: Date): Date {
   return d
 }
 
-function toISO(d: Date): string { return d.toISOString().split('T')[0] }
+// `fechaLocal` y no `toISOString()`: estas fechas se arman con partes locales
+// (`setHours(0,0,0,0)`), y serializarlas en UTC las puede correr un día.
+function toISO(d: Date): string { return fechaLocal(d) }
 
 function fmtFecha(iso: string) {
   const d = new Date(iso + 'T12:00:00')

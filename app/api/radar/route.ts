@@ -5,6 +5,7 @@ import { evaluarRadar, type CorteSerie, type EntradaRadar } from '@/lib/radar'
 import { baseMinutos } from '@/lib/plan-minutos'
 import { NOMBRES_CANCELACION, normalizarNombre } from '@/lib/elegibilidad'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55
@@ -188,7 +189,7 @@ export async function POST(req: NextRequest) {
       .insert({
         cuenta_id, asesor, respuestas,
         score_atlas, nivel_atlas,
-        fecha: new Date().toISOString().slice(0, 10),
+        fecha: hoyEnMexico(),
       })
       .select().single()
 

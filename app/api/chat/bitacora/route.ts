@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
 // GET /api/chat/bitacora?fecha=YYYY-MM-DD
 // Admin: todos los registros del dia. Asesor: solo los suyos.
 export async function GET(req: NextRequest) {
   const rol    = req.headers.get('x-user-rol') ?? 'viewer'
   const email  = req.headers.get('x-user-email') ?? ''
-  const fecha  = req.nextUrl.searchParams.get('fecha') ??
-    new Date().toISOString().split('T')[0]
+  const fecha  = req.nextUrl.searchParams.get('fecha') ?? hoyEnMexico()
 
   let q = supabaseAdmin
     .from('atlas_bitacora')

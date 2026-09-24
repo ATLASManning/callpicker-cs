@@ -4,6 +4,7 @@ import {
   evaluarElegibilidad, CAMPOS_ELEGIBILIDAD_SELECT, MSG, LIMITE_SEMANAL,
   type CuentaElegibilidadInput,
 } from '@/lib/elegibilidad'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,10 @@ export async function GET(req: NextRequest) {
   // se auto-bloqueara el lunes siguiente, la baja quedaría para siempre sin
   // documentar y el asesor ya no podría hacerlo aunque quisiera: exactamente
   // lo contrario de lo que se pidió. Se queda pendiente hasta que se cierre.
-  const today   = new Date().toISOString().split('T')[0]
+  // `hoyEnMexico()` y no `toISOString()`: el servidor va en UTC y de 18:00 a
+  // 23:59 de México ya está en el día siguiente, así que una actividad que
+  // vence el viernes se marcaba vencida desde el jueves a las 18:00.
+  const today   = hoyEnMexico()
   const vencidas = (data ?? []).filter(
     (a: Record<string, unknown>) =>
       a.estado === 'pendiente' &&

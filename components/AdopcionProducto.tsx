@@ -4,6 +4,7 @@ import {
   Edit3, Save, X, ChevronDown, ChevronUp,
   AlertTriangle, Clock, CheckCircle2, ShieldCheck, Copy, Check,
 } from 'lucide-react'
+import { hoyLocal } from '@/lib/fecha-local'
 
 /* ══════════════════════════════════════════════════════════════════════
    CONSTANTES
@@ -203,7 +204,7 @@ export default function AdopcionProducto({
         body: JSON.stringify({
           cuenta_id: cuentaId,
           asesor,
-          fecha: new Date().toISOString().slice(0, 10),
+          fecha: hoyLocal(),
           productos: PRODUCTOS.map(p => ({
             producto: p,
             nivel: editVals[p]?.nivel ?? 'no_aplica',

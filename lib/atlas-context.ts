@@ -14,6 +14,7 @@ import { getZohoMap, lookupZoho } from './zoho-enrich'
 import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
 import { REPORTE_S21_SEPTIEMBRE_2026 } from '@/app/churn/reporte-actual'
+import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 
@@ -69,13 +70,15 @@ const AUDITORIA_SUMMARY = (() => {
 })()
 
 // ── Helper: lunes de la semana actual ─────────────────────────────────────────
+// Se parte del día de México, no del del servidor: en UTC, de 18:00 a 23:59 del
+// DOMINGO ya es lunes, y esto devolvía la semana siguiente antes de tiempo.
 function getMonday(): string {
-  const d   = new Date()
+  const d   = ahoraEnMexico()
   const day = d.getDay()
   const diff = d.getDate() - day + (day === 0 ? -6 : 1)
   const m   = new Date(d)
   m.setDate(diff)
-  return m.toISOString().split('T')[0]
+  return fechaLocal(m)
 }
 
 // ── Semaforo calculado (igual que lib/types.ts) ───────────────────────────────
@@ -228,7 +231,7 @@ export async function buildAtlasContext(pregunta = ''): Promise<{ text: string; 
   try {
     const monday      = getMonday()
     const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
-    const today        = new Date().toISOString().split('T')[0]
+    const today        = hoyEnMexico()
 
     const [csRes, segsRes, actRes, reuRes, todasRes] = await Promise.all([
       supabaseAdmin

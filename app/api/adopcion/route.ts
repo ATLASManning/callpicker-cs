@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     cuenta_id: cuenta_id,  // uuid string — no convertir a Number
     producto:  p.producto,
     nivel:     p.nivel,
-    fecha:     fecha ?? new Date().toISOString().slice(0, 10),
+    fecha:     fecha ?? hoyEnMexico(),
     asesor:    asesor ?? null,
     notas:     p.notas || null,
   }))

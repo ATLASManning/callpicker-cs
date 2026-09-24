@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSeguimientos, addSeguimiento, updateSeguimientoResultado } from '@/lib/supabase'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
 export async function GET(req: NextRequest) {
   const cuentaId = req.nextUrl.searchParams.get('cuenta_id')
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     await fetch(`${req.nextUrl.origin}/api/cuentas/${body.cuenta_id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ultimo_contacto: new Date().toISOString().split('T')[0] }),
+      body: JSON.stringify({ ultimo_contacto: hoyEnMexico() }),
     })
 
     return NextResponse.json(s, { status: 201 })

@@ -5,6 +5,7 @@ import {
   TrendingUp, CheckCircle2, XCircle, Clock, BarChart3,
 } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
+import { hoyLocal } from '@/lib/fecha-local'
 
 /* ─── Tipos ──────────────────────────────────────────────── */
 type Estado = 'nuevo' | 'seguimiento' | 'propuesta' | 'ganado' | 'perdido'
@@ -58,7 +59,7 @@ function emptyForm(): Omit<UpsellRegistro, 'id' | 'consecutivo'> {
     empresa:        '',
     contacto:       '',
     asesor:         'Fátima',
-    fecha:          new Date().toISOString().slice(0, 10),
+    fecha:          hoyLocal(),
     estado:         'nuevo',
     producto:       '',
     valor_estimado: 0,
@@ -105,7 +106,7 @@ export default function UpsellRegistros() {
   const changeEstado = (id: string, estado: Estado) => {
     const updated = registros.map(r =>
       r.id === id
-        ? { ...r, estado, fecha_resolucion: (estado === 'ganado' || estado === 'perdido') ? new Date().toISOString().slice(0,10) : undefined }
+        ? { ...r, estado, fecha_resolucion: (estado === 'ganado' || estado === 'perdido') ? hoyLocal() : undefined }
         : r
     )
     setRegistros(updated)

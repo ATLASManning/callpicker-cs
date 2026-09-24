@@ -12,6 +12,7 @@ import { anteponerEntrada } from '@/lib/observaciones-kam'
 import {
   TIPO_ACLARACION, validarCierreAclaracion, componerResultadoAclaracion,
 } from '@/lib/aclaraciones'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -361,7 +362,9 @@ export async function PATCH(
 
     // Si se marcó como completada: crear seguimiento KAM + actualizar ultimo_contacto
     if (body.completada && data.cuenta_id) {
-      const today = new Date().toISOString().split('T')[0]
+      // El seguimiento se fecha en el día de México. Con `toISOString()`, una
+      // actividad cerrada a las 19:00 quedaba registrada como del día siguiente.
+      const today = hoyEnMexico()
 
       await supabaseAdmin.from('seguimientos').insert({
         cuenta_id:    data.cuenta_id,

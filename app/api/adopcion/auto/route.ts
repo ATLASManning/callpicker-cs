@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { evaluarAdopcion } from '@/lib/adopcion-auto'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     for (const e of nuevas) {
       filas.push({
         cuenta_id: c.id, producto: e.producto, nivel: e.nivel,
-        fecha: new Date().toISOString().slice(0, 10),
+        fecha: hoyEnMexico(),
         asesor: AUTOR, notas: e.notas,
       })
     }

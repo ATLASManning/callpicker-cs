@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { EntradaBuzon } from '@/lib/buzon'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,13 +113,13 @@ export async function POST(req: NextRequest) {
       canal: b.canal,
       estado,
       seguimiento: texto(b.seguimiento) || null,
-      fecha_solicitud: b.fecha_solicitud || new Date().toISOString().slice(0, 10),
+      fecha_solicitud: b.fecha_solicitud || hoyEnMexico(),
       fecha_compromiso: b.fecha_compromiso || null,
       fecha_entrega: b.fecha_entrega || null,
       solucion: derivarSolucion(estado),
       motivo_respuesta: texto(b.motivo_respuesta) || null,
       avisado_al_cliente: !!b.avisado_al_cliente,
-      fecha_aviso: b.avisado_al_cliente ? (b.fecha_aviso || new Date().toISOString().slice(0, 10)) : null,
+      fecha_aviso: b.avisado_al_cliente ? (b.fecha_aviso || hoyEnMexico()) : null,
       registrado_por: texto(b.registrado_por) || null,
       asesor: texto(b.asesor) || null,
     }
@@ -154,7 +155,7 @@ export async function PATCH(req: NextRequest) {
       }
     }
     if (cambios.avisado_al_cliente && !fusion.fecha_aviso) {
-      fusion.fecha_aviso = new Date().toISOString().slice(0, 10)
+      fusion.fecha_aviso = hoyEnMexico()
     }
     delete (fusion as Record<string, unknown>).created_at
     fusion.updated_at = new Date().toISOString()
