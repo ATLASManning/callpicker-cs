@@ -1,0 +1,206 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   ATLAS IA — estilos ACOTADOS a esta ruta
+   ══════════════════════════════════════════════════════════════════════════
+
+   POR QUE UN CSS MODULE Y NO `globals.css`.
+
+   El primer intento de esta pantalla metió su bloque en `app/globals.css`, que
+   carga en TODAS. El tablero acabó reventando con «excepción en el lado del
+   cliente» en cualquier pantalla y hubo que revertirlo entero. La causa más
+   probable resultó ser otra —el Service Worker de la PWA sirviendo chunks
+   rancios—, pero eso da igual: mientras el estilo viva en el archivo global, yo
+   no puedo DEMOSTRAR que no fue mío, y él no puede confiar en que no vuelva.
+
+   Con un CSS Module, Next reescribe cada nombre de clase y cada `@keyframes`
+   con un sufijo único de este archivo. No hay selector aquí que pueda alcanzar
+   a otra pantalla: no es disciplina, es imposible por construcción.
+
+   Tampoco hay `:has()` sobre `main` ni nada que suba por el árbol. La geometría
+   se resuelve DENTRO: el compositor va pegado abajo con `sticky`, así que da
+   igual lo que el layout ponga encima —el aviso de contraseña por vencer, por
+   ejemplo— porque el campo de texto nunca se sale de la vista.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.pantalla {
+  /* `100dvh` y no `100vh`: en el móvil, la barra de Safari se come la
+     diferencia y el compositor quedaba debajo de ella. */
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(1100px 500px at 50% 104%, rgba(56,132,255,0.15), transparent 70%),
+    radial-gradient(820px 400px at 10% -8%, rgba(125,211,252,0.06), transparent 65%),
+    #070C16;
+  color: #E8F0FF;
+  /* Firefox ignora ::-webkit-scrollbar; esto es heredable y sí lo entiende. */
+  scrollbar-color: rgba(125,211,252,0.30) transparent;
+  scrollbar-width: thin;
+}
+
+.pantalla ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); }
+.pantalla ::-webkit-scrollbar-thumb { background: rgba(125,211,252,0.22); }
+.pantalla ::-webkit-scrollbar-thumb:hover { background: rgba(125,211,252,0.42); }
+
+/* El hilo crece y empuja al compositor hacia abajo. */
+.hilo { flex: 1 1 auto; }
+
+/* EL COMPOSITOR SE QUEDA. Pegado al borde inferior de la vista, pase lo que
+   pase por encima. Esto es lo que sustituye al `h-screen` que rompió la
+   geometría: no hay que calcular altura ninguna. */
+.compositor {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  /* El degradado deja que los mensajes se desvanezcan al pasar por debajo, en
+     vez de cortarse contra un borde duro. */
+  background: linear-gradient(to top, #070C16 62%, rgba(7,12,22,0.92) 82%, transparent);
+  padding: 26px 24px 20px;
+}
+
+.caja {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  background: rgba(255,255,255,0.045);
+  border: 1px solid rgba(255,255,255,0.34);   /* 3.05:1 — el control se ve */
+  border-radius: 16px;
+  padding: 8px;
+  transition: border-color 180ms, box-shadow 180ms;
+}
+/* El realce responde al FOCO, no a «hay texto»: quien llega con Tab tiene que
+   ver dónde quedó el cursor antes de escribir nada. */
+.caja:focus-within {
+  border-color: rgba(125,211,252,0.55);
+  box-shadow: 0 0 0 3px rgba(56,132,255,0.18);
+}
+
+.campo {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  max-height: 132px;
+  padding: 6px 8px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #E8F0FF;
+  font-family: inherit;
+}
+/* Sin esto lo pinta el navegador con su gris —negro sobre negro aquí—. */
+.campo::placeholder { color: #7C90B2; opacity: 1; }
+
+.enviar {
+  width: 36px; height: 36px;
+  border-radius: 11px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: none;
+  color: #fff;
+  background: linear-gradient(135deg, #1B4FC9, #2563EB);
+  cursor: pointer;
+  transition: opacity 180ms, background 180ms;
+}
+.enviar:disabled { background: rgba(255,255,255,0.08); cursor: default; }
+
+/* ── Mensajes ──────────────────────────────────────────────────────────── */
+
+/* Tú SÍ eres una burbuja: hablas desde un sitio. Los dos extremos del
+   degradado aguantan el blanco encima (6.98:1 y 5.17:1). */
+.tuyo {
+  max-width: 76%;
+  border-radius: 16px 16px 4px 16px;
+  padding: 11px 15px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  background: linear-gradient(135deg, #1B4FC9, #2563EB);
+  color: #fff;
+  box-shadow: 0 6px 22px rgba(56,132,255,0.20);
+  white-space: pre-wrap;
+}
+
+/* Yo NO llevo burbuja ni avatar: soy el filo del que sale el texto. No tengo
+   cara que poner, y ponerle una sería la primera mentira de la conversación.
+   El COLOR del filo dice cuánta confianza tengo en lo que acabo de decir —
+   verlo antes de leer la etiqueta es más rápido que leerla. */
+.mio {
+  max-width: 86%;
+  padding-left: 16px;
+  border-left: 2px solid rgba(125,211,252,0.45);
+}
+/* Solo DOS tonos, no tres. Con tres, «alta» y «media» se separaban 1.56:1
+   entre sí: un filo de 2px a esa distancia no lo distingue nadie, y un color
+   que no se diferencia no comunica — solo decora.
+   Ahora: cian cuando respondo con lo que tengo, ámbar cuando hay que
+   verificarlo. Y el color NUNCA va solo: cuando no es alta, la línea de abajo
+   lo dice con palabras. */
+.mioAlta  { border-left-color: rgba(125,211,252,0.60); }
+.mioMedia,
+.mioBaja  { border-left-color: rgba(252,211,77,0.60); }
+
+.texto {
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: #E8F0FF;
+  white-space: pre-wrap;
+}
+
+.meta {
+  font-size: 10.5px;
+  color: #7C90B2;
+  margin-top: 7px;
+}
+
+/* ── Sugerencias ───────────────────────────────────────────────────────── */
+.sugerencia {
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.34);
+  background: rgba(255,255,255,0.03);
+  color: #A9BBD8;
+  font-size: 12.5px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: border-color 160ms, background 160ms, color 160ms;
+}
+.sugerencia:hover {
+  border-color: rgba(125,211,252,0.50);
+  background: rgba(56,132,255,0.10);
+  color: #E8F0FF;
+}
+
+/* La nota de honestidad. No es letra chica: es lo más importante que puedo
+   decir de mí, así que ocupa el centro y lleva marco. */
+.honestidad {
+  font-size: 12.5px;
+  color: #9EC5FF;
+  max-width: 440px;
+  line-height: 1.65;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: rgba(56,132,255,0.08);
+  border: 1px solid rgba(125,211,252,0.18);
+}
+
+/* ── Movimiento ────────────────────────────────────────────────────────── */
+@keyframes entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.entra { animation: entra 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes latido {
+  0%, 100% { opacity: 1;    transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.82); }
+}
+.latido { animation: latido 2.4s ease-in-out infinite; }
+
+/* Quien pidió menos movimiento recibe la pantalla quieta. La señal del canvas
+   se apaga por su cuenta leyendo la misma preferencia desde JavaScript. Una
+   animación permanente que no se puede apagar es hostil para quien tiene
+   sensibilidad vestibular, y esto se abre toda la jornada. */
+@media (prefers-reduced-motion: reduce) {
+  .entra, .latido { animation: none; }
+  .caja, .sugerencia, .enviar { transition: none; }
+}
