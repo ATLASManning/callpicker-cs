@@ -54,7 +54,7 @@
   /* El degradado deja que los mensajes se desvanezcan al pasar por debajo, en
      vez de cortarse contra un borde duro. */
   background: linear-gradient(to top, #070C16 62%, rgba(7,12,22,0.92) 82%, transparent);
-  padding: 26px 24px 20px;
+  padding: 30px 24px 24px;
 }
 
 .caja {
@@ -63,8 +63,11 @@
   align-items: flex-end;
   background: rgba(255,255,255,0.045);
   border: 1px solid rgba(255,255,255,0.34);   /* 3.05:1 — el control se ve */
-  border-radius: 16px;
-  padding: 8px;
+  border-radius: 18px;
+  /* Más alto y con más aire: el campo era una ranura y la pantalla se veía
+     escueta. Aquí se escribe la pregunta con un cliente esperando — merece
+     sitio. */
+  padding: 12px 12px 12px 16px;
   transition: border-color 180ms, box-shadow 180ms;
 }
 /* El realce responde al FOCO, no a «hay texto»: quien llega con Tab tiene que
@@ -80,19 +83,22 @@
   border: none;
   outline: none;
   resize: none;
-  max-height: 132px;
-  padding: 6px 8px;
-  font-size: 13.5px;
+  max-height: 168px;
+  min-height: 30px;
+  padding: 2px 4px;
+  /* 16px: el tamaño al que se lee sin esfuerzo, y el mínimo con el que iOS no
+     hace zoom al enfocar un campo. */
+  font-size: 16px;
   line-height: 1.6;
-  color: #E8F0FF;
+  color: #FFFFFF;
   font-family: inherit;
 }
 /* Sin esto lo pinta el navegador con su gris —negro sobre negro aquí—. */
-.campo::placeholder { color: #7C90B2; opacity: 1; }
+.campo::placeholder { color: #8A9DBC; opacity: 1; font-size: 15px; }
 
 .enviar {
-  width: 36px; height: 36px;
-  border-radius: 11px;
+  width: 44px; height: 44px;
+  border-radius: 13px;
   flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   border: none;
@@ -110,9 +116,9 @@
 .tuyo {
   max-width: 76%;
   border-radius: 16px 16px 4px 16px;
-  padding: 11px 15px;
-  font-size: 13.5px;
-  line-height: 1.65;
+  padding: 14px 18px;
+  font-size: 15.5px;
+  line-height: 1.7;
   background: linear-gradient(135deg, #1B4FC9, #2563EB);
   color: #fff;
   box-shadow: 0 6px 22px rgba(56,132,255,0.20);
@@ -124,9 +130,9 @@
    El COLOR del filo dice cuánta confianza tengo en lo que acabo de decir —
    verlo antes de leer la etiqueta es más rápido que leerla. */
 .mio {
-  max-width: 86%;
-  padding-left: 16px;
-  border-left: 2px solid rgba(125,211,252,0.45);
+  max-width: 88%;
+  padding-left: 20px;
+  border-left: 3px solid rgba(125,211,252,0.45);
 }
 /* Solo DOS tonos, no tres. Con tres, «alta» y «media» se separaban 1.56:1
    entre sí: un filo de 2px a esa distancia no lo distingue nadie, y un color
@@ -138,47 +144,53 @@
 .mioMedia,
 .mioBaja  { border-left-color: rgba(252,211,77,0.60); }
 
+/* BLANCO Y GRANDE. Estaba en 13.5px y en un gris azulado: se leía apagado, y
+   lo que yo contesto es lo que la persona vino a leer. 16px sobre casi negro
+   da 19.4:1 — más que de sobra, y se lee de un vistazo. */
 .texto {
-  font-size: 13.5px;
-  line-height: 1.75;
-  color: #E8F0FF;
+  font-size: 16px;
+  line-height: 1.78;
+  color: #FFFFFF;
   white-space: pre-wrap;
 }
 
 .meta {
-  font-size: 10.5px;
-  color: #7C90B2;
-  margin-top: 7px;
+  font-size: 11.5px;
+  color: #8A9DBC;
+  margin-top: 9px;
 }
 
 /* ── Sugerencias ───────────────────────────────────────────────────────── */
+/* Eran seis frases pequeñas y grises: parecían texto de relleno, no seis
+   cosas que se pueden pulsar. Ahora tienen cuerpo de botón y se leen. */
 .sugerencia {
   text-align: left;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 16px 18px;
+  border-radius: 14px;
   border: 1px solid rgba(255,255,255,0.34);
-  background: rgba(255,255,255,0.03);
-  color: #A9BBD8;
-  font-size: 12.5px;
-  line-height: 1.5;
+  background: rgba(255,255,255,0.045);
+  color: #DCE6F7;
+  font-size: 14.5px;
+  line-height: 1.55;
   cursor: pointer;
-  transition: border-color 160ms, background 160ms, color 160ms;
+  transition: border-color 160ms, background 160ms, color 160ms, transform 160ms;
 }
 .sugerencia:hover {
-  border-color: rgba(125,211,252,0.50);
-  background: rgba(56,132,255,0.10);
-  color: #E8F0FF;
+  border-color: rgba(125,211,252,0.55);
+  background: rgba(56,132,255,0.13);
+  color: #FFFFFF;
+  transform: translateY(-1px);
 }
 
 /* La nota de honestidad. No es letra chica: es lo más importante que puedo
    decir de mí, así que ocupa el centro y lleva marco. */
 .honestidad {
-  font-size: 12.5px;
-  color: #9EC5FF;
-  max-width: 440px;
-  line-height: 1.65;
-  padding: 10px 16px;
-  border-radius: 10px;
+  font-size: 14px;
+  color: #BFD8FF;
+  max-width: 480px;
+  line-height: 1.7;
+  padding: 14px 20px;
+  border-radius: 12px;
   background: rgba(56,132,255,0.08);
   border: 1px solid rgba(125,211,252,0.18);
 }

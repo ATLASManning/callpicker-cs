@@ -19,15 +19,13 @@ import s from './atlas.module.css'
  * Los tres tonos están MEDIDOS contra el fondo base #070C16, no estimados: la
  * primera vez escribí 16.1 / 8.4 / 5.2 de memoria y los tres estaban mal.
  * Todos pasan el 4.5:1 de AA para texto normal. */
-const TX_ALTO  = '#E8F0FF'   // 17.09:1 — el texto que se lee
-const TX_MEDIO = '#A9BBD8'   // 10.05:1 — lo secundario, aún cómodo
-const TX_BAJO  = '#7C90B2'   //  6.05:1 — metadatos; sigue pasando AA
-const BORDE    = 'rgba(255,255,255,0.09)'   // 1.23:1 — solo separadores decorativos
-/* Los CONTROLES necesitan borde propio. A 0.09 el campo de texto y los seis
- * botones de sugerencia flotaban sin contorno: se adivinaban por dónde caía el
- * texto, no por su forma. A 0.34 llega a 3:1, el mínimo de WCAG para un objeto
- * gráfico, y sigue leyéndose sutil. */
-const BORDE_CONTROL = 'rgba(255,255,255,0.34)'
+/* Lo que queda aquí es lo que sigue pintándose con estilos en línea: la barra
+ * de acciones y los contadores. Todo lo demás —hilo, compositor, burbujas,
+ * sugerencias— vive ya en `atlas.module.css`, que es lo que garantiza que esta
+ * pantalla no pueda alcanzar a ninguna otra.
+ * Medidos contra el fondo base #070C16, no estimados. */
+const TX_BAJO = '#7C90B2'                    //  6.05:1 — metadatos
+const BORDE   = 'rgba(255,255,255,0.09)'     //  1.23:1 — solo separadores
 
 type TipoRespuesta = 'normal' | 'pendiente' | 'requiere_busqueda_web'
 
@@ -444,58 +442,37 @@ export default function ChatPage() {
             {/* No hay orbe ni cara. La misma señal que vive abajo, presentada
                 aquí más ancha: es la bienvenida Y es lo que va a acompañar
                 toda la conversación. Una sola idea, no dos. */}
-            <div style={{ width: '100%', maxWidth: 560, marginBottom: 26 }}>
-              <AtlasSignal estado={estadoSenal} altura={74} />
+            <div style={{ width: '100%', maxWidth: 680, marginBottom: 30 }}>
+              <AtlasSignal estado={estadoSenal} altura={104} />
             </div>
-            <h2 style={{ fontSize: 19, fontWeight: 800, color: TX_ALTO, letterSpacing: '-0.01em' }}>
+            <h2 style={{ fontSize: 26, fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em' }}>
               Atlas
             </h2>
-            <p style={{ fontSize: 13.5, color: TX_MEDIO, marginTop: 8, maxWidth: 470, lineHeight: 1.65 }}>
+            <p style={{ fontSize: 15.5, color: '#C3D2E8', marginTop: 12, maxWidth: 540, lineHeight: 1.7 }}>
               Leo todo el tablero: cuentas, tickets, auditorías, activaciones, seguimientos,
               reuniones y la base de conocimiento.
             </p>
             {/* Esto no es letra chica. Es lo más importante que puedo decir de
                 mí, así que va en el centro y no al pie en gris. */}
-            <p style={{
-              fontSize: 12.5, color: '#9EC5FF', marginTop: 14, maxWidth: 440,
-              lineHeight: 1.65, padding: '10px 16px', borderRadius: 10,
-              background: 'rgba(56,132,255,0.08)',
-              border: '1px solid rgba(125,211,252,0.18)',
-            }}>
-              Si no tengo el dato, lo registro y te lo digo. <strong style={{ color: '#CFE4FF' }}>Nunca
-              lo invento.</strong>
+            <p className={s.honestidad} style={{ marginTop: 18 }}>
+              Si no tengo el dato, lo registro y te lo digo.{' '}
+              <strong style={{ color: '#FFFFFF' }}>Nunca lo invento.</strong>
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-2xl w-full" style={{ marginTop: 28 }}>
-              {SUGERENCIAS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => send(s)}
-                  style={{
-                    textAlign: 'left', padding: '12px 14px', borderRadius: 12,
-                    border: `1px solid ${BORDE_CONTROL}`, background: 'rgba(255,255,255,0.03)',
-                    color: TX_MEDIO, fontSize: 12.5, lineHeight: 1.5, cursor: 'pointer',
-                    transition: 'border-color 160ms, background 160ms, color 160ms',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = 'rgba(125,211,252,0.42)'
-                    e.currentTarget.style.background = 'rgba(56,132,255,0.10)'
-                    e.currentTarget.style.color = TX_ALTO
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = BORDE_CONTROL
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.03)'
-                    e.currentTarget.style.color = TX_MEDIO
-                  }}
-                >
-                  {s}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl w-full" style={{ marginTop: 34 }}>
+              {SUGERENCIAS.map(pregunta => (
+                /* El hover vive en el CSS (`.sugerencia:hover`), no en tres
+                   manejadores de ratón: así también responde al foco de
+                   teclado y se apaga con «reducir movimiento». */
+                <button key={pregunta} onClick={() => send(pregunta)} className={s.sugerencia}>
+                  {pregunta}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        <div className="space-y-5">
+        <div className="space-y-7">
           {msgs.map((m, i) => (
             m.role === 'user' ? (
               /* Tú SÍ eres una burbuja: eres alguien que habla desde un sitio. */
@@ -539,8 +516,8 @@ export default function ChatPage() {
               borderLeft: '2px solid rgba(125,211,252,0.45)',
               display: 'flex', alignItems: 'center', gap: 9,
             }}>
-              <Loader2 size={13} className="animate-spin" style={{ color: '#7DD3FC' }} />
-              <span style={{ fontSize: 12.5, color: TX_MEDIO }}>
+              <Loader2 size={15} className="animate-spin" style={{ color: '#7DD3FC' }} />
+              <span style={{ fontSize: 14.5, color: '#C3D2E8' }}>
                 Consultando los módulos del tablero…
               </span>
             </div>
@@ -560,8 +537,8 @@ export default function ChatPage() {
       <div className={s.compositor}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           {msgs.length > 0 && (
-            <div style={{ marginBottom: -6 }}>
-              <AtlasSignal estado={estadoSenal} altura={44} />
+            <div style={{ marginBottom: 2 }}>
+              <AtlasSignal estado={estadoSenal} altura={60} />
             </div>
           )}
 

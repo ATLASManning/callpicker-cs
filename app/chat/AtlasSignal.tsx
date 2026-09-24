@@ -5,54 +5,59 @@ import { useEffect, useRef } from 'react'
    LA SEÑAL — cómo se ve Atlas cuando está presente
    ══════════════════════════════════════════════════════════════════════════
 
-   POR QUÉ UNA LÍNEA Y NO UNA CARA
+   POR QUÉ BARRAS Y NO UNA CARA
 
    La tentación era un orbe girando, anillos, cromo: el repertorio de JARVIS.
    Pero eso es un mayordomo actuando para su dueño, y no es lo que pasa aquí.
    Lo que pasa aquí es que alguien pregunta algo con un cliente esperando y del
    otro lado hay algo que escucha y contesta — o que admite que no sabe.
 
-   Así que no hay avatar. La señal ES la presencia: una línea viva en el borde
-   entre lo que tú escribes y lo que yo soy. No tiene rostro porque no lo
-   tengo; tiene ritmo, porque eso sí.
+   Así que no hay avatar. La señal ES la presencia: una secuencia de voz en el
+   borde entre lo que tú escribes y lo que yo soy. Empezó siendo una línea de
+   onda; son barras porque una secuencia de voz se LEE como voz, y una curva
+   suelta se lee como decoración. No tiene rostro porque no lo tengo; tiene
+   ritmo, porque eso sí.
 
    CUATRO ESTADOS, Y CADA UNO ES UN ESTADO REAL DE LA APLICACIÓN — no es
    decoración que se mueve porque sí:
 
-     disponible  respiración lenta, amplitud mínima. «Estoy aquí, no pasa nada.»
-     escuchando  sube al escribir tú. Te está siguiendo.
-     pensando    se acelera y la recorre un pulso. Está consultando de verdad.
-     dormida     una línea recta y tenue. Nada que fingir.
+     disponible  respiración lenta, barras bajas. «Estoy aquí, no pasa nada.»
+     escuchando  suben al escribir tú. Te está siguiendo.
+     pensando    se aceleran y las recorre un pulso. Consultando de verdad.
+     dormida     casi planas y apagadas. Nada que fingir.
 
    LO QUE NO HACE
-   No finge actividad cuando no la hay. Si la señal se mueve rápido es porque
-   hay una consulta corriendo; si está casi quieta es porque no hay nada. Una
-   animación que late igual pase lo que pase enseña a no mirarla.
+   No finge actividad cuando no la hay. Si las barras se mueven rápido es
+   porque hay una consulta corriendo; si están casi quietas es porque no hay
+   nada. Una animación que late igual pase lo que pase enseña a no mirarla.
 
-   Y quien pidió menos movimiento recibe la línea QUIETA. Una animación
+   Y quien pidió menos movimiento recibe las barras QUIETAS. Una animación
    permanente que no se puede apagar es hostil para quien tiene sensibilidad
    vestibular o déficit de atención — y esto se abre durante toda la jornada.
    ══════════════════════════════════════════════════════════════════════════ */
 
 export type EstadoSenal = 'dormida' | 'disponible' | 'escuchando' | 'pensando'
 
-/** Amplitud (px), velocidad y brillo de cada estado. Se INTERPOLA entre ellos:
- *  un salto seco delataría que son cuatro animaciones distintas en vez de una
- *  sola cosa que cambia de ánimo. */
+/** Altura relativa, velocidad, brillo y pulso de cada estado. Se INTERPOLA
+ *  entre ellos: un salto seco delataría que son cuatro animaciones distintas
+ *  en vez de una sola cosa que cambia de ánimo. */
 const PERFIL: Record<EstadoSenal, { amp: number; vel: number; brillo: number; pulso: number }> = {
-  dormida:    { amp: 0.4, vel: 0.15, brillo: 0.18, pulso: 0 },
-  disponible: { amp: 3.2, vel: 0.55, brillo: 0.40, pulso: 0 },
-  escuchando: { amp: 7.5, vel: 1.05, brillo: 0.62, pulso: 0 },
-  pensando:   { amp: 13,  vel: 2.10, brillo: 0.95, pulso: 1 },
+  dormida:    { amp: 0.06, vel: 0.15, brillo: 0.20, pulso: 0 },
+  disponible: { amp: 0.20, vel: 0.55, brillo: 0.46, pulso: 0 },
+  escuchando: { amp: 0.48, vel: 1.10, brillo: 0.70, pulso: 0 },
+  pensando:   { amp: 0.82, vel: 2.10, brillo: 1.00, pulso: 1 },
 }
+
+const ANCHO_BARRA = 3
+const HUECO = 4
 
 export default function AtlasSignal({
   estado = 'disponible',
-  altura = 56,
+  altura = 72,
 }: { estado?: EstadoSenal; altura?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   /** El estado vive en una ref y no en el closure del bucle: así cambiar de
-   *  ánimo NO reinicia la animación — la línea sigue donde iba y se acomoda. */
+   *  ánimo NO reinicia la animación — las barras siguen donde iban. */
   const objetivo = useRef(PERFIL[estado])
   /** Repintar un cuadro suelto. Lo publica el efecto de montaje para que el
    *  cambio de estado pueda usarlo cuando NO hay bucle corriendo. */
@@ -60,10 +65,10 @@ export default function AtlasSignal({
 
   useEffect(() => {
     objetivo.current = PERFIL[estado]
-    /* Con «reducir movimiento» no hay bucle, así que sin esto la línea se
-       quedaba congelada en la amplitud de «disponible» para siempre: decía
-       que no pasaba nada mientras había una consulta corriendo. Un cuadro
-       suelto por cambio de estado no es animación — es informar. */
+    /* Con «reducir movimiento» no hay bucle, así que sin esto las barras se
+       quedarían congeladas en la altura de «disponible» para siempre: dirían
+       que no pasa nada mientras hay una consulta corriendo. Un cuadro suelto
+       por cambio de estado no es animación — es informar. */
     repinta.current?.()
   }, [estado])
 
@@ -73,26 +78,19 @@ export default function AtlasSignal({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    /* El identificador del cuadro pendiente. Va ARRIBA del todo aunque no se
-       use hasta más abajo: los manejadores de eventos lo leen, y declararlo
-       después de ellos funciona —no se ejecutan hasta que el efecto termina—
-       pero obliga a razonar sobre la zona muerta temporal para convencerse.
-       Un 0 significa «no hay cuadro pedido». */
+    /* EL ESTADO DE LAS BARRAS, ARRIBA DEL TODO. `medir()` se llama nada más
+       definirse y termina repintando, así que todo lo que el pintado lea tiene
+       que existir ya. Declararlo más abajo con `let` lo dejaba en la zona
+       muerta temporal: eso tumbó la pantalla entera una vez. Las funciones se
+       elevan; `let` y `const` no. */
     let raf = 0
-
-    /* EL ESTADO DE LA ONDA, ARRIBA DEL TODO. Esto tumbó la pantalla entera con
-       un ReferenceError: `medir()` se llama nada más definirse y termina
-       invocando a `pinta()`, que lee estas variables. Declaradas más abajo con
-       `let`, quedaban en la zona muerta temporal y el componente reventaba
-       antes de pintar nada — pantalla blanca y «excepción en el lado del
-       cliente».
-       Las funciones SÍ se elevan; `let` y `const` no. Si algo se llama durante
-       el cuerpo del efecto, todo lo que ese algo lea tiene que estar declarado
-       antes. */
     let amp = PERFIL[estado].amp
     let brillo = PERFIL[estado].brillo
     let pulso = 0
     let t = 0
+    let ancho = 0
+    let alto = 0
+    let dpr = 1
 
     /* La preferencia se ESCUCHA, no se lee una vez. Quien la activa a media
        jornada —porque le empezó a molestar— esperaría que se apague sola, no
@@ -107,18 +105,13 @@ export default function AtlasSignal({
     }
     mq.addEventListener('change', cambioPreferencia)
 
-    let ancho = 0
-    let alto = 0
-    // El dpr se remide en cada `medir()`: si la ventana se arrastra a otro
-    // monitor con distinta densidad, fijarlo al montar dejaría la línea borrosa.
-    let dpr = 1
-
-    /* MEDIR BORRA EL DIBUJO. Asignar `canvas.width` reinicia el bitmap a
-       transparente por especificación, aunque se le ponga el mismo número. Con
-       la animación encendida no se nota —el siguiente cuadro repinta—, pero
-       con «reducir movimiento» activo NO HAY siguiente cuadro: la línea se
-       borraba al cambiar el tamaño de la ventana y no volvía nunca. Por eso
-       `medir()` termina repintando siempre. */
+    /* MEDIR BORRA EL DIBUJO. Asignar `canvas.width` reinicia el bitmap por
+       especificación, aunque se le ponga el mismo número. Con la animación
+       encendida no se nota, pero con «reducir movimiento» NO HAY cuadro
+       siguiente: las barras se borraban al cambiar el tamaño de la ventana y
+       no volvían nunca. Por eso `medir()` termina repintando siempre.
+       El `dpr` se remide aquí: si la ventana se arrastra a otro monitor con
+       distinta densidad, fijarlo al montar dejaría el dibujo borroso. */
     function medir() {
       const r = canvas!.getBoundingClientRect()
       dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -129,31 +122,26 @@ export default function AtlasSignal({
       ctx!.setTransform(dpr, 0, 0, dpr, 0, 0)
       if (ancho > 1) pinta()
     }
-    medir()
-    window.addEventListener('resize', medir)
 
     /* Con la pestaña oculta el navegador ya frena el requestAnimationFrame,
        pero no en todas partes ni siempre: se corta explícitamente. Esta
        pantalla se queda abierta toda la jornada en una pestaña de fondo, y
-       pintar una onda que nadie mira es gastar batería por nada. */
+       pintar barras que nadie mira es gastar batería por nada. */
     function visibilidad() {
       if (document.hidden) { cancelAnimationFrame(raf); raf = 0 }
       else if (!raf && !quieto) dibuja()
     }
-    document.addEventListener('visibilitychange', visibilidad)
 
-    /* AVANZAR y PINTAR están separados a propósito.
-       `pinta()` dibuja un cuadro con el estado que haya, sin tocar el tiempo ni
-       pedir el siguiente. Así puede llamarse desde `medir()` —que acaba de
-       borrar el bitmap— aunque la animación esté apagada. `avanza()` mueve el
-       reloj. `dibuja()` es el bucle: avanza, pinta y pide otro. */
+    /* AVANZAR y PINTAR van separados: `pinta()` dibuja un cuadro con el estado
+       que haya, sin tocar el reloj ni pedir el siguiente, así puede llamarse
+       desde `medir()` aunque la animación esté apagada. */
     function avanza(dt: number) {
       const o = objetivo.current
       /* Persecución exponencial CORREGIDA POR TIEMPO. Antes era un 6% por
          FOTOGRAMA, así que en un monitor de 144 Hz todo iba 2.4× más rápido:
-         la «respiración lenta» salía nerviosa y el pensando, frenético. Ahora
-         el 6% es por cuadro de 60 Hz y se reescala al delta real. */
-      const k = 1 - Math.pow(1 - 0.06, dt * 60)
+         la «respiración lenta» salía nerviosa. Ahora el 6% es por cuadro de
+         60 Hz y se reescala al delta real. */
+      const k = 1 - Math.pow(1 - 0.07, dt * 60)
       amp += (o.amp - amp) * k
       brillo += (o.brillo - brillo) * k
       pulso += (o.pulso - pulso) * (1 - Math.pow(1 - 0.05, dt * 60))
@@ -163,59 +151,65 @@ export default function AtlasSignal({
     function pinta() {
       const o = objetivo.current
       ctx!.clearRect(0, 0, ancho, alto)
+
+      const paso = ANCHO_BARRA + HUECO
+      const n = Math.max(2, Math.floor(ancho / paso))
+      const sobra = ancho - n * paso + HUECO
+      const x0 = sobra / 2
       const medio = alto / 2
+      const maxAlt = alto * 0.86
 
-      /* El pulso que recorre la línea cuando está pensando. Sale por la
-         derecha y vuelve a entrar por la izquierda; no se ve el salto porque
-         en los extremos la envolvente vale cero y además `pulso` solo es > 0
-         mientras el estado es «pensando». */
-      const px = ((t * 0.28 * (o.vel || 1)) % 1.4 - 0.2) * ancho
-      const sigma = ancho * 0.07
+      /* El pulso que recorre las barras cuando está pensando. Sale por la
+         derecha y vuelve por la izquierda; no se ve el salto porque en los
+         extremos la envolvente vale cero. */
+      const pu = (t * 0.30) % 1.5 - 0.25
+      const sigma = 0.09
 
-      function y(x: number): number {
-        const u = x / ancho
-        // Envolvente: la línea nace y muere plana en los bordes. Sin esto
-        // parece un trozo recortado de una onda más grande.
-        const env = Math.sin(Math.PI * u)
-        // Tres armónicos, no uno: una sinusoide pura se lee como máquina.
+      for (let i = 0; i < n; i++) {
+        const u = n > 1 ? i / (n - 1) : 0.5
+        /* Envolvente: las barras nacen y mueren bajas en los bordes. Sin esto
+           parece un trozo recortado de algo más grande. */
+        const env = Math.sin(Math.PI * u) ** 0.82
+        /* Tres armónicos, no uno: una sinusoide pura se lee como máquina. El
+           tercero es rápido y de poca altura — es el titileo. */
         const onda =
-          0.62 * Math.sin(u * 7.0 + t * 1.7) +
-          0.27 * Math.sin(u * 13.0 - t * 2.3) +
-          0.11 * Math.sin(u * 23.0 + t * 3.1)
-        const bulto = pulso * 14 * Math.exp(-((x - px) ** 2) / (2 * sigma * sigma))
-        return medio - (onda * amp + bulto) * env
+          0.58 * Math.sin(u * 8.0 + t * 1.9) +
+          0.28 * Math.sin(u * 15.0 - t * 2.6) +
+          0.14 * Math.sin(u * 27.0 + t * 4.3)
+        const bulto = pulso * 0.55 * Math.exp(-((u - pu) ** 2) / (2 * sigma * sigma))
+        /* Suelo del 7%: una barra a cero se lee como hueco, y un hueco en
+           mitad de la secuencia parece un fallo, no reposo. */
+        const h = Math.max(alto * 0.055, (Math.abs(onda) * amp + bulto) * env * maxAlt)
+
+        const x = x0 + i * paso
+        // El centro brilla más que los extremos: la secuencia tiene foco.
+        const a = brillo * (0.30 + 0.70 * env)
+        ctx!.fillStyle = bulto > 0.05
+          ? `rgba(199,216,253,${Math.min(1, a + bulto)})`
+          : `rgba(125,211,252,${a})`
+        ctx!.beginPath()
+        // Barras con las puntas redondeadas, centradas en el eje.
+        const y = medio - h / 2
+        const r = ANCHO_BARRA / 2
+        ctx!.moveTo(x + r, y)
+        ctx!.arcTo(x + ANCHO_BARRA, y, x + ANCHO_BARRA, y + h, r)
+        ctx!.arcTo(x + ANCHO_BARRA, y + h, x, y + h, r)
+        ctx!.arcTo(x, y + h, x, y, r)
+        ctx!.arcTo(x, y, x + ANCHO_BARRA, y, r)
+        ctx!.fill()
       }
 
-      // Estela: la misma curva, más gruesa y difusa, por debajo.
-      const grad = ctx!.createLinearGradient(0, 0, ancho, 0)
-      grad.addColorStop(0, 'rgba(0,87,255,0)')
-      grad.addColorStop(0.16, `rgba(56,132,255,${brillo * 0.55})`)
-      grad.addColorStop(0.5, `rgba(125,211,252,${brillo})`)
-      grad.addColorStop(0.84, `rgba(56,132,255,${brillo * 0.55})`)
-      grad.addColorStop(1, 'rgba(0,87,255,0)')
-
-      ctx!.beginPath()
-      for (let x = 0; x <= ancho; x += 2) {
-        const yy = y(x)
-        if (x === 0) ctx!.moveTo(x, yy)
-        else ctx!.lineTo(x, yy)
-      }
-      ctx!.strokeStyle = grad
-      ctx!.lineWidth = 6
-      ctx!.globalAlpha = 0.16
-      ctx!.lineCap = 'round'
-      ctx!.stroke()
-
-      // La línea misma, fina y nítida encima de su propia estela.
-      ctx!.globalAlpha = 1
-      ctx!.lineWidth = 1.6
-      ctx!.stroke()
+      // El eje: una línea tenue que sostiene la secuencia cuando está casi
+      // plana, para que el reposo no se lea como pantalla apagada.
+      ctx!.fillStyle = `rgba(56,132,255,${0.10 + brillo * 0.10})`
+      ctx!.fillRect(x0, medio - 0.5, ancho - sobra, 1)
+      void o
     }
 
     let anterior = 0
     function dibuja(ts?: number) {
       // Si aún no hay ancho —el contenedor no se ha medido— se remide y se
-      // salta el cuadro: dibujar contra 1px dejaría la línea aplastada.
+      // salta el cuadro: dibujar contra 1px dejaría todo aplastado.
       if (ancho <= 1) {
         medir()
         if (ancho <= 1) {
@@ -224,8 +218,7 @@ export default function AtlasSignal({
         }
       }
       /* El tope de 50 ms evita el salto tras volver de una pestaña en segundo
-         plano o de un bloqueo: sin él, un delta de varios segundos dispararía
-         la onda de golpe. */
+         plano: sin él, un delta de varios segundos dispararía las barras. */
       const ahora = ts ?? anterior
       const dt = anterior ? Math.min((ahora - anterior) / 1000, 0.05) : 0.016
       anterior = ahora
@@ -234,6 +227,9 @@ export default function AtlasSignal({
       raf = (quieto || document.hidden) ? 0 : requestAnimationFrame(dibuja)
     }
 
+    medir()
+    window.addEventListener('resize', medir)
+    document.addEventListener('visibilitychange', visibilidad)
     dibuja()
 
     /* Se publica el repintado para el efecto de `estado`. En modo quieto salta
