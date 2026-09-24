@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   BarChart2, Clock, MousePointerClick, TrendingUp, Search,
-  ChevronDown, Calendar, Users,
+  ChevronDown, ChevronLeft, ChevronRight, Calendar, Users,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import { ASESOR_CONFIG } from '@/lib/types'
@@ -158,6 +158,9 @@ export default function UsoDashboardPage() {
    *  seleccionado puede faltar si se buscó tecleando, y sin esto no había
    *  forma de titular el reporte ni el aviso de «sin registros». */
   const [buscado,   setBuscado]   = useState('')
+  /** Mes visible del calendario. Uno solo a la vez: apilar todos los meses
+   *  convertía la pantalla en un rollo que crece cada mes que pasa. */
+  const [mesIdx,    setMesIdx]    = useState(0)
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [open,      setOpen]      = useState(false)
@@ -219,6 +222,13 @@ export default function UsoDashboardPage() {
   }
 
   const stats = useMemo(() => rows.length > 0 ? aggregate(rows) : null, [rows])
+
+  /* Al cambiar de usuario se abre en su mes MÁS RECIENTE, que es el que
+     interesa. Y se clampa: si el usuario nuevo tiene menos meses que el
+     anterior, un índice heredado apuntaría fuera del arreglo. */
+  const totalMeses = stats?.calendario.length ?? 0
+  useEffect(() => { setMesIdx(Math.max(0, totalMeses - 1)) }, [totalMeses, buscado])
+  const mesActual = stats?.calendario[Math.min(mesIdx, totalMeses - 1)] ?? null
 
   const asesorColor = selected?.asesor_nombre
     ? ASESOR_CONFIG[selected.asesor_nombre as keyof typeof ASESOR_CONFIG]?.color ?? '#1B3FCC'
@@ -424,19 +434,70 @@ export default function UsoDashboardPage() {
                tablero. Eso último es lo que no se veía por ningún lado: un mes
                con 15 días de uso y 15 en blanco se lee igual que uno de uso
                diario si solo se miran los promedios. */}
-          {stats.calendario.map(c => (
-            <div key={c.mes} className="cp-card p-5">
-              <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
-                <p className="text-sm font-bold text-textHi flex items-center gap-2">
-                  <Calendar size={15} className="text-blue-600" />
-                  {c.etiqueta}
-                </p>
+          {mesActual && (
+            <div className="cp-card p-5">
+              {/* Navegación: un mes a la vez, no la pila entera. */}
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                <div className="flex items-center gap-2">
+                  <Calendar size={15} className="text-blue-600 flex-shrink-0" />
+                  <button
+                    type="button"
+                    onClick={() => setMesIdx(i => Math.max(0, i - 1))}
+                    disabled={mesIdx <= 0}
+                    title="Mes anterior"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-opacity
+                      disabled:opacity-25 disabled:cursor-not-allowed hover:opacity-80"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}
+                  >
+                    <ChevronLeft size={15} />
+                  </button>
+                  <p className="text-sm font-bold text-textHi min-w-[128px] text-center">
+                    {mesActual.etiqueta}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setMesIdx(i => Math.min(totalMeses - 1, i + 1))}
+                    disabled={mesIdx >= totalMeses - 1}
+                    title="Mes siguiente"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-opacity
+                      disabled:opacity-25 disabled:cursor-not-allowed hover:opacity-80"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}
+                  >
+                    <ChevronRight size={15} />
+                  </button>
+                  {totalMeses > 1 && (
+                    <span className="text-[11px] text-textMid ml-1">
+                      {mesIdx + 1} de {totalMeses}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-textMid">
-                  <strong className="text-textHi">{c.totalMes}</strong> visitas ·{' '}
-                  <strong className="text-textHi">{c.conUso}</strong> días con uso ·{' '}
-                  <strong className="text-textHi">{c.sinUso}</strong> sin abrir
+                  <strong className="text-textHi">{mesActual.totalMes}</strong> visitas ·{' '}
+                  <strong className="text-textHi">{mesActual.conUso}</strong> días con uso ·{' '}
+                  <strong className="text-textHi">{mesActual.sinUso}</strong> sin abrir
                 </p>
               </div>
+
+              {/* Salto directo. Cada ficha lleva su total, así se ve de un
+                  vistazo dónde hubo actividad sin tener que recorrer mes a mes.
+                  Solo aparece cuando hay más de uno que elegir. */}
+              {totalMeses > 1 && (
+                <div className="flex gap-1.5 flex-wrap mb-4">
+                  {stats.calendario.map((c, i) => (
+                    <button
+                      key={c.mes}
+                      type="button"
+                      onClick={() => setMesIdx(i)}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-opacity hover:opacity-80"
+                      style={i === mesIdx
+                        ? { background: '#1B3FCC', color: '#fff' }
+                        : { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.65)' }}
+                    >
+                      {MESES[Number(c.mes.slice(5, 7)) - 1]} · {c.totalMes}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <div className="grid grid-cols-7 gap-1.5 mb-1.5">
                 {DIAS_CAL.map((d, i) => (
@@ -445,9 +506,9 @@ export default function UsoDashboardPage() {
               </div>
 
               <div className="grid grid-cols-7 gap-1.5">
-                {Array.from({ length: c.huecoInicial }, (_, i) => <div key={`h${i}`} />)}
-                {c.dias.map(d => {
-                  const intensidad = c.maxDia > 0 ? d.visitas / c.maxDia : 0
+                {Array.from({ length: mesActual.huecoInicial }, (_, i) => <div key={`h${i}`} />)}
+                {mesActual.dias.map(d => {
+                  const intensidad = mesActual.maxDia > 0 ? d.visitas / mesActual.maxDia : 0
                   return (
                     /* `cp-light` para que los <span> HEREDEN el color de la
                        baldosa: dentro de una .cp-card el CSS global los pinta
@@ -458,7 +519,7 @@ export default function UsoDashboardPage() {
                       title={`${d.fecha} — ${d.visitas} visita${d.visitas === 1 ? '' : 's'}`}
                       className="aspect-square rounded-lg flex flex-col items-center justify-center cp-light"
                       style={{
-                        background: d.visitas > 0 ? heatColor(d.visitas, c.maxDia) : 'rgba(255,255,255,0.04)',
+                        background: d.visitas > 0 ? heatColor(d.visitas, mesActual.maxDia) : 'rgba(255,255,255,0.04)',
                         color: d.visitas === 0 ? 'rgba(255,255,255,0.35)'
                           : intensidad >= 0.5 ? '#fff' : '#1E293B',
                         border: d.visitas === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
@@ -478,7 +539,7 @@ export default function UsoDashboardPage() {
                 apagadas son días en que nadie abrió el tablero.
               </p>
             </div>
-          ))}
+          )}
 
           {/* Heatmap por día de semana */}
           <div className="cp-card p-5">
