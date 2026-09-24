@@ -80,6 +80,20 @@ export default function AtlasSignal({
        Un 0 significa «no hay cuadro pedido». */
     let raf = 0
 
+    /* EL ESTADO DE LA ONDA, ARRIBA DEL TODO. Esto tumbó la pantalla entera con
+       un ReferenceError: `medir()` se llama nada más definirse y termina
+       invocando a `pinta()`, que lee estas variables. Declaradas más abajo con
+       `let`, quedaban en la zona muerta temporal y el componente reventaba
+       antes de pintar nada — pantalla blanca y «excepción en el lado del
+       cliente».
+       Las funciones SÍ se elevan; `let` y `const` no. Si algo se llama durante
+       el cuerpo del efecto, todo lo que ese algo lea tiene que estar declarado
+       antes. */
+    let amp = PERFIL[estado].amp
+    let brillo = PERFIL[estado].brillo
+    let pulso = 0
+    let t = 0
+
     /* La preferencia se ESCUCHA, no se lee una vez. Quien la activa a media
        jornada —porque le empezó a molestar— esperaría que se apague sola, no
        tener que recargar la pantalla. */
@@ -127,12 +141,6 @@ export default function AtlasSignal({
       else if (!raf && !quieto) dibuja()
     }
     document.addEventListener('visibilitychange', visibilidad)
-
-    // Estado actual, que persigue al objetivo sin dar saltos.
-    let amp = PERFIL[estado].amp
-    let brillo = PERFIL[estado].brillo
-    let pulso = 0
-    let t = 0
 
     /* AVANZAR y PINTAR están separados a propósito.
        `pinta()` dibuja un cuadro con el estado que haya, sin tocar el tiempo ni
