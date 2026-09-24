@@ -1,5 +1,5 @@
-﻿'use client'
-import { useState, useMemo } from 'react'
+'use client'
+import { useState, useMemo, Fragment } from 'react'
 import {
   Timer, Phone, Wifi, Wrench, GitBranch, Zap,
   Headphones, BarChart3, Bot, Code, Settings2,
@@ -7,7 +7,8 @@ import {
   AlertTriangle, Info, CheckCircle2, XCircle,
   ChevronDown, ChevronUp, Search,
   ShieldCheck, Puzzle, Globe, FileText, LifeBuoy,
-  Heart, ExternalLink, Cpu, BookMarked, Download, Eye, EyeOff,
+  // `Heart` se fue con la categoría de bienvenida: era su único uso.
+  ExternalLink, Cpu, BookMarked, Download, Eye, EyeOff,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
 import GlosarioTecnico from '@/components/GlosarioTecnico'
@@ -76,16 +77,106 @@ const CAT_ICONS: Record<string, React.ElementType> = {
   integraciones:  Puzzle,
   cobertura:      Globe,
   soporte:        LifeBuoy,
-  'callpicker-sac':     Heart,
   'asistente-virtual':  Cpu,
 }
 
-// ── KB ordenado alfabéticamente (Callpicker SAC siempre al inicio) ────────────
-const KB_SORTED = [...KB].sort((a, b) => {
-  if (a.id === 'callpicker-sac') return -1
-  if (b.id === 'callpicker-sac') return  1
-  return a.label.localeCompare(b.label, 'es')
-})
+/* ── El orden de las categorías ───────────────────────────────────────────
+ *
+ * Antes era ALFABÉTICO, con la bienvenida «Callpicker SAC» clavada al inicio.
+ * El alfabeto no es un criterio: pone «Avanzadas» antes que «Extensiones» sin
+ * que eso signifique nada, y obliga a recorrer la lista entera para encontrar
+ * lo que se busca. Esta pantalla se abre CON UN CLIENTE AL TELÉFONO, así que
+ * el orden tiene que seguir cómo se usa el producto, no cómo se deletrea.
+ *
+ * Se agrupan por materia y los grupos van de lo que se contrata a lo que lo
+ * respalda. Una categoría que no esté aquí abajo NO desaparece: cae al final,
+ * en su propio grupo, para que añadir una nueva no la esconda.
+ */
+const GRUPOS: { titulo: string; categorias: string[] }[] = [
+  // 1 · Lo primero que se pregunta en una llamada, y lo único que el asesor no
+  //     puede improvisar: son cifras y reglas de cobro.
+  { titulo: 'Su plan y sus números',   categorias: ['minutos', 'extensiones', 'lineas', 'cobertura'] },
+  // 2 · La segunda pregunta: «¿por qué no se asignó esa llamada?». Las tres son
+  //     un solo recorrido —DID → horario → menú → grupo/fila → extensión— que
+  //     el alfabeto tenía partido en tres sitios.
+  { titulo: 'Enrutamiento de llamadas', categorias: ['flujo', 'callcenter', 'operativas'] },
+  // 3 · El «¿se puede…?» de alto volumen y bajo riesgo. `informes` va aquí y no
+  //     suelta porque su contenido ya está entrelazado con `avanzadas`:
+  //     «Exportar Llamadas a Excel» es vecina de «Panel de Gráficas», y
+  //     «Enviar Alerta de Llamada Perdida vía SMS» es casi el mismo artículo
+  //     que «Alertas Personalizadas de Llamadas Perdidas».
+  { titulo: 'Funciones y reportes',    categorias: ['funcbasicas', 'avanzadas', 'informes'] },
+  // 4 · Lo que se suma al teléfono y se da de alta aparte. `ia` antes que
+  //     `asistente-virtual` porque una es el producto y la otra su reportería:
+  //     la reportería solo sirve cuando el agente ya existe.
+  { titulo: 'Chat, IA e integraciones', categorias: ['integraciones', 'desarrollador', 'chat', 'ia', 'asistente-virtual'] },
+  // 5 · «Esto ya no lo resuelvo yo en la llamada»: se manda a TI del cliente,
+  //     se levanta ticket, o se contesta un cuestionario de compras.
+  { titulo: 'Soporte y seguridad',     categorias: ['soporte', 'seguridad'] },
+]
+
+/** Las categorías en el orden de los grupos. Las que no estén clasificadas se
+ *  añaden al final: así una categoría nueva aparece aunque nadie actualice
+ *  GRUPOS, en vez de existir en los datos y no verse en pantalla. */
+const KB_SORTED = (() => {
+  const porId = new Map(KB.map(c => [c.id, c]))
+  const orden: typeof KB = []
+  for (const g of GRUPOS) {
+    for (const id of g.categorias) {
+      const c = porId.get(id)
+      if (c) { orden.push(c); porId.delete(id) }
+    }
+  }
+  // Lo que quede sin clasificar, alfabético, al final.
+  const sueltas = Array.from(porId.values()).sort((a, b) => a.label.localeCompare(b.label, 'es'))
+  return orden.concat(sueltas)
+})()
+
+/** A qué grupo pertenece cada categoría, para poder pintar los encabezados del
+ *  menú sin recorrer GRUPOS en cada render. Las no clasificadas caen en
+ *  «Otros», que además es la señal de que hay que clasificarlas. */
+const GRUPO_DE = new Map<string, string>()
+for (const g of GRUPOS) for (const id of g.categorias) GRUPO_DE.set(id, g.titulo)
+const grupoDe = (id: string) => GRUPO_DE.get(id) ?? 'Otros'
+
+/* ── El índice de búsqueda ────────────────────────────────────────────────
+ *
+ * DOS COSAS ESTABAN MAL Y LAS DOS SE ARREGLAN AQUÍ.
+ *
+ * 1. Se indexaba el 41% del texto. El filtro miraba `titulo`, `descripcion` y
+ *    `consideraciones`, y dejaba fuera `subtitulos` (en 30 artículos),
+ *    `funcionamiento` (10), `bloques`, `apis`, `modalidades`, `acciones`,
+ *    `tarificacion` y `utilidad`. Las 18 IP a abrir de «Recomendaciones SIP»
+ *    viven en `subtitulos`: buscarlas devolvía «Sin resultados» con la
+ *    respuesta escrita tres renglones más abajo.
+ *
+ * 2. No se ignoraban los acentos. «grabacion» no encontraba «Grabación de
+ *    Llamadas», y así con más de treinta títulos — justo los más consultados.
+ *    Nadie teclea tildes con un cliente esperando.
+ *
+ * Se arma UNA vez al cargar el módulo, no en cada tecla: son 88 artículos y
+ * unos 80 KB de texto. */
+function normaliza(s: string): string {
+  // NFD separa la letra de su tilde y el rango elimina los diacríticos.
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
+function textoDeArticulo(a: Articulo): string {
+  const p: string[] = [a.titulo, a.descripcion, a.ubicacion ?? '', a.utilidad ?? '']
+  for (const c of a.consideraciones ?? []) p.push(c.texto)
+  for (const f of a.funcionamiento ?? []) p.push(f)
+  for (const x of a.acciones ?? [])       p.push(x)
+  for (const g of a.graficas ?? [])       p.push(g)
+  for (const m of a.modalidades ?? [])    p.push(m.nombre, m.descripcion)
+  for (const i of a.apis ?? [])           p.push(i.nombre, i.descripcion)
+  for (const t of a.tarificacion ?? [])   p.push(t.tipo, t.destino ?? '', t.regla)
+  for (const s of a.subtitulos ?? [])     p.push(s.titulo, ...s.items)
+  for (const b of a.bloques ?? [])        p.push(b.titulo ?? '', b.texto ?? '', ...(b.items ?? []))
+  return normaliza(p.join(' · '))
+}
+
+const INDICE = new Map<string, string>()
+for (const c of KB) for (const a of c.articulos) INDICE.set(a.id, textoDeArticulo(a))
 
 // ── Componentes pequeños ──────────────────────────────────────────────────────
 function Badge({ type }: { type: 'roto' | 'pronto' | 'avanzado' | 'nuevo' }) {
@@ -294,7 +385,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {/* Tarificación */}
           {art.tarificacion && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                 Tarificación
               </p>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -318,7 +409,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {/* Modalidades */}
           {art.modalidades && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Modalidades</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Modalidades</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {art.modalidades.map((m, i) => (
                   <div key={i} style={{ padding: '10px 14px', borderRadius: 8, background: `${catColor}0A`, border: `1px solid ${catColor}20` }}>
@@ -333,7 +424,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {/* Funcionamiento */}
           {art.funcionamiento && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Funcionamiento</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Funcionamiento</p>
               {art.funcionamiento.map((f, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>
                   <span style={{ fontSize: 14, fontWeight: 800, color: catColor, minWidth: 22, paddingTop: 2 }}>{i + 1}.</span>
@@ -346,7 +437,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {/* Acciones */}
           {art.acciones && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Acciones disponibles</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Acciones disponibles</p>
               {art.acciones.map((a, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 5 }}>
                   <CheckCircle2 size={15} style={{ color: GREEN, flexShrink: 0 }} />
@@ -359,7 +450,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {/* Subtítulos con listas */}
           {art.subtitulos && art.subtitulos.map((s, si) => (
             <div key={si} style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{s.titulo}</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>{s.titulo}</p>
               {s.items.map((item, ii) => (
                 <div key={ii} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 5 }}>
                   <span style={{ width: 7, height: 7, borderRadius: '50%', background: catColor, flexShrink: 0, marginTop: 7 }} />
@@ -372,7 +463,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {/* Gráficas */}
           {art.graficas && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                 Gráficas disponibles ({art.graficas.length})
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -389,7 +480,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {/* APIs */}
           {art.apis && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>APIs disponibles</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>APIs disponibles</p>
               {art.apis.map((a, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 8,
                   padding: '8px 12px', borderRadius: 8, background: `${catColor}0A`, border: `1px solid ${catColor}20` }}>
@@ -403,7 +494,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {/* Consideraciones */}
           {art.consideraciones && (
             <div style={{ marginTop: 16 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Consideraciones</p>
+              <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Consideraciones</p>
               {art.consideraciones.map((c, i) => <Consideracion key={i} {...c} />)}
             </div>
           )}
@@ -469,7 +560,9 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
 
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function BaseCSPage() {
-  const [activa, setActiva] = useState('callpicker-sac')
+  // La primera del orden nuevo, no un id clavado: si mañana se reordenan los
+  // grupos, la pantalla abre donde toca sin tener que acordarse de esta línea.
+  const [activa, setActiva] = useState(KB_SORTED[0]?.id ?? '')
   const [query,  setQuery]  = useState('')
 
   const esGlosario  = activa === 'glosario'
@@ -477,15 +570,26 @@ export default function BaseCSPage() {
   const cat = KB_SORTED.find(c => c.id === activa) ?? KB_SORTED[0]
   const Icon = CAT_ICONS[activa] ?? Info
 
-  const artsFiltrados = useMemo(() => {
-    if (!query.trim()) return cat.articulos
-    const q = query.toLowerCase()
-    return cat.articulos.filter(a =>
-      a.titulo.toLowerCase().includes(q) ||
-      a.descripcion.toLowerCase().includes(q) ||
-      a.consideraciones?.some(c => c.texto.toLowerCase().includes(q))
-    )
-  }, [cat, query])
+  /* Resultados. Con texto se busca en LAS 17 categorías; sin texto se muestra
+     la categoría abierta. Antes solo se miraba la activa, así que para dar con
+     «SAML» había que adivinar primero en cuál de las 17 vive. */
+  const resultados = useMemo(() => {
+    const q = normaliza(query)
+    if (!q) return null
+    const out: { cat: Categoria; arts: Articulo[] }[] = []
+    for (const c of KB_SORTED) {
+      const arts = c.articulos.filter(a => (INDICE.get(a.id) ?? '').includes(q))
+      if (arts.length) out.push({ cat: c, arts })
+    }
+    return out
+  }, [query])
+
+  const totalResultados = resultados ? resultados.reduce((s, r) => s + r.arts.length, 0) : 0
+  /** Mientras hay texto mandan los resultados y la categoría se aparta: si no,
+   *  los globales saldrían encima de la abierta y el mismo artículo se vería
+   *  dos veces. */
+  const enBusqueda = resultados !== null
+  const artsFiltrados = cat.articulos
 
   const totalArticulos = KB_SORTED.reduce((s, c) => s + c.articulos.length, 0)
 
@@ -514,21 +618,45 @@ export default function BaseCSPage() {
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* ── Nav izquierda ──────────────────────────────────────────────── */}
+        {/* EL NAV SE QUEDA. El `overflowY: 'auto'` de aquí nunca llegó a
+            funcionar: el layout pretendía dos paneles independientes, pero la
+            altura nunca se acota —`minHeight: '100%'` contra un padre sin
+            altura se resuelve a `auto`— así que quien hacía scroll era la
+            página entera y el menú se iba con ella. Bajando al artículo 9 de
+            «Avanzadas» el asesor se quedaba sin menú y sin buscador, y para
+            cambiar de tema tenía que subir hasta arriba. En una llamada donde
+            el cliente salta de asunto, ese viaje se hace en cada pregunta.
+            `sticky` lo resuelve sin tocar el shell de la aplicación. */}
         <nav style={{
           width: 210, flexShrink: 0, padding: '16px 10px',
           borderRight: `1px solid ${BORDER}`,
           display: 'flex', flexDirection: 'column', gap: 2,
-          overflowY: 'auto',
+          position: 'sticky', top: 0, alignSelf: 'flex-start',
+          maxHeight: '100vh', overflowY: 'auto',
         }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase', letterSpacing: '0.09em', padding: '0 8px 10px' }}>
-            Categorías
-          </p>
-          {KB_SORTED.map(c => {
+          {/* El rótulo «Categorías» desaparece: ahora cada grupo lleva el suyo,
+              y dos niveles de encabezado seguidos no aportan nada. */}
+          {KB_SORTED.map((c, i) => {
             const CIcon = CAT_ICONS[c.id] ?? Info
             const isActive = activa === c.id
             const count = c.articulos.length
+            /* El encabezado se pinta cuando CAMBIA el grupo respecto a la
+               categoría anterior. Como KB_SORTED ya viene ordenado por grupos,
+               basta comparar con la de al lado — no hace falta agrupar antes. */
+            const grupo = grupoDe(c.id)
+            const abreGrupo = i === 0 || grupoDe(KB_SORTED[i - 1].id) !== grupo
             return (
-              <button key={c.id} onClick={() => { setActiva(c.id); setQuery('') }} style={{
+              <Fragment key={c.id}>
+              {abreGrupo && (
+                <p style={{
+                  fontSize: 10, fontWeight: 700, color: TX_LOW,
+                  textTransform: 'uppercase', letterSpacing: '0.09em',
+                  padding: i === 0 ? '0 8px 8px' : '14px 8px 6px',
+                }}>
+                  {grupo}
+                </p>
+              )}
+              <button onClick={() => { setActiva(c.id); setQuery('') }} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 12px', borderRadius: 9, width: '100%',
                 textAlign: 'left', cursor: 'pointer', transition: 'all 150ms',
@@ -545,6 +673,7 @@ export default function BaseCSPage() {
                   : <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: 'rgba(0,87,255,0.06)', color: TX_LOW }}>pronto</span>
                 }
               </button>
+              </Fragment>
             )
           })}
 
@@ -598,24 +727,96 @@ export default function BaseCSPage() {
                 {esGlosario ? 'Glosario técnico' : esTelefonos ? 'Teléfonos IP compatibles' : cat.label}
               </span>
             </div>
-            {!esGlosario && !esTelefonos && cat.articulos.length > 3 && (
-              <div style={{ position: 'relative' }}>
-                <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: TX_LOW }} />
-                <input
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder="Buscar en esta categoría..."
+            {/* SIEMPRE VISIBLE y SIEMPRE GLOBAL. Antes solo aparecía en las
+                categorías de más de 3 artículos —o sea, en 6 de 17 no había
+                caja— y buscaba únicamente dentro de la abierta. */}
+            <div style={{ position: 'relative' }}>
+              <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: TX_MID }} />
+              <input
+                type="search"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder={`Buscar en los ${totalArticulos} artículos...`}
+                style={{
+                  paddingLeft: 32, paddingRight: query ? 30 : 14, paddingTop: 8, paddingBottom: 8,
+                  borderRadius: 8, fontSize: 13, background: PANEL,
+                  border: `1px solid ${query ? cat.color : BORDER}`, color: TX, outline: 'none', width: 260,
+                }}
+              />
+              {query && (
+                <button
+                  onClick={() => setQuery('')}
+                  title="Limpiar la búsqueda"
                   style={{
-                    paddingLeft: 32, paddingRight: 14, paddingTop: 8, paddingBottom: 8,
-                    borderRadius: 8, fontSize: 13, background: PANEL,
-                    border: `1px solid ${BORDER}`, color: TX, outline: 'none', width: 220,
+                    position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    color: TX_MID, lineHeight: 1, fontSize: 15, padding: 2,
                   }}
-                />
-              </div>
-            )}
+                >
+                  <XCircle size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
-          {esGlosario && (
+          {/* ── Resultados de la búsqueda ──────────────────────────────────
+              Mientras hay texto, la categoría abierta se hace a un lado: lo que
+              se ve son las coincidencias de las 17, agrupadas por categoría con
+              su color, para que se sepa de dónde sale cada una. */}
+          {resultados !== null && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
+                <h2 style={{ fontSize: 19, fontWeight: 800, color: TX, lineHeight: 1 }}>
+                  {totalResultados} resultado{totalResultados === 1 ? '' : 's'}
+                </h2>
+                <span style={{ fontSize: 13, color: TX_MID }}>
+                  para «{query}» en toda la base
+                </span>
+              </div>
+
+              {totalResultados === 0 ? (
+                /* El estado vacío ya no va a media opacidad ni deja al asesor
+                   sin salida: el color es pleno y hay un botón que limpia. */
+                <div style={{ padding: '48px 0', textAlign: 'center' }}>
+                  <p style={{ fontSize: 16, color: TX, fontWeight: 700, marginBottom: 8 }}>
+                    Nada coincide con «{query}»
+                  </p>
+                  <p style={{ fontSize: 13, color: TX_MID, marginBottom: 18, lineHeight: 1.6 }}>
+                    Se buscó en los {totalArticulos} artículos de las {KB_SORTED.length} categorías,
+                    dentro del texto completo y sin distinguir acentos.
+                    <br />Prueba con una palabra más corta, o con el término en español.
+                  </p>
+                  <button
+                    onClick={() => setQuery('')}
+                    style={{
+                      fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 8,
+                      background: `${cat.color}18`, border: `1px solid ${cat.color}35`,
+                      color: cat.color, cursor: 'pointer',
+                    }}
+                  >
+                    Limpiar búsqueda
+                  </button>
+                </div>
+              ) : resultados.map(r => (
+                <div key={r.cat.id} style={{ marginBottom: 22 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: 3, background: r.cat.color, flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      {r.cat.label}
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: r.cat.color }}>
+                      {r.arts.length}
+                    </span>
+                  </div>
+                  {r.arts.map(art => (
+                    <ArticuloCard key={art.id} art={art} catColor={r.cat.color} defaultOpen={totalResultados === 1} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {esGlosario && !enBusqueda && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: '#0057FF18', border: '1px solid #0057FF35', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -637,7 +838,7 @@ export default function BaseCSPage() {
             </>
           )}
 
-          {esTelefonos && (
+          {esTelefonos && !enBusqueda && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: '#0D948818', border: '1px solid #0D948835', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -655,7 +856,7 @@ export default function BaseCSPage() {
           )}
 
           {/* Título categoría */}
-          {!esGlosario && !esTelefonos && (
+          {!esGlosario && !esTelefonos && !enBusqueda && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `${cat.color}18`, border: `1px solid ${cat.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Icon size={18} style={{ color: cat.color }} />
@@ -668,14 +869,23 @@ export default function BaseCSPage() {
           )}
 
           {/* Artículos */}
-          {!esGlosario && !esTelefonos && (artsFiltrados.length > 0
-            ? artsFiltrados.map((art, i) => <ArticuloCard key={art.id} art={art} catColor={cat.color} defaultOpen={cat.id === 'callpicker-sac' && i === 0} />)
+          {!esGlosario && !esTelefonos && !enBusqueda && (artsFiltrados.length > 0
+            /* `defaultOpen` solo cuando hay UN artículo: con uno solo, dejarlo
+               cerrado obliga a un clic para ver lo único que hay. Con varios se
+               abren cerrados, que es lo que permite barrer los títulos de un
+               vistazo — que es como se consulta esto, con el cliente esperando.
+               Antes se abría el primero de la bienvenida, categoría que ya no
+               existe, así que no se abría nada en ninguna parte. */
+            ? artsFiltrados.map(art => <ArticuloCard key={art.id} art={art} catColor={cat.color} defaultOpen={artsFiltrados.length === 1} />)
             : (
-              <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.5 }}>
-                {cat.articulos.length === 0
-                  ? <><p style={{ fontSize: 16, color: TX_MID, fontWeight: 700, marginBottom: 8 }}>Próximamente</p><p style={{ fontSize: 14, color: TX_LOW }}>Contenido en preparación para esta categoría.</p></>
-                  : <><p style={{ fontSize: 16, color: TX_MID, fontWeight: 700, marginBottom: 8 }}>Sin resultados</p><p style={{ fontSize: 14, color: TX_LOW }}>Intenta con otros términos de búsqueda.</p></>
-                }
+              /* Solo queda el caso de categoría vacía: el «Sin resultados» de
+                 aquí era de cuando la búsqueda filtraba esta lista, y ahora
+                 vive arriba con su propio botón de limpiar. Y sin el
+                 `opacity: 0.5`, que dejaba el texto en 2.6:1 justo cuando la
+                 pantalla tiene algo que explicar. */
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <p style={{ fontSize: 16, color: TX, fontWeight: 700, marginBottom: 8 }}>Próximamente</p>
+                <p style={{ fontSize: 14, color: TX_MID }}>Contenido en preparación para esta categoría.</p>
               </div>
             )
           )}

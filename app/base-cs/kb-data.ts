@@ -550,6 +550,15 @@ export const KB: Categoria[] = [
           { texto: 'Es nivel cuenta: aplica para todas las llamadas.', tipo: 'info' },
         ],
       },
+
+      {
+        id: 'transcripcion',
+        titulo: 'Transcripción de Llamadas',
+        descripcion: 'Genera un archivo TXT con la transcripción de la llamada (entrante o saliente), descargable desde el Historial de Llamadas.',
+        consideraciones: [
+          { texto: 'Con costo, se pueden hacer desarrollos para insertar transcripciones y análisis en otros sistemas.', tipo: 'info' },
+        ],
+      },
     ],
   },
 
@@ -594,12 +603,6 @@ export const KB: Categoria[] = [
         titulo: 'Campañas',
         descripcion: 'Módulo para cargar una base de teléfonos y generarles llamadas en un rango de tiempo establecido, ya sea para mensajes automáticos, enlazar con extensiones o agentes virtuales.',
         ubicacion: 'Flujo > Campañas',
-      },
-      {
-        id: 'reportes-sla',
-        titulo: 'Reportes SLA',
-        descripcion: 'Reporte enviado por correo electrónico donde se define el horario de atención y umbral de tiempo (SLA). Permite filtrar por extensiones y troncales específicas.',
-        ubicacion: 'Reportes > Envíos',
       },
     ],
   },
@@ -651,12 +654,25 @@ export const KB: Categoria[] = [
         descripcion: 'Funcionalidad pendiente de descripción.',
         badge: 'roto',
       },
+
+      {
+        id: 'reportes-sla',
+        titulo: 'Reportes SLA',
+        descripcion: 'Reporte enviado por correo electrónico donde se define el horario de atención y umbral de tiempo (SLA). Permite filtrar por extensiones y troncales específicas.',
+        ubicacion: 'Reportes > Envíos',
+      },
     ],
   },
 
   // ── IA & ASISTENTE VIRTUAL ───────────────────────────────────────────────
   {
-    id: 'ia', label: 'IA & Asistente Virtual', color: '#F97316',
+    /* El label dice lo que la categoría ES: el PRODUCTO de voz con IA —qué
+     * hace, cómo se cobra, qué pasa si el cliente trae su propia IA—. Se
+     * llamaba «IA & Asistente Virtual» y la de al lado «Asistente Virtual», dos
+     * nombres casi idénticos para cosas distintas: ésta es el producto y
+     * aquélla su reportería. Un asesor que buscaba el precio abría la más
+     * literal y no encontraba ni precio ni saldo, solo reportes internos. */
+    id: 'ia', label: 'Agente Virtual de Voz', color: '#F97316',
     articulos: [
 
       // ── Evaluación técnica de plataformas de agentes de voz ──────────────
@@ -851,14 +867,6 @@ export const KB: Categoria[] = [
           { texto: 'Las conexiones SIP no homologadas formalmente no incluyen soporte estándar de Callpicker sobre el comportamiento del proveedor externo.', tipo: 'warning' },
           { texto: 'Cualquier diagnóstico, ajuste técnico, revisión de trazas o soporte especializado relacionado con la conexión externa podrá generar costos adicionales.', tipo: 'warning' },
           { texto: 'Callpicker no se hace responsable por fallas, incompatibilidades o incidencias originadas en la plataforma externa, carrier externo, red del cliente o proveedor tercero.', tipo: 'error' },
-        ],
-      },
-      {
-        id: 'transcripcion',
-        titulo: 'Transcripción de Llamadas',
-        descripcion: 'Genera un archivo TXT con la transcripción de la llamada (entrante o saliente), descargable desde el Historial de Llamadas.',
-        consideraciones: [
-          { texto: 'Con costo, se pueden hacer desarrollos para insertar transcripciones y análisis en otros sistemas.', tipo: 'info' },
         ],
       },
     ],
@@ -1445,125 +1453,6 @@ export const KB: Categoria[] = [
     ],
   },
 
-  // ── CALLPICKER SAC ───────────────────────────────────────────────────────
-  {
-    id: 'callpicker-sac', label: 'Callpicker SAC', color: '#0057FF',
-    articulos: [
-      {
-        id: 'cx-antes-de-sac',
-        titulo: 'La Experiencia del Cliente Empieza Antes de que SAC Conteste.',
-        descripcion: 'Reflexión estratégica para equipos de Customer Success: la experiencia del cliente es el resultado acumulado de decisiones internas que el cliente nunca ve, pero siempre siente.',
-        badge: 'nuevo',
-        bloques: [
-          {
-            tipo: 'parrafo',
-            texto: 'Muchas organizaciones invierten en tecnología de voz, automatizan flujos y capacitan a sus equipos de atención. Y aun así, el cliente cancela. No porque el asesor haya fallado en la llamada, sino porque la experiencia ya estaba rota antes de que esa llamada ocurriera.',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'La percepción del cliente no nace en el ticket. Nace en la primera configuración que se hizo bien o mal. En si el agente virtual respondió con criterio o bloqueó la llamada. En si la factura reflejó lo que se prometió. En si alguien de la organización le ahorró un paso o le sumó uno.',
-          },
-          {
-            tipo: 'cita',
-            texto: 'La experiencia del cliente es el resultado acumulado de decisiones internas que el cliente nunca ve, pero siempre siente.',
-          },
-          {
-            tipo: 'seccion',
-            titulo: 'Lo que los datos confirman',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'Esto no es intuición de servicio. Tiene respaldo ejecutivo.',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'Bain & Company documentó que las empresas que sobresalen en experiencia del cliente crecen entre 4 % y 8 % por encima de su mercado. La razón es estructural: los clientes permanecen donde encuentran predictibilidad, confianza y resolución efectiva. No donde encuentran el precio más bajo.',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'El Zendesk CX Trends 2025, con base en más de 10,000 consumidores y líderes empresariales, confirma que las compañías con mejores resultados no eligen entre automatización y criterio humano: combinan ambos. La tecnología acelera; la confianza aparece cuando el cliente percibe que alguien entiende su contexto y actúa con responsabilidad.',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'En Callpicker, esa combinación ya existe como posibilidad. La pregunta es si se está ejecutando de forma coordinada o por partes.',
-          },
-          {
-            tipo: 'seccion',
-            titulo: 'Los factores que definen si la experiencia funciona o falla',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'Desde una perspectiva operativa, gestionar la experiencia del cliente en una plataforma de telefonía cloud exige revisar variables concretas:',
-          },
-          {
-            tipo: 'lista',
-            items: [
-              'Tiempo de respuesta ante incidentes → ¿el cliente espera horas o recibe atención en minutos?',
-              'Calidad del seguimiento → ¿los compromisos se cumplen o se repiten sin resolverse?',
-              'Precisión de la información → ¿el cliente recibió lo que se le prometió en ventas, o SAC hereda una promesa que no puede sostener?',
-              'Facilidad de contacto → ¿el cliente puede llegar a alguien con autoridad para resolver, o rebota entre áreas?',
-              'Velocidad de recuperación ante errores → ¿la organización detecta la falla antes que el cliente, o el cliente es quien la reporta?',
-            ],
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'Cada uno de estos factores influye en una sola decisión: quedarse o irse.',
-          },
-          {
-            tipo: 'seccion',
-            titulo: 'Por qué esto no es solo un problema de SAC',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'Las empresas que construyen experiencias consistentes entienden que ningún equipo de atención puede compensar lo que otras áreas no hicieron bien.',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'En Callpicker, la lógica es la misma:',
-          },
-          {
-            tipo: 'lista',
-            items: [
-              'Comercial vende una promesa.',
-              'Implementación define si esa promesa arranca bien.',
-              'Producto determina si la plataforma facilita o complica.',
-              'Facturación decide si el cliente entiende lo que paga.',
-              'SAC recibe todo lo anterior y tiene que sostenerlo en tiempo real.',
-            ],
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'Cuando estas piezas no están alineadas, SAC se convierte en el área que absorbe los errores del sistema. Cuando sí lo están, SAC se convierte en el área que consolida la confianza.',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'La experiencia del cliente no pertenece a un departamento. Es un sistema de gestión que alinea personas, procesos y decisiones alrededor de un objetivo común: facilitarle la vida al cliente.',
-          },
-          {
-            tipo: 'seccion',
-            titulo: 'La lectura de negocio',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'Las organizaciones que comprenden esta lógica dejan de competir únicamente por precio o por funcionalidades. Comienzan a diferenciarse por algo más difícil de copiar: la calidad con la que resuelven lo que realmente importa.',
-          },
-          {
-            tipo: 'parrafo',
-            texto: 'En un mercado donde los competidores pueden replicar características en meses, la experiencia del cliente es la ventaja que tarda años en construirse y que el cliente no cambia fácilmente.',
-          },
-          {
-            tipo: 'cita',
-            texto: 'Callpicker tiene la plataforma. Tiene los casos. Tiene el equipo. Lo que esta herramienta construye es el sistema que los conecta.',
-          },
-          {
-            tipo: 'firma',
-            texto: 'Dirección de experiencia al cliente.',
-          },
-        ],
-      },
-    ],
-  },
-
   // ── SOPORTE ───────────────────────────────────────────────────────────────
   {
     id: 'soporte', label: 'Soporte', color: '#F97316',
@@ -1775,7 +1664,11 @@ export const KB: Categoria[] = [
 
   // ── ASISTENTE VIRTUAL — REPORTERÍA ───────────────────────────────────────
   {
-    id: 'asistente-virtual', label: 'Asistente Virtual', color: '#0D9488',
+    /* Reportería, no producto: sus cinco artículos son «¿Qué son los Reportes
+     * Semanales…», «Dar de Alta un Agente en Reportería», «Lanzar un Reporte
+     * Manual o Histórico», «Cómo leer el Dashboard» y sus FAQ. El nombre
+     * anterior —«Asistente Virtual»— prometía el producto y entregaba esto. */
+    id: 'asistente-virtual', label: 'Reportes de Agente Virtual', color: '#0D9488',
     articulos: [
 
       // ── 1. ¿Qué es? ──────────────────────────────────────────────────────
