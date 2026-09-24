@@ -1178,6 +1178,104 @@ export const KB: Categoria[] = [
   {
     id: 'integraciones', label: 'Integraciones', color: '#A855F7',
     articulos: [
+
+      /* ── Extensión de Chrome para Salesforce (University 4 People) ──────
+       *
+       * POR QUÉ VA PRIMERA Y CON TANTA ADVERTENCIA
+       * Las demás entradas de esta categoría son PRODUCTO: cualquiera las puede
+       * contratar. Ésta NO. Es un desarrollo a la medida, propiedad del Tec,
+       * de entrega única y sin mantenimiento. Puesta sin contexto junto a
+       * HubSpot y Zoho, un asesor la lee y la ofrece como si fuera catálogo —
+       * y ahí empieza el trabajo no cobrado que la propia auditoría de la
+       * cuenta señala como el riesgo real.
+       *
+       * OJO CON EL SSO: el manual público dice «SSO SAML 2.0» y la revisión de
+       * contrato del cliente lo desmiente. Ver la consideración de abajo: es la
+       * frase con más probabilidad de acabar prometida a otro cliente.
+       *
+       * El enlace es un `/s/` de Outline —compartido en público, NO pide
+       * sesión—, a diferencia del `/doc/` de la evaluación ElevenAgents, que sí
+       * la exige. Aun así el contenido vive aquí y no solo en el enlace, porque
+       * Atlas IA no navega: solo lee este archivo. */
+      {
+        id: 'salesforce-extension-u4p',
+        titulo: 'Extensión de Chrome · Click-to-call desde Salesforce (a la medida, U4P)',
+        descripcion: 'Extensión de Chrome que permite marcar desde Salesforce con un clic sobre el teléfono de un prospecto, conservando el CELULAR DEL ASESOR como Caller ID. NO ES PRODUCTO DE CATÁLOGO: es un desarrollo privado hecho a la medida para University 4 People (Tec de Monterrey), entregado una sola vez y sin mantenimiento incluido. No se ofrece a otros clientes sin cotización y alcance nuevos.',
+        badge: 'nuevo',
+        linkUrl: 'https://callpicker.getoutline.com/s/5cfa8330-2e24-4ea9-9fa7-347e17395af6',
+        linkLabel: 'Manual de usuario completo en Outline (enlace público)',
+        ubicacion: 'Outline › Manual de usuario: Extensión de Chrome <> Realizar llamadas en Salesforce',
+        utilidad: 'Atender dudas de los asesores de U4P sobre por qué una llamada no se realiza, y —sobre todo— responder con precisión cuando alguien pregunte si «la integración con Salesforce» está disponible para su cuenta.',
+        bloques: [
+          { tipo: 'seccion', titulo: 'De dónde viene y por qué se hizo' },
+          {
+            tipo: 'lista',
+            items: [
+              'OCTUBRE 2024 — El requerimiento lo puso el cliente, no Callpicker. El Tec NO quería «Callpicker como tal»: pedía un plugin de navegador para marcar desde Salesforce conservando el celular de cada asesor como identificador de llamada. A eso se le llamó internamente el «ofuscador» de Caller ID.',
+              'EL PROBLEMA DE NEGOCIO QUE RESUELVE — La fuerza de Educación Continua marca a prospectos desde Salesforce. Si la llamada sale con un DID de Callpicker, el prospecto no reconoce el número y no contesta; saliendo con el celular del asesor, sí. Y cada interacción tiene que quedar registrada en el CRM con estatus, fecha, hora, duración y extensión.',
+              'CÓMO QUEDÓ EL FLUJO — Clic en el teléfono dentro de Salesforce → Callpicker llama al CELULAR DEL ASESOR → lo enlaza con el destinatario, que ve el Caller ID del celular del asesor. El registro se crea en Salesforce.',
+              'ENTREGA (2026) — Código en el GitHub institucional del Tec y documentación por Outline/SharePoint. El TEC ES DUEÑO DEL CÓDIGO.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'Qué hace la extensión' },
+          {
+            tipo: 'lista',
+            items: [
+              'Marcar al hacer clic en un número de teléfono dentro de Salesforce.',
+              'Mostrar el estado de la sesión (conectada o expirada) desde su icono en la barra del navegador.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'Condiciones para que la llamada se realice' },
+          {
+            tipo: 'lista',
+            items: [
+              'Sesión activa. Si expiró, la extensión reautentica sola: abre una pestaña, autentica contra Salesforce y hay que reintentar la llamada.',
+              'El número debe venir a 10 dígitos o en formato internacional (+524421234567).',
+              'TIENE QUE EXISTIR UNA EXTENSIÓN EN CALLPICKER CUYO NOMBRE COINCIDA CON EL NOMBRE DE LA PERSONA EN SALESFORCE. Es la condición que más falla y la que no se adivina mirando la pantalla: si el nombre no empata exactamente, no marca.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'Los cinco casos en que NO marca' },
+          {
+            tipo: 'lista',
+            items: [
+              '1 · No hay sesión iniciada o expiró.',
+              '2 · El número de teléfono no es válido.',
+              '3 · No existe extensión en Callpicker con el nombre de esa persona en Salesforce.',
+              '4 · La extensión está en TIEMPO DE ESPERA. Tras cada intento —salga bien o mal— se bloquea 15 segundos para evitar llamadas duplicadas por doble clic. No es una falla: es el mecanismo trabajando.',
+              '5 · Callpicker rechazó la solicitud, sea la de identificar la extensión o la de realizar la llamada. Esto solo aparece cuando el usuario presiona el teléfono VARIAS VECES. La instrucción al asesor es una sola solicitud y esperar.',
+            ],
+          },
+          { tipo: 'seccion', titulo: 'Instalación' },
+          {
+            tipo: 'lista',
+            items: [
+              'NO está en Chrome Web Store porque es un desarrollo privado. La única vía es cargarla desempaquetada.',
+              'Los archivos se piden al administrador del sistema y se guardan en una carpeta fija. Si esa carpeta se borra o se mueve después de instalar, la extensión deja de funcionar.',
+              'En Chrome: chrome://extensions/ → activar Modo desarrollador → Cargar extensión sin empaquetar → elegir la carpeta.',
+              'Si hay pestañas de Salesforce abiertas, hay que recargarlas para que la extensión se integre.',
+            ],
+          },
+        ],
+        consideraciones: [
+          {
+            tipo: 'error',
+            texto: 'NO ES PRODUCTO DE CATÁLOGO. Desarrollo a la medida para University 4 People, propiedad del cliente, ENTREGA ÚNICA: consta por escrito que «la entrega de la extensión es entrega única, no es un servicio del que nos encarguemos de hacer actualizaciones ni mantenimiento». El mantenimiento futuro va por cotización aparte. Si otro cliente pide «lo mismo que el Tec», es un proyecto nuevo con alcance y precio nuevos, no una integración que se activa.',
+          },
+          {
+            tipo: 'error',
+            texto: 'EL MANUAL SE CONTRADICE CON EL CONTRATO EN EL PUNTO DEL SSO. El manual dice que el usuario «será autenticado mediante Salesforce utilizando SSO SAML 2.0», pero la revisión de contrato del cliente (Edgar / Yadira, 2026) dejó asentado lo contrario: NO es una integración SAML 2.0 nativa — la extensión aprovecha la sesión activa de Salesforce. Vale la redacción del contrato, no la del manual. Prometer «SSO SAML 2.0 nativo» a otro cliente sería vender algo que esta solución no hace.',
+          },
+          {
+            tipo: 'warning',
+            texto: 'LA ESTABILIZACIÓN SIGUE ABIERTA (al 24 sep 2026). Hay error HTTP 401 «INVALID_AUTH_HEADER» recurrente contra la API de Salesforce, con dos parches ya aplicados fuera del alcance original; ~10 asesores cuyas interacciones no se registran en el CRM (ticket #114553); y fallas de conectividad SIP en home-office. La hipótesis principal del 401 apunta a una política de seguridad del Salesforce DEL CLIENTE (rotación de tokens, restricción de IP o límite de tokens activos), no a un defecto de Callpicker — pero es hipótesis: la sesión de diagnóstico con Aarón, el administrador de Salesforce del cliente, sigue sin fecha. Ver la auditoría de University 4 People en el módulo Auditoría.',
+          },
+          {
+            tipo: 'info',
+            texto: 'El bloqueo de clics repetidos se propuso y Callpicker NO lo recomendó: obliga a pasar de nuevo por SonarQube/Dependabot y a reinstalar la extensión en todos los asesores. La vía preferida es la capacitación, y solo si ésta no corrige el patrón se reconsidera.',
+          },
+        ],
+      },
+
       {
         id: 'integraciones-hubspot',
         pdfUrl: '/docs/Listado de integraciones - Sheet1.pdf',
