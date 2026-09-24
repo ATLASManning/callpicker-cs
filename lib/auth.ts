@@ -66,11 +66,16 @@ export function esEmailAutorizado(email: string | null | undefined): boolean {
 }
 
 /**
- * Administración del tablero: Gestión de Usuarios y Uso Dashboard.
+ * Administración del tablero: Gestión de Usuarios.
  *
  * Instrucción de dirección (23 sep 2026): «de estos apartados nadie debe tener
  * acceso, solo josel@callpicker.com y lopezdjosemanuel@gmail.com», y «no debe
  * aparecer en sus accesos salvo en los 2 que son el administrador».
+ *
+ * OJO (24 sep 2026): esto ya NO gobierna «Uso Dashboard». Las dos pantallas
+ * colgaban de esta misma lista, y al pedirse acceso a la de uso para
+ * `daniel@callpicker.com` se separaron: ver `puedeVerUsoDashboard` abajo.
+ * Gestión de Usuarios se queda como estaba, en los dos correos de dirección.
  *
  * POR QUÉ NO BASTA CON EL ROL `admin`
  * -----------------------------------
@@ -98,7 +103,7 @@ export function adminsDelTablero(): Set<string> {
   return new Set(list.map(e => e.trim().toLowerCase()).filter(Boolean))
 }
 
-/** ¿Este correo puede entrar a /admin y a /api/admin? */
+/** ¿Este correo puede entrar a Gestión de Usuarios y a /api/admin? */
 export function esAdminDelTablero(email: string | null | undefined): boolean {
   if (!email) return false
   const e = email.trim().toLowerCase()
@@ -106,6 +111,53 @@ export function esAdminDelTablero(email: string | null | undefined): boolean {
   // seguir en la lista blanca general. Una baja general da de baja también su
   // acceso de administrador, sin tener que acordarse de dos sitios.
   return adminsDelTablero().has(e) && esEmailAutorizado(e)
+}
+
+/* ── Uso Dashboard: su propia lista ───────────────────────────────────────────
+ *
+ * POR QUÉ SE SEPARÓ (24 sep 2026)
+ * -------------------------------
+ * Dirección pidió dar «Uso Dashboard» a `daniel@callpicker.com`. Las dos
+ * pantallas de administración colgaban de `adminsDelTablero()`, así que
+ * añadirlo ahí le habría dado ADEMÁS Gestión de Usuarios — que es justo la
+ * pantalla donde se reparten los roles, y por tanto la llave para concederse
+ * lo que quiera. Habría deshecho en un renglón el candado del 23 de septiembre.
+ *
+ * Son permisos distintos porque hacen cosas distintas: ésta solo LEE la
+ * navegación; la otra ESCRIBE quién entra. Lo que se pidió fue lo primero.
+ *
+ * Quien administra el tablero puede ver el uso SIEMPRE, sin repetirse en las
+ * dos listas: un correo que se retire de arriba se retira también de aquí.
+ */
+const USO_DASHBOARD_EXTRA = [
+  // Daniel Alcalá — alta por instrucción de dirección, 24 sep 2026. Solo
+  // lectura de la analítica de navegación; NO entra a Gestión de Usuarios.
+  'daniel@callpicker.com',
+]
+
+export function lectoresDelUso(): Set<string> {
+  // Igual que las otras dos listas, se puede rotar sin desplegar con la
+  // variable USO_DASHBOARD en Vercel. Si se define, SUSTITUYE a los extras,
+  // pero la administración del tablero sigue entrando.
+  const raw   = process.env.USO_DASHBOARD
+  const extra = raw ? raw.split(',') : USO_DASHBOARD_EXTRA
+  // `Array.from` y no un spread sobre el Set: el tsconfig no trae
+  // `downlevelIteration` y `[...unSet]` no compila.
+  const lista = new Set(Array.from(adminsDelTablero()))
+  for (const e of extra) {
+    const n = e.trim().toLowerCase()
+    if (n) lista.add(n)
+  }
+  return lista
+}
+
+/** ¿Este correo puede ver Uso Dashboard y su API de lectura? */
+export function puedeVerUsoDashboard(email: string | null | undefined): boolean {
+  if (!email) return false
+  const e = email.trim().toLowerCase()
+  // La misma doble compuerta: una baja en la lista blanca general cierra
+  // también esta puerta, sin tener que acordarse de dos sitios.
+  return lectoresDelUso().has(e) && esEmailAutorizado(e)
 }
 
 function getSecret() {

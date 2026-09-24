@@ -10,7 +10,7 @@ import {
   Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox,
 } from 'lucide-react'
 import type { SessionPayload } from '@/lib/auth'
-import { esAdminDelTablero } from '@/lib/auth'
+import { esAdminDelTablero, puedeVerUsoDashboard } from '@/lib/auth'
 
 // ── Navy oscuro profundo ──────────────────────────────────────────────────────
 const SB   = '#0D1829'
@@ -278,11 +278,15 @@ export default function Sidebar() {
             el middleware — ocultar el enlace no protege nada por sí solo, pero
             si el menú y el guardia no coinciden aparece un enlace que lleva a
             una pantalla que rebota. */}
+        {/* DOS COMPUERTAS, no una (24 sep 2026). «Uso Dashboard» se abrió a
+            Daniel y «Usuarios» no, así que cada enlace pregunta por su propio
+            predicado —el MISMO que usa el middleware, o aparecería un enlace
+            que lleva a una pantalla que rebota. */}
         {esAdminDelTablero(me?.email) && (
-          <>
-            <NavLink href="/admin/usuarios" label="Usuarios"       icon={Users} />
-            <NavLink href="/admin/uso"      label="Uso Dashboard"  icon={Activity} />
-          </>
+          <NavLink href="/admin/usuarios" label="Usuarios" icon={Users} />
+        )}
+        {puedeVerUsoDashboard(me?.email) && (
+          <NavLink href="/admin/uso" label="Uso Dashboard" icon={Activity} />
         )}
       </nav>
 

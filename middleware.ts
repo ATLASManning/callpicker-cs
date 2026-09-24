@@ -4,14 +4,22 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
-import { COOKIE_NAME, esEmailAutorizado, esAdminDelTablero } from '@/lib/auth'
+import {
+  COOKIE_NAME, esEmailAutorizado, esAdminDelTablero, puedeVerUsoDashboard,
+} from '@/lib/auth'
 import { puedeAbrir, definicionRol } from '@/lib/permisos'
 
 const PUBLIC_PATHS  = ['/acceso', '/api/auth/']
 const ADMIN_ONLY    = ['/admin',  '/api/admin/']
+/* Uso Dashboard y su API de lectura tienen su PROPIA lista desde el 24 sep
+ * 2026, más ancha que la de Gestión de Usuarios. `/api/analytics/uso` se suma
+ * aquí aunque la ruta ya se guarde sola: el middleware corre antes y es el
+ * único sitio donde la regla vale para la página y para su API a la vez. */
+const USO_PATHS     = ['/admin/uso', '/api/analytics/uso']
 
 const isPublic    = (p: string) => PUBLIC_PATHS.some(x => p.startsWith(x))
 const isAdminOnly = (p: string) => ADMIN_ONLY.some(x => p.startsWith(x))
+const isUso       = (p: string) => USO_PATHS.some(x => p.startsWith(x))
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
@@ -70,17 +78,27 @@ export async function middleware(req: NextRequest) {
       return res
     }
 
-    /* Administración del tablero —Gestión de Usuarios y Uso Dashboard— cerrada
-     * a dos correos por instrucción de dirección (23 sep 2026). Ya NO basta el
-     * rol `admin`: ver el porqué en `esAdminDelTablero`, lib/auth.ts.
+    /* Administración del tablero, cerrada por CORREO y no por rol desde el 23
+     * sep 2026 por instrucción de dirección. Ya NO basta el rol `admin`: ver el
+     * porqué en `esAdminDelTablero`, lib/auth.ts.
      *
      * Aquí es donde se decide de verdad. Ocultar los enlaces del menú no
      * protege nada —la URL se puede teclear— y una comprobación dentro de la
      * página tampoco alcanza a sus APIs. Esto corre antes que ambas.
      *
+     * SON DOS COMPUERTAS, NO UNA (24 sep 2026). «Uso Dashboard» solo LEE la
+     * navegación; «Gestión de Usuarios» ESCRIBE quién entra, así que es la
+     * llave de todo lo demás. Al abrir la primera a Daniel se separaron.
+     *
+     * EL ORDEN NO ES CASUAL: `/admin/uso` también empieza por `/admin`, de modo
+     * que si se preguntara primero por `isAdminOnly` caería en la lista
+     * estrecha y la apertura no serviría de nada. Lo específico va antes.
+     *
      * A las llamadas de API se les responde 403 y no un redirect, que el
      * cliente no sabría interpretar. */
-    if (isAdminOnly(pathname) && !esAdminDelTablero(email)) {
+    const fueraDeUso   = isUso(pathname)       && !puedeVerUsoDashboard(email)
+    const fueraDeAdmin = !isUso(pathname)      && isAdminOnly(pathname) && !esAdminDelTablero(email)
+    if (fueraDeUso || fueraDeAdmin) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(
           { error: 'Solo la administración del tablero puede usar este módulo.' },

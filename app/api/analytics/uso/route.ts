@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { esAdminDelTablero } from '@/lib/auth'
+import { puedeVerUsoDashboard } from '@/lib/auth'
 
 /**
  * LECTURA de la analítica de navegación. Cerrada a la administración del
@@ -22,9 +22,13 @@ import { esAdminDelTablero } from '@/lib/auth'
  * forma distinta de leerlas.
  */
 export async function GET(req: NextRequest) {
-  if (!esAdminDelTablero(req.headers.get('x-user-email'))) {
+  // `puedeVerUsoDashboard` y no `esAdminDelTablero`: desde el 24 sep 2026 esta
+  // pantalla tiene su propia lista, más ancha que la de Gestión de Usuarios.
+  // Tiene que ser EL MISMO predicado que usa el middleware — si se separan, o
+  // la página rebota teniendo permiso, o la API abre de más.
+  if (!puedeVerUsoDashboard(req.headers.get('x-user-email'))) {
     return NextResponse.json(
-      { error: 'Solo la administración del tablero puede consultar el uso.' },
+      { error: 'No tienes acceso a la analítica de uso del tablero.' },
       { status: 403 },
     )
   }
