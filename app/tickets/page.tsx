@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
@@ -15,7 +15,7 @@ import { tonoSobreClaro } from '@/lib/contraste'
 import { fechaLocal } from '@/lib/fecha-local'
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
-type Tab = 'overview' | 'explorador' | 'conciliacion' | 'fallas' | 'nuevo' | 'graficos'
+type Tab = 'overview' | 'sla' | 'explorador' | 'conciliacion' | 'fallas' | 'nuevo' | 'graficos'
 
 interface TicketRow {
   cid: string; num: string; empresa: string; fecha: string; ticket_id: string
@@ -146,8 +146,31 @@ function BarRow({ label, value, max, color }: { label: string; value: number; ma
 }
 
 /* ─── Página ─────────────────────────────────────────────────────── */
+/* Lo que devuelve /api/mesa-ayuda. Se declara aquí y no se infiere: si la
+   ruta cambia de forma, esto falla al compilar en vez de pintar undefined. */
+interface VencidoVivo {
+  folio: string; asunto: string; contacto: string; cid: string; cuenta: string
+  vence: string; diasSLA: number | null; ultimaAct: string
+  diasSinMover: number | null; estado: string; responsable: string; canal: string
+}
+interface MesaResumen {
+  hay: boolean
+  cortes: number
+  fecha: string | null
+  hora: string | null
+  vencidos: number
+  abiertos: number | null
+  enEspera: number | null
+  noAsignados: number | null
+  porCuenta: { cid: string; cuenta: string; folios: number; peorDias: number; rachas: number }[]
+  vencidosDetalle: VencidoVivo[]
+}
+
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview',     label: '📊 Overview' },
+  /* «Fuera de SLA» va SEGUNDA, justo después del resumen. Es lo único de este
+     módulo que habla del presente: todo lo demás son tickets ya cerrados. */
+  { id: 'sla',          label: '🔥 Fuera de SLA' },
   { id: 'graficos',     label: '📈 Gráficos' },
   { id: 'explorador',   label: '🔍 Explorador' },
   { id: 'conciliacion', label: '🔗 Conciliación' },
@@ -169,6 +192,16 @@ function fmtAperturaCorta(iso: string): string {
 
 export default function TicketsPage() {
   const [tab, setTab] = useState<Tab>('overview')
+  /* El estado VIVO de la mesa, que el export de Zoho no trae: viene de los
+     cortes diarios en data/mesa-ayuda. `null` = aún cargando; `hay:false` =
+     no hay ningún corte, y eso se DICE, no se disimula con ceros. */
+  const [mesa, setMesa] = useState<MesaResumen | null>(null)
+  useEffect(() => {
+    fetch('/api/mesa-ayuda')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setMesa(d))
+      .catch(() => setMesa(null))
+  }, [])
 
   /* ── Stats ── */
   const [stats, setStats]       = useState<Stats | null>(null)
@@ -390,6 +423,57 @@ export default function TicketsPage() {
         title="Tickets 2026"
         subtitle={`${stats ? stats.total.toLocaleString('es-MX') : '—'} tickets · Zoho Desk`}
       />
+
+      {/* ═══ LO QUE ESTE MÓDULO NO VE ═══════════════════════════════
+           Va ARRIBA DE TODO y en todas las pestañas, porque es la salvedad que
+           cambia cómo se lee cada cifra de abajo. El export de Zoho solo trae
+           tickets CERRADOS —2 de 5,871 sin fecha de cierre—, así que este
+           módulo cuenta historia y no ve el presente. Sin este aviso, «0
+           abiertos» se lee como «no hay nada pendiente», que es falso.
+           Callar una limitación no la hace desaparecer: la vuelve una trampa. */}
+      {mesa && (
+        <div className="px-6 pt-4">
+          <div className="rounded-xl border p-4 flex flex-wrap items-start gap-x-6 gap-y-3"
+            style={{ background: mesa.hay ? '#FFF7ED' : '#F8FAFC',
+                     borderColor: mesa.hay ? '#FED7AA' : '#E2E8F0' }}>
+            <div className="flex items-start gap-2.5 flex-1 min-w-[280px]">
+              <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: '#C2410C' }} />
+              <div className="text-xs leading-relaxed" style={{ color: '#7C2D12' }}>
+                <strong>Todo lo que hay abajo son tickets CERRADOS.</strong> El export de
+                Zoho no trae los abiertos, así que este módulo no puede verlos ni contarlos.
+                {mesa.hay && mesa.abiertos !== null && (
+                  <> Hoy la mesa tiene <strong>{mesa.abiertos} abiertos</strong>
+                    {mesa.enEspera !== null && <> y <strong>{mesa.enEspera} en espera</strong></>},
+                    y ninguno aparece en estas cifras.</>
+                )}
+              </div>
+            </div>
+            {mesa.hay && (
+              <div className="flex items-center gap-5">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: '#9A3412' }}>Fuera de SLA</p>
+                  <p className="text-2xl font-extrabold leading-none mt-1" style={{ color: '#C2410C' }}>{mesa.vencidos}</p>
+                </div>
+                <button onClick={() => setTab('sla')}
+                  className="text-xs font-semibold px-3 py-2 rounded-lg"
+                  style={{ background: '#C2410C', color: '#fff' }}>
+                  Ver los {mesa.vencidos}
+                </button>
+                {/* La fecha del corte NUNCA se omite: un dato sin fecha se lee
+                    como si fuera de hoy, y puede ser del viernes pasado. */}
+                <p className="text-[10px]" style={{ color: '#9A3412' }}>
+                  corte {mesa.fecha}{mesa.hora ? ` · ${mesa.hora}` : ''}
+                </p>
+              </div>
+            )}
+            {!mesa.hay && (
+              <p className="text-xs" style={{ color: '#64748B' }}>
+                Sin cortes de la mesa de ayuda. Correr <code>scripts/gen-mesa-ayuda.py</code>.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="px-6 pt-4">
@@ -824,6 +908,117 @@ export default function TicketsPage() {
         )}
 
         {/* ═══ FALLAS ════════════════════════════════════════════════ */}
+        {/* ═══ FUERA DE SLA ════════════════════════════════════════
+             Lo único de este módulo que habla del PRESENTE. Sale de los cortes
+             diarios de la mesa de ayuda, no del export. */}
+        {tab === 'sla' && (
+          mesa?.hay ? (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <KpiCard icon={AlertTriangle} label="Fuera de SLA" value={String(mesa.vencidos)}
+                  sub={`corte ${mesa.fecha}`} color={RED} />
+                <KpiCard icon={Tag} label="Abiertos en la mesa" value={mesa.abiertos ?? '—'}
+                  sub="no están en este módulo" color={BLUE} />
+                <KpiCard icon={Users} label="En espera" value={mesa.enEspera ?? '—'}
+                  sub="tampoco están" color={INDIGO} />
+                <KpiCard icon={Zap} label="Sin asignar" value={mesa.noAsignados ?? '—'}
+                  sub="nadie los persigue" color={mesa.noAsignados ? RED : BLUE} />
+              </div>
+
+              {/* LA RACHA es lo que ninguna otra fuente da. Una cuenta que
+                  aparece en 13 de 13 cortes no tuvo un mal día: no ha tenido
+                  uno bueno. Eso convierte un ticket en un problema de relación. */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <h3 className="font-semibold text-sm text-gray-900">Cuentas con tickets vencidos</h3>
+                <p className="text-xs text-gray-500 mt-1 mb-4">
+                  «Cortes» es en cuántos de los {mesa.cortes} cortes guardados esta cuenta ha
+                  tenido algún ticket fuera de SLA. Una cuenta en {mesa.cortes} de {mesa.cortes} no
+                  tuvo un mal día — no ha tenido uno bueno.
+                </p>
+                <div className="space-y-2">
+                  {mesa.porCuenta.map(c => (
+                    <div key={c.cid} className="flex items-center gap-3 text-xs">
+                      <span className="font-mono text-gray-400 w-16 flex-shrink-0">{c.cid}</span>
+                      <span className="font-semibold text-gray-900 flex-1 truncate">{c.cuenta}</span>
+                      <span className="text-gray-500 w-20 text-right">{c.folios} folio{c.folios === 1 ? '' : 's'}</span>
+                      <span className="w-24 text-right font-semibold"
+                        style={{ color: c.peorDias >= 30 ? RED : c.peorDias >= 7 ? '#C2410C' : '#64748B' }}>
+                        {c.peorDias} d fuera
+                      </span>
+                      <span className="w-24 text-right"
+                        style={{ color: c.rachas === mesa.cortes ? RED : '#64748B',
+                                 fontWeight: c.rachas === mesa.cortes ? 700 : 400 }}>
+                        {c.rachas}/{mesa.cortes} cortes
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-5 pt-5 pb-3">
+                  <h3 className="font-semibold text-sm text-gray-900">Los {mesa.vencidos} folios</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    «Sin mover» son los días desde la última actividad registrada, que no es lo
+                    mismo que los días fuera de SLA: un ticket puede vencer ayer y llevar
+                    cuarenta días en silencio.
+                  </p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        {['Folio', 'Cuenta', 'Asunto', 'Estado', 'Responsable', 'Canal', 'Fuera', 'Sin mover'].map((h, i) => (
+                          <th key={h} className={`py-2 px-3 text-[10px] font-semibold text-gray-500 uppercase tracking-wide ${i >= 6 ? 'text-right' : 'text-left'}`}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mesa.vencidosDetalle.map(v => (
+                        <tr key={v.folio} className="border-t border-gray-100 hover:bg-gray-50">
+                          <td className="py-2 px-3 font-mono text-gray-500">#{v.folio}</td>
+                          <td className="py-2 px-3 font-semibold text-gray-900">{v.cuenta}</td>
+                          <td className="py-2 px-3 text-gray-600 max-w-[280px] truncate" title={v.asunto}>{v.asunto}</td>
+                          <td className="py-2 px-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                              style={v.estado === 'Escalado'
+                                ? { background: '#FEE2E2', color: '#B91C1C' }
+                                : { background: '#F1F5F9', color: '#475569' }}>
+                              {v.estado}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-gray-600">{v.responsable}</td>
+                          <td className="py-2 px-3 text-gray-500">{v.canal}</td>
+                          <td className="py-2 px-3 text-right font-semibold"
+                            style={{ color: (v.diasSLA ?? 0) >= 30 ? RED : '#C2410C' }}>{v.diasSLA} d</td>
+                          <td className="py-2 px-3 text-right text-gray-500">{v.diasSinMover} d</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <p className="text-[11px] text-gray-500 px-1">
+                Fuente: Reporte Diario de Mesa de Ayuda, corte {mesa.fecha}
+                {mesa.hora ? ` a las ${mesa.hora}` : ''} · {mesa.cortes} cortes guardados.
+                Esto cubre los tickets <strong>vencidos</strong>, no los {mesa.abiertos ?? '—'} abiertos
+                que aún no vencen — para ésos hace falta que el export de Zoho deje de filtrar
+                por cerrado.
+              </p>
+            </>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+              <p className="text-sm font-semibold text-gray-900 mb-2">Sin cortes de la mesa de ayuda</p>
+              <p className="text-xs text-gray-500 leading-relaxed max-w-md mx-auto">
+                Esta vista lee <code>data/mesa-ayuda/</code>, que se llena con
+                <code> python scripts/gen-mesa-ayuda.py --todos</code> a partir de los
+                Reportes Diarios que genera la tarea programada.
+              </p>
+            </div>
+          )
+        )}
+
         {tab === 'fallas' && (
           <>
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex items-center gap-3"

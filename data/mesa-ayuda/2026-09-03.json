@@ -1,0 +1,113 @@
+{
+  "fecha": "2026-09-03",
+  "horaCorte": "11:15 h",
+  "origen": "Reporte_Diario_ZohoDesk_2026-09-03.docx",
+  "kpis": {
+    "abiertos": 109,
+    "enEspera": 134,
+    "vencidos": 7,
+    "noAsignados": 0,
+    "nuevos24h": 52,
+    "cerrados24h": 52
+  },
+  "ticketsVencidos": [
+    {
+      "folio": "104463",
+      "asunto": "CAMBIO // USUARIO CALLPICKER CHAT // SMART PLAN",
+      "contacto": "José Daniel Mijangos Q.",
+      "cid": "61256",
+      "cuenta": "Smart Plan Seguros",
+      "vence": "2026-03-19",
+      "diasSLA": 168,
+      "ultimaAct": "2026-03-18",
+      "diasSinMover": 169,
+      "estado": "Abierto",
+      "responsable": "Soporte (sin dueño)",
+      "canal": "Correo"
+    },
+    {
+      "folio": "106428",
+      "asunto": "Revisar apertura de conversación con plantilla",
+      "contacto": "Ariana Agundis García",
+      "cid": "130723",
+      "cuenta": "GTC Contact Center",
+      "vence": "2026-05-03",
+      "diasSLA": 123,
+      "ultimaAct": "2026-05-02",
+      "diasSinMover": 124,
+      "estado": "Escalado",
+      "responsable": "Néstor C.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "108849",
+      "asunto": "Requerimiento información de llamadas perdidas",
+      "contacto": "Andrea Castañeda H.",
+      "cid": "130723",
+      "cuenta": "GTC Contact Center",
+      "vence": "2026-06-21",
+      "diasSLA": 74,
+      "ultimaAct": "2026-06-19",
+      "diasSinMover": 76,
+      "estado": "Abierto",
+      "responsable": "Daniel M.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "111955",
+      "asunto": "Problemas con enlace de llamadas salientes",
+      "contacto": "Joel Jiménez",
+      "cid": "170676",
+      "cuenta": "Grupo Eurovi",
+      "vence": "2026-07-31",
+      "diasSLA": 34,
+      "ultimaAct": "2026-08-06",
+      "diasSinMover": 28,
+      "estado": "Escalado",
+      "responsable": "Mario H.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "113201",
+      "asunto": "Activación cuenta Callpicker – Tatsa",
+      "contacto": "Ricardo López",
+      "cid": "186042",
+      "cuenta": "TATSA",
+      "vence": "2026-08-22",
+      "diasSLA": 12,
+      "ultimaAct": "2026-08-14",
+      "diasSinMover": 20,
+      "estado": "Abierto",
+      "responsable": "Antonio V.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "110193",
+      "asunto": "Administración de servicios ASKE SA. (Grupo Petroil)",
+      "contacto": "Javier Rodríguez",
+      "cid": "95890",
+      "cuenta": "Petroil",
+      "vence": "2026-08-28",
+      "diasSLA": 6,
+      "ultimaAct": "2026-08-24",
+      "diasSinMover": 10,
+      "estado": "Escalado",
+      "responsable": "José Antonio R.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "113932",
+      "asunto": "Llamadas no se escuchan o con ruido",
+      "contacto": "Angélica Calderón",
+      "cid": "25563",
+      "cuenta": "Remax Unlimited",
+      "vence": "2026-09-02",
+      "diasSLA": 1,
+      "ultimaAct": "2026-08-26",
+      "diasSinMover": 8,
+      "estado": "Escalado",
+      "responsable": "Pablo S.",
+      "canal": "WhatsApp"
+    }
+  ]
+}

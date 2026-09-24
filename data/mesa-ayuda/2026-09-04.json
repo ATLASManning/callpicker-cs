@@ -1,0 +1,99 @@
+{
+  "fecha": "2026-09-04",
+  "horaCorte": "13:25 h",
+  "origen": "Reporte_Diario_ZohoDesk_2026-09-04_1.docx",
+  "kpis": {
+    "abiertos": 113,
+    "enEspera": 124,
+    "vencidos": 6,
+    "noAsignados": 0,
+    "nuevos24h": 44,
+    "cerrados24h": 62
+  },
+  "ticketsVencidos": [
+    {
+      "folio": "104463",
+      "asunto": "CAMBIO // USUARIO CALLPICKER CHAT // SMART PLAN",
+      "contacto": "José Daniel Mijangos Quiroz",
+      "cid": "61256",
+      "cuenta": "Smart Plan Agente de Seguros y Fianzas",
+      "vence": "2026-03-19",
+      "diasSLA": 169,
+      "ultimaAct": "2026-03-18",
+      "diasSinMover": 170,
+      "estado": "Abierto",
+      "responsable": "Soporte (sin dueño)",
+      "canal": "Correo"
+    },
+    {
+      "folio": "106428",
+      "asunto": "Revisar apertura de conversación con plantilla",
+      "contacto": "Ariana Agundis García",
+      "cid": "130723",
+      "cuenta": "GTC Contact Center",
+      "vence": "2026-05-03",
+      "diasSLA": 124,
+      "ultimaAct": "2026-05-02",
+      "diasSinMover": 125,
+      "estado": "Escalado",
+      "responsable": "Néstor C.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "108849",
+      "asunto": "Requerimiento información de llamadas perdidas",
+      "contacto": "Andrea Castañeda Hernández",
+      "cid": "130723",
+      "cuenta": "GTC Contact Center",
+      "vence": "2026-06-21",
+      "diasSLA": 75,
+      "ultimaAct": "2026-06-19",
+      "diasSinMover": 77,
+      "estado": "Abierto",
+      "responsable": "Daniel M.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "113201",
+      "asunto": "Activación cuenta Callpicker – Tatsa",
+      "contacto": "Ricardo López",
+      "cid": "186042",
+      "cuenta": "TATSA",
+      "vence": "2026-08-22",
+      "diasSLA": 13,
+      "ultimaAct": "2026-08-14",
+      "diasSinMover": 21,
+      "estado": "Abierto",
+      "responsable": "Antonio V.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "113932",
+      "asunto": "Llamadas no se escuchan o con ruido",
+      "contacto": "Angélica Calderón",
+      "cid": "25563",
+      "cuenta": "Remax Unlimited",
+      "vence": "2026-09-02",
+      "diasSLA": 2,
+      "ultimaAct": "2026-08-26",
+      "diasSinMover": 9,
+      "estado": "Escalado",
+      "responsable": "Pablo S.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "114229",
+      "asunto": "Intermitencia al recibir eventos de llamada vía API",
+      "contacto": "Ismael Díaz de León",
+      "cid": "12283",
+      "cuenta": "GRUPO 2711",
+      "vence": "2026-09-03",
+      "diasSLA": 1,
+      "ultimaAct": "2026-08-29",
+      "diasSinMover": 6,
+      "estado": "Abierto",
+      "responsable": "Mario H.",
+      "canal": "WhatsApp"
+    }
+  ]
+}
