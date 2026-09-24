@@ -23,6 +23,10 @@ type UsuarioMin = { email: string; nombre: string; asesor_nombre: string | null;
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+const MESES_LARGOS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+/** La rejilla del calendario empieza en lunes: así se lee una semana de trabajo. */
+const DIAS_CAL = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
 function fmtDuracion(segs: number): string {
   if (segs < 60)  return `${segs}s`
@@ -89,7 +93,34 @@ function aggregate(rows: Row[]) {
   const total = rows.length
   const dowPct = byDow.map(v => total > 0 ? Math.round((v / total) * 100) : 0)
 
+  /* Calendario por mes. La vista por día de la SEMANA dice que los martes son
+     el pico, pero no dice QUÉ martes — ni cuántos días del mes no se abrió el
+     tablero, que es justo lo que no se veía: Claudia tiene actividad en 15 de
+     los 24 días del rango, o sea 9 días en blanco que ninguna otra vista
+     muestra. Aquí cada día del mes aparece, con actividad o sin ella. */
+  const meses = Array.from(new Set(Object.keys(byDate).map(d => d.slice(0, 7)))).sort()
+  const calendario = meses.map(mes => {
+    const [anio, m] = mes.split('-').map(Number)
+    const diasEnMes = new Date(anio, m, 0).getDate()
+    // getDay() da 0 para domingo; la rejilla empieza en lunes, que es como se
+    // lee una semana de trabajo.
+    const primero = (new Date(anio, m - 1, 1).getDay() + 6) % 7
+    const dias = Array.from({ length: diasEnMes }, (_, i) => {
+      const fecha = `${mes}-${String(i + 1).padStart(2, '0')}`
+      return { dia: i + 1, fecha, visitas: byDate[fecha] ?? 0 }
+    })
+    const conUso = dias.filter(d => d.visitas > 0).length
+    return {
+      mes, anio, etiqueta: `${MESES_LARGOS[m - 1]} ${anio}`,
+      huecoInicial: primero, dias,
+      maxDia: Math.max(0, ...dias.map(d => d.visitas)),
+      totalMes: dias.reduce((s, d) => s + d.visitas, 0),
+      conUso, sinUso: diasEnMes - conUso, diasEnMes,
+    }
+  })
+
   return {
+    calendario,
     sectionList, byDow, byHour, dowPct,
     maxDow, maxHour, totalSeg, withDuration,
     topDow, lowDow,
@@ -386,6 +417,68 @@ export default function UsoDashboardPage() {
               })}
             </div>
           </div>
+
+          {/* ── Calendario por mes ─────────────────────────────────────────
+               La vista por día de la SEMANA dice que los martes son el pico,
+               pero no dice QUÉ martes, ni cuántos días del mes no se abrió el
+               tablero. Eso último es lo que no se veía por ningún lado: un mes
+               con 15 días de uso y 15 en blanco se lee igual que uno de uso
+               diario si solo se miran los promedios. */}
+          {stats.calendario.map(c => (
+            <div key={c.mes} className="cp-card p-5">
+              <div className="flex items-baseline justify-between flex-wrap gap-2 mb-4">
+                <p className="text-sm font-bold text-textHi flex items-center gap-2">
+                  <Calendar size={15} className="text-blue-600" />
+                  {c.etiqueta}
+                </p>
+                <p className="text-xs text-textMid">
+                  <strong className="text-textHi">{c.totalMes}</strong> visitas ·{' '}
+                  <strong className="text-textHi">{c.conUso}</strong> días con uso ·{' '}
+                  <strong className="text-textHi">{c.sinUso}</strong> sin abrir
+                </p>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+                {DIAS_CAL.map((d, i) => (
+                  <span key={i} className="text-center text-[10px] font-bold text-textMid">{d}</span>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-1.5">
+                {Array.from({ length: c.huecoInicial }, (_, i) => <div key={`h${i}`} />)}
+                {c.dias.map(d => {
+                  const intensidad = c.maxDia > 0 ? d.visitas / c.maxDia : 0
+                  return (
+                    /* `cp-light` para que los <span> HEREDEN el color de la
+                       baldosa: dentro de una .cp-card el CSS global los pinta
+                       blancos y en las casillas claras el número desaparecía.
+                       Es el mismo motivo que en la rejilla de días de semana. */
+                    <div
+                      key={d.fecha}
+                      title={`${d.fecha} — ${d.visitas} visita${d.visitas === 1 ? '' : 's'}`}
+                      className="aspect-square rounded-lg flex flex-col items-center justify-center cp-light"
+                      style={{
+                        background: d.visitas > 0 ? heatColor(d.visitas, c.maxDia) : 'rgba(255,255,255,0.04)',
+                        color: d.visitas === 0 ? 'rgba(255,255,255,0.35)'
+                          : intensidad >= 0.5 ? '#fff' : '#1E293B',
+                        border: d.visitas === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                      }}
+                    >
+                      <span className="text-[11px] font-bold leading-none">{d.dia}</span>
+                      {d.visitas > 0 && (
+                        <span className="text-[9px] mt-0.5 opacity-85 leading-none">{d.visitas}</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              <p className="text-[11px] text-textMid mt-3">
+                El número grande es el día del mes; el pequeño, sus visitas. Las casillas
+                apagadas son días en que nadie abrió el tablero.
+              </p>
+            </div>
+          ))}
 
           {/* Heatmap por día de semana */}
           <div className="cp-card p-5">
