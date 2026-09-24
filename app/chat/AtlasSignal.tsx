@@ -182,11 +182,15 @@ export default function AtlasSignal({
         const h = Math.max(alto * 0.055, (Math.abs(onda) * amp + bulto) * env * maxAlt)
 
         const x = x0 + i * paso
-        // El centro brilla más que los extremos: la secuencia tiene foco.
-        const a = brillo * (0.30 + 0.70 * env)
-        ctx!.fillStyle = bulto > 0.05
-          ? `rgba(199,216,253,${Math.min(1, a + bulto)})`
-          : `rgba(125,211,252,${a})`
+        /* BLANCA. Era cian y sobre este fondo se leía apagada, como un
+           elemento secundario de la pantalla. La secuencia es la presencia, no
+           un adorno: va en blanco.
+           El centro brilla más que los extremos —la secuencia tiene foco— y el
+           pulso que la recorre al pensar sube a blanco pleno. Con un solo tono,
+           la diferencia la lleva la opacidad, que es lo que el ojo lee como
+           intensidad de voz. */
+        const a = brillo * (0.34 + 0.66 * env)
+        ctx!.fillStyle = `rgba(255,255,255,${Math.min(1, a + bulto * 0.9)})`
         ctx!.beginPath()
         // Barras con las puntas redondeadas, centradas en el eje.
         const y = medio - h / 2
@@ -200,8 +204,9 @@ export default function AtlasSignal({
       }
 
       // El eje: una línea tenue que sostiene la secuencia cuando está casi
-      // plana, para que el reposo no se lea como pantalla apagada.
-      ctx!.fillStyle = `rgba(56,132,255,${0.10 + brillo * 0.10})`
+      // plana, para que el reposo no se lea como pantalla apagada. Blanco
+      // también, y muy bajo: acompaña, no compite con las barras.
+      ctx!.fillStyle = `rgba(255,255,255,${0.07 + brillo * 0.08})`
       ctx!.fillRect(x0, medio - 0.5, ancho - sobra, 1)
       void o
     }
