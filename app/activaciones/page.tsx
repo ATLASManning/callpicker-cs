@@ -56,8 +56,8 @@ async function getRegistros(): Promise<RegistroItem[]> {
 
     const raw: Record<string, any>[] = xlsx.utils.sheet_to_json(ws, { defval: '' })
 
-    return raw
-      .filter(r => r['ID'] && r['Cliente'])
+    const conIdYCliente = raw.filter(r => r['ID'] && r['Cliente'])
+    const filas = conIdYCliente
       .map(r => ({
         id:             String(r['ID']),
         cliente:        String(r['Cliente']).trim(),
@@ -74,17 +74,28 @@ async function getRegistros(): Promise<RegistroItem[]> {
         encuesta:       String(r['Encuesta Satisfaccion al cliente'] ?? '').trim() || 'N/A',
         complejidad:    String(r['Complejidad'] ?? '').trim().toLowerCase() || 'N/A',
       }))
-      .filter(r => r.ano >= 2020)
+
+    /* El filtro de año se queda —protege de basura— pero YA NO TIRA EN SILENCIO.
+       Una celda de año vacía en Excel llega como 1899, así que la activación se
+       descartaba y nadie se enteraba. Volvió a pasar en el export del 25 sep
+       2026: la de GRUPO CGBS (ID 189992, Cecilia) se perdía entera.
+       Un dato que se descarta se CUENTA y se dice. Es la misma regla que la de
+       los top-N que tiran el resto sin avisar. */
+    const validas = filas.filter(r => r.ano >= 2020)
+    const descartadas = filas
+      .filter(r => r.ano < 2020)
+      .map(r => ({ id: r.id, cliente: r.cliente, ejecutivo: r.ejecutivo, ano: r.ano }))
+    return { registros: validas, descartadas }
 
   } catch (err) {
     console.error('[activaciones] Error leyendo Excel:', err)
-    return []
+    return { registros: [], descartadas: [] }
   }
 }
 
 // ── Página ────────────────────────────────────────────────────────────────────
 export default async function ActivacionesPage() {
-  const registros = await getRegistros()
+  const { registros, descartadas } = await getRegistros()
 
   if (registros.length === 0) {
     return (
@@ -116,6 +127,31 @@ export default async function ActivacionesPage() {
   return (
     // Solo <div> — nunca <main> aquí: el CSS del layout tiene main{background:#DBEAFE !important}
     <div style={{ minHeight: '100%' }}>
+      {/* Lo que el archivo trae y la pantalla NO puede mostrar. Va arriba de
+          todo y con nombre y apellido, porque el arreglo está en la hoja de
+          origen, no aquí: una celda de año vacía en Excel llega como 1899. */}
+      {descartadas.length > 0 && (
+        <div style={{ margin: '16px 32px 0', padding: '12px 16px', borderRadius: 12,
+                      background: '#FFF7ED', border: '1px solid #FED7AA' }}>
+          <p style={{ fontSize: 13, fontWeight: 700, color: '#7C2D12', marginBottom: 6 }}>
+            {descartadas.length} activación{descartadas.length !== 1 ? 'es' : ''} del archivo
+            no {descartadas.length !== 1 ? 'aparecen' : 'aparece'} abajo: les falta el AÑO
+          </p>
+          <p style={{ fontSize: 12, color: '#9A3412', lineHeight: 1.6 }}>
+            La celda «Año» viene vacía y Excel la entrega como 1899, así que no entra en
+            ningún corte. Se arregla en la hoja de origen, capturando el año:
+          </p>
+          <ul style={{ fontSize: 12, color: '#7C2D12', marginTop: 6, paddingLeft: 18 }}>
+            {descartadas.map(d => (
+              <li key={d.id}>
+                <span style={{ fontWeight: 700 }}>{d.cliente}</span>
+                {' '}· ID {d.id} · {d.ejecutivo}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         padding: '28px 32px 24px',
