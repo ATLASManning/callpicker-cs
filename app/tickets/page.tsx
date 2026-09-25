@@ -159,9 +159,19 @@ function prodColor(p: string) {
 const MES_CORTO = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MES_LARGO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
+/**
+ * «Ago 25» y «Ago 26», NO «Ago» dos veces.
+ *
+ * Mientras el eje temporal iba por mes de cierre el archivo cabía en un solo año
+ * y el mes solo bastaba. Al pasarlo a mes de APERTURA aparecieron los tickets de
+ * 2025 y la pantalla mostró dos tarjetas «Ago» —una con 1 ticket y otra con
+ * 1,069— que se leían como un error de la tabla. El año no es adorno: es lo que
+ * las distingue.
+ */
 function mesLabel(m: string) {
   const n = Number(m?.slice(5, 7))
-  return n >= 1 && n <= 12 ? MES_CORTO[n - 1] : m
+  if (!(n >= 1 && n <= 12)) return m
+  return `${MES_CORTO[n - 1]} ${m.slice(2, 4)}`
 }
 function mesLabelLargo(m: string) {
   const n = Number(m?.slice(5, 7))
@@ -302,6 +312,15 @@ export default function TicketsPage() {
   const [stats, setStats]       = useState<Stats | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
   const [overviewMes, setOverviewMes]   = useState('')
+  /* Stats SIN filtro de mes, para las tarjetas de mes.
+     Si las tarjetas se dibujaran con `stats`, al elegir un mes el corte se
+     reduciría a ese mes y quedaría UNA sola tarjeta: ya no habría desde dónde
+     cambiar de mes. El selector tiene que sobrevivir a su propia selección. */
+  const [statsGlobal, setStatsGlobal] = useState<Stats | null>(null)
+  useEffect(() => {
+    fetch('/api/tickets?mode=stats')
+      .then(r => r.json()).then(setStatsGlobal).catch(() => setStatsGlobal(null))
+  }, [])
 
   /* ── Meses disponibles: derivados del dataset, nunca de una lista fija ──
        Y por mes de APERTURA, no de cierre: 851 tickets caen en un mes distinto
@@ -328,10 +347,9 @@ export default function TicketsPage() {
     if (!mesesDisp.length) return 'Histórico completo'
     const a = mesesDisp[0], b = mesesDisp[mesesDisp.length - 1]
     if (a === b) return mesLabelLargo(a)
-    const anioA = a.slice(0, 4), anioB = b.slice(0, 4)
-    return anioA === anioB
-      ? `${mesLabel(a)}–${mesLabel(b)} ${anioB}`
-      : `${mesLabel(a)} ${anioA}–${mesLabel(b)} ${anioB}`
+    // `mesLabel` ya trae el año («Ago 25»), así que NO se le pega otro detrás:
+    // pegarlo daba «Ago 25 2025–Sep 26 2026».
+    return `${mesLabel(a)}–${mesLabel(b)}`
   }, [mesesDisp])
 
   /* ── Explorador ── */
@@ -617,22 +635,12 @@ export default function TicketsPage() {
         {/* ═══ OVERVIEW ════════════════════════════════════════════ */}
         {tab === 'overview' && (
           <>
-            {/* Filtro de mes */}
-            <div className="flex items-center gap-3">
-              <Calendar size={14} className="text-gray-400 flex-shrink-0" />
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Filtrar por mes</span>
-              <div className="flex flex-wrap gap-1.5">
-                {MESES.map(m => (
-                  <button key={m.val} onClick={() => setOverviewMes(m.val)}
-                    className="px-3 py-1 rounded-lg text-xs font-medium transition-all border"
-                    style={overviewMes === m.val
-                      ? { background: '#1B3FCC', color: '#fff', borderColor: '#1B3FCC' }
-                      : { background: '#fff', color: '#6b7280', borderColor: '#e5e7eb' }}>
-                    {m.val === '' ? 'Todos' : m.label.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* La fila de botones de mes se quitó: hacía lo mismo que las
+                tarjetas de abajo, y encima mal. Pintaba `m.label.split(' ')[0]`,
+                o sea se quedaba con «Agosto» y tiraba el año, así que la fila
+                mostraba «Agosto … Agosto» y un orden que parecía roto cuando en
+                realidad era cronológico (ago-25, oct-25, nov-25, ene-26…).
+                Dos controles para lo mismo es ruido; uno solo, y que se entienda. */}
 
             {statsLoading ? (
               <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Cargando estadísticas…</div>
@@ -663,33 +671,69 @@ export default function TicketsPage() {
                   catalogó como falla y la bandera no reconoce.
                 </p>
 
-                {/* Por mes — de APERTURA. Antes era el mes de CIERRE (el campo
-                    `fecha` del export) y se leía como mes de alta: 851 tickets
-                    se graficaban en un mes distinto del que entraron, y
-                    septiembre difería en 165. El mes en curso va marcado: se
-                    dibujaba al lado de agosto completo, así que el tablero
-                    parecía decir que septiembre cayó cuando le faltaban días. */}
+                {/* Por mes de APERTURA, y ESTE es el filtro de mes.
+                    Se dibuja con `statsGlobal` —sin filtrar— para que al elegir
+                    un mes las doce tarjetas sigan ahí y se pueda cambiar. */}
                 <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                  <h3 className="font-semibold text-sm text-gray-900 mb-1">Volumen por mes de APERTURA</h3>
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+                    <h3 className="font-semibold text-sm text-gray-900">Volumen por mes de APERTURA</h3>
+                    <span className="text-[11px] text-gray-500 inline-flex items-center gap-1">
+                      <Calendar size={11} className="text-gray-400" />
+                      Clic en un mes para ver solo ése
+                    </span>
+                  </div>
                   <p className="text-[11px] text-gray-500 mb-4">
-                    Cuándo ENTRÓ el ticket, anclado a hora de México. El export también trae el mes
-                    de cierre, que es otro reparto: {cob ? `${Object.values(stats.byMesCierre).reduce((a, b) => a + b, 0)} cierres` : '—'} en el mismo periodo.
+                    Cuándo ENTRÓ el ticket, anclado a hora de México — por eso el archivo empieza en
+                    agosto de 2025 y no en febrero. El export también trae el mes de cierre, que es
+                    otro reparto: {statsGlobal ? `${Object.values(statsGlobal.byMesCierre).reduce((a, b) => a + b, 0).toLocaleString()} cierres` : '—'} en el mismo periodo.
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {Object.entries(stats.byMes).sort().map(([mes, n], idx, arr) => {
-                      const colors = ['#3b82f6','#6366f1','#8b5cf6','#a855f7']
-                      const esUltimo = idx === arr.length - 1 && mes === cob?.ultimoMes
+                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {/* «Todos» vive aquí, que es donde estaba su fila. */}
+                    <button onClick={() => setOverviewMes('')}
+                      className="rounded-lg p-3 border text-center transition-all hover:shadow-sm"
+                      style={overviewMes === ''
+                        ? { background: '#1B3FCC', borderColor: '#1B3FCC' }
+                        : { background: '#F9FAFB', borderColor: '#E5E7EB' }}>
+                      <p className="text-xs" style={{ color: overviewMes === '' ? '#DBEAFE' : '#6b7280' }}>Todos</p>
+                      <p className="text-2xl font-bold mt-1"
+                        style={{ color: overviewMes === '' ? '#fff' : '#374151' }}>
+                        {(statsGlobal?.total ?? 0).toLocaleString()}
+                      </p>
+                      <p className="text-[9px] mt-0.5" style={{ color: overviewMes === '' ? '#BFDBFE' : '#9CA3AF' }}>
+                        {rangoMeses}
+                      </p>
+                    </button>
+
+                    {Object.entries(statsGlobal?.byMes ?? stats.byMes).sort().map(([mes, n], idx) => {
+                      const colors = ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7']
+                      const c = colors[idx % 4]
+                      const activo = overviewMes === mes
+                      // El ÚLTIMO mes del archivo es el mes EN CURSO, no un mes
+                      // «incompleto»: nada falta ni se perdió, simplemente no ha
+                      // terminado. Y además el export solo trae cerrados, así que
+                      // lo reciente entra en el corte de la semana siguiente.
+                      const enCurso = mes === cob?.ultimoMes
                       return (
-                        <div key={mes} className="rounded-lg p-3 border text-center"
-                          style={{ background: `${colors[idx % 4]}08`, borderColor: `${colors[idx % 4]}25` }}>
-                          <p className="text-xs text-gray-500">{mesLabel(mes)}</p>
-                          <p className="text-2xl font-bold mt-1" style={{ color: colors[idx % 4] }}>{n}</p>
-                          {esUltimo && (
-                            <p className="text-[9px] text-amber-700 font-semibold mt-0.5">
-                              incompleto · al día {cob?.hasta.slice(8, 10)}
+                        <button key={mes} onClick={() => setOverviewMes(mes)}
+                          title={`${mesLabelLargo(mes)} — ${n.toLocaleString()} tickets abiertos ese mes`}
+                          className="rounded-lg p-3 border text-center transition-all hover:shadow-sm"
+                          style={activo
+                            ? { background: c, borderColor: c }
+                            : { background: `${c}08`, borderColor: `${c}25` }}>
+                          <p className="text-xs" style={{ color: activo ? '#fff' : '#6b7280' }}>
+                            {mesLabel(mes)}
+                          </p>
+                          <p className="text-2xl font-bold mt-1"
+                            style={{ color: activo ? '#fff' : tonoSobreFondo(c, '#FFFFFF', 4.5) }}>
+                            {n.toLocaleString()}
+                          </p>
+                          {enCurso && (
+                            <p className="text-[9px] font-semibold mt-0.5"
+                              style={{ color: activo ? '#FEF3C7' : '#B45309' }}>
+                              mes en curso · al día {cob?.hasta.slice(8, 10)}
                             </p>
                           )}
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
