@@ -164,7 +164,23 @@ function dimModulos(c: Cuenta, diasCliente: number, revisionesAdopcion: number):
 }
 
 // ── Scorer: Soporte Técnico ───────────────────────────────────────────────────
-function dimSoporte(cid: string | null, rows: TicketRow[], ticketsAbiertos: number): DimResult {
+/**
+ * Soporte pesa 15% del Health Score, y hasta el 24-sep-2026 sus dos primeras
+ * ramas eran CÓDIGO MUERTO: se penalizaba por `ticketsAbiertos`, que venía de un
+ * export de solo cerrados y valía 0 en las 222 cuentas. Los −40 y −20 puntos no
+ * se aplicaron nunca.
+ *
+ * Ahora la penalización sale de los tickets FUERA DE SLA del corte de la mesa de
+ * ayuda, que sí se mide, y escala con los días de atraso: en el corte real van
+ * de 1 a 144 días, así que un único umbral aplastaría casos muy distintos.
+ */
+function dimSoporte(
+  cid: string | null,
+  rows: TicketRow[],
+  vencidos: number,
+  peorDiasSLA: number | null,
+  reincide: boolean,
+): DimResult {
   if (!cid) {
     return {
       key: 'tkt', label: 'Soporte', pct: '15%', weight: 15,
@@ -177,8 +193,16 @@ function dimSoporte(cid: string | null, rows: TicketRow[], ticketsAbiertos: numb
   const urgentes = rows.filter(t => t.prioridad === 'Urgent' || t.prioridad === 'High').length
 
   let score = 100
-  if (ticketsAbiertos > 2)      score -= 40
-  else if (ticketsAbiertos > 0) score -= 20
+  const dias = peorDiasSLA ?? 0
+  if (vencidos > 0) {
+    // El atraso manda sobre el conteo: un folio de 144 días pesa más que tres de dos.
+    if (dias >= 30)      score -= 45
+    else if (dias >= 14) score -= 35
+    else if (dias >= 7)  score -= 25
+    else                 score -= 15
+    if (vencidos >= 3)   score -= 10
+  }
+  if (reincide) score -= 10
 
   if (total === 0) {
     score = Math.min(score, 95)
@@ -190,9 +214,12 @@ function dimSoporte(cid: string | null, rows: TicketRow[], ticketsAbiertos: numb
   score = Math.max(8, score)
 
   const parts: string[] = []
-  if (total > 0)          parts.push(`${total} ticket${total !== 1 ? 's' : ''}`)
-  if (fallas > 0)         parts.push(`${fallas} falla${fallas !== 1 ? 's' : ''}`)
-  if (ticketsAbiertos > 0) parts.push(`${ticketsAbiertos} abierto${ticketsAbiertos !== 1 ? 's' : ''}`)
+  if (total > 0)    parts.push(`${total} ticket${total !== 1 ? 's' : ''} históricos`)
+  if (fallas > 0)   parts.push(`${fallas} falla${fallas !== 1 ? 's' : ''}`)
+  if (vencidos > 0) {
+    parts.push(`${vencidos} FUERA DE SLA` + (dias > 0 ? ` (peor: ${dias} días)` : ''))
+  }
+  if (reincide) parts.push('reincide en la mesa')
   const detail = parts.length > 0 ? parts.join(' · ') : 'Sin tickets registrados'
 
   return { key: 'tkt', label: 'Soporte', pct: '15%', weight: 15, score, detail, color: scoreColor(score), missing: [], Icon: Headphones }
@@ -297,7 +324,12 @@ export default function HealthScoreDiagnostico({
     dimInformacion(cuenta),
     dimPagos(cuenta),
     dimModulos(cuenta, diasCliente, revisionesAdopcion),
-    dimSoporte(cuenta.cid, ticketRows, cuenta.tickets_abiertos ?? 0),
+    dimSoporte(
+      cuenta.cid, ticketRows,
+      cuenta.tickets_vencidos ?? 0,
+      cuenta.peor_dias_sla ?? null,
+      cuenta.reincide_mesa ?? false,
+    ),
     dimSeguimiento(seguimientos, cuenta),
   ]
 

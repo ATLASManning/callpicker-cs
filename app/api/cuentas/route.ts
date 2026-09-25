@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCuentas, upsertCuenta } from '@/lib/supabase'
-import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { getZohoMap, lookupZoho } from '@/lib/zoho-enrich'
 import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
 
@@ -30,7 +30,8 @@ export async function GET(req: NextRequest) {
     // Enriquecer cada cuenta con tickets + MRR y Factura Mensual de Zoho
     const enriched = data.map(c => {
       const z = lookupZoho(c.empresa, zohoMap)
-      const stats = ticketStatsCuenta(c.cid ?? null, c.empresa)
+      const sop = soporteDeCuenta(c.cid ?? null, c.empresa)
+      const stats = sop.historia
       // Bloqueo comercial calculado AQUÍ, en el servidor, a propósito: cruza
       // los datasets de Churn (GRC-AAA-2026 y Análisis DATA) que son grandes y
       // no tienen por qué viajar al navegador. El cliente solo recibe el
@@ -39,9 +40,17 @@ export async function GET(req: NextRequest) {
       return {
         ...c,
         zoho_tickets:         stats,
-        // Sobrescribe la columna guardada en la tabla (nadie la sincronizaba):
-        // los abiertos se calculan SIEMPRE del dataset vivo de Zoho Desk.
-        tickets_abiertos:     stats.abiertos,
+        // La columna guardada se sobrescribe (nadie la sincronizaba), pero ojo:
+        // el export de Zoho solo trae CERRADOS, así que «abiertos» no se puede
+        // medir con él y aquí sale 0 por definición, no por observación. Lo
+        // medible son los vencidos del corte de la mesa, que van aparte.
+        tickets_abiertos:     stats.abiertos ?? 0,
+        tickets_abiertos_medible: sop.abiertosMedible,
+        tickets_vencidos:     sop.vencidos.length,
+        peor_dias_sla:        sop.peorDiasSLA,
+        reincide_mesa:        sop.reincideEnMesa,
+        fecha_corte_mesa:     sop.fechaCorte,
+        severidad_soporte:    sop.severidad,
         // Trae el ACUMULADO desde el 17 sep 2026, no una mensualidad.
         mrr_zoho:             z?.acumulado      ?? null,
         factura_mensual_zoho: z?.factura_mensual ?? null,

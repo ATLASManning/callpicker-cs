@@ -102,8 +102,32 @@ export interface Cuenta {
   pagos_al_corriente: boolean
   incidencias_pago: number
 
+  /**
+   * OBSOLETAS LAS DOS. No decidir nada con ellas (24 Sep 2026).
+   *
+   * `tickets_abiertos` vale 0 en las 222 cuentas: se siembra al alta y nadie la
+   * sincroniza, y aunque se recalcule del export de Zoho sigue dando 0, porque
+   * ese export solo trae tickets CERRADOS. Un cero sin medición no es un cero.
+   *
+   * `tiene_ticket_reincidente` está en `false` en las 222, y tampoco tiene quien
+   * la actualice — mientras la auditoría de Finsus documenta 35 tickets del
+   * mismo trámite en 8 meses.
+   *
+   * La fuente viva es `lib/soporte-cuenta.ts`, que cruza el export con los
+   * cortes de la mesa de ayuda. Los campos de abajo la transportan hasta la UI.
+   */
   tickets_abiertos: number
   tiene_ticket_reincidente: boolean
+
+  /** Tickets FUERA DE SLA en el último corte de la mesa. Esto sí se mide. */
+  tickets_vencidos?: number
+  /** Días de atraso del peor folio vencido. */
+  peor_dias_sla?: number | null
+  /** Reincidencia medida: 3+ cortes de la ventana con vencidos. */
+  reincide_mesa?: boolean
+  /** Fecha del corte del que salen los tres campos anteriores. Un dato sin
+   *  fecha se lee como si fuera de hoy, y puede ser del viernes pasado. */
+  fecha_corte_mesa?: string | null
 
   dias_como_cliente: number
 

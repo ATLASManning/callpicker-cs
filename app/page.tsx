@@ -20,9 +20,10 @@ import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
 import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor, type SemaforoSalud } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
-import { getTicketsByCuenta } from '@/lib/cuenta-data'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import Link from 'next/link'
-import rawTickets from '@/lib/tickets-data.json'
+import { TICKETS as TICKETS_NORM, COBERTURA } from '@/lib/tickets-norm'
 import { headers } from 'next/headers'
 import { ahoraEnMexico, fechaLocal } from '@/lib/fecha-local'
 
@@ -106,6 +107,24 @@ function fmtFecha(iso: string) {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return iso
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
+}
+
+const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+
+/**
+ * Formatea 'AAAA-MM-DD[ HH:MM]' SIN pasar por `new Date`.
+ *
+ * Pasar por Date reintroduce el problema que se está arreglando: el servidor de
+ * Vercel va en UTC y México seis horas atrás, así que un sello de la tarde se
+ * rendería con el día siguiente (o el anterior, según el sentido). El texto ya
+ * viene anclado a hora de México desde lib/tickets-norm.ts; aquí solo se pinta.
+ */
+function fmtSelloMx(sello: string) {
+  if (!sello) return '—'
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(sello)
+  if (!m) return sello
+  const mes = MES_CORTO[Number(m[2]) - 1] ?? m[2]
+  return `${m[3]} ${mes} ${m[1].slice(2)}`
 }
 
 // ── Diagnóstico de perfiles ───────────────────────────────────────────────────
@@ -806,38 +825,51 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
 }
 
 // ── Tickets globales ──────────────────────────────────────────────────────────
-interface TicketRaw { es_falla: string; fecha: string; empresa: string; categoria: string; mes: string }
-const _allTickets = rawTickets as TicketRaw[]
+// El tipo local desapareció: ahora la forma la define lib/tickets-norm.ts, que
+// es también donde se arreglan los campos crudos del export.
+const _allTickets = TICKETS_NORM
 const globalTickets = {
-  total:  _allTickets.length,
-  fallas: _allTickets.filter(t => t.es_falla === 'Si').length,
-  ultima: _allTickets.reduce((acc, t) => t.fecha > acc ? t.fecha : acc, ''),
+  total:  COBERTURA.total,
+  fallas: COBERTURA.fallasBandera,
+  /**
+   * Antes era `max(t.fecha)`, y `fecha` solo tiene precisión de MES: valía
+   * '2026-09', que `new Date()` parsea como el día 1, así que la portada se
+   * declaraba «datos al 01 sep 26» cuando el archivo llega al 23 de septiembre.
+   * 22 días de desfase justo en el indicador cuyo único trabajo es decir qué tan
+   * fresco está el dato. Ahora es la última APERTURA real, en hora de México.
+   */
+  ultima: COBERTURA.hasta,
 }
 
 // ── Tickets analytics (server-side, static) ───────────────────────────────────
 const ticketsAnalytics: TicketsAnalyticsData = (() => {
-  const INTERNAL = new Set(['Callpicker', 'sin cuenta', ''])
+  // Lo interno se marca por CID (0 y 1), no por el nombre: filtrar por la cadena
+  // 'Callpicker' dejaba entrar 'Digitum' (63 tickets, mismo CID 1), 'Callpicker
+  // pruebas' y 'Sin cuenta' con mayúscula (31), así que el segundo emisor de
+  // todo el archivo seguía compitiendo con los clientes reales.
+  const deClientes = _allTickets.filter(t => !t.interno)
 
-  // Top clientes
-  const cliMap: Record<string, { total: number; fallas: number }> = {}
-  for (const t of _allTickets) {
-    if (INTERNAL.has(t.empresa)) continue
-    if (!cliMap[t.empresa]) cliMap[t.empresa] = { total: 0, fallas: 0 }
-    cliMap[t.empresa].total++
-    if (t.es_falla === 'Si') cliMap[t.empresa].fallas++
+  // Top clientes — agrupado por CID, para que un cliente no salga partido en
+  // dos renglones por una variante de captura ('GRUPO FRISA' / 'Grupo Frisa').
+  const cliMap = new Map<string, { empresa: string; total: number; fallas: number }>()
+  for (const t of deClientes) {
+    const k = t.cid || t.empresaCanon
+    const e = cliMap.get(k) ?? { empresa: t.empresaCanon || t.empresa, total: 0, fallas: 0 }
+    e.total++
+    if (t.esFallaBandera) e.fallas++
+    cliMap.set(k, e)
   }
-  const topClientes = Object.entries(cliMap)
-    .map(([empresa, v]) => ({ empresa, ...v }))
+  const topClientes = Array.from(cliMap.values())
     .sort((a, b) => b.total - a.total)
     .slice(0, 10)
 
-  // Por categoría
+  // Por categoría — canónica: 'Sin categoria' y 'Sin categoría' ya no son dos.
   const catMap: Record<string, { total: number; fallas: number }> = {}
   for (const t of _allTickets) {
-    const cat = t.categoria || 'Sin categorizar'
+    const cat = t.categoriaNorm || 'Sin categorizar'
     if (!catMap[cat]) catMap[cat] = { total: 0, fallas: 0 }
     catMap[cat].total++
-    if (t.es_falla === 'Si') catMap[cat].fallas++
+    if (t.esFallaBandera) catMap[cat].fallas++
   }
   const porCategoria = Object.entries(catMap)
     .map(([categoria, v]) => ({ categoria, ...v }))
@@ -845,32 +877,35 @@ const ticketsAnalytics: TicketsAnalyticsData = (() => {
 
   // Reincidencia (empresa × categoría)
   const reinMap: Record<string, { empresa: string; categoria: string; count: number; fallas: number }> = {}
-  for (const t of _allTickets) {
-    if (INTERNAL.has(t.empresa)) continue
-    const cat = t.categoria || 'Sin categorizar'
-    const k = `${t.empresa}||${cat}`
-    if (!reinMap[k]) reinMap[k] = { empresa: t.empresa, categoria: cat, count: 0, fallas: 0 }
+  for (const t of deClientes) {
+    const cat = t.categoriaNorm || 'Sin categorizar'
+    const emp = t.empresaCanon || t.empresa
+    const k = `${t.cid}||${cat}`
+    if (!reinMap[k]) reinMap[k] = { empresa: emp, categoria: cat, count: 0, fallas: 0 }
     reinMap[k].count++
-    if (t.es_falla === 'Si') reinMap[k].fallas++
+    if (t.esFallaBandera) reinMap[k].fallas++
   }
   const reincidentes = Object.values(reinMap)
     .filter(x => x.count >= 3)
     .sort((a, b) => b.count - a.count)
     .slice(0, 12)
 
-  // Tendencia mensual
+  // Tendencia mensual — por mes de APERTURA (cuándo entró el ticket). Antes iba
+  // por `mes`, que es el mes de CIERRE: 851 tickets se graficaban en un mes
+  // distinto de aquel en que entraron.
   const mesMap: Record<string, { total: number; fallas: number }> = {}
   for (const t of _allTickets) {
-    if (!t.mes) continue
-    if (!mesMap[t.mes]) mesMap[t.mes] = { total: 0, fallas: 0 }
-    mesMap[t.mes].total++
-    if (t.es_falla === 'Si') mesMap[t.mes].fallas++
+    const m = t.mesApertura
+    if (!m) continue
+    if (!mesMap[m]) mesMap[m] = { total: 0, fallas: 0 }
+    mesMap[m].total++
+    if (t.esFallaBandera) mesMap[m].fallas++
   }
   const tendencia = Object.entries(mesMap)
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([mes, v]) => ({
       mes,
-      label: new Date(mes + '-15').toLocaleDateString('es-MX', { month: 'short', year: '2-digit' }),
+      label: `${MES_CORTO[Number(mes.slice(5, 7)) - 1] ?? mes} ${mes.slice(2, 4)}`,
       total: v.total,
       fallas: v.fallas,
       otros: v.total - v.fallas,
@@ -882,7 +917,7 @@ const ticketsAnalytics: TicketsAnalyticsData = (() => {
     reincidentes,
     tendencia,
     totalTickets: _allTickets.length,
-    totalFallas:  _allTickets.filter(t => t.es_falla === 'Si').length,
+    totalFallas:  COBERTURA.fallasBandera,
   }
 })()
 
@@ -968,8 +1003,10 @@ export default async function DashboardPage() {
     .sort((a, b) => a.health_score - b.health_score)
     .slice(0, 10)
     .map(c => {
-      const r = getTicketsByCuenta(c.cid ?? null, c.empresa)
-      return { ...c, zoho_tickets: { total: r.total, fallas: r.rows.filter(t => t.es_falla === 'Si').length, ultima: r.rows[0]?.fecha ?? null } }
+      // De la fuente completa: `rows` viene cortado a 20 y las fallas salían
+      // contadas solo dentro de esa página.
+      const r = ticketStatsCuenta(c.cid ?? null, c.empresa)
+      return { ...c, zoho_tickets: { total: r.total, fallas: r.fallas, ultima: r.ultima } }
     })
 
   const topRiesgoTix    = topRiesgo.reduce((s, c) => s + (c.zoho_tickets?.total  ?? 0), 0)
@@ -1012,7 +1049,7 @@ export default async function DashboardPage() {
    * evaluador nunca inventa: si faltan señales, lo dice. */
   const candidatos: ResultadoCandidato[] = await Promise.all(
     cuentas.map(async (c): Promise<ResultadoCandidato> => {
-      const tix = getTicketsByCuenta(c.cid ?? null, c.empresa)
+      const sop = soporteDeCuenta(c.cid ?? null, c.empresa)
       // Las tres fuentes MEDIDAS que sostienen las candidaturas de producto.
       // Las tres cachean por módulo, así que las 221 cuentas comparten una
       // sola lectura de cada archivo.
@@ -1045,9 +1082,14 @@ export default async function DashboardPage() {
           (c.contacto_email && String(c.contacto_email).trim() && String(c.contacto_email).trim() !== '0') ||
           (c.contacto_tel   && String(c.contacto_tel).trim()   && String(c.contacto_tel).trim()   !== '0')),
         faltantesCount: computeFaltantes(c).length,
-        ticketsTotal: tix.total,
-        ticketsFallas: tix.rows.filter(t => t.es_falla === 'Si').length,
-        ticketsAbiertos: tix.rows.filter(t => !String(t.cierre ?? '').trim()).length,
+        // Los conteos salen de la fuente COMPLETA, no de `tix.rows`, que viene
+        // cortado a 20 para la tabla: una cuenta con 183 tickets y 15 fallas
+        // declaraba solo las que cupieran en la página.
+        ticketsTotal: sop.historia.total,
+        ticketsFallas: sop.historia.fallas,
+        ticketsAbiertos: sop.historia.abiertos ?? 0,
+        ticketsVencidos: sop.vencidos.length,
+        peorDiasSLA: sop.peorDiasSLA,
         plan: cortes.at(-1)?.plan ?? null,
         consumoPct, caidaConsumo: caida,
         panelPromedio: ult3.length ? prom(ult3.map(x => x.panel)) : null,
@@ -1078,7 +1120,7 @@ export default async function DashboardPage() {
   )
 
   const rankRows: CuentaRank[] = cuentas.map(c => {
-    const tix = getTicketsByCuenta(c.cid ?? null, c.empresa)
+    const tk = ticketStatsCuenta(c.cid ?? null, c.empresa)
     const porProducto = adopMap.get(c.id)
     let adopcionPct: number | null = null
     if (porProducto) {
@@ -1096,8 +1138,8 @@ export default async function DashboardPage() {
       healthScore: c.health_score ?? 50,
       activoDesde: c.activo_desde,
       diasSinContacto: diasSinContactoDe(c),
-      ticketsTotal: tix.total,
-      ticketsFallas: tix.rows.filter(t => t.es_falla === 'Si').length,
+      ticketsTotal: tk.total,
+      ticketsFallas: tk.fallas,
       upsellValor: c.valor_upsell_estimado ?? 0,
       adopcionPct,
       faltantesCount: computeFaltantes(c).length,
@@ -1334,7 +1376,9 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-2">
           <Ticket size={13} style={{ color: CYAN }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: TX_MID }}>Tickets Zoho Desk</span>
-          <span style={{ fontSize: 12, color: TX_LOW }}>· datos al {fmtFecha(globalTickets.ultima)}</span>
+          <span style={{ fontSize: 12, color: TX_LOW }}>
+            · último ticket abierto el {fmtSelloMx(globalTickets.ultima)} (hora de México)
+          </span>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-1">
           <span style={{ fontSize: 12 }}>

@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { evaluarRadar, type CorteSerie, type EntradaRadar } from '@/lib/radar'
 import { baseMinutos } from '@/lib/plan-minutos'
 import { NOMBRES_CANCELACION, normalizarNombre } from '@/lib/elegibilidad'
-import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
@@ -137,6 +137,9 @@ export async function GET(req: NextRequest) {
   const contactos = Array.isArray(cuenta.contactos_json) ? cuenta.contactos_json.length : 0
   const kamRaw = String(cuenta.observaciones_kam ?? '').trim()
 
+  // Se declara ANTES de `entrada`, que la lee: una `const` no se iza.
+  const soporte = soporteDeCuenta(cid || null, cuenta.empresa)
+
   const entrada: EntradaRadar = {
     serie, contactos,
     tieneObsKam: kamRaw !== '' && kamRaw !== '0',
@@ -145,10 +148,17 @@ export async function GET(req: NextRequest) {
     adopcionBaja, adopcionTotal: delUltimoCorte.length,
     ultimaConversacion,
     totalActividades: act?.length ?? 0,
-    // Abiertos calculados del dataset vivo — la columna de la tabla quedó
-    // obsoleta (regla 30 Ago 2026).
-    ticketsAbiertos: ticketStatsCuenta(cid || null, cuenta.empresa).abiertos,
-    ticketReincidente: Boolean(cuenta.tiene_ticket_reincidente),
+    // Soporte: el export de Zoho da la HISTORIA y la mesa de ayuda el PRESENTE.
+    // `tiene_ticket_reincidente` ya no se lee: era una columna muerta, false en
+    // las 222 cuentas porque nadie la actualizaba nunca. La reincidencia ahora
+    // se MIDE sobre los cortes de la mesa.
+    ticketsAbiertos:        soporte.historia.abiertos ?? 0,
+    ticketsAbiertosMedible: soporte.abiertosMedible,
+    vencidosMesa:           soporte.vencidos.length,
+    peorDiasSLA:            soporte.peorDiasSLA,
+    cortesConVencidos:      soporte.cortesConVencidos,
+    cortesTotalesMesa:      soporte.cortesTotales,
+    ticketReincidente:      soporte.reincideEnMesa,
     facturacion: cuenta.facturacion != null ? Number(cuenta.facturacion) : null,
     activoDesde: cuenta.activo_desde,
     enChurn: false,

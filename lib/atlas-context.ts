@@ -3,9 +3,9 @@
  * Solo se llama desde rutas de servidor (app/api/chat/route.ts).
  */
 import { supabaseAdmin } from './supabase'
-import rawTickets from './tickets-data.json'
+import { TICKETS as TICKETS_NORM, COBERTURA, NOTA_SOLO_CERRADOS } from './tickets-norm'
 import { STATIC_CASES } from '@/app/auditoria/cases'
-import { ticketStatsCuenta } from './tickets-cuenta'
+import { soporteDeCuenta } from './soporte-cuenta'
 import { cortesDeCuenta } from './cortes-cuenta'
 import { detectDataGaps, CAMPOS_GAP_SELECT, type CuentaGapInput } from './data-gaps'
 import { contarRespuestasRadar } from './radar'
@@ -18,26 +18,36 @@ import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 
-interface TicketRaw {
-  cid: string; empresa: string; fecha: string
-  categoria: string; es_falla: string; mes: string
-}
-
 // ── Pre-cómputo en carga de módulo (estático) ─────────────────────────────────
-const TICKETS = rawTickets as TicketRaw[]
+const TICKETS = TICKETS_NORM
 
+/**
+ * El bloque de tickets que la IA recibe en TODA conversación.
+ *
+ * Tenía el rango escrito a mano —«Feb-Ago 2026»— y se quedó un mes atrás: el
+ * archivo cubre hasta septiembre y el propio bloque decía 2026-09 en la línea
+ * siguiente, así que la IA arrastraba un encabezado que se contradecía consigo
+ * mismo. Si alguien preguntaba por septiembre, el modelo tenía motivo para
+ * responder que no había datos, con 842 tickets de septiembre en el archivo.
+ *
+ * Ahora el rango se CALCULA, y se mide por APERTURA (cuándo entró el ticket),
+ * no por cierre. Y se declara de entrada que el export solo trae cerrados: sin
+ * esa línea, la IA lee «0 abiertos» y lo afirma.
+ */
 const TICKET_SUMMARY = (() => {
   const total  = TICKETS.length
-  const fallas = TICKETS.filter(t => t.es_falla === 'Si').length
-  const pctF   = ((fallas / total) * 100).toFixed(1)
+  const fallas = COBERTURA.fallasBandera
+  const pctF   = total > 0 ? ((fallas / total) * 100).toFixed(1) : '0.0'
 
   const byCat: Record<string, number> = {}
   const byMes: Record<string, { total: number; fallas: number }> = {}
   for (const t of TICKETS) {
-    byCat[t.categoria] = (byCat[t.categoria] || 0) + 1
-    if (!byMes[t.mes]) byMes[t.mes] = { total: 0, fallas: 0 }
-    byMes[t.mes].total++
-    if (t.es_falla === 'Si') byMes[t.mes].fallas++
+    byCat[t.categoriaNorm] = (byCat[t.categoriaNorm] || 0) + 1
+    const m = t.mesApertura || t.mesCierre
+    if (!m) continue
+    if (!byMes[m]) byMes[m] = { total: 0, fallas: 0 }
+    byMes[m].total++
+    if (t.esFallaBandera) byMes[m].fallas++
   }
 
   const topCat = Object.entries(byCat)
@@ -48,10 +58,15 @@ const TICKET_SUMMARY = (() => {
   const meses   = Object.keys(byMes).sort()
   const lastMes = meses[meses.length - 1] ?? '—'
   const lm      = byMes[lastMes] ?? { total: 0, fallas: 0 }
+  const serie   = meses.map(m => `${m}:${byMes[m].total}`).join(' ')
 
-  return `TICKETS SOPORTE (Feb-Ago 2026):
-  Total historico: ${total} | Fallas: ${fallas} (${pctF}%)
-  Ultimo mes disponible (${lastMes}): ${lm.total} tickets, ${lm.fallas} fallas
+  return `TICKETS SOPORTE (apertura ${COBERTURA.primerMes} a ${COBERTURA.ultimoMes}; corte del archivo: ${COBERTURA.hasta} hora de Mexico):
+  ADVERTENCIA DE FUENTE: ${NOTA_SOLO_CERRADOS}
+  NUNCA afirmes que una cuenta tiene 0 tickets abiertos con base en esto.
+  Total historico: ${total} | Fallas (bandera): ${fallas} (${pctF}%) | Clasificadas como falla por la mesa: ${COBERTURA.fallasCategoria}
+  De esos, ${COBERTURA.internos} son trafico interno de Callpicker/pruebas (CID 0 y 1), no de clientes.
+  Ultimo mes con datos (${lastMes}): ${lm.total} tickets, ${lm.fallas} fallas — OJO: el mes en curso esta incompleto.
+  Serie por mes de apertura: ${serie}
   Top categorias: ${topCat}`
 })()
 
@@ -195,7 +210,7 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
   const z       = lookupZoho(c.empresa, zmap)
   const hsFalta = String(c.notas ?? '').includes('[FALTA_HS]')
 
-  const tk    = ticketStatsCuenta(c.cid ?? null, c.empresa)
+  const sop   = soporteDeCuenta(c.cid ?? null, c.empresa)
   const gaps  = detectDataGaps(c as unknown as CuentaGapInput)
   const crit  = gaps.filter(g => g.nivel === 'critico').map(g => g.campo)
   const imp   = gaps.filter(g => g.nivel === 'importante').map(g => g.campo)
@@ -258,7 +273,7 @@ ${cortesTxt}
   Módulos ACTIVOS: ${modOn.length ? modOn.join(', ') : 'NINGUNO (0/5)'}
   Módulos SIN activar: ${modOff.join(', ') || 'ninguno'}
   Upsell/Cross marcado en CRM: ${c.upsell_producto ?? '—'} / ${c.crossell_producto ?? '—'}
-  Tickets: ${tk.total} totales, ${tk.fallas} fallas, ${tk.abiertos} abiertos | último: ${tk.ultima ?? '—'}
+  SOPORTE (leer completo antes de opinar de la salud de la cuenta): ${sop.frase}
   Actividades SAC (últimas): ${acts.length ? `${acts.length} registradas, ${actsComp} completadas; última semana ${acts[0].semana_inicio}` : 'NINGUNA registrada'}
   Seguimientos KAM: ${segs.length ? segs.slice(0, 3).map(s => `[${String(s.fecha).slice(0, 10)}] ${s.tipo}: ${(s.descripcion ?? '').slice(0, 70)}`).join(' | ') : 'NINGUNO registrado'}
   Radar de Cuenta: ${radarN}/12 preguntas respondidas

@@ -1,5 +1,5 @@
 import { getCuentas } from '@/lib/supabase'
-import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { formatMXN, getSemaforoCuenta, esCuentaSinServicio, SEMAFORO_CONFIG, ASESOR_CONFIG } from '@/lib/types'
 import type { Asesor, Cuenta } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
@@ -66,11 +66,17 @@ function churnAcciones(c: Cuenta): string[] {
   if (c.incidencias_pago >= 2)
     a.push(`${c.incidencias_pago} incidencias de pago históricas — revisar con cobranza si hay patrón de riesgo`)
 
-  // Tickets
-  if (c.tiene_ticket_reincidente)
-    a.push('Ticket reincidente: escalar a soporte N2, obtener fecha de resolución y comunicarla al cliente')
-  else if (c.tickets_abiertos > 0)
-    a.push(`Dar cierre a ${c.tickets_abiertos} ticket(s) abierto(s) — cliente puede estar esperando para evaluar renovación`)
+  // Soporte — de la mesa de ayuda, que mide el presente. Antes esto salía de
+  // `tickets_abiertos` y `tiene_ticket_reincidente`, ambas en cero/false en las
+  // 222 cuentas: estas dos acciones no se sugerían nunca.
+  const venc = c.tickets_vencidos ?? 0
+  if (c.reincide_mesa)
+    a.push(`Ticket reincidente (aparece en varios cortes de la mesa): escalar a soporte N2, `
+         + `obtener fecha de resolución y comunicarla al cliente`)
+  if (venc > 0)
+    a.push(`${venc} ticket(s) FUERA DE SLA al corte del ${c.fecha_corte_mesa ?? 's/f'}`
+         + (c.peor_dias_sla ? `, el peor con ${c.peor_dias_sla} días de atraso` : '')
+         + ' — resolver antes de cualquier conversación comercial')
 
   // Adopción
   if (c.score_adopcion < 30)
@@ -138,9 +144,10 @@ function churnPreguntas(c: Cuenta): string[] {
   if (!c.pagos_al_corriente)
     q.push('¿Cuál es el estatus del adeudo? ¿Hay un compromiso de pago por escrito? ¿Cuándo?')
 
-  // Ticket reincidente
-  if (c.tiene_ticket_reincidente)
-    q.push('¿Qué está causando el ticket reincidente? ¿El cliente está consciente de que ya se escaló?')
+  // Ticket reincidente — medido sobre los cortes de la mesa
+  if (c.reincide_mesa)
+    q.push('¿Qué está causando que esta cuenta reaparezca corte tras corte fuera de SLA? '
+         + '¿El cliente está consciente de que ya se escaló?')
 
   // Sin actividad prolongada
   if (c.dias_sin_actividad > 20)
@@ -408,8 +415,10 @@ function CuentaCard({ cuenta, acciones, preguntas }: {
           {!cuenta.pagos_al_corriente && (
             <span title="Pago pendiente"><Banknote size={13} className="text-rojo" /></span>
           )}
-          {cuenta.tickets_abiertos > 0 && (
-            <span title={`${cuenta.tickets_abiertos} ticket(s) abierto(s)`}>
+          {(cuenta.tickets_vencidos ?? 0) > 0 && (
+            <span title={`${cuenta.tickets_vencidos} ticket(s) fuera de SLA al corte del `
+              + `${cuenta.fecha_corte_mesa ?? 's/f'}`
+              + (cuenta.peor_dias_sla ? ` · peor: ${cuenta.peor_dias_sla} días de atraso` : '')}>
               <TicketIcon size={13} className="text-naranja" />
             </span>
           )}
@@ -528,12 +537,20 @@ export default async function SeguimientoPage() {
   // por su semáforo gris "Sin servicio", no por su ausencia.
   const cuentasRaw = await getCuentas(isAsesor ? { asesor: asesorHeader } : undefined)
   const fueraDeCartera = cuentasRaw.filter(c => esCuentaSinServicio(c.estado)).length
-  // Regla 30 Ago 2026: los tickets abiertos se calculan del dataset vivo de
-  // Zoho Desk, no de la columna guardada (que nadie sincronizaba).
-  const cuentas = cuentasRaw.map(c => ({
-    ...c,
-    tickets_abiertos: ticketStatsCuenta(c.cid ?? null, c.empresa).abiertos,
-  }))
+  // Regla 30 Ago 2026: nada de columnas guardadas. Y 24 Sep 2026: el export de
+  // Zoho solo trae cerrados, así que «abiertos» NO se puede medir con él. Lo que
+  // sí se mide son los vencidos del corte diario de la mesa de ayuda.
+  const cuentas = cuentasRaw.map(c => {
+    const s = soporteDeCuenta(c.cid ?? null, c.empresa)
+    return {
+      ...c,
+      tickets_abiertos: s.historia.abiertos ?? 0,   // obsoleto, se conserva por tipo
+      tickets_vencidos: s.vencidos.length,
+      peor_dias_sla:    s.peorDiasSLA,
+      reincide_mesa:    s.reincideEnMesa,
+      fecha_corte_mesa: s.fechaCorte,
+    }
+  })
 
   const asesores: Asesor[] = isAsesor
     ? (['Fátima', 'Dan', 'Claudia'] as Asesor[]).filter(a => a === asesorHeader)
@@ -543,7 +560,6 @@ export default async function SeguimientoPage() {
   })
 
   const totalChurn   = cuentas.filter(c => c.health_score < 60).length
-  const totalTickets = cuentas.reduce((s, c) => s + c.tickets_abiertos, 0)
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (

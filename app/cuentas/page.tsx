@@ -13,6 +13,7 @@ import AsesorBadge from '@/components/AsesorBadge'
 import CustomSelect, { type SelectOption } from '@/components/CustomSelect'
 import type { Cuenta, Asesor, Semaforo } from '@/lib/types'
 import { getSemaforoCuenta, formatMXN } from '@/lib/types'
+import { tonoSobreClaro } from '@/lib/contraste'
 
 const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 // SIN opción 'inactivo' a propósito. Esta pantalla excluye por diseño las
@@ -320,8 +321,17 @@ function CuentasPageInner() {
    * acumulados de toda la vida dentro de un total mensual inflaba la cifra
    * decenas de veces en cuanto una cuenta no tenia factura de Zoho. */
   const totalFac      = sorted.reduce((s, c) => s + (c.factura_mensual_zoho ?? c.facturacion ?? 0), 0)
+  /* Tickets CRUZADOS con las cuentas de la lista, que es bastante menos que el
+   * archivo completo: la mayoría de los CIDs del export no está en la cartera.
+   * Antes esta suma llegaba a 2,040 e incluía 247 tickets que no eran de
+   * ninguna de estas cuentas —repartidos varias veces por el cruce difuso, que
+   * ya se eliminó—, y el rótulo decía «tickets Zoho» a secas, como si fuera el
+   * universo. Ahora el rótulo dice de qué es la suma. */
   const totalTickets  = sorted.reduce((s, c) => s + (c.zoho_tickets?.total ?? 0), 0)
   const totalFallas   = sorted.reduce((s, c) => s + (c.zoho_tickets?.fallas ?? 0), 0)
+  /* Lo único medible del PRESENTE: los tickets fuera de SLA del corte de la
+   * mesa de ayuda. Los «abiertos» no se pueden medir con este export. */
+  const totalVencidos = sorted.reduce((s, c) => s + (c.tickets_vencidos ?? 0), 0)
 
   // ── Header de columna con filtro inline ──────────────────────────────────
   function Th({
@@ -440,11 +450,26 @@ function CuentasPageInner() {
           <div className="flex items-center gap-1.5 text-xs text-textLow">
             <Ticket size={12} />
             <span className="font-semibold text-textHi">{totalTickets.toLocaleString()}</span>
-            tickets Zoho
+            <span title="Tickets del export de Zoho que cruzan por CID (o por nombre exacto) con las cuentas de esta lista. El archivo completo tiene muchos más: la mayoría de sus CIDs no está en la cartera.">
+              tickets cruzados con estas cuentas
+            </span>
+            {/* El texto se oscurece con `tonoSobreClaro`, que calcula el tono que
+                alcanza 4.5:1 contra el propio tinte del fondo. Con el color crudo
+                medían 3.81:1 el rojo y 2.91:1 el naranja: una pastilla donde la
+                letra y el fondo son el mismo color se ve bonita y no se lee. */}
             {totalFallas > 0 && (
               <span className="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full
-                bg-rojo/10 text-rojo text-[10px] font-semibold border border-rojo/20">
+                bg-rojo/10 text-[10px] font-semibold border border-rojo/20"
+                style={{ background: 'rgba(220,38,38,0.10)', color: tonoSobreClaro('#DC2626', 0.10) }}>
                 <AlertTriangle size={9} /> {totalFallas} fallas
+              </span>
+            )}
+            {totalVencidos > 0 && (
+              <span className="ml-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full
+                text-[10px] font-semibold border border-naranja/20"
+                style={{ background: 'rgba(234,88,12,0.10)', color: tonoSobreClaro('#EA580C', 0.10) }}
+                title="Tickets fuera de SLA en el último corte de la mesa de ayuda. Lo único medible del presente: el export de Zoho solo trae cerrados.">
+                <AlertTriangle size={9} /> {totalVencidos} fuera de SLA
               </span>
             )}
           </div>
@@ -679,9 +704,31 @@ function CuentasPageInner() {
               <span>{sorted.length} cuentas · {formatMXN(totalFac)} facturación total</span>
               <span className="flex items-center gap-1.5">
                 <Ticket size={11} />
-                {totalTickets} tickets Zoho Desk
+                <span title="Solo los que cruzan con estas cuentas; el export completo tiene muchos más.">
+                  {totalTickets} tickets cruzados
+                </span>
+                {/* Pastillas OPACAS y con `background` inline, no `text-rojo` a
+                    secas. Dos razones, las dos medidas:
+                    1) Este pie vive dentro de una `.cp-card`, donde el CSS fuerza
+                       `span:not([style*="background"])` a blanco con !important:
+                       un `text-naranja` se pintaba blanco y el color no decía nada.
+                    2) La banda es `bg-surface/50`, o sea blanco al 50% sobre
+                       #0D1829, que compone un gris MEDIO (#868C94). Sobre ese
+                       gris no contrasta ni lo claro ni lo oscuro —el propio texto
+                       forzado a blanco da 3.02:1—, así que un tinte translúcido
+                       no alcanza. Con fondo sólido el texto llega a 6.9:1. */}
                 {totalFallas > 0 && (
-                  <span className="text-rojo font-semibold">· {totalFallas} fallas</span>
+                  <span className="font-semibold px-1.5 py-0.5 rounded"
+                    style={{ background: '#7F1D1D', color: '#FECACA', border: '1px solid #FECACA55' }}>
+                    {totalFallas} fallas
+                  </span>
+                )}
+                {totalVencidos > 0 && (
+                  <span className="font-semibold px-1.5 py-0.5 rounded"
+                    title="Tickets fuera de SLA en el último corte de la mesa de ayuda."
+                    style={{ background: '#7C2D12', color: '#FED7AA', border: '1px solid #FED7AA55' }}>
+                    {totalVencidos} fuera de SLA
+                  </span>
                 )}
               </span>
             </div>

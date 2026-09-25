@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { resumenParaIA } from '@/lib/observaciones-kam'
 import { headers } from 'next/headers'
 import OpenAI from 'openai'
@@ -122,8 +122,11 @@ function buildContext(asesor: string, cuentas: Record<string, unknown>[], seguim
     const sa = c.score_actividad, so = c.score_adopcion, sp = c.score_pago, sr = c.score_relacional
     ctx += `  Sub-scores → Actividad: ${sa ?? '?'} | Adopción: ${so ?? '?'} | Pago: ${sp ?? '?'} | Relacional: ${sr ?? '?'}\n`
 
-    // Tickets
-    ctx += `  Tickets abiertos: ${ticketStatsCuenta(c.cid ?? null, c.empresa).abiertos} | Ticket reincidente: ${c.tiene_ticket_reincidente ? 'SÍ ⚠' : 'No'}\n`
+    // Soporte. Antes esta línea imprimía «Tickets abiertos: 0 | Ticket
+    // reincidente: No» para las 222 cuentas: el 0 venía de un export de solo
+    // cerrados y la reincidencia de una columna muerta. Ahora sale de la mesa
+    // de ayuda, que sí mide el presente.
+    ctx += `  Soporte: ${soporteDeCuenta(c.cid ?? null, c.empresa).frase}\n`
 
     // Data gaps
     const rotos: string[] = []

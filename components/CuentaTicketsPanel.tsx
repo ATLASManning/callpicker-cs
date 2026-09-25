@@ -7,10 +7,13 @@ const PRIOR_COLOR: Record<string, string> = {
 
 function PriorBadge({ p }: { p: string }) {
   const color = PRIOR_COLOR[p] ?? '#6b7280'
+  // Un campo vacío pintaba una pastilla muda. 242 tickets del archivo no traen
+  // prioridad, y eso es un dato, no un hueco que haya que disimular.
+  const etiqueta = (p ?? '').trim() || 'Sin prioridad'
   return (
     <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
       style={{ background: color + '18', color }}>
-      {p}
+      {etiqueta}
     </span>
   )
 }
@@ -22,15 +25,18 @@ function fmtFecha(d: string) {
 }
 
 export default function CuentaTicketsPanel({
-  rows, total, matchedBy, cid, empresa,
+  rows, total, matchedBy, cid, empresa, fallas, comoCruzo = 'ninguno',
 }: {
   rows: TicketRow[]
   total: number
   matchedBy: string
   cid: string | null
   empresa: string
+  /** Fallas del TOTAL, no de las 20 filas visibles. */
+  fallas: number
+  /** Cómo se cruzó la cuenta con el dataset. Decide qué se puede afirmar. */
+  comoCruzo?: 'cid' | 'nombre' | 'ninguno'
 }) {
-  const fallas    = rows.filter(t => t.es_falla === 'Si').length
   const lastFecha = rows[0]?.apertura || rows[0]?.fecha || ''
   const ticketsUrl = cid
     ? `/tickets?cid=${encodeURIComponent(cid)}`
@@ -62,12 +68,27 @@ export default function CuentaTicketsPanel({
       {total === 0 ? (
         <div className="flex flex-col items-center gap-2 py-5 text-center">
           <SearchX size={22} className="text-textLow/40" />
-          <p className="text-[11px] text-textLow">Sin tickets registrados en Zoho Desk</p>
-          {!cid && (
-            <p className="text-[10px] text-amarillo/80 bg-amarillo/10 px-2 py-1 rounded">
-              Configura el CID en la cuenta para match exacto
-            </p>
-          )}
+          {/* «No se cruzó» y «no tiene tickets» son cosas distintas, y antes las
+              dos decían lo mismo. Grupo Petroil tiene 32 tickets reales bajo
+              cuatro CIDs que su ficha no declara: decirle «sin tickets» es
+              afirmar algo que no se midió. */}
+          <p className="text-[11px] text-textLow">
+            {cid
+              ? `Ningún ticket del export cuelga del CID ${cid}`
+              : 'Sin CID capturado: no se pudo cruzar con el export de Zoho'}
+          </p>
+          {/* Va en un <span> que DECLARA `background`, no en un <p>: dentro de
+              .cp-card el CSS fuerza `<p>` a blanco con !important y sin cláusula
+              de escape, así que el ámbar se perdería. Al <span> sí lo respeta
+              (`span:not([style*="background"])`). */}
+          <div>
+            <span className="text-[10px] px-2 py-1 rounded inline-block"
+              style={{ background: 'rgba(245,158,11,0.16)', color: '#FCD34D' }}>
+              {cid
+                ? 'Esto NO prueba que la cuenta no tenga soporte: puede operar con otro CID.'
+                : 'Configura el CID en la cuenta para cruzar de forma exacta.'}
+            </span>
+          </div>
         </div>
       ) : (
         <>
@@ -117,8 +138,24 @@ export default function CuentaTicketsPanel({
             </table>
           </div>
 
-          {matchedBy && !cid && (
-            <p className="mt-2 text-[9px] text-textLow/50 text-center italic">Coincidencia por {matchedBy}</p>
+          {/* El aviso se pintaba con `matchedBy && !cid`, o sea SOLO cuando la
+              cuenta no tenía CID — justo al revés del caso peligroso. El
+              peligroso es que la cuenta SÍ tenga CID, ese CID no tenga tickets, y
+              el código caiga al cruce por nombre: ahí el panel presentaba
+              tickets de otra empresa sin ninguna marca. */}
+          {comoCruzo === 'nombre' && (
+            <div className="mt-2 text-center">
+              <span className="text-[9px] italic px-1.5 py-0.5 rounded inline-block"
+                style={{ background: 'rgba(245,158,11,0.16)', color: '#FCD34D' }}>
+                Cruzado por NOMBRE ({matchedBy}){cid ? `, no por su CID ${cid}` : ''} — verificar que sean de esta cuenta
+              </span>
+            </div>
+          )}
+          {comoCruzo === 'cid' && (
+            <div className="mt-2 text-[9px] text-center italic" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Cruzado por {matchedBy}
+              {total > rows.length ? ` · se muestran los ${rows.length} más recientes de ${total}` : ''}
+            </div>
           )}
         </>
       )}

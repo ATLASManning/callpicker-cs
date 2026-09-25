@@ -82,6 +82,38 @@ export function tonoSobreClaro(hex: string, alfa = 0.14, objetivo = 4.5): string
 }
 
 /**
+ * Oscurece `hex` hasta que contrasta contra un fondo CONCRETO.
+ *
+ * `tonoSobreClaro` compone el fondo a partir del propio color (el caso de las
+ * pastillas). Aquí el fondo es un color dado, que es el caso de una barra sobre
+ * su carril: las barras de prioridad de /tickets iban sobre `bg-gray-100` y
+ * medían 1.95:1 el ámbar, 2.07:1 el verde y 2.55:1 el naranja — por debajo del
+ * 3:1 que WCAG pide a un objeto gráfico que comunica información.
+ *
+ * El objetivo por omisión es 3:1 justamente porque el caso de uso son objetos
+ * gráficos (barras, líneas, puntos), no texto.
+ */
+export function tonoSobreFondo(hex: string, fondoHex: string, objetivo = 3): string {
+  const clave = `f|${hex}|${fondoHex}|${objetivo}`
+  const guardado = CACHE.get(clave)
+  if (guardado) return guardado
+
+  const base = hexARgb(hex)
+  const fondo = hexARgb(fondoHex)
+  let r = '#0F172A'
+  if (contraste(base, fondo) >= objetivo) {
+    r = rgbAHex(base)
+  } else {
+    for (let k = 1; k > 0.02; k -= 0.02) {
+      const cand = base.map(c => c * k)
+      if (contraste(cand, fondo) >= objetivo) { r = rgbAHex(cand); break }
+    }
+  }
+  CACHE.set(clave, r)
+  return r
+}
+
+/**
  * El estilo completo de una pastilla de color sobre fondo claro.
  *
  * El fondo conserva el tono original —es lo que comunica de un vistazo— y la

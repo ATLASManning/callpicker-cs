@@ -1,11 +1,11 @@
 import { getCuentas, getSemaforoByAsesor } from '@/lib/supabase'
-import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { enrichCuentasWithZoho } from '@/lib/zoho-enrich'
 import { esCuentaSinServicio, type Asesor } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import AsesorCard from '@/components/AsesorCard'
 import AutoRefresh from '@/components/AutoRefresh'
-import { getTicketsByCuenta } from '@/lib/cuenta-data'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { construirResolutor } from '@/lib/grc-asesor-alias'
 import { churnPorAsesor, deAsesor, PERIODO_GRC } from '@/lib/churn-por-asesor'
 import { auditoriasPorAsesor, auditoriasDe } from '@/lib/auditorias-por-asesor'
@@ -39,7 +39,19 @@ export default async function AsesoresPage() {
   // solo le llega el resumen.
   const auditorias = auditoriasPorAsesor()
   // Regla 30 Ago 2026: tickets abiertos del dataset vivo, no de la columna.
-  const cuentasRaw = cuentasDb.map(c => ({ ...c, tickets_abiertos: ticketStatsCuenta(c.cid ?? null, c.empresa).abiertos }))
+  // El export de Zoho solo trae cerrados, así que `tickets_abiertos` es 0 por
+  // definición. Lo medible son los vencidos del corte de la mesa de ayuda.
+  const cuentasRaw = cuentasDb.map(c => {
+    const s = soporteDeCuenta(c.cid ?? null, c.empresa)
+    return {
+      ...c,
+      tickets_abiertos: s.historia.abiertos ?? 0,
+      tickets_vencidos: s.vencidos.length,
+      peor_dias_sla:    s.peorDiasSLA,
+      reincide_mesa:    s.reincideEnMesa,
+      fecha_corte_mesa: s.fechaCorte,
+    }
+  })
 
   // Enriquecer con Factura Mensual + MRR en vivo de Zoho (misma fuente que Facturación/Cuentas)
   const cuentas = await enrichCuentasWithZoho(cuentasRaw)
@@ -75,15 +87,17 @@ export default async function AsesoresPage() {
             .sort((a, b) => a.health_score - b.health_score)
           const fueraDeCartera = lista.filter(c => esCuentaSinServicio(c.estado)).length
 
-          // Enriquecer con tickets reales de Zoho Desk
+          // Enriquecer con tickets reales de Zoho Desk. Los conteos salen de la
+          // fuente completa: `getTicketsByCuenta().rows` viene cortado a 20, así
+          // que las fallas se contaban solo dentro de esa página.
           const listaRich = lista.map(c => {
-            const r = getTicketsByCuenta(c.cid ?? null, c.empresa)
+            const r = ticketStatsCuenta(c.cid ?? null, c.empresa)
             return {
               ...c,
               zoho_tickets: {
                 total:  r.total,
-                fallas: r.rows.filter((t: { es_falla: string }) => t.es_falla === 'Si').length,
-                ultima: r.rows[0]?.fecha ?? null,
+                fallas: r.fallas,
+                ultima: r.ultima,
               },
             }
           })

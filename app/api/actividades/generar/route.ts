@@ -9,12 +9,13 @@ import { detectDataGaps, gapScore, conciliarGaps, type DataGap,
  *  Permite que la actividad diga "confirma este dato" en vez de "consiguelo". */
 let GAPS_LOCALIZADOS = new Map<string, CandidatoParaConciliar[]>()
 import { contarRespuestasRadar, preguntasRadarFaltantes } from '@/lib/radar'
-// Evidencia de servicio para el bloque de hechos de la actividad. Ambos son
-// lecturas baratas: LLAMADAS es un import estatico y ticketStatsCuenta lee el
-// JSON ya cacheado. No se agrega ninguna consulta nueva a Supabase.
+// Evidencia de servicio para el bloque de hechos de la actividad. Las tres son
+// lecturas baratas: LLAMADAS es un import estatico, el dataset de tickets ya
+// esta cacheado y los cortes de mesa se leen de disco una vez por proceso. No
+// se agrega ninguna consulta nueva a Supabase.
 import { leerLlamadas, mesLargo as mesLargoLl } from '@/lib/llamadas-cuenta'
 import { LLAMADAS, LLAMADAS_META } from '@/app/cuentas/llamadas-data'
-import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import {
   evaluarElegibilidad, esLunes, LIMITE_SEMANAL, MSG, normalizarNombre,
   type CodigoBloqueo,
@@ -418,15 +419,15 @@ function buildEvidencia(cuenta: CuentaFull): string {
          + 'No es que no tenga llamadas: es que no las tenemos medidas. No afirmes nada sobre su tráfico.')
   }
 
-  const tk = ticketStatsCuenta(cid, cuenta.empresa)
-  if (tk.total > 0) {
-    let s = `· TICKETS · ${tk.total} en total`
-    if (tk.fallas > 0)   s += `, de los cuales ${tk.fallas} están clasificados como FALLA`
-    if (tk.abiertos > 0) s += `, y ${tk.abiertos} siguen abiertos`
-    if (tk.ultima)       s += `. El último movimiento fue ${tk.ultima}`
-    L.push(s + '.')
-  } else {
-    L.push('· TICKETS · sin tickets registrados para esta cuenta.')
+  // Soporte en dos mitades, cada una con su fuente: la historia sale del export
+  // de Zoho (solo cerrados) y el presente del corte de la mesa de ayuda. Antes
+  // esto omitía la frase de abiertos cuando valía 0 —que era siempre— y nunca
+  // advertía que el dato no se podía medir.
+  const sop = soporteDeCuenta(cid, cuenta.empresa)
+  L.push(`· SOPORTE · ${sop.frase}`)
+  if (sop.severidad === 'grave') {
+    L.push('  OJO: la fricción de soporte de esta cuenta está documentada y es vieja. '
+         + 'No propongas una actividad de crecimiento sin atender primero lo que ya está roto.')
   }
 
   const hs = cuenta.health_score ?? null

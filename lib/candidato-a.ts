@@ -55,7 +55,11 @@ export interface EntradaCandidatura {
   faltantesCount: number
   ticketsTotal: number
   ticketsFallas: number
+  /** Del export de Zoho (solo cerrados): estructuralmente 0. No decide solo. */
   ticketsAbiertos: number
+  /** Fuera de SLA en el último corte de la mesa de ayuda. Ésta sí se mide. */
+  ticketsVencidos?: number
+  peorDiasSLA?: number | null
   /** Del último corte de facturación. */
   plan: string | null
   /** Promedio de % de consumo de los últimos 3 cortes. */
@@ -218,12 +222,21 @@ export function evaluarCandidato(c: EntradaCandidatura): ResultadoCandidato {
     })
   }
 
-  const problemaAbierto = c.ticketsAbiertos > 0 || (c.ticketsFallas >= 2 && (c.healthScore ?? 100) < 60)
+  // `ticketsAbiertos` sale del export de Zoho, que solo trae cerrados: valía 0
+  // en toda la cartera, así que esta regla se apoyaba solo en su segunda mitad.
+  // Los vencidos vienen del corte de la mesa de ayuda, que sí mide el presente.
+  const vencidos = c.ticketsVencidos ?? 0
+  const problemaAbierto = vencidos > 0 || c.ticketsAbiertos > 0
+    || (c.ticketsFallas >= 2 && (c.healthScore ?? 100) < 60)
   if (problemaAbierto) {
+    const evidencia = vencidos > 0
+      ? `${vencidos} ticket(s) FUERA DE SLA` +
+        (c.peorDiasSLA ? ` (el peor con ${c.peorDiasSLA} días de atraso)` : '') +
+        ` y ${c.ticketsFallas} falla(s) registradas`
+      : `${c.ticketsFallas} falla(s) registradas y Health Score bajo`
     out.push({
       producto: 'Estabilizar antes de proponer', tipo: 'estabilizar', prioridad: 1,
-      razon: `${c.ticketsAbiertos} ticket(s) abierto(s) y ${c.ticketsFallas} falla(s) registradas. ` +
-             `Proponer producto sobre una incidencia sin cerrar deteriora la relación.`,
+      razon: `${evidencia}. Proponer producto sobre una incidencia sin cerrar deteriora la relación.`,
       ventajas: ['Resolver la fricción es el argumento de retención más fuerte que existe'],
       siguientePaso: 'Cerrar el ciclo de las incidencias con el cliente y confirmar que la operación quedó estable.',
     })

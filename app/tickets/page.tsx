@@ -11,7 +11,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, Cell,
 } from 'recharts'
-import { tonoSobreClaro } from '@/lib/contraste'
+import { tonoSobreClaro, tonoSobreFondo } from '@/lib/contraste'
 import { fechaLocal } from '@/lib/fecha-local'
 
 /* ─── Tipos ──────────────────────────────────────────────────────── */
@@ -22,40 +22,126 @@ interface TicketRow {
   categoria: string; subcategoria: string; es_falla: string; producto: string
   enlace: string; propietario: string; apertura: string; cierre: string
   duracion: string; prioridad: string
+  /* Campos normalizados por lib/tickets-norm.ts. Son los que se deben pintar:
+     los crudos de arriba mienten en seis frentes distintos (mes de cierre
+     disfrazado de apertura, fechas UTC, prioridad vacía contada como Low,
+     acentos que parten categorías, propietarios en 37 variantes y tráfico
+     interno compitiendo con clientes). */
+  diaMx: string; mesApertura: string; mesCierre: string; aperturaMx: string
+  tipo: string; canal: string; categoriaNorm: string; subcategoriaNorm: string
+  prioridadNorm: string; propietarioNorm: string; empresaCanon: string
+  interno: boolean; abierto: boolean
+  esFallaBandera: boolean; esFallaCategoria: boolean
+  duracion_hrs: number | null
 }
 
-interface Stats {
+/** La cobertura real del archivo — calculada, nunca escrita a mano. Viaja en
+ *  TODAS las respuestas del API para que ninguna cifra quede sin contexto. */
+interface Cobertura {
+  total: number; internos: number; deClientes: number
+  desde: string; hasta: string
+  primerMes: string; ultimoMes: string
+  mesesApertura: string[]; mesesCierre: string[]
+  sinCierre: number; abiertosMedible: boolean; cidsDistintos: number
+  fallasBandera: number; fallasCategoria: number
+}
+
+interface Meta {
+  cobertura: Cobertura
+  abiertosMedible: boolean
+  notaSoloCerrados: string
+}
+
+interface EmpresaRow {
+  cid: string; nombre: string; interno: boolean
+  total: number; fallas: number; ultima: string
+}
+
+interface Stats extends Meta {
   total: number; fallas: number
+  fallasBandera: number; fallasCategoria: number
   byMes: Record<string, number>
+  byMesCierre: Record<string, number>
   byCat: Record<string, number>
+  byTipo: Record<string, number>
+  byCanal: Record<string, number>
   byProd: Record<string, number>
   byPrior: Record<string, number>
   byProp: Record<string, number>
-  topEmpresas: { nombre: string; total: number; fallas: number; ultima: string }[]
+  topEmpresas: EmpresaRow[]
+  /** El cubo de resto. Sin esto, el top-20 tiraba el 82.8% en silencio. */
+  otrasEmpresas: { grupos: number; total: number; fallas: number } | null
+  empresasTotales: number
+  internos: number
 }
 
-interface ChartData {
+interface ResumenDuracion {
+  n: number; sinDato: number
+  media: number; mediana: number; p90: number; p99: number; max: number
+}
+
+interface ChartData extends Meta {
   total: number
   fallas: number
+  fallasCategoria: number
   avgDuracion: number
+  duracion: ResumenDuracion
+  sinDuracion: number
   topPropietario: string
-  byPropietario: { name: string; tickets: number; fallas: number; avgDuracion: number }[]
+  byPropietario: { name: string; tickets: number; fallas: number; medianaDuracion: number; avgDuracion: number; sinDuracion: number }[]
   byMes: { mes: string; tickets: number; fallas: number }[]
+  byMesCierre: { mes: string; tickets: number }[]
   byProducto: { name: string; value: number }[]
   byPrioridad: { name: string; value: number }[]
   byCat: { name: string; value: number }[]
+  byTipo: { name: string; value: number }[]
   byDuracion: { bucket: string; count: number }[]
+  prioridades: string[]
 }
 
 interface ConcRow {
-  cid: string; empresa: string; total: number; fallas: number; ultima: string
-  cuenta: { id: string; cid: string | null; empresa: string; asesor: string; estado: string; health_score: number } | null
+  cid: string; empresa: string; alias: string[]; total: number; fallas: number
+  ultima: string; interno: boolean
+  cuenta: {
+    id: string; cid: string | null; empresa: string; asesor: string
+    estado: string; health_score: number; sinServicio: boolean
+  } | null
+}
+
+interface ConcData extends Meta {
+  matched: ConcRow[]; unmatched: ConcRow[]
+  totalEmpresas: number; cidsDistintos: number
+  ticketsCruzados: number; ticketsSinCruzar: number
+  cuentasCartera: number; cuentasCanceladas: number; cuentasSinServicio: number
+  internos: number
 }
 
 /* ─── Paleta ─────────────────────────────────────────────────────── */
 const PRIORIDAD_COLOR: Record<string, string> = {
   urgent: '#ef4444', high: '#f97316', medium: '#f59e0b',
-  low: '#22c55e', normal: '#6b7280',
+  low: '#22c55e', normal: '#6b7280', 'sin prioridad': '#94a3b8',
+}
+
+/* Las SEIS prioridades que existen de verdad en el archivo. El desplegable
+   tenía cuatro, así que 424 tickets (7.2%) no se podían aislar desde la UI: los
+   242 en blanco se pintaban «Low» —inflando esa barra de 4,147 a 4,389— y los
+   182 con el valor 'normal' no los alcanzaba ninguna opción.
+   'Normal' NO se traduce a Media: no consta que sean lo mismo. */
+const PRIORIDADES: { val: string; label: string }[] = [
+  { val: '',              label: 'Todas las prioridades' },
+  { val: 'Urgent',        label: 'Urgente' },
+  { val: 'High',          label: 'Alta' },
+  { val: 'Medium',        label: 'Media' },
+  { val: 'Normal',        label: 'Normal (valor propio de Zoho)' },
+  { val: 'Low',           label: 'Baja' },
+  { val: 'Sin prioridad', label: 'Sin prioridad (en blanco)' },
+]
+const PRIORIDAD_LABEL: Record<string, string> = {
+  Urgent: 'Urgente', High: 'Alta', Medium: 'Media',
+  Normal: 'Normal', Low: 'Baja', 'Sin prioridad': 'Sin prioridad',
+}
+function prioLabel(p: string) {
+  return PRIORIDAD_LABEL[p] ?? (p || 'Sin prioridad')
 }
 const PRODUCTO_COLOR: Record<string, string> = {
   voz: '#3b82f6', chat: '#8b5cf6', 'sin producto': '#9ca3af',
@@ -132,15 +218,24 @@ function SortableTh({ label, col, sortCol, sortDir, onSort }: {
   )
 }
 
+/* El carril es `bg-gray-100` (#F3F4F6) y la barra iba con el tono crudo: el
+   ámbar medía 1.95:1 contra el carril, el verde 2.07:1 y el naranja 2.55:1,
+   bajo el 3:1 que WCAG pide a un objeto gráfico. Se CALCULA el tono que pasa,
+   en vez de elegirlo a ojo — el tono se conserva, solo se oscurece lo justo. */
+const CARRIL = '#F3F4F6'
+
 function BarRow({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0
   return (
     <div className="flex items-center gap-2 py-1.5">
-      <span className="text-xs text-gray-600 w-36 truncate flex-shrink-0">{label}</span>
-      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      <span className="text-xs text-gray-600 w-36 truncate flex-shrink-0" title={label}>{label}</span>
+      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: CARRIL }}>
+        <div className="h-full rounded-full"
+          style={{ width: `${pct}%`, background: tonoSobreFondo(color, CARRIL) }} />
       </div>
-      <span className="text-xs font-semibold text-gray-700 w-8 text-right">{value}</span>
+      <span className="text-xs font-semibold text-gray-700 w-10 text-right tabular-nums">
+        {value.toLocaleString('es-MX')}
+      </span>
     </div>
   )
 }
@@ -208,22 +303,35 @@ export default function TicketsPage() {
   const [statsLoading, setStatsLoading] = useState(true)
   const [overviewMes, setOverviewMes]   = useState('')
 
-  /* ── Meses disponibles: derivados del dataset, nunca de una lista fija ── */
+  /* ── Meses disponibles: derivados del dataset, nunca de una lista fija ──
+       Y por mes de APERTURA, no de cierre: 851 tickets caen en un mes distinto
+       de aquel en que entraron, y el eje temporal debe decir cuándo ENTRÓ el
+       problema. La cobertura viaja en la misma respuesta. */
   const [mesesDisp, setMesesDisp] = useState<string[]>([])
+  const [cob, setCob] = useState<Cobertura | null>(null)
   useEffect(() => {
     fetch('/api/tickets?mode=meses')
       .then(r => r.json())
-      .then(d => setMesesDisp(Array.isArray(d.meses) ? d.meses : []))
-      .catch(() => setMesesDisp([]))
+      .then(d => {
+        setMesesDisp(Array.isArray(d.meses) ? d.meses : [])
+        setCob(d.cobertura ?? null)
+      })
+      .catch(() => { setMesesDisp([]); setCob(null) })
   }, [])
   const MESES = useMemo(() => [
     ...MESES_FALLBACK,
     ...mesesDisp.map(m => ({ val: m, label: mesLabelLargo(m) })),
   ], [mesesDisp])
+  /* El rango cruza de año: el archivo arranca en ago-2025 y la etiqueta antigua
+     pegaba un solo año al final («Ago–Sep 2026»), que para 2025 era falso. */
   const rangoMeses = useMemo(() => {
     if (!mesesDisp.length) return 'Histórico completo'
     const a = mesesDisp[0], b = mesesDisp[mesesDisp.length - 1]
-    return a === b ? mesLabelLargo(a) : `${mesLabel(a)}–${mesLabel(b)} ${b.slice(0, 4)}`
+    if (a === b) return mesLabelLargo(a)
+    const anioA = a.slice(0, 4), anioB = b.slice(0, 4)
+    return anioA === anioB
+      ? `${mesLabel(a)}–${mesLabel(b)} ${anioB}`
+      : `${mesLabel(a)} ${anioA}–${mesLabel(b)} ${anioB}`
   }, [mesesDisp])
 
   /* ── Explorador ── */
@@ -243,15 +351,16 @@ export default function TicketsPage() {
   const [filterEjecutivo, setFilterEjecutivo] = useState('')
   const [filterSubcat, setFilterSubcat]       = useState('')
   const [filterCliente, setFilterCliente]     = useState('') // CID del cliente seleccionado
+  const [filterInterno, setFilterInterno]     = useState('') // '' | 'excluir' | 'solo'
   const [propietarios, setPropietarios]       = useState<string[]>([])
   const [subcategorias, setSubcategorias]     = useState<string[]>([])
-  const [clientes, setClientes]               = useState<{ cid: string; empresa: string; total: number }[]>([])
+  const [clientes, setClientes]               = useState<{ cid: string; empresa: string; total: number; alias: string[]; interno: boolean }[]>([])
   const [sortCol, setSortCol]                 = useState('fecha')
   const [sortDir, setSortDir]                 = useState<SortDir>('desc')
   const qRef = useRef(q)
 
   /* ── Conciliación ── */
-  const [conc, setConc]     = useState<{ matched: ConcRow[]; unmatched: ConcRow[]; totalEmpresas: number } | null>(null)
+  const [conc, setConc]     = useState<ConcData | null>(null)
   const [concLoading, setConcLoading] = useState(false)
   const [concQ, setConcQ]   = useState('')
   const [concTab, setConcTab] = useState<'matched' | 'unmatched'>('matched')
@@ -278,8 +387,9 @@ export default function TicketsPage() {
     if (filterProd)      p.set('producto', filterProd)
     if (filterPrior)     p.set('prioridad', filterPrior)
     if (filterFalla)     p.set('es_falla', filterFalla)
-    if (filterCat)       p.set('categoria', filterCat)
+    if (filterCat)       p.set('tipo', filterCat)
     if (filterSubcat)    p.set('subcategoria', filterSubcat)
+    if (filterInterno)   p.set('interno', filterInterno)
     fetch(`/api/tickets?${p}`)
       .then(r => r.json()).then(setModalData).finally(() => setModalLoading(false))
   }
@@ -318,7 +428,9 @@ export default function TicketsPage() {
   useEffect(() => {
     fetch('/api/tickets?mode=propietarios')
       .then(r => r.json())
-      .then(d => setPropietarios(d.propietarios ?? []))
+      // `nombres` viene ya fundido: 37 cadenas para 19 personas y una cola.
+      // Filtrar por «Mario H.» perdía los 6 tickets de «Mario Hernández».
+      .then(d => setPropietarios(Array.isArray(d.nombres) ? d.nombres : []))
   }, [])
 
   /* ── Fetch clientes — empresa + CID (una sola vez) ── */
@@ -355,7 +467,7 @@ export default function TicketsPage() {
     if (qRef.current)    params.set('q', qRef.current)
     if (filterCliente)   params.set('cid', filterCliente)
     if (filterProd)      params.set('producto', filterProd)
-    if (filterCat)       params.set('categoria', filterCat)
+    if (filterCat)       params.set('tipo', filterCat)
     if (filterSubcat)    params.set('subcategoria', filterSubcat)
     if (filterPrior)     params.set('prioridad', filterPrior)
     if (filterMes)       params.set('mes', filterMes)
@@ -363,13 +475,14 @@ export default function TicketsPage() {
     if (filterHasta)     params.set('hasta', filterHasta)
     if (filterFalla)     params.set('es_falla', filterFalla)
     if (filterEjecutivo) params.set('propietario', filterEjecutivo)
+    if (filterInterno)   params.set('interno', filterInterno)
     params.set('sortBy', sortCol)
     params.set('sortDir', sortDir)
     fetch(`/api/tickets?${params}`)
       .then(r => r.json())
       .then(d => { setRows(d.rows); setListTotal(d.total); setListPages(d.pages); setPage(pg) })
       .finally(() => setListLoading(false))
-  }, [filterCliente, filterProd, filterCat, filterSubcat, filterPrior, filterMes, filterDesde, filterHasta, filterFalla, filterEjecutivo, sortCol, sortDir])
+  }, [filterCliente, filterProd, filterCat, filterSubcat, filterPrior, filterMes, filterDesde, filterHasta, filterFalla, filterEjecutivo, filterInterno, sortCol, sortDir])
 
   useEffect(() => { if (tab === 'explorador') fetchList(1) }, [tab, fetchList])
 
@@ -419,9 +532,20 @@ export default function TicketsPage() {
   /* ─────────────────────────────────────── RENDER ─── */
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+      {/* El subtítulo usaba `stats.total`, que se recalcula con el filtro de mes
+          del Overview. Al filtrar a Febrero el encabezado pasaba a «147 tickets»
+          y SE QUEDABA ASÍ al cambiar de pestaña, donde ya no hay ningún filtro
+          visible: el número se leía como el total del archivo. Ahora el
+          encabezado muestra SIEMPRE la cobertura del archivo —que no depende de
+          ningún filtro— y el conteo filtrado vive dentro del Overview.
+          El título también se calcula: decía «Tickets 2026» y el archivo arranca
+          en agosto de 2025. */}
       <PageHeader
-        title="Tickets 2026"
-        subtitle={`${stats ? stats.total.toLocaleString('es-MX') : '—'} tickets · Zoho Desk`}
+        title={cob ? `Tickets · ${mesLabelLargo(cob.primerMes)} a ${mesLabelLargo(cob.ultimoMes)}` : 'Tickets'}
+        subtitle={cob
+          ? `${cob.total.toLocaleString('es-MX')} tickets en el archivo · ${cob.deClientes.toLocaleString('es-MX')} de clientes`
+            + ` · ${cob.internos} internos · corte al ${cob.hasta} (hora de México)`
+          : 'Zoho Desk'}
       />
 
       {/* ═══ LO QUE ESTE MÓDULO NO VE ═══════════════════════════════
@@ -514,27 +638,57 @@ export default function TicketsPage() {
               <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Cargando estadísticas…</div>
             ) : stats ? (
               <>
-                {/* KPIs */}
+                {/* KPIs. «Fallas» son DOS cifras distintas conviviendo en la
+                    misma pantalla: la bandera ES_FALLA del export (273) y la
+                    categoría que capturó la mesa (344). Los 273 son subconjunto
+                    EXACTO de los 344 —verificado ticket por ticket—, así que la
+                    diferencia son 71 folios que la mesa catalogó como falla y la
+                    bandera no reconoce. Antes no había ningún texto que lo
+                    dijera: quien leía la barra se llevaba 344 y quien leía el
+                    KPI, 273. */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <KpiCard icon={Tag}           label="Total tickets"      value={stats.total.toLocaleString()}  sub={overviewMes ? MESES.find(m=>m.val===overviewMes)?.label : rangoMeses} color={BLUE}   />
-                  <KpiCard icon={AlertTriangle} label="Fallas reales"      value={stats.fallas}                  sub={`${stats.total > 0 ? ((stats.fallas/stats.total)*100).toFixed(1) : 0}% del total`} color={RED} />
+                  <KpiCard icon={Tag}           label="Tickets del corte"  value={stats.total.toLocaleString()}  sub={overviewMes ? `Aperturas de ${MESES.find(m=>m.val===overviewMes)?.label}` : rangoMeses} color={BLUE}   />
+                  <KpiCard icon={AlertTriangle} label="Fallas (bandera)"   value={stats.fallasBandera}
+                    sub={`${stats.total > 0 ? ((stats.fallasBandera/stats.total)*100).toFixed(1) : 0}% · ${stats.fallasCategoria} por categoría de la mesa`} color={RED} />
                   <KpiCard icon={Zap}           label="Producto Voz"       value={stats.byProd['Voz'] ?? 0}      sub="tickets de voz"            color={BLUE}   />
                   <KpiCard icon={Users}         label="Producto Chat"      value={stats.byProd['Chat'] ?? 0}     sub="tickets de chat"           color={INDIGO} />
                 </div>
 
-                {/* Por mes */}
-                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                  <h3 className="font-semibold text-sm text-gray-900 mb-4">Volumen por Mes</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {Object.entries(stats.byMes).sort().map(([mes, n]) => {
+                <p className="text-[11px] text-gray-500 -mt-1">
+                  Las dos cifras de falla son reales y miden cosas distintas:{' '}
+                  <strong className="text-gray-700">{stats.fallasBandera}</strong> traen la bandera
+                  {' '}ES_FALLA del export y <strong className="text-gray-700">{stats.fallasCategoria}</strong>{' '}
+                  están clasificados como Falla por la mesa. Los primeros son un subconjunto exacto
+                  de los segundos: {stats.fallasCategoria - stats.fallasBandera} folios que la mesa
+                  catalogó como falla y la bandera no reconoce.
+                </p>
 
+                {/* Por mes — de APERTURA. Antes era el mes de CIERRE (el campo
+                    `fecha` del export) y se leía como mes de alta: 851 tickets
+                    se graficaban en un mes distinto del que entraron, y
+                    septiembre difería en 165. El mes en curso va marcado: se
+                    dibujaba al lado de agosto completo, así que el tablero
+                    parecía decir que septiembre cayó cuando le faltaban días. */}
+                <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                  <h3 className="font-semibold text-sm text-gray-900 mb-1">Volumen por mes de APERTURA</h3>
+                  <p className="text-[11px] text-gray-500 mb-4">
+                    Cuándo ENTRÓ el ticket, anclado a hora de México. El export también trae el mes
+                    de cierre, que es otro reparto: {cob ? `${Object.values(stats.byMesCierre).reduce((a, b) => a + b, 0)} cierres` : '—'} en el mismo periodo.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {Object.entries(stats.byMes).sort().map(([mes, n], idx, arr) => {
                       const colors = ['#3b82f6','#6366f1','#8b5cf6','#a855f7']
-                      const idx = Object.keys(stats.byMes).sort().indexOf(mes)
+                      const esUltimo = idx === arr.length - 1 && mes === cob?.ultimoMes
                       return (
                         <div key={mes} className="rounded-lg p-3 border text-center"
                           style={{ background: `${colors[idx % 4]}08`, borderColor: `${colors[idx % 4]}25` }}>
                           <p className="text-xs text-gray-500">{mesLabel(mes)}</p>
                           <p className="text-2xl font-bold mt-1" style={{ color: colors[idx % 4] }}>{n}</p>
+                          {esUltimo && (
+                            <p className="text-[9px] text-amber-700 font-semibold mt-0.5">
+                              incompleto · al día {cob?.hasta.slice(8, 10)}
+                            </p>
+                          )}
                         </div>
                       )
                     })}
@@ -553,12 +707,23 @@ export default function TicketsPage() {
                     </div>
                   </div>
                   <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                    <h3 className="font-semibold text-sm text-gray-900 mb-3">Por Prioridad</h3>
+                    <h3 className="font-semibold text-sm text-gray-900 mb-1">Por Prioridad</h3>
+                    {/* Los 242 en blanco ya no se suman a Low (que decía 4,389
+                        cuando los Low reales son 4,147) y los 182 'normal' ya no
+                        quedan fuera de todo control. Las seis barras suman el
+                        total del corte. */}
+                    <p className="text-[11px] text-gray-500 mb-3">
+                      Las seis cierran el total. «Sin prioridad» son tickets en blanco en el export,
+                      y «Normal» es un valor propio de Zoho: no se traduce a Media porque no consta
+                      que sean lo mismo.
+                    </p>
                     <div className="space-y-2 mb-4">
-                      {Object.entries(stats.byPrior).sort((a,b)=>b[1]-a[1]).map(([p, n]) => (
-                        <BarRow key={p} label={p} value={n}
-                          max={Math.max(...Object.values(stats.byPrior))} color={prioColor(p)} />
-                      ))}
+                      {Object.entries(stats.byPrior)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([p, n]) => (
+                          <BarRow key={p} label={prioLabel(p)} value={n}
+                            max={Math.max(...Object.values(stats.byPrior))} color={prioColor(p)} />
+                        ))}
                     </div>
                     <h3 className="font-semibold text-sm text-gray-900 mb-3 pt-3 border-t border-gray-100">Por Producto</h3>
                     <div>
@@ -570,13 +735,21 @@ export default function TicketsPage() {
                   </div>
                 </div>
 
-                {/* Por Ejecutivo */}
+                {/* Por Ejecutivo — nombres FUNDIDOS (eran 37 cadenas para 19
+                    personas y una cola) e incluyendo «Sin propietario», que el
+                    Overview descartaba en silencio: sus barras sumaban 5,845 de
+                    5,871 y la pestaña de Gráficos daba otro total. */}
                 {stats.byProp && Object.keys(stats.byProp).length > 0 && (
                   <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                    <h3 className="font-semibold text-sm text-gray-900 mb-3">
+                    <h3 className="font-semibold text-sm text-gray-900 mb-1">
                       Tickets por Ejecutivo
                       {overviewMes && <span className="ml-2 text-xs font-normal text-gray-400">· {MESES.find(m=>m.val===overviewMes)?.label}</span>}
                     </h3>
+                    <p className="text-[11px] text-gray-500 mb-3">
+                      Suma {Object.values(stats.byProp).reduce((a, b) => a + b, 0).toLocaleString()} de{' '}
+                      {stats.total.toLocaleString()} — las barras cierran el corte, incluida
+                      «Sin propietario».
+                    </p>
                     <div>
                       {Object.entries(stats.byProp).sort((a,b)=>b[1]-a[1]).map(([prop, n]) => (
                         <BarRow key={prop} label={prop} value={n}
@@ -586,27 +759,46 @@ export default function TicketsPage() {
                   </div>
                 )}
 
-                {/* Top empresas */}
+                {/* Top empresas — CIERRA.
+                    Los 20 renglones sumaban 1,008 de 5,871 tickets (17.2%) y la
+                    tabla no decía nada de los 4,863 restantes repartidos entre
+                    1,537 empresas más. Es el mismo patrón que ya costó el
+                    incidente de la tabla de destinos de llamadas: un top-N que
+                    tira el resto miente sin mentir. Ahora lleva cubo «otros» y
+                    la suma de lo que se ve es igual al universo.
+                    Se agrupa por CID, no por la cadena de empresa: así «GRUPO
+                    FRISA» y «Grupo Frisa» dejan de ser dos renglones. */}
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 border-b border-gray-100">
-                    <h3 className="font-semibold text-sm text-gray-900">Top 20 Empresas por Volumen</h3>
+                    <h3 className="font-semibold text-sm text-gray-900">Top 20 clientes por volumen</h3>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      De {stats.empresasTotales.toLocaleString()} CIDs distintos en el corte.
+                      Agrupado por CID; el tráfico interno va marcado.
+                    </p>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50/70">
                           <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">#</th>
-                          <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Empresa</th>
+                          <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Cliente · CID</th>
                           <th className="text-right py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Tickets</th>
                           <th className="text-right py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Fallas</th>
-                          <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Última</th>
+                          <th className="text-left py-2 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Último ticket</th>
                         </tr>
                       </thead>
                       <tbody>
                         {stats.topEmpresas.map((e, i) => (
-                          <tr key={i} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                          <tr key={e.cid} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                             <td className="py-2.5 px-4 text-xs text-gray-400">{i + 1}</td>
-                            <td className="py-2.5 px-4 font-medium text-gray-900">{e.nombre}</td>
+                            <td className="py-2.5 px-4 font-medium text-gray-900">
+                              {e.nombre}
+                              <span className="text-xs text-gray-400 font-normal"> · CID {e.cid}</span>
+                              {e.interno && (
+                                <span className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded"
+                                  style={{ background: '#E2E8F0', color: '#475569' }}>INTERNO</span>
+                              )}
+                            </td>
                             <td className="py-2.5 px-4 text-right font-semibold text-gray-700">{e.total}</td>
                             <td className="py-2.5 px-4 text-right">
                               {e.fallas > 0
@@ -614,9 +806,31 @@ export default function TicketsPage() {
                                 : <span className="text-xs text-gray-300">—</span>
                               }
                             </td>
-                            <td className="py-2.5 px-4 text-xs text-gray-500">{e.ultima}</td>
+                            {/* La fecha REAL del último ticket, con día. Antes era
+                                `max(t.fecha)` —el mes de cierre— y la celda decía
+                                literalmente «2026-09»: una cuenta que abrió su
+                                último ticket el día 2 y otra el 23 se veían igual. */}
+                            <td className="py-2.5 px-4 text-xs text-gray-500">{e.ultima || '—'}</td>
                           </tr>
                         ))}
+                        {stats.otrasEmpresas && (
+                          <tr className="bg-gray-50/70 border-t-2 border-gray-200">
+                            <td className="py-2.5 px-4 text-xs text-gray-400">—</td>
+                            <td className="py-2.5 px-4 text-gray-600 italic">
+                              Otros {stats.otrasEmpresas.grupos.toLocaleString()} clientes
+                            </td>
+                            <td className="py-2.5 px-4 text-right font-semibold text-gray-700">{stats.otrasEmpresas.total.toLocaleString()}</td>
+                            <td className="py-2.5 px-4 text-right text-xs text-gray-600">{stats.otrasEmpresas.fallas}</td>
+                            <td className="py-2.5 px-4 text-xs text-gray-400">—</td>
+                          </tr>
+                        )}
+                        <tr className="bg-blue-50/50 border-t-2 border-blue-200 font-semibold">
+                          <td className="py-2.5 px-4 text-xs text-gray-400">=</td>
+                          <td className="py-2.5 px-4 text-gray-900">Total del corte</td>
+                          <td className="py-2.5 px-4 text-right text-gray-900">{stats.total.toLocaleString()}</td>
+                          <td className="py-2.5 px-4 text-right text-gray-900">{stats.fallasBandera}</td>
+                          <td className="py-2.5 px-4" />
+                        </tr>
                       </tbody>
                     </table>
                   </div>
@@ -650,12 +864,40 @@ export default function TicketsPage() {
                 {[
                   { label: 'Producto', value: filterProd, setter: setFilterProd,
                     opts: [{ v: '', l: 'Todos' }, { v: 'Voz', l: 'Voz' }, { v: 'Chat', l: 'Chat' }, { v: 'Sin producto', l: 'Sin producto' }] },
+                  /* Las SEIS prioridades reales. Con cuatro, 424 tickets no se
+                     podían aislar desde ningún control de la pantalla. */
                   { label: 'Prioridad', value: filterPrior, setter: setFilterPrior,
-                    opts: [{ v: '', l: 'Todas' }, { v: 'Urgent', l: 'Urgente' }, { v: 'High', l: 'Alta' }, { v: 'Medium', l: 'Media' }, { v: 'Low', l: 'Baja' }] },
+                    opts: PRIORIDADES.map(p => ({ v: p.val, l: p.label })) },
                   { label: 'Mes', value: filterMes, setter: setFilterMes,
                     opts: MESES.map(m => ({ v: m.val, l: m.label })) },
                   { label: 'Falla', value: filterFalla, setter: setFilterFalla,
-                    opts: [{ v: '', l: 'Todas' }, { v: 'Si', l: 'Solo fallas' }, { v: 'No', l: 'No fallas' }] },
+                    opts: [{ v: '', l: 'Todas' }, { v: 'Si', l: 'Solo fallas (bandera)' }, { v: 'No', l: 'No fallas' }] },
+                  /* El filtro de Categoría EXISTÍA en el código —`filterCat` se
+                     enviaba al API y alimentaba el desplegable de subcategorías—
+                     pero no tenía ningún control en la pantalla: `setFilterCat`
+                     no se llamaba en las 1,266 líneas del archivo. Así que
+                     siempre valía '' y las subcategorías traían las 79 del
+                     archivo completo. Se corta por TIPO, que es el dato útil
+                     (Asistencia 3,323 · Administrativo 1,652 · Falla 344), con
+                     el canal aparte en vez de pegado en la misma cadena. */
+                  { label: 'Tipo', value: filterCat, setter: setFilterCat,
+                    opts: [
+                      { v: '', l: 'Todos los tipos' },
+                      { v: 'Asistencia', l: 'Asistencia' },
+                      { v: 'Administrativo', l: 'Administrativo' },
+                      { v: 'Falla', l: 'Falla (categoría de la mesa)' },
+                      { v: 'Activación', l: 'Activación' },
+                      { v: 'Capacitación', l: 'Capacitación' },
+                      { v: 'Sin categoría', l: 'Sin clasificar' },
+                    ] },
+                  /* El tráfico interno (CID 0 y 1) es el segundo emisor de todo
+                     el archivo. Ahora se puede sacar de la vista. */
+                  { label: 'Interno', value: filterInterno, setter: setFilterInterno,
+                    opts: [
+                      { v: '', l: 'Clientes + internos' },
+                      { v: 'excluir', l: 'Solo clientes' },
+                      { v: 'solo', l: 'Solo internos (CID 0 y 1)' },
+                    ] },
                 ].map(f => (
                   <div key={f.label} className="w-40 flex-shrink-0">
                     <CustomSelect value={f.value}
@@ -669,7 +911,18 @@ export default function TicketsPage() {
                   <CustomSelect value={filterCliente}
                     onChange={v => { setFilterCliente(v); setTimeout(() => fetchList(1), 0) }}
                     className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                    options={[{ value: '', label: 'Cliente (todos)' }, ...clientes.map(c => ({ value: c.cid, label: `${c.empresa} · CID ${c.cid} (${c.total})` }))]} />
+                    /* UNA opción por CID, porque el filtro compara SOLO el CID.
+                       Antes la clave era `cid|empresa`, así que el renglón
+                       prometía un número que el filtro no entregaba: elegir
+                       «Digitum · CID 1 (63)» devolvía 175 filas, porque bajo ese
+                       CID también viven Callpicker y Callpicker pruebas. Ahora el
+                       conteo del renglón ES el que devuelve el filtro, y los
+                       nombres alternos se avisan en lugar de partir la fila. */
+                    options={[{ value: '', label: 'Cliente (todos)' }, ...clientes.map(c => ({
+                      value: c.cid,
+                      label: `${c.empresa} · CID ${c.cid} (${c.total})`
+                        + (c.alias.length ? ` +${c.alias.length} alias` : ''),
+                    }))]} />
                 </div>
                 {/* Filtro ejecutivo — dinámico */}
                 <div className="w-48 flex-shrink-0">
@@ -709,6 +962,15 @@ export default function TicketsPage() {
                   className="text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
                   Esta semana
                 </button>
+                {(filterDesde || filterHasta) && (
+                  /* «Esta semana» se ve siempre floja y no es una caída: el
+                     archivo solo tiene tickets CERRADOS, así que los de esta
+                     semana que aún no cierran no están. Sin este aviso, 66
+                     contra 179 de la semana anterior se lee como −63%. */
+                  <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
+                    Ojo: los tickets recientes que aún no cierran NO están en el archivo
+                  </span>
+                )}
                 {(filterDesde || filterHasta) && (
                   <button onClick={() => { setFilterDesde(''); setFilterHasta(''); setTimeout(() => fetchList(1), 0) }}
                     className="text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50">
@@ -756,20 +1018,40 @@ export default function TicketsPage() {
                       <tr><td colSpan={10} className="py-12 text-center text-sm text-gray-400">Sin resultados</td></tr>
                     ) : rows.map((t, i) => (
                       <tr key={i} className="border-b border-gray-100 hover:bg-blue-50/20 transition-colors">
-                        <td className="py-2.5 px-3 text-xs text-gray-400 font-mono">{t.num}</td>
-                        <td className="py-2.5 px-3 font-medium text-gray-900 max-w-[180px] truncate">{t.empresa}</td>
-                        <td className="py-2.5 px-3"><PillBadge label={t.categoria} color={BLUE} /></td>
-                        <td className="py-2.5 px-3 text-xs text-gray-500 max-w-[140px] truncate">{t.subcategoria}</td>
-                        <td className="py-2.5 px-3"><PillBadge label={t.producto || '—'} color={prodColor(t.producto)} /></td>
-                        <td className="py-2.5 px-3"><PillBadge label={t.prioridad || 'Low'} color={prioColor(t.prioridad)} /></td>
-                        <td className="py-2.5 px-3 text-center">
-                          {t.es_falla === 'Si'
-                            ? <AlertTriangle size={13} style={{ color: RED }} />
-                            : <CheckCircle2 size={13} style={{ color: GREEN }} />}
+                        {/* El folio `num` NO identifica al ticket: hay 3 valores
+                            repartidos en 7 filas (el 1877 tres veces), porque
+                            conviven dos series de numeración. `ticket_id` sí es
+                            único en las 5,871. Se avisa al pasar el cursor. */}
+                        <td className="py-2.5 px-3 text-xs text-gray-400 font-mono"
+                          title={`ID único: ${t.ticket_id}`}>{t.num}</td>
+                        <td className="py-2.5 px-3 font-medium text-gray-900 max-w-[180px] truncate"
+                          title={t.empresa !== t.empresaCanon ? `Capturado como «${t.empresa}» · CID ${t.cid}` : `CID ${t.cid}`}>
+                          {t.empresaCanon || t.empresa}
+                          {t.interno && <span className="ml-1 text-[9px] text-gray-400">(interno)</span>}
                         </td>
-                        <td className="py-2.5 px-3 text-xs text-gray-600 whitespace-nowrap">{t.propietario}</td>
-                        <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap" title={t.cierre ? `Cierre: ${fmtAperturaCorta(t.cierre)}` : ''}>
-                          {fmtAperturaCorta(t.apertura) || t.fecha}
+                        <td className="py-2.5 px-3"><PillBadge label={t.categoriaNorm} color={BLUE} /></td>
+                        <td className="py-2.5 px-3 text-xs text-gray-500 max-w-[140px] truncate">{t.subcategoriaNorm}</td>
+                        <td className="py-2.5 px-3"><PillBadge label={t.producto || '—'} color={prodColor(t.producto)} /></td>
+                        {/* Los 242 tickets sin prioridad se pintaban «Low». Ya no. */}
+                        <td className="py-2.5 px-3"><PillBadge label={prioLabel(t.prioridadNorm)} color={prioColor(t.prioridadNorm)} /></td>
+                        <td className="py-2.5 px-3 text-center"
+                          title={t.esFallaCategoria && !t.esFallaBandera
+                            ? 'Clasificado como Falla por la mesa, sin la bandera ES_FALLA del export'
+                            : ''}>
+                          {t.esFallaBandera
+                            ? <AlertTriangle size={13} style={{ color: RED }} />
+                            : t.esFallaCategoria
+                              ? <AlertTriangle size={13} style={{ color: AMBER }} />
+                              : <CheckCircle2 size={13} style={{ color: GREEN }} />}
+                        </td>
+                        <td className="py-2.5 px-3 text-xs text-gray-600 whitespace-nowrap">{t.propietarioNorm || '—'}</td>
+                        {/* La apertura ya viene anclada a hora de México desde el
+                            servidor. Antes se pintaba con `toLocaleDateString` del
+                            navegador mientras el filtro comparaba la fecha UTC:
+                            626 tickets se veían con un día y se filtraban con otro. */}
+                        <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap"
+                          title={t.cierre ? `Cierre: ${fmtAperturaCorta(t.cierre)} · duración ${t.duracion || '—'}` : 'Sin cerrar'}>
+                          {t.aperturaMx || '—'}
                         </td>
                         <td className="py-2.5 px-3">
                           {t.enlace ? (
@@ -818,15 +1100,36 @@ export default function TicketsPage() {
         {tab === 'conciliacion' && (
           <>
             {concLoading ? (
-              <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Conciliando con cuentas activas…</div>
+              <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Conciliando con la cartera…</div>
             ) : conc ? (
               <>
-                {/* KPIs */}
-                <div className="grid grid-cols-3 gap-3">
-                  <KpiCard icon={CheckCircle2} label="Con match en cuentas"   value={conc.matched.length}   sub="empresas identificadas" color={GREEN}  />
-                  <KpiCard icon={XCircle}      label="Sin match en cuentas"   value={conc.unmatched.length} sub="empresas no identificadas" color={RED} />
-                  <KpiCard icon={Users}        label="Total empresas únicas"  value={conc.totalEmpresas}    sub="en tickets 2026"         color={INDIGO} />
+                {/* KPIs.
+                    «Total empresas únicas» contaba pares `cid|empresa`: daba
+                    1,563 para 1,531 CIDs, y los 32 pares de más eran justo los
+                    errores de captura («GRUPO FRISA»/«Grupo Frisa»,
+                    «RE/MAX Satelite»/«REMAX Satelite»), así que el KPI premiaba
+                    el dato sucio. Ahora se cuentan CIDs.
+                    Y la consulta traía todo lo que no estuviera cancelado, así
+                    que las cuentas en hibernación se presentaban como activas y
+                    con su Health Score en verde: lib/types.ts las define SIN
+                    SERVICIO y manda pintarlas inactivas. */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <KpiCard icon={CheckCircle2} label="CIDs con cuenta"   value={conc.matched.length}
+                    sub={`${conc.ticketsCruzados.toLocaleString()} tickets`} color={GREEN}  />
+                  <KpiCard icon={XCircle}      label="CIDs sin cuenta"   value={conc.unmatched.length}
+                    sub={`${conc.ticketsSinCruzar.toLocaleString()} tickets sin cruzar`} color={RED} />
+                  <KpiCard icon={Users}        label="CIDs distintos"    value={conc.cidsDistintos}
+                    sub={`en el archivo · ${conc.internos} internos`} color={INDIGO} />
+                  <KpiCard icon={Tag}          label="Cuentas en cartera" value={conc.cuentasCartera}
+                    sub={`${conc.cuentasSinServicio} sin servicio · ${conc.cuentasCanceladas} canceladas (fuera)`} color={AMBER} />
                 </div>
+
+                <p className="text-[11px] text-gray-500">
+                  Se cuentan <strong className="text-gray-700">CIDs</strong>, no pares CID+nombre: un
+                  mismo cliente capturado con dos escrituras ya no suma dos. Las cuentas en
+                  hibernación aparecen marcadas «sin servicio» y su Health Score se muestra en gris —
+                  no se puede estar saludable y sin servicio a la vez.
+                </p>
 
                 {/* Sub-tabs */}
                 <div className="bg-white rounded-xl border border-gray-200 p-1 shadow-sm flex gap-1 w-fit">
@@ -873,27 +1176,70 @@ export default function TicketsPage() {
                         {(concTab === 'matched' ? conc.matched : conc.unmatched)
                           .filter(r => !concQ || r.empresa.toLowerCase().includes(concQ.toLowerCase()))
                           .map((r, i) => (
-                            <tr key={i} className="border-b border-gray-100 hover:bg-gray-50/60 transition-colors">
-                              <td className="py-2.5 px-4 font-medium text-gray-900">{r.empresa}</td>
+                            <tr key={r.cid || i} className="border-b border-gray-100 hover:bg-gray-50/60 transition-colors">
+                              <td className="py-2.5 px-4 font-medium text-gray-900">
+                                {r.empresa}
+                                <span className="text-xs text-gray-400 font-normal"> · CID {r.cid || '—'}</span>
+                                {r.interno && (
+                                  <span className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded"
+                                    style={{ background: '#E2E8F0', color: '#475569' }}>INTERNO</span>
+                                )}
+                                {/* Los nombres alternos se avisan en vez de partir la fila en dos. */}
+                                {r.alias.length > 0 && (
+                                  <span className="block text-[10px] text-gray-400 italic mt-0.5"
+                                    title={r.alias.join(' · ')}>
+                                    también capturado como: {r.alias.slice(0, 2).join(' · ')}
+                                    {r.alias.length > 2 ? ` y ${r.alias.length - 2} más` : ''}
+                                  </span>
+                                )}
+                              </td>
                               <td className="py-2.5 px-4 text-right font-semibold text-gray-700">{r.total}</td>
                               <td className="py-2.5 px-4 text-right">
                                 {r.fallas > 0
                                   ? <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: `${RED}15`, color: RED }}>{r.fallas}</span>
                                   : <span className="text-xs text-gray-300">—</span>}
                               </td>
-                              <td className="py-2.5 px-4 text-xs text-gray-500">{r.ultima}</td>
+                              <td className="py-2.5 px-4 text-xs text-gray-500">{r.ultima || '—'}</td>
                               {concTab === 'matched' && r.cuenta && <>
-                                <td className="py-2.5 px-4 text-xs font-medium" style={{ color: GREEN }}>{r.cuenta.empresa}</td>
+                                <td className="py-2.5 px-4 text-xs font-medium"
+                                  style={{ color: r.cuenta.sinServicio ? '#64748B' : GREEN }}>
+                                  {r.cuenta.empresa}
+                                  {r.cuenta.sinServicio && (
+                                    /* #475569 sobre #E2E8F0 mide 6.15:1. El slate-500
+                                       que puse primero daba 3.86:1 y no pasa AA. */
+                                    <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded"
+                                      style={{ background: '#E2E8F0', color: '#475569' }}>
+                                      SIN SERVICIO · {r.cuenta.estado}
+                                    </span>
+                                  )}
+                                </td>
                                 <td className="py-2.5 px-4 text-xs text-gray-600">{r.cuenta.asesor}</td>
                                 <td className="py-2.5 px-4 text-right">
-                                  <span className="text-xs font-bold" style={{ color: r.cuenta.health_score >= 70 ? GREEN : r.cuenta.health_score >= 40 ? AMBER : RED }}>
+                                  {/* El estatus manda sobre el Health Score: una cuenta
+                                      sin servicio no se pinta en verde por tener 84. */}
+                                  {/* El gris no puede ser tan claro que no se lea:
+                                      #94A3B8 sobre blanco mide 2.56:1. #475569 da
+                                      8.49:1 y sigue leyéndose como «apagado»
+                                      frente al verde/ámbar/rojo de al lado.
+                                      Y el estado no se comunica SOLO con el color:
+                                      la etiqueta «SIN SERVICIO» va en la celda
+                                      anterior, con palabras. */}
+                                  <span className="text-xs font-bold"
+                                    title={r.cuenta.sinServicio ? 'Cuenta sin servicio: el Health Score es histórico' : ''}
+                                    style={{ color: r.cuenta.sinServicio
+                                      ? '#475569'
+                                      : tonoSobreFondo(
+                                          r.cuenta.health_score >= 70 ? GREEN : r.cuenta.health_score >= 40 ? AMBER : RED,
+                                          '#FFFFFF', 4.5) }}>
                                     {r.cuenta.health_score}
                                   </span>
                                 </td>
                               </>}
                               {concTab === 'unmatched' && (
                                 <td className="py-2.5 px-4">
-                                  <span className="text-xs text-gray-400 italic">No encontrada en cuentas activas</span>
+                                  <span className="text-xs text-gray-400 italic">
+                                    {r.interno ? 'Tráfico interno, no es un cliente' : 'Su CID no está en la cartera'}
+                                  </span>
                                 </td>
                               )}
                             </tr>
@@ -1063,14 +1409,14 @@ export default function TicketsPage() {
                       <tr><td colSpan={10} className="py-12 text-center text-sm text-gray-400">Cargando…</td></tr>
                     ) : fallas.map((t, i) => (
                       <tr key={i} className="border-b border-gray-100 hover:bg-red-50/20 transition-colors">
-                        <td className="py-2.5 px-3 text-xs text-gray-400 font-mono">{t.num}</td>
-                        <td className="py-2.5 px-3 font-medium text-gray-900 max-w-[160px] truncate">{t.empresa}</td>
-                        <td className="py-2.5 px-3"><PillBadge label={t.categoria} color={RED} /></td>
-                        <td className="py-2.5 px-3 text-xs text-gray-500 max-w-[140px] truncate">{t.subcategoria}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-400 font-mono" title={`ID único: ${t.ticket_id}`}>{t.num}</td>
+                        <td className="py-2.5 px-3 font-medium text-gray-900 max-w-[160px] truncate" title={`CID ${t.cid}`}>{t.empresaCanon || t.empresa}</td>
+                        <td className="py-2.5 px-3"><PillBadge label={t.categoriaNorm} color={RED} /></td>
+                        <td className="py-2.5 px-3 text-xs text-gray-500 max-w-[140px] truncate">{t.subcategoriaNorm}</td>
                         <td className="py-2.5 px-3"><PillBadge label={t.producto || '—'} color={prodColor(t.producto)} /></td>
-                        <td className="py-2.5 px-3"><PillBadge label={t.prioridad || 'Low'} color={prioColor(t.prioridad)} /></td>
-                        <td className="py-2.5 px-3 text-xs text-gray-600">{t.propietario}</td>
-                        <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap" title={t.cierre ? `Cierre: ${fmtAperturaCorta(t.cierre)}` : ''}>{fmtAperturaCorta(t.apertura)}</td>
+                        <td className="py-2.5 px-3"><PillBadge label={prioLabel(t.prioridadNorm)} color={prioColor(t.prioridadNorm)} /></td>
+                        <td className="py-2.5 px-3 text-xs text-gray-600">{t.propietarioNorm || '—'}</td>
+                        <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap" title={t.cierre ? `Cierre: ${fmtAperturaCorta(t.cierre)}` : 'Sin cerrar'}>{t.aperturaMx || '—'}</td>
                         <td className="py-2.5 px-3 text-xs text-gray-500 whitespace-nowrap">{t.duracion}</td>
                         <td className="py-2.5 px-3">
                           {t.enlace ? (
@@ -1133,15 +1479,14 @@ export default function TicketsPage() {
                     ]} />
                 </div>
                 <div className="w-44 flex-shrink-0">
+                  {/* Las seis reales, igual que en el Explorador: con cuatro,
+                      424 tickets no se podían aislar desde ningún control. */}
                   <CustomSelect value={chartPrior} onChange={setChartPrior}
                     className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/30 bg-white"
-                    options={[
-                      { value: '', label: 'Prioridad (todas)' },
-                      { value: 'Urgent', label: 'Urgente' },
-                      { value: 'High', label: 'Alta' },
-                      { value: 'Medium', label: 'Media' },
-                      { value: 'Low', label: 'Baja' },
-                    ]} />
+                    options={PRIORIDADES.map(p => ({
+                      value: p.val,
+                      label: p.val === '' ? 'Prioridad (todas)' : p.label,
+                    }))} />
                 </div>
                 {(chartMes || chartProp || chartProd || chartPrior) && (
                   <button onClick={() => { setChartMes(''); setChartProp(''); setChartProd(''); setChartPrior('') }}
@@ -1156,23 +1501,51 @@ export default function TicketsPage() {
               <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Cargando gráficos…</div>
             ) : chartData ? (
               <>
-                {/* KPIs */}
+                {/* KPIs.
+                    La media de duración es 144.9 h y la mediana 29.2: cinco
+                    veces. La arrastran 222 tickets de más de 30 días y un folio
+                    cerrado 265 días después (p99 = 1,703 h). Publicar solo la
+                    media decía que el ticket típico tarda seis días, y no.
+                    Manda la MEDIANA; la media queda al lado, rotulada. */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <KpiCard icon={Tag}           label="Total tickets"     value={chartData.total.toLocaleString('es-MX')} color={BLUE}   />
-                  <KpiCard icon={AlertTriangle} label="Fallas reales"     value={chartData.fallas} sub={`${chartData.total > 0 ? ((chartData.fallas / chartData.total) * 100).toFixed(1) : 0}% del total`} color={RED} />
-                  <KpiCard icon={Clock}         label="Duración promedio" value={`${chartData.avgDuracion}h`} sub="horas por ticket" color={AMBER} />
+                  <KpiCard icon={Tag}           label="Tickets del corte" value={chartData.total.toLocaleString('es-MX')} color={BLUE}   />
+                  <KpiCard icon={AlertTriangle} label="Fallas (bandera)"  value={chartData.fallas}
+                    sub={`${chartData.total > 0 ? ((chartData.fallas / chartData.total) * 100).toFixed(1) : 0}% · ${chartData.fallasCategoria} por categoría`} color={RED} />
+                  <KpiCard icon={Clock}         label="Duración mediana"  value={`${chartData.duracion.mediana}h`}
+                    sub={`media ${chartData.duracion.media}h · p90 ${chartData.duracion.p90}h · máx ${chartData.duracion.max}h`} color={AMBER} />
                   <KpiCard icon={User}          label="Top ejecutivo"     value={chartData.topPropietario} color={INDIGO} />
                 </div>
 
-                {/* Tickets por Ejecutivo — horizontal */}
+                <p className="text-[11px] text-gray-500 -mt-1">
+                  La duración es tiempo de <strong className="text-gray-700">reloj</strong>: incluye
+                  noches y fines de semana, y mide cuánto tardó el folio en cerrarse, no cuánto se
+                  trabajó en él. Sobre {chartData.duracion.n.toLocaleString()} tickets con dato
+                  {chartData.duracion.sinDato > 0 && <> ({chartData.duracion.sinDato} sin medir, excluidos)</>}.
+                  La media va {chartData.duracion.mediana > 0 ? (chartData.duracion.media / chartData.duracion.mediana).toFixed(1) : '—'}× por
+                  encima de la mediana porque la arrastran los extremos.
+                </p>
+
+                {/* Tickets por Ejecutivo — horizontal.
+                    Nombres fundidos, y la barra de tiempo usa la MEDIANA: con la
+                    media, un solo folio olvidado convierte al agente más rápido
+                    en el más lento de la mesa. */}
                 <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                  <h3 className="font-semibold text-sm text-gray-900 mb-4">Tickets por Ejecutivo</h3>
+                  <h3 className="font-semibold text-sm text-gray-900 mb-1">Tickets por Ejecutivo</h3>
+                  <p className="text-[11px] text-gray-500 mb-4">
+                    Suma {chartData.byPropietario.reduce((s, p) => s + p.tickets, 0).toLocaleString()} de{' '}
+                    {chartData.total.toLocaleString()} — cierra el corte, incluida «Sin propietario».
+                    Las 37 formas de escribir 19 nombres quedan fundidas.
+                  </p>
                   <ResponsiveContainer width="100%" height={Math.min(520, Math.max(200, chartData.byPropietario.length * 30))}>
                     <BarChart data={chartData.byPropietario} layout="vertical" margin={{ left: 10, right: 30, top: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" tick={{ fontSize: 11 }} />
-                      <YAxis type="category" dataKey="name" width={105} tick={{ fontSize: 11 }} />
-                      <Tooltip contentStyle={{ fontSize: 12 }} formatter={(v: number, n: string) => [v, n === 'tickets' ? 'Tickets' : 'Fallas']} />
+                      <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11 }} />
+                      <Tooltip contentStyle={{ fontSize: 12 }}
+                        formatter={(v: number, n: string) => [
+                          n === 'medianaDuracion' ? `${v} h` : v,
+                          n === 'tickets' ? 'Tickets' : n === 'fallas' ? 'Fallas' : 'Mediana de cierre',
+                        ]} />
                       <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
                       <Bar dataKey="tickets" name="Tickets" fill={BLUE} radius={[0, 3, 3, 0]} />
                       <Bar dataKey="fallas"  name="Fallas"  fill={RED}  radius={[0, 3, 3, 0]} />
@@ -1180,9 +1553,12 @@ export default function TicketsPage() {
                   </ResponsiveContainer>
                 </div>
 
-                {/* Volumen por Mes */}
+                {/* Volumen por Mes — de APERTURA */}
                 <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                  <h3 className="font-semibold text-sm text-gray-900 mb-4">Volumen por Mes</h3>
+                  <h3 className="font-semibold text-sm text-gray-900 mb-1">Volumen por mes de APERTURA</h3>
+                  <p className="text-[11px] text-gray-500 mb-4">
+                    Cuándo entró el ticket, en hora de México. El último mes está incompleto.
+                  </p>
                   <ResponsiveContainer width="100%" height={220}>
                     <BarChart data={chartData.byMes.map(d => ({ ...d, label: mesLabel(d.mes) }))} margin={{ left: 0, right: 20, top: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -1381,8 +1757,10 @@ export default function TicketsPage() {
                   {/* KPIs */}
                   <div className="grid grid-cols-3 gap-3">
                     <KpiCard icon={Tag}           label="Tickets filtrados" value={modalData.total.toLocaleString('es-MX')} color={BLUE}   />
-                    <KpiCard icon={AlertTriangle} label="Fallas reales"     value={modalData.fallas} sub={`${modalData.total > 0 ? ((modalData.fallas / modalData.total) * 100).toFixed(1) : 0}%`} color={RED} />
-                    <KpiCard icon={Clock}         label="Duración promedio" value={`${modalData.avgDuracion}h`} sub="horas por ticket" color={AMBER} />
+                    <KpiCard icon={AlertTriangle} label="Fallas (bandera)"  value={modalData.fallas} sub={`${modalData.total > 0 ? ((modalData.fallas / modalData.total) * 100).toFixed(1) : 0}% · ${modalData.fallasCategoria} por categoría`} color={RED} />
+                    {/* La mediana, no la media: 29.2 h contra 144.9 h. */}
+                    <KpiCard icon={Clock}         label="Duración mediana" value={`${modalData.duracion.mediana}h`}
+                      sub={`media ${modalData.duracion.media}h · máx ${modalData.duracion.max}h`} color={AMBER} />
                   </div>
 
                   {/* Categoría — horizontal */}

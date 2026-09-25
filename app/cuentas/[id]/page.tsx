@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getAuditCaseById }           from '@/app/auditoria/cases'
-import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { chatDeCuenta } from '@/lib/chat-cuenta'
 import CuentaChatPanel from '@/components/CuentaChatPanel'
 import { leerLlamadas, colaDeRiesgo } from '@/lib/llamadas-cuenta'
@@ -72,8 +72,20 @@ interface Props { params: { id: string } }
 export default async function CuentaDetailPage({ params }: Props) {
   // Obtener la cuenta primero (función getCuentaById ahora soporta UUID o consecutivo)
   const cuentaBase = await getCuentaById(params.id)
-  // Regla 30 Ago 2026: tickets abiertos siempre del dataset vivo.
-  const cuenta = cuentaBase ? { ...cuentaBase, tickets_abiertos: ticketStatsCuenta(cuentaBase.cid ?? null, cuentaBase.empresa).abiertos } : cuentaBase
+  // Regla 30 Ago 2026: nunca la columna guardada. Y 24 Sep 2026: el export de
+  // Zoho solo trae cerrados, así que «abiertos» no se mide con él — lo medible
+  // son los vencidos del corte de la mesa de ayuda.
+  const soporte = cuentaBase ? soporteDeCuenta(cuentaBase.cid ?? null, cuentaBase.empresa) : null
+  const cuenta = cuentaBase && soporte
+    ? {
+        ...cuentaBase,
+        tickets_abiertos: soporte.historia.abiertos ?? 0,
+        tickets_vencidos: soporte.vencidos.length,
+        peor_dias_sla:    soporte.peorDiasSLA,
+        reincide_mesa:    soporte.reincideEnMesa,
+        fecha_corte_mesa: soporte.fechaCorte,
+      }
+    : cuentaBase
   if (!cuenta) notFound()
 
   // Usar el UUID real para las demás queries
@@ -677,6 +689,8 @@ export default async function CuentaDetailPage({ params }: Props) {
             rows={zohoTickets.rows}
             total={zohoTickets.total}
             matchedBy={zohoTickets.matchedBy}
+            comoCruzo={zohoTickets.comoCruzo}
+            fallas={soporte?.historia.fallas ?? 0}
             cid={cuenta.cid ?? null}
             empresa={cuenta.empresa}
           />

@@ -93,7 +93,28 @@ export interface EntradaRadar {
   adopcionTotal: number
   ultimaConversacion: string | null   // ISO
   totalActividades: number
+  /**
+   * Tickets sin cerrar según el export de Zoho. Se conserva, pero YA NO DECIDE:
+   * el export solo trae cerrados, así que valía 0 en 221 de 222 cuentas y el
+   * indicador «Fricción técnica» no se encendía nunca.
+   */
   ticketsAbiertos: number
+  /** ¿Se puede afirmar algo con `ticketsAbiertos`? Hoy: no. */
+  ticketsAbiertosMedible: boolean
+  /** Tickets FUERA DE SLA en el último corte de la mesa. Ésta sí es fuente viva. */
+  vencidosMesa: number
+  /** Días de atraso del peor folio vencido. */
+  peorDiasSLA: number | null
+  /** En cuántos cortes de la ventana ha tenido vencidos. */
+  cortesConVencidos: number
+  /** Cuántos cortes hay. Si es 0, no hay medición de soporte y no se puede
+   *  afirmar ausencia de fricción. */
+  cortesTotalesMesa: number
+  /**
+   * Reincidencia MEDIDA sobre los cortes de la mesa, en sustitución de la
+   * columna `tiene_ticket_reincidente`, que estaba en false en las 222 cuentas
+   * porque nadie la actualizaba nunca.
+   */
   ticketReincidente: boolean
   facturacion: number | null
   activoDesde: string | null
@@ -238,13 +259,22 @@ export function evaluarRadar(e: EntradaRadar): RadarCuenta {
     })
   }
 
-  /* ── 8. Tickets ── */
-  if (e.ticketsAbiertos > 0 || e.ticketReincidente) {
+  /* ── 8. Tickets ──
+     Se mide con la MESA DE AYUDA, no con el export: el export solo trae
+     cerrados y este indicador llevaba meses apagado para toda la cartera
+     mientras GTC Contact Center acumulaba un folio de 144 días fuera de SLA. */
+  if (e.vencidosMesa > 0 || e.ticketReincidente) {
+    const dias = e.peorDiasSLA ?? 0
+    const pen = dias >= 30 ? 14 : dias >= 14 ? 10 : e.ticketReincidente ? 8 : 5
+    const partesT: string[] = []
+    if (e.vencidosMesa > 0) partesT.push(`${e.vencidosMesa} fuera de SLA`)
+    if (dias > 0) partesT.push(`peor: ${dias} días de atraso`)
+    if (e.ticketReincidente) partesT.push(`reincide en ${e.cortesConVencidos}/${e.cortesTotalesMesa} cortes`)
     ind.push({
       id: 'tickets', label: 'Fricción técnica',
-      valor: e.ticketReincidente ? 'reincidente' : `${e.ticketsAbiertos} abierto(s)`,
-      nota: e.ticketReincidente ? 'mismo problema reabierto' : 'tickets sin cerrar',
-      riesgo: true, penalizacion: e.ticketReincidente ? 10 : 5,
+      valor: e.vencidosMesa > 0 ? `${e.vencidosMesa} fuera de SLA` : 'reincidente',
+      nota: partesT.join(' · '),
+      riesgo: true, penalizacion: pen,
     })
   }
 
@@ -308,10 +338,20 @@ export function evaluarRadar(e: EntradaRadar): RadarCuenta {
   /* ── Lectura de ATLAS ── */
   let lectura = ''
   if (nivel === 'save' || nivel === 'recover') {
-    const silencioso = e.ticketsAbiertos === 0 && !e.ticketReincidente
-    lectura = silencioso
-      ? 'Silent churn. Cero tickets y cero quejas no significan salud: significan desconexión. El cliente dejó de usar el servicio sin levantar la mano. Cuando el área de finanzas revise este contrato, la defensa dependerá de evidencia que hoy no está capturada.'
-      : 'Deterioro con fricción técnica documentada. La combinación de caída de uso y problemas abiertos acelera la salida: el cliente ya tiene motivo y ya tiene evidencia. Intervención inmediata.'
+    // «Silent churn» es una afirmación sobre AUSENCIA de quejas, así que exige
+    // haber medido. Antes salía de `ticketsAbiertos === 0`, que valía 0 en 221
+    // de 222 cuentas por venir de un export de solo cerrados: Atlas contaba
+    // «cero tickets y cero quejas» de cuentas que llevaban 13 de 13 cortes
+    // fuera de SLA. Sin medición no hay silencio: hay desconocimiento.
+    const hayMedicion = e.cortesTotalesMesa > 0
+    const conFriccion = e.vencidosMesa > 0 || e.ticketReincidente
+    if (conFriccion) {
+      lectura = 'Deterioro con fricción técnica documentada. La combinación de caída de uso y problemas abiertos acelera la salida: el cliente ya tiene motivo y ya tiene evidencia. Intervención inmediata.'
+    } else if (hayMedicion) {
+      lectura = 'Silent churn. Cero tickets y cero quejas no significan salud: significan desconexión. El cliente dejó de usar el servicio sin levantar la mano. Cuando el área de finanzas revise este contrato, la defensa dependerá de evidencia que hoy no está capturada.'
+    } else {
+      lectura = 'Deterioro de uso sin lectura de soporte: no hay cortes de mesa de ayuda para esta cuenta, así que NO se puede afirmar que no haya quejas. Antes de llamarlo silent churn, revisar la mesa. La ausencia de medición no es ausencia de fricción.'
+    }
   } else if (nivel === 'prevent') {
     lectura = 'La cuenta todavía no está perdida, pero muestra el patrón inicial: menos uso, menos contacto o menos adopción. Es el momento de mayor retorno por intervención — más tarde el costo sube.'
   } else if (nivel === 'optimize') {
