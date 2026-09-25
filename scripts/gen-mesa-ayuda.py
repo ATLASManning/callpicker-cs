@@ -43,6 +43,7 @@ import re
 import sys
 import time
 import zipfile
+from datetime import datetime, timedelta, timezone
 from xml.etree import ElementTree as ET
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
@@ -235,9 +236,55 @@ def elige_por_fecha(rutas):
     return elegidas
 
 
+def hoy_en_mexico():
+    """La fecha de hoy en Mexico. UTC-6 todo el ano desde 2022.
+
+       Se ancla a UTC a proposito y NO se usa `datetime.now()` a secas: esa
+       depende del reloj de la maquina, y la regla de la casa es que las fechas
+       se anclen a Mexico siempre. (`utcnow()` esta deprecada; la forma con
+       `timezone.utc` es la que no lo esta.)
+    """
+    return (datetime.now(timezone.utc) - timedelta(hours=6)).strftime('%Y-%m-%d')
+
+
+def avisa_si_no_es_de_hoy(ruta):
+    """El reporte mas reciente NO es de hoy: la tarea programada no corrio.
+
+       Sin este aviso el script agarraria el del viernes un lunes por la manana,
+       lo re-escribiria tal cual y el check diario daria verde — sin que nada
+       hubiera cambiado y sin que nadie se enterara. Un falso verde es peor que
+       un rojo: el rojo se atiende.
+
+       NO bloquea: el corte se escribe igual (es el mismo dato, es idempotente).
+       Solo cambia el codigo de salida para que no pase desapercibido.
+    """
+    m = re.search(r'(\d{4}-\d{2}-\d{2})', os.path.basename(ruta))
+    if not m:
+        return False
+    fecha, hoy = m.group(1), hoy_en_mexico()
+    if fecha == hoy:
+        return False
+    try:
+        dias = (datetime.strptime(hoy, '%Y-%m-%d') - datetime.strptime(fecha, '%Y-%m-%d')).days
+    except ValueError:
+        dias = None
+    print()
+    print('  ' + '=' * 68)
+    print('  *** EL REPORTE MAS RECIENTE NO ES DE HOY')
+    print('      el mas nuevo es del %s y hoy es %s%s'
+          % (fecha, hoy, (' (%d dia(s) de atraso)' % dias) if dias else ''))
+    print('      La tarea programada de Zoho Desk no ha corrido, o el archivo no')
+    print('      llego a %s' % os.path.dirname(PATRON))
+    print('      El corte se escribe igual, pero NO es el estado de hoy:')
+    print('      lo que se vea sera el del %s.' % fecha)
+    print('  ' + '=' * 68)
+    return True
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     todos = '--todos' in sys.argv
+    viejo = False
 
     if args:
         rutas = args
@@ -247,6 +294,7 @@ def main():
         rutas = elige_por_fecha(crudas)
         if not todos:
             rutas = rutas[-1:]
+            viejo = avisa_si_no_es_de_hoy(rutas[0])
 
     print('  %d reporte(s) a procesar' % len(rutas))
     print()
@@ -280,6 +328,11 @@ def main():
                   % (c['fecha'], c['kpis']['vencidos'], len(c['ticketsVencidos'])))
         return 1
     print('  CIERRA: en cada corte, las filas extraidas = el KPI «vencidos».')
+    if viejo:
+        # Codigo 2, distinto del 1 de «no cuadra»: el dato esta bien extraido,
+        # lo que pasa es que NO es de hoy.
+        print('  (codigo 2: el corte es correcto pero esta atrasado — ver el aviso de arriba)')
+        return 2
     return 0
 
 
