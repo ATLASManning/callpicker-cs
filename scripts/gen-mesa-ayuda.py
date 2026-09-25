@@ -41,6 +41,7 @@ import json
 import os
 import re
 import sys
+import time
 import zipfile
 from xml.etree import ElementTree as ET
 
@@ -187,6 +188,53 @@ def escribe(corte):
     return ruta
 
 
+def elige_por_fecha(rutas):
+    """Un solo reporte por fecha, elegido A PROPOSITO y diciendo cual se descarta.
+
+       La tarea programada deja duplicados: el 4, el 7 y el 15 de septiembre hay
+       un `_1.docx` ademas del original. Y el del 15 NO es una copia — los dos
+       difieren (11 vencidos contra 12), porque se generaron a las 09:14 y a las
+       11:51 del mismo dia.
+
+       Antes ganaba el ultimo por orden alfabetico (`_1` va despues), o sea por
+       accidente, y se imprimian las dos lineas sin avisar de nada. Ahora gana el
+       mas RECIENTE por fecha de modificacion —el corte posterior es el estado mas
+       actual del dia— y se dice en voz alta cual se dejo fuera.
+    """
+    por_fecha = {}
+    for r in rutas:
+        m = re.search(r'(\d{4}-\d{2}-\d{2})', os.path.basename(r))
+        if not m:
+            print('  *** sin fecha en el nombre, se omite: %s' % os.path.basename(r))
+            continue
+        por_fecha.setdefault(m.group(1), []).append(r)
+
+    elegidas = []
+    for fecha in sorted(por_fecha):
+        cands = sorted(por_fecha[fecha], key=lambda p: os.path.getmtime(p))
+        gana = cands[-1]
+        elegidas.append(gana)
+        if len(cands) > 1:
+            print('  ! %s: hay %d reportes. Se usa el mas reciente.' % (fecha, len(cands)))
+            for c in cands:
+                marca = '<- se usa' if c == gana else '   se descarta'
+                print('      %s  %s  %s'
+                      % (os.path.basename(c),
+                         time.strftime('%H:%M', time.localtime(os.path.getmtime(c))), marca))
+            # Si difieren en el KPI, no es una copia: es otro corte del dia.
+            kpis = []
+            for c in cands:
+                try:
+                    kpis.append((os.path.basename(c), extrae(c)['kpis'].get('vencidos')))
+                except Exception:
+                    kpis.append((os.path.basename(c), None))
+            distintos = {v for _, v in kpis if v is not None}
+            if len(distintos) > 1:
+                print('      *** NO son copias: el KPI «vencidos» difiere -> %s'
+                      % ', '.join('%s=%s' % kv for kv in kpis))
+    return elegidas
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     todos = '--todos' in sys.argv
@@ -194,8 +242,9 @@ def main():
     if args:
         rutas = args
     else:
-        rutas = sorted(glob.glob(PATRON))
-        assert rutas, 'no hay reportes en %s' % PATRON
+        crudas = sorted(glob.glob(PATRON))
+        assert crudas, 'no hay reportes en %s' % PATRON
+        rutas = elige_por_fecha(crudas)
         if not todos:
             rutas = rutas[-1:]
 

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python scripts/revisa-jsx.py)",
+      "Bash(python scripts/revisa-cadenas-adyacentes.py)",
+      "Bash(python scripts/revisa-zona-muerta.py)",
+      "Bash(python scripts/revisa-contraste-cpcard.py)",
+      "Bash(python scripts/revisa-imports.py)",
+      "Bash(python scripts/revisa-imports.py *)",
+      "Bash(python scripts/revisa-balance.py)",
+      "Bash(python scripts/revisa-balance.py *)",
+      "mcp__Claude_Browser__read_page",
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__Claude_Browser__find",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__read_network_requests",
+      "mcp__Claude_Browser__tabs_context",
+      "mcp__claude-in-chrome__read_page",
+      "mcp__claude-in-chrome__get_page_text",
+      "mcp__claude-in-chrome__find",
+      "mcp__claude-in-chrome__read_network_requests",
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "mcp__ccd_session__mark_chapter"
+    ]
+  }
+}
