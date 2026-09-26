@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   // `hoyEnMexico()` y no `toISOString()`: el servidor va en UTC y de 18:00 a
   // 23:59 de México ya está en el día siguiente, así que una actividad que
   // vence el viernes se marcaba vencida desde el jueves a las 18:00.
-  const NO_VENCEN = new Set(['aclaracion', 'auditoria'])
+  const NO_VENCEN = new Set(['aclaracion', 'auditoria', 'foco_riesgo'])
   const today   = hoyEnMexico()
   const vencidas = (data ?? []).filter(
     (a: Record<string, unknown>) =>

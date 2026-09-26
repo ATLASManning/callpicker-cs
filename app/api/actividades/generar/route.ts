@@ -27,6 +27,10 @@ import {
 import {
   auditadasEnRiesgo, descripcionSeguimientoAuditoria, TIPO_AUDITORIA,
 } from '@/lib/seguimiento-auditoria'
+import {
+  focosDeRiesgo, ordenarFocos, descripcionFoco, TIPO_FOCO,
+  type CuentaParaFoco,
+} from '@/lib/focos-riesgo'
 import { ahoraEnMexico, fechaLocal, selloMexico } from '@/lib/fecha-local'
 
 export const dynamic   = 'force-dynamic'
@@ -306,6 +310,7 @@ async function construirSeguimientosAuditoria(
       cid:               cuenta.cid,
       consecutivo:       cuenta.consecutivo ?? '',
       empresa:           cuenta.empresa,
+      _clase:            'auditoria',
       tipo:              TIPO_AUDITORIA,
       descripcion:       descripcionSeguimientoAuditoria(p),
       prioridad:         'alta',
@@ -327,6 +332,101 @@ async function construirSeguimientosAuditoria(
     console.warn(
       `[SeguimientoAuditoría] ${sinCuenta.length} auditoría(s) en riesgo de ${asesor} sin cuenta que empate: ${sinCuenta.join(' · ')}`,
     )
+  }
+  return filas
+}
+
+/**
+ * Cuántos focos del acervo se entregan por asesor cada semana.
+ *
+ * DOS por encima de las cuatro rutinarias, o sea seis en total. No es un número
+ * tímido, es el único que hace cumplible la instrucción: al medir el acervo
+ * completo salieron unas 26 cuentas por asesor entre auditorías, desapariciones
+ * del corte y consumo bajo. Entregarlas de golpe es repetir exactamente el
+ * error de las quince semanales que dirección ya bajó a cuatro porque no se
+ * cumplían — y una regla que no se puede cumplir se ignora entera, incluida la
+ * parte que sí importaba.
+ *
+ * Con dos por semana el acervo se drena en unos tres meses, empezando por lo más
+ * grave: primero las que desaparecieron del corte, luego las auditadas, luego el
+ * consumo. Subirlo es cambiar este número.
+ */
+const FOCOS_POR_SEMANA = 2
+
+/**
+ * El orden en que se drena el acervo completo, auditorías incluidas.
+ *
+ * `sin_corte` primero porque es la señal más fuerte y la más reversible: si la
+ * cuenta dejó de facturarse, cada semana cuenta. Después la auditoría, que ya
+ * tiene el diagnóstico hecho y solo falta ejecutarlo. El consumo al final: es
+ * real, pero una cuenta que consume poco sigue pagando.
+ */
+const ORDEN_ACERVO: Record<string, number> = {
+  sin_corte: 0, auditoria: 1, consumo_cero: 2, consumo_bajo: 3,
+}
+
+/**
+ * Los focos de riesgo que tocan esta semana.
+ *
+ * MISMAS DOS REGLAS que el seguimiento a auditoría: van FUERA del tope de cuatro
+ * y se crean UNA sola vez por cuenta en toda su historia — el dedup mira todo el
+ * histórico del tipo, no solo la semana. Lo que cambia es que aquí el acervo se
+ * entrega por partes en vez de completo.
+ *
+ * El candado de churn confirmado vive dentro de `focosDeRiesgo`, y tiene que
+ * estar ahí: estas actividades NO pasan por `evaluarElegibilidad` —a propósito,
+ * igual que las aclaraciones—, así que si no se pusiera explícitamente no se
+ * pondría en ningún lado.
+ */
+async function construirFocosDeRiesgo(
+  asesor: string, semanaInicio: string,
+): Promise<AnyAct[]> {
+  const { data: cuentas } = await supabaseAdmin
+    .from('cuentas')
+    .select('id, cid, consecutivo, empresa, asesor, estado, health_score, facturacion, tiene_chat_activo')
+    .eq('asesor', asesor)
+  if (!cuentas?.length) return []
+
+  const todos = ordenarFocos(await focosDeRiesgo(cuentas as CuentaParaFoco[]))
+  if (!todos.length) return []
+
+  const { data: yaHay } = await supabaseAdmin
+    .from('actividades')
+    .select('cuenta_id')
+    .eq('asesor', asesor)
+    .eq('tipo', TIPO_FOCO)
+  const yaTiene = new Set((yaHay ?? []).map(a => a.cuenta_id))
+
+  const vSem = new Date(semanaInicio + 'T12:00:00')
+  vSem.setDate(vSem.getDate() + 4)
+  const fechaVenc = toISO(vSem)
+
+  // Se devuelven TODOS los pendientes, sin recortar: el tope se aplica una sola
+  // vez más arriba, sobre el acervo completo —auditorías incluidas—, porque si
+  // cada función recortara por su cuenta el asesor recibiría dos de cada una y
+  // el presupuesto real sería el doble del declarado.
+  const filas: AnyAct[] = []
+  for (const f of todos) {
+    if (yaTiene.has(f.cuenta.id)) continue
+    filas.push({
+      _clase: f.clase,
+      asesor,
+      cuenta_id:         f.cuenta.id,
+      cid:               f.cuenta.cid,
+      consecutivo:       f.cuenta.consecutivo ?? '',
+      empresa:           f.cuenta.empresa,
+      tipo:              TIPO_FOCO,
+      descripcion:       descripcionFoco(f),
+      prioridad:         f.clase === 'sin_corte' ? 'alta' : 'media',
+      fecha_programada:  semanaInicio,
+      // Como la aclaración y el seguimiento a auditoría: lo que la hace «no
+      // vencer» es que su TIPO está excluido del auto-bloqueo, no esta fecha.
+      fecha_vencimiento: fechaVenc,
+      semana_inicio:     semanaInicio,
+      estado:            'pendiente',
+      semaforo_cuenta:   'naranja',
+      hs_cuenta:         f.cuenta.health_score,
+    } as AnyAct)
   }
   return filas
 }
@@ -841,8 +941,38 @@ export async function POST(req: NextRequest) {
        catorce — las quince semanales ya se intentaron y fracasaron. Es un
        acervo que se agota, no una carga que se repite. Ver
        lib/seguimiento-auditoria.ts. */
-    const seguimientosAuditoria = await construirSeguimientosAuditoria(asesor, semanaInicio)
-    const extras = [...aclaraciones, ...seguimientosAuditoria]
+    /* EL ACERVO: auditorías en riesgo + cuentas que desaparecieron del corte +
+       consumo cero + consumo bajo. «Todas, son focos que deben atenderse»
+       (dirección, 25 sep 2026).
+
+       Se juntan y se recortan UNA SOLA VEZ, con un presupuesto compartido. La
+       primera versión recortaba cada lista por separado y el asesor habría
+       recibido dos de cada una: el presupuesto real habría sido el doble del
+       declarado, y a Claudia le habrían caído 10 auditorías de golpe encima de
+       sus 4 rutinarias. Dieciséis. Exactamente las quince que ya fracasaron.
+
+       El orden lo da ORDEN_ACERVO: lo más grave primero, y a igual gravedad lo
+       que más factura. Las aclaraciones de baja NO entran en este presupuesto —
+       son obligación por instrucción y van todas, siempre. */
+    const acervo = [
+      ...(await construirSeguimientosAuditoria(asesor, semanaInicio)),
+      ...(await construirFocosDeRiesgo(asesor, semanaInicio)),
+    ]
+      .sort((a, b) => {
+        const ia = ORDEN_ACERVO[String((a as Record<string, unknown>)._clase ?? '')] ?? 9
+        const ib = ORDEN_ACERVO[String((b as Record<string, unknown>)._clase ?? '')] ?? 9
+        return ia - ib
+      })
+      .slice(0, FOCOS_POR_SEMANA)
+      // `_clase` solo sirve para ordenar aquí: no es una columna de la tabla y
+      // si viajara al insert, Supabase rechazaría la fila entera.
+      .map(a => {
+        const { _clase, ...fila } = a as Record<string, unknown>
+        void _clase
+        return fila as AnyAct
+      })
+
+    const extras = [...aclaraciones, ...acervo]
 
     /** Cierra la petición cuando no hubo lote rutinario pero sí trabajo obligado. */
     const salidaConAclaraciones = async (
@@ -864,10 +994,10 @@ export async function POST(req: NextRequest) {
           nota: 'Sin lote rutinario esta semana, pero hay bajas/downgrades por documentar.',
           detalle: aclaraciones.map(a => ({ empresa: a.empresa, descripcion: a.descripcion.split('\n')[0] })),
         },
-        seguimientosAuditoria: {
-          generados: seguimientosAuditoria.length,
-          nota: 'Cuentas con auditoría entregada y en riesgo. Van fuera del tope y solo se generan una vez.',
-          detalle: seguimientosAuditoria.map(a => ({ empresa: a.empresa })),
+        acervoDeRiesgo: {
+          generadas: acervo.length,
+          nota: 'Auditorías en riesgo, cuentas fuera del corte y consumo bajo. Fuera del tope, una vez por cuenta y de dos en dos por semana.',
+          detalle: acervo.map(a => ({ empresa: a.empresa, foco: a.descripcion.split('\n')[0] })),
         },
       })
     }
@@ -1172,7 +1302,9 @@ export async function POST(req: NextRequest) {
      * misma regla: fuera del tope. Aquí hay un matiz adicional — solo se crean
      * una vez por cuenta en toda su historia, así que el lote de la primera
      * corrida es grande (22 en total) y el de las siguientes, cero. */
-    rows.push(...seguimientosAuditoria)
+    /* Y el acervo de riesgo —auditorías, cuentas fuera del corte, consumo cero
+     * y consumo bajo—, ya recortado arriba al presupuesto de la semana. */
+    rows.push(...acervo)
 
     const { data: inserted, error: insErr } = await supabaseAdmin
       .from('actividades')
@@ -1212,11 +1344,15 @@ export async function POST(req: NextRequest) {
         generadas: aclaraciones.length,
         detalle:   aclaraciones.map(a => ({ empresa: a.empresa, descripcion: a.descripcion.split('\n')[0] })),
       },
-      // Auditoría entregada + cuenta en riesgo — FUERA del tope, y una sola vez
-      // por cuenta en toda su historia (instrucción de dirección, 25 sep 2026).
-      seguimientosAuditoria: {
-        generados: seguimientosAuditoria.length,
-        detalle:   seguimientosAuditoria.map(a => ({ empresa: a.empresa })),
+      /* El acervo de riesgo (instrucción de dirección, 25 sep 2026): auditoría
+       * entregada con la cuenta en riesgo, cuentas que desaparecieron del último
+       * corte, consumo cero y consumo bajo. Van FUERA del tope de cuatro, se
+       * crean UNA sola vez por cuenta en toda su historia, y se entregan de dos
+       * en dos por semana con las más graves primero.
+       * Churn confirmado y cancelación NO entran: ésas van por Aclaración. */
+      acervoDeRiesgo: {
+        generadas: acervo.length,
+        detalle:   acervo.map(a => ({ empresa: a.empresa, foco: a.descripcion.split('\n')[0] })),
       },
       excluidasPorChurn, // dormidas en Zoho, en alerta de cancelación o con churn confirmado en GRC-AAA-2026
       bloqueadas,        // detalle de cada cuenta no elegible y su motivo

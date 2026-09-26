@@ -103,3 +103,26 @@ export async function cortesDeCuenta(cid: string | null | undefined, n = 4): Pro
   const arr = map.get(cid.trim()) ?? []
   return arr.slice(-n)
 }
+
+/**
+ * TODOS los cortes, por CID. Comparte la misma caché y la misma carga en vuelo
+ * que `cortesDeCuenta`, así que pedirlo no abre el Excel una segunda vez.
+ *
+ * Lo necesita `lib/focos-riesgo.ts`, que razona sobre la cartera COMPLETA —«qué
+ * cuentas desaparecieron del último corte» no se puede contestar cuenta por
+ * cuenta, hace falta ver el conjunto.
+ */
+export async function todosLosCortes(): Promise<Map<string, CorteCuenta[]>> {
+  return loadMap()
+}
+
+/** El mes del corte más reciente que hay en el archivo, o '' si no hay ninguno. */
+export async function ultimoMesDeCorte(): Promise<string> {
+  const map = await loadMap()
+  let max = ''
+  for (const arr of Array.from(map.values())) {
+    const m = arr.length ? arr[arr.length - 1].mes : ''
+    if (m > max) max = m
+  }
+  return max
+}
