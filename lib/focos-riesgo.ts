@@ -58,6 +58,11 @@ import path from 'path'
 import { todosLosCortes, ultimoMesDeCorte, type CorteCuenta } from './cortes-cuenta'
 import { bloqueoComercialDeCuenta, normalizarNombre } from './elegibilidad'
 import { personasDeCuenta as _personas } from './personas-cuenta'
+/* La lectura de llamadas se importa de su módulo y NO se recalcula aquí: ahí
+   viven los umbrales, el veredicto y la redacción con las cifras de cada cuenta.
+   El generador ya importa estos dos, así que no agrega peso nuevo a la ruta. */
+import { leerLlamadas } from './llamadas-cuenta'
+import { LLAMADAS, LLAMADAS_META } from '@/app/cuentas/llamadas-data'
 import { esValorReal } from './valores'
 import { auditadasEnRiesgo } from './seguimiento-auditoria'
 import { ticketStatsCuenta } from './tickets-cuenta'
@@ -169,7 +174,7 @@ export interface Foco {
  * la baja, ×2.25), y después los análisis que dan de qué hablar la próxima vez.
  */
 export type ClaveTrabajo =
-  | 'relacion' | 'decisores' | 'tickets' | 'factura' | 'datos' | 'crecimiento'
+  | 'relacion' | 'decisores' | 'tickets' | 'llamadas' | 'factura' | 'datos' | 'crecimiento'
 
 export interface Trabajo {
   clave: ClaveTrabajo
@@ -197,7 +202,7 @@ export interface Trabajo {
  * además de lo que ya tienes.»
  */
 export const TRABAJOS: ClaveTrabajo[] = [
-  'relacion', 'decisores', 'tickets', 'factura', 'datos', 'crecimiento',
+  'relacion', 'decisores', 'tickets', 'llamadas', 'factura', 'datos', 'crecimiento',
 ]
 
 function uso(c: CorteCuenta): number | null {
@@ -326,6 +331,49 @@ function armarTrabajo(
           'Si no se repite, dilo también — una cuenta sin patrón de fallas es un argumento de estabilidad que sirve para vender.',
         ],
       }
+    case 'llamadas': {
+      /* La lectura NO se recalcula aquí: `leerLlamadas` ya decide el veredicto,
+         redacta la portada y las frases con las cifras de la cuenta. Volver a
+         componerlas sería tener dos versiones de la misma verdad, y la de aquí
+         se quedaría atrás en cuanto alguien mueva un umbral.
+
+         Y se respeta su vocabulario, que no es cosmético: «sin contestar» para
+         entrantes, «no conectó» para salientes, nunca «perdidas» a secas. Una
+         entrante sin contestar es un cliente final al que nadie atendió; una
+         saliente que no conecta es lo normal en cualquier marcación. Sumarlas
+         es el error que ese módulo existe para impedir. */
+      const l = leerLlamadas(LLAMADAS, LLAMADAS_META, c.cid, c.empresa)
+      if (!l) {
+        return {
+          clave, titulo: 'Atención de llamadas: conseguir la lectura',
+          pasos: [
+            'NO HAY LECTURA de llamadas para esta cuenta. No es que atienda bien ni mal: ' +
+            'su CID no aparece en ninguna de las dos extracciones del archivo.',
+            'Verifica que el CID de la ficha sea el correcto y que la cuenta no opere bajo otro.',
+            'Si el CID es correcto, repórtalo para que entre en la siguiente extracción — ' +
+            'y déjalo escrito aquí, porque una cuenta sin lectura es una cuenta que no podemos vigilar.',
+            'Mientras tanto, pregúntale al cliente directamente cómo le está respondiendo el ' +
+            'teléfono: es la misma información, por la vía lenta.',
+          ],
+        }
+      }
+      const pasos: string[] = [
+        `Veredicto del módulo: ${l.etiqueta}. ${l.portada}`,
+        ...l.decir,
+      ]
+      if (l.archivoViejo) {
+        pasos.push('OJO: el archivo de llamadas viene de un corte viejo. Contrasta con el cliente ' +
+                   'antes de afirmar una cifra — el refresco es semestral.')
+      }
+      pasos.push(
+        'Llévale la cifra al cliente y pregunta qué pasa del lado de ellos: cuántas personas ' +
+        'contestan, en qué horario, si alguien salió del equipo. El dato abre la conversación, ' +
+        'no la cierra.',
+        'Si el número está bien y no hay problema de atención, escríbelo: una cuenta estable ' +
+        'documentada es un argumento de renovación.',
+      )
+      return { clave, titulo: 'Analizar cómo le están contestando el teléfono', pasos }
+    }
     case 'factura':
       return {
         clave, titulo: 'Revisar su factura y su plan',
@@ -531,6 +579,16 @@ export async function focosDeRiesgo(
         (p.cargo ? ` (${p.cargo})` : ' — sin cargo registrado') +
         (p.telUtil ? '.' : ', y sin teléfono marcable: el correo es el único canal.'),
       )
+    }
+    /* La atención de llamadas, en una línea y en TODA tarea. Dos veredictos se
+       dicen siempre porque no esperan: `en_silencio` es un teléfono que dejó de
+       sonar —una cuenta apagándose, no un problema de atención— y `llama` es un
+       deterioro contra su propia base, no contra un promedio ajeno. */
+    const ll = leerLlamadas(LLAMADAS, LLAMADAS_META, c.cid, c.empresa)
+    if (!ll) {
+      ctx.push('Sin lectura de llamadas: su CID no aparece en el archivo (no es que atienda bien).')
+    } else if (ll.veredicto === 'en_silencio' || ll.veredicto === 'llama' || ll.veredicto === 'vigilar') {
+      ctx.push(`Atención de llamadas — ${ll.etiqueta}: ${ll.portada}`)
     }
     if (chat) ctx.push('Tiene CHAT activo: su consumo de voz no cuenta toda su operación.')
     if (auditadas.has(normalizarNombre(c.empresa))) {

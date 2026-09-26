@@ -49,7 +49,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SEGUIMIENTOS_POR_SEMANA = 10      # SEGUIMIENTOS_POR_SEMANA
 DIAS_SIN_CONTACTO_LIMITE = 60     # DIAS_SIN_CONTACTO_LIMITE
 UMBRAL_USO_BAJO = 40              # el `u < 40` de la clase uso_bajo
-TRABAJOS = ['relacion', 'decisores', 'tickets', 'factura', 'datos', 'crecimiento']
+TRABAJOS = ['relacion', 'decisores', 'tickets', 'llamadas', 'factura', 'datos', 'crecimiento']
 ORDEN_FOCO = ['nunca_tocada', 'sin_contacto', 'uso_bajo', 'auditoria',
               'soporte', 'sin_corte', 'rotacion']
 
