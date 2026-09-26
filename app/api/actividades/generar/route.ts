@@ -24,11 +24,13 @@ import {
   TIPO_ACLARACION, eventosNuevosDeAclaracion, marcadorAclaracion,
   descripcionAclaracion,
 } from '@/lib/aclaraciones'
+/* `lib/seguimiento-auditoria.ts` ya no se llama desde aquí: las cuentas
+   auditadas entran en la rotación general como una clase más de foco. Tenerlas
+   por una vía aparte duplicaba la tarea y entregaba las 22 de golpe la primera
+   semana. El módulo se conserva porque `focos-riesgo` usa `auditadasEnRiesgo`
+   para marcar la clase, y porque su validador de cierre sigue vigente. */
 import {
-  auditadasEnRiesgo, descripcionSeguimientoAuditoria, TIPO_AUDITORIA,
-} from '@/lib/seguimiento-auditoria'
-import {
-  focosDeRiesgo, ordenarFocos, descripcionFoco, TIPO_FOCO,
+  focosDeRiesgo, ordenarFocos, descripcionFoco, loteSemanal, TIPO_FOCO,
   type CuentaParaFoco,
 } from '@/lib/focos-riesgo'
 import { ahoraEnMexico, fechaLocal, selloMexico } from '@/lib/fecha-local'
@@ -245,127 +247,6 @@ async function construirAclaraciones(
 }
 
 /**
- * Seguimiento a las cuentas con auditoría entregada que están en riesgo.
- *
- * Instrucción de dirección del 25 sep 2026. Ver lib/seguimiento-auditoria.ts
- * para el porqué; aquí solo está el cómo.
- *
- * DOS CANDADOS QUE IMPORTAN:
- *
- * 1. UNA VEZ POR CUENTA, PARA SIEMPRE. El dedup mira TODAS las semanas, no solo
- *    la actual: si la actividad ya existe —abierta o cerrada— no se vuelve a
- *    crear. Son 22 cuentas; regenerarlas cada lunes sería volver a las quince
- *    semanales que dirección ya bajó a cuatro porque no se cumplían.
- *
- * 2. NO VENCE. Se implementa EXCLUYENDO EL TIPO en el auto-bloqueo de
- *    `app/api/actividades/route.ts`, exactamente igual que la aclaración de
- *    baja — no con una fecha nula. No consta que la columna admita null, y
- *    equivocarse ahí tumbaría la generación entera del lunes. La fecha se
- *    llena como en todas las demás; lo que la protege es el tipo.
- *
- * Y como las aclaraciones, NO pasa por `evaluarElegibilidad`: que la cuenta
- * esté en riesgo ES el motivo de la actividad, no un impedimento.
- */
-async function construirSeguimientosAuditoria(
-  asesor: string, semanaInicio: string,
-): Promise<AnyAct[]> {
-  const pendientes = auditadasEnRiesgo(asesor)
-  if (!pendientes.length) return []
-
-  // Se calcula AQUÍ, no se toma de `construirAclaraciones`: aquella lo declara
-  // dentro de su propio ámbito y referenciarlo desde esta función sería un
-  // ReferenceError en tiempo de ejecución — el tipo de fallo que no se ve hasta
-  // que el lunes nadie recibe actividades.
-  const vSem = new Date(semanaInicio + 'T12:00:00')
-  vSem.setDate(vSem.getDate() + 4)
-  const fechaVencimiento = toISO(vSem)
-
-  const { data: cuentas } = await supabaseAdmin
-    .from('cuentas')
-    .select('id, cid, consecutivo, empresa, asesor, estado, health_score')
-    .eq('asesor', asesor)
-  if (!cuentas?.length) return []
-
-  const porNombre = new Map<string, typeof cuentas[number]>()
-  for (const c of cuentas) porNombre.set(normalizarNombre(c.empresa), c)
-
-  // El dedup mira TODO el histórico de este tipo, no solo esta semana.
-  const { data: yaHay } = await supabaseAdmin
-    .from('actividades')
-    .select('cuenta_id')
-    .eq('asesor', asesor)
-    .eq('tipo', TIPO_AUDITORIA)
-  const yaTiene = new Set((yaHay ?? []).map(a => a.cuenta_id))
-
-  const filas: AnyAct[] = []
-  const sinCuenta: string[] = []
-  for (const p of pendientes) {
-    const cuenta = porNombre.get(normalizarNombre(p.nombre))
-    if (!cuenta) { sinCuenta.push(p.nombre); continue }
-    if (yaTiene.has(cuenta.id)) continue
-
-    filas.push({
-      asesor,
-      cuenta_id:         cuenta.id,
-      cid:               cuenta.cid,
-      consecutivo:       cuenta.consecutivo ?? '',
-      empresa:           cuenta.empresa,
-      _clase:            'auditoria',
-      tipo:              TIPO_AUDITORIA,
-      descripcion:       descripcionSeguimientoAuditoria(p),
-      prioridad:         'alta',
-      fecha_programada:  semanaInicio,
-      // Se llena como en todas las demás. Lo que la hace «no vencer» es que su
-      // TIPO está excluido del auto-bloqueo, no esta fecha.
-      fecha_vencimiento: fechaVencimiento,
-      semana_inicio:     semanaInicio,
-      estado:            'pendiente',
-      semaforo_cuenta:   'naranja',
-      hs_cuenta:         cuenta.health_score,
-    } as AnyAct)
-  }
-
-  if (sinCuenta.length) {
-    // Una auditoría cuyo nombre no empata con ninguna cuenta del asesor es un
-    // problema de cartera, no un no-evento: se dice en el log en vez de que
-    // desaparezca en silencio.
-    console.warn(
-      `[SeguimientoAuditoría] ${sinCuenta.length} auditoría(s) en riesgo de ${asesor} sin cuenta que empate: ${sinCuenta.join(' · ')}`,
-    )
-  }
-  return filas
-}
-
-/**
- * Cuántos focos del acervo se entregan por asesor cada semana.
- *
- * DOS por encima de las cuatro rutinarias, o sea seis en total. No es un número
- * tímido, es el único que hace cumplible la instrucción: al medir el acervo
- * completo salieron unas 26 cuentas por asesor entre auditorías, desapariciones
- * del corte y consumo bajo. Entregarlas de golpe es repetir exactamente el
- * error de las quince semanales que dirección ya bajó a cuatro porque no se
- * cumplían — y una regla que no se puede cumplir se ignora entera, incluida la
- * parte que sí importaba.
- *
- * Con dos por semana el acervo se drena en unos tres meses, empezando por lo más
- * grave: primero las que desaparecieron del corte, luego las auditadas, luego el
- * consumo. Subirlo es cambiar este número.
- */
-const FOCOS_POR_SEMANA = 2
-
-/**
- * El orden en que se drena el acervo completo, auditorías incluidas.
- *
- * `sin_corte` primero porque es la señal más fuerte y la más reversible: si la
- * cuenta dejó de facturarse, cada semana cuenta. Después la auditoría, que ya
- * tiene el diagnóstico hecho y solo falta ejecutarlo. El consumo al final: es
- * real, pero una cuenta que consume poco sigue pagando.
- */
-const ORDEN_ACERVO: Record<string, number> = {
-  sin_corte: 0, auditoria: 1, consumo_cero: 2, consumo_bajo: 3,
-}
-
-/**
  * Los focos de riesgo que tocan esta semana.
  *
  * MISMAS DOS REGLAS que el seguimiento a auditoría: van FUERA del tope de cuatro
@@ -387,26 +268,55 @@ async function construirFocosDeRiesgo(
     .eq('asesor', asesor)
   if (!cuentas?.length) return []
 
-  const todos = ordenarFocos(await focosDeRiesgo(cuentas as CuentaParaFoco[]))
+  /* El último seguimiento REGISTRADO de cada cuenta. Es el dato que ordena todo
+     el turno, porque es el que más predice la baja: 28% de churn en las cuentas
+     sin seguimiento contra 13% en las que sí lo tienen. */
+  const { data: segs } = await supabaseAdmin
+    .from('seguimientos')
+    .select('cuenta_id, fecha')
+    .eq('asesor', asesor)
+  const ultimoSeg = new Map<string, string>()
+  for (const s of (segs ?? []) as Array<{ cuenta_id: string; fecha: string }>) {
+    const f = String(s.fecha ?? '').slice(0, 10)
+    if (!f) continue
+    const prev = ultimoSeg.get(s.cuenta_id)
+    if (!prev || f > prev) ultimoSeg.set(s.cuenta_id, f)
+  }
+
+  const todos = ordenarFocos(
+    await focosDeRiesgo(cuentas as CuentaParaFoco[], ultimoSeg, hoyEnMexico()),
+  )
   if (!todos.length) return []
 
+  /* ROTACIÓN, no acervo que se agota.
+     La versión anterior creaba la actividad UNA vez por cuenta y para siempre.
+     Con la instrucción de cubrirlas TODAS eso no sirve: una cuenta atendida en
+     octubre tiene que volver a tocarle turno antes de los 60 días. Así que el
+     dedup mira solo la vuelta en curso —las últimas 8 semanas—, no la historia
+     completa. */
+  const desde = new Date(semanaInicio + 'T12:00:00')
+  desde.setDate(desde.getDate() - 7 * 8)
   const { data: yaHay } = await supabaseAdmin
     .from('actividades')
     .select('cuenta_id')
     .eq('asesor', asesor)
     .eq('tipo', TIPO_FOCO)
+    .gte('semana_inicio', toISO(desde))
   const yaTiene = new Set((yaHay ?? []).map(a => a.cuenta_id))
 
   const vSem = new Date(semanaInicio + 'T12:00:00')
   vSem.setDate(vSem.getDate() + 4)
   const fechaVenc = toISO(vSem)
 
-  // Se devuelven TODOS los pendientes, sin recortar: el tope se aplica una sola
-  // vez más arriba, sobre el acervo completo —auditorías incluidas—, porque si
-  // cada función recortara por su cuenta el asesor recibiría dos de cada una y
-  // el presupuesto real sería el doble del declarado.
+  /* El lote se calcula por CARTERA, no es un número fijo: una de 54 cuentas
+     necesita más por semana que una de 36 para dar la misma vuelta de 60 días.
+     Dan tiene 54 vivas y 27 de ellas sin un solo seguimiento en su historia;
+     Claudia 36 con 9; Fátima 45 con 10. */
+  const cupo = loteSemanal(todos.length)
+
   const filas: AnyAct[] = []
   for (const f of todos) {
+    if (filas.length >= cupo) break
     if (yaTiene.has(f.cuenta.id)) continue
     filas.push({
       _clase: f.clase,
@@ -417,7 +327,11 @@ async function construirFocosDeRiesgo(
       empresa:           f.cuenta.empresa,
       tipo:              TIPO_FOCO,
       descripcion:       descripcionFoco(f),
-      prioridad:         f.clase === 'sin_corte' ? 'alta' : 'media',
+      // La prioridad sigue lo MEDIDO: alta solo para las dos señales que de
+      // verdad multiplican el riesgo de baja (nunca tocada ×2.25, sin contacto
+      // ×2.02). `sin_corte` era mi prioridad máxima y resultó que de las 22
+      // cuentas que desaparecieron del corte no se fue ninguna.
+      prioridad:         (f.clase === 'nunca_tocada' || f.clase === 'sin_contacto') ? 'alta' : 'media',
       fecha_programada:  semanaInicio,
       // Como la aclaración y el seguimiento a auditoría: lo que la hace «no
       // vencer» es que su TIPO está excluido del auto-bloqueo, no esta fecha.
@@ -941,31 +855,27 @@ export async function POST(req: NextRequest) {
        catorce — las quince semanales ya se intentaron y fracasaron. Es un
        acervo que se agota, no una carga que se repite. Ver
        lib/seguimiento-auditoria.ts. */
-    /* EL ACERVO: auditorías en riesgo + cuentas que desaparecieron del corte +
-       consumo cero + consumo bajo. «Todas, son focos que deben atenderse»
-       (dirección, 25 sep 2026).
+    /* EL TURNO DE SEGUIMIENTO. «Necesito que se dé seguimiento a TODAS, si es
+       por tickets, si es por falla, si es por downgrade, si es por bajo
+       consumo, etc., pero todas deben tener seguimiento» (dirección, 25 sep
+       2026).
 
-       Se juntan y se recortan UNA SOLA VEZ, con un presupuesto compartido. La
-       primera versión recortaba cada lista por separado y el asesor habría
-       recibido dos de cada una: el presupuesto real habría sido el doble del
-       declarado, y a Claudia le habrían caído 10 auditorías de golpe encima de
-       sus 4 rutinarias. Dieciséis. Exactamente las quince que ya fracasaron.
+       Cubre la cartera VIVA completa por rotación, no un subconjunto elegido:
+       135 cuentas —Dan 54, Fátima 45, Claudia 36— y nadie debe pasar de 60 días
+       sin contacto registrado. El tamaño del lote lo calcula `loteSemanal` a
+       partir del tamaño de la cartera, porque una de 54 necesita más por semana
+       que una de 36 para dar la misma vuelta.
 
-       El orden lo da ORDEN_ACERVO: lo más grave primero, y a igual gravedad lo
-       que más factura. Las aclaraciones de baja NO entran en este presupuesto —
-       son obligación por instrucción y van todas, siempre. */
-    const acervo = [
-      ...(await construirSeguimientosAuditoria(asesor, semanaInicio)),
-      ...(await construirFocosDeRiesgo(asesor, semanaInicio)),
-    ]
-      .sort((a, b) => {
-        const ia = ORDEN_ACERVO[String((a as Record<string, unknown>)._clase ?? '')] ?? 9
-        const ib = ORDEN_ACERVO[String((b as Record<string, unknown>)._clase ?? '')] ?? 9
-        return ia - ib
-      })
-      .slice(0, FOCOS_POR_SEMANA)
-      // `_clase` solo sirve para ordenar aquí: no es una columna de la tabla y
-      // si viajara al insert, Supabase rechazaría la fila entera.
+       Las auditorías ya NO van por su propia vía: entran en esta rotación como
+       una clase más. Tenerlas aparte duplicaba la tarea y, peor, entregaba las
+       22 de golpe la primera semana — a Claudia le habrían caído 10 encima de
+       sus 4 rutinarias, que son las quince que ya fracasaron.
+
+       Las aclaraciones de baja NO entran en este presupuesto: son obligación
+       por instrucción y van todas, siempre. */
+    const acervo = (await construirFocosDeRiesgo(asesor, semanaInicio))
+      // `_clase` solo sirve para ordenar dentro de la función: no es una
+      // columna de la tabla y si viajara al insert, Supabase rechazaría la fila.
       .map(a => {
         const { _clase, ...fila } = a as Record<string, unknown>
         void _clase

@@ -1,67 +1,105 @@
 /**
- * lib/focos-riesgo.ts — los focos que obligan actividad SAC.
+ * lib/focos-riesgo.ts — TODAS las cuentas vivas reciben seguimiento, por turno.
  *
  * INSTRUCCIÓN DE DIRECCIÓN (25 sep 2026)
  * --------------------------------------
- * Primero: «seguimiento a las cuentas que tienen auditoría y están en riesgo,
- * con actividades SAC. Objetivo prevenir churn.»
- * Después, al medir el bajo consumo: «Todas, son focos que deben atenderse. Son
- * cuentas que tienen un riesgo y ellos son los responsables.»
- * Y el límite: «Solo sigue cumpliéndose la regla: churn confirmado NO aplica
- * para actividad SAC.»
+ * «Necesito que se dé seguimiento a TODAS, si es por tickets, si es por falla,
+ * si es por downgrade, si es por bajo consumo, etc., pero todas deben tener
+ * seguimiento.» Y el límite que se mantiene: «churn confirmado NO aplica para
+ * actividad SAC.»
  *
- * Nace de ALTERNET: auditoría en junio, baja en septiembre, y CERO actividades
- * SAC en toda su historia. Una auditoría que no se convierte en trabajo
- * asignado es un documento, no una intervención.
+ * POR QUÉ ESTE DISEÑO Y NO EL QUE TENÍA ANTES
+ * -------------------------------------------
+ * La primera versión SELECCIONABA las cuentas «en riesgo» con umbrales que yo
+ * inventé: consumo bajo 20%, tantos tickets, tantas fallas. Se probó contra el
+ * churn que ya ocurrió —52 bajas de 222 cuentas— y el resultado fue demoledor:
+ * **el puntaje compuesto no separaba mejor que el azar** (en el top 10 cazaba 1
+ * de 52 cuando el azar daría 5%). Ver scripts/valida-riesgo.py.
  *
- * CUATRO FOCOS, NO UNO — porque no son el mismo problema
- * ------------------------------------------------------
- *   sin_corte       La cuenta ESTÁ ACTIVA, aparecía en cortes anteriores y
- *                   DESAPARECIÓ del último. Es la señal más fuerte de las
- *                   cuatro: el consumo bajo dice «usa poco»; desaparecer del
- *                   corte puede significar que ya ni se le factura. Al medirlo
- *                   el 25 sep salieron 19, con Alianza Multimarca ($26,049) y
- *                   LINEACEL ($13,802) entre ellas.
- *   auditoria       Auditoría entregada y la cuenta en riesgo. 22 cuentas.
- *   consumo_cero    Consumo de voz en 0% contra una base medible.
- *   consumo_bajo    Por debajo del umbral, con base medible.
+ * Así que en vez de inventar otro puntaje se midió, señal por señal, la tasa de
+ * baja CON y SIN esa señal (scripts/senales-que-predicen.py, corte de julio):
  *
- * LO QUE NUNCA ENTRA
- * ------------------
- * Churn confirmado y cancelación reportada. Es regla expresa y NO se toca: a
- * una cuenta ya perdida no se le pide trabajo de retención — lo que le
- * corresponde es la Aclaración de baja, que es otra cosa y va por su lado.
- * Estas tareas se saltan `evaluarElegibilidad` a propósito (igual que las
- * aclaraciones: que la cuenta esté en riesgo ES el motivo), así que el candado
- * de churn se pone aquí explícitamente o no se pone en ningún lado.
+ *   sin seguimiento registrado   28% vs 13%   ×2.25  <- la más fuerte
+ *   más de 60 días sin contacto  28% vs 14%   ×2.02
+ *   uso por debajo del 40%       28% vs 18%   ×1.55
+ *   health score < 60            24% vs 22%   ×1.08  <- casi no distingue
+ *   15 o más tickets             25% vs 23%   ×1.07  <- no predice
+ *   consumo en 0%                23% vs 23%   ×0.98  <- no predice
+ *   2 o más fallas               12% vs 25%   ×0.46  <- predice AL REVÉS
+ *   desapareció del corte         0% vs 26%   ×0.00  <- predice AL REVÉS
  *
- * LA TRAMPA DEL CHAT, QUE ESTE TABLERO YA PISÓ
- * --------------------------------------------
- * 46 de las 222 cuentas tienen chat activo. Su consumo de VOZ puede ser cero y
- * el servicio estar vivísimo: HomiRent salió marcada «Sin uso» teniendo 163,063
- * mensajes. Por eso la cuenta con chat SÍ genera foco —dirección dijo todas—
- * pero el texto de la tarea NO afirma que no use el servicio: dice que la voz
- * está en cero y que hay que verificar el chat antes de concluir. Mismo foco
- * atendido, sin una afirmación falsa que le quite credibilidad al tablero.
- * Ver [[feedback-servicios-no-inferir]].
+ * Dos lecciones que cambiaron el código:
+ *
+ *   1. **Lo que más predice la baja es no tener seguimiento registrado.** No es
+ *      burocracia: es el mejor indicador disponible. Por eso la regla ya no
+ *      selecciona un subconjunto «en riesgo» — cubre a TODAS por turno, que es
+ *      exactamente lo que apaga esa señal en la cartera entera.
+ *
+ *   2. **Una cuenta que reporta fallas se va MENOS.** Tiene sentido de negocio:
+ *      el que reclama todavía habla contigo; el que se va en silencio es el
+ *      peligroso. Las fallas y los tickets siguen siendo motivo de conversación
+ *      —dirección lo pidió— pero NO mandan en el orden, porque no predicen.
+ *
+ * Con la honestidad debida: es correlación, no causa. Puede ser que no se
+ * registre sobre cuentas que ya venían muriendo. Pero en cualquiera de las dos
+ * lecturas es el mejor dato que hay, y medir cada mes es barato.
+ *
+ * LA CADENCIA
+ * -----------
+ * Son 135 cuentas vivas: Dan 54, Fátima 45, Claudia 36. Y el punto de partida
+ * mide el problema: **Dan tiene 27 de sus 54 sin un solo seguimiento en toda su
+ * historia**, Fátima 10 de 45 y Claudia 9 de 36.
+ *
+ * El objetivo es que ninguna pase de 60 días sin contacto registrado, así que
+ * el tamaño del lote se calcula por cartera en vez de ser un número fijo: una
+ * cartera de 54 necesita más por semana que una de 36 para dar la misma vuelta.
  */
 import { todosLosCortes, ultimoMesDeCorte, type CorteCuenta } from './cortes-cuenta'
-import { bloqueoComercialDeCuenta } from './elegibilidad'
+import { bloqueoComercialDeCuenta, normalizarNombre } from './elegibilidad'
 import { auditadasEnRiesgo } from './seguimiento-auditoria'
-import { normalizarNombre } from './elegibilidad'
+import { ticketStatsCuenta } from './tickets-cuenta'
 
 export const TIPO_FOCO = 'foco_riesgo' as const
 
-/** Por debajo de esto se considera consumo bajo. Sobre la base REAL de minutos. */
-export const UMBRAL_CONSUMO_BAJO = 20
+/** Nadie debe pasar de aquí sin contacto registrado. Medido: ×2.02 de riesgo. */
+export const DIAS_SIN_CONTACTO_LIMITE = 60
 
-export type ClaseFoco = 'sin_corte' | 'auditoria' | 'consumo_cero' | 'consumo_bajo'
+/** Semanas de la vuelta completa. 60 días redondeados a semanas enteras. */
+const SEMANAS_DE_VUELTA = 8
 
 /**
- * El orden en que se drenan. `sin_corte` primero porque es la señal más fuerte
- * y la más reversible: si la cuenta dejó de facturarse, cada semana cuenta.
+ * El lote NO descuenta las cuatro rutinarias, y es una corrección deliberada.
+ *
+ * La primera versión restaba 4 suponiendo que el lote rutinario ya cubría
+ * cuentas. No las cubre para este fin: las cuatro rutinarias son de COMPLETAR
+ * PERFIL Y RADAR —trabajo de dato, no conversación con el cliente— y además su
+ * selección es otra, así que no garantizan tocar cuentas distintas. Si se
+ * descuentan, la vuelta no cierra: a Claudia le tocarían 2 por semana, 16 en
+ * ocho semanas, para 36 cuentas. La mitad se quedaría sin seguimiento.
  */
-export const ORDEN_FOCO: ClaseFoco[] = ['sin_corte', 'auditoria', 'consumo_cero', 'consumo_bajo']
+const MIN_POR_SEMANA = 2
+const MAX_POR_SEMANA = 8
+
+/**
+ * Las clases, EN EL ORDEN EN QUE SE ATIENDEN.
+ *
+ * El orden sale de los lifts medidos, no de la intuición. `sin_contacto`
+ * primero porque es la señal más fuerte que existe; `sin_corte` casi al final
+ * porque de las 22 cuentas que desaparecieron del corte NO se fue ninguna —era
+ * mi foco de máxima prioridad y estaba al revés.
+ */
+export type ClaseFoco =
+  | 'nunca_tocada'    // jamás tuvo un seguimiento registrado
+  | 'sin_contacto'    // pasó de los 60 días
+  | 'uso_bajo'        // por debajo del 40% de su base real
+  | 'auditoria'       // auditoría entregada y cuenta en riesgo
+  | 'soporte'         // tickets o fallas que conviene conversar
+  | 'sin_corte'       // desapareció del último corte
+  | 'rotacion'        // le toca su turno y no tiene ninguna señal encendida
+
+export const ORDEN_FOCO: ClaseFoco[] = [
+  'nunca_tocada', 'sin_contacto', 'uso_bajo', 'auditoria', 'soporte', 'sin_corte', 'rotacion',
+]
 
 export interface CuentaParaFoco {
   id: string
@@ -78,118 +116,156 @@ export interface CuentaParaFoco {
 export interface Foco {
   cuenta: CuentaParaFoco
   clase: ClaseFoco
-  /** Una línea para el asunto y los listados. */
   titulo: string
-  /** El cuerpo de la actividad: qué se sabe y qué hay que hacer. */
   detalle: string
-  /** Para ordenar dentro de la misma clase: primero lo que más factura. */
+  /** Días desde el último seguimiento registrado. `null` = nunca hubo. */
+  diasSinContacto: number | null
   peso: number
 }
 
-function pct(c: CorteCuenta): number | null {
+function uso(c: CorteCuenta): number | null {
   return c.base && c.base > 0 ? (100 * c.cons) / c.base : null
 }
 
 /**
- * Los focos de una cartera. Se pasan las cuentas ya leídas para no consultar
- * Supabase desde aquí: esta función es pura salvo por la lectura cacheada del
- * Excel de cortes.
+ * Cuántos seguimientos por semana necesita esta cartera para que nadie pase de
+ * 60 días. Escala con el tamaño: una cartera de 54 no se cubre al mismo ritmo
+ * que una de 36.
+ *
+ * Al 25 sep 2026: Dan 54 vivas -> 7 por semana · Fátima 45 -> 6 · Claudia 36 -> 5.
+ *
+ * Si ese ritmo resulta insostenible, la palanca correcta NO es recortar el lote
+ * —eso deja cuentas sin cubrir y calladamente rompe la instrucción— sino ampliar
+ * la ventana: con 90 días en vez de 60, Dan baja a 5, Fátima a 4 y Claudia a 3.
+ * Es una decisión de dirección, y se toma mirando este número.
  */
-export async function focosDeRiesgo(cuentas: CuentaParaFoco[]): Promise<Foco[]> {
+export function loteSemanal(cuentasVivas: number): number {
+  const porSemana = Math.ceil(cuentasVivas / SEMANAS_DE_VUELTA)
+  return Math.max(MIN_POR_SEMANA, Math.min(MAX_POR_SEMANA, porSemana))
+}
+
+/**
+ * Los focos de una cartera: TODAS las cuentas vivas, ordenadas por turno.
+ *
+ * `ultimoSeguimiento` es un mapa cuenta_id -> 'AAAA-MM-DD' del último
+ * seguimiento registrado. Se recibe ya leído para no consultar Supabase desde
+ * aquí.
+ */
+export async function focosDeRiesgo(
+  cuentas: CuentaParaFoco[],
+  ultimoSeguimiento: Map<string, string>,
+  hoy: string,
+): Promise<Foco[]> {
   const mapa = await todosLosCortes()
   const ultimoMes = await ultimoMesDeCorte()
-
   const auditadas = new Set(auditadasEnRiesgo().map(a => normalizarNombre(a.nombre)))
   const out: Foco[] = []
 
   for (const c of cuentas) {
-    /* CANDADO DE CHURN. Regla expresa de dirección, y va primero que todo lo
-       demás: una cuenta con churn confirmado o cancelación reportada NO recibe
-       actividad SAC, le toca la Aclaración de baja. */
+    /* CANDADO DE CHURN, primero que nada. Regla expresa y no se toca: a una
+       cuenta ya perdida no se le pide trabajo de retención — le corresponde la
+       Aclaración de baja, que va por su lado y fuera de este presupuesto.
+       Estas actividades NO pasan por `evaluarElegibilidad` a propósito, así que
+       el candado se pone aquí o no se pone en ningún lado. */
     const bloqueo = bloqueoComercialDeCuenta(c as never)
     if (bloqueo.codigos.includes('churn_grc') || bloqueo.codigos.includes('cancelacion')) continue
 
-    // Tampoco las que ya no son cartera viva: dormidas y canceladas.
     const estado = String(c.estado ?? '').trim()
-    if (estado === 'cancelado' || estado === 'hibernacion') continue
+    if (estado !== 'activo' && estado !== 'en_riesgo') continue
 
     const fact = Number(c.facturacion ?? 0)
     const cid = String(c.cid ?? '').trim()
     const cortes = cid ? (mapa.get(cid) ?? []) : []
+    const ultimoCorte = cortes.length ? cortes[cortes.length - 1] : null
+    const u = ultimoCorte ? uso(ultimoCorte) : null
     const chat = Boolean(c.tiene_chat_activo)
 
-    /* ── 1. Desapareció del último corte ──────────────────────────────
-       Solo cuenta si ANTES sí aparecía: una cuenta que nunca ha estado en
-       ningún corte es un problema de cruce de CID, no una señal de negocio, y
-       mezclarlas ahogaría la señal real. Al medirlo, 44 activas no aparecen
-       nunca y 19 sí aparecían y dejaron de hacerlo: son estas 19. */
-    if (cortes.length > 0 && ultimoMes && cortes[cortes.length - 1].mes < ultimoMes) {
-      out.push({
-        cuenta: c, clase: 'sin_corte', peso: fact,
-        titulo: `Desapareció del corte de ${ultimoMes}`,
-        detalle:
-          `La cuenta está ACTIVA y venía apareciendo en los cortes de facturación ` +
-          `—el último suyo es de ${cortes[cortes.length - 1].mes}— pero NO aparece en el de ` +
-          `${ultimoMes}.\n\n` +
-          `Esto es más fuerte que un consumo bajo: puede significar que el servicio dejó de ` +
-          `facturarse. Verifica con facturación si sigue activa y con el cliente si hubo un ` +
-          `cambio que no nos avisaron. Si ya no hay servicio, hay que documentarlo; si sí lo ` +
-          `hay, el corte tiene un hueco que corregir.`,
-      })
-      continue   // una cuenta, un foco: el más grave manda
+    const ult = ultimoSeguimiento.get(c.id) ?? ''
+    let dias: number | null = null
+    if (ult) {
+      const ms = new Date(hoy + 'T12:00:00').getTime() - new Date(ult + 'T12:00:00').getTime()
+      dias = Math.floor(ms / 86400000)
     }
 
-    /* ── 2. Auditoría entregada y en riesgo ───────────────────────── */
+    const tk = ticketStatsCuenta(c.cid, c.empresa)
+
+    /* ── La razón de la conversación ──────────────────────────────────
+       Se elige UNA: la que manda según lo medido. Las demás se mencionan
+       dentro del texto, porque todas son motivo de conversación aunque no
+       decidan el turno. */
+    let clase: ClaseFoco = 'rotacion'
+    let titulo = 'Le toca su turno de seguimiento'
+    if (!ult) {
+      clase = 'nunca_tocada'
+      titulo = 'Nunca ha tenido un seguimiento registrado'
+    } else if (dias !== null && dias > DIAS_SIN_CONTACTO_LIMITE) {
+      clase = 'sin_contacto'
+      titulo = `${dias} días sin contacto registrado`
+    } else if (u !== null && u < 40) {
+      clase = 'uso_bajo'
+      titulo = `Usa el ${u.toFixed(0)}% de su plan`
+    } else if (auditadas.has(normalizarNombre(c.empresa))) {
+      clase = 'auditoria'
+      titulo = 'Auditoría entregada y cuenta en riesgo'
+    } else if (tk.total >= 15 || tk.fallas >= 2) {
+      clase = 'soporte'
+      titulo = `${tk.total} tickets · ${tk.fallas} fallas`
+    } else if (ultimoCorte && ultimoMes && ultimoCorte.mes < ultimoMes) {
+      clase = 'sin_corte'
+      titulo = `No aparece en el corte de ${ultimoMes}`
+    }
+
+    /* El contexto: todo lo que hay que saber antes de llamar, en un solo sitio,
+       para que el asesor no tenga que ir a buscarlo a cuatro pantallas. */
+    const ctx: string[] = []
+    ctx.push(ult
+      ? `Último seguimiento registrado: ${ult} (${dias} días).`
+      : 'NUNCA se le ha registrado un seguimiento.')
+    if (ultimoCorte) {
+      ctx.push(u !== null
+        ? `Corte de ${ultimoCorte.mes}: usó ${Math.round(ultimoCorte.cons)} de ${ultimoCorte.base} min (${u.toFixed(0)}%), plan «${ultimoCorte.plan}».`
+        : `Corte de ${ultimoCorte.mes}: plan «${ultimoCorte.plan}», sin base de minutos medible.`)
+      if (ultimoMes && ultimoCorte.mes < ultimoMes) {
+        ctx.push(`OJO: no aparece en el corte de ${ultimoMes}. Verifica con facturación si sigue activa.`)
+      }
+    } else {
+      ctx.push('Sin cortes de facturación cruzados por su CID.')
+    }
+    if (tk.comoCruzo === 'ninguno') {
+      ctx.push('Sin tickets cruzados en el export de Zoho (puede operar con otro CID).')
+    } else {
+      ctx.push(`Tickets históricos: ${tk.total}, de los cuales ${tk.fallas} marcados como falla.`)
+    }
+    if (chat) ctx.push('Tiene CHAT activo: su consumo de voz no cuenta toda su operación.')
     if (auditadas.has(normalizarNombre(c.empresa))) {
-      continue   // lo cubre construirSeguimientosAuditoria, que ya trae los hallazgos
+      ctx.push('Tiene auditoría entregada — ábrela en /auditoria antes de llamar.')
     }
 
-    /* ── 3 y 4. Consumo ───────────────────────────────────────────── */
-    const ultimo = cortes.length ? cortes[cortes.length - 1] : null
-    if (!ultimo || ultimo.mes !== ultimoMes) continue
-    const p = pct(ultimo)
-    if (p === null) continue      // sin base medible: no es 0%, es no medible
-
-    if (p < 0.0001) {
-      out.push({
-        cuenta: c, clase: 'consumo_cero', peso: fact,
-        titulo: chat ? 'Cero consumo de VOZ (tiene chat activo)' : 'Cero consumo',
-        detalle: chat
-          ? `En el corte de ${ultimoMes} esta cuenta registra CERO minutos de voz sobre una ` +
-            `base de ${ultimo.base} (plan «${ultimo.plan}»).\n\n` +
-            `OJO ANTES DE LLAMAR: esta cuenta tiene CHAT ACTIVO. Cero voz NO significa que no ` +
-            `use el servicio — puede estar operando todo por chat. Verifica su uso de chat ` +
-            `primero y lleva ese dato a la conversación. Si el chat también está bajo, ahí sí ` +
-            `hay un problema de adopción que atender.`
-          : `En el corte de ${ultimoMes} esta cuenta registra CERO minutos consumidos sobre una ` +
-            `base de ${ultimo.base} (plan «${ultimo.plan}»).\n\n` +
-            `Paga y no usa. Averigua por qué: ¿cambió el proceso, se fueron los usuarios, hay ` +
-            `una falla técnica que nadie reportó? Una cuenta que paga sin usar es la que menos ` +
-            `resistencia pone a cancelar.`,
-      })
-      continue
-    }
-
-    if (p < UMBRAL_CONSUMO_BAJO) {
-      out.push({
-        cuenta: c, clase: 'consumo_bajo', peso: fact,
-        titulo: `Consumo al ${p.toFixed(0)}% de su plan`,
-        detalle:
-          `En el corte de ${ultimoMes} consumió ${Math.round(ultimo.cons)} minutos de una base ` +
-          `de ${ultimo.base} (plan «${ultimo.plan}»): ${p.toFixed(1)}%.` +
-          (chat ? ` La cuenta también tiene CHAT ACTIVO, así que parte de su operación puede ` +
-                  `estar ahí — revísalo antes de concluir.` : '') +
-          `\n\nUn plan muy por encima del uso es una conversación de renovación perdida antes ` +
-          `de empezar. Verifica si el plan quedó grande, si hay usuarios que dejaron de usarlo, ` +
-          `o si el volumen se fue a otro canal. Trae una propuesta, no solo el dato.`,
-      })
-    }
+    out.push({
+      cuenta: c, clase, titulo, diasSinContacto: dias, peso: fact,
+      detalle: ctx.join('\n  · '),
+    })
   }
 
   return out
 }
 
-/** Reparto por asesor y clase, para poder decir el tamaño antes de generarlo. */
+/**
+ * El turno. Primero la clase que más predice, y dentro de ella la que lleva más
+ * tiempo sin contacto; a igualdad, la que más factura.
+ */
+export function ordenarFocos(focos: Foco[]): Foco[] {
+  return focos.slice().sort((a, b) => {
+    const ia = ORDEN_FOCO.indexOf(a.clase)
+    const ib = ORDEN_FOCO.indexOf(b.clase)
+    if (ia !== ib) return ia - ib
+    const da = a.diasSinContacto ?? 99999
+    const db = b.diasSinContacto ?? 99999
+    if (da !== db) return db - da
+    return b.peso - a.peso
+  })
+}
+
 export function repartoFocos(focos: Foco[]): Record<string, Record<string, number>> {
   const r: Record<string, Record<string, number>> = {}
   for (const f of focos) {
@@ -200,31 +276,26 @@ export function repartoFocos(focos: Foco[]): Record<string, Record<string, numbe
   return r
 }
 
-/**
- * Ordena el acervo: primero la clase más grave, y dentro de ella lo que más
- * factura. Es el orden en que se irán entregando.
- */
-export function ordenarFocos(focos: Foco[]): Foco[] {
-  return focos.slice().sort((a, b) => {
-    const ia = ORDEN_FOCO.indexOf(a.clase)
-    const ib = ORDEN_FOCO.indexOf(b.clase)
-    if (ia !== ib) return ia - ib
-    return b.peso - a.peso
-  })
-}
-
-/** El texto que va en la actividad. */
 export function descripcionFoco(f: Foco): string {
   return [
-    `[FOCO·${f.clase.toUpperCase()}] ${f.titulo} — ${f.cuenta.empresa}`,
+    `[SEGUIMIENTO·${f.clase.toUpperCase()}] ${f.titulo} — ${f.cuenta.empresa}`,
     '',
-    f.detalle,
+    'LO QUE SE SABE DE ESTA CUENTA HOY:',
+    `  · ${f.detalle}`,
+    '',
+    'QUÉ HAY QUE HACER:',
+    '  · Contactar al responsable y conversar lo de arriba.',
+    '  · Acordar UNA acción concreta con fecha, no una intención.',
     '',
     'QUÉ HAY QUE DEJAR REGISTRADO:',
     '  · Con quién hablaste: nombre, puesto y por qué vía.',
     '  · Qué se acordó, con fecha. Si no hubo acuerdo, cuál es el siguiente paso.',
+    '  · Si no lograste contacto, dilo: cuántas veces lo intentaste y cuándo.',
     '',
-    'Esta actividad NO vence y NO se vuelve a generar. Tampoco ocupa uno de los ' +
-    'cuatro lugares semanales.',
+    'Por qué importa registrarlo, con números: de las cuentas SIN seguimiento',
+    'registrado se dio de baja el 28%; de las que sí lo tienen, el 13%. Es la',
+    'señal más fuerte que tenemos — más que el health score, más que los tickets.',
+    '',
+    'Esta actividad NO vence y NO ocupa uno de los cuatro lugares semanales.',
   ].join('\n')
 }
