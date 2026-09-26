@@ -479,13 +479,21 @@ export async function getSeguimientosRango(desde: string, hasta: string): Promis
 }
 
 // Actividades SAC — conteo semanal por asesor (tabla `actividades`)
-export async function getActividadesSAC(desdeSemanainicio: string): Promise<{ asesor: string; semana_inicio: string; completada: boolean }[]> {
+/**
+ * Actividades para el medidor de Cumplimiento SAC.
+ *
+ * Trae `tipo` porque el medidor tiene que SEPARAR el lote rutinario de lo que
+ * va fuera de él. Los seguimientos por foco de riesgo son diez por semana y las
+ * aclaraciones de baja no tienen tope: sumarlos contra una meta de cuatro haría
+ * que el lunes marcara 14 de 4, que no significa nada.
+ */
+export async function getActividadesSAC(desdeSemanainicio: string): Promise<{ asesor: string; semana_inicio: string; completada: boolean; tipo: string }[]> {
   const { data, error } = await supabaseAdmin
     .from('actividades')
-    .select('asesor, semana_inicio, completada')
+    .select('asesor, semana_inicio, completada, tipo')
     .gte('semana_inicio', desdeSemanainicio)
   if (error) throw error
-  return (data ?? []) as { asesor: string; semana_inicio: string; completada: boolean }[]
+  return (data ?? []) as { asesor: string; semana_inicio: string; completada: boolean; tipo: string }[]
 }
 
 // Actividades SAC por cuenta — para el panel de historial en /cuentas/[id]

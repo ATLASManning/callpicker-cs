@@ -747,7 +747,16 @@ function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
 }
 
 // ── SAC Cumplimiento Semanal ──────────────────────────────────────────────────
-function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMap: Record<string, number[]> }) {
+function SACWeeklyPanel({
+  asesores, segsMap, asignMap, focosMap, focosAsignMap,
+}: {
+  asesores: AsesorStats[]
+  segsMap: Record<string, number[]>
+  /** Cuántas del lote rutinario tiene asignadas cada quien. Es el denominador. */
+  asignMap: Record<string, number[]>
+  focosMap: Record<string, number[]>
+  focosAsignMap: Record<string, number[]>
+}) {
   return (
     <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -761,7 +770,13 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
         {asesores.map(a => {
           const weeks = segsMap[a.asesor] ?? [0, 0, 0, 0]
           const thisWeek = weeks[0]
-          const score = Math.min((thisWeek / SAC_WEEKLY_TARGET) * 100, 100)
+          /* El denominador es lo ASIGNADO. Si no le tocó nada esta semana
+             —puede pasar si todas sus cuentas están en churn— se cae a la meta
+             para no dividir entre cero y para que el cero se vea como cero. */
+          const asignadas = (asignMap[a.asesor] ?? [0, 0, 0, 0])[0] || SAC_WEEKLY_TARGET
+          const score = Math.min((thisWeek / asignadas) * 100, 100)
+          const fCerr = (focosMap[a.asesor] ?? [0, 0, 0, 0])[0]
+          const fAsig = (focosAsignMap[a.asesor] ?? [0, 0, 0, 0])[0]
           const gaugeColor = score >= 80 ? '#22C55E' : score >= 50 ? '#EAB308' : '#EF4444'
           const maxPrev = Math.max(...weeks.slice(1), 1)
           const weekLabel = ['S-2', 'S-3', 'S-4']
@@ -784,9 +799,22 @@ function SACWeeklyPanel({ asesores, segsMap }: { asesores: AsesorStats[]; segsMa
 
               <p style={{ fontSize: 12, color: TX_MID, textAlign: 'center' as const, marginTop: -4 }}>
                 <span style={{ fontWeight: 800, fontSize: 15, color: gaugeColor }}>{thisWeek}</span>
-                {' '}<span style={{ color: TX_LOW }}>/ {SAC_WEEKLY_TARGET}</span>
-                {' '}<span style={{ color: TX_LOW }}>cuentas cerradas esta semana</span>
+                {' '}<span style={{ color: TX_LOW }}>/ {asignadas}</span>
+                {' '}<span style={{ color: TX_LOW }}>
+                  cuentas cerradas esta semana
+                  {asignadas !== SAC_WEEKLY_TARGET && ` · le tocaron ${asignadas}, la meta son ${SAC_WEEKLY_TARGET}`}
+                </span>
               </p>
+
+              {/* Los seguimientos por foco van FUERA del tope de cuatro, así que
+                  se cuentan aparte. Se muestran solo cuando existen: antes del
+                  lunes 28 no hay ninguno y una línea en cero sería ruido. */}
+              {fAsig > 0 && (
+                <p style={{ fontSize: 11, color: TX_LOW, textAlign: 'center' as const, marginTop: -2 }}>
+                  + <span style={{ fontWeight: 700, color: fCerr >= fAsig ? '#22C55E' : '#EAB308' }}>{fCerr}</span>
+                  {' '}de {fAsig} seguimientos de cuenta <span style={{ opacity: 0.75 }}>(fuera del tope)</span>
+                </p>
+              )}
 
               {/* Tendencia: últimas 3 semanas */}
               <div style={{ width: '100%' }}>
@@ -977,17 +1005,50 @@ export default async function DashboardPage() {
     .filter(c => !(c.consecutivo && auditSet.has(c.consecutivo.toUpperCase())))
     .reduce((s, c) => s + (c.facturacion ?? 0), 0)
 
-  // SAC semanal — agrupa ACTIVIDADES completadas de la tabla `actividades`
-  // weekKeys[0]=esta semana (lunes), [1]=hace 1 sem, [2]=hace 2 sem, [3]=hace 3 sem
+  /* ── SAC semanal: CERRADAS sobre ASIGNADAS, no sobre un 4 fijo ──────────
+   *
+   * Antes el denominador era la constante 4 y el numerador contaba CUALQUIER
+   * actividad completada. Eso produjo un «5 / 4» en el tablero del 26 de
+   * septiembre, que es imposible de leer: nadie puede cerrar más de lo que
+   * tiene. La causa fue que Fátima recibió cinco actividades esa semana —una
+   * entró dos días después del lote— y el medidor las contó todas contra un
+   * cuatro inamovible.
+   *
+   * Dos correcciones:
+   *
+   *   1. El denominador es lo que el asesor TIENE esa semana. Si le tocaron
+   *      cinco, el máximo es cinco. La meta de cuatro sigue existiendo, pero
+   *      como referencia en la etiqueta, no como divisor.
+   *
+   *   2. Solo cuenta el LOTE RUTINARIO. Los seguimientos por foco de riesgo
+   *      van diez por semana y las aclaraciones de baja no tienen tope: los dos
+   *      van declaradamente fuera del tope de cuatro. Si siguieran sumando
+   *      aquí, el lunes 28 —cuando entren los diez focos— este medidor diría
+   *      «14 de 4», que no mide nada.
+   *
+   * Los focos se cuentan aparte para que se vean, no para que se escondan.
+   */
+  const FUERA_DEL_LOTE = new Set(['foco_riesgo', 'aclaracion'])
   const weekKeys = [0, 1, 2, 3].map(i => getMondayOffset(i))
   const segsMap: Record<string, number[]> = {}
+  const asignMap: Record<string, number[]> = {}
+  const focosMap: Record<string, number[]> = {}
+  const focosAsignMap: Record<string, number[]> = {}
   const ASESORES_LIST: Asesor[] = ['Fátima', 'Dan', 'Claudia']
-  ASESORES_LIST.forEach(a => { segsMap[a] = [0, 0, 0, 0] })
+  ASESORES_LIST.forEach(a => {
+    segsMap[a] = [0, 0, 0, 0]; asignMap[a] = [0, 0, 0, 0]
+    focosMap[a] = [0, 0, 0, 0]; focosAsignMap[a] = [0, 0, 0, 0]
+  })
   actsRaw.forEach(act => {
-    if (!act.completada) return
     const idx = weekKeys.indexOf(act.semana_inicio)
-    if (idx === -1) return
-    if (segsMap[act.asesor]) segsMap[act.asesor][idx]++
+    if (idx === -1 || !segsMap[act.asesor]) return
+    if (FUERA_DEL_LOTE.has(String(act.tipo ?? ''))) {
+      focosAsignMap[act.asesor][idx]++
+      if (act.completada) focosMap[act.asesor][idx]++
+      return
+    }
+    asignMap[act.asesor][idx]++
+    if (act.completada) segsMap[act.asesor][idx]++
   })
 
   // Stats por asesor
@@ -1186,7 +1247,10 @@ export default async function DashboardPage() {
 
       {/* ══ §1 Cumplimiento SAC Semanal ════════════════════════════════════ */}
       <div className="px-6 pb-5">
-        <SACWeeklyPanel asesores={asesorStats} segsMap={segsMap} />
+        <SACWeeklyPanel
+          asesores={asesorStats} segsMap={segsMap} asignMap={asignMap}
+          focosMap={focosMap} focosAsignMap={focosAsignMap}
+        />
       </div>
 
       {/* ══ §1b Top Cuentas · Ranking Versátil ════════════════════════════ */}
