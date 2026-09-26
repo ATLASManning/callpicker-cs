@@ -1,47 +1,57 @@
 'use client'
 
 /**
- * components/CuentaGlobo.tsx — lo que hay que saber antes de llamar, en 10 s.
+ * components/CuentaGlobo.tsx — UNA cosa a la vez sobre la cuenta abierta.
  *
- * INSTRUCCIÓN DE DIRECCIÓN (25 sep 2026)
+ * INSTRUCCIÓN DE DIRECCIÓN (26 sep 2026)
  * --------------------------------------
- * «Construye el globo o ventana, y que al abrir cada cuenta le digas su último
- * contacto, su último ticket, si tiene análisis de llamadas menciónalo, si
- * tiene auditoría menciona el estado, si ha tenido o no actividades SAC, etc.»
+ * «Quiero que sea una información a la vez y se desvanezca a los 10 segundos, y
+ * vuelva a aparecer de la misma cuenta, si tienes notas, con otra nota a los 5
+ * minutos, y que dure 10 segundos y se desvanezca. Todo de un jalón se ve
+ * encimado; trata de colocarlo donde no afecte a la vista de la información de
+ * la cuenta.»
  *
- * CÓMO SE COMPORTA
- * ----------------
- * Al abrir la cuenta el panel aparece ABIERTO, con el encabezado y las líneas.
- * El asesor lo cierra y queda una burbuja en la esquina con el número de cosas
- * que piden acción; volver a abrirlo es un clic. La decisión de abrirlo solo
- * se recuerda por cuenta y por sesión: cerrar el de una cuenta no debe apagar
- * el de la siguiente, que es justo donde puede haber algo grave.
+ * POR QUÉ ASÍ Y NO EL PANEL DE ANTES
+ * ----------------------------------
+ * La primera versión mostraba las siete líneas juntas en un panel. Tenía toda la
+ * información y por eso mismo no se leía: siete avisos a la vez no son siete
+ * avisos, son una pared. Y tapaba la ficha, que es lo que el asesor vino a ver.
  *
- * POR QUÉ NO SE RECUERDA ENTRE SESIONES: porque el propósito es que se lea. Un
- * «no volver a mostrar» convertiría esto en el aviso que todos aprenden a
- * ignorar, y ese es exactamente el fracaso que vinimos a corregir.
+ * Ahora aparece una sola nota, abajo a la izquierda, diez segundos, y se va. La
+ * siguiente llega cinco minutos después. En una sesión de media hora alcanzan a
+ * pasar unas seis: las suficientes para enterarse, sin convertirse en ruido.
+ *
+ * EL ORDEN NO ES EL DEL PANEL
+ * ---------------------------
+ * Se ordenan por gravedad, no por tema. Si el asesor solo ve una nota en toda la
+ * sesión, tiene que ser la que importa — y la que importa nunca es «no tiene
+ * auditoría entregada».
  *
  * DEFENSIVO A PROPÓSITO
  * ---------------------
- * El 24 de septiembre un rediseño de UNA pantalla tumbó el tablero entero con
- * una excepción en el cliente. Este componente se monta en la ficha de cuenta,
- * que es la pantalla más usada del tablero, así que:
- *   · todo lo que pinta viene tipado como opcional y se normaliza aquí;
- *   · `sessionStorage` va envuelto en try/catch — en una ventana privada lanza;
- *   · el icono se resuelve por tabla con respaldo, nunca por índice a ciegas.
- * Si algo llega vacío, el panel se muestra con lo que haya en vez de romperse.
+ * Se monta en la pantalla más usada del tablero, y el 24 de septiembre un
+ * rediseño de una sola pantalla lo tumbó entero con una excepción en el cliente.
+ * Así que: todos los temporizadores se limpian al desmontar, el icono se
+ * resuelve por tabla con respaldo, y si no hay nada que decir no se pinta nada.
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Phone, PhoneOff, PhoneCall, PhoneMissed, Ticket, AlertTriangle,
-  ClipboardCheck, ClipboardX, FileSearch, Users, UserX, Gauge,
-  X, Info, ChevronDown,
+  ClipboardCheck, ClipboardX, FileSearch, Users, UserX, Gauge, Info, X,
 } from 'lucide-react'
-import type { EstadoCuenta, TonoLinea } from '@/lib/estado-cuenta'
+import type { EstadoCuenta, LineaEstado, TonoLinea } from '@/lib/estado-cuenta'
 
-/* Los cinco tonos. Verificados con la fórmula de contraste WCAG, no a ojo:
-   texto ≥ 4.5:1 sobre su fondo y borde ≥ 3:1 sobre blanco. El más bajo de los
-   diez es 4.76:1. */
+/** Cuánto se queda en pantalla. Instrucción: diez segundos. */
+const VISIBLE_MS = 10_000
+/** Cuánto espera antes de la siguiente. Instrucción: cinco minutos. */
+const PAUSA_MS = 5 * 60_000
+/** Lo que tarda en desvanecerse. Tiene que coincidir con la transición CSS. */
+const FUNDIDO_MS = 600
+/** Un respiro al abrir la ficha: que se vea la cuenta antes que el aviso. */
+const ARRANQUE_MS = 1_500
+
+/* Los mismos cinco tonos del panel anterior, con su contraste ya verificado
+   contra la fórmula WCAG: texto ≥ 4.5:1 sobre su fondo, borde ≥ 3:1. */
 const TONO: Record<TonoLinea, { fondo: string; borde: string; texto: string; etiqueta: string }> = {
   grave:  { fondo: '#FEF2F2', borde: '#DC2626', texto: '#7F1D1D', etiqueta: 'Atender' },
   aviso:  { fondo: '#FFFBEB', borde: '#B45309', texto: '#78350F', etiqueta: 'Revisar' },
@@ -50,33 +60,19 @@ const TONO: Record<TonoLinea, { fondo: string; borde: string; texto: string; eti
   neutro: { fondo: '#F8FAFC', borde: '#64748B', texto: '#334155', etiqueta: '' },
 }
 
+/** Primero lo que pide acción. Si solo ve una nota, que sea la que importa. */
+const PRIORIDAD: Record<TonoLinea, number> = {
+  grave: 0, hueco: 1, aviso: 2, neutro: 3, bien: 4,
+}
+
 const ICONOS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
   Phone, PhoneOff, PhoneCall, PhoneMissed, Ticket, AlertTriangle,
   ClipboardCheck, ClipboardX, FileSearch, Users, UserX, Gauge,
 }
 
-/** El icono por nombre, con respaldo. Un nombre que no exista no puede reventar. */
 function Icono({ nombre, color }: { nombre: string; color: string }) {
   const C = ICONOS[nombre] ?? Info
   return <C size={15} color={color} />
-}
-
-function leerCerrado(cuentaId: string): boolean {
-  try {
-    return sessionStorage.getItem(`cp_globo_cerrado_${cuentaId}`) === '1'
-  } catch {
-    return false
-  }
-}
-
-function guardarCerrado(cuentaId: string, v: boolean) {
-  try {
-    if (v) sessionStorage.setItem(`cp_globo_cerrado_${cuentaId}`, '1')
-    else sessionStorage.removeItem(`cp_globo_cerrado_${cuentaId}`)
-  } catch {
-    /* Ventana privada o almacenamiento bloqueado. No es un error que valga
-       molestar al asesor: solo significa que el panel se abrirá de nuevo. */
-  }
 }
 
 export default function CuentaGlobo({
@@ -86,143 +82,121 @@ export default function CuentaGlobo({
   cuentaId: string
   empresa: string
 }) {
-  /* Arranca ABIERTO en el servidor y en el primer render del cliente, para que
-     coincidan. La preferencia de sesión se aplica después de montar: leer
-     `sessionStorage` durante el render rompería la hidratación. */
-  const [abierto, setAbierto] = useState(true)
-  const [montado, setMontado] = useState(false)
+  const [idx, setIdx] = useState(0)
+  const [visible, setVisible] = useState(false)
+  const [cerrado, setCerrado] = useState(false)
+  /* Un solo cajón de temporizadores. Guardarlos sueltos en variables es como se
+     escapa uno y sigue disparando sobre un componente ya desmontado. */
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+
+  const limpiar = useCallback(() => {
+    timers.current.forEach(clearTimeout)
+    timers.current = []
+  }, [])
+
+  /* Ordenadas por gravedad. `slice()` antes de `sort` porque `sort` muta, y
+     mutar una prop le cambiaría el orden al panel que la pasó. */
+  const lineas: LineaEstado[] = (estado?.lineas ?? [])
+    .slice()
+    .sort((a, b) => (PRIORIDAD[a.tono] ?? 9) - (PRIORIDAD[b.tono] ?? 9))
+
+  const total = lineas.length
+
+  /** Muestra la nota `i`: diez segundos, se desvanece, y a los cinco minutos la siguiente. */
+  const mostrar = useCallback((i: number) => {
+    if (total === 0) return
+    setIdx(i % total)
+    setVisible(true)
+    timers.current.push(setTimeout(() => {
+      setVisible(false)
+      timers.current.push(setTimeout(() => mostrar(i + 1), PAUSA_MS + FUNDIDO_MS))
+    }, VISIBLE_MS))
+  }, [total])
 
   useEffect(() => {
-    setMontado(true)
-    if (leerCerrado(cuentaId)) setAbierto(false)
-  }, [cuentaId])
+    if (total === 0 || cerrado) return
+    limpiar()
+    timers.current.push(setTimeout(() => mostrar(0), ARRANQUE_MS))
+    return limpiar
+  }, [cuentaId, total, cerrado, mostrar, limpiar])
 
-  if (!estado || !Array.isArray(estado.lineas) || estado.lineas.length === 0) return null
+  if (total === 0 || cerrado) return null
 
-  const cerrar = () => { setAbierto(false); guardarCerrado(cuentaId, true) }
-  const abrir  = () => { setAbierto(true);  guardarCerrado(cuentaId, false) }
+  const l = lineas[idx] ?? lineas[0]
+  const t = TONO[l.tono] ?? TONO.neutro
 
-  const t = TONO[estado.tonoEncabezado] ?? TONO.neutro
-
-  /* ── Burbuja cerrada ──────────────────────────────────────────────── */
-  if (montado && !abierto) {
-    return (
-      <button
-        onClick={abrir}
-        aria-label={`Ver el estado de ${empresa}`}
-        style={{
-          position: 'fixed', right: 20, bottom: 20, zIndex: 40,
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 16px', borderRadius: 999, border: 'none',
-          background: '#0E30CC', color: '#FFFFFF', cursor: 'pointer',
-          fontSize: 13, fontWeight: 700, boxShadow: '0 4px 14px rgba(15,23,42,0.28)',
-        }}
-      >
-        <Info size={15} color="#FFFFFF" />
-        Estado de la cuenta
-        {estado.pendientes > 0 && (
-          <span style={{
-            background: '#FECACA', color: '#7F1D1D', borderRadius: 999,
-            padding: '1px 8px', fontSize: 12, fontWeight: 800,
-          }}>
-            {estado.pendientes}
-          </span>
-        )}
-      </button>
-    )
+  /** Clic en la nota: pasa a la siguiente sin esperar los cinco minutos. */
+  const siguiente = () => {
+    limpiar()
+    setVisible(false)
+    timers.current.push(setTimeout(() => mostrar(idx + 1), FUNDIDO_MS))
   }
 
-  /* ── Panel abierto ────────────────────────────────────────────────── */
   return (
     <div
-      className="cp-light"
+      role="status"
+      aria-live="polite"
       style={{
-        position: 'fixed', right: 20, bottom: 20, zIndex: 40,
-        width: 'min(420px, calc(100vw - 40px))',
-        maxHeight: 'min(70vh, 640px)', overflowY: 'auto',
-        background: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: 14,
-        boxShadow: '0 10px 32px rgba(15,23,42,0.22)',
+        /* Abajo a la IZQUIERDA y angosto, para no taparle la ficha: el contenido
+           de la cuenta vive arriba y al centro, y la columna derecha la usan los
+           paneles. `pointer-events: none` mientras está oculto, para que no
+           atrape clics de algo que no se ve. */
+        position: 'fixed', left: 20, bottom: 20, zIndex: 40,
+        width: 'min(380px, calc(100vw - 40px))',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(8px)',
+        transition: `opacity ${FUNDIDO_MS}ms ease, transform ${FUNDIDO_MS}ms ease`,
+        pointerEvents: visible ? 'auto' : 'none',
       }}
     >
       <div style={{
-        position: 'sticky', top: 0, background: t.fondo,
-        borderBottom: `1px solid ${t.borde}`, borderRadius: '13px 13px 0 0',
-        padding: '11px 14px', display: 'flex', gap: 10, alignItems: 'flex-start',
+        background: t.fondo, border: `1px solid ${t.borde}`, borderRadius: 12,
+        boxShadow: '0 8px 24px rgba(15,23,42,0.18)', padding: '10px 12px',
+        display: 'flex', gap: 9, alignItems: 'flex-start',
       }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ flexShrink: 0, marginTop: 2, lineHeight: 0 }}>
+          <Icono nombre={l.icono} color={t.borde} />
+        </span>
+
+        <div
+          onClick={siguiente}
+          style={{ minWidth: 0, flex: 1, cursor: 'pointer' }}
+          title="Ver la siguiente nota de esta cuenta"
+        >
           <p style={{
-            margin: '0 0 3px', fontSize: 10, fontWeight: 800, letterSpacing: '0.06em',
+            margin: '0 0 2px', fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
             textTransform: 'uppercase', color: t.texto,
+            display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap',
           }}>
-            Antes de llamar a {empresa}
+            {l.titulo}
+            {t.etiqueta && (
+              <span style={{
+                fontSize: 9, fontWeight: 800, color: t.texto,
+                background: '#FFFFFF', border: `1px solid ${t.borde}`,
+                borderRadius: 999, padding: '0 6px', letterSpacing: '0.03em',
+              }}>
+                {t.etiqueta}
+              </span>
+            )}
           </p>
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: t.texto }}>
-            {estado.encabezado}
+          <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: t.texto }}>
+            {l.texto}
+          </p>
+          <p style={{ margin: '4px 0 0', fontSize: 10, color: t.texto, opacity: 0.75 }}>
+            {empresa} · nota {idx + 1} de {total} · toca para ver la siguiente
           </p>
         </div>
+
         <button
-          onClick={cerrar}
-          aria-label="Cerrar el estado de la cuenta"
+          onClick={() => { limpiar(); setCerrado(true) }}
+          aria-label="No mostrar más notas de esta cuenta"
           style={{
             border: 'none', background: 'transparent', cursor: 'pointer',
             padding: 2, flexShrink: 0, lineHeight: 0,
           }}
         >
-          <X size={15} color={t.texto} />
+          <X size={14} color={t.texto} />
         </button>
-      </div>
-
-      <div style={{ padding: '10px 14px 14px' }}>
-        {estado.lineas.map((l, i) => {
-          const c = TONO[l.tono] ?? TONO.neutro
-          return (
-            <div
-              key={`${l.titulo}-${i}`}
-              style={{
-                display: 'flex', gap: 9, alignItems: 'flex-start',
-                padding: '8px 10px', marginBottom: 6,
-                background: c.fondo, borderLeft: `3px solid ${c.borde}`, borderRadius: 0,
-              }}
-            >
-              <span style={{ flexShrink: 0, marginTop: 1, lineHeight: 0 }}>
-                <Icono nombre={l.icono} color={c.borde} />
-              </span>
-              <div style={{ minWidth: 0 }}>
-                <p style={{
-                  margin: '0 0 2px', fontSize: 11, fontWeight: 800,
-                  color: '#0F172A', display: 'flex', gap: 6, alignItems: 'center',
-                  flexWrap: 'wrap',
-                }}>
-                  {l.titulo}
-                  {c.etiqueta && (
-                    <span style={{
-                      fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em',
-                      textTransform: 'uppercase', color: c.texto,
-                      background: '#FFFFFF', border: `1px solid ${c.borde}`,
-                      borderRadius: 999, padding: '0 6px',
-                    }}>
-                      {c.etiqueta}
-                    </span>
-                  )}
-                </p>
-                <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: '#334155' }}>
-                  {l.texto}
-                </p>
-              </div>
-            </div>
-          )
-        })}
-
-        <p style={{
-          margin: '8px 0 0', fontSize: 10.5, lineHeight: 1.5, color: '#475569',
-          display: 'flex', gap: 5, alignItems: 'flex-start',
-        }}>
-          <ChevronDown size={12} color="#475569" style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>
-            Todo esto sale de las fuentes vivas de la ficha. Donde dice «no medido» es que el dato
-            NO existe — no que esté en cero.
-          </span>
-        </p>
       </div>
     </div>
   )
