@@ -1,0 +1,56 @@
+{
+  "_lee_esto_primero": [
+    "Correcciones que tiene que hacer el equipo EN LA HOJA DE ORIGEN, no aquí.",
+    "Parchear el .xlsx del repo no sirve: el siguiente export lo sobreescribe.",
+    "`scripts/revisa-correcciones.py` comprueba cada una contra el archivo de",
+    "D:\\Archivos y dice si ya quedó. `carga-semanal.py` lo corre al final, así",
+    "que es imposible hacer la carga del viernes sin ver el estado.",
+    "Cuando una salga CORREGIDA, se quita de aquí."
+  ],
+  "pendientes": [
+    {
+      "id": "act-189992-anio",
+      "fuente": "Tablero de Activaciones 2.0.xlsx",
+      "detectada": "2026-09-25",
+      "comprometida": "2026-10-02",
+      "captura": "Cecilia",
+      "que_pasa": "GRUPO CGBS S A DE C V (ID 189992, $379, pagada): la celda «Año» viene vacía y Excel la entrega como 1899, así que la activación no entra en ningún corte del tablero.",
+      "que_se_espera": "Capturar el año (2026) en la hoja de origen.",
+      "comprobacion": {
+        "tipo": "campo_en_rango",
+        "columna_id": "ID",
+        "valor_id": "189992",
+        "columna": "Año",
+        "min": 2020,
+        "max": 2100
+      }
+    },
+    {
+      "id": "act-189867-corchete",
+      "fuente": "Tablero de Activaciones 2.0.xlsx",
+      "detectada": "2026-09-25",
+      "comprometida": "2026-10-02",
+      "captura": "Cecilia",
+      "que_pasa": "Servicios Cristal: el ID quedó como «189867]», con un corchete pegado. El registro no se perdió, pero su identificador está roto y no cruza con nada.",
+      "que_se_espera": "Dejar el ID en 189867, sin el corchete.",
+      "comprobacion": {
+        "tipo": "id_exacto",
+        "columna_id": "ID",
+        "debe_existir": "189867",
+        "no_debe_existir": "189867]"
+      }
+    },
+    {
+      "id": "act-cristal-duplicado",
+      "fuente": "Tablero de Activaciones 2.0.xlsx",
+      "detectada": "2026-09-25",
+      "comprometida": "2026-10-02",
+      "captura": "Cecilia",
+      "que_pasa": "Dos altas nuevas de la misma semana y del mismo ejecutivo con nombres casi iguales: «CRISTAL SERVICIOS» (ID 189977, $519, pagada) y «Servicios Cristal» (ID 189867, $0, demo). Pueden ser dos clientes distintos o el mismo capturado dos veces.",
+      "que_se_espera": "Que dirección confirme si son uno o dos. NO se toca ninguno hasta entonces: un parecido de nombres no prueba nada en ninguna de las dos direcciones.",
+      "comprobacion": {
+        "tipo": "pregunta"
+      }
+    }
+  ]
+}

@@ -229,10 +229,30 @@ for f in FUENTES:
     resultados.append((f, est, det))
     print()
 
+def correcciones():
+    """Las correcciones que el equipo debe hacer en la hoja de ORIGEN.
+
+       Va enganchado aqui a proposito: la carga del viernes es lo unico que se
+       hace sin falta, asi que es el unico sitio donde un pendiente no se puede
+       pasar por alto. Un pendiente que vive en la cabeza de alguien se pierde.
+    """
+    script = os.path.join(RAIZ, 'scripts', 'revisa-correcciones.py')
+    if not os.path.exists(script):
+        return 0
+    print()
+    r = subprocess.run([sys.executable, script], capture_output=True, text=True,
+                       encoding='utf-8', errors='replace')
+    print(r.stdout.rstrip() if r.stdout else '  (sin salida)')
+    if r.stderr.strip():
+        print('  *** %s' % r.stderr.strip()[:300])
+    return r.returncode
+
+
 if not args.aplicar:
     hay = [r for r in resultados if r[1] == 'nuevo']
     print('  (diagnostico; no se toco nada. %d fuente(s) con datos nuevos)' % len(hay))
     print('  Para cargar:  python scripts/carga-semanal.py --aplicar')
+    correcciones()
     raise SystemExit(0)
 
 print('=== APLICANDO ===')
@@ -254,5 +274,8 @@ print()
 if cargadas:
     print('  cargadas: %s' % ', '.join(cargadas))
     print('  Falta revisar el diff y desplegar.')
+    print('  Diffs:  python scripts/diff-tickets.py  ·  python scripts/diff-cortes.py')
 else:
     print('  No se cargo nada: no habia datos nuevos.')
+
+raise SystemExit(correcciones())

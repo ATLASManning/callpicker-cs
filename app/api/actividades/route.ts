@@ -34,14 +34,23 @@ export async function GET(req: NextRequest) {
   // se auto-bloqueara el lunes siguiente, la baja quedaría para siempre sin
   // documentar y el asesor ya no podría hacerlo aunque quisiera: exactamente
   // lo contrario de lo que se pidió. Se queda pendiente hasta que se cierre.
+  //
+  // MISMA EXCEPCIÓN para el Seguimiento a auditoría (instrucción de dirección,
+  // 25-sep-2026). Una cuenta auditada y en riesgo no deja de estarlo porque
+  // pasó el viernes; si se auto-bloqueara, la instrucción se apagaría sola a la
+  // semana. Se implementa excluyendo el TIPO —igual que la aclaración— y no con
+  // una fecha nula: no consta que la columna admita null, y equivocarse ahí
+  // tumba la generación entera del lunes.
+  //
   // `hoyEnMexico()` y no `toISOString()`: el servidor va en UTC y de 18:00 a
   // 23:59 de México ya está en el día siguiente, así que una actividad que
   // vence el viernes se marcaba vencida desde el jueves a las 18:00.
+  const NO_VENCEN = new Set(['aclaracion', 'auditoria'])
   const today   = hoyEnMexico()
   const vencidas = (data ?? []).filter(
     (a: Record<string, unknown>) =>
       a.estado === 'pendiente' &&
-      a.tipo !== 'aclaracion' &&
+      !NO_VENCEN.has(String(a.tipo ?? '')) &&
       typeof a.fecha_vencimiento === 'string' && a.fecha_vencimiento < today
   )
   if (vencidas.length > 0) {

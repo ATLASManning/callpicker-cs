@@ -24,6 +24,9 @@ import {
   TIPO_ACLARACION, eventosNuevosDeAclaracion, marcadorAclaracion,
   descripcionAclaracion,
 } from '@/lib/aclaraciones'
+import {
+  auditadasEnRiesgo, descripcionSeguimientoAuditoria, TIPO_AUDITORIA,
+} from '@/lib/seguimiento-auditoria'
 import { ahoraEnMexico, fechaLocal, selloMexico } from '@/lib/fecha-local'
 
 export const dynamic   = 'force-dynamic'
@@ -232,6 +235,97 @@ async function construirAclaraciones(
     // asesor. Solo preocupa un nombre que no aparezca para NINGUNO.
     console.warn(
       `[Aclaraciones] ${sinCuenta.length} evento(s) de Churn/Downgrade sin cuenta de ${asesor}: ${sinCuenta.slice(0, 20).join(' · ')}`,
+    )
+  }
+  return filas
+}
+
+/**
+ * Seguimiento a las cuentas con auditoría entregada que están en riesgo.
+ *
+ * Instrucción de dirección del 25 sep 2026. Ver lib/seguimiento-auditoria.ts
+ * para el porqué; aquí solo está el cómo.
+ *
+ * DOS CANDADOS QUE IMPORTAN:
+ *
+ * 1. UNA VEZ POR CUENTA, PARA SIEMPRE. El dedup mira TODAS las semanas, no solo
+ *    la actual: si la actividad ya existe —abierta o cerrada— no se vuelve a
+ *    crear. Son 22 cuentas; regenerarlas cada lunes sería volver a las quince
+ *    semanales que dirección ya bajó a cuatro porque no se cumplían.
+ *
+ * 2. NO VENCE. Se implementa EXCLUYENDO EL TIPO en el auto-bloqueo de
+ *    `app/api/actividades/route.ts`, exactamente igual que la aclaración de
+ *    baja — no con una fecha nula. No consta que la columna admita null, y
+ *    equivocarse ahí tumbaría la generación entera del lunes. La fecha se
+ *    llena como en todas las demás; lo que la protege es el tipo.
+ *
+ * Y como las aclaraciones, NO pasa por `evaluarElegibilidad`: que la cuenta
+ * esté en riesgo ES el motivo de la actividad, no un impedimento.
+ */
+async function construirSeguimientosAuditoria(
+  asesor: string, semanaInicio: string,
+): Promise<AnyAct[]> {
+  const pendientes = auditadasEnRiesgo(asesor)
+  if (!pendientes.length) return []
+
+  // Se calcula AQUÍ, no se toma de `construirAclaraciones`: aquella lo declara
+  // dentro de su propio ámbito y referenciarlo desde esta función sería un
+  // ReferenceError en tiempo de ejecución — el tipo de fallo que no se ve hasta
+  // que el lunes nadie recibe actividades.
+  const vSem = new Date(semanaInicio + 'T12:00:00')
+  vSem.setDate(vSem.getDate() + 4)
+  const fechaVencimiento = toISO(vSem)
+
+  const { data: cuentas } = await supabaseAdmin
+    .from('cuentas')
+    .select('id, cid, consecutivo, empresa, asesor, estado, health_score')
+    .eq('asesor', asesor)
+  if (!cuentas?.length) return []
+
+  const porNombre = new Map<string, typeof cuentas[number]>()
+  for (const c of cuentas) porNombre.set(normalizarNombre(c.empresa), c)
+
+  // El dedup mira TODO el histórico de este tipo, no solo esta semana.
+  const { data: yaHay } = await supabaseAdmin
+    .from('actividades')
+    .select('cuenta_id')
+    .eq('asesor', asesor)
+    .eq('tipo', TIPO_AUDITORIA)
+  const yaTiene = new Set((yaHay ?? []).map(a => a.cuenta_id))
+
+  const filas: AnyAct[] = []
+  const sinCuenta: string[] = []
+  for (const p of pendientes) {
+    const cuenta = porNombre.get(normalizarNombre(p.nombre))
+    if (!cuenta) { sinCuenta.push(p.nombre); continue }
+    if (yaTiene.has(cuenta.id)) continue
+
+    filas.push({
+      asesor,
+      cuenta_id:         cuenta.id,
+      cid:               cuenta.cid,
+      consecutivo:       cuenta.consecutivo ?? '',
+      empresa:           cuenta.empresa,
+      tipo:              TIPO_AUDITORIA,
+      descripcion:       descripcionSeguimientoAuditoria(p),
+      prioridad:         'alta',
+      fecha_programada:  semanaInicio,
+      // Se llena como en todas las demás. Lo que la hace «no vencer» es que su
+      // TIPO está excluido del auto-bloqueo, no esta fecha.
+      fecha_vencimiento: fechaVencimiento,
+      semana_inicio:     semanaInicio,
+      estado:            'pendiente',
+      semaforo_cuenta:   'naranja',
+      hs_cuenta:         cuenta.health_score,
+    } as AnyAct)
+  }
+
+  if (sinCuenta.length) {
+    // Una auditoría cuyo nombre no empata con ninguna cuenta del asesor es un
+    // problema de cartera, no un no-evento: se dice en el log en vez de que
+    // desaparezca en silencio.
+    console.warn(
+      `[SeguimientoAuditoría] ${sinCuenta.length} auditoría(s) en riesgo de ${asesor} sin cuenta que empate: ${sinCuenta.join(' · ')}`,
     )
   }
   return filas
@@ -732,12 +826,30 @@ export async function POST(req: NextRequest) {
      * 24-ago-2026 sigue intacto para las 4 rutinarias. */
     const aclaraciones = await construirAclaraciones(asesor, semanaInicio)
 
-    /** Cierra la petición cuando no hubo lote rutinario pero sí aclaraciones. */
+    /* ── Seguimiento a auditorías en riesgo ────────────────────────────
+       Instrucción de dirección del 25 sep 2026, nacida de ALTERNET: tenía
+       auditoría desde junio, pidió la baja en septiembre, y NUNCA había tenido
+       una sola actividad SAC asignada. Una auditoría que no se convierte en
+       trabajo asignado es un documento, no una intervención.
+
+       Van FUERA del tope de cuatro, como las aclaraciones y por lo mismo: son
+       instrucción, no lote rutinario. Si compitieran por los cuatro lugares
+       desplazarían al resto de la cartera y el problema cambiaría de sitio.
+
+       Y se generan UNA sola vez por cuenta, nunca semanalmente: son 22 cuentas
+       (Claudia 10, Dan 8, Fátima 4) y diez cada lunes sobre sus cuatro son
+       catorce — las quince semanales ya se intentaron y fracasaron. Es un
+       acervo que se agota, no una carga que se repite. Ver
+       lib/seguimiento-auditoria.ts. */
+    const seguimientosAuditoria = await construirSeguimientosAuditoria(asesor, semanaInicio)
+    const extras = [...aclaraciones, ...seguimientosAuditoria]
+
+    /** Cierra la petición cuando no hubo lote rutinario pero sí trabajo obligado. */
     const salidaConAclaraciones = async (
       payload: Record<string, unknown>, status: number,
     ) => {
-      if (!aclaraciones.length) return NextResponse.json(payload, { status })
-      const { data, error } = await supabaseAdmin.from('actividades').insert(aclaraciones).select()
+      if (!extras.length) return NextResponse.json(payload, { status })
+      const { data, error } = await supabaseAdmin.from('actividades').insert(extras).select()
       if (error) {
         return NextResponse.json({ ...payload, aclaracionesError: error.message }, { status })
       }
@@ -748,9 +860,14 @@ export async function POST(req: NextRequest) {
         semanaInicio,
         actividades: data,
         aclaraciones: {
-          generadas: data?.length ?? 0,
+          generadas: aclaraciones.length,
           nota: 'Sin lote rutinario esta semana, pero hay bajas/downgrades por documentar.',
           detalle: aclaraciones.map(a => ({ empresa: a.empresa, descripcion: a.descripcion.split('\n')[0] })),
+        },
+        seguimientosAuditoria: {
+          generados: seguimientosAuditoria.length,
+          nota: 'Cuentas con auditoría entregada y en riesgo. Van fuera del tope y solo se generan una vez.',
+          detalle: seguimientosAuditoria.map(a => ({ empresa: a.empresa })),
         },
       })
     }
@@ -1051,6 +1168,12 @@ export async function POST(req: NextRequest) {
      * churn siguiente. */
     rows.push(...aclaraciones)
 
+    /* Y los seguimientos a auditorías en riesgo, por la misma razón y con la
+     * misma regla: fuera del tope. Aquí hay un matiz adicional — solo se crean
+     * una vez por cuenta en toda su historia, así que el lote de la primera
+     * corrida es grande (22 en total) y el de las siguientes, cero. */
+    rows.push(...seguimientosAuditoria)
+
     const { data: inserted, error: insErr } = await supabaseAdmin
       .from('actividades')
       .insert(rows)
@@ -1088,6 +1211,12 @@ export async function POST(req: NextRequest) {
       aclaraciones: {   // Churn confirmado / Downgrade nuevos — van FUERA del tope de 4
         generadas: aclaraciones.length,
         detalle:   aclaraciones.map(a => ({ empresa: a.empresa, descripcion: a.descripcion.split('\n')[0] })),
+      },
+      // Auditoría entregada + cuenta en riesgo — FUERA del tope, y una sola vez
+      // por cuenta en toda su historia (instrucción de dirección, 25 sep 2026).
+      seguimientosAuditoria: {
+        generados: seguimientosAuditoria.length,
+        detalle:   seguimientosAuditoria.map(a => ({ empresa: a.empresa })),
       },
       excluidasPorChurn, // dormidas en Zoho, en alerta de cancelación o con churn confirmado en GRC-AAA-2026
       bloqueadas,        // detalle de cada cuenta no elegible y su motivo
