@@ -12,6 +12,15 @@ import { anteponerEntrada } from '@/lib/observaciones-kam'
 import {
   TIPO_ACLARACION, validarCierreAclaracion, componerResultadoAclaracion,
 } from '@/lib/aclaraciones'
+/* Del módulo ligero, NO de `@/lib/focos-riesgo`: ese arrastra los 3.5 MB de
+   `lib/tickets-data.json` y el Excel de cortes, y esta ruta es interactiva. */
+import {
+  TIPO_FOCO, validarCierreSeguimiento, componerResultadoSeguimiento,
+  trabajoDeDescripcion, MIN_MOTIVO_DECISOR_UNICO,
+  puedeAutorizarDecisorUnico, marcaSolicitudAutorizacion, selloAutorizacion,
+  AUTORIZA_NOMBRE,
+} from '@/lib/cierre-seguimiento'
+import { personasDeCuenta, buscaDecisor } from '@/lib/personas-cuenta'
 import { hoyEnMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
@@ -265,6 +274,210 @@ export async function PATCH(
         )
       }
 
+      /* ── Candado del SEGUIMIENTO por foco de riesgo ────────────────────────
+       * Instrucción de dirección (25-sep-2026): «si responden que el cliente no
+       * quiere o cualquier respuesta corta, oblígalos a que te expliquen y
+       * detallen qué acciones tomaron, a quién le presentaron, si es la persona
+       * correcta, por qué no contratan más servicios, una integración, etc.»
+       *
+       * Tres campos separados, como la aclaración y por el mismo motivo: con un
+       * solo cuadro de texto, «el cliente no quiere» pasa cualquier mínimo de
+       * longitud si lo acompañan de relleno. Separados, el hueco se ve.
+       *
+       * NO exime del candado general de abajo, a diferencia de la aclaración.
+       * Ahí está lo que este validador no sabe hacer: una baja declarada abre
+       * expediente en vez de cerrar. Un seguimiento donde el cliente anuncia que
+       * se va tiene que abrir ese expediente igual que cualquier otra actividad.
+       */
+      if (actual.tipo === TIPO_FOCO) {
+        const vered = validarCierreSeguimiento({
+          contacto: body.seguimiento_contacto,
+          acciones: body.seguimiento_acciones,
+          motivo:   body.seguimiento_motivo,
+        })
+        if (!vered.permitido) {
+          return NextResponse.json({
+            error:     vered.mensaje,
+            codigo:    'seguimiento_incompleto',
+            faltantes: vered.faltantes,
+          }, { status: 409 })
+        }
+        body.resultado = componerResultadoSeguimiento(
+          String(body.seguimiento_contacto), String(body.seguimiento_acciones),
+          String(body.seguimiento_motivo),
+        )
+
+        /* ── MAPA DE DECISORES: se valida sobre la FICHA, no sobre el texto ──
+         * El producto de este trabajo no es un párrafo, son personas guardadas
+         * en la cuenta. Validarlo leyendo prosa sería adivinar si un nombre
+         * propio aparece en una frase; validarlo contra `contactos_json` es
+         * verificable y no se puede simular escribiendo bonito.
+         *
+         * Es el mismo patrón que ya usa «Completar Perfil», que exige los datos
+         * guardados y las 12 preguntas del Radar respondidas de verdad.
+         *
+         * SE PIDE por Clikauto (25 sep 2026): la actividad se llamaba «Mapa de
+         * decisores» y se cerró con UN nombre, el que la propia ficha clasifica
+         * como «Contacto Operativo». Opera, no decide.
+         *
+         * LA ESCOTILLA Y QUIÉN LA ABRE: hay cuentas donde de verdad decide una
+         * sola persona —un dueño, una empresa de tres—. Para ésas el asesor
+         * marca `decisor_unico`, pero eso NO cierra la actividad: registra la
+         * investigación y la deja esperando. Daniel Martínez da el Vobo y
+         * dirección instruye el cierre. Una escotilla que abre quien la usa no
+         * es una escotilla, es un botón de saltarse el trabajo.
+         * Instrucción de dirección, 25 sep 2026.
+         */
+        if (trabajoDeDescripcion(actual.descripcion) === 'decisores' && actual.cuenta_id) {
+          const { data: ficha } = await supabaseAdmin
+            .from('cuentas')
+            .select('contacto_nombre, contacto_cargo, contacto_email, contacto_tel, contactos_json')
+            .eq('id', actual.cuenta_id)
+            .single()
+
+          // Fail-OPEN a propósito: si no se puede leer la ficha, no se le
+          // atribuye al asesor un trabajo mal hecho. El resto de candados sigue.
+          if (ficha) {
+            const gente = personasDeCuenta(ficha as never).filter(p => p.nombre)
+            const conCargo = gente.filter(p => p.cargo)
+            const unico = body.decisor_unico === true
+            const motivo = String(body.seguimiento_motivo ?? '').trim()
+            /* Quien cierra con la escotilla abierta tiene que ser dirección, y
+               se identifica por la cabecera que pone el middleware — no por un
+               campo del cuerpo, que lo pondría cualquiera. */
+            const quien = req.headers.get('x-user-email')
+            const autorizando = body.autorizar_decisor_unico === true
+              && puedeAutorizarDecisorUnico(quien)
+
+            if (!unico && !autorizando && conCargo.length < 2) {
+              return NextResponse.json({
+                error: 'El Mapa de Decisores no se puede cerrar todavía: sigue habiendo ' +
+                       `${conCargo.length === 0 ? 'ninguna persona' : 'una sola persona'} con nombre y ` +
+                       'cargo en la ficha de la cuenta.',
+                codigo: 'decisores_incompleto',
+                faltantes: [
+                  'Registra en la ficha de la cuenta (sección Contactos) al menos DOS personas ' +
+                  'con NOMBRE y CARGO. El trabajo de esta actividad es que queden guardadas: ' +
+                  'un decisor que encuentras y no guardas se pierde igual que si no lo hubieras ' +
+                  'encontrado.',
+                  'Clasifícalas: quién DECIDE (autoriza el gasto), quién INFLUYE y quién OPERA. ' +
+                  'Si todos los que tienes operan, el mapa está incompleto y eso es el hallazgo.',
+                  'Si de verdad decide una sola persona en esta cuenta, marca «solo existe un ' +
+                  `decisor» y explica por qué en el campo 3 (mínimo ${MIN_MOTIVO_DECISOR_UNICO} ` +
+                  'caracteres): tamaño de la empresa, estructura, a quién reporta y qué pasaría ' +
+                  'si esa persona se va.',
+                ],
+                personasRegistradas: gente.length,
+                conCargo: conCargo.length,
+              }, { status: 409 })
+            }
+
+            if (unico && !autorizando && motivo.length < MIN_MOTIVO_DECISOR_UNICO) {
+              return NextResponse.json({
+                error: 'Declaraste que solo existe un decisor. Esa es una afirmación fuerte sobre ' +
+                       'la cuenta y necesita sustento.',
+                codigo: 'decisor_unico_sin_sustento',
+                faltantes: [
+                  `Explica en el campo 3, con al menos ${MIN_MOTIVO_DECISOR_UNICO} caracteres: ` +
+                  'cuántas personas tiene la empresa, quién autoriza el gasto, a quién reporta esa ' +
+                  'persona, y qué pasaría con la cuenta si mañana deja la empresa.',
+                ],
+              }, { status: 409 })
+            }
+
+            /* Y ADEMÁS: hay que decir QUIÉN DECIDE, por nombre.
+             *
+             * Contar personas no basta. Clikauto ya tenía dos registradas
+             * —«Contacto Operativo» y «Aclaraciones»— así que habría cerrado el
+             * mapa sin que nadie identificara a un decisor. Dos contactos
+             * operativos no son un mapa: son la misma dependencia repartida.
+             *
+             * El nombre tiene que existir en la ficha, así que no se puede
+             * cumplir escribiendo bien. Y como queda registrado con su cargo,
+             * declarar que decide el contacto operativo se lee solo. */
+            const decisor = buscaDecisor(ficha as never, body.seguimiento_decide)
+            if (!decisor) {
+              const declarado = String(body.seguimiento_decide ?? '').trim()
+              return NextResponse.json({
+                error: declarado
+                  ? `«${declarado}» no está registrada en la ficha de esta cuenta, así que no se ` +
+                    'puede dar por identificada.'
+                  : 'Falta lo principal del mapa: QUIÉN DECIDE, por nombre.',
+                codigo: 'decisor_no_identificado',
+                faltantes: [
+                  'Escribe el NOMBRE de quien autoriza el gasto en esta cuenta. Tiene que ser una ' +
+                  'de las personas registradas en la ficha — si la encontraste y no la has ' +
+                  'guardado, guárdala primero en la sección Contactos.',
+                  gente.length
+                    ? `Personas registradas hoy: ${gente.map(p => p.nombre + (p.cargo ? ` (${p.cargo})` : '')).join(' · ')}.`
+                    : 'Hoy no hay ninguna persona registrada en la ficha.',
+                  'Si ninguna de ellas decide, ése ES el hallazgo: significa que la cuenta se ' +
+                  'sostiene sobre gente que opera, y hay que subir un nivel.',
+                ],
+              }, { status: 409 })
+            }
+
+            // La declaración queda dentro del resultado, con el cargo tal como
+            // está registrado. Es lo que hace auditable la afirmación.
+            body.resultado = `DECIDE: ${decisor.nombre}` +
+              (decisor.cargo ? ` — ${decisor.cargo}` : ' — SIN CARGO REGISTRADO') +
+              (unico ? ' (declarado como único decisor de la cuenta)' : '') +
+              `\n\n${body.resultado}`
+
+            /* ── LA ESCOTILLA NO LA ABRE QUIEN LA USA ──────────────────────
+             * Instrucción de dirección, 25 sep 2026: «puede ser que alguna
+             * cuenta tenga esa limitante, pero si ya se investigó deberá
+             * solicitar autorización a Daniel Martínez para que se cierre la
+             * actividad, con la nota de la investigación y el OK de Daniel
+             * Martínez», y después: «con que me lo pase a mí Daniel o el asesor
+             * con el Vobo. Yo te daré la instrucción de dar por concluida la
+             * actividad.»
+             *
+             * Así que el sistema hace UNA cosa y la hace bien: guarda la
+             * investigación y deja la actividad ABIERTA, esperando. El Vobo de
+             * Daniel y la instrucción de dirección viajan fuera del tablero —es
+             * como trabaja dirección— y el cierre se ejecuta con
+             * `autorizar_decisor_unico`, que solo vale desde un correo de la
+             * lista (ver `puedeAutorizarDecisorUnico`).
+             *
+             * Para ver qué hay esperando: `python scripts/autorizaciones.py`. */
+            if (unico && !autorizando) {
+              const hoy = hoyEnMexico()
+              const nota = marcaSolicitudAutorizacion(hoy, String(body.resultado))
+              const { error: errSol } = await supabaseAdmin
+                .from('actividades')
+                .update({
+                  motivo_pendiente: nota,
+                  tiempo_reportado_min: Number(body.tiempo_reportado_min) || null,
+                  actualizado_en: new Date().toISOString(),
+                })
+                .eq('id', params.id)
+
+              if (errSol) return NextResponse.json({ error: errSol.message }, { status: 500 })
+
+              return NextResponse.json({
+                error: 'Tu investigación quedó registrada y la actividad queda en espera de ' +
+                       `autorización. Pásasela a ${AUTORIZA_NOMBRE} con tu resumen para su Vobo; ` +
+                       'el cierre lo instruye Dirección.',
+                codigo: 'autorizacion_solicitada',
+                faltantes: [
+                  'No tienes que volver a capturarla: la nota ya quedó guardada en la actividad.',
+                  'Mientras tanto la actividad sigue abierta y contando — no es un cierre.',
+                ],
+                solicitudEnviada: true,
+              }, { status: 409 })
+            }
+
+            if (autorizando) {
+              // El sello dice quién autorizó y cuándo. Va dentro del resultado
+              // para que quede en el expediente de la cuenta, no solo en un log.
+              body.resultado = `${selloAutorizacion(String(quien), hoyEnMexico())}\n\n${body.resultado}`
+              body.motivo_pendiente = null
+            }
+          }
+        }
+      }
+
       /* ── Candado de calidad del cierre (1 Sep 2026) ────────────────────────
        * Antes bastaba cualquier texto para cerrar. Ahora una declaración de
        * baja abre expediente en vez de cerrar, "no contesta" abre secuencia, y
@@ -336,9 +549,18 @@ export async function PATCH(
       // 'aclaracion_causa' column" y NINGUNA aclaración podría cerrarse —
       // ni siquiera por el reintento de abajo, que reusa este mismo objeto.
       aclaracion_causa: _ac, aclaracion_acciones: _aa,
+      // Los tres del seguimiento por foco, por lo mismo: ya se fusionaron en
+      // `resultado` (componerResultadoSeguimiento). Si viajaran al update,
+      // PostgREST respondería "Could not find the 'seguimiento_contacto'
+      // column" y ningún seguimiento podría cerrarse.
+      seguimiento_contacto: _sgc, seguimiento_acciones: _sga, seguimiento_motivo: _sgm,
+      // La escotilla del Mapa de Decisores tampoco es columna: es una señal
+      // para el candado de arriba, y ya se consumió ahí.
+      decisor_unico: _du, seguimiento_decide: _sd, autorizar_decisor_unico: _ad,
       ...bodyColumnas
     } = body as Record<string, unknown>
-    void _eb; void _sc; void _ac; void _aa
+    void _eb; void _sc; void _ac; void _aa; void _sgc; void _sga; void _sgm
+    void _du; void _sd; void _ad
 
     let { data, error } = await supabaseAdmin
       .from('actividades')

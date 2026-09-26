@@ -54,31 +54,41 @@
  * el tamaño del lote se calcula por cartera en vez de ser un número fijo: una
  * cartera de 54 necesita más por semana que una de 36 para dar la misma vuelta.
  */
+import path from 'path'
 import { todosLosCortes, ultimoMesDeCorte, type CorteCuenta } from './cortes-cuenta'
 import { bloqueoComercialDeCuenta, normalizarNombre } from './elegibilidad'
+import { personasDeCuenta as _personas } from './personas-cuenta'
+import { esValorReal } from './valores'
 import { auditadasEnRiesgo } from './seguimiento-auditoria'
 import { ticketStatsCuenta } from './tickets-cuenta'
 
-export const TIPO_FOCO = 'foco_riesgo' as const
+/* El candado de cierre vive en `lib/cierre-seguimiento.ts` y se re-exporta desde
+   aquí para que el generador siga importando de un solo lugar. Está separado
+   porque la ruta que cierra actividades solo necesita el validador, y este módulo
+   arrastra los 3.5 MB de `lib/tickets-data.json` más el Excel de cortes. */
+export {
+  TIPO_FOCO, validarCierreSeguimiento, componerResultadoSeguimiento,
+  type CierreSeguimiento, type VeredictoSeguimiento,
+} from './cierre-seguimiento'
 
 /** Nadie debe pasar de aquí sin contacto registrado. Medido: ×2.02 de riesgo. */
 export const DIAS_SIN_CONTACTO_LIMITE = 60
 
-/** Semanas de la vuelta completa. 60 días redondeados a semanas enteras. */
-const SEMANAS_DE_VUELTA = 8
-
 /**
- * El lote NO descuenta las cuatro rutinarias, y es una corrección deliberada.
+ * DIEZ seguimientos por asesor por semana. Decisión de dirección, 25 sep 2026.
  *
- * La primera versión restaba 4 suponiendo que el lote rutinario ya cubría
- * cuentas. No las cubre para este fin: las cuatro rutinarias son de COMPLETAR
- * PERFIL Y RADAR —trabajo de dato, no conversación con el cliente— y además su
- * selección es otra, así que no garantizan tocar cuentas distintas. Si se
- * descuentan, la vuelta no cierra: a Claudia le tocarían 2 por semana, 16 en
- * ocho semanas, para 36 cuentas. La mitad se quedaría sin seguimiento.
+ * «Si en un día y en minutos hicieron 3, quiere decir que pueden entrar,
+ * revisar cuáles son y ejecutar todas, así que las subimos a 10. No busques
+ * matemáticas, lo he visto, no están haciendo lo que deben.»
+ *
+ * El número NO sale de dividir la cartera entre semanas: sale de la capacidad
+ * observada. Esa misma semana se cerraron tres actividades que el sistema midió
+ * en un minuto cada una, así que el cuello de botella no es el tiempo.
+ *
+ * Como consecuencia, la vuelta completa queda muy por debajo del límite de 60
+ * días: Dan 54 cuentas en 5.4 semanas, Fátima 45 en 4.5, Claudia 36 en 3.6.
  */
-const MIN_POR_SEMANA = 2
-const MAX_POR_SEMANA = 8
+const SEGUIMIENTOS_POR_SEMANA = 10
 
 /**
  * Las clases, EN EL ORDEN EN QUE SE ATIENDEN.
@@ -111,7 +121,29 @@ export interface CuentaParaFoco {
   health_score: number | null
   facturacion: number | null
   tiene_chat_activo?: boolean | null
+  /* Lo que ya sabemos de las PERSONAS de la cuenta. Va aquí para que el Mapa de
+     Decisores empiece con lo registrado en vez de con una hoja en blanco — que
+     es la diferencia entre pedir trabajo y pedir adivinación. */
+  contacto_nombre?: string | null
+  contacto_cargo?: string | null
+  contacto_email?: string | null
+  contacto_tel?: string | null
+  contactos_json?: unknown
+  pagina_web?: string | null
+  giro?: string | null
 }
+
+/** Columnas de `cuentas` que necesita `focosDeRiesgo`. Una sola definición. */
+export const CAMPOS_FOCO_SELECT =
+  'id, cid, consecutivo, empresa, asesor, estado, health_score, facturacion, ' +
+  'tiene_chat_activo, contacto_nombre, contacto_cargo, contacto_email, ' +
+  'contacto_tel, contactos_json, pagina_web, giro'
+
+/* `personasDeCuenta` vive en `lib/personas-cuenta.ts` y se re-exporta desde aquí.
+   Está separado porque la ruta que CIERRA estas actividades también lo necesita
+   —para verificar que el mapa quedó guardado— y no puede importar de este módulo
+   sin arrastrar los 3.5 MB de `lib/tickets-data.json`. */
+export { personasDeCuenta, personasConNombre, type PersonaCuenta } from './personas-cuenta'
 
 export interface Foco {
   cuenta: CuentaParaFoco
@@ -121,27 +153,268 @@ export interface Foco {
   /** Días desde el último seguimiento registrado. `null` = nunca hubo. */
   diasSinContacto: number | null
   peso: number
+  /** El trabajo concreto de ESTA vuelta. Cambia cada vez que la cuenta regresa. */
+  trabajo: Trabajo
 }
+
+/**
+ * LOS TRABAJOS. Con un cliente siempre hay algo que hacer; lo que cambia es qué.
+ *
+ * Una cuenta atendida la semana pasada NO se queda sin trabajo: le toca otro. Se
+ * recorren en orden y la cuenta avanza uno cada vez que vuelve a salir, así que
+ * en cinco vueltas se le hizo análisis de relación, de tickets, de factura, de
+ * datos y de crecimiento — y a la sexta se empieza otra vez, con datos nuevos.
+ *
+ * El orden no es caprichoso: primero hablar con el cliente (lo que más predice
+ * la baja, ×2.25), y después los análisis que dan de qué hablar la próxima vez.
+ */
+export type ClaveTrabajo =
+  | 'relacion' | 'decisores' | 'tickets' | 'factura' | 'datos' | 'crecimiento'
+
+export interface Trabajo {
+  clave: ClaveTrabajo
+  titulo: string
+  /** Qué tiene que hacer, en imperativo y concreto. */
+  pasos: string[]
+}
+
+/**
+ * `decisores` va EN SEGUNDO LUGAR, y el lugar importa: con la rotación normal
+ * eso significa que toda cuenta recibe su mapa de decisores en su SEGUNDA
+ * vuelta, no dentro de seis semanas.
+ *
+ * Se agregó el 25 sep 2026 por Clikauto. La actividad pedía literalmente un
+ * «mapa de decisores» y se cerró con UN nombre — el que la propia ficha de la
+ * cuenta clasifica como «Contacto Operativo». Opera, no decide. Y en esa misma
+ * ficha ya había otros dos contactos que nadie usó.
+ *
+ * El número que lo justifica: **128 de 179 cuentas vivas tienen UNA SOLA persona
+ * con nombre registrada.** Claudia 43, Dan 42, Fátima 43. Una cuenta que cuelga
+ * de una persona se pierde el día que esa persona deja de contestar, y eso no es
+ * hipotético: es exactamente lo que lleva pasando en Clikauto desde junio.
+ *
+ * Dirección, 25 sep 2026: «siempre hay que hacer con los clientes... esto suma
+ * además de lo que ya tienes.»
+ */
+export const TRABAJOS: ClaveTrabajo[] = [
+  'relacion', 'decisores', 'tickets', 'factura', 'datos', 'crecimiento',
+]
 
 function uso(c: CorteCuenta): number | null {
   return c.base && c.base > 0 ? (100 * c.cons) / c.base : null
 }
 
+/** Lo que `data/crecimiento-escalera.json` sabe de una cuenta. */
+export interface FilaEscalera {
+  cuenta_id?: string; cid?: string; empresa?: string; peldano?: string; oferta?: string
+  pct_consumo?: number; plan_ultimo_corte?: string; monto_ultimo_corte?: number
+  base_minutos?: number; minutos_consumidos?: number
+  llamadas_entrantes?: number; llamadas_salientes?: number; pct_entrantes?: number
+  tickets?: number; fallas?: number; tickets_categoria_top?: string
+  tickets_horas_mediana?: number; dids?: number; dids_libres?: number
+  tiene_CE?: boolean; tiene_VyC?: boolean; tiene_Chat?: boolean
+  tiene_AV?: boolean; tiene_API?: boolean; accionable?: boolean
+}
+
+let _escalera: Map<string, FilaEscalera> | null = null
+
 /**
- * Cuántos seguimientos por semana necesita esta cartera para que nadie pase de
- * 60 días. Escala con el tamaño: una cartera de 54 no se cubre al mismo ritmo
- * que una de 36.
+ * `data/crecimiento-escalera.json`, indexado por `cuenta_id` Y por CID.
  *
- * Al 25 sep 2026: Dan 54 vivas -> 7 por semana · Fátima 45 -> 6 · Claudia 36 -> 5.
+ * Se indexa por los dos a propósito: el `cuenta_id` es el identificador de
+ * verdad —único en las 222 filas y el que no se puede confundir— y el CID queda
+ * como red por si alguna fila del generador se quedó sin él. Nunca por nombre de
+ * empresa: ahí es donde se mezclan cuentas (ver [[dids_fuente]]).
  *
- * Si ese ritmo resulta insostenible, la palanca correcta NO es recortar el lote
- * —eso deja cuentas sin cubrir y calladamente rompe la instrucción— sino ampliar
- * la ventana: con 90 días en vez de 60, Dan baja a 5, Fátima a 4 y Claudia a 3.
- * Es una decisión de dirección, y se toma mirando este número.
+ * Si el archivo no está, se devuelve un mapa vacío y los trabajos salen con la
+ * redacción de «no hay dato» en vez de inventarse cifras. Es la regla de
+ * [[feedback_contexto_ia_sin_huecos]]: el hueco se dice con palabras.
  */
-export function loteSemanal(cuentasVivas: number): number {
-  const porSemana = Math.ceil(cuentasVivas / SEMANAS_DE_VUELTA)
-  return Math.max(MIN_POR_SEMANA, Math.min(MAX_POR_SEMANA, porSemana))
+async function cargarEscalera(): Promise<Map<string, FilaEscalera>> {
+  if (_escalera) return _escalera
+  const m = new Map<string, FilaEscalera>()
+  try {
+    const fs = (await import('fs')).default
+    const ruta = path.join(process.cwd(), 'data', 'crecimiento-escalera.json')
+    if (fs.existsSync(ruta)) {
+      const j = JSON.parse(fs.readFileSync(ruta, 'utf8')) as { cuentas?: FilaEscalera[] }
+      for (const f of j.cuentas ?? []) {
+        const id = String(f.cuenta_id ?? '').trim()
+        const cid = String(f.cid ?? '').trim()
+        if (id) m.set(id, f)
+        if (cid && !m.has(cid)) m.set(cid, f)
+      }
+    }
+  } catch (e) {
+    console.warn('[focos-riesgo] No se pudo leer data/crecimiento-escalera.json:', e)
+  }
+  _escalera = m
+  return m
+}
+
+function n(v: unknown): number {
+  return typeof v === 'number' && isFinite(v) ? v : 0
+}
+
+/**
+ * El trabajo de esta vuelta, con los datos de la cuenta metidos dentro.
+ *
+ * La idea es que el asesor NO tenga que ir a buscar nada a otra pantalla: la
+ * tarea trae los números y le pide una conclusión, no una consulta.
+ */
+function armarTrabajo(
+  clave: ClaveTrabajo, c: CuentaParaFoco, e: FilaEscalera | null, tkTotal: number, tkFallas: number,
+): Trabajo {
+  const nom = c.empresa
+  switch (clave) {
+    case 'decisores': {
+      const gente = _personas(c)
+      const personas = gente.filter(p => p.nombre)
+      const buzones = gente.filter(p => !p.nombre)
+      const sinCargo = personas.filter(p => !p.cargo)
+      const sinTel = personas.filter(p => !p.telUtil)
+      const web = esValorReal(c.pagina_web) ? String(c.pagina_web).split('|')[0].trim() : ''
+
+      const inventario = personas.length === 0
+        ? 'Hoy NO hay una sola persona con nombre registrada en esta cuenta.'
+        : `Hoy están registradas ${personas.length === 1 ? 'UNA sola persona' : `${personas.length} personas`}: ` +
+          personas.map(p => `${p.nombre}${p.cargo ? ` (${p.cargo})` : ' — SIN CARGO REGISTRADO'}` +
+            `${p.telUtil ? '' : ', sin teléfono marcable'}`).join(' · ') + '.' +
+          (buzones.length ? ` Además ${buzones.length} buzón(es) genérico(s) — no son decisores.` : '')
+
+      return {
+        clave, titulo: 'Mapa de decisores: quién decide, quién influye, quién opera',
+        pasos: [
+          inventario,
+          personas.length <= 1
+            ? 'ESTA CUENTA CUELGA DE UNA SOLA PERSONA. El día que deje de contestar, se pierde la ' +
+              'cuenta — y no es hipotético: es lo que pasa cuando alguien cambia de puesto, sale de ' +
+              'vacaciones o se va de la empresa. Salir de aquí con DOS nombres nuevos es el mínimo.'
+            : 'Confirma que alguno de esos nombres DECIDE. Tener varios contactos operativos no es ' +
+              'un mapa de decisores: es la misma dependencia repartida.',
+          'Clasifica a cada persona en una de tres: DECIDE (autoriza el gasto), INFLUYE (su opinión ' +
+          'pesa en la renovación) u OPERA (usa el sistema). Si todos los que tienes operan, el mapa ' +
+          'está incompleto y ese ES el hallazgo.',
+          'Dónde buscar sin llamar a nadie: ' + [
+            web ? `el sitio de la cuenta (${web}) — secciones de contacto, nosotros y sucursales` : 'el sitio de la cuenta',
+            'LinkedIn de la empresa, filtrando por dirección, finanzas, operaciones y sistemas',
+            'el correo de facturación, que casi siempre llega a quien autoriza el pago',
+            'los tickets de soporte: quien los abre es quien OPERA, y te dice por dónde entrar',
+          ].join(' · ') + '.',
+          sinCargo.length
+            ? `Completa el cargo de: ${sinCargo.map(p => p.nombre).join(', ')}. Un contacto sin cargo ` +
+              'no sirve para decidir a quién escalar.'
+            : 'Verifica que los cargos registrados sigan vigentes: la gente cambia de puesto.',
+          sinTel.length
+            ? `Consigue un teléfono marcable de: ${sinTel.map(p => p.nombre).join(', ')}. Depender ` +
+              'solo del correo es depender de que contesten cuando quieran.'
+            : 'Verifica que los teléfonos sigan siendo los buenos.',
+          'REGISTRA lo que encuentres en la ficha de la cuenta, en Contactos. Un decisor que ' +
+          'descubres y no guardas se pierde igual que si no lo hubieras encontrado.',
+        ],
+      }
+    }
+    case 'tickets':
+      return {
+        clave, titulo: 'Analizar sus tickets y presentar el hallazgo',
+        pasos: [
+          `Tiene ${tkTotal} tickets históricos y ${tkFallas} marcados como falla` +
+          (e?.tickets_categoria_top ? `; la categoría que más repite es «${e.tickets_categoria_top}»` : '') +
+          (n(e?.tickets_horas_mediana) > 0 ? `, con una mediana de ${Math.round(n(e?.tickets_horas_mediana))} h hasta el cierre` : '') + '.',
+          'Abre el módulo Tickets filtrando por su CID y busca el PATRÓN: ¿es el mismo problema repetido, o cosas distintas?',
+          'Si se repite, eso es una conversación de mejora, no de soporte: llévasela al cliente con el dato.',
+          'Si no se repite, dilo también — una cuenta sin patrón de fallas es un argumento de estabilidad que sirve para vender.',
+        ],
+      }
+    case 'factura':
+      return {
+        clave, titulo: 'Revisar su factura y su plan',
+        pasos: [
+          e?.plan_ultimo_corte
+            ? `Plan actual: «${e.plan_ultimo_corte}» por $${Math.round(n(e.monto_ultimo_corte)).toLocaleString('es-MX')}. ` +
+              `Consumió ${Math.round(n(e.minutos_consumidos))} de ${Math.round(n(e.base_minutos))} minutos (${n(e.pct_consumo).toFixed(0)}%).`
+            : 'No hay corte de facturación cruzado por su CID: averigua si factura bajo otro CID y déjalo anotado.',
+          '¿El plan le queda grande o chico? Si consume menos del 40%, la renovación es una conversación difícil que conviene adelantar.',
+          'Si va por encima del 100%, el excedente se está cobrando: revisa si le conviene subir de plan antes de que lo note en la factura.',
+          'Trae una recomendación concreta, no solo el porcentaje.',
+        ],
+      }
+    case 'datos':
+      return {
+        clave, titulo: 'Robustecer la información de la cuenta',
+        pasos: [
+          'Completa lo que falte en la ficha: contacto y cargo, giro, número de oficinas, NPS, observaciones KAM y próximo contacto.',
+          'Verifica que el CID sea el correcto y que estén todos sus números (DIDs)' +
+          (n(e?.dids) > 0 ? `: hoy se le conocen ${n(e?.dids)}` : '') + '.',
+          'Responde el Radar de Cuenta si le faltan preguntas.',
+          'Un dato faltante no es un hueco administrativo: es lo que impide ver el riesgo antes de que pase.',
+        ],
+      }
+    case 'crecimiento':
+      return {
+        clave, titulo: e?.oferta ? `Investigar evidencia para ofrecer ${e.oferta}` : 'Buscar evidencia de crecimiento',
+        pasos: [
+          e?.peldano ? `Hoy está en el peldaño «${e.peldano}».` : 'Revisa en qué peldaño de producto está.',
+          e?.oferta
+            ? `El siguiente escalón que le corresponde es ${e.oferta}. Busca la evidencia que lo justifique ANTES de proponerlo.`
+            : 'Identifica qué producto sigue y qué evidencia lo justificaría.',
+          n(e?.llamadas_entrantes) > 0 || n(e?.llamadas_salientes) > 0
+            ? `Datos que puedes usar: ${n(e?.llamadas_entrantes)} llamadas entrantes y ${n(e?.llamadas_salientes)} salientes` +
+              (n(e?.pct_entrantes) > 0 ? `, ${n(e?.pct_entrantes).toFixed(0)}% entrantes` : '') + '.'
+            : 'Busca el dato de llamadas en Atención de llamadas antes de proponer.',
+          /* El `||` va DENTRO del paréntesis a propósito. Escrito como
+             `'Módulos: ' + lista || 'ninguno'`, la concatenación gana por
+             precedencia, el `||` nunca dispara y una cuenta sin módulos
+             registrados imprimía «Módulos activos:» y nada más. */
+          'Módulos activos: ' + ([
+            e?.tiene_CE ? 'CE' : null, e?.tiene_VyC ? 'VyC' : null, e?.tiene_Chat ? 'Chat' : null,
+            e?.tiene_AV ? 'AV' : null, e?.tiene_API ? 'API' : null,
+          ].filter(Boolean).join(', ') || 'ninguno registrado') + '.',
+          'Presenta la propuesta con el dato que la sostiene. Sin evidencia no es upsell, es insistencia.',
+        ],
+      }
+    case 'relacion':
+    default: {
+      /* Si la cuenta cuelga de una sola persona, la pregunta del decisor va YA,
+         dentro de la primera conversación. No se espera a la vuelta del Mapa de
+         Decisores: preguntar «¿quién más autoriza esto?» no cuesta nada cuando
+         ya tienes a alguien al teléfono, y es el momento natural de hacerlo.
+         Son 128 de 179 cuentas vivas. */
+      const solos = _personas(c).filter(p => p.nombre).length <= 1
+      return {
+        clave, titulo: 'Hablar con el cliente y dejar registro',
+        pasos: [
+          `Contacta al responsable de ${nom} y pregunta cómo va la operación.`,
+          'No es una llamada de cortesía: confirma que el servicio opera bien, si hubo cambios de equipo o de prioridades, y qué esperan de los próximos meses.',
+          ...(solos ? [
+            'ESTA CUENTA CUELGA DE UNA SOLA PERSONA, así que en esta misma conversación ' +
+            'pregunta quién más autoriza el gasto y quién más usa el sistema. Pide nombre y ' +
+            'cargo, y guárdalos en la ficha. No es una tarea aparte: es una pregunta que ya ' +
+            'estás en posición de hacer.',
+          ] : []),
+          'Acuerda UNA acción concreta con fecha.',
+          'Registra el resultado aunque sea malo. «No contesta desde el 3 de agosto» es información valiosa; el silencio en el sistema no lo es.',
+        ],
+      }
+    }
+  }
+}
+
+/**
+ * Cuántos seguimientos entrega esta semana. SIEMPRE diez.
+ *
+ * No se recorta por «cuentas disponibles», y es la corrección de un error de
+ * concepto mío. Dirección lo dijo así: «siempre hay que hacer con los clientes:
+ * que hagan análisis y los presenten, que robustezcan la información, que
+ * analicen los tickets, la factura, que investiguen si hay más evidencia para
+ * hacer upsell o crosssell. No me digas que se agota.»
+ *
+ * Y es cierto: una cuenta no se queda sin trabajo por haberla llamado la semana
+ * pasada — necesita OTRO trabajo. Lo que rota no es la lista de cuentas, es el
+ * tipo de trabajo sobre cada una. Ver `TRABAJOS`.
+ */
+export function loteSemanal(_cuentasVivas: number): number {
+  return SEGUIMIENTOS_POR_SEMANA
 }
 
 /**
@@ -155,9 +428,17 @@ export async function focosDeRiesgo(
   cuentas: CuentaParaFoco[],
   ultimoSeguimiento: Map<string, string>,
   hoy: string,
+  /**
+   * Cuántas actividades de foco lleva ya cada cuenta (cuenta_id -> número).
+   * Es lo que decide QUÉ trabajo le toca ahora: la cuenta avanza un trabajo
+   * cada vez que vuelve a salir. Sin el mapa, todas empiezan por «relación»,
+   * que es el orden correcto para una cartera que arranca.
+   */
+  vueltasPrevias: Map<string, number> = new Map(),
 ): Promise<Foco[]> {
   const mapa = await todosLosCortes()
   const ultimoMes = await ultimoMesDeCorte()
+  const escalera = await cargarEscalera()
   const auditadas = new Set(auditadasEnRiesgo().map(a => normalizarNombre(a.nombre)))
   const out: Foco[] = []
 
@@ -236,14 +517,48 @@ export async function focosDeRiesgo(
     } else {
       ctx.push(`Tickets históricos: ${tk.total}, de los cuales ${tk.fallas} marcados como falla.`)
     }
+    /* LA DEPENDENCIA DE UNA SOLA PERSONA SE DICE SIEMPRE, toque el trabajo que
+       toque. Es un riesgo estructural: no se manifiesta poco a poco como el
+       consumo, se manifiesta de golpe el día que esa persona no contesta.
+       Son 128 de 179 cuentas vivas. */
+    const personas = _personas(c).filter(p => p.nombre)
+    if (personas.length === 0) {
+      ctx.push('SIN UNA SOLA PERSONA con nombre registrada. No sabemos a quién llamar.')
+    } else if (personas.length === 1) {
+      const p = personas[0]
+      ctx.push(
+        `CUELGA DE UNA SOLA PERSONA: ${p.nombre}` +
+        (p.cargo ? ` (${p.cargo})` : ' — sin cargo registrado') +
+        (p.telUtil ? '.' : ', y sin teléfono marcable: el correo es el único canal.'),
+      )
+    }
     if (chat) ctx.push('Tiene CHAT activo: su consumo de voz no cuenta toda su operación.')
     if (auditadas.has(normalizarNombre(c.empresa))) {
       ctx.push('Tiene auditoría entregada — ábrela en /auditoria antes de llamar.')
     }
 
+    /* ── EL TRABAJO DE ESTA VUELTA ────────────────────────────────────
+       Dos reglas, y la primera manda:
+
+       1. Si la cuenta está sin contacto —nunca tocada o pasada de los 60
+          días— el trabajo es HABLAR con ella, sin importar cuántas vueltas
+          lleve. Es la señal medida más fuerte (×2.25 y ×2.02) y ninguna
+          rotación de análisis la sustituye.
+       2. En cualquier otro caso rota: la cuenta avanza un trabajo cada vez
+          que vuelve a salir, así que nunca se queda sin qué hacer. En cinco
+          vueltas se le hizo relación, tickets, factura, datos y crecimiento;
+          a la sexta se vuelve a empezar, con datos nuevos. */
+    const vueltas = vueltasPrevias.get(c.id) ?? 0
+    const clave: ClaveTrabajo = (clase === 'nunca_tocada' || clase === 'sin_contacto')
+      ? 'relacion'
+      : TRABAJOS[vueltas % TRABAJOS.length]
+    const fila = escalera.get(c.id) ?? (cid ? escalera.get(cid) ?? null : null)
+    const trabajo = armarTrabajo(clave, c, fila, tk.total, tk.fallas)
+
     out.push({
       cuenta: c, clase, titulo, diasSinContacto: dias, peso: fact,
       detalle: ctx.join('\n  · '),
+      trabajo,
     })
   }
 
@@ -278,19 +593,31 @@ export function repartoFocos(focos: Foco[]): Record<string, Record<string, numbe
 
 export function descripcionFoco(f: Foco): string {
   return [
-    `[SEGUIMIENTO·${f.clase.toUpperCase()}] ${f.titulo} — ${f.cuenta.empresa}`,
+    /* El marcador lleva la CLASE y el TRABAJO, y el trabajo va ahí por una razón
+       práctica: la tabla `actividades` no tiene columna para él y agregarla exige
+       una migración. El cierre necesita saber qué trabajo era —el Mapa de
+       Decisores se valida distinto— así que se codifica en el texto, igual que
+       hace la aclaración con su `marcadorAclaracion`. Lo lee
+       `trabajoDeDescripcion` en lib/cierre-seguimiento.ts. */
+    `[SEGUIMIENTO·${f.clase.toUpperCase()}·${f.trabajo.clave.toUpperCase()}] ${f.titulo} — ${f.cuenta.empresa}`,
     '',
     'LO QUE SE SABE DE ESTA CUENTA HOY:',
     `  · ${f.detalle}`,
     '',
-    'QUÉ HAY QUE HACER:',
-    '  · Contactar al responsable y conversar lo de arriba.',
-    '  · Acordar UNA acción concreta con fecha, no una intención.',
+    `EL TRABAJO DE ESTA VUELTA — ${f.trabajo.titulo.toUpperCase()}:`,
+    ...f.trabajo.pasos.map(p => `  · ${p}`),
     '',
-    'QUÉ HAY QUE DEJAR REGISTRADO:',
-    '  · Con quién hablaste: nombre, puesto y por qué vía.',
-    '  · Qué se acordó, con fecha. Si no hubo acuerdo, cuál es el siguiente paso.',
-    '  · Si no lograste contacto, dilo: cuántas veces lo intentaste y cuándo.',
+    'QUÉ HAY QUE DEJAR REGISTRADO PARA CERRARLA:',
+    '  1. CON QUIÉN HABLASTE: nombre, puesto y por qué vía. Y si esa persona',
+    '     DECIDE o solo opera — hablar con quien no decide explica muchos «no».',
+    '  2. QUÉ HICISTE: las acciones concretas con fechas. Qué le presentaste, con',
+    '     qué datos y en qué formato. Si no lograste contacto, cuántas veces lo',
+    '     intentaste, por qué vías y en qué fechas.',
+    '  3. POR QUÉ QUEDÓ ASÍ: la causa de fondo y el siguiente paso con fecha.',
+    '',
+    'Los tres son obligatorios y se validan al cerrar. «El cliente no quiere» es',
+    'un resultado, no una explicación: si esa es la respuesta, hay que decir a',
+    'quién se le presentó, qué objeción puso y qué se le ofreció para rebatirla.',
     '',
     'Por qué importa registrarlo, con números: de las cuentas SIN seguimiento',
     'registrado se dio de baja el 28%; de las que sí lo tienen, el 13%. Es la',

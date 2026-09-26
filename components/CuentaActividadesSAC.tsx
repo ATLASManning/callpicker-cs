@@ -14,6 +14,7 @@ const TIPO_META: Record<string, { label: string; emoji: string; color: string; b
   tickets:    { label: 'Análisis Tickets',    emoji: '🎫', color: '#7C2D12', bg: '#FFEDD5' },
   pagos:      { label: 'Comportamiento Pago', emoji: '💳', color: '#713F12', bg: '#FEF9C3' },
   aclaracion: { label: 'Aclaración de baja',  emoji: '🚨', color: '#7F1D1D', bg: '#FEE2E2' },
+  foco_riesgo:{ label: 'Seguimiento de cuenta', emoji: '🎯', color: '#7C2D12', bg: '#FFE4D5' },
 }
 
 const PRIO_META: Record<string, { color: string; bg: string; border: string }> = {
@@ -53,12 +54,18 @@ function ActividadRow({ act, canEdit }: { act: ActividadSAC; canEdit: boolean })
    * descartaba en silencio, parecía que simplemente no hacía nada. */
   const [tiempoRep, setTiempoRep] = useState<number | ''>('')
 
-  /* Una Aclaración de baja NO se puede cerrar desde aquí: exige dos campos
-   * separados (causa y acciones previas) que este panel compacto no captura.
-   * Si se ofreciera el cuadro único, el servidor devolvería 409 y —como este
-   * componente no mostraba el error— el asesor haría clic y no pasaría
-   * absolutamente nada. Se manda al panel semanal, que sí los tiene. */
-  const esAclaracion = act.tipo === 'aclaracion'
+  /* DOS tipos NO se pueden cerrar desde aquí, porque el servidor les exige
+   * campos separados que este panel compacto no captura:
+   *   · `aclaracion`  — causa explícita + acciones previas (2 campos);
+   *   · `foco_riesgo` — con quién hablaste + qué hiciste + por qué quedó así (3).
+   * Si se ofreciera el cuadro único, el servidor devolvería 409 y el asesor
+   * haría clic sin que pasara nada visible. Se mandan al panel semanal.
+   *
+   * Es una LISTA y no un `===` a propósito: cada vez que se agregue un tipo con
+   * cierre estructurado hay que acordarse de este panel, y una lista con nombre
+   * lo hace evidente. `foco_riesgo` se olvidó la primera vez. */
+  const CIERRE_ESTRUCTURADO = ['aclaracion', 'foco_riesgo']
+  const cierreEstructurado = CIERRE_ESTRUCTURADO.includes(act.tipo)
 
   const meta  = TIPO_META[act.tipo] ?? { label: act.tipo, emoji: '📋', color: '#1F2937', bg: '#F3F4F6' }
   const prio  = PRIO_META[act.prioridad] ?? { color: '#1F2937', bg: '#F3F4F6', border: '#D1D5DB' }
@@ -210,22 +217,33 @@ function ActividadRow({ act, canEdit }: { act: ActividadSAC; canEdit: boolean })
             </div>
           )}
 
-          {/* Aclaración de baja: no se cierra desde aquí (ver esAclaracion) */}
-          {!pcomp && esAclaracion && (
+          {/* Cierre estructurado: no se cierra desde aquí (ver cierreEstructurado) */}
+          {!pcomp && cierreEstructurado && (
             <div style={{
               background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
               padding: '10px 12px', marginBottom: 10,
             }}>
               <p style={{ fontSize: 11, color: '#991B1B', margin: 0, lineHeight: 1.6 }}>
-                <strong>Esta aclaración se cierra desde el panel semanal de actividades.</strong>{' '}
-                Ahí se capturan por separado la <strong>causa explícita</strong> y las{' '}
-                <strong>acciones previas</strong>, que son obligatorias para poder completarla.
+                {act.tipo === 'foco_riesgo' ? (
+                  <>
+                    <strong>Este seguimiento se cierra desde el panel semanal de actividades.</strong>{' '}
+                    Ahí se capturan por separado <strong>con quién hablaste</strong>,{' '}
+                    <strong>qué hiciste</strong> y <strong>por qué quedó así</strong>, que son
+                    obligatorios para poder completarlo.
+                  </>
+                ) : (
+                  <>
+                    <strong>Esta aclaración se cierra desde el panel semanal de actividades.</strong>{' '}
+                    Ahí se capturan por separado la <strong>causa explícita</strong> y las{' '}
+                    <strong>acciones previas</strong>, que son obligatorias para poder completarla.
+                  </>
+                )}
               </p>
             </div>
           )}
 
           {/* Completar actividad */}
-          {!pcomp && !pbloc && !esAclaracion && canEdit && (
+          {!pcomp && !pbloc && !cierreEstructurado && canEdit && (
             <div style={{ marginBottom: 10 }}>
               <p style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' }}>
                 Registrar resultado

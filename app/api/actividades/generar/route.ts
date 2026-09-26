@@ -31,7 +31,7 @@ import {
    para marcar la clase, y porque su validador de cierre sigue vigente. */
 import {
   focosDeRiesgo, ordenarFocos, descripcionFoco, loteSemanal, TIPO_FOCO,
-  type CuentaParaFoco,
+  CAMPOS_FOCO_SELECT, type CuentaParaFoco,
 } from '@/lib/focos-riesgo'
 import { ahoraEnMexico, fechaLocal, selloMexico } from '@/lib/fecha-local'
 
@@ -247,12 +247,54 @@ async function construirAclaraciones(
 }
 
 /**
- * Los focos de riesgo que tocan esta semana.
+ * PostgREST devuelve MIL FILAS COMO MÁXIMO por petición, pase lo que pase y sin
+ * avisar: no hay error, no hay bandera, simplemente llegan menos datos de los que
+ * hay. Ya me costó una afirmación falsa en un reporte —mil de 2,198 filas de
+ * `uso_dashboard`— así que las dos lecturas de abajo van por páginas.
+ */
+const PAG = 1000
+
+/** Todos los seguimientos del asesor, sin tope de mil. */
+async function seguimientosDelAsesor(asesor: string) {
+  const out: Array<{ cuenta_id: string; fecha: string }> = []
+  for (let desde = 0; ; desde += PAG) {
+    const { data, error } = await supabaseAdmin
+      .from('seguimientos')
+      .select('cuenta_id, fecha')
+      .eq('asesor', asesor)
+      .range(desde, desde + PAG - 1)
+    if (error || !data?.length) break
+    out.push(...(data as Array<{ cuenta_id: string; fecha: string }>))
+    if (data.length < PAG) break
+  }
+  return out
+}
+
+/** Todas las actividades de foco del asesor, abiertas y cerradas, sin tope de mil. */
+async function focosDelAsesor(asesor: string) {
+  const out: Array<{ cuenta_id: string | null; completada: boolean | null }> = []
+  for (let desde = 0; ; desde += PAG) {
+    const { data, error } = await supabaseAdmin
+      .from('actividades')
+      .select('cuenta_id, completada')
+      .eq('asesor', asesor)
+      .eq('tipo', TIPO_FOCO)
+      .range(desde, desde + PAG - 1)
+    if (error || !data?.length) break
+    out.push(...(data as Array<{ cuenta_id: string | null; completada: boolean | null }>))
+    if (data.length < PAG) break
+  }
+  return out
+}
+
+/**
+ * Los focos de riesgo que tocan esta semana: TODAS las cuentas vivas, por turno.
  *
- * MISMAS DOS REGLAS que el seguimiento a auditoría: van FUERA del tope de cuatro
- * y se crean UNA sola vez por cuenta en toda su historia — el dedup mira todo el
- * histórico del tipo, no solo la semana. Lo que cambia es que aquí el acervo se
- * entrega por partes en vez de completo.
+ * Van FUERA del tope de cuatro actividades rutinarias y su tipo está excluido del
+ * auto-vencimiento. Lo que ya NO hacen —y es la corrección de fondo— es crearse
+ * una sola vez por cuenta: la cuenta vuelve a salir cada vuelta, con OTRO trabajo
+ * encima (relación, tickets, factura, datos, crecimiento). Por eso aquí se cuenta
+ * cuántas vueltas lleva cada una: es lo que decide qué le toca ahora.
  *
  * El candado de churn confirmado vive dentro de `focosDeRiesgo`, y tiene que
  * estar ahí: estas actividades NO pasan por `evaluarElegibilidad` —a propósito,
@@ -262,56 +304,66 @@ async function construirAclaraciones(
 async function construirFocosDeRiesgo(
   asesor: string, semanaInicio: string,
 ): Promise<AnyAct[]> {
+  /* `CAMPOS_FOCO_SELECT` y no una lista escrita a mano: incluye los contactos
+     de la cuenta, que el Mapa de Decisores necesita. Con la lista suelta que
+     había antes, agregar un campo aquí y olvidarlo allá producía tareas sin
+     datos — y una tarea sin datos es la que se contesta en un minuto. */
   const { data: cuentas } = await supabaseAdmin
     .from('cuentas')
-    .select('id, cid, consecutivo, empresa, asesor, estado, health_score, facturacion, tiene_chat_activo')
+    .select(CAMPOS_FOCO_SELECT)
     .eq('asesor', asesor)
   if (!cuentas?.length) return []
 
   /* El último seguimiento REGISTRADO de cada cuenta. Es el dato que ordena todo
      el turno, porque es el que más predice la baja: 28% de churn en las cuentas
      sin seguimiento contra 13% en las que sí lo tienen. */
-  const { data: segs } = await supabaseAdmin
-    .from('seguimientos')
-    .select('cuenta_id, fecha')
-    .eq('asesor', asesor)
+  const segs = await seguimientosDelAsesor(asesor)
   const ultimoSeg = new Map<string, string>()
-  for (const s of (segs ?? []) as Array<{ cuenta_id: string; fecha: string }>) {
+  for (const s of segs) {
     const f = String(s.fecha ?? '').slice(0, 10)
     if (!f) continue
     const prev = ultimoSeg.get(s.cuenta_id)
     if (!prev || f > prev) ultimoSeg.set(s.cuenta_id, f)
   }
 
+  /* EL HISTÓRICO DE FOCOS, que resuelve DOS cosas de una sola lectura:
+       · el dedup — qué cuentas tienen una todavía abierta;
+       · las vueltas — cuántos focos lleva cada cuenta, que es lo que decide
+         qué trabajo le toca ahora.
+     Salen de la MISMA consulta a propósito: si fueran dos, podrían contradecirse
+     entre sí en el instante en que alguien cierra una actividad. */
+  const mios = (await focosDelAsesor(asesor)).filter(a => a.cuenta_id)
+
+  /* EL DEDUP MIRA LO QUE SIGUE ABIERTO, no una ventana de tiempo.
+     Es la única forma que se auto-regula. Con una ventana fija —la versión
+     anterior usaba ocho semanas— y diez seguimientos por semana, la vuelta
+     completa se cierra en cuatro o cinco: a partir de ahí TODAS las cuentas
+     quedarían bloqueadas por la ventana y el generador dejaría de emitir
+     durante semanas, en silencio.
+
+     Con esta regla el orden ES la rotación: la cuenta atendida deja registrado
+     su seguimiento, sus días sin contacto vuelven a cero y cae sola al final de
+     la fila. La que no se atendió conserva su actividad abierta, no se duplica,
+     y el rezago queda a la vista en vez de acumularse escondido. */
+  const yaTiene = new Set(mios.filter(a => a.completada === false).map(a => a.cuenta_id))
+  const vueltas = new Map<string, number>()
+  for (const a of mios) {
+    const k = String(a.cuenta_id)
+    vueltas.set(k, (vueltas.get(k) ?? 0) + 1)
+  }
+
   const todos = ordenarFocos(
-    await focosDeRiesgo(cuentas as CuentaParaFoco[], ultimoSeg, hoyEnMexico()),
+    await focosDeRiesgo(cuentas as CuentaParaFoco[], ultimoSeg, hoyEnMexico(), vueltas),
   )
   if (!todos.length) return []
-
-  /* ROTACIÓN, no acervo que se agota.
-     La versión anterior creaba la actividad UNA vez por cuenta y para siempre.
-     Con la instrucción de cubrirlas TODAS eso no sirve: una cuenta atendida en
-     octubre tiene que volver a tocarle turno antes de los 60 días. Así que el
-     dedup mira solo la vuelta en curso —las últimas 8 semanas—, no la historia
-     completa. */
-  const desde = new Date(semanaInicio + 'T12:00:00')
-  desde.setDate(desde.getDate() - 7 * 8)
-  const { data: yaHay } = await supabaseAdmin
-    .from('actividades')
-    .select('cuenta_id')
-    .eq('asesor', asesor)
-    .eq('tipo', TIPO_FOCO)
-    .gte('semana_inicio', toISO(desde))
-  const yaTiene = new Set((yaHay ?? []).map(a => a.cuenta_id))
 
   const vSem = new Date(semanaInicio + 'T12:00:00')
   vSem.setDate(vSem.getDate() + 4)
   const fechaVenc = toISO(vSem)
 
-  /* El lote se calcula por CARTERA, no es un número fijo: una de 54 cuentas
-     necesita más por semana que una de 36 para dar la misma vuelta de 60 días.
-     Dan tiene 54 vivas y 27 de ellas sin un solo seguimiento en su historia;
-     Claudia 36 con 9; Fátima 45 con 10. */
+  /* Diez por semana, fijo. No sale de dividir la cartera entre semanas: sale de
+     la capacidad observada —tres actividades cerradas en un minuto cada una— y
+     es decisión de dirección del 25 sep 2026. Ver `loteSemanal`. */
   const cupo = loteSemanal(todos.length)
 
   const filas: AnyAct[] = []
@@ -906,7 +958,9 @@ export async function POST(req: NextRequest) {
         },
         acervoDeRiesgo: {
           generadas: acervo.length,
-          nota: 'Auditorías en riesgo, cuentas fuera del corte y consumo bajo. Fuera del tope, una vez por cuenta y de dos en dos por semana.',
+          nota: 'Seguimiento a TODAS las cuentas vivas, por turno: diez por semana, fuera del tope de cuatro. ' +
+                'La cuenta que ya salió vuelve con OTRO trabajo encima (relación, tickets, factura, datos, crecimiento). ' +
+                'Churn confirmado no entra.',
           detalle: acervo.map(a => ({ empresa: a.empresa, foco: a.descripcion.split('\n')[0] })),
         },
       })

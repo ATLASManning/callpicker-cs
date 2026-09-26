@@ -25,3 +25,31 @@ export function esValorReal(v: unknown): boolean {
   if (/^[-–—._]+$/.test(k)) return false
   return true
 }
+
+/**
+ * Un teléfono que sirva para MARCAR, no solo para llenar el campo.
+ *
+ * `esValorReal` no basta aquí y no debe bastar: es un criterio genérico y esto
+ * depende del significado del campo. Un `55` repetido es un health score
+ * perfectamente válido; como teléfono no existe.
+ *
+ * SE ENCONTRÓ ASÍ (Clikauto, 25 sep 2026): el único contacto de la cuenta tenía
+ * `000000000000000` por teléfono. El sistema la daba por «contacto completo»
+ * mientras el único canal real era el correo — y desde junio nadie respondía.
+ * El dato falso es peor que el ausente: el ausente se ve, el falso apaga la
+ * alarma.
+ *
+ * Tres condiciones, y las tres miran solo los dígitos:
+ *   · que haya al menos 7 dígitos (en México, lo mínimo marcable);
+ *   · que no sean todos el mismo (0000000000, 1111111111);
+ *   · que pase el criterio general de relleno.
+ *
+ * Se midió antes de escribirlo: en las 222 cuentas solo dos teléfonos y tres
+ * entradas de `contactos_json` caen por esta regla. No hay falsos positivos.
+ */
+export function esTelefonoReal(v: unknown): boolean {
+  if (!esValorReal(v)) return false
+  const d = String(v).replace(/\D/g, '')
+  if (d.length < 7) return false
+  return new Set(d).size > 1
+}

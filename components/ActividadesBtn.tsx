@@ -5,14 +5,15 @@ import {
   Zap, X, CheckCircle, XCircle, Clock, AlertTriangle,
   RefreshCw, Loader2, Calendar, Phone, Users,
   BarChart2, FileText, TrendingUp, ChevronDown, History,
-  AlertCircle, ListChecks,
+  AlertCircle, ListChecks, Target,
 } from 'lucide-react'
 import { fechaLocal } from '@/lib/fecha-local'
+import { solicitudPendiente } from '@/lib/cierre-seguimiento'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 type TipoActividad  = 'llamada' | 'reunion' | 'analisis' | 'kam' | 'upsell' | 'validacion' | 'tickets' | 'pagos'
-                    | 'aclaracion'
+                    | 'aclaracion' | 'foco_riesgo'
 type EstadoAct      = 'pendiente' | 'completada' | 'vencida' | 'bloqueada'
 
 interface Actividad {
@@ -93,6 +94,23 @@ const TIPO_CFG: Record<TipoActividad, { label: string; icon: React.ReactNode; co
   // Churn confirmado / Downgrade. Rojo fuerte: no es una tarea rutinaria, es
   // la documentación obligatoria de una pérdida.
   aclaracion: { label: 'Aclaración de baja', icon: <AlertCircle size={10} />, color: '#B91C1C' },
+  // Seguimiento por turno a TODAS las cuentas vivas (lib/focos-riesgo.ts).
+  foco_riesgo: { label: 'Seguimiento de cuenta', icon: <Target size={10} />, color: '#7C2D12' },
+}
+
+/**
+ * Configuración por tipo, A PRUEBA DE TIPOS NUEVOS.
+ *
+ * Antes era `TIPO_CFG[act.tipo]` a secas, y eso era una excepción en el cliente
+ * esperando su turno: el backend ya emitía tipos que esta tabla no tenía
+ * (`foco_riesgo`, y `aclaracion` antes de agregarla). Un `undefined` aquí revienta
+ * en `tc.color` y se lleva TODO el panel de actividades, no solo la tarjeta.
+ *
+ * Un tipo que falte ahora sale con su propio nombre y en gris. Se ve descuidado,
+ * que es exactamente lo que se quiere: visible pero no destructivo.
+ */
+function cfgDeTipo(t: string): { label: string; icon: React.ReactNode; color: string } {
+  return TIPO_CFG[t as TipoActividad] ?? { label: t, icon: <ListChecks size={10} />, color: '#4B5563' }
 }
 
 const DIAS  = ['dom','lun','mar','mié','jue','vie','sáb']
@@ -147,7 +165,35 @@ function ActividadCard({
   // Mínimos que exige el backend (lib/aclaraciones.ts). Se replican aquí solo
   // para deshabilitar el botón; la validación de verdad vive en el servidor.
   const aclaracionLista = causa.trim().length >= 40 && acciones.trim().length >= 40
-  const listoParaCerrar = esAclaracion ? aclaracionLista : !!resultado.trim()
+
+  /* Seguimiento por foco de riesgo: TRES campos, y por la misma razón que la
+     aclaración tiene dos. Con un solo cuadro, «el cliente no quiere» más relleno
+     pasa cualquier mínimo de longitud; separados, el hueco se ve.
+     Instrucción de dirección del 25 sep 2026. */
+  const esSeguimiento = act.tipo === 'foco_riesgo'
+  const [sgContacto, setSgContacto] = useState('')
+  const [sgAcciones, setSgAcciones] = useState('')
+  const [sgMotivo,   setSgMotivo]   = useState('')
+  /* El Mapa de Decisores se valida contra la FICHA (dos personas con nombre y
+     cargo), no contra el texto. `decisorUnico` es su escotilla: hay cuentas
+     donde de verdad decide una sola persona, y para ésas se pide la explicación
+     en vez de cerrar la puerta. El trabajo se lee del marcador de la
+     descripción — ver `trabajoDeDescripcion` en lib/cierre-seguimiento.ts. */
+  const esDecisores = /^\[SEGUIMIENTO·[^·\]]+·DECISORES\]/i.test((act.descripcion ?? '').trim())
+  const [decisorUnico, setDecisorUnico] = useState(false)
+  const [sgDecide, setSgDecide] = useState('')
+  // Mínimos de lib/cierre-seguimiento.ts, replicados solo para el botón.
+  const seguimientoListo = sgContacto.trim().length >= 30
+    && sgAcciones.trim().length >= 60
+    && sgMotivo.trim().length >= 60
+    // En el Mapa de Decisores además hay que nombrar a quien decide. El servidor
+    // verifica que ese nombre exista en la ficha; aquí solo se exige que no vaya
+    // vacío, para no dejar pulsar un botón que va a rebotar.
+    && (!esDecisores || sgDecide.trim().length > 0)
+
+  const listoParaCerrar = esAclaracion ? aclaracionLista
+    : esSeguimiento ? seguimientoListo
+    : !!resultado.trim()
   const [motivo,    setMotivo]    = useState(act.motivo_pendiente ?? '')
   const [tiempoRep, setTiempoRep] = useState<number | ''>('')
   const [saving,    setSaving]    = useState(false)
@@ -164,7 +210,7 @@ function ActividadCard({
   } | null>(null)
 
   const overdue   = isOverdue(act)
-  const tc        = TIPO_CFG[act.tipo]
+  const tc        = cfgDeTipo(act.tipo)
   const borderCol = act.completada ? '#22C55E' : overdue ? '#EF4444' : '#E2E8F0'
   const headBg    = act.completada ? '#F0FDF4' : overdue ? '#FFF1F2' : '#F8FAFC'
 
@@ -197,11 +243,17 @@ function ActividadCard({
       const payload = {
         completada,
         estado:          completada ? 'completada' : 'pendiente',
-        // En una aclaración el `resultado` lo compone el servidor a partir de
-        // los dos campos, para que la estructura CAUSA / ACCIONES quede fija.
-        resultado:       completada ? (esAclaracion ? undefined : resultado) : null,
+        // En una aclaración y en un seguimiento el `resultado` lo compone el
+        // servidor a partir de los campos separados, para que la estructura
+        // quede fija y no dependa de cómo lo escriba cada quien.
+        resultado:       completada ? ((esAclaracion || esSeguimiento) ? undefined : resultado) : null,
         aclaracion_causa:    completada && esAclaracion ? causa    : undefined,
         aclaracion_acciones: completada && esAclaracion ? acciones : undefined,
+        seguimiento_contacto: completada && esSeguimiento ? sgContacto : undefined,
+        seguimiento_acciones: completada && esSeguimiento ? sgAcciones : undefined,
+        seguimiento_motivo:   completada && esSeguimiento ? sgMotivo   : undefined,
+        decisor_unico:        completada && esDecisores && decisorUnico ? true : undefined,
+        seguimiento_decide:   completada && esDecisores ? sgDecide : undefined,
         motivo_pendiente:!completada ? motivo    : null,
         tiempo_reportado_min: completada ? tiempoRep : undefined,
       }
@@ -337,11 +389,24 @@ function ActividadCard({
             </div>
           )}
 
-          {!act.completada && act.motivo_pendiente && (
+          {/* Una solicitud de autorización NO es un «no la hice»: es trabajo
+              entregado esperando visto bueno. Se guarda en `motivo_pendiente`
+              porque la tabla no tiene columna propia, pero mostrarla con la
+              misma cara que una actividad incumplida sería mentir sobre el
+              esfuerzo del asesor. Ver `solicitudPendiente`. */}
+          {!act.completada && solicitudPendiente(act.motivo_pendiente) !== null ? (
+            <div className="cp-light" style={{ marginTop: 6, padding: '7px 10px', background: '#EFF6FF', borderRadius: 6, fontSize: 12, color: '#1E3A8A', border: '1px solid #1D4ED8' }}>
+              <strong>En espera de autorización.</strong> Tu investigación quedó registrada.
+              Pásasela a Daniel Martínez para su Vobo; el cierre lo instruye Dirección.
+              <p style={{ margin: '5px 0 0', fontSize: 11, whiteSpace: 'pre-wrap', color: '#1E3A8A' }}>
+                {solicitudPendiente(act.motivo_pendiente)}
+              </p>
+            </div>
+          ) : !act.completada && act.motivo_pendiente ? (
             <div style={{ marginTop: 6, padding: '5px 10px', background: '#FFF7ED', borderRadius: 6, fontSize: 12, color: '#92400E', border: '1px solid #FED7AA' }}>
               <strong>Motivo:</strong> {act.motivo_pendiente}
             </div>
-          )}
+          ) : null}
 
           {overdue && !act.completada && !act.motivo_pendiente && !editing && (
             <div style={{ marginTop: 6, padding: '5px 10px', background: '#FEF2F2', borderRadius: 6, fontSize: 11, color: '#991B1B', border: '1px solid #FECACA' }}>
@@ -456,6 +521,102 @@ function ActividadCard({
                       style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #FECACA', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     />
                   </div>
+                </>
+              ) : esSeguimiento ? (
+                /* Seguimiento de cuenta: TRES campos.
+                   «Si responden que el cliente no quiere o cualquier respuesta
+                   corta, oblígalos a que te expliquen y detallen qué acciones
+                   tomaron, a quién le presentaron, si es la persona correcta,
+                   por qué no contratan más servicios, una integración, etc.»
+                   (dirección, 25 sep 2026). El servidor valida los tres y
+                   rechaza una sentencia sin trabajo detrás. */
+                <>
+                  {/* `cp-light` es la clase de escape del contraste: si este panel
+                      llegara a renderizarse dentro de una `.cp-card`, el CSS global
+                      forzaría a blanco el `<strong>` de abajo y quedaría invisible
+                      sobre este fondo claro. Hoy no está dentro de una, pero el
+                      componente es compartido y la protección no cuesta nada. */}
+                  <div className="cp-light" style={{ padding: '7px 10px', background: '#FFF7ED', border: '1px solid #EA580C', borderRadius: 6, fontSize: 11, color: '#7C2D12', lineHeight: 1.55 }}>
+                    Los tres campos son obligatorios. <strong>«El cliente no quiere» es un
+                    resultado, no una explicación</strong>: si esa es la respuesta, hay que decir a
+                    quién se le presentó, qué objeción puso y qué se le ofreció para rebatirla.
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 800, color: '#7C2D12', display: 'block', marginBottom: 3 }}>
+                      1 · CON QUIÉN HABLASTE <span style={{ color: '#6B7280', fontWeight: 600 }}>(mínimo 30 caracteres · {sgContacto.trim().length})</span>
+                    </label>
+                    <textarea
+                      value={sgContacto}
+                      onChange={e => setSgContacto(e.target.value)}
+                      placeholder="Nombre, puesto y por qué vía. Y si esa persona DECIDE o solo opera: hablar con quien no decide explica muchos «no»."
+                      rows={2}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #EA580C', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 800, color: '#7C2D12', display: 'block', marginBottom: 3 }}>
+                      2 · QUÉ HICISTE <span style={{ color: '#6B7280', fontWeight: 600 }}>(mínimo 60 caracteres · {sgAcciones.trim().length})</span>
+                    </label>
+                    <textarea
+                      value={sgAcciones}
+                      onChange={e => setSgAcciones(e.target.value)}
+                      placeholder="Las acciones concretas con fechas: qué le presentaste, con qué datos y en qué formato. Si no lograste contacto, cuántas veces lo intentaste, por qué vías y en qué fechas."
+                      rows={3}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #EA580C', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 800, color: '#7C2D12', display: 'block', marginBottom: 3 }}>
+                      3 · POR QUÉ QUEDÓ ASÍ Y QUÉ SIGUE <span style={{ color: '#6B7280', fontWeight: 600 }}>(mínimo 60 caracteres · {sgMotivo.trim().length})</span>
+                    </label>
+                    <textarea
+                      value={sgMotivo}
+                      onChange={e => setSgMotivo(e.target.value)}
+                      placeholder="La razón de fondo —no el resultado, la CAUSA— y el siguiente paso con fecha. Una mala noticia bien explicada sí cierra: «lo verían en comité, no ha contestado, lo escalé el 3 de septiembre»."
+                      rows={3}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #EA580C', fontSize: 12, resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  {esDecisores && (
+                    <div className="cp-light" style={{ padding: '8px 10px', background: '#FFFBEB', border: '1px solid #B45309', borderRadius: 6 }}>
+                      <p style={{ margin: '0 0 6px', fontSize: 11, color: '#78350F', lineHeight: 1.55 }}>
+                        Este trabajo se cierra contra la <strong>ficha de la cuenta</strong>, no contra
+                        este texto: tienen que quedar guardadas al menos <strong>dos personas con
+                        nombre y cargo</strong> en la sección Contactos. Un decisor que encuentras y
+                        no guardas se pierde igual que si no lo hubieras encontrado.
+                      </p>
+                      <label style={{ fontSize: 10, fontWeight: 800, color: '#78350F', display: 'block', marginBottom: 3 }}>
+                        ¿QUIÉN DECIDE? — nombre de quien autoriza el gasto
+                      </label>
+                      <input
+                        value={sgDecide}
+                        onChange={e => setSgDecide(e.target.value)}
+                        placeholder="Nombre tal como está registrado en la ficha de la cuenta"
+                        style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: '1px solid #B45309', fontSize: 12, fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 8 }}
+                      />
+                      <p style={{ margin: '0 0 6px', fontSize: 10, color: '#78350F', lineHeight: 1.5 }}>
+                        Tiene que ser una de las personas guardadas en Contactos. Si ninguna de las que
+                        tienes decide, <strong>ése es el hallazgo</strong>: la cuenta se sostiene sobre
+                        gente que opera y hay que subir un nivel.
+                      </p>
+                      <label style={{ display: 'flex', gap: 7, alignItems: 'flex-start', cursor: 'pointer', fontSize: 11, color: '#78350F', lineHeight: 1.5 }}>
+                        <input
+                          type="checkbox"
+                          checked={decisorUnico}
+                          onChange={e => setDecisorUnico(e.target.checked)}
+                          style={{ marginTop: 2, flexShrink: 0 }}
+                        />
+                        <span style={{ background: '#FFFBEB' }}>
+                          Ya investigué y en esta cuenta <strong>de verdad decide una sola
+                          persona</strong>. Explica en el campo 3 cuántas personas tiene la empresa,
+                          quién autoriza el gasto y qué pasaría si esa persona se va.{' '}
+                          <strong>Esto no cierra la actividad</strong>: registra tu investigación y
+                          la deja en espera. Pásasela a Daniel Martínez para su Vobo; el cierre lo
+                          instruye Dirección.
+                        </span>
+                      </label>
+                    </div>
+                  )}
                 </>
               ) : (
                 <textarea

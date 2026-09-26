@@ -103,8 +103,8 @@ export function normalizarNombre(s: string | null | undefined): string {
  * consumidor existente: sigue habiendo UNA sola definicion. */
 /* Se importa Y se reexporta: `export { X } from` por si solo reexporta sin
  * crear el binding local, y este archivo usa esValorReal internamente. */
-import { esValorReal } from './valores'
-export { esValorReal }
+import { esValorReal, esTelefonoReal } from './valores'
+export { esValorReal, esTelefonoReal }
 
 /* ── Cuentas que Zoho sigue contando como churn pero están vivas ─────────────
  * El archivo de GRC espejea a Zoho peso por peso porque alimenta la tabla
@@ -187,9 +187,16 @@ export interface ResultadoElegibilidad {
   contactoFaltante:  string[]
 }
 
-const CAMPOS_CONTACTO: Array<{ key: keyof CuentaElegibilidadInput; label: string }> = [
+/**
+ * El teléfono lleva su propio criterio (`esTelefonoReal`), más estricto que el
+ * genérico: `000000000000000` pasaba como dato válido y daba por «completa» a
+ * una cuenta cuyo único canal vivo era el correo. Ver lib/valores.ts.
+ */
+const CAMPOS_CONTACTO: Array<{
+  key: keyof CuentaElegibilidadInput; label: string; valida?: (v: unknown) => boolean
+}> = [
   { key: 'contacto_nombre', label: 'Nombre'   },
-  { key: 'contacto_tel',    label: 'Teléfono' },
+  { key: 'contacto_tel',    label: 'Teléfono', valida: esTelefonoReal },
   { key: 'contacto_email',  label: 'Correo'   },
   { key: 'contacto_cargo',  label: 'Cargo'    },
 ]
@@ -257,7 +264,9 @@ export function evaluarElegibilidad(
   // 6. Contacto localizable: nombre, teléfono, correo y cargo con datos reales.
   //    No aplica a las actividades de captura — ver TIPOS_DE_CAPTURA.
   if (!TIPOS_DE_CAPTURA.has(String(tipo ?? ''))) {
-    const faltantes = CAMPOS_CONTACTO.filter(f => !esValorReal(c[f.key])).map(f => f.label)
+    const faltantes = CAMPOS_CONTACTO
+      .filter(f => !(f.valida ?? esValorReal)(c[f.key]))
+      .map(f => f.label)
     if (faltantes.length > 0) return no('contacto_incompleto', faltantes)
   }
 
