@@ -467,10 +467,29 @@ function ActividadCard({
                   mudas. Aquí la salida está a la vista y dice qué hace. */}
               {act.estado === 'bloqueada' ? (
                 <>
+                  {/* `bloqueada` carga DOS significados distintos: la actividad
+                      venció, o la cuenta dejó de ser elegible al intentar
+                      iniciarla (ficha incompleta, estatus no validable). El
+                      texto tiene que distinguirlos o miente: decir «venció el
+                      30 de octubre» sobre una actividad vigente es una fecha
+                      futura presentada como pasada. Se decide por la fecha, que
+                      es el único dato que lo sabe. */}
                   <p style={{ margin: 0, fontSize: 11, lineHeight: 1.55, color: '#78350F' }}>
-                    Venció el {fmtFecha(act.fecha_vencimiento)} sin haberse iniciado, así que
-                    ya no se le puede medir el tiempo — pero <strong>si la trabajas, cuenta como
-                    atendida</strong>. Registra lo que hiciste; si no se hizo, registra por qué.
+                    {act.fecha_vencimiento < fechaLocal(new Date()) ? (
+                      <>
+                        Venció el {fmtFecha(act.fecha_vencimiento)} sin haberse iniciado, así que
+                        ya no se le puede medir el tiempo — pero <strong>si la trabajas, cuenta
+                        como atendida</strong>. Registra lo que hiciste; si no se hizo, registra
+                        por qué.
+                      </>
+                    ) : (
+                      <>
+                        Quedó bloqueada al intentar iniciarla, así que ya no se le puede medir el
+                        tiempo — pero sigue vigente hasta el {fmtFecha(act.fecha_vencimiento)} y
+                        <strong> si la trabajas, cuenta como atendida</strong>. Si fue por datos
+                        faltantes de la cuenta, complétalos en la ficha y regístrala aquí.
+                      </>
+                    )}
                   </p>
                   <button
                     onClick={() => setEditing(true)}
@@ -1069,6 +1088,20 @@ export default function ActividadesBtn({
     setActividades(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a))
   }
 
+  /**
+   * El mismo refresco, para las tarjetas del Histórico.
+   *
+   * Son dos listas distintas —`actividades` es la semana viva y `allActs` el
+   * histórico completo— y una actividad vieja que se registra solo existe en la
+   * segunda. Toca las dos por si acaso: si la fila estuviera en ambas, dejarlas
+   * desincronizadas haría que la misma actividad se viera cerrada en una vista
+   * y abierta en la otra.
+   */
+  function actualizarActividad(id: string, patch: Partial<Actividad>) {
+    setAllActs(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a))
+    setActividades(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a))
+  }
+
   // Agrupar por día
   const byDay: Record<string, Actividad[]> = {}
   for (const a of actividades) {
@@ -1588,12 +1621,27 @@ export default function ActividadesBtn({
                                       <p style={{ margin: '0 0 5px', fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                                         {fmtFecha(fecha)} · {acts.filter(a => a.completada).length}/{acts.length}
                                       </p>
+                                      {/* ── LA SEGUNDA MITAD DEL ARREGLO (26 sep 2026) ──────
+                                          Devolverle el botón a las vencidas no bastaba: el panel
+                                          semanal pide `?semana=<lunes de hoy>` con igualdad
+                                          exacta, así que las 92 atrapadas —que viven en semanas
+                                          de junio a septiembre— nunca se le pintaban. El botón
+                                          existía y no había pantalla que lo mostrara.
+
+                                          El Histórico SÍ las trae: `loadAll()` pide `?asesor=X`
+                                          sin filtro de semana. El dato ya estaba en el cliente;
+                                          lo que lo tapaba era este `readOnly`, que monta la
+                                          variante compacta, sin botones ni formulario.
+
+                                          Ahora lo de solo lectura es lo YA CERRADO —que no se
+                                          reabre— y lo que sigue abierto se puede registrar desde
+                                          aquí, aunque sea de junio. */}
                                       {acts.map(act => (
                                         <ActividadCard
                                           key={act.id}
                                           act={act}
-                                          onUpdate={() => {}}
-                                          readOnly
+                                          onUpdate={patch => actualizarActividad(act.id, patch)}
+                                          readOnly={act.completada}
                                         />
                                       ))}
                                     </div>
