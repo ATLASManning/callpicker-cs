@@ -220,11 +220,6 @@ export default async function CuentaDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen">
-      {/* El resumen de la cuenta, flotante. Va PRIMERO en el árbol y con
-          `position: fixed` en el componente, así que no empuja nada de lo que
-          sigue: si algún día se quita, la ficha queda exactamente igual. */}
-      <CuentaGlobo estado={estadoGlobo} cuentaId={cuenta.id} empresa={cuenta.empresa} />
-
       {/* Header */}
       <div className="px-6 pt-5 pb-4 border-b border-border">
         <Link href="/cuentas" className="flex items-center gap-1.5 text-xs text-textLow hover:text-textMid mb-3 w-fit">
@@ -298,6 +293,18 @@ export default async function CuentaDetailPage({ params }: Props) {
             />
           </div>
         </div>
+
+        {/* El aviso rotativo de la cuenta: UNA nota a la vez, diez segundos, la
+            siguiente a los cinco minutos.
+
+            Va AQUÍ —dentro del encabezado, debajo del nombre y de los importes—
+            por instrucción de dirección del 26 sep 2026. La primera versión
+            flotaba abajo a la izquierda y el menú lateral se la comía: se veía
+            media nota. Aquí cae donde la vista ya está puesta al abrir la ficha.
+
+            Colapsa a alto cero cuando no hay nota, así que entre aviso y aviso
+            el encabezado se ve exactamente como si no existiera. */}
+        <CuentaGlobo estado={estadoGlobo} cuentaId={cuenta.id} empresa={cuenta.empresa} />
       </div>
 
       {/* Banner: cuenta bloqueada para SAC — va PRIMERO, antes que cualquier

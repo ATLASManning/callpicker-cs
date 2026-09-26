@@ -137,22 +137,27 @@ export default function CuentaGlobo({
       role="status"
       aria-live="polite"
       style={{
-        /* Abajo a la IZQUIERDA y angosto, para no taparle la ficha: el contenido
-           de la cuenta vive arriba y al centro, y la columna derecha la usan los
-           paneles. `pointer-events: none` mientras está oculto, para que no
-           atrape clics de algo que no se ve. */
-        position: 'fixed', left: 20, bottom: 20, zIndex: 40,
-        width: 'min(380px, calc(100vw - 40px))',
+        /* EN EL FLUJO DE LA PÁGINA, no flotando.
+           La primera versión iba fija abajo a la izquierda y ahí el menú lateral
+           se la comía — se veía media nota. Ahora vive en el encabezado de la
+           ficha, ancho completo, justo debajo del nombre de la cuenta y de los
+           importes: donde la vista ya está puesta al abrir.
+
+           El alto se colapsa a cero cuando no hay nota, con transición: así no
+           deja una banda vacía durante los cinco minutos de espera ni pega un
+           salto al aparecer. `overflow: hidden` es lo que hace que el colapso
+           recorte en vez de desbordar. */
+        maxHeight: visible ? 140 : 0,
         opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(8px)',
-        transition: `opacity ${FUNDIDO_MS}ms ease, transform ${FUNDIDO_MS}ms ease`,
+        overflow: 'hidden',
+        transition: `max-height ${FUNDIDO_MS}ms ease, opacity ${FUNDIDO_MS}ms ease, margin ${FUNDIDO_MS}ms ease`,
+        marginTop: visible ? 12 : 0,
         pointerEvents: visible ? 'auto' : 'none',
       }}
     >
       <div style={{
-        background: t.fondo, border: `1px solid ${t.borde}`, borderRadius: 12,
-        boxShadow: '0 8px 24px rgba(15,23,42,0.18)', padding: '10px 12px',
-        display: 'flex', gap: 9, alignItems: 'flex-start',
+        background: t.fondo, border: `1px solid ${t.borde}`, borderRadius: 10,
+        padding: '9px 12px', display: 'flex', gap: 9, alignItems: 'flex-start',
       }}>
         <span style={{ flexShrink: 0, marginTop: 2, lineHeight: 0 }}>
           <Icono nombre={l.icono} color={t.borde} />
@@ -161,7 +166,7 @@ export default function CuentaGlobo({
         <div
           onClick={siguiente}
           style={{ minWidth: 0, flex: 1, cursor: 'pointer' }}
-          title="Ver la siguiente nota de esta cuenta"
+          title={`Ver la siguiente nota de ${empresa}`}
         >
           <p style={{
             margin: '0 0 2px', fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
@@ -179,17 +184,19 @@ export default function CuentaGlobo({
               </span>
             )}
           </p>
-          <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: t.texto }}>
+          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.5, color: t.texto }}>
             {l.texto}
           </p>
-          <p style={{ margin: '4px 0 0', fontSize: 10, color: t.texto, opacity: 0.75 }}>
-            {empresa} · nota {idx + 1} de {total} · toca para ver la siguiente
+          {/* El nombre de la empresa ya está dos centímetros arriba, en el
+              encabezado: repetirlo aquí solo gasta renglón. */}
+          <p style={{ margin: '3px 0 0', fontSize: 10, color: t.texto, opacity: 0.75 }}>
+            nota {idx + 1} de {total} · toca para ver la siguiente
           </p>
         </div>
 
         <button
           onClick={() => { limpiar(); setCerrado(true) }}
-          aria-label="No mostrar más notas de esta cuenta"
+          aria-label={`No mostrar más notas de ${empresa}`}
           style={{
             border: 'none', background: 'transparent', cursor: 'pointer',
             padding: 2, flexShrink: 0, lineHeight: 0,
