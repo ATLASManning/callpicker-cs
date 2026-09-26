@@ -15,6 +15,9 @@ import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVers
 import CandidatoA from '@/components/CandidatoA'
 import { evaluarCandidato, type EntradaCandidatura, type ResultadoCandidato } from '@/lib/candidato-a'
 import { resumenLlamadas } from '@/lib/llamadas-resumen'
+/* Del módulo ligero: `@/lib/focos-riesgo` también lo exporta, pero arrastra los
+   3.5 MB de tickets-data.json y el Excel de cortes a esta página. */
+import { SEGUIMIENTOS_POR_SEMANA } from '@/lib/cierre-seguimiento'
 import { didsDeCuenta } from '@/lib/dids-cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
@@ -151,6 +154,7 @@ function profileSemaforoForCuenta(c: Cuenta): 'verde' | 'amarillo' | 'naranja' |
 // Desde el 24 Ago 2026 la semana del asesor son 4 cuentas: cerrar sus datos de
 // perfil + Radar. Antes eran 15 actividades (3/día × 5 días) y por eso las
 // semanas anteriores muestran cifras de otro orden — no son comparables.
+/** El lote rutinario: cuatro cuentas por semana, Completar Perfil + Radar. */
 const SAC_WEEKLY_TARGET = 4
 const SAC_TARGET_ANTERIOR = 15
 
@@ -757,26 +761,63 @@ function SACWeeklyPanel({
   focosMap: Record<string, number[]>
   focosAsignMap: Record<string, number[]>
 }) {
+  /* Si CUALQUIER asesor ya tiene focos repartidos, el panel entero habla de
+     seguimientos. Mezclar dos metas en la misma fila —uno en «/4» y otro en
+     «/10»— haria imposible compararlos de un vistazo, que es para lo que existe
+     ponerlos lado a lado. */
+  const hayFocos = asesores.some(a => (focosAsignMap[a.asesor] ?? [0, 0, 0, 0])[0] > 0)
   return (
     <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
         <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
           Cumplimiento SAC Semanal
         </p>
-        <span style={{ fontSize: 12, color: TX_LOW }}>Meta: {SAC_WEEKLY_TARGET} cuentas/semana · Completar Perfil + Radar</span>
+        {/* La etiqueta sigue a lo que el medidor esta midiendo. Dejarla fija en
+            «4 · Completar Perfil» mientras los medidores muestran diez
+            seguimientos seria contradecir al propio panel. */}
+        <span style={{ fontSize: 12, color: TX_LOW }}>
+          {hayFocos
+            ? `Meta: ${SEGUIMIENTOS_POR_SEMANA} seguimientos/semana · todas las cuentas por turno`
+            : `Meta: ${SAC_WEEKLY_TARGET} cuentas/semana · Completar Perfil + Radar`}
+        </span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
         {asesores.map(a => {
-          const weeks = segsMap[a.asesor] ?? [0, 0, 0, 0]
-          const thisWeek = weeks[0]
-          /* El denominador es lo ASIGNADO. Si no le tocó nada esta semana
-             —puede pasar si todas sus cuentas están en churn— se cae a la meta
-             para no dividir entre cero y para que el cero se vea como cero. */
-          const asignadas = (asignMap[a.asesor] ?? [0, 0, 0, 0])[0] || SAC_WEEKLY_TARGET
+          /* QUÉ MIDE EL MEDIDOR, Y POR QUÉ CAMBIA SOLO
+           *
+           * Desde el lunes 28 de septiembre el trabajo SAC de la semana son los
+           * DIEZ seguimientos de cuenta por asesor (decisión de dirección, 25
+           * sep 2026). Ese es el número que manda, así que en cuanto hay focos
+           * repartidos el medidor pasa a medirlos a ellos y el lote rutinario
+           * baja a la línea de abajo.
+           *
+           * Antes del lunes no hay ninguno, y un medidor en «0 de 10» esta
+           * semana sería falso: nadie ha incumplido algo que no se ha
+           * repartido. Mientras no haya focos sigue midiendo el lote rutinario,
+           * que es el trabajo que sí existe hoy. La transición no hay que
+           * acordarse de hacerla — ocurre cuando llegan los datos.
+           *
+           * El denominador es siempre lo ASIGNADO, nunca una constante: nadie
+           * puede cerrar más de lo que tiene. Ver el «5 / 4» del 26 sep. */
+          const rutCerr = (segsMap[a.asesor] ?? [0, 0, 0, 0])[0]
+          const rutAsig = (asignMap[a.asesor] ?? [0, 0, 0, 0])[0]
+          const focCerr = (focosMap[a.asesor] ?? [0, 0, 0, 0])[0]
+          const focAsig = (focosAsignMap[a.asesor] ?? [0, 0, 0, 0])[0]
+
+          const midiendoFocos = hayFocos
+          const thisWeek  = midiendoFocos ? focCerr : rutCerr
+          const asignadas = (midiendoFocos ? focAsig : rutAsig)
+            || (midiendoFocos ? SEGUIMIENTOS_POR_SEMANA : SAC_WEEKLY_TARGET)
+          const metaDeclarada = midiendoFocos ? SEGUIMIENTOS_POR_SEMANA : SAC_WEEKLY_TARGET
           const score = Math.min((thisWeek / asignadas) * 100, 100)
-          const fCerr = (focosMap[a.asesor] ?? [0, 0, 0, 0])[0]
-          const fAsig = (focosAsignMap[a.asesor] ?? [0, 0, 0, 0])[0]
+          // La otra mitad del trabajo, la que no manda esta semana.
+          const otroCerr = midiendoFocos ? rutCerr : focCerr
+          const otroAsig = midiendoFocos ? rutAsig : focAsig
+          const otroNombre = midiendoFocos ? 'del perfil' : 'seguimientos de cuenta'
+          const weeks = midiendoFocos
+            ? (focosMap[a.asesor] ?? [0, 0, 0, 0])
+            : (segsMap[a.asesor] ?? [0, 0, 0, 0])
           const gaugeColor = score >= 80 ? '#22C55E' : score >= 50 ? '#EAB308' : '#EF4444'
           const maxPrev = Math.max(...weeks.slice(1), 1)
           const weekLabel = ['S-2', 'S-3', 'S-4']
@@ -801,18 +842,18 @@ function SACWeeklyPanel({
                 <span style={{ fontWeight: 800, fontSize: 15, color: gaugeColor }}>{thisWeek}</span>
                 {' '}<span style={{ color: TX_LOW }}>/ {asignadas}</span>
                 {' '}<span style={{ color: TX_LOW }}>
-                  cuentas cerradas esta semana
-                  {asignadas !== SAC_WEEKLY_TARGET && ` · le tocaron ${asignadas}, la meta son ${SAC_WEEKLY_TARGET}`}
+                  {midiendoFocos ? 'seguimientos cerrados esta semana' : 'cuentas cerradas esta semana'}
+                  {asignadas !== metaDeclarada && ` · le tocaron ${asignadas}, la meta son ${metaDeclarada}`}
                 </span>
               </p>
 
-              {/* Los seguimientos por foco van FUERA del tope de cuatro, así que
-                  se cuentan aparte. Se muestran solo cuando existen: antes del
-                  lunes 28 no hay ninguno y una línea en cero sería ruido. */}
-              {fAsig > 0 && (
+              {/* La otra mitad del trabajo. Se muestra solo cuando existe: una
+                  línea en cero antes de que se reparta sería ruido, y peor,
+                  parecería incumplimiento de algo que nadie pidió. */}
+              {otroAsig > 0 && (
                 <p style={{ fontSize: 11, color: TX_LOW, textAlign: 'center' as const, marginTop: -2 }}>
-                  + <span style={{ fontWeight: 700, color: fCerr >= fAsig ? '#22C55E' : '#EAB308' }}>{fCerr}</span>
-                  {' '}de {fAsig} seguimientos de cuenta <span style={{ opacity: 0.75 }}>(fuera del tope)</span>
+                  + <span style={{ fontWeight: 700, color: otroCerr >= otroAsig ? '#22C55E' : '#EAB308' }}>{otroCerr}</span>
+                  {' '}de {otroAsig} {otroNombre}
                 </p>
               )}
 

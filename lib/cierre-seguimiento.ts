@@ -29,6 +29,18 @@
 export const TIPO_FOCO = 'foco_riesgo' as const
 
 /**
+ * DIEZ seguimientos de cuenta por asesor y por semana. Decisión de dirección,
+ * 25 sep 2026: «si en un día y en minutos hicieron 3, quiere decir que pueden
+ * entrar, revisar cuáles son y ejecutar todas, así que las subimos a 10».
+ *
+ * Vive en este módulo —que no depende de nada pesado— porque lo necesitan los
+ * dos extremos: el generador, que reparte, y el tablero, que mide. Tenerlo dos
+ * veces garantizaría que un día dejaran de coincidir y el medidor evaluara
+ * contra una meta que ya no se reparte.
+ */
+export const SEGUIMIENTOS_POR_SEMANA = 10
+
+/**
  * Qué trabajo era esta actividad, leído del marcador de su descripción.
  *
  * `descripcionFoco` escribe `[SEGUIMIENTO·CLASE·TRABAJO] …` en la primera línea.

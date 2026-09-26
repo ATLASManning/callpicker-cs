@@ -71,29 +71,18 @@ import { ticketStatsCuenta } from './tickets-cuenta'
    aquí para que el generador siga importando de un solo lugar. Está separado
    porque la ruta que cierra actividades solo necesita el validador, y este módulo
    arrastra los 3.5 MB de `lib/tickets-data.json` más el Excel de cortes. */
+import { SEGUIMIENTOS_POR_SEMANA } from './cierre-seguimiento'
 export {
-  TIPO_FOCO, validarCierreSeguimiento, componerResultadoSeguimiento,
+  TIPO_FOCO, SEGUIMIENTOS_POR_SEMANA, validarCierreSeguimiento, componerResultadoSeguimiento,
   type CierreSeguimiento, type VeredictoSeguimiento,
 } from './cierre-seguimiento'
 
 /** Nadie debe pasar de aquí sin contacto registrado. Medido: ×2.02 de riesgo. */
 export const DIAS_SIN_CONTACTO_LIMITE = 60
 
-/**
- * DIEZ seguimientos por asesor por semana. Decisión de dirección, 25 sep 2026.
- *
- * «Si en un día y en minutos hicieron 3, quiere decir que pueden entrar,
- * revisar cuáles son y ejecutar todas, así que las subimos a 10. No busques
- * matemáticas, lo he visto, no están haciendo lo que deben.»
- *
- * El número NO sale de dividir la cartera entre semanas: sale de la capacidad
- * observada. Esa misma semana se cerraron tres actividades que el sistema midió
- * en un minuto cada una, así que el cuello de botella no es el tiempo.
- *
- * Como consecuencia, la vuelta completa queda muy por debajo del límite de 60
- * días: Dan 54 cuentas en 5.4 semanas, Fátima 45 en 4.5, Claudia 36 en 3.6.
- */
-const SEGUIMIENTOS_POR_SEMANA = 10
+/* `SEGUIMIENTOS_POR_SEMANA` vive en `lib/cierre-seguimiento.ts`: lo necesitan
+   este generador y el medidor del tablero, y ese modulo no arrastra nada pesado.
+   Una sola definicion, o un dia dejarian de coincidir. */
 
 /**
  * Las clases, EN EL ORDEN EN QUE SE ATIENDEN.
