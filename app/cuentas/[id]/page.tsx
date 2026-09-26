@@ -46,6 +46,9 @@ import { getReunionesDeCuenta } from '@/lib/supabase'
 import { relacionamientoDeCuenta } from '@/lib/relacionamiento'
 import { headers } from 'next/headers'
 import { hoyEnMexico } from '@/lib/fecha-local'
+import { estadoDeCuenta } from '@/lib/estado-cuenta'
+import { personasConNombre } from '@/lib/personas-cuenta'
+import CuentaGlobo from '@/components/CuentaGlobo'
 
 export const dynamic = 'force-dynamic'
 
@@ -165,9 +168,63 @@ export default async function CuentaDetailPage({ params }: Props) {
     ? Math.floor((Date.now() - new Date(cuenta.activo_desde).getTime()) / 86400000)
     : cuenta.dias_como_cliente
 
+  /* ── EL GLOBO: lo que hay que saber ANTES de llamar ────────────────────
+   * Instrucción de dirección (25 sep 2026): al abrir cada cuenta hay que
+   * decirle al asesor su último contacto, su último ticket, si tiene análisis
+   * de llamadas, si tiene auditoría y en qué estado, y si ha tenido o no
+   * actividades SAC.
+   *
+   * NO consulta nada: se compone con lo que la página ya trajo arriba. La ficha
+   * tiene toda esta información, pero repartida en once paneles y abajo del
+   * pliegue — y el asesor que entra treinta segundos antes de una llamada no
+   * baja a buscarla.
+   *
+   * Va envuelto en try/catch por el incidente del 24 de septiembre: un rediseño
+   * de UNA pantalla tumbó el tablero entero con una excepción en el cliente.
+   * Un resumen que falla debe desaparecer, nunca llevarse la ficha con él. */
+  let estadoGlobo = null
+  try {
+    const ultimoTk = zohoTickets.rows?.[0] ?? null
+    estadoGlobo = estadoDeCuenta({
+      empresa:        cuenta.empresa,
+      ultimoContacto: cuenta.ultimo_contacto,
+      estado:         cuenta.estado,
+      bloqueada:      bloqueo.bloqueada,
+      motivosBloqueo: bloqueo.motivos,
+      seguimientos,
+      actividades,
+      soporte,
+      ultimoTicket: ultimoTk
+        ? { fecha: ultimoTk.apertura || ultimoTk.fecha, categoria: ultimoTk.categoria, folio: ultimoTk.num }
+        : null,
+      llamadas,
+      auditoria: auditoria
+        ? {
+            nombre: auditoria.nombre,
+            estado: auditoriaCase?.estado ?? null,
+            // `fecha_auditoria` es un texto tipo «Jun 2026», no una fecha ISO:
+            // se pasa tal cual y `fmt` la devuelve sin tocar si no la reconoce.
+            fecha:  auditoriaCase?.fecha_auditoria ?? null,
+          }
+        : null,
+      personas: personasConNombre(cuenta),
+      corte: planVigente
+        ? { mes: planVigente.mes, pct: planVigente.base ? planVigente.pct : null, plan: planVigente.plan }
+        : null,
+      hoy: hoyEnMexico(),
+    })
+  } catch (e) {
+    console.warn(`[CuentaGlobo] No se pudo componer el estado de ${cuenta.empresa}:`, e)
+  }
+
 
   return (
     <div className="min-h-screen">
+      {/* El resumen de la cuenta, flotante. Va PRIMERO en el árbol y con
+          `position: fixed` en el componente, así que no empuja nada de lo que
+          sigue: si algún día se quita, la ficha queda exactamente igual. */}
+      <CuentaGlobo estado={estadoGlobo} cuentaId={cuenta.id} empresa={cuenta.empresa} />
+
       {/* Header */}
       <div className="px-6 pt-5 pb-4 border-b border-border">
         <Link href="/cuentas" className="flex items-center gap-1.5 text-xs text-textLow hover:text-textMid mb-3 w-fit">
