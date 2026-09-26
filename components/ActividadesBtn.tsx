@@ -191,6 +191,7 @@ function ActividadCard({
     // vacío, para no dejar pulsar un botón que va a rebotar.
     && (!esDecisores || sgDecide.trim().length > 0)
 
+
   const listoParaCerrar = esAclaracion ? aclaracionLista
     : esSeguimiento ? seguimientoListo
     : !!resultado.trim()

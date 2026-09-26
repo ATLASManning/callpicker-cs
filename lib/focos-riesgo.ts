@@ -181,6 +181,16 @@ export interface Trabajo {
   titulo: string
   /** Qué tiene que hacer, en imperativo y concreto. */
   pasos: string[]
+  /**
+   * Lo que se escribe en el marcador de la descripción, si difiere de `clave`.
+   *
+   * Existe porque un mismo trabajo puede cerrarse con reglas distintas según lo
+   * que la cuenta tenga: «llamadas» con lectura se cierra contando lo que
+   * encontró, y «llamadas» SIN lectura exige además la solicitud de auditoría a
+   * Dirección. La ruta de cierre solo ve el texto de la actividad, así que la
+   * variante tiene que viajar ahí. Ver `trabajoDeDescripcion`.
+   */
+  marca?: string
 }
 
 /**
@@ -344,16 +354,36 @@ function armarTrabajo(
          es el error que ese módulo existe para impedir. */
       const l = leerLlamadas(LLAMADAS, LLAMADAS_META, c.cid, c.empresa)
       if (!l) {
+        /* SIN LECTURA: la tarea cambia de naturaleza, y por eso lleva marca
+           propia — se cierra con otra regla.
+
+           No se le puede pedir al asesor que analice un dato que no existe. Lo
+           que se le pide es que LO SAQUE ÉL del sistema de Callpicker, que es
+           donde vive. No hay que esperar a nadie: el acceso ya lo tiene.
+
+           Instrucción de dirección, 25 sep 2026: «el deber ser es que vaya al
+           sistema de Callpicker, traiga las llamadas del último año, entradas y
+           salidas» y «que me las entregue a mí, José Manuel, para que haga el
+           análisis».
+
+           El análisis NO lo hace el asesor y la tarea no le dicta formatos: saca
+           las llamadas y las entrega. Quien las procesa es Dirección, y de ahí
+           salen las actividades siguientes de esa cuenta. */
         return {
-          clave, titulo: 'Atención de llamadas: conseguir la lectura',
+          clave, marca: 'llamadas_sin_lectura',
+          titulo: 'Sacar sus llamadas del último año y entregarlas',
           pasos: [
-            'NO HAY LECTURA de llamadas para esta cuenta. No es que atienda bien ni mal: ' +
-            'su CID no aparece en ninguna de las dos extracciones del archivo.',
-            'Verifica que el CID de la ficha sea el correcto y que la cuenta no opere bajo otro.',
-            'Si el CID es correcto, repórtalo para que entre en la siguiente extracción — ' +
-            'y déjalo escrito aquí, porque una cuenta sin lectura es una cuenta que no podemos vigilar.',
-            'Mientras tanto, pregúntale al cliente directamente cómo le está respondiendo el ' +
-            'teléfono: es la misma información, por la vía lenta.',
+            'NO HAY LECTURA de llamadas para esta cuenta: su CID no aparece en ninguna de las dos ' +
+            'extracciones del archivo. Una cuenta sin lectura no es una cuenta sana — es una que ' +
+            'no podemos vigilar.',
+            'Primero verifica que el CID de la ficha sea el correcto y que la cuenta no opere bajo ' +
+            'otro. Si está mal, corrígelo: puede que la lectura sí exista y se esté buscando con el ' +
+            'número equivocado, y entonces no hay nada que sacar.',
+            'ENTRA AL SISTEMA DE CALLPICKER y saca sus llamadas del ÚLTIMO AÑO, de ENTRADA y de ' +
+            'SALIDA.',
+            'ENTRÉGASELAS A JOSÉ MANUEL. Él hace el análisis; tú no tienes que procesarlas.',
+            'Del análisis salen las actividades siguientes de esta cuenta, y una vez cargada la ' +
+            'lectura ya no vuelve a caer en esta tarea.',
           ],
         }
       }
@@ -657,7 +687,7 @@ export function descripcionFoco(f: Foco): string {
        Decisores se valida distinto— así que se codifica en el texto, igual que
        hace la aclaración con su `marcadorAclaracion`. Lo lee
        `trabajoDeDescripcion` en lib/cierre-seguimiento.ts. */
-    `[SEGUIMIENTO·${f.clase.toUpperCase()}·${f.trabajo.clave.toUpperCase()}] ${f.titulo} — ${f.cuenta.empresa}`,
+    `[SEGUIMIENTO·${f.clase.toUpperCase()}·${(f.trabajo.marca ?? f.trabajo.clave).toUpperCase()}] ${f.titulo} — ${f.cuenta.empresa}`,
     '',
     'LO QUE SE SABE DE ESTA CUENTA HOY:',
     `  · ${f.detalle}`,
