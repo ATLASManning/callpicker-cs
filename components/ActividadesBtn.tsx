@@ -243,7 +243,14 @@ function ActividadCard({
     try {
       const payload = {
         completada,
-        estado:          completada ? 'completada' : 'pendiente',
+        /* Una actividad YA VENCIDA que se justifica NO vuelve a `pendiente`:
+           el auto-vencimiento del GET la re-bloquearía en el siguiente refresco
+           y quedaría oscilando sin llegar nunca a un estado final. Se queda en
+           `bloqueada`, que es lo que es —vencida y documentada—, y su motivo se
+           conserva a la vista. */
+        estado:          completada ? 'completada'
+          : act.estado === 'bloqueada' ? 'bloqueada'
+          : 'pendiente',
         // En una aclaración y en un seguimiento el `resultado` lo compone el
         // servidor a partir de los campos separados, para que la estructura
         // quede fija y no dependa de cómo lo escriba cada quien.
@@ -420,7 +427,30 @@ function ActividadCard({
       {/* Acciones */}
       {!act.completada && (
         <div style={{ padding: '8px 12px', borderTop: '1px solid #F1F5F9', background: '#FFFFFF' }}>
-          {!act.iniciada_en ? (
+          {/* ── EL CALLEJÓN SIN SALIDA, CORREGIDO (26 sep 2026) ────────────
+              Antes esta condición era `!act.iniciada_en`, a secas. Con eso, una
+              actividad que VENCÍA sin haberse iniciado quedaba muerta para
+              siempre: el auto-vencimiento la pasaba a `bloqueada`, el botón
+              «Iniciar actividad» se deshabilitaba justo para ese estado, y el
+              formulario de tiempo y observación solo se renderiza cuando hay
+              `iniciada_en`. No se podía completar NI justificar.
+
+              Lo reportó Claudia el 26 de septiembre: «no me está permitiendo
+              completar las actividades... no me deja ingresar tiempo y
+              observación directamente en la actividad». Tenía razón. Había 92
+              actividades atrapadas así, desde junio, y 79 de ellas sin una sola
+              palabra escrita — mudas por diseño, no por desidia.
+
+              Y contradecía la instrucción del 9 de septiembre: «si tiene una
+              actividad debe seguir el curso de justificar por qué se dio,
+              acciones, etc.» Una actividad que no se puede cerrar tampoco se
+              puede justificar.
+
+              Ahora `editing` abre el formulario aunque nunca se haya iniciado.
+              El cronómetro se pierde —no hay nada que medir en algo que ya
+              venció— pero el tiempo reportado, el resultado y el motivo sí se
+              capturan, que es lo que de verdad hace falta. */}
+          {!act.iniciada_en && !editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {gateError && !editing && (
                 <div style={{ padding: '8px 10px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 6, fontSize: 11, color: '#991B1B' }}>
@@ -430,22 +460,46 @@ function ActividadCard({
                   )}
                 </div>
               )}
-              <button
-                disabled={starting || act.estado === 'bloqueada'}
-                onClick={iniciar}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '6px 13px', borderRadius: 6,
-                  cursor: starting || act.estado === 'bloqueada' ? 'not-allowed' : 'pointer',
-                  border: `1px solid ${act.estado === 'bloqueada' ? '#E2E8F0' : '#BFDBFE'}`,
-                  background: act.estado === 'bloqueada' ? '#F1F5F9' : '#EFF6FF',
-                  color: act.estado === 'bloqueada' ? '#94A3B8' : '#1D4ED8',
-                  fontSize: 11, fontWeight: 700, alignSelf: 'flex-start',
-                }}
-              >
-                {starting ? <Loader2 size={11} /> : <Clock size={11} />}
-                Iniciar actividad
-              </button>
+              {/* Una actividad bloqueada NO arranca el cronómetro —ya venció,
+                  no hay nada que medir— pero SÍ tiene que poder registrarse.
+                  Por eso son dos botones distintos y no uno deshabilitado: el
+                  botón gris era la puerta cerrada que dejó 92 actividades
+                  mudas. Aquí la salida está a la vista y dice qué hace. */}
+              {act.estado === 'bloqueada' ? (
+                <>
+                  <p style={{ margin: 0, fontSize: 11, lineHeight: 1.55, color: '#78350F' }}>
+                    Venció el {fmtFecha(act.fecha_vencimiento)} sin haberse iniciado, así que
+                    ya no se le puede medir el tiempo — pero <strong>si la trabajas, cuenta como
+                    atendida</strong>. Registra lo que hiciste; si no se hizo, registra por qué.
+                  </p>
+                  <button
+                    onClick={() => setEditing(true)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '6px 13px', borderRadius: 6, cursor: 'pointer',
+                      border: '1px solid #B45309', background: '#FFFBEB', color: '#78350F',
+                      fontSize: 11, fontWeight: 700, alignSelf: 'flex-start',
+                    }}
+                  >
+                    <FileText size={11} /> Registrar lo que pasó
+                  </button>
+                </>
+              ) : (
+                <button
+                  disabled={starting}
+                  onClick={iniciar}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '6px 13px', borderRadius: 6,
+                    cursor: starting ? 'not-allowed' : 'pointer',
+                    border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8',
+                    fontSize: 11, fontWeight: 700, alignSelf: 'flex-start',
+                  }}
+                >
+                  {starting ? <Loader2 size={11} /> : <Clock size={11} />}
+                  Iniciar actividad
+                </button>
+              )}
             </div>
           ) : !editing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

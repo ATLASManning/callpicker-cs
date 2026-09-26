@@ -122,6 +122,9 @@ async function etiquetarSiHayIntencionDeCancelacion(cuentaId: string, texto: str
 interface ActualRow {
   id: string; tipo: string; cuenta_id: string | null; empresa: string
   descripcion: string; asesor: string; completada: boolean
+  /* `estado` se lee para saber si la actividad ya habia VENCIDO al cerrarse.
+     Sin el, el sello de «registrada fuera de plazo» no dispara nunca. */
+  estado?: string | null
   iniciada_en?: string | null
 }
 
@@ -140,13 +143,13 @@ export async function PATCH(
     {
       const { data, error } = await supabaseAdmin
         .from('actividades')
-        .select('id, tipo, cuenta_id, empresa, descripcion, asesor, completada, iniciada_en')
+        .select('id, tipo, cuenta_id, empresa, descripcion, asesor, completada, estado, iniciada_en')
         .eq('id', params.id)
         .single()
       if (error) {
         const { data: dataFallback, error: errFallback } = await supabaseAdmin
           .from('actividades')
-          .select('id, tipo, cuenta_id, empresa, descripcion, asesor, completada')
+          .select('id, tipo, cuenta_id, empresa, descripcion, asesor, completada, estado')
           .eq('id', params.id)
           .single()
         if (errFallback || !dataFallback) return NextResponse.json({ error: errFallback?.message ?? 'Actividad no encontrada' }, { status: 404 })
@@ -535,6 +538,25 @@ export async function PATCH(
       const tiempoMedido = actual.iniciada_en
         ? Math.max(1, Math.round((Date.now() - new Date(actual.iniciada_en).getTime()) / 60000))
         : null
+
+      /* ── SE TRABAJÓ TARDE, PERO SE TRABAJÓ ────────────────────────────────
+       * Instrucción de dirección (26-sep-2026): «si las trabajo, colócalas como
+       * atendidas». Una actividad vencida que el asesor registra SÍ cuenta como
+       * atendida — se cierra normal, sin fricción extra.
+       *
+       * Lo que sí queda es constancia de CUÁNDO se registró. Sin esa línea, una
+       * tarea de junio cerrada hoy se vería idéntica a una cerrada a tiempo, y
+       * el cumplimiento semanal diría algo que no pasó. Es la diferencia entre
+       * darle crédito por el trabajo y falsear la cronología.
+       *
+       * Va en el `resultado` y no en una columna nueva porque ahí lo lee todo
+       * el que abra el expediente: la ficha, el One to One y el contexto de la
+       * IA. Una columna que nadie mira no documenta nada. */
+      if (actual.estado === 'bloqueada' && body.resultado) {
+        body.resultado =
+          `[REGISTRADA FUERA DE PLAZO el ${hoyEnMexico()} — la actividad había vencido]\n\n` +
+          String(body.resultado)
+      }
 
       extra = { tiempo_reportado_min: tiempoReportado, tiempo_medido_min: tiempoMedido }
     }
