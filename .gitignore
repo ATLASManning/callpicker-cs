@@ -51,3 +51,20 @@ data/cortes-facturacion.*.bak.xlsx
 # Cache de los scripts de Python (scripts/*.py)
 __pycache__/
 *.pyc
+
+# Service Worker del PWA — lo GENERA next-pwa en cada build, no se versiona.
+#
+# Estuvo committeado hasta el 26 sep 2026 y era una trampa: `public/sw.js` se
+# quedó congelado en la versión del 15 de agosto, con una lista de precaché que
+# apuntaba a 38 chunks de los cuales los 38 daban 404 en producción. No rompía
+# nada —el build lo sobrescribe y el que sirve Vercel sí apunta a chunks vivos,
+# se verificó— pero cualquiera que abriera el archivo buscando por qué un deploy
+# no llega a los usuarios encontraba una pista falsa de seis semanas de viejo.
+#
+# El patrón de workbox lleva hash en el nombre, así que va con comodín: de otro
+# modo cada versión nueva se vuelve a colar al repo con otro nombre.
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+public/workbox-*.js.map
+public/fallback-*.js
