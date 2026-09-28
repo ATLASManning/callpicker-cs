@@ -28,7 +28,18 @@ import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 import { normalizarNombre } from './elegibilidad'
 import { ahoraEnMexico, fechaLocal } from './fecha-local'
 
-/** Frontera entre limpieza de histórico y exigencia de expediente. */
+/**
+ * Fecha de referencia que se publica en el resumen de conciliación.
+ *
+ * YA NO DECIDE NADA. Hasta el 28 de septiembre de 2026 era la frontera entre
+ * «limpieza de histórico» —reclasificar sola— y pedir expediente, y esa frontera
+ * resultó estar mal planteada: dio por dormidas trece cuentas por señales de
+ * hasta 2015, diez de ellas facturando. Lo viejo no es lo resuelto; a menudo es
+ * lo erróneo. Ahora lo único que reclasifica es el Churn confirmado.
+ *
+ * Se conserva porque el resumen la muestra como contexto de qué se consideró
+ * histórico, y quitarla rompería a quien la lee.
+ */
 export const CORTE_HISTORICO = '2026-08-31'
 
 /** Estado con el que la plataforma representa "Dormida". */
@@ -259,20 +270,43 @@ export function conciliar(
       continue
     }
 
-    // Sin fecha no se puede afirmar que sea histórico. Se manda al lado que
-    // pide explicación en vez de al que reclasifica en silencio: equivocarse
-    // pidiendo un expediente cuesta trabajo; equivocarse dando por muerta una
-    // cuenta viva cuesta la cuenta.
-    if (senal.fecha && senal.fecha <= CORTE_HISTORICO) {
+    /* ── UNA SOLICITUD DE BAJA NO ES UNA BAJA ──────────────────────────
+     *
+     * Instrucción de dirección, 28 sep 2026, a raíz de ALTERNET: «¿por qué esta
+     * cuenta está en Dormidas si aún no está en Churn confirmado? Es solo una
+     * solicitud que no se ha ejecutado. Solo deberás colocarla en Dormida
+     * cuando cumpla con el requisito de documentar las acciones que hizo el
+     * asesor, o cuando esté dentro del reporte de Churn confirmado. Mientras
+     * tanto debe estar en Activas.»
+     *
+     * Antes había un tercer camino: si la señal era ANTERIOR a un corte, se
+     * reclasificaba sola «como limpieza de histórico». La premisa era que lo
+     * viejo ya está resuelto. Es falsa, y se vio medido: ALTERNET pasó a Dormida
+     * por un «Dormida en Zoho» fechado en 2022-10 mientras facturaba $16,548 y
+     * tenía una auditoría de junio de 2026. Trece cuentas cayeron así, diez de
+     * ellas facturando — $73,921 dados por muertos— con señales de hasta 2015.
+     *
+     * Lo viejo no es lo resuelto: muchas veces es lo ERRÓNEO, y una fecha vieja
+     * es justo la que menos se puede contrastar.
+     *
+     * Ahora solo reclasifica el CHURN CONFIRMADO, que es el reporte que dirección
+     * valida. Todo lo demás —dormida en Zoho, cancelación sin confirmar, señal
+     * sin fecha— pide expediente y NO toca el estatus.
+     *
+     * Equivocarse pidiendo un expediente cuesta trabajo; equivocarse dando por
+     * muerta una cuenta viva cuesta la cuenta.
+     */
+    const esChurnConfirmado = senal.movimiento.includes('Churn confirmado')
+    if (esChurnConfirmado) {
       reclasificar.push({
         cuenta: c, senal, accion: 'reclasificar',
-        motivo: `${senal.movimiento} en ${senal.mes} según ${senal.fuente}. El evento es anterior al ${CORTE_HISTORICO}: pasa a Dormida como limpieza de histórico.`,
+        motivo: `${senal.movimiento} en ${senal.mes} según ${senal.fuente}: pasa a Dormida porque está en el reporte de churn que valida Dirección.`,
       })
     } else {
       exigeExpediente.push({
         cuenta: c, senal, accion: 'exige_expediente',
         motivo: senal.fecha
-          ? `${senal.movimiento} en ${senal.mes} según ${senal.fuente}. Posterior al ${CORTE_HISTORICO}: no cambia de estatus hasta que se documente el expediente de baja y el plan de recuperación del ingreso.`
+          ? `${senal.movimiento} en ${senal.mes} según ${senal.fuente}. NO es Churn confirmado, así que no cambia de estatus: se queda en Activas hasta que el asesor documente el expediente de baja, o hasta que aparezca en el reporte de churn.`
           : `${senal.movimiento} según ${senal.fuente}, sin fecha de evento. No se reclasifica a ciegas: se pide el expediente para fecharla y documentarla.`,
       })
     }
