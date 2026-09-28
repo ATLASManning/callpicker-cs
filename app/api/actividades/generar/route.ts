@@ -33,7 +33,14 @@ import {
   focosDeRiesgo, ordenarFocos, descripcionFoco, loteSemanal, TIPO_FOCO,
   CAMPOS_FOCO_SELECT, type CuentaParaFoco,
 } from '@/lib/focos-riesgo'
-import { ahoraEnMexico, fechaLocal, selloMexico } from '@/lib/fecha-local'
+/* `hoyEnMexico` faltaba y tumbaba la generación entera con
+   «ReferenceError: hoyEnMexico is not defined» — un 500 en los tres asesores.
+   Lo usa `construirFocosDeRiesgo` para fechar los focos, y como el error ocurre
+   en tiempo de ejecución y `next.config.js` lleva `ignoreBuildErrors`, el build
+   pasó limpio y el fallo solo apareció al pulsar «Generar actividades».
+   Los cinco detectores tampoco lo ven: comprueban que los imports resuelvan, no
+   que todo lo que se usa esté importado. */
+import { ahoraEnMexico, fechaLocal, hoyEnMexico, selloMexico } from '@/lib/fecha-local'
 
 export const dynamic   = 'force-dynamic'
 // 55s (antes 30s) — deja margen al fetch interno a /api/facturacion?mode=dormidos
