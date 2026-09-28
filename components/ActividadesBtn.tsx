@@ -1292,17 +1292,17 @@ export default function ActividadesBtn({
                       <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#1F2937' }}>
                         Sin actividades esta semana
                       </p>
-                      {/* El texto decía «las 4 cuentas» y se quedó corto: desde
-                          el 25 de septiembre la generación reparte TAMBIÉN diez
-                          seguimientos de cuenta por asesor, que van fuera del
-                          tope de cuatro. Anunciar cuatro y entregar catorce hace
-                          dudar de si el sistema hizo lo que debía. */}
+                      {/* Este texto ya se quedó corto dos veces. Decía «las 4
+                          cuentas» cuando la generación reparte diez, y luego
+                          «4 de perfil + 10 seguimientos» cuando el total son
+                          diez, no catorce (dirección, 28 sep 2026). Se escribe
+                          con la constante para que no haga falta acordarse. */}
                       <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
                         Genera el trabajo de la semana para <strong>{asesor}</strong>:
-                        {' '}<strong>4 cuentas de perfil</strong> —las de mayor prioridad con datos
-                        o Radar pendientes— y <strong>{SEGUIMIENTOS_POR_SEMANA} seguimientos de
-                        cuenta</strong>, que rotan sobre toda su cartera y van fuera de ese tope.
-                        Solo cuentas activas — se excluyen dormidas, canceladas y con churn confirmado.
+                        {' '}<strong>{SEGUIMIENTOS_POR_SEMANA} seguimientos de cuenta</strong>, que
+                        rotan sobre toda su cartera —relación, decisores, tickets, llamadas, factura,
+                        datos y crecimiento— y llegan con los números de cada cuenta dentro.
+                        Solo cuentas activas: se excluyen dormidas, canceladas y con churn confirmado.
                       </p>
                       <button
                         onClick={() => generar()}

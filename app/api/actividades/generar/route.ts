@@ -17,7 +17,7 @@ import { leerLlamadas, mesLargo as mesLargoLl } from '@/lib/llamadas-cuenta'
 import { LLAMADAS, LLAMADAS_META } from '@/app/cuentas/llamadas-data'
 import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import {
-  evaluarElegibilidad, esLunes, LIMITE_SEMANAL, MSG, normalizarNombre,
+  evaluarElegibilidad, esLunes, MSG, normalizarNombre,
   type CodigoBloqueo,
 } from '@/lib/elegibilidad'
 import {
@@ -47,6 +47,29 @@ export const dynamic   = 'force-dynamic'
 // (que en sí misma corre con maxDuration=55 por la consulta a Zoho Analytics)
 // más el resto del procesamiento y el envío de correo opcional.
 export const maxDuration = 55
+
+/**
+ * Cuántas actividades de «Completar Perfil» se reparten cada lunes.
+ *
+ * CERO desde el 28 de septiembre de 2026. Instrucción de dirección: «el lunes
+ * son 10 para cada asesor», y al ver el primer lote lo precisó — «creaste 14 por
+ * asesor en lugar de 10». Diez es el TOTAL de la semana, no diez más cuatro.
+ *
+ * No se pierde el trabajo de perfil: `datos` es uno de los siete trabajos de la
+ * rotación y pide exactamente lo mismo —completar la ficha, verificar el CID y
+ * los DIDs, responder el Radar—, solo que sobre la cuenta a la que le toca su
+ * turno en vez de sobre una lista aparte. Eran dos sistemas pidiendo lo mismo a
+ * cuentas distintas.
+ *
+ * Se deja como constante y NO se borra la maquinaria de selección —carry-over,
+ * prioridad por datos faltantes, auditoría—: lo que cambió es cuántas se
+ * reparten, no que el mecanismo sobre. Volver a ponerlo en cuatro es cambiar
+ * este número y nada más.
+ *
+ * OJO, no confundir con `LIMITE_SEMANAL`: ése es el tope de actividades por
+ * CUENTA en una misma semana, y sigue valiendo 4.
+ */
+const LOTE_RUTINARIO = 0
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────────
 
@@ -1160,7 +1183,7 @@ export async function POST(req: NextRequest) {
     const lunesSeleccion: Array<{ cuenta: CuentaFull; segundaSolicitud: boolean }> = []
 
     for (const p of pendientesSemanaAnterior ?? []) {
-      if (lunesSeleccion.length >= LIMITE_SEMANAL) break
+      if (lunesSeleccion.length >= LOTE_RUTINARIO) break
       const c = elegiblesPorId.get(p.cuenta_id)
       if (!c || carryOverIds.has(c.id)) continue
       const { criticos, importantes, radarResp } = necesitaCompletar(c)
@@ -1188,7 +1211,7 @@ export async function POST(req: NextRequest) {
       if (!prev || t.semana_inicio > prev) ultimaVezPorCuenta.set(t.cuenta_id, t.semana_inicio)
     }
 
-    // (b) Rellenar hasta LIMITE_SEMANAL con las cuentas de mayor prioridad:
+    // (b) Rellenar hasta LOTE_RUTINARIO con las cuentas de mayor prioridad:
     //     nunca trabajadas primero, luego más críticos de perfil, luego mayor
     //     facturación (TOP primero), luego más tiempo sin contacto.
     const candidatasLunes = elegibles
@@ -1204,7 +1227,7 @@ export async function POST(req: NextRequest) {
       })
 
     for (const { cuenta } of candidatasLunes) {
-      if (lunesSeleccion.length >= LIMITE_SEMANAL) break
+      if (lunesSeleccion.length >= LOTE_RUTINARIO) break
       lunesSeleccion.push({ cuenta, segundaSolicitud: false })
     }
 
@@ -1218,10 +1241,23 @@ export async function POST(req: NextRequest) {
     // inserta nunca. El dedup solo mira filas ya guardadas, así que no queda
     // rastro de que faltó documentar la baja.
     if (!lunesSeleccion.length)
-      return salidaConAclaraciones({
-        error: 'No hay cuentas elegibles con datos pendientes para este asesor: todas las cuentas activas ya tienen el perfil y el Radar completos.',
-        bloqueadas,
-      }, 400)
+      return salidaConAclaraciones(
+        LOTE_RUTINARIO === 0
+          /* El lote rutinario está apagado a propósito (ver LOTE_RUTINARIO), así
+             que esto NO es un error: la semana la componen los seguimientos de
+             cuenta, que `salidaConAclaraciones` inserta igual. Decir «no hay
+             cuentas elegibles» aquí haría creer que algo falló. */
+          ? {
+              message: 'El lote de Completar Perfil está apagado: la semana son los ' +
+                       'seguimientos de cuenta. El trabajo de perfil va dentro de la rotación.',
+              bloqueadas,
+            }
+          : {
+              error: 'No hay cuentas elegibles con datos pendientes para este asesor: todas las cuentas activas ya tienen el perfil y el Radar completos.',
+              bloqueadas,
+            },
+        LOTE_RUTINARIO === 0 ? 200 : 400,
+      )
 
     const rows: ActividadRow[] = []
 
