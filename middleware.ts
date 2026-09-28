@@ -50,6 +50,32 @@ export async function middleware(req: NextRequest) {
 
   if (isPublic(pathname)) return NextResponse.next()
 
+  /* ── LAS TAREAS PROGRAMADAS ENTRAN CON SU PROPIO SECRETO ───────────────
+   *
+   * Vercel dispara los crons con `Authorization: Bearer $CRON_SECRET`. Sin esta
+   * puerta el middleware los mandaba a `/acceso` —no traen cookie de sesión— y
+   * el redirect responde 200 con HTML, así que Vercel los daba por exitosos.
+   *
+   * Eso llevaba pasando meses: `/api/cron/refresh-tenure` está programado desde
+   * hace tiempo y NUNCA ha corrido. Se comprobó el 28 sep 2026 pidiéndolo sin
+   * sesión: devolvía el HTML del login con status 200. Es el mismo fallo que el
+   * código ya documenta en la conciliación con Zoho — un redirect que `fetch`
+   * sigue y convierte en éxito aparente.
+   *
+   * Autorización, no excepción: sin el secreto correcto no pasa nada. Y va
+   * acotado a `/api/`, así que aunque el secreto se filtrara no abre ninguna
+   * pantalla, solo endpoints.
+   *
+   * FAIL-CLOSED: si `CRON_SECRET` no está configurado en Vercel, esto no deja
+   * pasar a nadie. Es el lado seguro — un cron que no corre se nota; una puerta
+   * abierta sin llave, no. `/api/cron/estado` dice si el secreto existe.
+   */
+  const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+  const cronSecret = process.env.CRON_SECRET
+  if (pathname.startsWith('/api/') && cronSecret && bearer === cronSecret) {
+    return NextResponse.next()
+  }
+
   const token = req.cookies.get(COOKIE_NAME)?.value
 
   if (!token) {

@@ -5,9 +5,12 @@
   "installCommand": "npm install",
   "crons": [
     {
+      "path": "/api/cron/generar-semana",
+      "schedule": "0 14 * * 1"
+    },
+    {
       "path": "/api/cron/refresh-tenure",
       "schedule": "0 12 1 * *"
     }
   ]
 }
-
