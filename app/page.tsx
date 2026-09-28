@@ -18,11 +18,6 @@ import { resumenLlamadas } from '@/lib/llamadas-resumen'
 /* Del módulo ligero: `@/lib/focos-riesgo` también lo exporta, pero arrastra los
    3.5 MB de tickets-data.json y el Excel de cortes a esta página. */
 import { SEGUIMIENTOS_POR_SEMANA } from '@/lib/cierre-seguimiento'
-import DashMesaAyuda from '@/components/DashMesaAyuda'
-/* El corte de la mesa se lee de disco (`data/mesa-ayuda/*.json`), así que se
-   resuelve en el servidor y baja ya calculado: una llamada menos desde el
-   navegador para un dato que no cambia durante la sesión. */
-import { resumenMesa } from '@/lib/mesa-ayuda'
 import { didsDeCuenta } from '@/lib/dids-cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
@@ -1029,8 +1024,6 @@ export default async function DashboardPage() {
     if (!actual || r.created_at > actual.created_at) porProducto.set(r.producto, r)
   })
 
-  const mesa = resumenMesa()
-
   // Solo activas + en_riesgo para análisis
   const cuentas = allCuentas.filter(c => c.estado === 'activo' || c.estado === 'en_riesgo')
 
@@ -1298,19 +1291,6 @@ export default async function DashboardPage() {
         <SACWeeklyPanel
           asesores={asesorStats} segsMap={segsMap} asignMap={asignMap}
           focosMap={focosMap} focosAsignMap={focosAsignMap}
-        />
-      </div>
-
-      {/* ══ §1c Mesa de ayuda · el corte diario de Zoho Desk ═══════════════
-          Va justo debajo del cumplimiento SAC porque responde la otra mitad de
-          la misma pregunta: qué se está haciendo, y qué está esperando. El dato
-          ya se cargaba todos los días y alimentaba la ficha, el evaluador de
-          candidatura y el módulo Tickets — pero en esta pantalla no se pintaba
-          en ningún lado (dirección, 28 sep 2026). */}
-      <div className="px-6 pb-5">
-        <DashMesaAyuda
-          mesa={mesa} panel={PANEL} borde={BORDER}
-          txHi={TX_HI} txMid={TX_MID} txLow={TX_LOW}
         />
       </div>
 
