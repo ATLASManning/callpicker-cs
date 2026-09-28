@@ -9,7 +9,12 @@ import {
 } from '@/lib/auth'
 import { puedeAbrir, definicionRol } from '@/lib/permisos'
 
-const PUBLIC_PATHS  = ['/acceso', '/api/auth/']
+/* `/api/cron/estado` es pública a propósito: solo dice si `CRON_SECRET` está
+   configurado —ni el valor ni su longitud— y existe precisamente para
+   diagnosticar el acceso de los crons. Pedirle sesión sería el mismo círculo que
+   vino a romper: un fallo de autenticación que no se puede consultar porque
+   consultarlo requiere autenticarse. */
+const PUBLIC_PATHS  = ['/acceso', '/api/auth/', '/api/cron/estado']
 const ADMIN_ONLY    = ['/admin',  '/api/admin/']
 /* Uso Dashboard y su API de lectura tienen su PROPIA lista desde el 24 sep
  * 2026, más ancha que la de Gestión de Usuarios. `/api/analytics/uso` se suma
