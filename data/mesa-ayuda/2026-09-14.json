@@ -6,10 +6,69 @@
     "abiertos": 114,
     "enEspera": 126,
     "vencidos": 11,
+    "vencenHoy": 1,
+    "vencenProximaHora": 0,
     "noAsignados": 2,
     "nuevos24h": 6,
-    "cerrados24h": 0
+    "cerrados24h": 0,
+    "trabajoPendiente": 116
   },
+  "tiempos": {
+    "primeraRespuesta": "00:00 h",
+    "respuesta": "00:00 h",
+    "resolucion": "00:00 h"
+  },
+  "responsables": [
+    {
+      "responsable": "Néstor C.",
+      "vencidos": 4,
+      "folioMasViejo": "#106428",
+      "diasAtraso": 134,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Mario H.",
+      "vencidos": 2,
+      "folioMasViejo": "#114229",
+      "diasAtraso": 11,
+      "cuenta": "12283 – GRUPO 2711"
+    },
+    {
+      "responsable": "Soporte (sin dueño)",
+      "vencidos": 1,
+      "folioMasViejo": "#104463",
+      "diasAtraso": 179,
+      "cuenta": "61256 – Smart Plan Agente de Seguros y Fianzas"
+    },
+    {
+      "responsable": "Daniel M.",
+      "vencidos": 1,
+      "folioMasViejo": "#108849",
+      "diasAtraso": 85,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Antonio V.",
+      "vencidos": 1,
+      "folioMasViejo": "#113201",
+      "diasAtraso": 23,
+      "cuenta": "186042 – TATSA"
+    },
+    {
+      "responsable": "José Antonio R.",
+      "vencidos": 1,
+      "folioMasViejo": "#113588",
+      "diasAtraso": 10,
+      "cuenta": "90001 – ARDE NAWI"
+    },
+    {
+      "responsable": "Claudia H.",
+      "vencidos": 1,
+      "folioMasViejo": "#113492",
+      "diasAtraso": 4,
+      "cuenta": "144728 – Alex Lyon México"
+    }
+  ],
   "ticketsVencidos": [
     {
       "folio": "104463",

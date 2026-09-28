@@ -53,7 +53,18 @@ export interface CorteMesa {
   kpis: {
     abiertos?: number; enEspera?: number; vencidos?: number
     noAsignados?: number; nuevos24h?: number; cerrados24h?: number
+    /* Los tres que faltaban. `vencenHoy` es el unico que anticipa: nueve
+       vencidos con cero por vencer hoy es otra foto que nueve con cinco a
+       punto de caer. Opcionales porque los cortes viejos no los traen. */
+    vencenHoy?: number; vencenProximaHora?: number; trabajoPendiente?: number
   }
+  /** Promedios de la mesa, como texto («35:22 h»). El reporte no da minutos. */
+  tiempos?: { primeraRespuesta?: string; respuesta?: string; resolucion?: string }
+  /** Sobre quien cae el atraso. No se puede deducir de los vencidos. */
+  responsables?: Array<{
+    responsable: string; vencidos: number
+    folioMasViejo: string; diasAtraso: number | null; cuenta: string
+  }>
   ticketsVencidos: TicketVencido[]
 }
 
@@ -143,6 +154,9 @@ export function resumenMesa() {
       hay: false as const,
       cortes: 0, fecha: null, hora: null,
       vencidos: 0, abiertos: null, enEspera: null, noAsignados: null,
+      vencenHoy: null, nuevos24h: null, cerrados24h: null, trabajoPendiente: null,
+      tiempos: null as CorteMesa['tiempos'] | null,
+      responsables: [] as NonNullable<CorteMesa['responsables']>,
       porCuenta: [] as { cid: string; cuenta: string; folios: number; peorDias: number; rachas: number }[],
     }
   }
@@ -167,6 +181,12 @@ export function resumenMesa() {
     abiertos: u.kpis.abiertos ?? null,
     enEspera: u.kpis.enEspera ?? null,
     noAsignados: u.kpis.noAsignados ?? null,
+    vencenHoy: u.kpis.vencenHoy ?? null,
+    nuevos24h: u.kpis.nuevos24h ?? null,
+    cerrados24h: u.kpis.cerrados24h ?? null,
+    trabajoPendiente: u.kpis.trabajoPendiente ?? null,
+    tiempos: u.tiempos ?? null,
+    responsables: u.responsables ?? [],
     porCuenta,
   }
 }

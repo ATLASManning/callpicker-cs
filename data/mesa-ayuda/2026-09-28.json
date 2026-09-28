@@ -6,10 +6,48 @@
     "abiertos": 101,
     "enEspera": 117,
     "vencidos": 9,
+    "vencenHoy": 0,
+    "vencenProximaHora": 0,
     "noAsignados": 1,
     "nuevos24h": 26,
-    "cerrados24h": 61
+    "cerrados24h": 61,
+    "trabajoPendiente": 116
   },
+  "tiempos": {
+    "primeraRespuesta": "35:22 h",
+    "respuesta": "26:09 h",
+    "resolucion": "129:38 h"
+  },
+  "responsables": [
+    {
+      "responsable": "Néstor C.",
+      "vencidos": 4,
+      "folioMasViejo": "#106428",
+      "diasAtraso": 148,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Mario H.",
+      "vencidos": 2,
+      "folioMasViejo": "#114229",
+      "diasAtraso": 25,
+      "cuenta": "12283 – GRUPO 2711"
+    },
+    {
+      "responsable": "José Antonio R.",
+      "vencidos": 2,
+      "folioMasViejo": "#113588",
+      "diasAtraso": 24,
+      "cuenta": "90001 – ARDE NAWI"
+    },
+    {
+      "responsable": "Antonio V.",
+      "vencidos": 1,
+      "folioMasViejo": "#113201",
+      "diasAtraso": 37,
+      "cuenta": "186042 – TATSA"
+    }
+  ],
   "ticketsVencidos": [
     {
       "folio": "106428",

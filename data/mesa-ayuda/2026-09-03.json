@@ -6,10 +6,69 @@
     "abiertos": 109,
     "enEspera": 134,
     "vencidos": 7,
+    "vencenHoy": 1,
+    "vencenProximaHora": 0,
     "noAsignados": 0,
     "nuevos24h": 52,
-    "cerrados24h": 52
+    "cerrados24h": 52,
+    "trabajoPendiente": 111
   },
+  "tiempos": {
+    "primeraRespuesta": "06:46 h",
+    "respuesta": "14:38 h",
+    "resolucion": "144:20 h"
+  },
+  "responsables": [
+    {
+      "responsable": "Soporte (sin dueño)",
+      "vencidos": 1,
+      "folioMasViejo": "#104463",
+      "diasAtraso": 168,
+      "cuenta": "61256 – Smart Plan Seguros"
+    },
+    {
+      "responsable": "Néstor C.",
+      "vencidos": 1,
+      "folioMasViejo": "#106428",
+      "diasAtraso": 123,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Daniel M.",
+      "vencidos": 1,
+      "folioMasViejo": "#108849",
+      "diasAtraso": 74,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Mario H.",
+      "vencidos": 1,
+      "folioMasViejo": "#111955",
+      "diasAtraso": 34,
+      "cuenta": "170676 – Grupo Eurovi"
+    },
+    {
+      "responsable": "Antonio V.",
+      "vencidos": 1,
+      "folioMasViejo": "#113201",
+      "diasAtraso": 12,
+      "cuenta": "186042 – TATSA"
+    },
+    {
+      "responsable": "José Antonio R.",
+      "vencidos": 1,
+      "folioMasViejo": "#110193",
+      "diasAtraso": 6,
+      "cuenta": "95890 – Petroil"
+    },
+    {
+      "responsable": "Pablo S.",
+      "vencidos": 1,
+      "folioMasViejo": "#113932",
+      "diasAtraso": 1,
+      "cuenta": "25563 – Remax Unlimited"
+    }
+  ],
   "ticketsVencidos": [
     {
       "folio": "104463",

@@ -76,6 +76,27 @@ export default function DashMesaAyuda({
         })}
       </div>
 
+      {/* ── EL MOVIMIENTO DEL INVENTARIO ──────────────────────────────────
+          Los cuatro de arriba dicen cuánto hay parado; éstos, si está
+          creciendo. «Vencen hoy» es el único que anticipa: nueve vencidos con
+          cero por vencer hoy es una foto distinta de nueve con cinco a punto de
+          caer. Se añadieron el 28 sep 2026 — estaban en el reporte y no se
+          guardaban. */}
+      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginBottom: 12, fontSize: 12, color: txMid }}>
+        {mesa.nuevos24h != null && <span>Entraron en 24 h: <strong style={{ color: txHi }}>{mesa.nuevos24h}</strong></span>}
+        {mesa.cerrados24h != null && <span>Se cerraron: <strong style={{ color: '#4ADE80' }}>{mesa.cerrados24h}</strong></span>}
+        {mesa.vencenHoy != null && (
+          <span>Vencen hoy: <strong style={{ color: mesa.vencenHoy > 0 ? '#F87171' : txHi }}>{mesa.vencenHoy}</strong></span>
+        )}
+        {mesa.trabajoPendiente != null && <span>Trabajo pendiente: <strong style={{ color: txHi }}>{mesa.trabajoPendiente}</strong></span>}
+        {mesa.tiempos?.primeraRespuesta && (
+          <span>1ª respuesta: <strong style={{ color: txHi }}>{mesa.tiempos.primeraRespuesta}</strong></span>
+        )}
+        {mesa.tiempos?.resolucion && (
+          <span>Resolución: <strong style={{ color: txHi }}>{mesa.tiempos.resolucion}</strong></span>
+        )}
+      </div>
+
       {/* `txMid` y no `txLow`: esta advertencia es lo que impide confundir un
           KPI global con uno por cuenta. Ponerla al 45% de opacidad sería
           esconder justo la línea que evita el malentendido. */}
@@ -132,6 +153,37 @@ export default function DashMesaAyuda({
           </div>
         </div>
       )}
+
+      {/* ── SOBRE QUIÉN CAE EL ATRASO ─────────────────────────────────────
+          No se puede deducir de los vencidos: un responsable con cuatro folios
+          repartidos en cuatro cuentas no se ve en la lista de arriba, que está
+          ordenada por cuenta. El reporte lo publica y no se estaba guardando. */}
+      {mesa.responsables.length > 0 && (
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${borde}` }}>
+          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: txMid, margin: '0 0 8px' }}>
+            Carga del atraso por responsable
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {mesa.responsables.map(r => (
+              <span key={r.responsable} style={{
+                fontSize: 12, color: txMid, padding: '5px 12px', borderRadius: 99,
+                background: 'rgba(255,255,255,0.04)', border: `1px solid ${borde}`,
+              }}>
+                {r.responsable} · <strong style={{ color: txHi }}>{r.vencidos}</strong>
+                {r.diasAtraso != null && <> · el peor con <strong style={{ color: '#F87171' }}>{r.diasAtraso} d</strong></>}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lo que la fuente NO da, dicho con sus propias palabras. Sin esta línea,
+          alguien concluiría que a las demás cuentas no les pasa nada. */}
+      <p style={{ fontSize: 11, color: txMid, margin: '12px 0 0', lineHeight: 1.5 }}>
+        El reporte no publica los abiertos por cuenta —«el histórico de tickets por cuenta no es
+        accesible», dice la propia fuente—, ni prioridad, ni reaperturas. Por cuenta solo se sabe
+        lo que está fuera de SLA.
+      </p>
     </div>
   )
 }

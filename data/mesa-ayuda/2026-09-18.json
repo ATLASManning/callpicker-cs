@@ -6,10 +6,69 @@
     "abiertos": 123,
     "enEspera": 129,
     "vencidos": 11,
+    "vencenHoy": 2,
+    "vencenProximaHora": 0,
     "noAsignados": 1,
     "nuevos24h": 62,
-    "cerrados24h": 28
+    "cerrados24h": 28,
+    "trabajoPendiente": 121
   },
+  "tiempos": {
+    "primeraRespuesta": "03:37 h",
+    "respuesta": "04:45 h",
+    "resolucion": "26:45 h"
+  },
+  "responsables": [
+    {
+      "responsable": "Néstor C.",
+      "vencidos": 2,
+      "folioMasViejo": "#106428",
+      "diasAtraso": 138,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Mario H.",
+      "vencidos": 2,
+      "folioMasViejo": "#114229",
+      "diasAtraso": 15,
+      "cuenta": "12283 – GRUPO 2711"
+    },
+    {
+      "responsable": "José Antonio R.",
+      "vencidos": 2,
+      "folioMasViejo": "#113588",
+      "diasAtraso": 14,
+      "cuenta": "90001 – ARDE NAWI"
+    },
+    {
+      "responsable": "Fátima G.",
+      "vencidos": 2,
+      "folioMasViejo": "#113563",
+      "diasAtraso": 1,
+      "cuenta": "99524 – Dinosaurio Hosting Mexico"
+    },
+    {
+      "responsable": "Daniel M.",
+      "vencidos": 1,
+      "folioMasViejo": "#108849",
+      "diasAtraso": 89,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Antonio V.",
+      "vencidos": 1,
+      "folioMasViejo": "#113201",
+      "diasAtraso": 27,
+      "cuenta": "186042 – TATSA"
+    },
+    {
+      "responsable": "Dan D.",
+      "vencidos": 1,
+      "folioMasViejo": "#113092",
+      "diasAtraso": 18,
+      "cuenta": "135582 – Jason de México"
+    }
+  ],
   "ticketsVencidos": [
     {
       "folio": "106428",

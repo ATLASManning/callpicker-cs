@@ -152,11 +152,22 @@ def extrae(ruta):
             })
 
     # Los KPIs de la mesa, de la tabla de indicadores.
+    #
+    # Se capturan los NUEVE que publica el reporte, no seis. Faltaban
+    # `vencenHoy`, `vencenProximaHora` y `trabajoPendiente`, que son los que
+    # dicen si el problema viene en camino: nueve vencidos con cero por vencer
+    # hoy es una foto distinta de nueve con cinco a punto de caer.
+    #
+    # Instruccion de direccion (28 sep 2026): «coloca los tickets abiertos».
+    # Estaban en el corte y en el tablero, pero el resto del inventario vivo
+    # —lo que entra, lo que sale y lo que esta por vencer— se quedaba fuera.
     kpis = {}
     ETIQ = {
         'abiertos': 'Tickets abiertos', 'enEspera': 'Tickets en espera',
         'vencidos': 'Tickets vencidos', 'noAsignados': 'Tickets no asignados',
         'nuevos24h': 'Nuevos en la ventana', 'cerrados24h': 'Cerrados en la ventana',
+        'vencenHoy': 'Vencen hoy', 'vencenProximaHora': 'Vencen en la próxima hora',
+        'trabajoPendiente': 'Trabajo pendiente del periodo',
     }
     for tbl in tablas:
         for fila in tbl:
@@ -171,12 +182,60 @@ def extrae(ruta):
                     if n is not None:
                         kpis[clave] = n
 
+    # ── Tiempos promedio y carga por responsable ─────────────────────
+    #
+    # Dos bloques que el reporte publica y que no se estaban guardando. El
+    # primero dice si la mesa responde mas lento; el segundo, sobre quien cae
+    # el atraso. Ninguno se puede deducir de los vencidos.
+    #
+    # Se leen por ENCABEZADO y nunca por posicion de tabla: el generador del
+    # Word puede reordenar secciones y una tabla 19 hoy puede ser la 21 manana.
+    tiempos = {}
+    CLAVE_T = {'primeraRespuesta': 'Primera respuesta', 'respuesta': 'Respuesta',
+               'resolucion': 'Resolución'}
+    responsables = []
+    for tbl in tablas:
+        if not tbl or not tbl[0]:
+            continue
+        enc = [c.strip().lower() for c in tbl[0]]
+        if enc and enc[0].startswith('tiempo promedio'):
+            for fila in tbl[1:]:
+                if len(fila) < 2:
+                    continue
+                for clave, pref in CLAVE_T.items():
+                    if fila[0].strip().lower().startswith(pref.lower()) and clave not in tiempos:
+                        tiempos[clave] = fila[1].strip()
+        # La cabecera real puede venir en la fila 0 o en la 1: el Word a veces
+        # mete una nota antes. Se busca en las dos primeras.
+        for cand in tbl[:2]:
+            if not cand or len(cand) < 5:
+                continue
+            c0 = cand[0].strip().lower()
+            if c0 == 'responsable' and 'fuera de sla' in ' '.join(cand).lower():
+                inicio = tbl.index(cand) + 1
+                for fila in tbl[inicio:]:
+                    if len(fila) < 5 or not fila[0].strip():
+                        continue
+                    n = entero(fila[1])
+                    if n is None:
+                        continue
+                    responsables.append({
+                        'responsable': fila[0].strip(),
+                        'vencidos': n,
+                        'folioMasViejo': fila[2].strip(),
+                        'diasAtraso': entero(fila[3]),
+                        'cuenta': fila[4].strip(),
+                    })
+                break
+
     hora = re.search(r'cerrada a las ([\d:]+\s*h)', plano)
     return {
         'fecha': fecha,
         'horaCorte': hora.group(1) if hora else None,
         'origen': os.path.basename(ruta),
         'kpis': kpis,
+        'tiempos': tiempos,
+        'responsables': responsables,
         'ticketsVencidos': vencidos,
     }
 

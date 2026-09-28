@@ -6,10 +6,62 @@
     "abiertos": 146,
     "enEspera": 131,
     "vencidos": 11,
+    "vencenHoy": 1,
+    "vencenProximaHora": 0,
     "noAsignados": 1,
     "nuevos24h": 71,
-    "cerrados24h": 61
+    "cerrados24h": 61,
+    "trabajoPendiente": 150
   },
+  "tiempos": {
+    "primeraRespuesta": "20:13 h",
+    "respuesta": "14:14 h",
+    "resolucion": "158:05 h"
+  },
+  "responsables": [
+    {
+      "responsable": "Néstor C.",
+      "vencidos": 4,
+      "folioMasViejo": "#106428",
+      "diasAtraso": 142,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Mario H.",
+      "vencidos": 2,
+      "folioMasViejo": "#114229",
+      "diasAtraso": 19,
+      "cuenta": "12283 – GRUPO 2711"
+    },
+    {
+      "responsable": "José Antonio R.",
+      "vencidos": 2,
+      "folioMasViejo": "#113588",
+      "diasAtraso": 18,
+      "cuenta": "90001 – ARDE NAWI"
+    },
+    {
+      "responsable": "Daniel M.",
+      "vencidos": 1,
+      "folioMasViejo": "#108849",
+      "diasAtraso": 93,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Antonio V.",
+      "vencidos": 1,
+      "folioMasViejo": "#113201",
+      "diasAtraso": 31,
+      "cuenta": "186042 – TATSA"
+    },
+    {
+      "responsable": "Fátima G.",
+      "vencidos": 1,
+      "folioMasViejo": "#113268",
+      "diasAtraso": 4,
+      "cuenta": "89032 – The Brokers Real Estate"
+    }
+  ],
   "ticketsVencidos": [
     {
       "folio": "106428",

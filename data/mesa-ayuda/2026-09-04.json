@@ -6,10 +6,62 @@
     "abiertos": 113,
     "enEspera": 124,
     "vencidos": 6,
+    "vencenHoy": 1,
+    "vencenProximaHora": 0,
     "noAsignados": 0,
     "nuevos24h": 44,
-    "cerrados24h": 62
+    "cerrados24h": 62,
+    "trabajoPendiente": 112
   },
+  "tiempos": {
+    "primeraRespuesta": "06:46 h",
+    "respuesta": "11:31 h",
+    "resolucion": "60:07 h"
+  },
+  "responsables": [
+    {
+      "responsable": "Soporte (sin dueño)",
+      "vencidos": 1,
+      "folioMasViejo": "#104463",
+      "diasAtraso": 169,
+      "cuenta": "61256 – Smart Plan Agente de Seguros y Fianzas"
+    },
+    {
+      "responsable": "Néstor C.",
+      "vencidos": 1,
+      "folioMasViejo": "#106428",
+      "diasAtraso": 124,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Daniel M.",
+      "vencidos": 1,
+      "folioMasViejo": "#108849",
+      "diasAtraso": 75,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Antonio V.",
+      "vencidos": 1,
+      "folioMasViejo": "#113201",
+      "diasAtraso": 13,
+      "cuenta": "186042 – TATSA"
+    },
+    {
+      "responsable": "Pablo S.",
+      "vencidos": 1,
+      "folioMasViejo": "#113932",
+      "diasAtraso": 2,
+      "cuenta": "25563 – Remax Unlimited"
+    },
+    {
+      "responsable": "Mario H.",
+      "vencidos": 1,
+      "folioMasViejo": "#114229",
+      "diasAtraso": 1,
+      "cuenta": "12283 – GRUPO 2711"
+    }
+  ],
   "ticketsVencidos": [
     {
       "folio": "104463",
