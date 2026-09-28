@@ -8,7 +8,7 @@ import {
   AlertCircle, ListChecks, Target,
 } from 'lucide-react'
 import { fechaLocal } from '@/lib/fecha-local'
-import { solicitudPendiente } from '@/lib/cierre-seguimiento'
+import { solicitudPendiente, SEGUIMIENTOS_POR_SEMANA } from '@/lib/cierre-seguimiento'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -1292,9 +1292,16 @@ export default function ActividadesBtn({
                       <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: '#1F2937' }}>
                         Sin actividades esta semana
                       </p>
+                      {/* El texto decía «las 4 cuentas» y se quedó corto: desde
+                          el 25 de septiembre la generación reparte TAMBIÉN diez
+                          seguimientos de cuenta por asesor, que van fuera del
+                          tope de cuatro. Anunciar cuatro y entregar catorce hace
+                          dudar de si el sistema hizo lo que debía. */}
                       <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6B7280', lineHeight: 1.6 }}>
-                        Selecciona las <strong>4 cuentas</strong> de la semana para <strong>{asesor}</strong>:
-                        las de mayor prioridad con datos de perfil o Radar pendientes.
+                        Genera el trabajo de la semana para <strong>{asesor}</strong>:
+                        {' '}<strong>4 cuentas de perfil</strong> —las de mayor prioridad con datos
+                        o Radar pendientes— y <strong>{SEGUIMIENTOS_POR_SEMANA} seguimientos de
+                        cuenta</strong>, que rotan sobre toda su cartera y van fuera de ese tope.
                         Solo cuentas activas — se excluyen dormidas, canceladas y con churn confirmado.
                       </p>
                       <button
