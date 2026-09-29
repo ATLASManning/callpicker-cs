@@ -1,0 +1,137 @@
+{
+  "fecha": "2026-09-29",
+  "horaCorte": null,
+  "origen": "Reporte_Diario_ZohoDesk_2026-09-29.docx",
+  "kpis": {
+    "abiertos": 94,
+    "enEspera": 117,
+    "vencidos": 6,
+    "vencenHoy": 1,
+    "vencenProximaHora": 0,
+    "noAsignados": 1,
+    "nuevos24h": 62,
+    "cerrados24h": 71,
+    "trabajoPendiente": 89
+  },
+  "tiempos": {
+    "primeraRespuesta": "06:49 h",
+    "respuesta": "13:21 h",
+    "resolucion": "57:03 h"
+  },
+  "responsables": [
+    {
+      "responsable": "Mario H.",
+      "vencidos": 2,
+      "folioMasViejo": "#114229",
+      "diasAtraso": 26,
+      "cuenta": "12283 – GRUPO 2711"
+    },
+    {
+      "responsable": "José Antonio R.",
+      "vencidos": 2,
+      "folioMasViejo": "#113588",
+      "diasAtraso": 25,
+      "cuenta": "90001 – ARDE NAWI"
+    },
+    {
+      "responsable": "Néstor C.",
+      "vencidos": 1,
+      "folioMasViejo": "#106428",
+      "diasAtraso": 149,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Antonio V.",
+      "vencidos": 1,
+      "folioMasViejo": "#113201",
+      "diasAtraso": 38,
+      "cuenta": "186042 – TATSA"
+    }
+  ],
+  "ticketsVencidos": [
+    {
+      "folio": "106428",
+      "asunto": "Revisar apertura de conversación con plantilla",
+      "contacto": "Ariana Agundis García",
+      "cid": "130723",
+      "cuenta": "GTC Contact Center",
+      "vence": "2026-05-03",
+      "diasSLA": 149,
+      "ultimaAct": "2026-05-02",
+      "diasSinMover": 150,
+      "estado": "Escalado",
+      "responsable": "Néstor C.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "113201",
+      "asunto": "Activación cuenta Callpicker – Tatsa",
+      "contacto": "Ricardo López",
+      "cid": "186042",
+      "cuenta": "TATSA",
+      "vence": "2026-08-22",
+      "diasSLA": 38,
+      "ultimaAct": "2026-08-14",
+      "diasSinMover": 46,
+      "estado": "Abierto",
+      "responsable": "Antonio V.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "114229",
+      "asunto": "Intermitencia al recibir eventos de llamada vía API",
+      "contacto": "Ismael Díaz de León",
+      "cid": "12283",
+      "cuenta": "GRUPO 2711",
+      "vence": "2026-09-03",
+      "diasSLA": 26,
+      "ultimaAct": "2026-08-29",
+      "diasSinMover": 31,
+      "estado": "Abierto",
+      "responsable": "Mario H.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "113588",
+      "asunto": "ayuda",
+      "contacto": "Michel Soto",
+      "cid": "90001",
+      "cuenta": "ARDE NAWI",
+      "vence": "2026-09-04",
+      "diasSLA": 25,
+      "ultimaAct": "2026-08-28",
+      "diasSinMover": 32,
+      "estado": "Abierto",
+      "responsable": "José Antonio R.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "114297",
+      "asunto": "EMPODERA2026: Alta de líneas",
+      "contacto": "Alejandro Toledo",
+      "cid": "114019",
+      "cuenta": "EMPODERA SALUD",
+      "vence": "2026-09-15",
+      "diasSLA": 14,
+      "ultimaAct": "2026-09-08",
+      "diasSinMover": 21,
+      "estado": "Abierto",
+      "responsable": "José Antonio R.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "115121",
+      "asunto": "Ruta de llamada",
+      "contacto": "Andrea Castañeda Hernández",
+      "cid": "130723",
+      "cuenta": "GTC Contact Center",
+      "vence": "2026-09-17",
+      "diasSLA": 12,
+      "ultimaAct": "2026-09-10",
+      "diasSinMover": 19,
+      "estado": "Escalado",
+      "responsable": "Mario H.",
+      "canal": "WhatsApp"
+    }
+  ]
+}
