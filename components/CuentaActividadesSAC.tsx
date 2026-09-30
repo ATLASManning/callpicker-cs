@@ -41,8 +41,15 @@ function semanaLabel(iso: string): string {
 }
 
 /* ── Row individual ─────────────────────────────────────────────────────── */
-function ActividadRow({ act, canEdit }: { act: ActividadSAC; canEdit: boolean }) {
-  const [expanded,  setExpanded]  = useState(false)
+function ActividadRow({ act, canEdit, expanded, onToggle }: {
+  act: ActividadSAC; canEdit: boolean
+  /* Abierta o no lo decide el PADRE, no la tarjeta. Hacen falta dos cosas que
+     una tarjeta sola no puede: que abrir una cierre las demás —si no, cinco
+     descripciones largas abiertas a la vez son otra vez una pared— y que la
+     lista sepa si hay alguna abierta para soltar su scroll interno. */
+  expanded: boolean
+  onToggle: () => void
+}) {
   const [saving,    setSaving]    = useState(false)
   const [resultado, setResultado] = useState(act.resultado ?? '')
   const [estado,    setEstado]    = useState(act.estado)
@@ -124,7 +131,7 @@ function ActividadRow({ act, canEdit }: { act: ActividadSAC; canEdit: boolean })
           background: 'transparent', cursor: 'pointer', border: 'none',
           color: 'inherit',
         }}
-        onClick={() => setExpanded(v => !v)}
+        onClick={onToggle}
       >
         <span style={{ fontSize: 15, flexShrink: 0 }}>{meta.emoji}</span>
 
@@ -322,6 +329,10 @@ interface Props {
 }
 
 export default function CuentaActividadesSAC({ actividades, canEdit }: Props) {
+  /* Cuál está abierta, en el padre. Acordeón: abrir una cierra la anterior.
+     Con varias abiertas a la vez la lista volvía a ser una pared de texto, que
+     es justo lo que se pidió evitar. */
+  const [abiertaId, setAbiertaId] = useState<string | null>(null)
   const total       = actividades.length
   const completadas = actividades.filter(a => a.estado === 'completada').length
   const pendientes  = actividades.filter(a => a.estado === 'pendiente').length
@@ -419,9 +430,25 @@ export default function CuentaActividadesSAC({ actividades, canEdit }: Props) {
       </div>
 
       {/* ── Lista de actividades ─────────────────────────────────── */}
-      <div style={{ padding: '0 10px 12px', display: 'flex', flexDirection: 'column', gap: 7, maxHeight: 520, overflowY: 'auto' }}>
+      {/* EL SCROLL ANIDADO SOLO EXISTE MIENTRAS TODO ESTÁ CERRADO.
+          Antes la lista vivía siempre en una caja de 520 px con scroll propio, y
+          al desplegar una actividad la descripción larga quedaba atrapada en un
+          scroll dentro de otro scroll: no se podía seguir leyendo con soltura
+          (dirección, 30 sep 2026).
+
+          Cerrada, la caja acota la altura del panel aunque la cuenta tenga
+          decenas de actividades. Abierta, se suelta y scrollea la página, que es
+          como se lee un texto largo. */}
+      <div style={{
+        padding: '0 10px 12px', display: 'flex', flexDirection: 'column', gap: 7,
+        ...(abiertaId === null ? { maxHeight: 520, overflowY: 'auto' as const } : {}),
+      }}>
         {actividades.map(a => (
-          <ActividadRow key={a.id} act={a} canEdit={canEdit} />
+          <ActividadRow
+            key={a.id} act={a} canEdit={canEdit}
+            expanded={abiertaId === a.id}
+            onToggle={() => setAbiertaId(prev => (prev === a.id ? null : a.id))}
+          />
         ))}
       </div>
     </div>

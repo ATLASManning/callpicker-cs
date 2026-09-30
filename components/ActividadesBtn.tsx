@@ -5,8 +5,9 @@ import {
   Zap, X, CheckCircle, XCircle, Clock, AlertTriangle,
   RefreshCw, Loader2, Calendar, Phone, Users,
   BarChart2, FileText, TrendingUp, ChevronDown, History,
-  AlertCircle, ListChecks, Target,
+  AlertCircle, ListChecks, Target, ExternalLink,
 } from 'lucide-react'
+import Link from 'next/link'
 import { fechaLocal } from '@/lib/fecha-local'
 import { solicitudPendiente, SEGUIMIENTOS_POR_SEMANA } from '@/lib/cierre-seguimiento'
 
@@ -296,7 +297,15 @@ function ActividadCard({
           : <XCircle size={11} color="#EF4444" style={{ flexShrink: 0, marginTop: 2 }} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 2 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#1F2937' }}>{act.empresa}</span>
+            {act.cuenta_id ? (
+              <Link href={`/cuentas/${act.cuenta_id}`}
+                style={{ fontSize: 11, fontWeight: 700, color: '#1D4ED8', textDecoration: 'none' }}
+                title={`Abrir la ficha de ${act.empresa}`}>
+                {act.empresa}
+              </Link>
+            ) : (
+              <span style={{ fontSize: 11, fontWeight: 700, color: '#1F2937' }}>{act.empresa}</span>
+            )}
             <span style={{ fontSize: 9, fontWeight: 700, color: tc.color, background: `${tc.color}15`, padding: '1px 6px', borderRadius: 99 }}>
               {tc.label}
             </span>
@@ -380,9 +389,29 @@ function ActividadCard({
             )}
           </div>
 
-          <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 700, color: '#1F2937', lineHeight: 1.3 }}>
-            {act.empresa}
-          </p>
+          {/* DE LA ACTIVIDAD A LA CUENTA, en un clic (dirección, 30 sep 2026).
+              El nombre de la empresa es el sitio natural: es lo que se lee
+              primero y lo que se quiere abrir. Si la actividad no trae
+              `cuenta_id` —pasa en las que nacieron sin cruzar— se pinta igual,
+              pero sin enlace: un enlace roto es peor que ninguno. */}
+          {act.cuenta_id ? (
+            <Link
+              href={`/cuentas/${act.cuenta_id}`}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                margin: '0 0 3px', fontSize: 13, fontWeight: 700,
+                color: '#1D4ED8', lineHeight: 1.3, textDecoration: 'none',
+              }}
+              title={`Abrir la ficha de ${act.empresa}`}
+            >
+              {act.empresa}
+              <ExternalLink size={11} />
+            </Link>
+          ) : (
+            <p style={{ margin: '0 0 3px', fontSize: 13, fontWeight: 700, color: '#1F2937', lineHeight: 1.3 }}>
+              {act.empresa}
+            </p>
+          )}
           <p style={{ margin: 0, fontSize: 12, color: '#6B7280', lineHeight: 1.55 }}>
             {act.descripcion}
           </p>
