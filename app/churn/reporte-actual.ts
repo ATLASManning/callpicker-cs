@@ -8,241 +8,125 @@
 import type { ChurnReporte } from './tipos'
 
 /* ═══════════════════════════════════════════════════════════════════════
-   REPORTE SEMANAL — SEMANA 20 · SEPTIEMBRE 2026  (15 sep 2026)
-   Cierre de agosto con escenario de recuperación y septiembre en curso.
-   Remitente: Valeria Zepeda Hernández (equipo Data).
+   REPORTE SEMANAL — SEMANA 22 · SEPTIEMBRE 2026  (29 sep 2026)
+   Cierre de septiembre. Remitente: Valeria Zepeda Hernández (equipo Data).
 
-   CONCILIACIÓN DE ESTE CORTE. A diferencia del de la semana 19 —que traía un
-   descuadre de $2,868.27 sin explicar entre la alerta y la tabla— éste cuadra
-   en todo lo verificable:
-     · Hard 17,811.98 + Soft 11,844.00 + Cancelados 0 = 29,655.98 ✓ y 10+17+0 = 27 ✓
-     · los cinco tramos de antigüedad suman 425,458.20 ✓
-     · los tramos vencidos (12,263.00 + 17,392.98) son EXACTAMENTE Hard + Soft ✓
-     · los tres downgrades suman 6,530.00 ✓, y el detalle por artículo reconstruye
-       cada pérdida: Elyon 99+90+490−99 = 580 ✓ · Dicap 2,779−570 = 2,209 ✓ ·
-       IBC 5,800−2,059 = 3,741 ✓
-     · escenario de agosto: 68,784.18 − 22,212.40 = 46,571.78 ✓
+   EL CORTE QUE MEJOR CIERRA DE TODA LA SERIE. Se concilió contra sus propias
+   tablas antes de publicarlo y cuadra todo lo verificable, al centavo:
+     · Hard 26,457.50 + Soft 19,610.93 + Cancelados 44,663.96 = 90,732.39 ✓
+       y 32 + 31 + 18 = 81 cuentas ✓
+     · los cinco tramos de antigüedad suman 206,471.95 ✓
+     · Hard → Cancelado: 10,946.98 + 1,276.00 + 1,238.00 = 13,460.98 ✓
+     · los tres casos clave: 6,543 + 10,946.98 + 7,372.98 = 24,862.96 ✓
+     · menos de 3 meses activos: las ocho suman 20,952.98 ✓
+
+   Y SE RESUELVE EL CRUCE DEL $489 QUE LLEVABA DOS CORTES. En las semanas 20 y
+   21 los tramos vencidos no empataban con Hard/Soft por $419 y $489, y quedó
+   anotado que «dos veces seguidas ya no es casualidad». Aquí sí empatan:
+   8–15 días = Soft exacto (19,610.93) y Hard se reparte entre 16–30
+   (25,968.50) y más de 30 días (489.00) = 26,457.50. Era una cuenta de Hard
+   con más de 30 días de atraso, y este corte por fin la separa. Cerrado.
 ═══════════════════════════════════════════════════════════════════════ */
-export const REPORTE_S20_SEPTIEMBRE_2026: ChurnReporte = {
-  id:      's20-septiembre-2026',
-  periodo: 'Semana 20 · Sep 2026',
-  fecha:   '15/09/2026',
-  notas:   'Gross Revenue Churn · Semana 20. Al 15 de septiembre del 2026. Cierra agosto con el escenario de recuperación de las cuentas en Hard Suspend y sigue septiembre en curso: Top 10 de cuentas Activas, resumen de Hard Suspend / Soft Suspend / Cancelados, antigüedad de la cartera por cobrar y los downgrades de la semana. Próxima revisión: miércoles 23 de septiembre.',
-  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 23 de septiembre.',
+export const REPORTE_S22_SEPTIEMBRE_2026: ChurnReporte = {
+  id:      's22-septiembre-2026',
+  periodo: 'Semana 22 · Sep 2026',
+  fecha:   '29/09/2026',
+  notas:   'Gross Revenue Churn · Semana 22. Al 29 de septiembre del 2026. Cierra septiembre: Top 10 de cuentas Activas, seguimiento de quiénes pasaron de Hard Suspend a Cancelado, resumen de Hard / Soft / Cancelados, antigüedad de la cartera por cobrar, Top 5 de downgrades por % de reducción, productos más afectados y las notas de los 3 casos clave que cancelaron. Próxima revisión: miércoles 7 de octubre.',
+  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 7 de octubre.',
 
   grc: {
     evolucion: [
-      { mes: 'Julio',  pct: 2.0, anterior: 2.1 },
-      { mes: 'Agosto', pct: 2.4, anterior: 3.4 },
+      { mes: 'Julio',      pct: 1.9 },
+      { mes: 'Agosto',     pct: 2.3 },
+      { mes: 'Septiembre', pct: 6.9, anterior: 23.6 },
     ],
-    acumulado: 17.4,
-    anterior:  18.6,
-    notaClave: 'Churn Q3: Julio corregido a la baja de 2.1% a 2.0% · Agosto corregido a la baja de 3.4% a 2.4% por el ajuste de reestructura de facturación de las subcuentas de GTC. Churn acumulado hasta agosto 2026: 17.4% — MES CORRIENDO, NO DEFINITIVO (ant. 18.6%).',
+    acumulado: 23.7,
+    anterior:  17.2,
+    notaClave: 'Churn Q3: Julio 1.9% · Agosto 2.3% · Septiembre BAJA de 23.6% a 6.9%, y sigue siendo MES CORRIENDO Y NO DEFINITIVO. Acumulado hasta septiembre 2026: 23.7% — tampoco definitivo.',
     notaEspecial:
-      '🔴 CONCENTRACIÓN EN UN SOLO GRUPO: nueve de las diez cuentas del Top 10 son subcuentas de GTC y suman $230,154.22 — el 58.1% de TODA la cartera Activo de $395,802.22. La única cuenta del Top 10 que no es GTC es ADSA ($32,375.00, 92 meses activo). El Top 10 completo pesa $262,529.22, el 66.3% de la cartera; los $133,273.00 restantes se reparten entre el resto de las cuentas, cuyo número este corte no declara. Esto no es un dato del reporte: sale de sumar su propia tabla. Un impago o una renegociación de GTC no es un evento de cuenta, es un evento de cartera. ' +
-      '⚠️ NO COMPARABLE CONTRA LA SEMANA 19: la cartera Activo pasó de $136,410.47 (90 cuentas) a $395,802.22 — un factor de 2.90x en una semana. El salto viene de que las subcuentas de GTC entran ahora con su facturación reestructurada, no de crecimiento comercial. Cualquier lectura de "la cartera casi se triplicó" es falsa. ' +
-      '🔁 AGOSTO SE HA CORREGIDO DOS VECES POR LA MISMA CAUSA: 4.9% → 3.4% (semana 19) → 2.4% (semana 20), una corrección acumulada de 2.5 puntos, toda ella atribuida a la reestructura de facturación de GTC - CARRANZA y GTC - LOMAS. La nota del corte declara una reducción de 30k por ese ajuste. El número no termina de asentarse: conviene preguntarle al equipo Data si la revisión ya cerró o si agosto puede moverse otra vez. ' +
-      '📌 DOS CIFRAS DISTINTAS DE HARD SUSPEND, Y NO SE CONTRADICEN: el escenario de cierre de agosto habla de 23 cuentas · $22,212.40, y la tabla de septiembre en curso de 10 cuentas · $17,811.98. Son periodos distintos —cierre de agosto contra mes corriendo— y no deben restarse ni compararse entre sí. ' +
-      '✅ CERO CANCELADOS EN LA SEMANA: el corte no registra ningún cliente cancelado, contra 6 cuentas y $17,770.98 en la semana 19. Es la primera semana sin bajas del trimestre. ' +
-      '💰 DINERO FUERA DE LA CARTERA: $29,655.98 en 27 cuentas — Hard Suspend 10 cuentas · $17,811.98 · 19.5 días promedio pendiente de pago · Soft Suspend 17 cuentas · $11,844.00 · 10.5 días · Cancelados 0 · $0.00. Ese monto es exactamente la suma de los tramos vencidos de la antigüedad de saldos. ' +
-      '📉 DOWNGRADE POCO DINERO, MUCHA PROFUNDIDAD: los tres únicos downgrades de la semana suman $6,530.00 —poco contra el promedio mensual— pero los tres recortaron más del 40% de su facturación, y dos de ellos más del 79%. El riesgo aquí no es el monto de la semana: es que un cliente que corta el 85% de lo que paga rara vez se queda en el 15% restante.',
-  },
-
-  /* Top 10 · Cuentas Activo de septiembre — total cartera Activo $395,802.22.
-     El corte NO declara cuántas cuentas componen ese total, así que no se
-     inventa el número: la fila de cierre lleva el monto y dice que el conteo
-     no viene en el reporte. */
-  pendientesTotalReal: 395802.22,
-  pendientes: [
-    { cliente: '🔝 GTC - CENTRO MAX',     monto: 34601.46, mesesActivo: 6,  ultimaFactura: 'Activo' },
-    { cliente: 'GTC - NAVA',              monto: 34189.46, mesesActivo: 6,  ultimaFactura: 'Activo' },
-    { cliente: 'GTC - CARRANZA, LOMAS',   monto: 33021.73, mesesActivo: 0,  ultimaFactura: 'Activo' },
-    { cliente: 'ADSA',                    monto: 32375.00, mesesActivo: 92, ultimaFactura: 'Activo' },
-    { cliente: 'GTC - FORUM',             monto: 28484.81, mesesActivo: 6,  ultimaFactura: 'Activo' },
-    { cliente: 'GTC - BMW',               monto: 26297.55, mesesActivo: 6,  ultimaFactura: 'Activo' },
-    { cliente: 'GTC - SENDERO',           monto: 23255.06, mesesActivo: 6,  ultimaFactura: 'Activo' },
-    { cliente: 'GTC - MG POLIFORUM',      monto: 19694.24, mesesActivo: 6,  ultimaFactura: 'Activo' },
-    { cliente: 'GTC - MG LOMAS',          monto: 16626.24, mesesActivo: 6,  ultimaFactura: 'Activo' },
-    { cliente: 'GTC - MATEHUALA',         monto: 13983.67, mesesActivo: 6,  ultimaFactura: 'Activo' },
-    /* El «+» de arranque NO es decorativo: lib/atlas-context.ts filtra por él
-       (`!p.cliente.startsWith('+')`) para no pasarle esta fila de cierre al
-       modelo como si fuera un cliente. Sin el prefijo, Atlas reportaría un
-       cliente llamado «Resto de la cartera Activo» con $133,273.00. */
-    { cliente: '+ Resto de la cartera Activo — el corte no desglosa nombres ni declara cuántas cuentas son.', monto: 133273.00, mesesActivo: 0, ultimaFactura: 'Activo' },
-  ],
-
-  /* Cancelados: NINGUNO en la semana. El corte lo dice con todas sus letras
-     —«No contamos con registros de clientes cancelados en la semana»— así que
-     la lista va vacía a propósito. Vacío por ausencia de bajas, no por falta
-     de dato: son cosas distintas y la de aquí es la buena. */
-  cancelados: [],
-
-  /* Downgrades de la semana — 3 clientes · $6,530.00, ordenados por % de
-     reducción de mayor a menor. El detalle por artículo reconstruye exactamente
-     la pérdida declarada de cada uno (ver la conciliación del encabezado). */
-  downgradeTotalReal: 6530.00,
-  downgrades: [
-    { cliente: '🔝 Sellos de Seguridad Grupo Elyon', perdida: 580.00,  nota: '85% de baja — la mayor reducción porcentual de la semana. Quitó DiD Nacional ($99), paquete 800 ($90) y Paquete Min VyC ($490); adquirió DiD Internacional ($99). Neto $580. Se queda con una fracción mínima de lo que pagaba.' },
-    { cliente: 'Dicap Desarrollos',                  perdida: 2209.00, nota: '79% de baja. Paquete Min VyC $2,779.00 → $570.00.' },
-    { cliente: 'IBC SUITES',                         perdida: 3741.00, nota: '46% de baja — el mayor monto de la semana. Paquete Min VyC $5,800.00 → $2,059.00.' },
-  ],
-
-  downgradeArticulos: [
-    { articulo: 'Paquete Min VyC',      vecesAfectado: 3, clientes: ['Sellos de Seguridad Grupo Elyon', 'Dicap Desarrollos', 'IBC SUITES'] },
-    { articulo: 'DiD Nacional',         vecesAfectado: 1, clientes: ['Sellos de Seguridad Grupo Elyon'] },
-    { articulo: 'Paquete 800',          vecesAfectado: 1, clientes: ['Sellos de Seguridad Grupo Elyon'] },
-  ],
-
-  /* Antigüedad de la cartera por cobrar — total $425,458.20.
-     Incluye Activo + Hard Suspend + Soft Suspend; Cancelado no forma parte de
-     la cartera por cobrar. «Por vencer» es el total Activo al corriente.
-     Los dos tramos vencidos suman exactamente el dinero fuera de cartera. */
-  antiguedadSaldos: [
-    { rango: 'Por vencer',           monto: 395802.22 },
-    { rango: '1 – 7 días vencido',   monto: 0.00 },
-    { rango: '8 – 15 días vencido',  monto: 12263.00 },
-    { rango: '16 – 30 días vencido', monto: 17392.98 },
-    { rango: 'Más de 30 días',       monto: 0.00 },
-  ],
-
-  /* Fuera de cartera — Hard Suspend 10 cuentas · $17,811.98 · 19.5 días
-     promedio y Soft Suspend 17 cuentas · $11,844.00 · 10.5 días. El reporte no
-     desglosa nombres en ninguno de los dos estados. Total 27 cuentas ·
-     $29,655.98. Ojo: el escenario de CIERRE DE AGOSTO habla de 23 cuentas en
-     Hard Suspend por $22,212.40 — es otro periodo, no se compara con éste.
-
-     Y un detalle que el corte no explica: el TOTAL de Hard + Soft empata exacto
-     con los tramos vencidos, pero el reparto cruza por $419.00 — Hard tiene
-     $419.00 MÁS que el tramo de 16 a 30 días y Soft exactamente $419.00 MENOS
-     que el de 8 a 15. No se le inventa una correspondencia cuenta por cuenta:
-     se deja anotado para preguntarlo. */
-  suspendidosTotalReal:   29655.98,
-  suspendidosCuentasReal: 27,
-  suspendidos: [
-    { cliente: 'Hard Suspend — 10 cuentas · 19.5 días promedio pendiente de pago. El reporte no desglosa nombres.', importe: 17811.98, mesesActivo: 0, estado: 'Suspendido' },
-    { cliente: 'Soft Suspend — 17 cuentas · 10.5 días promedio pendiente de pago. El reporte no desglosa nombres.', importe: 11844.00, mesesActivo: 0, estado: 'Suspendido' },
-  ],
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
-   REPORTE SEMANAL — SEMANA 21 · SEPTIEMBRE 2026  (22 sep 2026)
-   Remitente: Valeria Zepeda Hernández (equipo Data).
-
-   CONCILIACIÓN DE ESTE CORTE. Cuadra en casi todo, y donde no, se dice:
-     · Hard: 15,917.98 (6 previas) + 16,079.00 (17 nuevas) = 31,996.98 ✓ y 6+17 = 23 ✓
-     · Cancelados: los 7 importes suman 12,144.00 ✓
-     · Fuera de cartera: 31,996.98 + 24,107.00 + 12,144.00 = 68,247.98 ✓ y 23+23+7 = 53 ✓
-     · Antigüedad: los cinco tramos suman 249,215.25 ✓
-     · Contempo BR se puede reconstruir: 1,959.00 → 1,029.00 = 930.00, el 47% ✓
-
-   ✗ LOS DOWNGRADES NO CIERRAN. La tabla suma 8,115.55 y con Neruc (11,105.97)
-     da 19,221.52, pero el corte declara 22,183.52: faltan $2,962.00. Y NO es
-     un cliente sin listar —dice «6 clientes identificados» y hay 5 + Neruc = 6—,
-     así que o una cifra publicada está mal o hay un importe sin desglosar.
-
-   ✗ DOS IMPORTES CRUZADOS entre CAMPESTRE LOS VIVEROS y HOTEL REAL DE MINAS:
-     CAMPESTRE quitó un artículo de $1,245 y se le carga una pérdida de $1,460;
-     al HOTEL le pasa justo al revés. Cada uno lleva la cifra del otro. El total
-     no cambia (2,705 de cualquier modo), pero los porcentajes sí.
-
-   ⚠ LOS TRAMOS VENCIDOS VUELVEN A CRUZARSE, y ya van dos cortes seguidos: el
-     de 8–15 días tiene $489.00 MÁS que Soft Suspend y el de 16–30 exactamente
-     $489.00 MENOS que Hard. En la semana 20 el cruce fue de $419.00. El neto
-     es cero y el total general no se mueve, así que no es un error de suma —
-     parece que una cuenta se clasifica por fecha en un lado y por estado en el
-     otro. Dos veces seguidas ya no es casualidad: hay que preguntarlo.
-
-   ⚠ EL CORREO SE CONTRADICE EN EL NÚMERO DE SEMANA: el asunto dice «Semana 21»
-     y el cuerpo dice «semana 13» dos veces (en la entrada y en el título de
-     los downgrades). Por continuidad con el corte anterior —que fue la 20— se
-     registra como 21, y queda dicho que el original no es consistente.
-═══════════════════════════════════════════════════════════════════════ */
-export const REPORTE_S21_SEPTIEMBRE_2026: ChurnReporte = {
-  id:      's21-septiembre-2026',
-  periodo: 'Semana 21 · Sep 2026',
-  fecha:   '22/09/2026',
-  notas:   'Gross Revenue Churn · Semana 21. Al 22 de septiembre del 2026. Top 10 de cuentas Activas, Hard Suspend / Soft Suspend / Cancelados con el seguimiento de quiénes escalaron de Soft a Hard, antigüedad de la cartera por cobrar y downgrades ordenados por % de reducción, incluido el caso especial de Neruc Sede Central. Próxima revisión: miércoles 30 de septiembre.',
-  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 30 de septiembre.',
-
-  grc: {
-    evolucion: [
-      { mes: 'Julio',      pct: 1.9,  anterior: 2.0 },
-      { mes: 'Agosto',     pct: 2.3,  anterior: 2.4 },
-      { mes: 'Septiembre', pct: 23.6 },
-    ],
-    acumulado: 17.2,
-    anterior:  17.4,
-    notaClave: 'Churn Q3: Julio baja de 2.0% a 1.9% · Agosto baja de 2.4% a 2.3% · Septiembre 23.6%, MES CORRIENDO Y NO DEFINITIVO. Acumulado hasta agosto 2026: 17.2% (ant. 17.4%).',
-    notaEspecial:
-      '🔴 EL 23.6% DE SEPTIEMBRE NO ES UNA CAÍDA DEL NEGOCIO. Es el mes sin cerrar: Zoho marca como churn todo contrato que aún no se factura. Julio y agosto, ya cerrados, están en 1.9% y 2.3%. Leer el 23.6% como resultado sería el mismo error que ya documentamos en el corte de la semana 20 — el mes vivo mide retraso de cobranza, no bajas. '
-      + '📉 TERCERA CORRECCIÓN A LA BAJA CONSECUTIVA de julio y agosto, ahora de una décima cada uno. Después de los vaivenes de agosto (4.9% → 3.4% → 2.4% → 2.3%) el número por fin se está asentando. '
-      + '🟠 LA ESCALACIÓN ES EL DATO DE LA SEMANA: de las 17 cuentas que estaban en Soft Suspend, 11 pasaron a Hard — el 64%. No es una foto de morosidad, es una tendencia: quien entra en Soft acaba en Hard dos de cada tres veces. El Hard Suspend pasó de 10 cuentas y $17,811.98 (semana 20) a 23 cuentas y $31,996.98, y el promedio de días pendientes subió de 19.5 a 17.9 sobre una base mucho mayor. '
-      + '💰 $68,247.98 EN 53 CUENTAS NO HAN ENTRADO A LA CARTERA — 27.4% de los $249,215.25 por cobrar. '
-      + '⛽ TRES CUENTAS DE GRUPO PETROIL EN EL TOP 10 ACTIVO: Centro de Ayuda TI ($4,771), Colosio Mzt ($3,893) y Torre de Control ($3,839), $12,503 entre las tres. Coincide con lo que GRC ya marcaba como Churn confirmado para esas mismas tres líneas. '
-      + '🆕 «Mi Hospedaje Travel» entra al Top 10 con $4,914.00 y CERO meses activo: una cuenta que nunca llegó a facturar un mes completo y ya está en cartera por cobrar. '
-      + '📌 EL TOP 10 PESA EL 60.0% de la cartera Activo ($115,771.52 de $193,111.27). Ese porcentaje sale de sumar su propia tabla: el corte no declara cuántas cuentas tiene la cartera en total. '
+      '🔵 SEPTIEMBRE SE CORRIGIÓ DE 23.6% A 6.9%: dieciséis puntos y siete décimas en una semana, la mayor corrección de la serie. No es que el negocio mejorara — es que entraron los pagos. Es exactamente lo que este módulo lleva dos cortes advirtiendo: el mes vivo mide retraso de cobranza, no bajas, porque Zoho marca como churn todo contrato que aún no factura. Quien haya reportado el 23.6% como resultado de septiembre reportó una cifra que se desinfló a menos de un tercio. '
+      + '📌 EL ACUMULADO SUBE DE 17.2% A 23.7% y no se reconstruye exacto: 17.2% (hasta agosto) + 6.9% (septiembre) = 24.1%, cuatro décimas por encima de lo declarado. La diferencia cabe en correcciones de meses anteriores que el corte no detalla. Se conserva el 23.7% publicado. '
+      + '🟠 LA ESCALACIÓN YA NO SOLO CRECE, TAMBIÉN MATA: tres cuentas pasaron de Hard Suspend a Cancelado en la semana ($13,460.98), y Hoteles y Servicios se lleva $10,946.98 de esos tres. El Hard Suspend pasa de 23 a 32 cuentas y el Soft de 23 a 31; el promedio de días en Hard sube de 17.9 a 21.3. '
+      + '💰 $90,732.39 EN 81 CUENTAS NO HAN ENTRADO A LA CARTERA — el 43.9% de los $206,471.95 por cobrar. La semana pasada eran $68,247.98 en 53 cuentas, el 27.4%. El dinero fuera de la cartera creció un 33% en siete días. '
+      + '⚠️ EL TOP 10 CONCENTRA MENOS, PERO PORQUE LA CARTERA ENCOGIÓ: pesa $75,007.02 de $160,403.52 —el 46.8%, contra el 60.0% de la semana 21— y la cartera Activo bajó de $193,111.27 a $160,403.52. Ese porcentaje sale de sumar su propia tabla: el corte no declara cuántas cuentas tiene la cartera. '
+      + '🔻 MAS SUITES CANCELA TRAS 70 MESES y con $393,693.64 de MRR acumulado histórico: con diferencia, el cliente más antiguo y más valioso de los que se fueron. El corte no da motivo. '
+      + '⏱️ OCHO CUENTAS SE CAYERON CON MENOS DE TRES MESES DE VIDA ($20,952.98). Hoteles y Servicios duró 2 meses con $10,946.98 y VEMEPE 1 mes con $6,890. CINCO DE LAS OCHO TIENEN CERO MESES ACTIVOS: nunca llegaron a facturar un mes completo. '
       + '\n\n━━ OBSERVACIONES DE CUSTOMER SUCCESS ━━ '
-      + 'Lo que sigue lo detectamos NOSOTROS al conciliar el corte contra sus propias tablas. Por instrucción de dirección queda REGISTRADO de nuestra parte y NO se consultó al equipo Data. No corregimos ninguna cifra publicada: se respeta lo que el corte declara y se anota la diferencia. '
-      + '① LOS DOWNGRADES NO CIERRAN POR $2,962.00. La tabla suma $8,115.55 y con Neruc $19,221.52, pero el corte declara $22,183.52. No es un cliente sin listar: dice «6 clientes identificados» y hay 5 + Neruc = 6. O una cifra publicada está mal, o hay un importe que no se desglosó. Se conserva el total declarado. '
-      + '② DOS IMPORTES CRUZADOS ENTRE DOS CLIENTES. CAMPESTRE LOS VIVEROS quitó un artículo de $1,245 y se le carga una pérdida de $1,460; al HOTEL REAL DE MINAS le ocurre justo al revés. Cada uno lleva la cifra del otro. La suma de los dos no cambia ($2,705 de cualquier modo), pero sus porcentajes de baja sí: el 55% y el 24% están calculados sobre el importe equivocado. '
-      + '③ LOS TRAMOS VENCIDOS SE CRUZAN POR $489.00, Y VAN DOS CORTES SEGUIDOS. El tramo de 8–15 días tiene $489.00 más que Soft Suspend y el de 16–30 exactamente $489.00 menos que Hard. En la semana 20 el mismo cruce fue de $419.00. El neto es cero y el total general no se mueve, así que no es un error de suma: parece que alguna cuenta se clasifica por fecha en un lado y por estado en el otro. Dos cortes seguidos ya no es casualidad. '
-      + '④ EL CORREO SE CONTRADICE EN EL NÚMERO DE SEMANA. El asunto dice «Semana 21» y el cuerpo dice «semana 13» dos veces. Se registra como 21 por continuidad con el corte anterior. '
-      + '⑤ LO QUE SÍ CUADRA, para que conste: Hard Suspend (6+17 = 23 cuentas, $31,996.98), los 7 cancelados ($12,144.00), el total fuera de cartera ($68,247.98 en 53 cuentas) y los cinco tramos de antigüedad ($249,215.25). Contempo BR se reconstruye al centavo desde sus propios datos: 1,959.00 − 1,029.00 = 930.00, el 47%.',
+      + 'Lo que sigue lo detectamos NOSOTROS al conciliar el corte contra sus propias tablas. Queda registrado de nuestra parte y no se consultó al equipo Data. No se corrige ninguna cifra publicada. '
+      + '① SE CIERRA EL CRUCE DEL $489 QUE LLEVABA DOS CORTES. En las semanas 20 y 21 los tramos vencidos no empataban con Hard/Soft por $419 y $489. Este corte lo explica: 8–15 días = Soft exacto, y Hard se reparte entre 16–30 ($25,968.50) y más de 30 días ($489.00). Era una cuenta de Hard con más de 30 días de atraso. Queda resuelto y no hay que volver a preguntarlo. '
+      + '② UNA CUARTA PARTE DE LOS DOWNGRADES NO TIENE CARA. El corte declara $58,751.63 de total general y desglosa $44,806.71 en 12 clientes: quedan $13,944.92 sin detalle. No es un descuadre —distingue las dos cifras a propósito— pero conviene saberlo antes de citar el total. '
+      + '③ LA TABLA DE PRODUCTOS SUMA $1,032.98 MÁS que los downgrades desglosados ($45,839.69 contra $44,806.71), y el propio corte lo advierte: es impacto BRUTO por producto, sin netear contra los upsells dentro de la misma cuenta. Nada que corregir; se anota para que nadie sume las dos tablas. '
+      + '④ IBC SUITES BAJA POR EL MISMO IMPORTE QUE EN LA SEMANA 20: $3,741.00, con el mismo movimiento de paquete Min VyC de $5,800 a $2,059. O bajó dos veces, o se está contando dos veces. Vale preguntarlo. '
+      + '⑤ DOS CUENTAS DE ESTE CORTE ESTÁN EN NUESTRA CARTERA VIVA. INBROTEK SERVICIOS (C66) e Inverdental (F9), las dos de Fátima y las dos devueltas a Activas el 28 de septiembre porque no estaban en el reporte de Churn confirmado. INBROTEK aparece aquí como Cancelado ($2,801) e Inverdental en el Top 10 Activo ($10,186, 74 meses). Ninguna de las dos obliga a moverlas: «Cancelado» en Análisis DATA no es «Churn confirmado» en GRC, y la regla de dirección del 28 sep exige lo segundo o el expediente documentado. Queda señalado para decisión. '
+      + '⑥ LO QUE SÍ CUADRA, al centavo: Hard + Soft + Cancelados ($90,732.39 en 81 cuentas), los cinco tramos de antigüedad ($206,471.95), las tres que pasaron de Hard a Cancelado ($13,460.98), los tres casos clave ($24,862.96) y las ocho de menos de tres meses ($20,952.98).',
   },
 
   /* Top 10 de cuentas Activo. `ultimaFactura` no viene en este corte. */
-  pendientesTotalReal:   193111.27,
+  pendientesTotalReal:   160403.52,
   pendientes: [
-    { cliente: 'ADSA',                          monto: 32375.00, mesesActivo: 92, ultimaFactura: '—' },
-    { cliente: 'Ancona Autopartes',             monto: 27707.00, mesesActivo: 83, ultimaFactura: '—' },
-    { cliente: 'VAEO',                          monto: 15995.52, mesesActivo:  4, ultimaFactura: '—' },
-    { cliente: 'HomiRent',                      monto: 11998.00, mesesActivo: 51, ultimaFactura: '—' },
-    { cliente: 'KW - Pedregal',                 monto:  6481.00, mesesActivo: 93, ultimaFactura: '—' },
-    { cliente: 'Mi Hospedaje Travel',           monto:  4914.00, mesesActivo:  0, ultimaFactura: '—' },
-    { cliente: 'Petroil - Centro de Ayuda TI',  monto:  4771.00, mesesActivo: 36, ultimaFactura: '—' },
-    { cliente: 'Petroil - Colosio Mzt',         monto:  3893.00, mesesActivo: 51, ultimaFactura: '—' },
-    { cliente: 'Petroil - Torre de Control',    monto:  3839.00, mesesActivo: 50, ultimaFactura: '—' },
-    { cliente: 'EKTARIS GRUPO INMOBILIARIO',    monto:  3798.00, mesesActivo:  9, ultimaFactura: '—' },
+    { cliente: 'Gas Economico Metropolitano — TOP', monto: 18659.00, mesesActivo: 42, ultimaFactura: '—' },
+    { cliente: 'Inverdental',                       monto: 10186.00, mesesActivo: 74, ultimaFactura: '—' },
+    { cliente: 'IMAGEN DENTAL AMT',                 monto:  8988.02, mesesActivo: 55, ultimaFactura: '—' },
+    { cliente: 'Grupo DC Mexico',                   monto:  8390.00, mesesActivo:  5, ultimaFactura: '—' },
+    { cliente: 'Grupo Suma',                        monto:  7190.00, mesesActivo: 17, ultimaFactura: '—' },
+    { cliente: 'Cocinas del Futuro AP',             monto:  6201.00, mesesActivo: 39, ultimaFactura: '—' },
+    { cliente: 'queplan',                           monto:  4310.00, mesesActivo: 60, ultimaFactura: '—' },
+    { cliente: 'ICASA',                             monto:  4144.00, mesesActivo: 18, ultimaFactura: '—' },
+    { cliente: 'Pamplona Recolector',               monto:  3500.00, mesesActivo: 94, ultimaFactura: '—' },
+    { cliente: 'RM Hoteles',                        monto:  3439.00, mesesActivo: 42, ultimaFactura: '—' },
   ],
 
-  /* El corte da el motivo de cada baja pero NO los meses activos ni el
-     acumulado histórico: van en 0 porque no se miden, no porque valgan cero. */
+  /* 18 cancelados por $44,663.96; el corte solo detalla el Top 5. Los otros 13
+     suman $10,110.00 y no se desglosan. */
   cancelados: [
-    { cliente: 'VEMEPE — proyecto en pausa: es para un tercero que aún no tiene equipo de atención listo; posible reactivación en ~2 meses.', mrr: 6890.00, mesesActivo: 0, acumulado: 0 },
-    { cliente: 'INBROTEK SERVICIOS — problema financiero: no puede seguir pagando y requiere capitalizarse; rechazó el plan de extensiones ilimitadas en CE.', mrr: 2801.00, mesesActivo: 0, acumulado: 0 },
-    { cliente: 'Bodegard — cambios organizacionales internos.', mrr: 979.00, mesesActivo: 0, acumulado: 0 },
-    { cliente: 'ISESA GENERADORES — falla técnica: la plataforma se desconectaba con frecuencia.', mrr: 967.00, mesesActivo: 0, acumulado: 0 },
-    { cliente: 'Visium Supplies — falta de valor percibido, sin respuesta del cliente.', mrr: 169.00, mesesActivo: 0, acumulado: 0 },
-    { cliente: 'GMG Inmuebles — reducción de operaciones: cliente en proceso de jubilación, ya no usaba el servicio.', mrr: 169.00, mesesActivo: 0, acumulado: 0 },
-    { cliente: 'Espacio Mexico — motivo desconocido, sin respuesta del cliente.', mrr: 169.00, mesesActivo: 0, acumulado: 0 },
+    { cliente: 'Hoteles y Servicios — TOP. Contratado en junio 2026, llegó por Adwords con mucha urgencia tras cambiar de proveedor y cerró rápido pese a la fricción entre perfilamiento y ventas. Empezó con 16 extensiones y terminó con 6 antes de cancelar.', mrr: 10946.98, mesesActivo: 2, acumulado: 32742.00 },
+    { cliente: 'Mas Suites — 70 meses activo, el más antiguo de los tres casos clave. El corte no da motivo de la baja.', mrr: 7372.98, mesesActivo: 70, acumulado: 393693.64 },
+    { cliente: 'VEMEPE', mrr: 6890.00, mesesActivo: 1, acumulado: 13780.00 },
+    { cliente: 'Sofia — cerró en enero 2026 con un plan Min VyC de $2,779 y encadenó upsells (DID, ajustes de VyC) entre enero y abril hasta $6,543/mes. Canceló en agosto.', mrr: 6543.00, mesesActivo: 7, acumulado: 49783.00 },
+    { cliente: 'INBROTEK SERVICIOS', mrr: 2801.00, mesesActivo: 45, acumulado: 262104.86 },
   ],
 
-  downgradeTotalReal: 22183.52,
+  downgradeTotalReal: 58751.63,
   downgrades: [
-    { cliente: 'IML', perdida: 3699.55, nota: '23% de baja. Quitó CALLPICKER ($3,699.55) — artículo «PND Mensaje en Conversación Nov 25». Es la mayor pérdida de la tabla.' },
-    { cliente: 'CAMPESTRE LOS VIVEROS', perdida: 1460.00, nota: '55% de baja. Quitó Agente CP Chat ($1,245). ⚠ La cifra de pérdida y la del artículo NO coinciden, y están cruzadas con las del Hotel Real de Minas: ese quitó $1,460 y se le carga $1,245. Cada uno lleva el importe del otro.' },
-    { cliente: 'HOTEL REAL DE MINAS SAN MIGUEL DE ALLENDE', perdida: 1245.00, nota: '24% de baja. Quitó Extensión VyC ($1,460). ⚠ Mismo cruce que CAMPESTRE: el artículo vale más que la pérdida declarada.' },
-    { cliente: 'Contempo BR', perdida: 930.00, nota: '47% de baja. Paquete Min VyC de $1,959.00 a $1,029.00. Es el único que se reconstruye al centavo desde sus propios datos.' },
-    { cliente: 'Terralta Residencial', perdida: 781.00, nota: '79% de baja, la mayor en proporción. Quitó paquete Min VyC ($979) y adquirió DiD Nacional ($198): 979 − 198 = 781 ✓.' },
-    { cliente: 'Neruc Sede Central — CASO ESPECIAL, NO ENTRA AL RANKING', perdida: 11105.97, nota: 'Facturaba Min Calltracking ($6,099.97) + DiD Nacional ($7,139.00) + DiD Internacional ($300.00) y ahora solo Min VyC ($475.00) + DiD Nacional ($1,958.00). El corte NO define si es un downgrade real por cambio de artículos o un upsell cuyos conceptos del mes anterior faltan por facturar. Requiere revisión antes de contarlo como pérdida.' },
-    /* El descuadre de $2,962.00 NO va aquí. Estuvo un momento como una fila más
-       y era un error: la tabla es de CLIENTES, y meter ahí una observación
-       nuestra la convierte en un cliente que no existe. Vive en `notaEspecial`,
-       bajo el bloque de observaciones de Customer Success. */
+    { cliente: 'MEGAVIAL ABOGADOS', perdida: 1407.00, nota: '93% de baja, la mayor en proporción. Quitó Extensión Callcenter ($1,506) y adquirió DiD Nacional ($99): 1,506 − 99 = 1,407 ✓.' },
+    { cliente: 'Artesanal.com.mx', perdida: 784.00, nota: '80% de baja. Quitó paquete Min VyC ($979) y adquirió paquete Min CE ($195): 979 − 195 = 784 ✓.' },
+    { cliente: 'Hound Express', perdida: 4481.00, nota: '64% de baja y la mayor pérdida del Top 5. Paquete Min VyC de $7,000.00 a $2,519.00 ✓.' },
+    { cliente: 'CiberZion', perdida: 1926.74, nota: '49% de baja. Quitó paquete Min CE ($489), bajó el usuario admin adicional de $99 a $50 y el paquete Min VyC de $3,347.74 a $1,959: 489 + 49 + 1,388.74 = 1,926.74 ✓.' },
+    { cliente: 'IBC SUITES', perdida: 3741.00, nota: '47% de baja. Paquete Min VyC de $5,800.00 a $2,059.00 ✓. ⚠ Mismo cliente y mismo importe que en la semana 20: o bajó dos veces, o se está contando dos veces.' },
   ],
 
-  suspendidosTotalReal:   56103.98,
-  suspendidosCuentasReal: 46,
+  downgradeArticulos: [
+    { articulo: 'paquete Min VyC — $18,393.69 en 6 casos',     vecesAfectado: 6, clientes: ['Hound Express', 'CiberZion', 'IBC SUITES', 'Artesanal.com.mx'] },
+    { articulo: 'Agente CP Chat — $16,817.00 en 2 casos',      vecesAfectado: 2, clientes: ['(el corte no los desglosa)'] },
+    { articulo: 'Extensión Callcenter — $8,951.00 en 2 casos', vecesAfectado: 2, clientes: ['MEGAVIAL ABOGADOS'] },
+    { articulo: 'paquete Min CE — $1,678.00 en 2 casos',       vecesAfectado: 2, clientes: ['CiberZion'] },
+  ],
+
+  suspendidosTotalReal:   46068.43,
+  suspendidosCuentasReal: 63,
   suspendidos: [
-    { cliente: 'Hard Suspend — 23 cuentas · 17.9 días promedio pendiente de pago. 6 vienen de la semana anterior ($15,917.98) y 17 son nuevas ($16,079.00); de ellas, 11 escalaron desde Soft Suspend.', importe: 31996.98, mesesActivo: 0, estado: 'Suspendido' },
-    { cliente: 'Soft Suspend — 23 cuentas · 11.7 días promedio pendiente de pago. El corte solo desglosa las 5 mayores: iELO ($3,969), EM SOLUCIONES ($3,217), DOSATEC ($2,382), COTERRA AGROBSNSS ($2,356) y MUMBII ($1,745).', importe: 24107.00, mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Hard Suspend — 32 cuentas · 21.3 días promedio pendiente de pago. Crece desde las 23 de la semana anterior, y el promedio de días sube de 17.9 a 21.3.', importe: 26457.50, mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Soft Suspend — 31 cuentas · 10.9 días promedio pendiente de pago. Crece desde las 23 de la semana anterior.', importe: 19610.93, mesesActivo: 0, estado: 'Suspendido' },
+  ],
+
+  desactivadosTotalReal:   20952.98,
+  desactivadosCuentasReal: 8,
+  desactivados: [
+    { cliente: 'Hoteles y Servicios — Cancelado',                importe: 10946.98, mesesActivo: 2 },
+    { cliente: 'VEMEPE — Cancelado',                             importe:  6890.00, mesesActivo: 1 },
+    { cliente: 'Transmontes — Soft Suspend',                     importe:  1302.00, mesesActivo: 2 },
+    { cliente: 'BLACKNET — Hard Suspend',                        importe:   668.00, mesesActivo: 0 },
+    { cliente: 'INTERHOME GJ — Hard Suspend',                    importe:   519.00, mesesActivo: 0 },
+    { cliente: 'Rentería Flow & Axis Consulting — Hard Suspend', importe:   209.00, mesesActivo: 0 },
+    { cliente: 'SMUM México — Soft Suspend',                     importe:   209.00, mesesActivo: 0 },
+    { cliente: 'AppGo — Soft Suspend',                           importe:   209.00, mesesActivo: 0 },
   ],
 
   antiguedadSaldos: [
-    { rango: 'Por vencer (total Activo)', monto: 193111.27 },
+    { rango: 'Por vencer (total Activo)', monto: 160403.52 },
     { rango: '1–7 días vencido',          monto: 0.00 },
-    { rango: '8–15 días vencido',         monto: 24596.00 },
-    { rango: '16–30 días vencido',        monto: 31507.98 },
-    { rango: 'Más de 30 días',            monto: 0.00 },
+    { rango: '8–15 días vencido',         monto: 19610.93 },
+    { rango: '16–30 días vencido',        monto: 25968.50 },
+    { rango: 'Más de 30 días',            monto: 489.00 },
   ],
 }

@@ -63,12 +63,28 @@ pruebas = [
     ('downgrades',      suma('downgrades', 'perdida'),      num('downgradeTotalReal')),
     ('suspendidos',     suma('suspendidos', 'importe'),     num('suspendidosTotalReal')),
 ]
+# UNA TABLA PARCIAL NO ES UN DESCUADRE.
+#
+# Varios cortes publican un Top 10 de cartera o un Top 5 de downgrades y
+# ADEMAS declaran el total general: la suma de las filas es MENOR que el
+# declarado a proposito, y eso esta bien. Marcarlo «REVISAR» era gritar sobre
+# un archivo correcto, que es la forma mas rapida de que nadie mire al
+# verificador.
+#
+# Lo que si es un problema es que la suma SUPERE al declarado: ahi o sobra una
+# fila o el total esta mal. Esa distincion es la que faltaba.
 for etq, calc, decl in pruebas:
-    ok = calc is not None and decl is not None and abs(calc - decl) < 0.01
+    if calc is None or decl is None:
+        veredicto = '— sin dato'
+    elif abs(calc - decl) < 0.01:
+        veredicto = 'cuadra'
+    elif calc < decl:
+        veredicto = 'parcial: faltan %s sin desglosar' % format(round(decl - calc, 2), ',')
+    else:
+        veredicto = '** REVISAR: la suma SUPERA al declarado por %s' % format(round(calc - decl, 2), ',')
     print('  %-16s suma %14s   declarado %14s   %s'
           % (etq, format(calc, ',') if calc is not None else '—',
-             format(decl, ',') if decl is not None else '—',
-             'cuadra' if ok else '** REVISAR'))
+             format(decl, ',') if decl is not None else '—', veredicto))
 
 # Las filas de CIERRE —las que agrupan «el resto de la cartera»— tienen que
 # empezar con «+»: lib/atlas-context.ts filtra por ese prefijo para no pasarle
@@ -88,7 +104,17 @@ print('=== FILAS DE CIERRE (deben empezar con «+» para que Atlas las ignore) =
 print('  sin el prefijo: %s' % (sospechosas or 'ninguna'))
 
 ant = suma('antiguedadSaldos', 'monto')
-porVencer = float(re.search(r"'Por vencer',\s*monto:\s*([0-9.]+)", actual).group(1))
+# El tramo por vencer se etiqueta de dos formas segun el corte: «Por vencer» a
+# secas o «Por vencer (total Activo)». Buscando solo la primera, el script
+# REVENTABA con AttributeError en los cortes nuevos —y al reventar se saltaba
+# esta comprobacion y todas las de abajo sin decir que se las saltaba, que es
+# peor que fallar—. Ahora tolera el sufijo y, si de verdad no esta, lo dice.
+mPV = re.search(r"'Por vencer[^']*',\s*monto:\s*([0-9.]+)", actual)
+if not mPV:
+    print()
+    print('  *** el corte no declara tramo «Por vencer»: no se puede cuadrar la antiguedad.')
+    raise SystemExit(1)
+porVencer = float(mPV.group(1))
 vencido = round(ant - porVencer, 2)
 print('  %-16s tramos %12s   por vencer %13s   vencido %s'
       % ('antigüedad', format(ant, ','), format(porVencer, ','), format(vencido, ',')))
