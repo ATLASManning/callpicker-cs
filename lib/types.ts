@@ -136,6 +136,12 @@ export interface Cuenta {
   valor_upsell_estimado: number | null
 
   ultimo_contacto: string | null
+  /** Dias desde el ultimo contacto, DERIVADO en `getCuentas` a partir de
+   *  `seguimientos` y de la propia columna guardada, quedandose con la fecha
+   *  mayor. **`null` = nunca se registro un contacto**, que no es lo mismo que
+   *  cero: son 63 de las 192 cuentas vivas. No confundir con
+   *  `dias_sin_actividad`, que vale 0 en las 222 y no la actualiza nadie. */
+  dias_sin_contacto?: number | null
   proximo_contacto: string | null
   fecha_ultima_llamada: string | null
   nps_score: number | null

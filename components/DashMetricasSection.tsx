@@ -49,6 +49,8 @@ export interface ChurnRow {
   facturacion: number
   health_score: number
   dias_sin_actividad: number
+  /** `null` = nunca hubo contacto. Ver lib/contacto-cuenta.ts. */
+  dias_sin_contacto?: number | null
 }
 
 export interface Top10Row {
@@ -251,12 +253,14 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
                         </span>
                       </td>
                       <td style={{ padding: '11px 14px' }}>
+                        {/* «nunca» cuando no hay contacto registrado. */}
                         <span style={{
                           fontSize: 12, fontWeight: 700,
-                          color: c.dias_sin_actividad > 30 ? '#FF4444'
+                          color: c.dias_sin_contacto == null || c.dias_sin_actividad > 30 ? '#FF4444'
                             : c.dias_sin_actividad > 14 ? '#F97316' : TX_MID,
-                        }}>
-                          {c.dias_sin_actividad}d
+                        }}
+                          title={c.dias_sin_contacto == null ? 'Sin ningún contacto registrado' : undefined}>
+                          {c.dias_sin_contacto == null ? 'nunca' : `${c.dias_sin_actividad}d`}
                         </span>
                       </td>
                     </tr>

@@ -1159,7 +1159,7 @@ export default async function DashboardPage() {
   const top10Fac = [...activas].sort((a, b) => b.facturacion - a.facturacion).slice(0, 10)
     .map(c => ({ empresa: c.empresa, facturacion: c.facturacion, consecutivo: c.consecutivo ?? '' }))
   const churnRows = churnRiesgo.sort((a, b) => a.health_score - b.health_score)
-    .map(c => ({ id: c.id, consecutivo: c.consecutivo ?? '', empresa: c.empresa, asesor: c.asesor, facturacion: c.facturacion, health_score: c.health_score, dias_sin_actividad: c.dias_sin_actividad }))
+    .map(c => ({ id: c.id, consecutivo: c.consecutivo ?? '', empresa: c.empresa, asesor: c.asesor, facturacion: c.facturacion, health_score: c.health_score, dias_sin_actividad: c.dias_sin_actividad, dias_sin_contacto: c.dias_sin_contacto ?? null }))
 
   // ── Alertas críticas: datos faltantes + cuentas sin contacto ──────────────
   // Una cuenta entra a la alerta si le falta al menos un dato relevante para

@@ -29,11 +29,18 @@ function fmtFecha(iso: string | null | undefined) {
   return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
 }
 
-function DiasCell({ dias, dark }: { dias: number; dark: boolean }) {
-  const color = dias > 30 ? '#EF4444' : dias > 14 ? '#F97316' : dark ? D.txMid : '#64748B'
-  const weight = dias > 14 ? 700 : 500
+/* `nunca` NO es «hace N días». Cuando no hay ningún contacto registrado, el
+   número que lleva `dias` es la ANTIGÜEDAD de la cuenta —así ordena arriba, que
+   es donde debe ir—, pero escribirlo como «1694d» se leería como un contacto de
+   hace cuatro años. Son 42 de las 192 cuentas vivas. */
+function DiasCell({ dias, nunca, dark }: { dias: number; nunca?: boolean; dark: boolean }) {
+  const color = nunca || dias > 30 ? '#EF4444' : dias > 14 ? '#F97316' : dark ? D.txMid : '#64748B'
+  const weight = nunca || dias > 14 ? 700 : 500
   return (
-    <span style={{ fontSize: 12, fontWeight: weight, color }}>{dias}d</span>
+    <span style={{ fontSize: 12, fontWeight: weight, color }}
+      title={nunca ? 'Sin ningún contacto registrado' : undefined}>
+      {nunca ? 'nunca' : `${dias}d`}
+    </span>
   )
 }
 
@@ -215,7 +222,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                 </td>
 
                 <td style={tdStyle}>
-                  <DiasCell dias={c.dias_sin_actividad} dark={dark} />
+                  <DiasCell dias={c.dias_sin_actividad} nunca={c.dias_sin_contacto == null} dark={dark} />
                 </td>
 
                 <td style={tdStyle}>

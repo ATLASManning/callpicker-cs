@@ -72,6 +72,51 @@ export async function getCuentas(filters?: {
   // de Zoho — la columna guardada envejece (GRUPO FRISA: $1,622 guardados vs
   // $16,539 reales con subcuentas). Se sobreescribe aquí, en el hub, para que
   // todas las ventanas que consumen cuentas queden alimentadas en automático.
+  /* EL ULTIMO CONTACTO, DERIVADO, EN EL MISMO HUB QUE LA FACTURACION.
+     `dias_sin_actividad` vale 0 en las 222 cuentas —se siembra al alta y nadie
+     la sincroniza—, y es la columna con la que /seguimiento decide la urgencia
+     y la portada pinta «Dias sin act.». Aqui se calcula de verdad, para que
+     toda ventana que consuma cuentas quede alimentada sin repetir la logica.
+
+     Se SUMAN dos fuentes y no se toma solo la viva, y esta medido: 21 cuentas
+     sin ningun seguimiento SI traen `ultimo_contacto`, y en 32 el valor
+     guardado es mas nuevo que el ultimo seguimiento. La columna no es un
+     espejo desfasado: tiene informacion que ninguna fuente viva tiene. Se
+     toma la fecha MAYOR de las dos, que nunca pierde.
+
+     `dias_sin_contacto` es `null` cuando NUNCA hubo contacto —63 de las 192
+     cuentas vivas—, nunca 0: un cero ahi significaria «hablamos hoy» y mandaria
+     esas cuentas al final de cualquier orden por urgencia.
+
+     `dias_sin_actividad` se deja intacta como columna de base; lo que cambia es
+     que ya nadie DECIDE con ella. */
+  try {
+    const { ultimoContactoPorCuenta, diasSinContacto } = await import('./contacto-cuenta')
+    const guardado = new Map(result.map(c => [String(c.id), c.ultimo_contacto ?? null]))
+    const contacto = await ultimoContactoPorCuenta(guardado)
+    for (const c of result) {
+      const dia = contacto.get(String(c.id)) ?? null
+      c.ultimo_contacto = dia
+      c.dias_sin_contacto = diasSinContacto(dia)
+      /* Y `dias_sin_actividad` —la que leen los quince consumidores que ya
+         existen— pasa a traer el numero de verdad, para que empiecen a
+         funcionar sin tocarlos uno por uno.
+
+         Para las que NUNCA tuvieron contacto va la ANTIGUEDAD de la cuenta, que
+         no es un centinela: es literalmente cuanto lleva siendo cliente sin un
+         contacto registrado. Medido: son 42 cuentas vivas, las 42 tienen
+         `activo_desde`, la minima lleva 163 dias — asi que las 42 quedan por
+         encima de cualquier cuenta contactada, cuyo maximo son 139 dias. Es
+         exactamente el orden que hace falta.
+
+         Lo que NO se puede hacer es dejarlas en 0, que es lo que habia: eso las
+         manda al FINAL de cualquier orden por urgencia. Para la pantalla la
+         diferencia se conserva en `dias_sin_contacto`, que vale `null`. */
+      const desdeAlta = diasSinContacto(c.activo_desde)
+      c.dias_sin_actividad = c.dias_sin_contacto ?? desdeAlta ?? 0
+    }
+  } catch { /* si falla, se queda lo guardado: mejor viejo que inventado */ }
+
   try {
     const { enrichCuentasWithZoho } = await import('./zoho-enrich')
     const enriched = await enrichCuentasWithZoho(result)

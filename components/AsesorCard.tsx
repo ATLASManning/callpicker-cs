@@ -609,8 +609,12 @@ export default function AsesorCard({
                       </td>
                       <td style={cell}><SemaforoBadge semaforo={semaforo} size="sm" /></td>
                       <td style={cell}>
-                        <span style={{ fontSize: 12, fontWeight: c.dias_sin_actividad > 30 ? 700 : 500, color: c.dias_sin_actividad > 30 ? '#EF4444' : c.dias_sin_actividad > 14 ? '#F97316' : L_TX_MID }}>
-                          {c.dias_sin_actividad}d
+                        {/* «nunca» cuando no hay contacto registrado: el número
+                            que lleva la columna es la antigüedad de la cuenta y
+                            escribirlo se leería como un contacto de hace años. */}
+                        <span style={{ fontSize: 12, fontWeight: c.dias_sin_contacto == null || c.dias_sin_actividad > 30 ? 700 : 500, color: c.dias_sin_contacto == null || c.dias_sin_actividad > 30 ? '#EF4444' : c.dias_sin_actividad > 14 ? '#F97316' : L_TX_MID }}
+                          title={c.dias_sin_contacto == null ? 'Sin ningún contacto registrado' : undefined}>
+                          {c.dias_sin_contacto == null ? 'nunca' : `${c.dias_sin_actividad}d`}
                         </span>
                       </td>
                       <td style={cell}><TicketCellLight zt={c.zoho_tickets} /></td>
