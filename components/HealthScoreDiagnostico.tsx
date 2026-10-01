@@ -6,6 +6,7 @@ import {
 import type { Cuenta, Seguimiento } from '@/lib/types'
 import type { TicketRow } from '@/lib/cuenta-data'
 import HealthScoreRing from './HealthScoreRing'
+import { pesoMedido, textoPesoMedido } from '@/lib/health-score'
 
 // ── Paleta de colores ─────────────────────────────────────────────────────────
 // Verde/Azul = sano · Naranja→Rojo intenso = riesgo gradiente según %
@@ -410,6 +411,33 @@ export default function HealthScoreDiagnostico({
                 Parcial<br />({avail.length}/{dims.length})
               </span>
             )}
+            {/* CUANTO DE ESTE NUMERO SE MIDIO.
+                El Health Score sale de cuatro bloques que arrancan en 50 y se
+                mueven a mano. Medido el 1 oct 2026: 80 de las 192 cuentas vivas
+                tienen solo el 15% del peso apoyado en dato capturado, y 10 tienen
+                los cuatro bloques en 50 — un 50 enteramente fabricado.
+                Un 52 sobre dato completo y un 52 sobre tres deslizadores sin tocar
+                se pintaban igual, y se decide sobre el segundo creyendo que es el
+                primero. Aqui se dice. */}
+            {(() => {
+              const pm = pesoMedido(cuenta as unknown as Record<string, unknown>)
+              const pct = Math.round(pm.fraccion * 100)
+              const flojo = pct < 60
+              return (
+                <span
+                  title={textoPesoMedido(pm)}
+                  style={{
+                    fontSize: 9, lineHeight: 1.3, textAlign: 'center',
+                    color: flojo ? '#FBBF24' : 'rgba(255,255,255,0.45)',
+                    fontWeight: flojo ? 700 : 500,
+                  }}>
+                  Medido al {pct}%
+                  {pm.sinMedir.length > 0 && (
+                    <><br />{pm.sinMedir.length === 1 ? 'falta ' : 'faltan '}{pm.sinMedir.join(', ')}</>
+                  )}
+                </span>
+              )
+            })()}
           </div>
 
           {/* Filas de dimensiones */}
