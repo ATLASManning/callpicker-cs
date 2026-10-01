@@ -34,19 +34,26 @@ export type TipoReunion = 'junta_semanal' | 'one_on_one' | 'cliente' | 'estrateg
  */
 const SIN_CUENTA: ReadonlySet<string> = new Set<TipoReunion>(['one_on_one'])
 
-/** Mostrar el combo no es lo mismo que exigirlo. */
+/** Si el tipo admite cuenta vinculada. */
 export function llevaCuenta(t: string | null | undefined): boolean {
   return !SIN_CUENTA.has((t ?? '') as TipoReunion)
 }
 
 /**
- * Sólo la reunión CON CLIENTE obliga. En las demás la cuenta es opcional a
- * propósito: una junta semanal puede ser sobre una cuenta o sobre el equipo, y
- * exigirla forzaría a elegir una cualquiera con tal de poder guardar — que es
- * peor que no tenerla.
+ * Si la cuenta es OBLIGATORIA para guardar.
+ *
+ * Hasta el 1 oct 2026 sólo obligaba en las de tipo cliente, con el argumento de
+ * que una junta semanal podía ser sobre el equipo y exigirla forzaría a elegir
+ * una cuenta cualquiera. Dirección cerró el punto ese día: «necesito que todos
+ * los rubros a excepción de One To One, todas tienen cliente».
+ *
+ * Así que `exigeCuenta` y `llevaCuenta` son hoy la misma condición — si el
+ * combo aparece, es obligatorio. Se conservan como dos nombres porque dicen
+ * cosas distintas (mostrar / exigir) y mañana podrían volver a separarse; lo
+ * que no puede volver a pasar es que el servidor use una y el formulario otra.
  */
 export function exigeCuenta(t: string | null | undefined): boolean {
-  return t === 'cliente'
+  return llevaCuenta(t)
 }
 
 /**

@@ -378,14 +378,13 @@ export default function ReunionesPage() {
 
             {llevaCuenta(form.tipo) && (
               <div>
-                {/* El asterisco solo donde de verdad obliga. Ponerlo en una
-                    junta semanal diria que no se puede guardar sin cuenta, y sí
-                    se puede: ahí es opcional. */}
+                {/* Obligatoria en todos los tipos que la muestran. Dirección,
+                    1 oct 2026: «todos los rubros a excepción de One To One,
+                    todas tienen cliente». El asterisco ya no es condicional
+                    porque la condición de mostrar y la de exigir son la misma. */}
                 <label className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: '#059669' }}>
                   <Building2 size={12} /> Cuenta
-                  {exigeCuenta(form.tipo)
-                    ? <span style={{ color: '#ef4444' }}>*</span>
-                    : <span style={{ color: '#64748B', fontWeight: 400 }}>· opcional, si la reunión es sobre una cuenta</span>}
+                  <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 {/* Selector real contra el catálogo de cuentas. Antes esto era
                     texto libre y no vinculaba nada: "Neruc", "Grupo NERUC" y
@@ -393,12 +392,10 @@ export default function ReunionesPage() {
                 <CustomSelect
                   value={form.cuenta_id ?? ''}
                   searchable
-                  placeholder={cuentasCargando ? 'Cargando cuentas…'
-                    : exigeCuenta(form.tipo) ? 'Busca y selecciona la cuenta…'
-                    : 'Busca la cuenta, o déjalo vacío si no es sobre una'}
+                  placeholder={cuentasCargando ? 'Cargando cuentas…' : 'Busca y selecciona la cuenta…'}
                   wrapperClassName="w-full"
                   className="cp-select w-full"
-                  style={{ borderColor: exigeCuenta(form.tipo) && !form.cuenta_id ? '#fca5a5' : undefined }}
+                  style={{ borderColor: form.cuenta_id ? undefined : '#fca5a5' }}
                   onChange={v => {
                     const c = cuentas.find(x => x.id === v)
                     setForm(p => ({
@@ -416,12 +413,13 @@ export default function ReunionesPage() {
                     })),
                   ]} />
                 <p className="text-[10px] mt-1"
-                   style={{ color: form.cuenta_id ? '#94a3b8' : exigeCuenta(form.tipo) ? '#ef4444' : '#64748B' }}>
+                   style={{ color: form.cuenta_id ? '#94a3b8' : '#ef4444' }}>
                   {form.cuenta_id
-                    ? `Vinculada a ${form.empresa}${form.cid ? ` · CID ${form.cid}` : ''}. Contará en el relacionamiento y en el Health Score de la cuenta.`
-                    : exigeCuenta(form.tipo)
-                    ? 'Obligatorio: sin cuenta vinculada la reunión no aparece en la ficha ni suma al relacionamiento.'
-                    : 'Si esta reunión fue sobre una cuenta, vincúlala: así aparece en su ficha y suma al relacionamiento. Si no lo fue, déjalo vacío.'}
+                    ? `Vinculada a ${form.empresa}${form.cid ? ` · CID ${form.cid}` : ''}. ${
+                        form.tipo === 'cliente'
+                          ? 'Contará en el relacionamiento y en el Health Score de la cuenta.'
+                          : 'Aparecerá en la ficha de la cuenta como reunión interna. No suma al relacionamiento, que mide haber hablado CON el cliente.'}`
+                    : 'Obligatorio: sin cuenta vinculada la reunión no aparece en la ficha de nadie.'}
                 </p>
               </div>
             )}
