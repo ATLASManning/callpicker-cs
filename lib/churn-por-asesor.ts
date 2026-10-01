@@ -1,4 +1,4 @@
-import { AAA_GRC_FLAT } from '@/app/churn/aaa-grc-data'
+import { AAA_GRC_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
 
 /**
  * Churn y Downgrade acumulados del año, por asesor (Ejecutivo CS).
@@ -51,8 +51,16 @@ export type ResumenChurnAsesor = {
 const CALENDARIO = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
+/* Los meses que ESTE corte cuenta, que ya no son todos los del archivo: el
+   mes vivo quedo fuera. `PERIODO_GRC` se pinta en pantalla, asi que seguir
+   diciendo «Enero–Septiembre» sobre cifras que excluyen septiembre seria
+   mentir en el rotulo — que es peor que no ponerlo. */
 export const MESES_GRC: string[] = CALENDARIO.filter(
-  m => AAA_GRC_FLAT.some(r => r.mes === m))
+  m => AAA_GRC_CERRADOS.some(r => r.mes === m))
+
+/** El mes que se dejo fuera por estar todavia en cobranza, para que la
+ *  pantalla pueda decirlo con palabras. `null` cuando no hay ninguno. */
+export const MES_EXCLUIDO_GRC: string | null = GRC_MES_EXCLUIDO
 
 export const PERIODO_GRC: string =
   MESES_GRC.length ? `${MESES_GRC[0]}–${MESES_GRC[MESES_GRC.length - 1]} 2026` : '—'
@@ -75,7 +83,15 @@ export function churnPorAsesor(
   let mrrSinAtribuir = 0
 
   if (resolver) {
-    for (const r of AAA_GRC_FLAT) {
+    /* MESES CERRADOS, no todo el archivo. Esta pantalla es con la que se juzga
+       el desempeno de tres personas, y el mes vivo no solo inflaba el numero:
+       invertia el orden. Medido el 1 oct 2026 con el resolutor de alias:
+         con el mes vivo : Claudia $306,827 · Fatima $300,193 · Dan $251,210
+         sin el mes vivo : Dan $147,791 · Fatima $139,654 · Claudia $59,307
+       La que aparecia peor es, en meses cerrados, la que menos cartera perdio.
+       Septiembre aporta 755 de las filas de churn confirmado del archivo; los
+       ocho meses cerrados juntos, 440. Ver lib/grc-cerrados.ts. */
+    for (const r of AAA_GRC_CERRADOS) {
       const mov = r.movimiento ?? ''
       const esChurn = mov.startsWith('Churn confirmado')
       const esDowngrade = mov === 'Downgrade'

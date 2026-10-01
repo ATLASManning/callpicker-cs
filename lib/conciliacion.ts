@@ -24,6 +24,7 @@
  * el resto de la semana, no solo el lunes.
  */
 import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
+import { GRC_MES_EN_CURSO } from '@/app/churn/grc-reporte'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 import { normalizarNombre } from './elegibilidad'
 import { ahoraEnMexico, fechaLocal } from './fecha-local'
@@ -153,7 +154,25 @@ export function senalesEstaticas(): Map<string, SenalChurn> {
     if (!previa || (s.fecha && (!previa.fecha || s.fecha > previa.fecha))) mapa.set(clave, s)
   }
 
+  /* EL MES VIVO NO ES CHURN, ES CARTERA POR COBRAR.
+   *
+   * Se salta exactamente como lo hace `NOMBRES_CHURN_GRC` en lib/elegibilidad.ts
+   * (:142). Que las dos reglas vivieran en módulos distintos y solo una aplicara
+   * el salto es lo que permitió esto: medido el 1 de octubre de 2026, septiembre
+   * trae **755** filas con «Churn confirmado» contra 40 a 62 de cada mes cerrado,
+   * y **749 nombres aparecen únicamente ahí**. No son bajas: son facturas que aún
+   * no se cobran y que se recuperan con el pago.
+   *
+   * El daño no era solo una cifra en pantalla. Esta función alimenta la pantalla
+   * de conciliación, que ES la que escribe: ofrecía 46 cuentas activas o en
+   * riesgo para pasarlas a Dormida, con $326,762 de facturación viva detrás. Una
+   * cuenta hibernada deja de sumar a la facturación de su asesora y sale de los
+   * rankings — y volver a traerla cuesta una autorización.
+   */
+  const mesVivo = (GRC_MES_EN_CURSO ?? '').toLowerCase()
+
   for (const mes of AAA_GRC_2026) {
+    if (mesVivo && String(mes.mes).toLowerCase() === mesVivo) continue
     for (const r of mes.clientes) {
       if (!r.movimiento.includes('Churn confirmado')) continue
       registrar(normalizarNombre(r.cliente), {
@@ -167,6 +186,11 @@ export function senalesEstaticas(): Map<string, SenalChurn> {
     }
   }
 
+  /* A ÉSTAS NO SE LES APLICA EL SALTO DEL MES VIVO, Y ES A PROPÓSITO.
+     El reporte semanal de Churn · Análisis DATA no es el archivo de GRC: lista
+     cancelaciones que dirección ya revisó y confirmó, no facturas pendientes de
+     cobro. Hay 6 filas de «Semana 19 · Sep 2026» y son bajas de verdad. Saltar
+     septiembre aquí las escondería. */
   for (const c of CLIENTES_CANCELADOS) {
     const mes = mesDePeriodo(c.periodo)
     registrar(normalizarNombre(c.cliente), {

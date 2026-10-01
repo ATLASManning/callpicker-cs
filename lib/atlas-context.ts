@@ -12,7 +12,7 @@ import { contarRespuestasRadar } from './radar'
 import { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } from './elegibilidad'
 import { getZohoMap, lookupZoho } from './zoho-enrich'
 import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
-import { AAA_GRC_2026 } from '@/app/churn/aaa-grc-data'
+import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
 import { REPORTE_S22_SEPTIEMBRE_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
@@ -455,20 +455,49 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   const LEYENDA_CARTERA =
     '[Nombre]=asesor asignado · [sin asesor]=NO está en la cartera CS (no lo atribuyas a nadie)'
 
+  /* TRES COSAS QUE ESTE BLOQUE HACIA MAL, y es la superficie donde se pregunta
+     en lenguaje natural — la unica sin una tabla al lado que desmienta el numero.
+
+     1. RECORRIA TODOS LOS MESES. Listaba los 755 clientes de septiembre bajo el
+        rotulo «CHURN CONFIRMADO», cuando el mes vivo es cartera por cobrar. Si
+        una asesora preguntaba «¿que se me cayo?», el modelo le contestaba con
+        cuentas vivas que solo van retrasadas.
+     2. `r.perdido || r.perdido2` METIA EL FRAUDE EN EL CHURN. Cuando `perdido`
+        vale 0 —que es falsy— el `||` caia en la segunda columna, que es
+        fraude-reestructura y no es perdida por churn. Medido contra el GRC
+        publicado: Junio $147,777 contra $87,260 (+$60,517) y Agosto $100,871
+        contra $66,804 (+$34,067).
+     3. EL ENCABEZADO ESTABA VIEJO: decia «SOLO Enero a Julio 2026 — para agosto
+        usa CHURN — CORTE VIGENTE» mientras el archivo ya traia septiembre. Ahora
+        se arma con los meses que de verdad se incluyeron. */
   const grcLines: string[] = []
-  for (const mes of AAA_GRC_2026) {
+  for (const mes of AAA_GRC_MESES_CERRADOS) {
     const churn = mes.clientes.filter(r => r.movimiento.includes('Churn'))
     const down  = mes.clientes.filter(r => r.movimiento.includes('Downgrade'))
     const fmt = (rows: typeof mes.clientes) => rows
-      .map(r => `${r.cliente}(${money(r.perdido || r.perdido2)})${cartera(r.cliente)}`)
+      .map(r => `${r.cliente}(${money(r.perdido ?? 0)})${cartera(r.cliente)}`)
       .join(', ')
-    const tot = (rows: typeof mes.clientes) => rows.reduce((s, r) => s + (r.perdido || r.perdido2), 0)
-    if (churn.length) grcLines.push(`  ${mes.mes} — CHURN CONFIRMADO (${churn.length} clientes, ${money(tot(churn))} MRR): ${fmt(churn)}`)
-    if (down.length)  grcLines.push(`  ${mes.mes} — DOWNGRADES (${down.length} clientes, ${money(tot(down))} MRR): ${fmt(down)}`)
+    const tot = (rows: typeof mes.clientes) => rows.reduce((s, r) => s + (r.perdido ?? 0), 0)
+    const fraude = (rows: typeof mes.clientes) => rows.reduce((s, r) => s + (r.perdido2 ?? 0), 0)
+    if (churn.length) {
+      const f = fraude(churn)
+      grcLines.push(`  ${mes.mes} — CHURN CONFIRMADO (${churn.length} clientes, ${money(tot(churn))} MRR` +
+        `${f ? `; aparte, ${money(f)} de fraude/reestructura que NO es churn` : ''}): ${fmt(churn)}`)
+    }
+    if (down.length) grcLines.push(`  ${mes.mes} — DOWNGRADES (${down.length} clientes, ${money(tot(down))} MRR): ${fmt(down)}`)
   }
+  const mesesIncluidos = AAA_GRC_MESES_CERRADOS.map(m => m.mes)
+  const rango = mesesIncluidos.length
+    ? `SOLO ${mesesIncluidos[0]} a ${mesesIncluidos[mesesIncluidos.length - 1]} 2026`
+    : 'sin meses cerrados'
+  const nota = GRC_MES_EXCLUIDO
+    ? ` | ${GRC_MES_EXCLUIDO} NO aparece aqui a proposito: es el mes en curso, o sea cartera por cobrar, no bajas. Si preguntan por ${GRC_MES_EXCLUIDO}, dilo con esas palabras y usa "CHURN — CORTE VIGENTE"`
+    : ''
   sections.push(
-    `CHURN — GRC AAA 2026 (apartado Churn > GRC AAA 2026 | SOLO Enero a Julio 2026 — para agosto usa "CHURN — CORTE VIGENTE", NO mezcles ambas ` +
-    `| formato: cliente(MRR perdido)[cartera], ${LEYENDA_CARTERA}):\n${grcLines.join('\n')}`
+    `CHURN — GRC AAA 2026 (apartado Churn > GRC AAA 2026 | ${rango}${nota} ` +
+    `| formato: cliente(MRR perdido)[cartera], ${LEYENDA_CARTERA}):
+${grcLines.join('
+')}`
   )
   modulos.push('churn-grc')
 
