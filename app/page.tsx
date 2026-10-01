@@ -28,7 +28,7 @@ import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import Link from 'next/link'
 import { TICKETS as TICKETS_NORM, COBERTURA } from '@/lib/tickets-norm'
 import { headers } from 'next/headers'
-import { ahoraEnMexico, fechaLocal, textoFecha, hoyEnPalabras } from '@/lib/fecha-local'
+import { ahoraEnMexico, fechaLocal, hoyEnPalabras, selloMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,11 +103,6 @@ function diasSinContactoDe(c: Cuenta): number | null {
   return c.ultimo_contacto
     ? Math.floor((Date.now() - new Date(c.ultimo_contacto).getTime()) / 86400000)
     : null
-}
-
-function fmtFecha(iso: string) {
-  if (!iso) return '—'
-  return textoFecha(iso, { day: '2-digit', month: 'short', year: '2-digit' }) ?? iso
 }
 
 const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
@@ -940,15 +935,8 @@ const ticketsAnalytics: TicketsAnalyticsData = (() => {
      que nadie se equivoque sumando: lo visible más lo agrupado es, por
      construcción, el universo entero. */
   const porVolumen = Array.from(cliMap.values()).sort((a, b) => b.total - a.total)
-  const diez  = porVolumen.slice(0, 10)
+  const topClientes = porVolumen.slice(0, 10)
   const resto = porVolumen.slice(10)
-  const topClientes = resto.length
-    ? [...diez, {
-        empresa: `otros (${resto.length} cuentas)`,
-        total:   resto.reduce((s, x) => s + x.total, 0),
-        fallas:  resto.reduce((s, x) => s + x.fallas, 0),
-      }]
-    : diez
 
   /* Por categoría — canónica: 'Sin categoria' y 'Sin categoría' ya no son dos.
      Y sobre `deClientes`, no sobre todo: el encabezado del panel contaba 6,034
@@ -1016,6 +1004,15 @@ const ticketsAnalytics: TicketsAnalyticsData = (() => {
     totalFallas:        deClientes.filter(t => t.esFallaBandera).length,
     totalInternos:      _allTickets.length - deClientes.length,
     reincidentesTotal:  reincidentesTodos.length,
+    /* EL CIERRE SE DICE, NO SE DIBUJA. Meter el resto como una barra mas
+       cerraba la cuenta y arruinaba la grafica: el cubo vale 5,151 contra un
+       maximo de 186, asi que Recharts escalaba el eje a 5,151 y las diez
+       barras que la pestana existe para comparar quedaban en el 3% y el 0.7%
+       del ancho — indistinguibles entre si.
+       Un top-N sigue sin poder tirar el resto en silencio, asi que el resto
+       va en palabras debajo de la grafica, con su monto y sus cuentas. */
+    restoTickets:       resto.reduce((s, x) => s + x.total, 0),
+    restoCuentas:       resto.length,
   }
 })()
 
@@ -1295,11 +1292,7 @@ export default async function DashboardPage() {
 
       <PageHeader
         title="Dashboard Customer Success"
-        /* El alcance va en el encabezado, no se deduce. Una asesora ve aquí SU
-           cartera —los KPIs ya se filtran por ella— y antes no había forma de
-           saberlo: los mismos números servían para su cartera y para la de la
-           empresa según quién entrara. */
-        subtitle={`${hoyEnPalabras()}${isAsesor ? ` · cartera de ${asesorHeader}` : ' · cartera completa'}`}
+        subtitle={hoyEnPalabras()}
         actions={
           <div className="flex items-center gap-3">
             <AutoRefresh intervalMs={300_000} showIndicator />
@@ -1389,6 +1382,14 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
+        {/* EL ALCANCE VA DONDE SE APLICA, NO EN EL ENCABEZADO.
+            Estas cuatro tarjetas sí se filtran por asesora. La página NO: el
+            semáforo por asesor trae a las tres a propósito y el panel de tickets
+            cubre toda la empresa. Rotular la página entera «cartera de Fátima»
+            sería tan falso como no rotular nada, solo que al revés. */}
+        <div className="col-span-full" style={{ fontSize: 11, color: TX_LOW, marginBottom: -4 }}>
+          {isAsesor ? `Indicadores de la cartera de ${asesorHeader}` : 'Indicadores de la cartera completa'}
+        </div>
         <KpiCard label="Cartera Total" value={formatMXN(kpis.facturacionTotal)} sub={`${kpis.total} cuentas activas`} icon={DollarSign} accent={CYAN} />
         <KpiCard label="Cuentas Saludables" value={kpis.saludables} sub={`${Math.round((kpis.saludables / Math.max(kpis.total, 1)) * 100)}% de la cartera`} icon={CheckCircle2} accent="#22C55E" />
         <KpiCard label="En Observación" value={cuentasObs.length} sub={`${formatMXN(facObs)} en seguimiento`} icon={AlertTriangle} accent="#EAB308" />
@@ -1536,7 +1537,11 @@ export default async function DashboardPage() {
           </span>
           <span style={{ fontSize: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: '#EF4444' }}>{globalTickets.fallas}</span>
-            <span style={{ color: TX_LOW, marginLeft: 4 }}>fallas</span>
+            {/* Las fallas del ARCHIVO, igual que el total de al lado. El panel de
+                abajo dice 279 porque cuenta solo las de clientes; la diferencia son
+                las 7 de los CID internos. Dos cifras distintas pegadas, cada una
+                con su universo escrito, en vez de una sola que no sea de nadie. */}
+            <span style={{ color: TX_LOW, marginLeft: 4 }}>fallas en el archivo</span>
           </span>
           {topRiesgoTix > 0 && (
             <span style={{ fontSize: 12 }}>
@@ -1570,7 +1575,7 @@ export default async function DashboardPage() {
         <span>·</span>
         <span>Datos en tiempo real · force-dynamic · auto-refresh 5 min</span>
         <span>·</span>
-        <span>{new Date().toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+        <span>{selloMexico()}</span>
       </div>
     </div>
   )

@@ -157,6 +157,35 @@ export function textoFecha(
     return new Intl.DateTimeFormat('es-MX', { ...opciones, timeZone: 'UTC' }).format(instante)
   }
 
+  /* UN DÍA GUARDADO DENTRO DE UNA COLUMNA DE INSTANTES.
+   *
+   * `seguimientos.fecha` es `timestamptz`, pero quien escribe manda un día:
+   * `app/api/actividades/[id]/route.ts` hace `fecha: hoyEnMexico()`, o sea la
+   * cadena «2026-08-31», y Postgres la guarda como medianoche UTC. La columna
+   * dice «instante» y el contenido dice «día».
+   *
+   * Medido el 1 de octubre de 2026 sobre las 424 filas:
+   *   · 113 tienen hora exactamente 00:00:00 UTC — son días escritos así, y
+   *     pasarlas a hora de México las corre al día ANTERIOR (3 cambian de mes);
+   *   · las otras 311 traen microsegundos reales, y de ésas 67 ocurrieron antes
+   *     de las 06:00 UTC, o sea que su día en México ES el anterior — para
+   *     ésas, cortar la cadena a diez caracteres las adelanta un día.
+   *
+   * Ninguna regla simple acierta en las dos. Por eso se distinguen aquí, donde
+   * se mide el valor, y no en cada pantalla que lo pinta: una medianoche UTC
+   * exacta es un día escrito; cualquier otra hora es un instante de verdad.
+   *
+   * La heurística se sostiene porque `now()` de Postgres nunca cae en el
+   * microsegundo cero: las 311 filas con hora real lo confirman. Si algún día
+   * aparece una columna donde la medianoche UTC exacta sea un instante con
+   * significado, hay que sacarla de esta rama a propósito. */
+  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}T00:00:00(\.0+)?(Z|\+00:?00)$/.test(valor)) {
+    const [a, m, d] = valor.slice(0, 10).split('-').map(Number)
+    const instante = new Date(Date.UTC(a, m - 1, d))
+    if (isNaN(instante.getTime())) return null
+    return new Intl.DateTimeFormat('es-MX', { ...opciones, timeZone: 'UTC' }).format(instante)
+  }
+
   const instante = valor instanceof Date ? valor : new Date(valor)
   if (isNaN(instante.getTime())) return null
   return new Intl.DateTimeFormat('es-MX', { ...opciones, timeZone: ZONA_MEXICO }).format(instante)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin, traerPorPaginas } from '@/lib/supabase'
+import { supabaseAdmin, traerPaginasConFallo } from '@/lib/supabase'
 import { puedeVerUsoDashboard } from '@/lib/auth'
 
 /**
@@ -44,12 +44,22 @@ export async function GET(req: NextRequest) {
      240 visitas que no existían para el análisis. Las tres asesoras todavía
      caben (359, 354 y 279), así que esto no es prevención: la administración
      veía su propio uso incompleto desde hace meses. */
-  const filas = await traerPorPaginas<Record<string, unknown>>((desde, hasta) => {
+  const { filas, fallo } = await traerPaginasConFallo<Record<string, unknown>>((desde, hasta) => {
     const q = supabaseAdmin.from('uso_dashboard').select('*')
     return (email ? q.eq('email', email) : q.eq('asesor', asesor!))
       .order('created_at', { ascending: true })
       .range(desde, hasta)
   })
+
+  /* El 500 tiene que seguir existiendo. Al paginar, el `if (error) return 500`
+     se fue dentro del helper y esta ruta empezó a contestar 200 con `rows: []`
+     pasara lo que pasara: un fallo de Supabase se leía como «esta persona no
+     usa el tablero», y la pantalla de Uso llega a escribir «el tracking
+     comienza a registrarse a partir de esta versión». O sea que el error se
+     disfrazaba de explicación.
+     Esa pantalla tiene una rama `!res.ok` escrita a propósito para decir el
+     motivo real; sin este return quedaba inalcanzable para los fallos de base. */
+  if (fallo) return NextResponse.json({ error: fallo }, { status: 500 })
 
   return NextResponse.json({ rows: filas })
 }

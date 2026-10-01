@@ -210,9 +210,16 @@ export async function deleteCuenta(id: string): Promise<void> {
  * listado y «el» total de facturación, sin una etiqueta que los separara, y las
  * barras de distribución de su cartera sumaban un tercio del alto.
  *
- * Mismo predicado de cartera viva —`activo` y `en_riesgo`— que `getCuentas` y
- * `getSemaforoByAsesor`: si se separan, los tres bloques de la portada dejan de
- * hablar del mismo conjunto y nadie lo nota.
+ * EL PREDICADO NO ES EL MISMO QUE EL DE `getCuentas`, y es a propósito.
+ * Aquí y en `getSemaforoByAsesor` se mira la cartera VIVA —`activo` y
+ * `en_riesgo`, 192 cuentas—, porque un KPI de facturación sobre cuentas
+ * canceladas no mide nada. `getCuentas` devuelve TODAS salvo que se le pida un
+ * estado: una cuenta dormida o cancelada sigue necesitando seguimiento, es la
+ * que hay que recuperar, y se distingue por su semáforo gris, no por su
+ * ausencia (ver el comentario de app/seguimiento/page.tsx, 9 sep 2026).
+ *
+ * Por eso `kpis.total` y `allCuentas.length` no cuadran en la portada, y no
+ * deben: uno cuenta cartera viva y el otro todo lo asignado.
  */
 export async function getKPIs(filtro?: { asesor?: string }) {
   let q = supabaseAdmin
@@ -470,26 +477,55 @@ export const TOPE_POSTGREST = 1000
 const MAX_PAGINAS = 50
 
 /**
- * Trae una tabla entera por páginas.
+ * Trae una tabla entera por páginas, y DICE si no pudo.
  *
- * **Devuelve `[]` si una página falla, nunca un resultado parcial.** Un hueco
- * silencioso es peor que un vacío declarado: con `[]` la pantalla dice «sin
- * datos» y alguien pregunta; con la mitad de las filas, nadie nota nada y el
- * porcentaje sale mal para siempre.
+ * **Nunca devuelve un resultado parcial.** Un hueco silencioso es peor que un
+ * vacío declarado: con la mitad de las filas nadie nota nada y el porcentaje
+ * sale mal para siempre.
+ *
+ * Pero vaciar no basta. Una pantalla que recibe `[]` no sabe si la tabla está
+ * vacía o si la lectura reventó, y las dos cosas se ven igual: «sin registros».
+ * Eso convierte un fallo de base en un dato falso —«esta persona no usa el
+ * tablero»— que es la misma clase de mentira silenciosa que la paginación vino
+ * a cerrar. Por eso el motivo sale junto con las filas, y quien tiene a quién
+ * decírselo lo dice.
+ *
+ * Agotar las 50 páginas también cuenta como fallo: 50,000 filas truncadas son
+ * un resultado parcial, y esta función no devuelve parciales callados.
  */
-export async function traerPorPaginas<T>(
+export async function traerPaginasConFallo<T>(
   pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
-): Promise<T[]> {
+): Promise<{ filas: T[]; fallo: string | null }> {
   const todo: T[] = []
   for (let p = 0; p < MAX_PAGINAS; p++) {
     const desde = p * TOPE_POSTGREST
     const { data, error } = await pagina(desde, desde + TOPE_POSTGREST - 1)
-    if (error) return []
-    if (!data?.length) return todo
+    if (error) {
+      const msg = (error as { message?: string })?.message
+      return { filas: [], fallo: msg ?? String(error) }
+    }
+    if (!data?.length) return { filas: todo, fallo: null }
     todo.push(...data)
-    if (data.length < TOPE_POSTGREST) return todo
+    if (data.length < TOPE_POSTGREST) return { filas: todo, fallo: null }
   }
-  return todo
+  return {
+    filas: [],
+    fallo: `se agotaron las ${MAX_PAGINAS} páginas (${MAX_PAGINAS * TOPE_POSTGREST} filas): esta consulta no debería traerlo todo`,
+  }
+}
+
+/**
+ * Lo mismo, tragándose el motivo. Para quien no tiene dónde decirlo —una
+ * función que alimenta un render y cuya firma es `Promise<T[]>`.
+ *
+ * Preferir `traerPaginasConFallo` siempre que haya una respuesta HTTP que
+ * pueda llevar el error, o una pantalla que pueda distinguir «vacío» de «se
+ * rompió». Usar ésta es aceptar que un fallo se verá como una tabla vacía.
+ */
+export async function traerPorPaginas<T>(
+  pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  return (await traerPaginasConFallo(pagina)).filas
 }
 
 /**

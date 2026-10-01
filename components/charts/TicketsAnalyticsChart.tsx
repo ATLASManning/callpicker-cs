@@ -38,6 +38,10 @@ export interface TicketsAnalyticsData {
   /** Cuántas combinaciones empresa × categoría reinciden en total, para que la
    *  lista de doce no se lea como si fueran todas. */
   reincidentesTotal: number
+  /** Lo que queda FUERA del top-10, para cerrar la cuenta con palabras. No va
+   *  como barra: vale 5,151 contra un máximo de 186 y aplastaría a las diez. */
+  restoTickets: number
+  restoCuentas: number
 }
 
 type TabKey = 'clientes' | 'servicio' | 'reincidencia' | 'tendencia'
@@ -254,9 +258,19 @@ export default function TicketsAnalyticsChart({ data }: { data: TicketsAnalytics
       {tab === 'clientes' && (
         <>
           <p style={{ fontSize: 12, color: TX_LOW, marginBottom: 12 }}>
-            Top 10 por volumen más el resto agrupado — las barras suman los {data.totalTickets.toLocaleString()} tickets de clientes. Apiladas: atención (azul) + fallas (rojo)
+            Top 10 por volumen — barras apiladas: atención (azul) + fallas (rojo)
           </p>
           <TopClientesChart data={data.topClientes} />
+          {data.restoCuentas > 0 && (
+            <p style={{ fontSize: 11, color: TX_LOW, marginTop: 10 }}>
+              Estas diez son{' '}
+              <strong style={{ color: TX_MID }}>
+                {(data.totalTickets - data.restoTickets).toLocaleString()} de {data.totalTickets.toLocaleString()}
+              </strong>{' '}
+              tickets de clientes ({Math.round(((data.totalTickets - data.restoTickets) / Math.max(data.totalTickets, 1)) * 100)}%).
+              Las otras {data.restoCuentas.toLocaleString()} cuentas suman {data.restoTickets.toLocaleString()}.
+            </p>
+          )}
         </>
       )}
 
