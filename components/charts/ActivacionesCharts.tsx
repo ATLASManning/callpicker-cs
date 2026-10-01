@@ -335,13 +335,33 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
     return true
   }), [registros,selCli,selCid,selAno,selEjec,selVnd,selTam,selGiro,selMes])
 
-  const total    = filtered.length
-  const totalFac = filtered.reduce((s,r)=>s+r.primerPago,0)
+  /* UN DEMO NO ES UNA ACTIVACION, y «Tipo» es el ambito de esta pantalla, no
+     un adorno.
+
+     Medido sobre el corte del 1 oct 2026 (2,721 filas): 571 son `demo`, 569 de
+     ellas con $0 de primer pago y NINGUNA con «Mes 1er Pago». Un demo no paga,
+     no tiene mes y no entra a cartera.
+
+     Contarlos arrastraba tres cifras:
+       · «Total Activaciones» decia 2,721 cuando son 2,150;
+       · «Promedio 1er Pago» dividia entre 2,721 y salia $1,063.56 contra los
+         $1,346.02 reales — un 21.0% MAS BAJO;
+       · la grafica por mes les daba barras sin nombre, porque no traen mes.
+
+     Lo que SI los conserva, a proposito, es el reparto «por tipo»: ahi la
+     pregunta es justamente cuantos demos hay. */
+  const activaciones = useMemo(()=>filtered.filter(r=>r.tipo!=='demo'),[filtered])
+  const demos    = filtered.length - activaciones.length
+  const total    = activaciones.length
+  const totalFac = activaciones.reduce((s,r)=>s+r.primerPago,0)
   const promedio = total>0 ? totalFac/total : 0
-  const sinVnd   = filtered.filter(r=>r.vendedor==='Sin vendedor').length
+  /* Sobre `activaciones`, no sobre `filtered`: el denominador de abajo es el de
+     las activaciones, y contar el numerador sobre otro conjunto da un
+     porcentaje que no es de nadie. */
+  const sinVnd   = activaciones.filter(r=>r.vendedor==='Sin vendedor').length
   const pctSin   = total>0 ? (sinVnd/total)*100 : 0
 
-  const porMes      = useMemo(()=>agruparMes(filtered,selAno!=='todos'),[filtered,selAno])
+  const porMes      = useMemo(()=>agruparMes(activaciones,selAno!=='todos'),[activaciones,selAno])
   const porVendedor = useMemo(()=>agrupar(filtered,'vendedor',VENDEDOR_COLOR).slice(0,12),[filtered])
   const porEjec     = useMemo(()=>agrupar(filtered,'ejecutivo',EJECUTIVO_COLOR),[filtered])
   const porTamano   = useMemo(()=>agrupar(filtered,'tamano',TAMANO_COLOR).filter(d=>d.name!=='N/A'),[filtered])
@@ -426,9 +446,10 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       <div style={{display:'flex',gap:16}}>
-        <KPI label="Total Activaciones"  value={total.toLocaleString('es-MX')} color={ACCENT} />
+        <KPI label="Total Activaciones"  value={total.toLocaleString('es-MX')} color={ACCENT}
+          sub={demos > 0 ? `${demos.toLocaleString('es-MX')} demos aparte` : undefined} />
         <KPI label="Facturación Total"   value={formatMXN(totalFac)} color="#22C55E" sub="Suma primer pago" />
-        <KPI label="Promedio 1er Pago"   value={formatMXN(promedio)} color="#F59E0B" />
+        <KPI label="Promedio 1er Pago"   value={formatMXN(promedio)} color="#F59E0B" sub="Sin contar demos" />
         <KPI label="Sin Vendedor" value={`${pctSin.toFixed(1)}%`}
           color={pctSin>30?'#EF4444':TX_LOW} sub={`${sinVnd} de ${total}`} />
         {/* Tipos */}

@@ -1,4 +1,4 @@
-﻿import path from 'path'
+import path from 'path'
 import ActivacionesCharts, { RegistroItem } from '@/components/charts/ActivacionesCharts'
 import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico'
 
@@ -121,7 +121,12 @@ export default async function ActivacionesPage() {
     )
   }
 
-  const totalFac = registros.reduce((s, r) => s + r.primerPago, 0)
+  /* El encabezado cuenta ACTIVACIONES, no filas del archivo. 571 de las 2,721
+     son demos: no pagan, no traen mes y no entran a cartera. Se declaran
+     aparte en vez de disolverse en el total. */
+  const activaciones = registros.filter(r => r.tipo !== 'demo')
+  const demos        = registros.length - activaciones.length
+  const totalFac = activaciones.reduce((s, r) => s + r.primerPago, 0)
   const anos     = Array.from(new Set(registros.map(r => r.ano).filter(Boolean))).sort()
 
   return (
@@ -164,7 +169,7 @@ export default async function ActivacionesPage() {
               Activaciones 2.0
             </h1>
             <p style={{ fontSize: 13, color: TX_MID, marginTop: 8 }}>
-              {registros.length.toLocaleString('es-MX')} activaciones &middot; {anos.join(' · ')} &middot; Facturación total{' '}
+              {activaciones.length.toLocaleString('es-MX')} activaciones{demos > 0 && <> &middot; {demos.toLocaleString('es-MX')} demos</>} &middot; {anos.join(' · ')} &middot; Facturación total{' '}
               <strong style={{ color: '#16A34A' }}>
                 {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalFac)}
               </strong>
