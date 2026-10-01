@@ -33,7 +33,9 @@ import collections
 import io
 import json
 import os
+import re
 import sys
+import unicodedata
 import urllib.request
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
@@ -85,6 +87,13 @@ def parche(tabla, filtro, cuerpo):
 
 def arg(nombre):
     return sys.argv[sys.argv.index(nombre) + 1] if nombre in sys.argv else None
+
+
+def norm(s):
+    """Sin acentos, sin signos, minusculas. «Querétaro» y «Queretaro» cruzan."""
+    s = ''.join(c for c in unicodedata.normalize('NFD', str(s or '').lower())
+                if not (0x300 <= ord(c) <= 0x36f))
+    return re.sub(r'[^a-z0-9]', '', s)
 
 
 def main():
@@ -145,24 +154,38 @@ def main():
                  if not r.get('cuenta_id') and (r.get('tipo') or '') not in SIN_CUENTA]
     print(f"\n  {len(huerfanas)} reuniones podrian llevar cuenta y no la tienen.")
 
-    # Pista por nombre, NUNCA vinculo automatico.
-    print('\n  PISTAS POR TITULO (verificar a mano, el titulo no es una llave):')
+    # ── Pistas por titulo ───────────────────────────────────────────────────
+    #
+    # NUNCA vinculo automatico, y el emparejador es DELIBERADAMENTE estricto:
+    # exige que el nombre COMPLETO de la cuenta aparezca en el titulo, no su
+    # primera palabra. Con la version laxa, «Revision de Dashboard Salud
+    # Cliente» proponia «Salud y Hogar» y «Resumen y acciones Grupo 2711»
+    # proponia tres «Grupo ...» distintos — tres formas de vincular mal.
+    #
+    # Una propuesta equivocada es peor que ninguna: se acepta de un vistazo y
+    # mete una reunion en la ficha de un cliente que no estuvo ahi.
+    print('\n  PROPUESTAS (nombre COMPLETO de la cuenta dentro del titulo):')
     vivas = [c2 for c2 in cuentas if (c2.get('estado') or '') in ('activo', 'en_riesgo')]
-    hallados = 0
+    propuestas, sinPista = [], []
     for r in sorted(huerfanas, key=lambda x: str(x.get('fecha') or ''), reverse=True):
-        t = (r.get('titulo') or '').lower()
+        t = norm(r.get('titulo'))
         cands = [c2 for c2 in vivas
-                 if len((c2.get('empresa') or '').split()[0]) >= 5
-                 and (c2.get('empresa') or '').split()[0].lower() in t]
-        if not cands:
-            continue
-        hallados += 1
-        print(f"\n    {r['fecha']}  [{r['tipo']}]  {r['titulo'][:60]}")
-        print(f"      --reunion {r['id']}")
-        for c2 in cands[:3]:
-            print(f"      --cuenta  {c2['id']}   {c2['empresa'][:52]}  CID {c2.get('cid')}")
-    if not hallados:
-        print('    ninguna coincide con el nombre de una cuenta viva')
+                 if len(norm(c2.get('empresa'))) >= 6 and norm(c2.get('empresa')) in t]
+        if len(cands) == 1:
+            propuestas.append((r, cands[0]))
+        else:
+            sinPista.append((r, cands))
+
+    for r, c2 in propuestas:
+        print(f"\n    {r['fecha']}  [{r['tipo']}]  {r['titulo'][:58]}")
+        print(f"      -> {c2['empresa'][:50]}  CID {c2.get('cid')}")
+        print(f"      --reunion {r['id']} --cuenta {c2['id']} --aplica")
+
+    print(f'\n  {len(propuestas)} con una sola coincidencia exacta · '
+          f'{len(sinPista)} sin pista fiable (hay que decir la cuenta a mano):')
+    for r, cands in sinPista:
+        motivo = f'{len(cands)} coincidencias ambiguas' if cands else 'el titulo no nombra ninguna cuenta'
+        print(f"    {r['fecha']}  [{r['tipo']:<13}] {r['titulo'][:52]:<54} {motivo}")
     return 0
 
 
