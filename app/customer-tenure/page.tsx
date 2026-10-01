@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
@@ -416,16 +416,24 @@ export default function CustomerTenurePage() {
                 <div className="pt-4 border-t border-gray-100">
                   <h2 className="text-sm font-semibold text-gray-700 mb-3">Clasificación LTV</h2>
                   <div className="space-y-2">
-                    {stats.byClasLtv.map((c, i) => {
-                      const colors = ['#6366f1','#22c55e','#f59e0b','#f97316','#ef4444']
-                      const max    = Math.max(...stats.byClasLtv.map(x => x.count), 1)
-                      return (
+                    {(() => {
+                      /* El color sigue a la CLASE, no a su posición en la lista.
+                         Hoy da lo mismo —la API las manda completas y ordenadas
+                         alfabéticamente—, pero el día que una clase se quede sin
+                         cuentas, todas las de abajo heredarían el color de la de
+                         arriba y la misma clase se vería de dos colores según la
+                         pantalla. Anclado al nombre, deja de importar. */
+                      const PALETA = ['#6366f1','#22c55e','#f59e0b','#f97316','#ef4444']
+                      const orden = stats.byClasLtv.map(x => x.clas || 'N/A')
+                        .sort((a, b) => a.localeCompare(b, 'es'))
+                      const max = Math.max(...stats.byClasLtv.map(x => x.count), 1)
+                      return stats.byClasLtv.map(c => (
                         <BarRow key={c.clas}
                           label={c.clas || 'N/A'} value={c.count} max={max}
-                          color={colors[i % colors.length]}
+                          color={PALETA[Math.max(0, orden.indexOf(c.clas || 'N/A')) % PALETA.length]}
                           right={`${fmtN(c.count)}`} />
-                      )
-                    })}
+                      ))
+                    })()}
                   </div>
                 </div>
               </section>
@@ -529,6 +537,11 @@ export default function CustomerTenurePage() {
                   const cnt    = stats.effBins[i] ?? 0
                   const maxBin = Math.max(...stats.effBins, 1)
                   const h      = Math.max(4, Math.round((cnt / maxBin) * 64))
+                  /* Aqui el indice SI es el dato: `i` es el numero de BIN del histograma,
+                     no un puesto en un ranking. El color va de rojo a azul porque los bins
+                     van de peor a mejor, y esa correspondencia no se mueve: los bins son
+                     fijos. No confundirlo con los colores por rango que se corrigieron el
+                     30 sep 2026. */
                   const colors = ['#ef4444','#f97316','#f59e0b','#22c55e','#6366f1']
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">

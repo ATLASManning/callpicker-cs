@@ -926,13 +926,32 @@ const ticketsAnalytics: TicketsAnalyticsData = (() => {
     if (t.esFallaBandera) e.fallas++
     cliMap.set(k, e)
   }
-  const topClientes = Array.from(cliMap.values())
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 10)
+  /* El top-10 CIERRA. Antes era un `slice(0, 10)` a secas: las diez barras
+     sumaban 635 de los 5,786 tickets de clientes —el 11%— y los 5,151 restantes,
+     repartidos entre 1,537 CIDs, no se mencionaban. Eso deja creer que esos diez
+     clientes SON el problema de soporte, cuando el soporte está repartido entre
+     mil quinientos.
+     El cubo se construye como el resto exacto, así que el cierre no depende de
+     que nadie se equivoque sumando: lo visible más lo agrupado es, por
+     construcción, el universo entero. */
+  const porVolumen = Array.from(cliMap.values()).sort((a, b) => b.total - a.total)
+  const diez  = porVolumen.slice(0, 10)
+  const resto = porVolumen.slice(10)
+  const topClientes = resto.length
+    ? [...diez, {
+        empresa: `otros (${resto.length} cuentas)`,
+        total:   resto.reduce((s, x) => s + x.total, 0),
+        fallas:  resto.reduce((s, x) => s + x.fallas, 0),
+      }]
+    : diez
 
-  // Por categoría — canónica: 'Sin categoria' y 'Sin categoría' ya no son dos.
+  /* Por categoría — canónica: 'Sin categoria' y 'Sin categoría' ya no son dos.
+     Y sobre `deClientes`, no sobre todo: el encabezado del panel contaba 6,034
+     —con los 248 tickets internos de los CID 0 y 1 dentro— mientras las barras
+     de Top Clientes dibujaban 5,786. Sumar la mitad de una pestaña con la mitad
+     de otra no daba el total de ninguna. Un panel, un universo. */
   const catMap: Record<string, { total: number; fallas: number }> = {}
-  for (const t of _allTickets) {
+  for (const t of deClientes) {
     const cat = t.categoriaNorm || 'Sin categorizar'
     if (!catMap[cat]) catMap[cat] = { total: 0, fallas: 0 }
     catMap[cat].total++
@@ -952,16 +971,16 @@ const ticketsAnalytics: TicketsAnalyticsData = (() => {
     reinMap[k].count++
     if (t.esFallaBandera) reinMap[k].fallas++
   }
-  const reincidentes = Object.values(reinMap)
+  const reincidentesTodos = Object.values(reinMap)
     .filter(x => x.count >= 3)
     .sort((a, b) => b.count - a.count)
-    .slice(0, 12)
+  const reincidentes = reincidentesTodos.slice(0, 12)
 
   // Tendencia mensual — por mes de APERTURA (cuándo entró el ticket). Antes iba
   // por `mes`, que es el mes de CIERRE: 851 tickets se graficaban en un mes
   // distinto de aquel en que entraron.
   const mesMap: Record<string, { total: number; fallas: number }> = {}
-  for (const t of _allTickets) {
+  for (const t of deClientes) {
     const m = t.mesApertura
     if (!m) continue
     if (!mesMap[m]) mesMap[m] = { total: 0, fallas: 0 }
@@ -983,8 +1002,15 @@ const ticketsAnalytics: TicketsAnalyticsData = (() => {
     porCategoria,
     reincidentes,
     tendencia,
-    totalTickets: _allTickets.length,
-    totalFallas:  COBERTURA.fallasBandera,
+    /* El universo del panel es el de sus barras: tickets DE CLIENTES. Antes el
+       encabezado decía 6,034 (todo el archivo) y las barras dibujaban 5,786, y
+       las fallas venían de `COBERTURA.fallasBandera`, que también cuenta los
+       internos — o sea un porcentaje con numerador de un conjunto y denominador
+       de otro. Los internos no desaparecen: se declaran aparte. */
+    totalTickets:       deClientes.length,
+    totalFallas:        deClientes.filter(t => t.esFallaBandera).length,
+    totalInternos:      _allTickets.length - deClientes.length,
+    reincidentesTotal:  reincidentesTodos.length,
   }
 })()
 
@@ -1006,9 +1032,18 @@ export default async function DashboardPage() {
   }
   const semana3back = getMondayOffset(3)
 
+  /* LOS TRES BLOQUES, EL MISMO UNIVERSO.
+     `getCuentas` ya se filtraba por asesora y `getKPIs` no, así que la portada
+     de una asesora ponía su listado de 68 cuentas al lado de la facturación de
+     las 192 de la empresa, sin una etiqueta que lo dijera. Medido: las barras
+     de distribución de Dan sumaban el 35% del alto, las de Fátima el 33% y las
+     de Claudia el 32% — cada una un tercio, porque el denominador era de todos.
+     El semáforo por asesora sigue trayendo a las tres a propósito: es una
+     comparación entre personas y se explica sola al llevar los tres nombres. */
+  const soloSuCartera = isAsesor ? { asesor: asesorHeader } : undefined
   const [kpis, semaforoAsesor, allCuentas, actsRaw, adopRows] = await Promise.all([
-    getKPIs(), getSemaforoByAsesor(),
-    getCuentas(isAsesor ? { asesor: asesorHeader } : undefined),
+    getKPIs(soloSuCartera), getSemaforoByAsesor(),
+    getCuentas(soloSuCartera),
     getActividadesSAC(semana3back),
     getAdopcionProductoAll(),
   ])
@@ -1255,7 +1290,11 @@ export default async function DashboardPage() {
 
       <PageHeader
         title="Dashboard Customer Success"
-        subtitle={hoyEnPalabras()}
+        /* El alcance va en el encabezado, no se deduce. Una asesora ve aquí SU
+           cartera —los KPIs ya se filtran por ella— y antes no había forma de
+           saberlo: los mismos números servían para su cartera y para la de la
+           empresa según quién entrara. */
+        subtitle={`${hoyEnPalabras()}${isAsesor ? ` · cartera de ${asesorHeader}` : ' · cartera completa'}`}
         actions={
           <div className="flex items-center gap-3">
             <AutoRefresh intervalMs={300_000} showIndicator />

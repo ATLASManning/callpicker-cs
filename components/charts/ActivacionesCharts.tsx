@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useEffect } from 'react'
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Legend,
+  Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, BarChart,
 } from 'recharts'
 import { formatMXN } from '@/lib/types'
@@ -451,21 +451,35 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
       </div>
 
       {/* ── Activaciones por Mes ─────────────────────────────────────────── */}
-      <Panel title="Activaciones por Mes" sub="Nuevas cuentas y facturación acumulada por período">
-        <ResponsiveContainer width="100%" height={240}>
-          <ComposedChart data={porMes} margin={{top:4,right:20,left:-10,bottom:0}}>
+      {/* DOS GRÁFICAS, NO DOS EJES.
+          Esto era una sola con las activaciones en el eje izquierdo y la
+          facturación en uno derecho propio. Un segundo eje Y invita a leer un
+          cruce —«en mayo la facturación superó a las activaciones»— que no
+          significa nada: las dos escalas las elige quien dibuja, así que el
+          punto donde se cortan se puede mover subiendo un `domain`.
+          Comparten el eje X, que es lo que de verdad permite comparar la forma
+          de las dos series sin inventar una relación entre sus magnitudes. */}
+      <Panel title="Activaciones por Mes" sub="Dos medidas de escala distinta, una gráfica cada una, el mismo eje de meses">
+        <p style={{fontSize:11,fontWeight:700,color:TX_MID,margin:'0 0 4px 2px'}}>Cuentas activadas</p>
+        <ResponsiveContainer width="100%" height={150}>
+          <BarChart data={porMes} margin={{top:4,right:20,left:-10,bottom:0}}>
+            <CartesianGrid vertical={false} stroke="#DBEAFE" />
+            <XAxis dataKey="mes" tick={false} axisLine={false} tickLine={false} height={1} />
+            <YAxis tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
+            <Tooltip content={<TTMes />} cursor={{fill:'rgba(0,180,255,0.06)'}} />
+            <Bar dataKey="count" name="Activaciones" fill={ACCENT} fillOpacity={0.85} radius={[4,4,0,0]} maxBarSize={38} />
+          </BarChart>
+        </ResponsiveContainer>
+        <p style={{fontSize:11,fontWeight:700,color:TX_MID,margin:'10px 0 4px 2px'}}>Facturación del primer pago</p>
+        <ResponsiveContainer width="100%" height={150}>
+          <BarChart data={porMes} margin={{top:4,right:20,left:-10,bottom:0}}>
             <CartesianGrid vertical={false} stroke="#DBEAFE" />
             <XAxis dataKey="mes" tick={{fill:TX_MID,fontSize:11,fontWeight:600}} axisLine={false} tickLine={false} />
-            <YAxis yAxisId="left" tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
-            <YAxis yAxisId="right" orientation="right" domain={[0,maxFacMes*1.1]}
-              tickFormatter={v=>`$${(v/1000).toFixed(0)}k`}
-              tick={{fill:'rgba(34,197,94,0.55)',fontSize:10}} axisLine={false} tickLine={false} />
-            <Tooltip content={<TTMes />} cursor={{fill:'rgba(0,180,255,0.06)'}} />
-            <Legend wrapperStyle={{fontSize:11,paddingTop:10}} formatter={(v)=><span style={{color:TX_MID}}>{v}</span>} />
-            <Bar yAxisId="left" dataKey="count" name="Activaciones" fill={ACCENT} fillOpacity={0.85} radius={[4,4,0,0]} maxBarSize={38} />
-            <Line yAxisId="right" type="monotone" dataKey="fac" name="Facturación" stroke="#22C55E" strokeWidth={2.5}
-              dot={{fill:'#22C55E',r:4,strokeWidth:2,stroke:BG}} activeDot={{r:6,stroke:'#22C55E',strokeWidth:2,fill:BG}} />
-          </ComposedChart>
+            <YAxis domain={[0,maxFacMes*1.1]} tickFormatter={v=>`$${(v/1000).toFixed(0)}k`}
+              tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
+            <Tooltip content={<TTMes />} cursor={{fill:'rgba(34,197,94,0.08)'}} />
+            <Bar dataKey="fac" name="Facturación" fill="#22C55E" fillOpacity={0.85} radius={[4,4,0,0]} maxBarSize={38} />
+          </BarChart>
         </ResponsiveContainer>
       </Panel>
 

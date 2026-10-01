@@ -1,7 +1,7 @@
 'use client'
 import {
-  ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Legend,
-  ResponsiveContainer, Cell, LabelList, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend,
+  ResponsiveContainer, LabelList, CartesianGrid,
 } from 'recharts'
 import type { SemaforoAsesor } from '@/lib/types'
 import { formatMXN } from '@/lib/types'
@@ -138,43 +138,35 @@ export default function SemaforoDashChart({ data }: Props) {
         })}
       </div>
 
-      {/* ── Gráfica compuesta barras + línea facturación ──────────────── */}
-      <ResponsiveContainer width="100%" height={200}>
-        <ComposedChart data={chartData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+      {/* DOS GRÁFICAS, NO DOS EJES.
+          Era una sola: las cuentas apiladas por semáforo contra el eje
+          izquierdo y una línea de facturación contra uno derecho propio. Un
+          segundo eje Y invita a leer dónde se cruzan las dos series, y ese
+          cruce no significa nada: las escalas las elige quien dibuja, así que
+          el punto de corte se mueve con solo cambiar un `domain`.
+          Comparten el eje de asesoras, que es lo que de verdad hace falta para
+          ver si la que más cartera tiene es también la que peor la tiene. */}
+      <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(200,228,255,0.65)', margin: '0 0 4px 2px' }}>
+        Cuentas por semáforo
+      </p>
+      <ResponsiveContainer width="100%" height={168}>
+        <BarChart data={chartData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
           <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
-          <XAxis
-            dataKey="name"
-            tick={{ fill: 'rgba(200,228,255,0.75)', fontSize: 12, fontWeight: 600 }}
-            axisLine={false} tickLine={false}
-          />
-          {/* Eje izquierdo: número de cuentas */}
+          <XAxis dataKey="name" tick={false} axisLine={false} tickLine={false} height={1} />
           <YAxis
-            yAxisId="left"
             tick={{ fill: 'rgba(200,228,255,0.40)', fontSize: 10 }}
-            axisLine={false} tickLine={false}
-          />
-          {/* Eje derecho: facturación */}
-          <YAxis
-            yAxisId="right"
-            orientation="right"
-            domain={[0, maxFac * 1.1]}
-            tickFormatter={v => `$${(v / 1000).toFixed(0)}k`}
-            tick={{ fill: 'rgba(0,180,255,0.55)', fontSize: 10 }}
             axisLine={false} tickLine={false}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,180,255,0.06)' }} />
           <Legend
-            wrapperStyle={{ fontSize: 11, paddingTop: 10 }}
+            wrapperStyle={{ fontSize: 11, paddingTop: 6 }}
             formatter={(value) => (
               <span style={{ color: 'rgba(200,228,255,0.65)' }}>{value}</span>
             )}
           />
-
-          {/* Barras apiladas por semáforo */}
           {Object.entries(SEM).map(([key, { color }], i) => (
             <Bar
               key={key}
-              yAxisId="left"
               dataKey={key.charAt(0).toUpperCase() + key.slice(1)}
               stackId="s"
               fill={color}
@@ -189,19 +181,30 @@ export default function SemaforoDashChart({ data }: Props) {
               />
             </Bar>
           ))}
+        </BarChart>
+      </ResponsiveContainer>
 
-          {/* Línea de facturación total */}
-          <Line
-            yAxisId="right"
-            type="monotone"
-            dataKey="facturacionTotal"
-            stroke="#00B4FF"
-            strokeWidth={2.5}
-            dot={{ fill: '#00B4FF', r: 5, strokeWidth: 2, stroke: '#0A1628' }}
-            activeDot={{ r: 7, stroke: '#00B4FF', strokeWidth: 2, fill: '#0A1628' }}
-            name="Facturación"
+      <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(200,228,255,0.65)', margin: '10px 0 4px 2px' }}>
+        Facturación de la cartera
+      </p>
+      <ResponsiveContainer width="100%" height={128}>
+        <BarChart data={chartData} margin={{ top: 4, right: 16, left: -20, bottom: 0 }}>
+          <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.04)" />
+          <XAxis
+            dataKey="name"
+            tick={{ fill: 'rgba(200,228,255,0.75)', fontSize: 12, fontWeight: 600 }}
+            axisLine={false} tickLine={false}
           />
-        </ComposedChart>
+          <YAxis
+            domain={[0, maxFac * 1.1]}
+            tickFormatter={v => `$${(v / 1000).toFixed(0)}k`}
+            tick={{ fill: 'rgba(200,228,255,0.40)', fontSize: 10 }}
+            axisLine={false} tickLine={false}
+          />
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,180,255,0.06)' }} />
+          <Bar dataKey="facturacionTotal" name="Facturación" fill="#00B4FF" fillOpacity={0.85}
+            maxBarSize={72} radius={[4, 4, 0, 0]} />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   )

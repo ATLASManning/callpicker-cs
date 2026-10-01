@@ -201,11 +201,26 @@ export async function deleteCuenta(id: string): Promise<void> {
 
 // ── KPIs / Dashboard ────────────────────────────────────────────────────────
 
-export async function getKPIs() {
-  const { data } = await supabaseAdmin
+/**
+ * Los KPIs de la portada, de TODA la cartera o de la de una asesora.
+ *
+ * El filtro no estaba, y por eso la portada de una asesora mezclaba dos
+ * universos sin decirlo: `getCuentas({ asesor })` le daba sus 68 cuentas y
+ * `getKPIs()` leía las 192 de la empresa. En la misma pantalla convivían «su»
+ * listado y «el» total de facturación, sin una etiqueta que los separara, y las
+ * barras de distribución de su cartera sumaban un tercio del alto.
+ *
+ * Mismo predicado de cartera viva —`activo` y `en_riesgo`— que `getCuentas` y
+ * `getSemaforoByAsesor`: si se separan, los tres bloques de la portada dejan de
+ * hablar del mismo conjunto y nadie lo nota.
+ */
+export async function getKPIs(filtro?: { asesor?: string }) {
+  let q = supabaseAdmin
     .from('cuentas')
     .select('empresa, facturacion, health_score, estado, asesor, notas')
     .in('estado', ['activo', 'en_riesgo'])
+  if (filtro?.asesor) q = q.eq('asesor', filtro.asesor)
+  const { data } = await q
 
   // Facturación viva desde Zoho (regla fuente única — ver getCuentas)
   let cuentas = (data ?? []) as Array<{ empresa: string; facturacion: number | null; health_score: number; notas: string | null; factura_mensual_zoho?: number | null }>

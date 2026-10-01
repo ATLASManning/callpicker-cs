@@ -75,11 +75,13 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
   const hsColor = (hs: number) =>
     hs < 30 ? '#FF4444' : hs < 40 ? '#F97316' : '#EAB308'
 
-  // Colores para el bar chart Top 10
-  const BAR_COLORS = [
-    '#00B4FF','#0090D4','#006DAA','#004D80','#003D66',
-    '#00B4FF','#0090D4','#006DAA','#004D80','#003D66',
-  ]
+  /* UN SOLO COLOR para las diez barras del Top 10.
+     Era una rampa de claro a oscuro por posicion... que volvia a empezar en la
+     sexta: la barra 6 salia tan clara como la 1, o sea que el color contradecia
+     el orden que aparentaba codificar. Y ese orden ya lo dice la LONGITUD de la
+     barra, que es la que lleva el dato.
+     Un color que no explica nada se lee como si explicara algo. */
+  const BAR_COLOR = '#00B4FF'
 
   return (
     <section style={{ background: 'transparent' }}>
@@ -157,7 +159,7 @@ export default function DashMetricasSection({ kpis, top10, churnRows, updatedAt 
               />
               <Bar dataKey="facturacion" radius={[0, 6, 6, 0]}>
                 {top10.map((_, i) => (
-                  <Cell key={i} fill={BAR_COLORS[i] ?? '#00B4FF'} />
+                  <Cell key={i} fill={BAR_COLOR} />
                 ))}
               </Bar>
             </BarChart>

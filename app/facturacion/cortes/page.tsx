@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   BarChart2, TrendingUp, AlertTriangle, RefreshCw,
@@ -79,6 +79,29 @@ const PLAN_COLORS = [
   '#60A5FA','#818CF8','#A78BFA','#F472B6','#34D399',
   '#FB923C','#22D3EE','#A3E635','#F87171','#FBBF24',
 ]
+
+/**
+ * El color sigue al PLAN, no a su puesto en el ranking.
+ *
+ * Antes era `PLAN_COLORS[i]` sobre el top-10 ya ordenado por monto, así que el
+ * color significaba «vas primero», no «eres este plan». Al cambiar de corte o
+ * de filtro, un plan que bajaba del tercer al quinto lugar cambiaba de color y
+ * el que subía heredaba el suyo: dos gráficas de la misma pantalla contaban
+ * historias distintas sobre el mismo plan, y comparar dos cortes de un vistazo
+ * dejaba de ser posible.
+ *
+ * El orden alfabético del catálogo completo es lo estable aquí: los planes
+ * cambian de cuando en cuando, el ranking cambia con cada filtro. Mientras el
+ * catálogo no se mueva, cada plan conserva su color aunque entre y salga del
+ * top-10 — que es exactamente el caso que rompía.
+ */
+function coloresPorPlan(planes: string[]): Record<string, string> {
+  const mapa: Record<string, string> = {}
+  ;[...planes].sort((a, b) => a.localeCompare(b, 'es')).forEach((plan, i) => {
+    mapa[plan] = PLAN_COLORS[i % PLAN_COLORS.length]
+  })
+  return mapa
+}
 /* Solo existen las paletas `_D`. Las claras se borraron el 18 sep 2026: toda
    esta pantalla —tabla, badges y gráficas— vive dentro de tarjetas oscuras, y
    tener las dos versiones lado a lado hacía que se tomara la equivocada sin
@@ -808,7 +831,12 @@ export default function InformeCortesPage() {
       {/* ══════════════════════════════════════════════════════════════════════
           TAB: RESUMEN — gráficas verticales con dark cards
       ══════════════════════════════════════════════════════════════════════ */}
-      {tab === 'resumen' && stats && (
+      {tab === 'resumen' && stats && (() => {
+      // Una sola vez por render, sobre el catálogo COMPLETO de planes: si se
+      // calculara dentro del `.map` del top-10, el color volvería a depender de
+      // quién entró en el corte.
+      const colorPlan = coloresPorPlan(Object.keys(stats.byPlan))
+      return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
 
           {/* Top Planes — Monto */}
@@ -821,7 +849,7 @@ export default function InformeCortesPage() {
               entries={Object.entries(stats.byPlan)
                 .sort((a, b) => b[1].monto - a[1].monto)
                 .slice(0, 10)
-                .map(([plan, v], i) => ({ label: shortPlan(plan), value: v.monto, color: PLAN_COLORS[i], sub: `${v.count}` }))}
+                .map(([plan, v]) => ({ label: shortPlan(plan), value: v.monto, color: colorPlan[plan], sub: `${v.count}` }))}
             />
           </div>
 
@@ -877,7 +905,8 @@ export default function InformeCortesPage() {
             />
           </div>
         </div>
-      )}
+      )
+      })()}
     </div>
   )
 }

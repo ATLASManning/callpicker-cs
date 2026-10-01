@@ -62,12 +62,20 @@ interface BitacoraEntry {
   modulos_contexto: string[]
 }
 
+/* Cada sugerencia tiene que apuntar a algo que el contexto VIVO pueda
+   contestar. «Promedio de días de activación» se quitó el 30 sep 2026: lo
+   único que Atlas tenía de activaciones era un bloque escrito a mano en el
+   prompt —2,601 activaciones, ~21.6 días, 21% dentro de SLA— y el archivo
+   real dice 10.1 días y 47%. El mejor año medido se leía como el peor, y un
+   botón de esta misma pantalla llevaba derecho a esa respuesta.
+   Las cifras se borraron del prompt; la pregunta vuelve cuando las
+   activaciones entren al contexto vivo, no antes. */
 const SUGERENCIAS = [
   '¿Qué cuentas tienen mayor riesgo de churn esta semana?',
   'Dame un script de WhatsApp para un cliente con score rojo',
   '¿Cómo identifico oportunidades de upsell con Callpicker Chat?',
   'Explícame el modelo de Health Score de Callpicker',
-  '¿Cuál es el promedio de días de activación este año?',
+  '¿Qué clientes se cancelaron el mes pasado y cuánto MRR representaron?',
   'Muéstrame las cuentas en auditoría de Claudia',
 ]
 

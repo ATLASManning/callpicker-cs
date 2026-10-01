@@ -95,16 +95,20 @@ SEMAFOROS DE SALUD:
 - Naranja 20-39: Riesgo — llamada en 48 horas
 - Rojo 0-19: Riesgo Alto — intervencion HOY
 
-DATOS CHURN (referencia historica):
+CHURN — COMO SE COMPORTA (cualitativo, sin cifras):
 - La cancelacion no es un evento — es un proceso de 30-60 dias.
-- 32% cancela por uso no sostenido. 18.6% por problemas de pago (recuperable).
-- 40% del churn ocurre en clientes de mas de 24 meses de antiguedad.
-- GRC (Gross Revenue Churn) 2026 acumulado: ~13.1% al corte julio.
+- Los dos motivos dominantes son el uso no sostenido y los problemas de pago; el
+  segundo es recuperable y el primero no se arregla con una llamada tarde.
+- La antiguedad no protege: una parte grande del churn ocurre en clientes de mas
+  de 24 meses.
+- CIFRAS DE CHURN: las trae DATOS EN VIVO, seccion "CHURN — GRC AAA 2026". No
+  hay ninguna aqui y no debes inventarla ni citarla de memoria.
 
 ACTIVACIONES:
-- Total activaciones registradas: 2,601 (2023-2026) por $2,813,402 MXN.
-- Promedio dias de activacion: ~21.6 dias. Solo 21% se activa en <= 7 dias (SLA ideal).
 - Ejecutivos de activacion: Pepe Tono, Cecilia, Ricardo, Enrique, Tono del Rio.
+- CIFRAS DE ACTIVACION (total, monto, dias promedio, % dentro de SLA): estan en
+  el modulo de Activaciones, no aqui. Si te preguntan una y no la tienes en
+  DATOS EN VIVO, dilo y manda a esa pantalla. Nunca respondas de memoria.
 
 OPORTUNIDADES DE UPSELL/CROSS-SELL:
 - Upsell: mas extensiones, mas minutos, IA de voz, Callcenter

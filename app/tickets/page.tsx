@@ -704,9 +704,18 @@ export default function TicketsPage() {
                       </p>
                     </button>
 
-                    {Object.entries(statsGlobal?.byMes ?? stats.byMes).sort().map(([mes, n], idx) => {
-                      const colors = ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7']
-                      const c = colors[idx % 4]
+                    {Object.entries(statsGlobal?.byMes ?? stats.byMes).sort().map(([mes, n]) => {
+                      /* UN SOLO COLOR. Antes eran cuatro tonos que giraban con
+                         la posición del mes (`colors[idx % 4]`), y ese giro no
+                         significaba nada: enero y mayo salían del mismo color
+                         por estar a cuatro meses de distancia. Al cambiar el
+                         rango, cada mes cambiaba de tono sin que nada hubiera
+                         cambiado en los datos.
+                         Un color que nada explica se lee como si explicara algo.
+                         Estos botones sirven para ELEGIR un mes: lo que tiene
+                         que distinguirse es el elegido, y eso ya lo hace el
+                         relleno sólido de `activo`. */
+                      const c = '#3b82f6'
                       const activo = overviewMes === mes
                       // El ÚLTIMO mes del archivo es el mes EN CURSO, no un mes
                       // «incompleto»: nada falta ni se perdió, simplemente no ha

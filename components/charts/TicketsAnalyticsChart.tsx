@@ -29,8 +29,15 @@ export interface TicketsAnalyticsData {
   porCategoria: { categoria: string; total: number; fallas: number }[]
   reincidentes: { empresa: string; categoria: string; count: number; fallas: number }[]
   tendencia:    { mes: string; label: string; total: number; fallas: number; otros: number }[]
+  /** Tickets DE CLIENTES — el mismo universo que dibujan las cuatro pestañas. */
   totalTickets: number
+  /** Fallas dentro de ese mismo universo, no dentro del archivo entero. */
   totalFallas:  number
+  /** Los internos (CID 0 y 1) existen y se dicen, pero no se mezclan. */
+  totalInternos: number
+  /** Cuántas combinaciones empresa × categoría reinciden en total, para que la
+   *  lista de doce no se lea como si fueran todas. */
+  reincidentesTotal: number
 }
 
 type TabKey = 'clientes' | 'servicio' | 'reincidencia' | 'tendencia'
@@ -42,21 +49,17 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'tendencia',    label: 'Tendencia',       icon: TrendingUp    },
 ]
 
-/* ── Tooltip shared ─────────────────────────────────────────────────── */
-function HBarTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  const total  = payload.find((p: any) => p.dataKey === 'total')?.value ?? 0
-  const fallas = payload.find((p: any) => p.dataKey === 'fallas')?.value ?? 0
-  const pct    = total > 0 ? ((fallas / total) * 100).toFixed(1) : '0'
-  return (
-    <div style={TT_STYLE}>
-      <p style={{ fontWeight: 700, marginBottom: 6, color: TX_HI }}>{label}</p>
-      <p style={{ color: CYAN }}>Total: <strong>{total}</strong></p>
-      {fallas > 0 && <p style={{ color: RED }}>Fallas: <strong>{fallas}</strong> ({pct}%)</p>}
-    </div>
-  )
-}
-
+/* ── Tooltip, uno solo para las tres pestañas ───────────────────────────
+ *
+ * Había dos, y uno de ellos mentía. `HBarTooltip` buscaba en el payload de
+ * Recharts una serie con `dataKey === 'total'`, pero las barras que se dibujan
+ * son `otros` y `fallas`: el `find` devolvía undefined, caía en el `?? 0` y el
+ * tooltip decía «Total: 0» en Top Clientes y en Por Servicio — dos de las
+ * cuatro pestañas. `payload: any` en la firma impedía que TypeScript lo viera.
+ *
+ * El total se reconstruye sumando lo que SÍ está dibujado. Un solo tooltip para
+ * las tres pestañas de barras apiladas: dos funciones idénticas salvo por un
+ * error es exactamente cómo el error sobrevive. */
 function StackedTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   const otros  = payload.find((p: any) => p.dataKey === 'otros')?.value ?? 0
@@ -87,7 +90,7 @@ function TopClientesChart({ data }: { data: TicketsAnalyticsData['topClientes'] 
           tick={{ fill: TX_MID, fontSize: 11 }}
           tickFormatter={v => v.length > 22 ? v.slice(0, 21) + '…' : v}
           axisLine={false} tickLine={false} />
-        <Tooltip content={<HBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+        <Tooltip content={<StackedTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
         <Bar dataKey="otros" name="Tickets" stackId="t" fill={CYAN} fillOpacity={0.85}
           radius={[0, 0, 0, 0]} barSize={14} />
         <Bar dataKey="fallas" name="Fallas" stackId="t" fill={RED} fillOpacity={0.9}
@@ -109,7 +112,7 @@ function PorServicioChart({ data }: { data: TicketsAnalyticsData['porCategoria']
           tick={{ fill: TX_MID, fontSize: 11 }}
           tickFormatter={v => v.length > 24 ? v.slice(0, 23) + '…' : v}
           axisLine={false} tickLine={false} />
-        <Tooltip content={<HBarTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+        <Tooltip content={<StackedTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
         <Bar dataKey="otros" name="Tickets" stackId="s" fill={CYAN} fillOpacity={0.85}
           radius={[0, 0, 0, 0]} barSize={14} />
         <Bar dataKey="fallas" name="Fallas" stackId="s" fill={RED} fillOpacity={0.9}
@@ -217,8 +220,9 @@ export default function TicketsAnalyticsChart({ data }: { data: TicketsAnalytics
             Análisis de Tickets
           </p>
           <p style={{ fontSize: 12, color: TX_LOW, marginTop: 2 }}>
-            {data.totalTickets.toLocaleString()} tickets totales ·&nbsp;
+            {data.totalTickets.toLocaleString()} tickets de clientes ·&nbsp;
             <span style={{ color: RED, fontWeight: 700 }}>{data.totalFallas} fallas ({fallaPct}%)</span>
+            {data.totalInternos > 0 && <> · {data.totalInternos} internos, fuera de estas vistas</>}
           </p>
         </div>
         <Leyenda />
@@ -250,7 +254,7 @@ export default function TicketsAnalyticsChart({ data }: { data: TicketsAnalytics
       {tab === 'clientes' && (
         <>
           <p style={{ fontSize: 12, color: TX_LOW, marginBottom: 12 }}>
-            Top 10 clientes por volumen de tickets — barras apiladas: atención (azul) + fallas (rojo)
+            Top 10 por volumen más el resto agrupado — las barras suman los {data.totalTickets.toLocaleString()} tickets de clientes. Apiladas: atención (azul) + fallas (rojo)
           </p>
           <TopClientesChart data={data.topClientes} />
         </>
@@ -268,7 +272,8 @@ export default function TicketsAnalyticsChart({ data }: { data: TicketsAnalytics
       {tab === 'reincidencia' && (
         <>
           <p style={{ fontSize: 12, color: TX_LOW, marginBottom: 16 }}>
-            Clientes con mayor repetición de solicitudes en un mismo tipo de soporte
+            Clientes con mayor repetición de solicitudes en un mismo tipo de soporte ·{' '}
+            {data.reincidentes.length} de {data.reincidentesTotal} combinaciones que reinciden
           </p>
           <ReincidenciaList data={data.reincidentes} />
         </>
