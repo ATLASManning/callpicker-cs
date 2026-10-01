@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { ahoraEnMexico, fechaLocal, selloMexico } from '@/lib/fecha-local'
 
 /**
@@ -27,13 +28,37 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   const configurado = Boolean(process.env.CRON_SECRET)
   const hoy = ahoraEnMexico()
+
+  /* Lo que ve el EDGE, que es quien de verdad abre o cierra la puerta.
+   *
+   * `configurado` de arriba es lo que ve Node, y eso NO basta: el 30 sep 2026
+   * decía `true` mientras los crons seguían recibiendo el HTML del login. El
+   * middleware deja estas dos cabeceras en la petición (ver middleware.ts) y
+   * aquí se publican tal cual. Ninguna revela el secreto.
+   *
+   * `coincide` solo dice algo si quien pregunta mandó una cabecera
+   * `Authorization: Bearer …`; si no, vale 'sin-cabecera'. */
+  const h = headers()
+  const edgeLoVe = h.get('x-cron-edge') ?? 'desconocido'
+  const coincide = h.get('x-cron-match') ?? 'desconocido'
+  const deAcuerdo = edgeLoVe === 'si' && configurado
+
   return NextResponse.json({
     cronSecretConfigurado: configurado,
-    puedenCorrer: configurado,
-    nota: configurado
-      ? 'Las tareas programadas pueden autenticarse.'
-      : 'CRON_SECRET no está configurado en Vercel: el middleware bloquea todo cron, ' +
-        'a propósito. Configúralo en Settings → Environment Variables y vuelve a desplegar.',
+    edgeTieneLaVariable: edgeLoVe,
+    loQueMandasteCoincide: coincide,
+    puedenCorrer: deAcuerdo,
+    nota: !configurado
+      ? 'CRON_SECRET no está configurado en Vercel: el middleware bloquea todo cron, ' +
+        'a propósito. Configúralo en Settings → Environment Variables y vuelve a desplegar.'
+      : edgeLoVe === 'no'
+      ? 'Node ve la variable pero el EDGE no: el middleware sigue con la copia de un ' +
+        'build anterior. Vuelve a desplegar — sin eso el cron entra al login y Vercel ' +
+        'lo da por exitoso.'
+      : coincide === 'no'
+      ? 'El Edge tiene la variable, pero NO es la que mandaste. El valor guardado en ' +
+        'Vercel y el de .env.local son distintos: vuelve a pegarlo.'
+      : 'Las tareas programadas pueden autenticarse.',
     tareas: [
       { ruta: '/api/cron/generar-semana', horario: '0 14 * * 1', descripcion: 'Lote semanal de actividades, lunes 08:00 de México' },
       { ruta: '/api/cron/refresh-tenure', horario: '0 12 1 * *', descripcion: 'Refresco de antigüedad, día 1 de cada mes' },

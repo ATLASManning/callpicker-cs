@@ -53,6 +53,34 @@ export async function middleware(req: NextRequest) {
     )
   ) return NextResponse.next()
 
+  /* ── EL EDGE SE DELATA A SÍ MISMO, SOLO EN `/api/cron/estado` ──────────
+   *
+   * El 30 sep 2026 se configuró CRON_SECRET en Vercel y `/api/cron/estado`
+   * contestó `puedenCorrer: true` de inmediato… mientras una llamada real de
+   * cron seguía recibiendo el HTML del login. Las dos cosas son ciertas a la
+   * vez: ese estado lo lee la RUTA, que corre en Node; quien decide si la
+   * llamada entra es ESTE archivo, que corre en el Edge. Si discrepan, el flag
+   * dice que todo está bien y el cron no corre — en silencio, que es la forma
+   * de falla que este tablero ya padeció durante meses.
+   *
+   * Así que el Edge contesta dos preguntas sobre sí mismo, y ninguna revela el
+   * secreto: si TIENE la variable, y si lo que le acaban de mandar COINCIDE.
+   * No el valor, no un prefijo, no la longitud. Con eso se separan las tres
+   * causas posibles: la variable no llegó al Edge, el valor guardado es otro,
+   * o el problema está en otra parte.
+   *
+   * Va solo en esta ruta, que ya era pública, y solo si quien pregunta trae
+   * una cabecera `authorization` — sin ella no hay nada que comparar. */
+  if (pathname === '/api/cron/estado') {
+    const enviado = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+    const res = NextResponse.next()
+    res.headers.set('x-cron-edge', process.env.CRON_SECRET ? 'si' : 'no')
+    res.headers.set('x-cron-match',
+      !enviado ? 'sin-cabecera'
+        : enviado === process.env.CRON_SECRET ? 'si' : 'no')
+    return res
+  }
+
   if (isPublic(pathname)) return NextResponse.next()
 
   /* ── LAS TAREAS PROGRAMADAS ENTRAN CON SU PROPIO SECRETO ───────────────

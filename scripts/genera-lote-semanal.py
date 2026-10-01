@@ -157,6 +157,22 @@ def prueba_cron():
     if not secreto:
         print('No hay CRON_SECRET en .env.local; no se puede imitar la llamada de Vercel.')
         return 1
+
+    # Primero se le pregunta al Edge por si mismo. `/api/cron/estado` es publica,
+    # asi que esto responde aunque la puerta del cron siga cerrada -- y separa las
+    # tres causas: no llego al Edge, el valor es otro, o el fallo esta en otra parte.
+    diag = urllib.request.Request(BASE + '/api/cron/estado')
+    diag.add_header('Authorization', f'Bearer {secreto}')
+    try:
+        with urllib.request.urlopen(diag, timeout=30) as r:
+            d = json.loads(r.read().decode('utf-8'))
+        print(f"  Node ve la variable : {d.get('cronSecretConfigurado')}")
+        print(f"  Edge ve la variable : {d.get('edgeTieneLaVariable')}")
+        print(f"  coincide con la mia : {d.get('loQueMandasteCoincide')}")
+        print(f"  {d.get('nota')}\n")
+    except Exception as e:
+        print(f'  (no se pudo leer el diagnostico del Edge: {e})\n')
+
     req = urllib.request.Request(BASE + '/api/cron/generar-semana')
     req.add_header('Authorization', f'Bearer {secreto}')
     try:
