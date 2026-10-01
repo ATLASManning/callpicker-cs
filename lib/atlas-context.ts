@@ -495,9 +495,7 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     : ''
   sections.push(
     `CHURN — GRC AAA 2026 (apartado Churn > GRC AAA 2026 | ${rango}${nota} ` +
-    `| formato: cliente(MRR perdido)[cartera], ${LEYENDA_CARTERA}):
-${grcLines.join('
-')}`
+    `| formato: cliente(MRR perdido)[cartera], ${LEYENDA_CARTERA}):\n${grcLines.join('\n')}`
   )
   modulos.push('churn-grc')
 
