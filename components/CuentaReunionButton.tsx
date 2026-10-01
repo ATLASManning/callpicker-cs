@@ -11,13 +11,18 @@ import { CalendarCheck } from 'lucide-react'
  * comparten palabras, igual que cualquier cuenta que empiece con "Grupo". Ahora
  * cuenta por `cuenta_id`, que es el vínculo real, y si la migración todavía no
  * corre simplemente no muestra nada — antes de mostrar un número inventado.
+ *
+ * Cuenta TODAS las vinculadas, sin filtrar por tipo: desde el 1 oct 2026 una
+ * junta de estrategia también puede vincularse, y filtrar aquí por
+ * `tipo=cliente` daría un número menor al que muestra el panel de la misma
+ * ficha. Dos cifras distintas para lo mismo es peor que una sola imperfecta.
  */
 export default function CuentaReunionButton({ cuentaId }: { cuentaId: string }) {
   const [count, setCount] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelado = false
-    fetch(`/api/reuniones?tipo=cliente&cuenta_id=${encodeURIComponent(cuentaId)}`)
+    fetch(`/api/reuniones?cuenta_id=${encodeURIComponent(cuentaId)}`)
       .then(r => (r.ok ? r.json() : { rows: [] }))
       .then(d => {
         if (cancelado) return

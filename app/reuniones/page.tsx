@@ -8,8 +8,7 @@ import {
 import Link from 'next/link'
 import CustomSelect from '@/components/CustomSelect'
 import { hoyLocal } from '@/lib/fecha-local'
-
-type TipoReunion = 'junta_semanal' | 'one_on_one' | 'cliente' | 'estrategia' | 'otro'
+import { llevaCuenta, exigeCuenta, type TipoReunion } from '@/lib/reuniones-tipo'
 
 type Reunion = {
   id: string
@@ -37,30 +36,10 @@ const TIPOS: Record<TipoReunion, { label: string; color: string; bg: string }> =
   otro:          { label: 'Otro',           color: '#475569', bg: 'rgba(71,85,105,0.08)' },
 }
 
-/**
- * Que reuniones llevan cuenta, y en cuales es obligatoria.
- *
- * Instruccion de direccion, 30 sep 2026: «en todas debes tener el combo de
- * eleccion de cliente, salvo en el caso de One To One». Una junta semanal o una
- * de estrategia pueden ser SOBRE una cuenta, y antes no habia donde decirlo: el
- * selector solo aparecia en las de tipo Cliente, asi que esa reunion quedaba
- * sin vincular y no salia en la ficha del cliente del que se hablo.
- *
- * El One To One es entre dos personas de la casa. No tiene cuenta y ofrecerla
- * seria invitar a inventarse una.
- */
-const SIN_CUENTA: ReadonlySet<TipoReunion> = new Set(['one_on_one'])
-
-/** Mostrar el combo no es lo mismo que exigirlo. */
-function llevaCuenta(t: TipoReunion): boolean { return !SIN_CUENTA.has(t) }
-
-/**
- * Solo la reunion CON CLIENTE obliga. En las demas la cuenta es opcional a
- * proposito: una junta semanal puede ser sobre una cuenta o sobre el equipo, y
- * exigirla forzaria a elegir una cualquiera con tal de poder guardar — que es
- * peor que no tenerla.
- */
-function exigeCuenta(t: TipoReunion): boolean { return t === 'cliente' }
+/* `llevaCuenta` y `exigeCuenta` viven en lib/reuniones-tipo.ts porque el
+   servidor necesita la MISMA regla. Mientras estuvieron sólo aquí, la API tenía
+   su propia copia (`tipo === 'cliente'`) y tiraba el vínculo de todo lo demás
+   devolviendo 200. Ver el encabezado de ese archivo. */
 
 const STORAGE_KEY = 'cp_reuniones'
 /* En hora local, no UTC: después de las 18:00 en México toISOString()

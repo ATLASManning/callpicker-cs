@@ -25,6 +25,7 @@
  */
 import { supabaseAdmin } from '@/lib/supabase'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
+import { esConElCliente } from '@/lib/reuniones-tipo'
 
 export interface DesgloseRelacion {
   seguimientos: number
@@ -146,9 +147,16 @@ export async function relacionamientoDeCuentas(
       ? PESOS.actividades * (0.5 * Math.min(1, nAct / 4) + 0.5 * (nComp / nAct))
       : 0
 
-    /* 3 · Reuniones con el cliente — la señal más fuerte de relación real:
-           implica agenda, asistencia de ambas partes y acuerdos. */
-    const nReu = reuniones.length
+    /* 3 · Reuniones CON el cliente — la señal más fuerte de relación real:
+           implica agenda, asistencia de ambas partes y acuerdos.
+
+           Sólo cuentan las de tipo `cliente`. Desde el 1 oct 2026 una junta de
+           estrategia o una semanal también pueden vincularse a una cuenta —son
+           contexto legítimo y sí salen en la ficha— pero son reuniones SOBRE el
+           cliente, no CON él. Sumarlas aquí subiría `score_relacional` sin que
+           nadie hubiera hablado con nadie. */
+    const conCliente = reuniones.filter(r => esConElCliente(r.tipo))
+    const nReu = conCliente.length
     const pReu = nReu === 0 ? 0 : nReu === 1 ? 9 : nReu === 2 ? 12 : PESOS.reuniones
 
     /* 4 · Stakeholders — el programa exige varios contactos activos y no
@@ -170,10 +178,12 @@ export async function relacionamientoDeCuentas(
 
     const bruto = pSeg + pAct + pReu + pCon + pAud + pDoc
 
-    // Recencia: el contacto más reciente entre seguimientos, reuniones y ficha
+    // Recencia: el CONTACTO más reciente entre seguimientos, reuniones y ficha.
+    // Por la misma razón de arriba sólo entran las reuniones con el cliente:
+    // una junta interna de ayer no es haber hablado con él ayer.
     const fechas = [
       ...seguimientos.map(s => s.fecha),
-      ...reuniones.map(r => r.fecha),
+      ...conCliente.map(r => r.fecha),
       e.ultimoContacto ?? null,
     ]
     const dias = fechas

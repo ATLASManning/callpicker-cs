@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { llevaCuenta, exigeCuenta } from '@/lib/reuniones-tipo'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,27 +52,35 @@ export async function POST(req: NextRequest) {
   if (!fecha || !titulo?.trim()) {
     return NextResponse.json({ error: 'fecha y titulo son requeridos' }, { status: 400 })
   }
+  const tipoFinal = tipo ?? 'junta_semanal'
+
   // Una reunión de cliente sin cuenta vinculada no sirve para nada aguas
   // abajo: no alimenta el relacionamiento ni aparece en la ficha. Se exige.
-  if (tipo === 'cliente' && !cuenta_id) {
+  if (exigeCuenta(tipoFinal) && !cuenta_id) {
     return NextResponse.json(
       { error: 'Una reunión con cliente debe vincularse a una cuenta' }, { status: 400 })
   }
 
-  const esCliente = tipo === 'cliente'
+  // El vínculo se GUARDA en todo tipo que lo ofrezca, no sólo en las de
+  // cliente. Antes esta línea decía `tipo === 'cliente' ? cuenta_id : null` y
+  // el formulario —que muestra el combo en todos los tipos salvo One To One—
+  // prometía por escrito que contaría en el relacionamiento. El servidor lo
+  // tiraba y devolvía 200: 55 reuniones quedaron huérfanas sin un solo error.
+  // La regla ahora es una sola, en lib/reuniones-tipo.ts, y la usan los dos.
+  const vincula = llevaCuenta(tipoFinal)
   const { data, error } = await supabaseAdmin
     .from('reuniones')
     .insert({
       fecha,
-      tipo:           tipo ?? 'junta_semanal',
+      tipo:           tipoFinal,
       titulo:         titulo.trim(),
       participantes:  participantes ?? '',
       resumen:        resumen ?? '',
       acuerdos:       acuerdos ?? '',
       proximos_pasos: proximos_pasos ?? '',
-      cuenta_id:      esCliente ? cuenta_id : null,
-      cid:            esCliente ? (cid ?? null) : null,
-      empresa:        esCliente ? (empresa ?? null) : null,
+      cuenta_id:      vincula ? (cuenta_id ?? null) : null,
+      cid:            vincula ? (cid ?? null) : null,
+      empresa:        vincula ? (empresa ?? null) : null,
     })
     .select()
     .single()
@@ -84,9 +93,13 @@ export async function POST(req: NextRequest) {
     // ANTES esto reintentaba el insert SIN esas columnas y devolvía 200: la
     // reunión se guardaba sin cuenta y el usuario creía haberla vinculado. Ésa
     // es la razón de que las 18 reuniones de cliente quedaran huérfanas.
-    // Ahora, si es una reunión de cliente, se rechaza de forma explícita.
+    //
+    // La condición para rechazar es «SE PIDIÓ UN VÍNCULO», no «es de tipo
+    // cliente»: una junta de estrategia con cuenta elegida se perdería igual de
+    // silenciosamente. Sólo se reintenta sin columnas cuando no había nada que
+    // vincular, y ahí no se pierde nada.
     if (error.code === '42703' || error.message.includes("'empresa'")) {
-      if (esCliente) {
+      if (vincula && cuenta_id) {
         return NextResponse.json({
           error: 'migracion_pendiente',
           mensaje: 'Falta ejecutar scripts/migracion-reuniones-cuenta.sql: la tabla reuniones '
@@ -96,7 +109,7 @@ export async function POST(req: NextRequest) {
       }
       const { data: data2, error: e2 } = await supabaseAdmin
         .from('reuniones')
-        .insert({ fecha, tipo: tipo ?? 'junta_semanal', titulo: titulo.trim(), participantes: participantes ?? '', resumen: resumen ?? '', acuerdos: acuerdos ?? '', proximos_pasos: proximos_pasos ?? '' })
+        .insert({ fecha, tipo: tipoFinal, titulo: titulo.trim(), participantes: participantes ?? '', resumen: resumen ?? '', acuerdos: acuerdos ?? '', proximos_pasos: proximos_pasos ?? '' })
         .select()
         .single()
       if (e2) return NextResponse.json({ error: e2.message }, { status: 500 })

@@ -353,6 +353,7 @@ export interface ReunionCuenta {
   id: string
   fecha: string
   titulo: string
+  tipo: string | null
   participantes: string | null
   resumen: string | null
   acuerdos: string | null
@@ -360,7 +361,12 @@ export interface ReunionCuenta {
 }
 
 /**
- * Reuniones con el cliente de una cuenta, por VÍNCULO REAL (cuenta_id).
+ * Reuniones de una cuenta, por VÍNCULO REAL (cuenta_id).
+ *
+ * Devuelve TODAS las vinculadas, no sólo las de tipo `cliente`: una junta de
+ * estrategia sobre esta cuenta es contexto que el KAM necesita ver en la ficha.
+ * Por eso se trae `tipo` — para que el panel diga cuál fue CON el cliente y
+ * cuál fue SOBRE él, en vez de presentarlas todas como reuniones con él.
  *
  * Devuelve [] mientras la migración scripts/migracion-reuniones-cuenta.sql no
  * se haya ejecutado: se prefiere no mostrar nada antes que mostrar reuniones
@@ -372,7 +378,7 @@ export async function getReunionesDeCuenta(
 ): Promise<{ rows: ReunionCuenta[]; vinculoDisponible: boolean }> {
   const { data, error } = await supabaseAdmin
     .from('reuniones')
-    .select('id, fecha, titulo, participantes, resumen, acuerdos, proximos_pasos')
+    .select('id, fecha, titulo, tipo, participantes, resumen, acuerdos, proximos_pasos')
     .eq('cuenta_id', cuentaId)
     .order('fecha', { ascending: false })
     .limit(50)

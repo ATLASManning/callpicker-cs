@@ -1,5 +1,6 @@
 import type { ReunionCuenta } from '@/lib/supabase'
 import type { Relacionamiento } from '@/lib/relacionamiento'
+import { esConElCliente, etiquetaTipo } from '@/lib/reuniones-tipo'
 
 /**
  * Relacionamiento de la cuenta y las reuniones que lo sustentan.
@@ -57,6 +58,8 @@ export default function CuentaRelacionPanel({
   migracionPendiente: boolean
 }) {
   const c = relacion ? COLOR[relacion.nivel] : COLOR['Sin relación registrada']
+  const nConCliente = reuniones.filter(r => esConElCliente(r.tipo)).length
+  const nInternas   = reuniones.length - nConCliente
 
   return (
     <div className="cp-card" style={{ borderRadius: 12, padding: '14px 16px' }}>
@@ -142,17 +145,26 @@ export default function CuentaRelacionPanel({
         </p>
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
+          {/* El encabezado CUENTA los dos grupos por separado. Decir «4
+              reuniones con el cliente» cuando una fue una sesión interna de
+              estrategia es afirmar un contacto que no ocurrió — y sólo las de
+              cliente suman al 15% del relacionamiento. */}
           <span style={{
             background: 'transparent', fontSize: 10.5, fontWeight: 700, color: TXT_MID,
             textTransform: 'uppercase', letterSpacing: '0.05em',
           }}>
-            {reuniones.length} {reuniones.length === 1 ? 'reunión' : 'reuniones'} con el cliente
+            {nConCliente > 0 && `${nConCliente} ${nConCliente === 1 ? 'reunión' : 'reuniones'} con el cliente`}
+            {nConCliente > 0 && nInternas > 0 && ' · '}
+            {nInternas > 0 && `${nInternas} ${nInternas === 1 ? 'interna' : 'internas'} sobre la cuenta`}
           </span>
-          {reuniones.slice(0, 6).map(r => (
-            <div key={r.id} style={{ borderLeft: `2px solid ${VERDE}`, paddingLeft: 10 }}>
+          {reuniones.slice(0, 6).map(r => {
+            const conCliente = esConElCliente(r.tipo)
+            const borde = conCliente ? VERDE : TENUE
+            return (
+            <div key={r.id} style={{ borderLeft: `2px solid ${borde}`, paddingLeft: 10 }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
                 <span style={{
-                  background: 'transparent', fontSize: 10.5, color: VERDE,
+                  background: 'transparent', fontSize: 10.5, color: borde,
                   fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                 }}>
                   {r.fecha}
@@ -160,6 +172,15 @@ export default function CuentaRelacionPanel({
                 <span style={{ background: 'transparent', fontSize: 12, color: TXT_HI, fontWeight: 600 }}>
                   {r.titulo}
                 </span>
+                {!conCliente && (
+                  <span style={{
+                    fontSize: 9, fontWeight: 700, padding: '1px 7px', borderRadius: 999,
+                    color: TXT_MID, background: 'rgba(255,255,255,0.08)',
+                    textTransform: 'uppercase', letterSpacing: '0.04em',
+                  }}>
+                    {etiquetaTipo(r.tipo)} · interna
+                  </span>
+                )}
               </div>
               {r.acuerdos?.trim() && (
                 <p style={{ fontSize: 11, margin: '3px 0 0', lineHeight: 1.45 }}>
@@ -172,7 +193,7 @@ export default function CuentaRelacionPanel({
                 </p>
               )}
             </div>
-          ))}
+          )})}
           {reuniones.length > 6 && (
             <span style={{ background: 'transparent', fontSize: 10.5, color: TENUE }}>
               y {reuniones.length - 6} {reuniones.length - 6 === 1 ? 'reunión' : 'reuniones'} más
