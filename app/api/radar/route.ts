@@ -108,16 +108,53 @@ export async function GET(req: NextRequest) {
       }
     })
 
-  /* Adopción */
+  /* Adopción
+   *
+   * DOS COSAS QUE ESTE BLOQUE HACÍA MAL, medidas el 1 de octubre de 2026 sobre
+   * las 1,121 filas de la tabla y las 163 cuentas vivas con adopción:
+   *
+   * 1. CONTABA `no_aplica` COMO ADOPCIÓN BAJA. De las 1,121 filas, 660 son
+   *    `no_aplica` y solo 92 son `bajo`. Resultado: 149 de 163 cuentas en rojo
+   *    —el 91% de la cartera— y 1,378 puntos de penalización. Un indicador en
+   *    rojo en nueve de cada diez cuentas no distingue nada, y tapa a las que
+   *    sí tienen adopción baja de verdad. Además `no_aplica` es lo contrario de
+   *    un riesgo: es un producto que el cliente no contrató, o sea un hueco por
+   *    vender, y se estaba penalizando.
+   *
+   * 2. SE QUEDABA CON LA FILA VIEJA EN LOS CORTES DUPLICADOS. Hay 8 cuentas con
+   *    dos filas del MISMO producto en el mismo `fecha`, porque el modal guardó
+   *    dos veces con segundos de diferencia. El `select` no traía `created_at`,
+   *    así que no había con qué desempatar y el Radar conservaba el valor que la
+   *    asesora ya había corregido en el segundo guardado.
+   *
+   * El denominador pasa a ser lo CONTRATADO —alto, medio o bajo—. `no_aplica`
+   * se cuenta aparte y no se publica como oportunidad de venta: 86% de esas
+   * filas son el valor por omisión del modal, no una afirmación de que el
+   * cliente no lo tenga, y el hueco por vender ya lo calcula `lib/candidato-a.ts`
+   * desde el plan facturado. */
   const { data: adop } = await supabaseAdmin
     .from('adopcion_producto')
-    .select('producto, nivel, fecha')
+    .select('producto, nivel, fecha, created_at')
     .eq('cuenta_id', cuentaId)
     .order('fecha', { ascending: false })
+    .order('created_at', { ascending: false })
 
   const ultimaFecha = adop?.[0]?.fecha ?? null
-  const delUltimoCorte = (adop ?? []).filter(a => a.fecha === ultimaFecha)
-  const adopcionBaja = delUltimoCorte.filter(a => a.nivel === 'bajo' || a.nivel === 'no_aplica').length
+  const vistos = new Set<string>()
+  const delUltimoCorte = (adop ?? [])
+    .filter(a => a.fecha === ultimaFecha)
+    // Ya vienen ordenadas por `created_at` descendente, así que la primera de
+    // cada producto es la más reciente: la que la asesora dejó buena.
+    .filter(a => {
+      if (vistos.has(a.producto)) return false
+      vistos.add(a.producto)
+      return true
+    })
+
+  const CONTRATADO = new Set(['alto', 'medio', 'bajo'])
+  const adopcionContratados = delUltimoCorte.filter(a => CONTRATADO.has(a.nivel)).length
+  const adopcionBajaContratados = delUltimoCorte.filter(a => a.nivel === 'bajo').length
+  const adopcionNoAplica = delUltimoCorte.length - adopcionContratados
 
   /* Última conversación de valor */
   const { data: seg } = await supabaseAdmin
@@ -145,7 +182,7 @@ export async function GET(req: NextRequest) {
     tieneObsKam: kamRaw !== '' && kamRaw !== '0',
     registrosAdopcion: adop?.length ?? 0,
     fechaUltimaAdopcion: ultimaFecha,
-    adopcionBaja, adopcionTotal: delUltimoCorte.length,
+    adopcionBajaContratados, adopcionContratados, adopcionNoAplica,
     ultimaConversacion,
     totalActividades: act?.length ?? 0,
     // Soporte: el export de Zoho da la HISTORIA y la mesa de ayuda el PRESENTE.

@@ -89,8 +89,13 @@ export interface EntradaRadar {
   tieneObsKam: boolean
   registrosAdopcion: number
   fechaUltimaAdopcion: string | null
-  adopcionBaja: number          // productos en bajo/no_aplica
-  adopcionTotal: number
+  /** Productos CONTRATADOS en nivel bajo. `no_aplica` ya no entra aquí. */
+  adopcionBajaContratados: number
+  /** Productos contratados y evaluados: alto, medio o bajo. Es el denominador. */
+  adopcionContratados: number
+  /** Los `no_aplica` del corte. Se cuentan para poder nombrarlos, NO para
+   *  penalizar ni para publicarlos como oportunidad de venta. */
+  adopcionNoAplica: number
   ultimaConversacion: string | null   // ISO
   totalActividades: number
   /**
@@ -245,18 +250,42 @@ export function evaluarRadar(e: EntradaRadar): RadarCuenta {
       nota: '0 registros · punto ciego', riesgo: true, penalizacion: 10,
     })
   } else {
-    const pctBaja = e.adopcionTotal > 0 ? (e.adopcionBaja / e.adopcionTotal) * 100 : 0
+    const n = e.adopcionContratados
+    const pctBaja = n > 0 ? (e.adopcionBajaContratados / n) * 100 : 0
     const diasAd = e.fechaUltimaAdopcion
       ? Math.floor((Date.now() - new Date(e.fechaUltimaAdopcion).getTime()) / 86400000)
       : null
     const vieja = diasAd !== null && diasAd > 30
-    ind.push({
-      id: 'adopcion', label: 'Adopción de producto',
-      valor: `${pctBaja.toFixed(0)}% en bajo`,
-      nota: diasAd !== null ? `revisada hace ${diasAd} días` : 'sin fecha',
-      riesgo: pctBaja >= 30 || vieja,
-      penalizacion: pctBaja >= 50 ? 10 : pctBaja >= 30 ? 6 : vieja ? 4 : 0,
-    })
+    const sueltos = e.adopcionNoAplica
+      ? ` · ${e.adopcionNoAplica} sin evaluar o fuera del plan`
+      : ''
+
+    if (n === 0) {
+      /* Ningún producto contratado evaluado. No es 0% de adopción baja: es que
+         no hay contra qué medirla. Un cero sin medición no es un cero. */
+      ind.push({
+        id: 'adopcion', label: 'Adopción de producto',
+        valor: 'sin medición',
+        nota: `ningún producto contratado evaluado${sueltos}`,
+        riesgo: false, penalizacion: 0,
+      })
+    } else {
+      /* Con uno o dos productos contratados se publica el CONTEO, no el
+         porcentaje: 107 de las 163 cuentas vivas están ahí, y sobre n=2 un
+         «50% en bajo» es teatro — una sola fila mueve el indicador medio eje.
+         Por lo mismo el tramo de −10 exige al menos tres: con menos, una fila
+         arrastraría la penalización completa. */
+      const valor = n < 3
+        ? `${e.adopcionBajaContratados} de ${n} contratado${n === 1 ? '' : 's'} en bajo`
+        : `${pctBaja.toFixed(0)}% de ${n} contratados en bajo`
+      ind.push({
+        id: 'adopcion', label: 'Adopción de producto',
+        valor,
+        nota: (diasAd !== null ? `revisada hace ${diasAd} días` : 'sin fecha') + sueltos,
+        riesgo: pctBaja >= 30 || vieja,
+        penalizacion: (pctBaja >= 50 && n >= 3) ? 10 : pctBaja >= 30 ? 6 : vieja ? 4 : 0,
+      })
+    }
   }
 
   /* ── 8. Tickets ──
