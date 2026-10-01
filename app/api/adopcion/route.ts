@@ -28,7 +28,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'cuenta_id y productos son requeridos' }, { status: 400 })
   }
 
-  const rows = productos.map((p: { producto: string; nivel: string; notas?: string }) => ({
+  /* «sin evaluar» NO SE GUARDA, y la ruta lo vuelve a comprobar aunque el modal
+     ya lo filtre: es la unica puerta a esta tabla y el CHECK de la columna solo
+     admite alto/medio/bajo/no_aplica, asi que una fila asi reventaria el insert
+     con un mensaje de Postgres que nadie sabria leer.
+     La ausencia de fila ES «sin evaluar». */
+  const NIVELES_VALIDOS = new Set(['alto', 'medio', 'bajo', 'no_aplica'])
+  const limpias = (productos as Array<{ producto: string; nivel: string; notas?: string }>)
+    .filter(p => NIVELES_VALIDOS.has(p.nivel))
+
+  if (!limpias.length) {
+    return NextResponse.json(
+      { error: 'No hay nada que guardar: ningun producto trae un nivel evaluado.' },
+      { status: 400 },
+    )
+  }
+
+  const rows = limpias.map(p => ({
     cuenta_id: cuenta_id,  // uuid string — no convertir a Number
     producto:  p.producto,
     nivel:     p.nivel,

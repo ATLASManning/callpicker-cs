@@ -22,6 +22,25 @@ export const PRODUCTOS = [
 
 type Nivel = 'alto' | 'medio' | 'bajo' | 'no_aplica'
 
+/* «Sin evaluar» vive SOLO en la pantalla: no se guarda y no existe en la tabla
+   —el CHECK de la columna admite los cuatro de arriba y nada mas—. La ausencia
+   de fila ES «sin evaluar», y los tres lectores ya la entienden asi: el panel
+   pinta «—» y la portada y el Radar no la cuentan.
+
+   POR QUE HIZO FALTA. El modal inicializaba los ocho productos en `no_aplica` y
+   los guardaba todos, tocara la asesora uno o cinco. Medido el 1 oct 2026:
+   104 de 104 guardados de asesora tienen exactamente 8 filas, y de las 660
+   filas en `no_aplica` hay 566 SIN NOTA, escritas las tres asesoras — ninguna
+   por la evaluacion automatica.
+
+   «No aplica» es una AFIRMACION: este cliente no tiene este producto. Ponerla
+   por omision convertia un campo en blanco en un juicio que nadie emitio, y el
+   dano era permanente porque el candado de `/api/adopcion/auto` —«nunca
+   sobrescribo lo que puso una persona»— no distingue un juicio deliberado de un
+   valor por defecto: esos pares quedaban fuera de la evaluacion automatica para
+   siempre. */
+type NivelUI = Nivel | 'sin_evaluar'
+
 const NIVEL_CFG: Record<Nivel, {
   label: string; color: string; bg: string; border: string; dot: string
 }> = {
@@ -29,6 +48,10 @@ const NIVEL_CFG: Record<Nivel, {
   medio:     { label: 'Medio',     dot: '#f59e0b', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
   bajo:      { label: 'Bajo',      dot: '#ef4444', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
   no_aplica: { label: 'No Aplica', dot: '#9ca3af', color: '#4b5563', bg: '#f9fafb', border: '#e5e7eb' },
+}
+
+const SIN_EVALUAR_CFG = {
+  label: 'Sin evaluar', dot: '#d1d5db', color: '#6b7280', bg: '#ffffff', border: '#e5e7eb',
 }
 
 const MIGRATION_SQL = `CREATE TABLE IF NOT EXISTS adopcion_producto (
@@ -97,12 +120,16 @@ function NivelBadge({ nivel }: { nivel: Nivel }) {
 }
 
 function NivelSelect({ value, onChange }: {
-  value: Nivel; onChange: (v: Nivel) => void
+  value: NivelUI; onChange: (v: NivelUI) => void
 }) {
+  /* «Sin evaluar» va PRIMERO y es donde arranca un producto que nadie ha
+     tocado. Antes esa posicion la ocupaba «No Aplica», que es una afirmacion
+     sobre el cliente: el valor por omision decia algo que nadie habia dicho. */
+  const OPCIONES: NivelUI[] = ['sin_evaluar', 'alto', 'medio', 'bajo', 'no_aplica']
   return (
     <div className="flex gap-1.5 flex-wrap">
-      {(Object.keys(NIVEL_CFG) as Nivel[]).map(n => {
-        const c   = NIVEL_CFG[n]
+      {OPCIONES.map(n => {
+        const c   = n === 'sin_evaluar' ? SIN_EVALUAR_CFG : NIVEL_CFG[n as Nivel]
         const sel = value === n
         return (
           <button key={n} type="button" onClick={() => onChange(n)}
@@ -141,7 +168,7 @@ export default function AdopcionProducto({
   const [migrationSql, setMigrationSql] = useState('')
   const [copied, setCopied]             = useState(false)
 
-  const [editVals, setEditVals] = useState<Record<string, { nivel: Nivel; notas: string }>>({})
+  const [editVals, setEditVals] = useState<Record<string, { nivel: NivelUI; notas: string }>>({})
 
   /* ── Cargar datos ──────────────────────────────────────────────── */
   const load = useCallback(async () => {
@@ -181,10 +208,11 @@ export default function AdopcionProducto({
 
   /* ── Abrir modal de edición ─────────────────────────────────────── */
   function openEdit() {
-    const init: Record<string, { nivel: Nivel; notas: string }> = {}
+    const init: Record<string, { nivel: NivelUI; notas: string }> = {}
     for (const p of PRODUCTOS) {
       init[p] = {
-        nivel: current[p]?.nivel ?? 'no_aplica',
+        // Lo que ya tenga evaluado se respeta; lo que no, arranca SIN EVALUAR.
+        nivel: current[p]?.nivel ?? 'sin_evaluar',
         notas: current[p]?.notas ?? '',
       }
     }
@@ -195,6 +223,23 @@ export default function AdopcionProducto({
 
   /* ── Guardar ────────────────────────────────────────────────────── */
   async function save() {
+    /* SOLO LO EVALUADO. Lo que quedo en «sin evaluar» no se manda: ninguna fila
+       es exactamente lo que significa, y los tres lectores ya lo entienden.
+       Antes se mandaban los OCHO productos en cada guardado, asi que tocar uno
+       escribia siete afirmaciones de «no aplica» que nadie habia hecho. */
+    const aGuardar = PRODUCTOS
+      .filter(p => (editVals[p]?.nivel ?? 'sin_evaluar') !== 'sin_evaluar')
+      .map(p => ({
+        producto: p,
+        nivel: editVals[p]!.nivel as Nivel,
+        notas: editVals[p]?.notas || null,
+      }))
+
+    if (!aGuardar.length) {
+      setSaveError('No hay nada que guardar: los ocho productos estan en «sin evaluar».')
+      return
+    }
+
     setSaving(true)
     setSaveError(null)
     try {
@@ -205,11 +250,7 @@ export default function AdopcionProducto({
           cuenta_id: cuentaId,
           asesor,
           fecha: hoyLocal(),
-          productos: PRODUCTOS.map(p => ({
-            producto: p,
-            nivel: editVals[p]?.nivel ?? 'no_aplica',
-            notas: editVals[p]?.notas || null,
-          })),
+          productos: aGuardar,
         }),
       })
       const data = await res.json()
@@ -507,7 +548,7 @@ export default function AdopcionProducto({
                           )}
                         </div>
                         <NivelSelect
-                          value={editVals[p]?.nivel ?? 'no_aplica'}
+                          value={editVals[p]?.nivel ?? 'sin_evaluar'}
                           onChange={n => setEditVals(v => ({ ...v, [p]: { ...v[p], nivel: n } }))}
                         />
                       </div>

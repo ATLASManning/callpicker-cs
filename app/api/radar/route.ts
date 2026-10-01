@@ -140,21 +140,29 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
 
   const ultimaFecha = adop?.[0]?.fecha ?? null
+
+  /* LA ULTIMA FILA POR PRODUCTO, A TRAVES DE TODOS LOS CORTES — no el ultimo
+     corte entero.
+     Es el mismo criterio que ya usaban los otros dos lectores: el panel de la
+     ficha (components/AdopcionProducto.tsx) y la portada (app/page.tsx) toman
+     `created_at` mas reciente por producto. El Radar era el unico que miraba el
+     corte completo, y eso funcionaba solo mientras el modal escribia los OCHO
+     productos en cada guardado — medido: 104 de 104 guardados de asesora tienen
+     exactamente 8 filas.
+     Desde que el modal deja de escribir lo que nadie toco, un corte trae solo lo
+     evaluado ese dia. Con el criterio viejo, una evaluacion del mes pasado
+     desapareceria del Radar en cuanto la asesora guardara otro producto. */
   const vistos = new Set<string>()
-  const delUltimoCorte = (adop ?? [])
-    .filter(a => a.fecha === ultimaFecha)
-    // Ya vienen ordenadas por `created_at` descendente, así que la primera de
-    // cada producto es la más reciente: la que la asesora dejó buena.
-    .filter(a => {
-      if (vistos.has(a.producto)) return false
-      vistos.add(a.producto)
-      return true
-    })
+  const vigentes = (adop ?? []).filter(a => {
+    if (vistos.has(a.producto)) return false
+    vistos.add(a.producto)
+    return true
+  })
 
   const CONTRATADO = new Set(['alto', 'medio', 'bajo'])
-  const adopcionContratados = delUltimoCorte.filter(a => CONTRATADO.has(a.nivel)).length
-  const adopcionBajaContratados = delUltimoCorte.filter(a => a.nivel === 'bajo').length
-  const adopcionNoAplica = delUltimoCorte.length - adopcionContratados
+  const adopcionContratados = vigentes.filter(a => CONTRATADO.has(a.nivel)).length
+  const adopcionBajaContratados = vigentes.filter(a => a.nivel === 'bajo').length
+  const adopcionNoAplica = vigentes.length - adopcionContratados
 
   /* Última conversación de valor */
   const { data: seg } = await supabaseAdmin
