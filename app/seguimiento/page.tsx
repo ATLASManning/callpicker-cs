@@ -53,7 +53,34 @@ function churnAcciones(c: Cuenta): string[] {
       a.push(`Cuenta estratégica (${formatMXN(c.facturacion)}/mes) — escalar a gerencia comercial`)
   }
 
-  // Contacto y cadencia
+  /* CADENCIA — LOS UMBRALES SON 30 / 14 / 7 Y NO SE MUEVEN.
+
+     Instruccion de direccion, 1 oct 2026: «deja el umbral en 30 dias, no lo
+     muevas».
+
+     Hace falta decirlo aqui porque la cifra invita a lo contrario. Hasta ese
+     dia `dias_sin_actividad` valia 0 en las 222 cuentas y ninguna de estas tres
+     acciones se emitia JAMAS. Al derivarla de verdad —ver lib/contacto-cuenta.ts—
+     el reparto quedo asi sobre las 192 cuentas vivas:
+
+         «Contacto urgente hoy»   (>30 d)  135
+         «Llamada de reactivacion»(>14 d)   24
+         «Check-in»               (>7 d)    10
+         sin accion               (<=7 d)   23
+                                           ---
+                                           192
+
+     O sea que el 70% de la cartera cae en la accion mas urgente, con mediana de
+     40 dias desde el ultimo contacto. Quien lo vea sin este contexto va a
+     pensar que el umbral esta mal calibrado y lo va a subir para que la pantalla
+     «se vea mejor».
+
+     NO ES ESO. El 135 no mide el umbral: mide la cadencia real. Subirlo a 60
+     dejaria 27 cuentas en rojo y una pantalla tranquila sobre exactamente el
+     mismo problema — cambiar el termometro porque no gusta la fiebre.
+
+     Si algun dia se mueve, que sea por una decision de direccion escrita aqui,
+     no porque la lista salia larga. */
   if (c.dias_sin_actividad > 30)
     a.push(`Contacto urgente hoy — ${c.dias_sin_actividad} días sin actividad (llamada, no WhatsApp)`)
   else if (c.dias_sin_actividad > 14)
