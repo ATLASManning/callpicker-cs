@@ -293,7 +293,7 @@ function panelPreguntas(c: Cuenta): string[] {
   return q
 }
 
-// ── Mentoring One-on-One (nivel asesor, no cuenta) ────────────────────────────
+// ── Mentoring One To One (nivel asesor, no cuenta) ────────────────────────────
 
 function mentoringOneOnOne(asesor: string, lista: Cuenta[]): {
   contexto: string[]
@@ -775,7 +775,7 @@ export default async function SeguimientoPage() {
                       </div>
                       <div className="flex-1">
                         <span className="text-sm font-bold" style={{ color: ac.color }}>
-                          Mentoring One-on-One
+                          Mentoring One To One
                         </span>
                         <p className="text-[11px] text-textLow leading-tight">
                           Sesión semanal con {asesor} · diagnóstico y preguntas clave

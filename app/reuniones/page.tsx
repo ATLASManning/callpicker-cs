@@ -31,11 +31,36 @@ type CuentaOpcion = { id: string; consecutivo: string | null; cid: string | null
 
 const TIPOS: Record<TipoReunion, { label: string; color: string; bg: string }> = {
   junta_semanal: { label: 'Junta Semanal',  color: '#0057FF', bg: 'rgba(0,87,255,0.08)' },
-  one_on_one:    { label: 'One-on-One',     color: '#7C3AED', bg: 'rgba(124,58,237,0.08)' },
+  one_on_one:    { label: 'One To One',     color: '#7C3AED', bg: 'rgba(124,58,237,0.08)' },
   cliente:       { label: 'Con Cliente',    color: '#059669', bg: 'rgba(5,150,105,0.08)' },
   estrategia:    { label: 'Estrategia',     color: '#D97706', bg: 'rgba(217,119,6,0.08)' },
   otro:          { label: 'Otro',           color: '#475569', bg: 'rgba(71,85,105,0.08)' },
 }
+
+/**
+ * Que reuniones llevan cuenta, y en cuales es obligatoria.
+ *
+ * Instruccion de direccion, 30 sep 2026: «en todas debes tener el combo de
+ * eleccion de cliente, salvo en el caso de One To One». Una junta semanal o una
+ * de estrategia pueden ser SOBRE una cuenta, y antes no habia donde decirlo: el
+ * selector solo aparecia en las de tipo Cliente, asi que esa reunion quedaba
+ * sin vincular y no salia en la ficha del cliente del que se hablo.
+ *
+ * El One To One es entre dos personas de la casa. No tiene cuenta y ofrecerla
+ * seria invitar a inventarse una.
+ */
+const SIN_CUENTA: ReadonlySet<TipoReunion> = new Set(['one_on_one'])
+
+/** Mostrar el combo no es lo mismo que exigirlo. */
+function llevaCuenta(t: TipoReunion): boolean { return !SIN_CUENTA.has(t) }
+
+/**
+ * Solo la reunion CON CLIENTE obliga. En las demas la cuenta es opcional a
+ * proposito: una junta semanal puede ser sobre una cuenta o sobre el equipo, y
+ * exigirla forzaria a elegir una cualquiera con tal de poder guardar — que es
+ * peor que no tenerla.
+ */
+function exigeCuenta(t: TipoReunion): boolean { return t === 'cliente' }
 
 const STORAGE_KEY = 'cp_reuniones'
 /* En hora local, no UTC: después de las 18:00 en México toISOString()
@@ -209,7 +234,7 @@ export default function ReunionesPage() {
   async function guardar() {
     if (!form.titulo.trim()) return
     // Se exige la CUENTA, no un nombre escrito: un texto libre no vincula nada.
-    if (form.tipo === 'cliente' && !form.cuenta_id) return
+    if (exigeCuenta(form.tipo) && !form.cuenta_id) return
     setSaving(true)
     setSaveError(null)
     try {
@@ -347,8 +372,18 @@ export default function ReunionesPage() {
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Tipo</label>
+                {/* Al cambiar a un tipo que NO lleva cuenta se limpia la que
+                    hubiera. Sin esto, elegir la cuenta en una Junta Semanal y
+                    luego cambiar a One To One guardaba un One To One vinculado a
+                    un cliente: el campo deja de verse, pero el valor sigue ahí y
+                    se escribe igual. */}
                 <CustomSelect value={form.tipo}
-                  onChange={v => setForm(p => ({ ...p, tipo: v as TipoReunion }))}
+                  onChange={v => setForm(p => {
+                    const tipo = v as TipoReunion
+                    return llevaCuenta(tipo)
+                      ? { ...p, tipo }
+                      : { ...p, tipo, cuenta_id: null, cid: null, empresa: '' }
+                  })}
                   className="cp-select w-full"
                   options={Object.entries(TIPOS).map(([k, v]) => ({ value: k, label: v.label }))} />
               </div>
@@ -362,10 +397,16 @@ export default function ReunionesPage() {
                 className="cp-input w-full" />
             </div>
 
-            {form.tipo === 'cliente' && (
+            {llevaCuenta(form.tipo) && (
               <div>
+                {/* El asterisco solo donde de verdad obliga. Ponerlo en una
+                    junta semanal diria que no se puede guardar sin cuenta, y sí
+                    se puede: ahí es opcional. */}
                 <label className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: '#059669' }}>
-                  <Building2 size={12} /> Cuenta <span style={{ color: '#ef4444' }}>*</span>
+                  <Building2 size={12} /> Cuenta
+                  {exigeCuenta(form.tipo)
+                    ? <span style={{ color: '#ef4444' }}>*</span>
+                    : <span style={{ color: '#64748B', fontWeight: 400 }}>· opcional, si la reunión es sobre una cuenta</span>}
                 </label>
                 {/* Selector real contra el catálogo de cuentas. Antes esto era
                     texto libre y no vinculaba nada: "Neruc", "Grupo NERUC" y
@@ -373,10 +414,12 @@ export default function ReunionesPage() {
                 <CustomSelect
                   value={form.cuenta_id ?? ''}
                   searchable
-                  placeholder={cuentasCargando ? 'Cargando cuentas…' : 'Busca y selecciona la cuenta…'}
+                  placeholder={cuentasCargando ? 'Cargando cuentas…'
+                    : exigeCuenta(form.tipo) ? 'Busca y selecciona la cuenta…'
+                    : 'Busca la cuenta, o déjalo vacío si no es sobre una'}
                   wrapperClassName="w-full"
                   className="cp-select w-full"
-                  style={{ borderColor: !form.cuenta_id ? '#fca5a5' : undefined }}
+                  style={{ borderColor: exigeCuenta(form.tipo) && !form.cuenta_id ? '#fca5a5' : undefined }}
                   onChange={v => {
                     const c = cuentas.find(x => x.id === v)
                     setForm(p => ({
@@ -393,10 +436,13 @@ export default function ReunionesPage() {
                       label: `${c.consecutivo ?? 's/c'} · ${c.empresa}${c.asesor ? ` · ${c.asesor}` : ''}`,
                     })),
                   ]} />
-                <p className="text-[10px] mt-1" style={{ color: form.cuenta_id ? '#94a3b8' : '#ef4444' }}>
+                <p className="text-[10px] mt-1"
+                   style={{ color: form.cuenta_id ? '#94a3b8' : exigeCuenta(form.tipo) ? '#ef4444' : '#64748B' }}>
                   {form.cuenta_id
                     ? `Vinculada a ${form.empresa}${form.cid ? ` · CID ${form.cid}` : ''}. Contará en el relacionamiento y en el Health Score de la cuenta.`
-                    : 'Obligatorio: sin cuenta vinculada la reunión no aparece en la ficha ni suma al relacionamiento.'}
+                    : exigeCuenta(form.tipo)
+                    ? 'Obligatorio: sin cuenta vinculada la reunión no aparece en la ficha ni suma al relacionamiento.'
+                    : 'Si esta reunión fue sobre una cuenta, vincúlala: así aparece en su ficha y suma al relacionamiento. Si no lo fue, déjalo vacío.'}
                 </p>
               </div>
             )}
