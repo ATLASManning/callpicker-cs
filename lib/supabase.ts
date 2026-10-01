@@ -436,17 +436,60 @@ export type AdopcionRow = {
 }
 
 /**
+ * PostgREST devuelve MIL FILAS COMO MÁXIMO por petición, pase lo que pase y sin
+ * avisar: no hay error, no hay bandera, simplemente llegan menos datos de los
+ * que hay y el cálculo sigue adelante como si estuviera completo.
+ *
+ * Ya mordió tres veces. La última, medida el 30 de septiembre de 2026:
+ * `adopcion_producto` tiene 1,121 filas y la lectura devolvía 1,000 — 121 filas
+ * perdidas en cada carga del tablero, 84 pares cuenta×producto invisibles y 14
+ * cuentas con su nivel viejo en pantalla.
+ *
+ * Por eso esto vive aquí y no dentro de una ruta: el fallo no es de una
+ * consulta, es de todas las que no paginan.
+ */
+export const TOPE_POSTGREST = 1000
+
+/** Tope de seguridad: 50 páginas son 50,000 filas. Si una tabla lo rebasa, el
+ *  problema no es la paginación — es que esa consulta no debería traerlo todo. */
+const MAX_PAGINAS = 50
+
+/**
+ * Trae una tabla entera por páginas.
+ *
+ * **Devuelve `[]` si una página falla, nunca un resultado parcial.** Un hueco
+ * silencioso es peor que un vacío declarado: con `[]` la pantalla dice «sin
+ * datos» y alguien pregunta; con la mitad de las filas, nadie nota nada y el
+ * porcentaje sale mal para siempre.
+ */
+export async function traerPorPaginas<T>(
+  pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+): Promise<T[]> {
+  const todo: T[] = []
+  for (let p = 0; p < MAX_PAGINAS; p++) {
+    const desde = p * TOPE_POSTGREST
+    const { data, error } = await pagina(desde, desde + TOPE_POSTGREST - 1)
+    if (error) return []
+    if (!data?.length) return todo
+    todo.push(...data)
+    if (data.length < TOPE_POSTGREST) return todo
+  }
+  return todo
+}
+
+/**
  * Todos los registros de adopción (todas las cuentas). Usado por el Dashboard
  * para calcular tasas de adopción reales por asesor — reemplaza los flags
  * booleanos de `cuentas` (tiene_chat_activo, etc.) que nunca se capturan.
  */
 export async function getAdopcionProductoAll(): Promise<AdopcionRow[]> {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('adopcion_producto')
-      .select('cuenta_id, producto, nivel, created_at')
-    if (error) return []
-    return data ?? []
+    return await traerPorPaginas<AdopcionRow>((desde, hasta) =>
+      supabaseAdmin
+        .from('adopcion_producto')
+        .select('cuenta_id, producto, nivel, created_at')
+        .range(desde, hasta),
+    )
   } catch {
     return []
   }

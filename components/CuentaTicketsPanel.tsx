@@ -1,5 +1,6 @@
 import { Ticket, AlertTriangle, ExternalLink, SearchX } from 'lucide-react'
 import type { TicketRow } from '@/lib/cuenta-data'
+import { textoFecha } from '@/lib/fecha-local'
 
 const PRIOR_COLOR: Record<string, string> = {
   High: '#ef4444', Medium: '#f59e0b', Low: '#22c55e', Urgent: '#b91c1c',
@@ -20,8 +21,7 @@ function PriorBadge({ p }: { p: string }) {
 
 function fmtFecha(d: string) {
   if (!d) return '—'
-  try { return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' }) }
-  catch { return d }
+  return textoFecha(d, { day: '2-digit', month: 'short', year: '2-digit' }) ?? d
 }
 
 export default function CuentaTicketsPanel({

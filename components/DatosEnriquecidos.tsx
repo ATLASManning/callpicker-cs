@@ -1,5 +1,6 @@
 import type { DatosEnriquecidos, SenalComercial } from '@/lib/enriquecimiento/cuenta'
 import { ETIQUETA_ROL } from '@/lib/enriquecimiento/cuenta'
+import { textoFecha } from '@/lib/fecha-local'
 
 /**
  * Sección "Localizado por Atlas" DENTRO de la tarjeta de Información.
@@ -46,7 +47,7 @@ export default function DatosEnriquecidosPanel({ datos }: { datos: DatosEnriquec
 
   const campos = Object.entries(datos.porCampo)
   const fecha = datos.ultimaConsulta
-    ? new Date(datos.ultimaConsulta).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? textoFecha(datos.ultimaConsulta, { day: 'numeric', month: 'short', year: 'numeric' })
     : null
 
   return (

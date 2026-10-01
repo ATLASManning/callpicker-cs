@@ -45,7 +45,7 @@ import CuentaRelacionPanel from '@/components/CuentaRelacionPanel'
 import { getReunionesDeCuenta } from '@/lib/supabase'
 import { relacionamientoDeCuenta } from '@/lib/relacionamiento'
 import { headers } from 'next/headers'
-import { hoyEnMexico } from '@/lib/fecha-local'
+import { hoyEnMexico, textoFecha } from '@/lib/fecha-local'
 import { estadoDeCuenta } from '@/lib/estado-cuenta'
 import { personasConNombre } from '@/lib/personas-cuenta'
 import CuentaGlobo from '@/components/CuentaGlobo'
@@ -457,7 +457,7 @@ export default async function CuentaDetailPage({ params }: Props) {
               {cuenta.activo_desde ? (
                 <>
                   <span className="text-textHi font-medium">
-                    {new Date(cuenta.activo_desde).toLocaleDateString('es-MX', { year: 'numeric', month: 'long' })}
+                    {textoFecha(cuenta.activo_desde, { year: 'numeric', month: 'long' }) ?? '—'}
                   </span>
                   <span className="text-cpTeal">
                     ({diasCliente >= 365
@@ -806,7 +806,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                       <span className="text-xs font-semibold text-textHi capitalize">{s.tipo}</span>
                       <SeguimientoStatusSelect seguimientoId={s.id} resultado={s.resultado} canEdit={canEdit} />
                       <span className="text-[10px] text-textLow ml-auto flex-shrink-0">
-                        {(() => { const d = new Date(s.fecha); return isNaN(d.getTime()) ? s.fecha : d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' }) })()}
+                        {textoFecha(s.fecha) ?? s.fecha}
                       </span>
                     </div>
                     {s.descripcion && <p className="text-xs text-textMid">{s.descripcion}</p>}

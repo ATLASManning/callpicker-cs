@@ -1,4 +1,4 @@
-﻿import {
+import {
   DollarSign, AlertTriangle, TrendingUp,
   CalendarDays, CheckCircle2, AlertCircle, Ticket, LifeBuoy,
   ArrowUpRight, Target, RefreshCw,
@@ -28,7 +28,7 @@ import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import Link from 'next/link'
 import { TICKETS as TICKETS_NORM, COBERTURA } from '@/lib/tickets-norm'
 import { headers } from 'next/headers'
-import { ahoraEnMexico, fechaLocal } from '@/lib/fecha-local'
+import { ahoraEnMexico, fechaLocal, textoFecha, hoyEnPalabras } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,9 +107,7 @@ function diasSinContactoDe(c: Cuenta): number | null {
 
 function fmtFecha(iso: string) {
   if (!iso) return '—'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
+  return textoFecha(iso, { day: '2-digit', month: 'short', year: '2-digit' }) ?? iso
 }
 
 const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
@@ -1257,7 +1255,7 @@ export default async function DashboardPage() {
 
       <PageHeader
         title="Dashboard Customer Success"
-        subtitle={new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        subtitle={hoyEnPalabras()}
         actions={
           <div className="flex items-center gap-3">
             <AutoRefresh intervalMs={300_000} showIndicator />

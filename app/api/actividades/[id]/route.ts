@@ -21,7 +21,7 @@ import {
   AUTORIZA_NOMBRE,
 } from '@/lib/cierre-seguimiento'
 import { personasDeCuenta, buscaDecisor } from '@/lib/personas-cuenta'
-import { hoyEnMexico } from '@/lib/fecha-local'
+import { hoyEnMexico, textoFecha } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,7 +103,7 @@ async function etiquetarSiHayIntencionDeCancelacion(cuentaId: string, texto: str
       .single()
     if (!cuenta) return
 
-    const fecha = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+    const fecha = textoFecha(new Date()) ?? hoyEnMexico()
     const nota  = `🔴 [Detectado automáticamente ${fecha} · actividad] Posible intención de cancelación en el reporte del asesor — verificar con el cliente antes de dar de baja. Texto: "${texto.slice(0, 240)}"`
     // Pasa por `anteponerEntrada` para que la nota quede fechada como una
     // entrada más de la bitácora. Antes se pegaba suelta y, al no traer

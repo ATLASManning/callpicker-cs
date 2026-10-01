@@ -3,6 +3,7 @@ import OpenAI from 'openai'
 import { KB } from '@/app/base-cs/kb-data'
 import { supabaseAdmin } from '@/lib/supabase'
 import { buildAtlasContext, buildCuentaDossier } from '@/lib/atlas-context'
+import { hoyEnPalabras } from '@/lib/fecha-local'
 import { Resend } from 'resend'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'placeholder' })
@@ -282,7 +283,7 @@ export async function POST(req: NextRequest) {
       {
         role: 'system',
         content:
-          `DATOS EN VIVO — ${new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}\n\n${ctx.text}`,
+          `DATOS EN VIVO — ${hoyEnPalabras()}\n\n${ctx.text}`,
       },
     ]
 

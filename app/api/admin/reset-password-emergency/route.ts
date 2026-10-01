@@ -20,6 +20,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hashPassword, passwordExpira } from '@/lib/password'
+import { textoFecha } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
       success: true,
       email: usuario.email,
       expira,
-      expiraLegible: new Date(expira).toLocaleDateString('es-MX'),
+      expiraLegible: textoFecha(expira) ?? expira,
       aviso: usuario.activo ? undefined : 'La cuenta está INACTIVA: el login la rechazará aunque la contraseña sea correcta.',
       message: 'Contraseña actualizada. No se devuelve en la respuesta a propósito.',
     })

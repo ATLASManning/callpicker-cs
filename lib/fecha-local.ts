@@ -108,3 +108,64 @@ export function selloMexico(base: Date = new Date()): string {
   const d = ahoraEnMexico(base)
   return `${fechaLocal(d)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
+
+/* ── Fechas escritas para que las lea una persona ──────────────────────────── */
+
+/**
+ * `textoFecha` — la única forma de escribir una fecha en una pantalla o en un
+ * texto que vaya a leer alguien.
+ *
+ * POR QUÉ EXISTE
+ * --------------
+ * `toLocaleDateString('es-MX', …)` sin zona usa la del proceso. En el navegador
+ * eso es México y sale bien; en el servidor Vercel va en **UTC** y sale mal.
+ * El 30 de septiembre de 2026, a las 19:05 de México, la portada y Seguimiento
+ * decían «jueves, 1 de octubre de 2026». Falla todos los días de 18:00 a
+ * medianoche —una cuarta parte del día— y nunca en horario de oficina, que es
+ * por lo que llevaba tanto sin notarse.
+ *
+ * LA TRAMPA QUE OBLIGA A QUE SEA UNA SOLA FUNCIÓN
+ * -----------------------------------------------
+ * Ponerle `timeZone: ZONA_MEXICO` a todas las llamadas arregla la mitad y
+ * ROMPE la otra. Hay dos clases de valor y quieren lo contrario:
+ *
+ *   · Un INSTANTE —`new Date()`, o un `timestamptz` como `2026-09-28T18:39Z`—
+ *     se escribe en la hora de pared de México.
+ *   · Una FECHA SIN HORA —una columna `date`, que llega como `'2015-06-15'`—
+ *     NO tiene hora ni zona. `new Date('2015-06-15')` es medianoche UTC, así
+ *     que escribirla «en México» la corre al día ANTERIOR: `activo_desde` de
+ *     un cliente de junio pasaría a mayo en la ficha.
+ *
+ * Por eso no hay dos funciones donde elegir: ésta mira el valor y decide. Quien
+ * llama no puede equivocarse de clase porque no se le pregunta.
+ *
+ * Devuelve `null` cuando no hay nada que escribir, para que la pantalla ponga
+ * su propio «—» o su propia frase — un «31 dic 1969» es peor que un hueco.
+ */
+export function textoFecha(
+  valor: string | number | Date | null | undefined,
+  opciones: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short', year: 'numeric' },
+): string | null {
+  if (valor == null || valor === '') return null
+
+  // Fecha sin hora: se escribe tal cual, sin pasar por ninguna zona. Se fija
+  // `timeZone: 'UTC'` porque el instante se construyó con `Date.UTC`.
+  if (typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+    const [a, m, d] = valor.split('-').map(Number)
+    const instante = new Date(Date.UTC(a, m - 1, d))
+    if (isNaN(instante.getTime())) return null
+    return new Intl.DateTimeFormat('es-MX', { ...opciones, timeZone: 'UTC' }).format(instante)
+  }
+
+  const instante = valor instanceof Date ? valor : new Date(valor)
+  if (isNaN(instante.getTime())) return null
+  return new Intl.DateTimeFormat('es-MX', { ...opciones, timeZone: ZONA_MEXICO }).format(instante)
+}
+
+/** El día de hoy, escrito largo y en hora de México: «miércoles, 30 de
+ *  septiembre de 2026». Es el rótulo de encabezado que decía el día siguiente. */
+export function hoyEnPalabras(base: Date = new Date()): string {
+  return textoFecha(base, {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  }) ?? fechaLocal(ahoraEnMexico(base))
+}

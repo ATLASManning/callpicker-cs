@@ -12,6 +12,7 @@ import {
 import Link from 'next/link'
 import { headers } from 'next/headers'
 import { tonoSobreClaro } from '@/lib/contraste'
+import { textoFecha, hoyEnPalabras } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -109,7 +110,7 @@ function churnAcciones(c: Cuenta): string[] {
   if (!c.proximo_contacto)
     a.push('Registrar fecha de próximo contacto en CRM antes de terminar el día')
   else
-    a.push(`Confirmar agenda para el ${new Date(c.proximo_contacto).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })} — preparar agenda con 3 puntos clave`)
+    a.push(`Confirmar agenda para el ${textoFecha(c.proximo_contacto, { day: '2-digit', month: 'short' }) ?? c.proximo_contacto} — preparar agenda con 3 puntos clave`)
 
   if (a.length <= 1)
     a.push('Mantener cadencia semanal y validar satisfacción del cliente con pregunta directa')
@@ -555,9 +556,7 @@ export default async function SeguimientoPage() {
   const asesores: Asesor[] = isAsesor
     ? (['Fátima', 'Dan', 'Claudia'] as Asesor[]).filter(a => a === asesorHeader)
     : ['Fátima', 'Dan', 'Claudia']
-  const today = new Date().toLocaleDateString('es-MX', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-  })
+  const today = hoyEnPalabras()
 
   const totalChurn   = cuentas.filter(c => c.health_score < 60).length
 

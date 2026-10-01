@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, traerPorPaginas } from '@/lib/supabase'
 import { puedeVerUsoDashboard } from '@/lib/auth'
 
 /**
@@ -38,12 +38,18 @@ export async function GET(req: NextRequest) {
 
   if (!email && !asesor) return NextResponse.json({ error: 'email or asesor required' }, { status: 400 })
 
-  let q = supabaseAdmin.from('uso_dashboard').select('*')
-  if (email)  q = q.eq('email', email)
-  else        q = q.eq('asesor', asesor!)
+  /* Por páginas, no en una sola lectura. PostgREST corta en mil filas sin error
+     y sin bandera, y aquí YA cortaba: medido el 30 sep 2026, el correo
+     josel@callpicker.com tiene 1,240 registros de navegación y llegaban 1,000 —
+     240 visitas que no existían para el análisis. Las tres asesoras todavía
+     caben (359, 354 y 279), así que esto no es prevención: la administración
+     veía su propio uso incompleto desde hace meses. */
+  const filas = await traerPorPaginas<Record<string, unknown>>((desde, hasta) => {
+    const q = supabaseAdmin.from('uso_dashboard').select('*')
+    return (email ? q.eq('email', email) : q.eq('asesor', asesor!))
+      .order('created_at', { ascending: true })
+      .range(desde, hasta)
+  })
 
-  const { data, error } = await q.order('created_at', { ascending: true })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({ rows: data ?? [] })
+  return NextResponse.json({ rows: filas })
 }
