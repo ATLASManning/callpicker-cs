@@ -163,6 +163,7 @@ def prueba_cron():
     # tres causas: no llego al Edge, el valor es otro, o el fallo esta en otra parte.
     diag = urllib.request.Request(BASE + '/api/cron/estado')
     diag.add_header('Authorization', f'Bearer {secreto}')
+    causa = None
     try:
         with urllib.request.urlopen(diag, timeout=30) as r:
             d = json.loads(r.read().decode('utf-8'))
@@ -170,6 +171,11 @@ def prueba_cron():
         print(f"  Edge ve la variable : {d.get('edgeTieneLaVariable')}")
         print(f"  coincide con la mia : {d.get('loQueMandasteCoincide')}")
         print(f"  {d.get('nota')}\n")
+        if d.get('edgeTieneLaVariable') == 'no':
+            causa = 'la variable aun no llego al Edge: falta REDESPLEGAR'
+        elif d.get('loQueMandasteCoincide') == 'no':
+            causa = ('el Edge tiene OTRO valor: el guardado en Vercel y el de '
+                     '.env.local no son el mismo. Hay que volver a pegarlo')
     except Exception as e:
         print(f'  (no se pudo leer el diagnostico del Edge: {e})\n')
 
@@ -182,8 +188,10 @@ def prueba_cron():
         crudo, estado = e.read().decode('utf-8', 'ignore'), e.code
     cabeza = crudo.lstrip()[:200].lower()
     if cabeza.startswith('<!doctype') or cabeza.startswith('<html'):
-        print(f'FALLA (HTTP {estado}): el middleware devolvio HTML.')
-        print('La variable no llego al Edge. Hace falta REDESPLEGAR para que la tome.')
+        # El HTML solo dice que el middleware lo mando al login; NO dice por que.
+        # La causa la da el diagnostico de arriba, que es quien la midio.
+        print(f'FALLA (HTTP {estado}): el middleware lo desvio al login.')
+        print(f'  Causa: {causa if causa else "no determinada; revisar el diagnostico de arriba"}')
         return 1
     if estado == 401:
         print('FALLA (HTTP 401): la ruta no reconocio el secreto.')
