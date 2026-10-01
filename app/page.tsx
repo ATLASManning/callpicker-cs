@@ -898,6 +898,11 @@ const _allTickets = TICKETS_NORM
 const globalTickets = {
   total:  COBERTURA.total,
   fallas: COBERTURA.fallasBandera,
+  /* Esta tira cuenta TODO lo exportado y el panel de analisis que va debajo
+     cuenta los de clientes: 6,034 contra 5,786. Dos cifras distintas, una
+     encima de la otra, para lo que cualquiera lee como la misma cosa. La
+     resta se declara aqui en vez de dejar que alguien la descubra restando. */
+  internos: COBERTURA.internos,
   /**
    * Antes era `max(t.fecha)`, y `fecha` solo tiene precisión de MES: valía
    * '2026-09', que `new Date()` parsea como el día 1, así que la portada se
@@ -1525,7 +1530,9 @@ export default async function DashboardPage() {
         <div className="flex flex-wrap gap-x-6 gap-y-1">
           <span style={{ fontSize: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: TX_HI }}>{globalTickets.total.toLocaleString()}</span>
-            <span style={{ color: TX_LOW, marginLeft: 4 }}>tickets totales</span>
+            <span style={{ color: TX_LOW, marginLeft: 4 }}>
+                en el archivo{globalTickets.internos > 0 && `, ${globalTickets.internos} de ellos internos`}
+              </span>
           </span>
           <span style={{ fontSize: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: '#EF4444' }}>{globalTickets.fallas}</span>
