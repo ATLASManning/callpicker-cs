@@ -67,6 +67,10 @@ export const ROLES: Record<Rol, DefinicionRol> = {
     label: 'Perfilamiento', color: '#A855F7',
     paginas: [
       '/activaciones',   // Activaciones 2.0
+      '/reuniones/anexos', // Anexos: los documentos del cliente son material
+                           // de perfilamiento. La pantalla de Reuniones no, y
+                           // no la abre: `calza` exige coincidencia exacta o
+                           // prefijo con barra, así que '/reuniones' queda fuera.
       '/base-cs',        // Base de Conocimiento
       '/chat',           // Atlas IA
       '/auditoria',      // Auditoría Cuentas
@@ -89,10 +93,17 @@ export const ROLES: Record<Rol, DefinicionRol> = {
       '/api/customer-tenure',
     ],
     // Solo lectura: la ficha de cuenta los pinta, pero no deben escribirse.
+    //
+    // `/api/anexos` entra aquí y no en `apis` a propósito: la ficha de cuenta
+    // lista los documentos y hay que poder descargarlos para armar el perfil,
+    // pero Perfilamiento no opera cartera — no sube ni borra documentos de
+    // cliente. Sin esta línea la ficha pintaría «sin anexos» con un 403
+    // detrás, que es peor que un error porque se lee como un dato.
     apisLectura: [
       '/api/seguimientos',
       '/api/actividades',
       '/api/reuniones',
+      '/api/anexos',
     ],
     inicio: '/cuentas',
   },

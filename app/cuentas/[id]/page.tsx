@@ -42,7 +42,8 @@ import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { didsDeCuenta } from '@/lib/dids-cuenta'
 import DatosEnriquecidosPanel from '@/components/DatosEnriquecidos'
 import CuentaRelacionPanel from '@/components/CuentaRelacionPanel'
-import { getReunionesDeCuenta } from '@/lib/supabase'
+import CuentaAnexosPanel from '@/components/CuentaAnexosPanel'
+import { getReunionesDeCuenta, getAnexosDeCuenta } from '@/lib/supabase'
 import { relacionamientoDeCuenta } from '@/lib/relacionamiento'
 import { headers } from 'next/headers'
 import { hoyEnMexico, textoFecha } from '@/lib/fecha-local'
@@ -95,7 +96,7 @@ export default async function CuentaDetailPage({ params }: Props) {
   const cuentaUUID = cuenta.id
 
   const [seguimientos, oportunidades, tickets, historial, actividades, revisionesAdopcion, enriquecido,
-         reunionesCuenta, relacion] = await Promise.all([
+         reunionesCuenta, relacion, anexosCuenta] = await Promise.all([
     getSeguimientos(cuentaUUID),
     getOportunidades(cuentaUUID),
     getTickets(cuentaUUID),
@@ -115,6 +116,8 @@ export default async function CuentaDetailPage({ params }: Props) {
       observacionesKam: cuenta.observaciones_kam,
       notas:            cuenta.notas,
     }),
+    // Documentos anexados a esta cuenta (Word/Excel/PDF en el bucket privado).
+    getAnexosDeCuenta(cuentaUUID),
   ])
 
   // Números (DIDs) que Callpicker le entrega a esta cuenta. Se cruzan SOLO por
@@ -632,6 +635,12 @@ export default async function CuentaDetailPage({ params }: Props) {
             relacion={relacion}
             reuniones={reunionesCuenta.rows}
             migracionPendiente={!reunionesCuenta.vinculoDisponible}
+          />
+
+          {/* Documentos anexados a esta cuenta */}
+          <CuentaAnexosPanel
+            anexos={anexosCuenta.rows}
+            tablaExiste={anexosCuenta.tablaExiste}
           />
 
           {/* Observaciones Auditoría */}

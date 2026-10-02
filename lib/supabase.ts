@@ -349,6 +349,10 @@ export async function getSeguimientos(cuentaId: string): Promise<Seguimiento[]> 
   return (data ?? []) as Seguimiento[]
 }
 
+/* El tipo vive en lib/anexos.ts, junto al catálogo de temas y la validación de
+   formatos; aquí sólo se re-exporta para no duplicar la forma de la fila. */
+export type AnexoRow = import('./anexos').Anexo
+
 export interface ReunionCuenta {
   id: string
   fecha: string
@@ -390,6 +394,30 @@ export async function getReunionesDeCuenta(
     return { rows: [], vinculoDisponible: !sinVinculo }
   }
   return { rows: (data ?? []) as ReunionCuenta[], vinculoDisponible: true }
+}
+
+/**
+ * Documentos anexados a una cuenta, por VÍNCULO REAL (cuenta_id).
+ *
+ * Mismo contrato que `getReunionesDeCuenta`: si la tabla todavía no existe se
+ * devuelve `tablaExiste: false` para que la ficha lo DIGA, en vez de pintar un
+ * «sin anexos» que se lee como un dato cuando en realidad es un módulo sin
+ * instalar.
+ */
+export async function getAnexosDeCuenta(
+  cuentaId: string,
+): Promise<{ rows: AnexoRow[]; tablaExiste: boolean }> {
+  const { data, error } = await supabaseAdmin
+    .from('anexos')
+    .select('*')
+    .eq('cuenta_id', cuentaId)
+    .order('creado_en', { ascending: false })
+    .limit(100)
+  if (error) {
+    // 42P01 = la tabla no existe → falta correr scripts/migracion-anexos.sql.
+    return { rows: [], tablaExiste: error.code !== '42P01' }
+  }
+  return { rows: (data ?? []) as AnexoRow[], tablaExiste: true }
 }
 
 export async function updateSeguimientoResultado(id: string, resultado: string): Promise<void> {

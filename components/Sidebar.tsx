@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Users, MessageSquare, TrendingUp,
   Settings, ChevronRight, Phone, Activity, BookOpenCheck,
-  CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt,
+  CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt, Paperclip,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
   Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox,
 } from 'lucide-react'
@@ -69,7 +69,14 @@ const NAV_ENTRADAS: NavEntry[] = [
   },
   { href: '/customer-tenure', label: 'Customer Tenure',   icon: Clock },
   { href: '/',                label: 'Dashboard',         icon: LayoutDashboard },
-  { href: '/reuniones',       label: 'Reuniones',         icon: CalendarDays },
+  {
+    group: 'Reuniones',
+    icon: CalendarDays,
+    children: [
+      { href: '/reuniones',        label: 'Reuniones', icon: CalendarDays },
+      { href: '/reuniones/anexos', label: 'Anexos',    icon: Paperclip    },
+    ],
+  },
   { href: '/tickets',         label: 'Tickets',           icon: Ticket },
   { href: '/upsell',          label: 'Upsell / Cross',    icon: TrendingUp },
 ]
