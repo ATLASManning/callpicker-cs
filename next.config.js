@@ -12,6 +12,19 @@ const withPWA = require('@ducanh2912/next-pwa').default({
     disableDevLogs: true,
     skipWaiting: true,
     clientsClaim: true,
+    /* LOS DOCUMENTOS DE CLIENTE NO SE GUARDAN EN EL NAVEGADOR.
+     *
+     * El runtimeCaching por omisión de next-pwa guarda las respuestas de
+     * `/api/` en Cache Storage con NetworkFirst y 24 h de vida. Para un
+     * tablero eso es conveniente; para `/api/anexos/<id>/descargar` significa
+     * que un contrato o un análisis de cliente queda en el disco de la
+     * máquina y se vuelve a servir desde ahí SIN pasar por el middleware —
+     * o sea, después de cerrar sesión, y en un equipo compartido.
+     *
+     * NetworkOnly, primero en la lista para que gane al patrón genérico. */
+    runtimeCaching: [
+      { urlPattern: /\/api\/anexos(\/|$)/, handler: 'NetworkOnly' },
+    ],
   },
 })
 

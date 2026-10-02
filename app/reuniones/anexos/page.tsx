@@ -31,15 +31,34 @@ export default function AnexosPage() {
   const [filtroTema, setFiltroTema] = useState<Tema | ''>('')
   const [busca, setBusca] = useState('')
 
+  /* SE REVISA `res.ok`, Y UN FALLO NO VACÍA LA LISTA.
+   *
+   * Antes esto hacía `const json = await res.json()` sin mirar el estado. Un
+   * 500 de Supabase se parseaba igual, `json.rows` no venía, y la pantalla
+   * pintaba «Todavía no hay anexos» — un fallo presentado como dato. Con la
+   * sesión caída era peor: el middleware redirige a /acceso, `fetch` sigue el
+   * redirect, `res.json()` revienta con el HTML del login y el `catch` borraba
+   * una lista ya cargada de documentos para afirmar que no había ninguno.
+   *
+   * Es exactamente lo que el flag `tablaExiste` vino a evitar, y sólo cubría
+   * un modo de falla de los tres. */
   const cargar = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/anexos')
+      if (!res.ok) {
+        let msg = `No se pudo cargar la lista (error ${res.status}).`
+        try { const j = await res.json(); msg = j.mensaje ?? j.error ?? msg } catch {}
+        if (res.status === 403) msg = 'Tu rol no tiene acceso a los anexos.'
+        setError(msg)
+        return   // la lista anterior se queda; no se finge un cero
+      }
       const json = await res.json()
       setTablaExiste(json.tablaExiste !== false)
       setAnexos(Array.isArray(json.rows) ? json.rows : [])
+      setError(null)
     } catch {
-      setAnexos([])
+      setError('No se pudo cargar la lista. Puede que la sesión haya expirado: recarga la página.')
     } finally {
       setLoading(false)
     }
@@ -392,6 +411,10 @@ export default function AnexosPage() {
               </div>
 
               <div>
+                {/* El tope lo pone Vercel (4.5 MB de cuerpo de peticion), no
+                    el bucket. Se dice el numero real: prometer 25 MB hacia que
+                    un PDF de 10 fallara con un 413 crudo, antes de que la ruta
+                    pudiera explicar nada. */}
                 <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
                   Archivo <span style={{ color: '#ef4444' }}>*</span>
                   <span style={{ color: '#64748B', fontWeight: 400 }}>

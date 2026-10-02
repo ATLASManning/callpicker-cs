@@ -40,7 +40,25 @@ export function esTema(v: unknown): v is Tema {
 }
 
 export const BUCKET = 'anexos'
-export const MAX_BYTES = 25 * 1024 * 1024
+
+/**
+ * 4 MB, y NO los 25 que el bucket permite.
+ *
+ * El límite real no lo pone este código ni Supabase: lo pone Vercel, que corta
+ * el CUERPO de una petición a una función serverless en **4.5 MB** y responde
+ * 413 antes de que la ruta llegue a ejecutarse. Prometer 25 MB era prometer
+ * algo que la plataforma no puede aceptar: quien subiera un PDF de 10 MB vería
+ * un fallo crudo, sin el mensaje explicativo que esta validación redacta,
+ * porque la ruta nunca se habría ejecutado para redactarlo.
+ *
+ * Se deja en 4 MB con margen: el multipart añade cabeceras y el separador por
+ * cada campo, así que el cuerpo pesa algo más que el archivo.
+ *
+ * El bucket sigue aceptando 25 MB a propósito — ese techo no estorba, y el día
+ * que la subida pase por una URL firmada directa al almacenamiento (que es
+ * como se levantaría este límite) no habría que volver a tocarlo.
+ */
+export const MAX_BYTES = 4 * 1024 * 1024
 
 /**
  * Los formatos que pidió dirección: Word, Excel y PDF.
