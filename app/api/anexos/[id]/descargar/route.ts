@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, esTablaInexistente } from '@/lib/supabase'
 import { BUCKET, type Anexo } from '@/lib/anexos'
 
 export const dynamic = 'force-dynamic'
@@ -36,7 +36,7 @@ export async function GET(
     .maybeSingle()
 
   if (error) {
-    if (error.code === '42P01') {
+    if (esTablaInexistente(error)) {
       return NextResponse.json({ error: 'La tabla `anexos` no existe.' }, { status: 503 })
     }
     return NextResponse.json({ error: error.message }, { status: 500 })

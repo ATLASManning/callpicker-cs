@@ -353,6 +353,32 @@ export async function getSeguimientos(cuentaId: string): Promise<Seguimiento[]> 
    formatos; aquí sólo se re-exporta para no duplicar la forma de la fila. */
 export type AnexoRow = import('./anexos').Anexo
 
+/**
+ * ¿El error dice que la TABLA no existe?
+ *
+ * SON DOS CÓDIGOS, NO UNO, y confundirlos ya costó una vez. `42P01` es lo que
+ * contesta Postgres, pero a través de PostgREST casi nunca se ve: el que llega
+ * es **`PGRST205`** — «Could not find the table 'public.X' in the schema
+ * cache» — porque PostgREST resuelve la tabla contra su caché de esquema antes
+ * de llegar a la base.
+ *
+ * Comprobado en producción el 1 oct 2026 con la tabla `anexos` sin crear: el
+ * código que sólo miraba `42P01` devolvió un 500 en vez del aviso «falta
+ * ejecutar la migración», y la pantalla no pudo explicarlo.
+ *
+ * El repositorio ya conocía `PGRST205` en el Buzón, el Radar y Adopción, cada
+ * uno con su propia comprobación suelta. Ésta es la compartida.
+ *
+ * `42703` (columna inexistente) NO entra aquí: ése sí llega tal cual y
+ * significa otra cosa — la tabla existe pero le falta una columna.
+ */
+export function esTablaInexistente(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null
+  if (!e) return false
+  if (e.code === '42P01' || e.code === 'PGRST205') return true
+  return /schema cache/i.test(e.message ?? '')
+}
+
 export interface ReunionCuenta {
   id: string
   fecha: string
@@ -390,7 +416,7 @@ export async function getReunionesDeCuenta(
     // 42703 = la columna cuenta_id no existe → migración pendiente.
     // 42P01 = la tabla no existe. En ambos casos NO hay vínculo posible, y la
     // UI debe decirlo en vez de mostrar un "sin reuniones" que parece un dato.
-    const sinVinculo = error.code === '42703' || error.code === '42P01'
+    const sinVinculo = error.code === '42703' || esTablaInexistente(error)
     return { rows: [], vinculoDisponible: !sinVinculo }
   }
   return { rows: (data ?? []) as ReunionCuenta[], vinculoDisponible: true }
@@ -414,8 +440,8 @@ export async function getAnexosDeCuenta(
     .order('creado_en', { ascending: false })
     .limit(100)
   if (error) {
-    // 42P01 = la tabla no existe → falta correr scripts/migracion-anexos.sql.
-    return { rows: [], tablaExiste: error.code !== '42P01' }
+    // Dos codigos posibles: ver `esTablaInexistente`.
+    return { rows: [], tablaExiste: !esTablaInexistente(error) }
   }
   return { rows: (data ?? []) as AnexoRow[], tablaExiste: true }
 }

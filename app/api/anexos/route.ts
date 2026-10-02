@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, esTablaInexistente } from '@/lib/supabase'
 import {
   BUCKET, esTema, motivoRechazo, rutaEnBucket, type Anexo,
 } from '@/lib/anexos'
@@ -26,10 +26,10 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await query
   if (error) {
-    // 42P01 = la tabla no existe todavía (falta correr la migración). Se dice
-    // con un flag en vez de un 500, para que la pantalla pueda explicarlo en
-    // lugar de mostrar un "sin anexos" que parece un dato real.
-    if (error.code === '42P01') return NextResponse.json({ rows: [], tablaExiste: false })
+    // La tabla no existe todavía (falta correr la migración). Se dice con un
+    // flag en vez de un 500, para que la pantalla pueda explicarlo en lugar de
+    // mostrar un "sin anexos" que parece un dato real.
+    if (esTablaInexistente(error)) return NextResponse.json({ rows: [], tablaExiste: false })
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
   return NextResponse.json({ rows: (data ?? []) as Anexo[], tablaExiste: true })
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
        objeto en el bucket que ninguna fila menciona: ocupa espacio, nadie lo
        ve y nadie lo puede borrar desde la aplicación. Se retira. */
     await supabaseAdmin.storage.from(BUCKET).remove([ruta])
-    if (error.code === '42P01') {
+    if (esTablaInexistente(error)) {
       return NextResponse.json({
         error: 'migracion_pendiente',
         mensaje: 'Falta ejecutar scripts/migracion-anexos.sql en Supabase: la tabla `anexos` no existe.',

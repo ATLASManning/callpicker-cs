@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, esTablaInexistente } from '@/lib/supabase'
 import { llevaCuenta, exigeCuenta } from '@/lib/reuniones-tipo'
 
 export const dynamic = 'force-dynamic'
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query
 
   if (error) {
-    if (error.code === '42P01') return NextResponse.json({ rows: [], tableExists: false })
+    if (esTablaInexistente(error)) return NextResponse.json({ rows: [], tableExists: false })
     // Columna empresa no existe aún — ignorar filtro, devolver todo
     if (error.code === '42703') {
       const { data: all, error: e2 } = await supabaseAdmin
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) {
-    if (error.code === '42P01') return NextResponse.json({ error: 'table_not_found', tableExists: false }, { status: 503 })
+    if (esTablaInexistente(error)) return NextResponse.json({ error: 'table_not_found', tableExists: false }, { status: 503 })
 
     // Faltan las columnas de vínculo (migración pendiente).
     //
