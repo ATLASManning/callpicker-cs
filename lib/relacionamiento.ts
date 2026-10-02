@@ -23,7 +23,7 @@
  * bajo. Sirve para detectar falta de trazabilidad — que es justamente lo que
  * el Programa de Crecimiento exige antes de admitir una cuenta.
  */
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin, traerPorPaginas } from '@/lib/supabase'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
 import { esConElCliente } from '@/lib/reuniones-tipo'
 
@@ -105,12 +105,25 @@ export async function relacionamientoDeCuentas(
   const salida = new Map<string, Relacionamiento>()
   if (!ids.length) return salida
 
+  /* POR PÁGINAS, no de un tirón. PostgREST corta en 1000 filas sin error ni
+     aviso: la consulta devuelve 200 con mil filas y nadie se entera. Medido el
+     1 oct 2026 van 432 seguimientos, 439 actividades y 83 reuniones — todavía
+     por debajo, pero las actividades crecen ~12 por semana y el día que cruce,
+     a las cuentas que caigan del otro lado del corte se les evaporaría la
+     evidencia y `score_relacional` bajaría solo, a la vista de nadie.
+     Es el mismo tope que `traerPorPaginas` existe para absorber. */
   const [seg, act, reu] = await Promise.all([
-    supabaseAdmin.from('seguimientos').select('cuenta_id, fecha').in('cuenta_id', ids),
-    supabaseAdmin.from('actividades').select('cuenta_id, estado, completada').in('cuenta_id', ids),
+    traerPorPaginas<{ cuenta_id: string; fecha: string }>((d, h) =>
+      supabaseAdmin.from('seguimientos').select('cuenta_id, fecha')
+        .in('cuenta_id', ids).range(d, h)),
+    traerPorPaginas<{ cuenta_id: string; estado: string; completada: boolean }>((d, h) =>
+      supabaseAdmin.from('actividades').select('cuenta_id, estado, completada')
+        .in('cuenta_id', ids).range(d, h)),
     // La tabla puede no tener aún la columna cuenta_id (migración pendiente):
     // en ese caso se degrada a 0 reuniones en vez de romper el cálculo.
-    supabaseAdmin.from('reuniones').select('cuenta_id, fecha, tipo').in('cuenta_id', ids),
+    traerPorPaginas<{ cuenta_id: string; fecha: string; tipo: string }>((d, h) =>
+      supabaseAdmin.from('reuniones').select('cuenta_id, fecha, tipo')
+        .in('cuenta_id', ids).range(d, h)),
   ])
 
   const porCuenta = <T extends { cuenta_id?: string | null }>(rows: T[] | null) => {
@@ -124,9 +137,12 @@ export async function relacionamientoDeCuentas(
     return m
   }
 
-  const mSeg = porCuenta(seg.data as { cuenta_id: string; fecha: string }[] | null)
-  const mAct = porCuenta(act.data as { cuenta_id: string; estado: string; completada: boolean }[] | null)
-  const mReu = reu.error ? new Map() : porCuenta(reu.data as { cuenta_id: string; fecha: string; tipo: string }[] | null)
+  // `traerPorPaginas` ya devuelve [] si la consulta falló (p. ej. la columna
+  // cuenta_id todavía no existe), que es la degradación que antes hacía el
+  // `reu.error ?`.
+  const mSeg = porCuenta(seg)
+  const mAct = porCuenta(act)
+  const mReu = porCuenta(reu)
 
   for (const e of entradas) {
     const seguimientos = mSeg.get(e.cuentaId) ?? []

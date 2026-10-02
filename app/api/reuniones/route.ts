@@ -57,8 +57,14 @@ export async function POST(req: NextRequest) {
   // Una reunión de cliente sin cuenta vinculada no sirve para nada aguas
   // abajo: no alimenta el relacionamiento ni aparece en la ficha. Se exige.
   if (exigeCuenta(tipoFinal) && !cuenta_id) {
-    return NextResponse.json(
-      { error: 'Una reunión con cliente debe vincularse a una cuenta' }, { status: 400 })
+    // El mensaje decía siempre «reunión con cliente», aunque el tipo fuera
+    // estrategia o junta semanal — y entonces el usuario no entiende qué le
+    // están pidiendo, porque él no capturó una reunión con cliente.
+    return NextResponse.json({
+      error: 'cuenta_requerida',
+      mensaje: `Una reunión de tipo "${tipoFinal}" debe vincularse a una cuenta. `
+             + 'Sólo las de One To One pueden guardarse sin ella.',
+    }, { status: 400 })
   }
 
   // El vínculo se GUARDA en todo tipo que lo ofrezca, no sólo en las de

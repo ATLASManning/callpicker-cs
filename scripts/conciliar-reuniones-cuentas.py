@@ -201,8 +201,19 @@ def main():
         # tuvo la reunión y la que sí. Es preferible dejarla pendiente.
         return None, 'sin coincidencia unica'
 
-    cli = [r for r in reuniones if r.get('tipo') == 'cliente']
-    print('Reuniones de tipo cliente: %d' % len(cli))
+    # Desde el 1-oct-2026 la cuenta es obligatoria en TODO tipo salvo
+    # one_on_one, asi que el alcance ya no es `tipo == 'cliente'`: con ese
+    # filtro, el guion decia «0 pendientes» mientras 32 reuniones de
+    # estrategia, junta semanal y otro seguian huerfanas. Un resumen que
+    # cierra sobre un subconjunto afirma lo que no midio.
+    cli = [r for r in reuniones if (r.get('tipo') or '') != 'one_on_one']
+    fuera = len(reuniones) - len(cli)
+    print('Reuniones en alcance (todo salvo One To One): %d' % len(cli))
+    print('  de ellas, de tipo cliente: %d · internas: %d'
+          % (sum(1 for r in cli if r.get('tipo') == 'cliente'),
+             sum(1 for r in cli if r.get('tipo') != 'cliente')))
+    print('Fuera de alcance (One To One, no llevan cuenta): %d' % fuera)
+    assert len(cli) + fuera == len(reuniones), 'el reparto no cierra'
     print('Modo: %s\n' % ('APLICAR (escribe en la base)' if APLICAR else 'SIMULACRO (no escribe)'))
 
     resueltas, pendientes, yavinculadas = [], [], 0

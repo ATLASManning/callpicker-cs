@@ -131,7 +131,9 @@ export default function ReunionesPage() {
   const [migrated,     setMigrated]     = useState(false)
   const [cuentas,      setCuentas]      = useState<CuentaOpcion[]>([])
   const [cuentasCargando, setCuentasCargando] = useState(false)
+  const [cuentasError, setCuentasError] = useState(false)
   const [saveError,    setSaveError]    = useState<string | null>(null)
+  const [migracionPendiente, setMigracionPendiente] = useState(0)
 
   /* ── Cargar desde Supabase ──────────────────────────────────────── */
   const loadFromServer = useCallback(async () => {
@@ -160,10 +162,15 @@ export default function ReunionesPage() {
   useEffect(() => {
     let cancelado = false
     setCuentasCargando(true)
+    setCuentasError(false)
     fetch('/api/cuentas')
-      .then(r => (r.ok ? r.json() : []))
+      .then(r => {
+        if (!r.ok) throw new Error(String(r.status))
+        return r.json()
+      })
       .then((rows: unknown) => {
-        if (cancelado || !Array.isArray(rows)) return
+        if (cancelado) return
+        if (!Array.isArray(rows)) throw new Error('respuesta inesperada')
         const arr = (rows as Record<string, unknown>[])
           .map(c => ({
             id: String(c.id), consecutivo: (c.consecutivo as string) ?? null,
@@ -174,7 +181,11 @@ export default function ReunionesPage() {
           .sort((a, b) => a.empresa.localeCompare(b.empresa, 'es'))
         setCuentas(arr)
       })
-      .catch(() => {/* el selector queda vacío; el guardado lo bloquea */})
+      /* Antes esto se tragaba el fallo con un comentario que decía «el
+         guardado lo bloquea». Ahora la cuenta es obligatoria en cuatro de los
+         cinco tipos, así que un catálogo vacío deja la pantalla inservible —
+         y sin este estado, sin decir por qué. */
+      .catch(() => { if (!cancelado) setCuentasError(true) })
       .finally(() => { if (!cancelado) setCuentasCargando(false) })
     return () => { cancelado = true }
   }, [])
@@ -190,7 +201,22 @@ export default function ReunionesPage() {
     try { local = JSON.parse(raw) } catch { return }
     if (!local.length) return
 
-    // Migrar cada reunión local al servidor
+    /* NO SE BORRA EL RESPALDO LOCAL SI EL SERVIDOR NO LO ACEPTÓ.
+     *
+     * Antes esto hacía `Promise.all(...).then(() => removeItem())`. Como
+     * `fetch` NO rechaza ante un 400, la promesa se cumplía igual y el
+     * localStorage se vaciaba aunque el servidor hubiera rechazado cada POST:
+     * pérdida permanente y en silencio.
+     *
+     * Hasta hoy casi no mordía, porque la API sólo rechazaba las de tipo
+     * cliente. Al volver obligatoria la cuenta, este cuerpo —que nunca manda
+     * `cuenta_id`— pasó a recibir 400 en los cuatro tipos que no son One To
+     * One, o sea en prácticamente todo el histórico local.
+     *
+     * Ahora se revisa `res.ok` una por una y sólo se borra lo que el servidor
+     * confirmó. Lo rechazado se queda en el respaldo y se avisa en pantalla,
+     * porque una migración a medias que nadie ve es indistinguible de una
+     * completa. */
     Promise.all(
       local.map(r =>
         fetch('/api/reuniones', {
@@ -200,20 +226,39 @@ export default function ReunionesPage() {
             fecha: r.fecha, tipo: r.tipo, titulo: r.titulo,
             participantes: r.participantes, resumen: r.resumen,
             acuerdos: r.acuerdos, proximos_pasos: r.proximos_pasos,
+            // El respaldo local nació antes de que existiera el vínculo, así
+            // que casi nunca lo trae; se manda si está para no perderlo.
+            cuenta_id: r.cuenta_id ?? null, cid: r.cid ?? null, empresa: r.empresa ?? null,
           }),
-        })
+        }).then(res => ({ r, ok: res.ok })).catch(() => ({ r, ok: false }))
       )
-    ).then(() => {
-      localStorage.removeItem(STORAGE_KEY)
+    ).then(res => {
+      const rechazadas = res.filter(x => !x.ok).map(x => x.r)
+      if (rechazadas.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(rechazadas))
+        setMigracionPendiente(rechazadas.length)
+      } else {
+        localStorage.removeItem(STORAGE_KEY)
+      }
       loadFromServer()
-    }).catch(() => {/* migración parcial — no crítico */})
+    })
   }, [tableExists, migrated, loadFromServer])
 
   /* ── Guardar nueva reunión ──────────────────────────────────────── */
   async function guardar() {
-    if (!form.titulo.trim()) return
+    /* Estas dos guardas salían con un `return` mudo: el botón Guardar no hacía
+       nada y no aparecía ningún mensaje. Con la cuenta obligatoria en cuatro
+       de los cinco tipos, eso pasó de rareza a botón roto. */
+    if (!form.titulo.trim()) {
+      setSaveError('Falta el título de la reunión.')
+      return
+    }
     // Se exige la CUENTA, no un nombre escrito: un texto libre no vincula nada.
-    if (exigeCuenta(form.tipo) && !form.cuenta_id) return
+    if (exigeCuenta(form.tipo) && !form.cuenta_id) {
+      setSaveError(`Falta la cuenta. Es obligatoria en ${TIPOS[form.tipo].label}; `
+        + 'sólo las de One To One se guardan sin ella.')
+      return
+    }
     setSaving(true)
     setSaveError(null)
     try {
@@ -225,7 +270,9 @@ export default function ReunionesPage() {
 
       if (!res.ok) {
         let msg = `Error ${res.status}`
-        try { const j = await res.json(); msg = j.error ?? msg } catch {}
+        // `mensaje` es la explicación redactada; `error` suele ser un código de
+        // máquina («migracion_pendiente»). Antes se mostraba el código.
+        try { const j = await res.json(); msg = j.mensaje ?? j.error ?? msg } catch {}
         if (res.status === 401 || res.status === 302) msg = 'Sesión expirada. Recarga la página e ingresa de nuevo.'
         setSaveError(msg)
         return
@@ -251,14 +298,29 @@ export default function ReunionesPage() {
 
   /* ── Eliminar reunión ────────────────────────────────────────────── */
   async function eliminar(id: string) {
-    await fetch(`/api/reuniones/${id}`, { method: 'DELETE' })
+    // Se revisa `res.ok`: antes se quitaba de la lista pasara lo que pasara,
+    // así que un DELETE fallido se veía como borrado y reaparecía al recargar.
+    let ok = false
+    try {
+      const res = await fetch(`/api/reuniones/${id}`, { method: 'DELETE' })
+      ok = res.ok
+    } catch { ok = false }
+    if (!ok) {
+      setSaveError('No se pudo eliminar la reunión. Sigue guardada; recarga e inténtalo de nuevo.')
+      return
+    }
     setReuniones(prev => prev.filter(r => r.id !== id))
     if (expanded === id) setExpanded(null)
   }
 
   /* ── Meses disponibles ──────────────────────────────────────────── */
   const meses = Array.from(new Set(reuniones.map(r => r.fecha.slice(0, 7)))).sort((a, b) => b.localeCompare(a))
-  const reunionesMes = reuniones.filter(r => r.fecha.startsWith(mesActivo))
+  /* `mesActivo` arranca en el mes de HOY. El día 1, antes de capturar nada,
+     ese mes no existe en `meses` y la pantalla salía vacía sin decir por qué
+     —el estado vacío sólo se pinta si no hay NINGUNA reunión—. Si el mes
+     elegido no tiene filas, se cae al más reciente que sí las tenga. */
+  const mesVisible = meses.includes(mesActivo) ? mesActivo : (meses[0] ?? mesActivo)
+  const reunionesMes = reuniones.filter(r => r.fecha.startsWith(mesVisible))
 
   function formatFecha(f: string) {
     return new Date(f + 'T12:00:00').toLocaleDateString('es-MX', {
@@ -318,6 +380,31 @@ export default function ReunionesPage() {
 
       {/* Banner setup si tabla no existe */}
       {tableExists === false && <SetupBanner />}
+
+      {/* Una migración a medias que nadie ve es indistinguible de una completa.
+          Lo rechazado SIGUE en el respaldo local; esto dice que está ahí. */}
+      {migracionPendiente > 0 && (
+        <div className="rounded-lg p-3 mb-4"
+          style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.35)' }}>
+          <p className="text-xs" style={{ color: '#92400E' }}>
+            <strong>{migracionPendiente} reunión{migracionPendiente !== 1 ? 'es' : ''} del respaldo
+            local no se pudo guardar</strong> porque le falta la cuenta, que ahora es obligatoria.
+            No se perdió: sigue en este navegador. Captúrala de nuevo eligiendo su cuenta.
+          </p>
+        </div>
+      )}
+
+      {/* Sin catálogo no se puede guardar nada salvo One To One. Decirlo. */}
+      {cuentasError && (
+        <div className="rounded-lg p-3 mb-4"
+          style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.35)' }}>
+          <p className="text-xs" style={{ color: '#991B1B' }}>
+            <strong>No se pudo cargar el catálogo de cuentas.</strong> Sin él sólo puedes guardar
+            reuniones de One To One, porque en los demás tipos la cuenta es obligatoria.
+            Recarga la página; si sigue igual, la sesión pudo haber expirado.
+          </p>
+        </div>
+      )}
 
       {/* Estado cargando */}
       {loading && (
@@ -493,7 +580,7 @@ export default function ReunionesPage() {
               {meses.map(m => (
                 <button key={m} onClick={() => setMesActivo(m)}
                   className="cp-btn text-xs"
-                  style={mesActivo === m
+                  style={mesVisible === m
                     ? { background: '#0057FF', color: '#fff', border: '1px solid #003db3', boxShadow: '0 2px 8px rgba(0,87,255,0.3)' }
                     : { background: '#fff', color: '#374151', border: '1px solid #BFDBFE' }}>
                   {formatMes(m)}
@@ -522,7 +609,7 @@ export default function ReunionesPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-3">
                 <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#64748b' }}>
-                  {formatMes(mesActivo)} · {reunionesMes.length} reunión{reunionesMes.length !== 1 ? 'es' : ''}
+                  {formatMes(mesVisible)} · {reunionesMes.length} reunión{reunionesMes.length !== 1 ? 'es' : ''}
                 </p>
                 {tableExists && (
                   <span className="flex items-center gap-1 text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
@@ -556,9 +643,18 @@ export default function ReunionesPage() {
                             style={{ background: cfg.bg, color: cfg.color }}>
                             {cfg.label}
                           </span>
-                          {r.tipo === 'cliente' && r.empresa && (
+                          {/* La cuenta se muestra en CUALQUIER tipo que la
+                              lleve. La condición era `r.tipo === 'cliente'`,
+                              así que ahora que la cuenta es obligatoria en
+                              estrategia, junta semanal y otro, el vínculo
+                              quedaba invisible justo donde se captura. En
+                              verde sólo cuando fue con el cliente; en gris
+                              cuando es interna, para no sugerir contacto. */}
+                          {r.empresa && (
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
-                              style={{ background: 'rgba(5,150,105,0.1)', color: '#059669', border: '1px solid rgba(5,150,105,0.2)' }}>
+                              style={r.tipo === 'cliente'
+                                ? { background: 'rgba(5,150,105,0.1)', color: '#059669', border: '1px solid rgba(5,150,105,0.2)' }
+                                : { background: 'rgba(100,116,139,0.12)', color: '#475569', border: '1px solid rgba(100,116,139,0.25)' }}>
                               <Building2 size={9} />{r.empresa}
                             </span>
                           )}

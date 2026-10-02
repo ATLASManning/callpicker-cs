@@ -24,18 +24,26 @@ CREATE INDEX IF NOT EXISTS idx_reuniones_cuenta_id ON public.reuniones (cuenta_i
 CREATE INDEX IF NOT EXISTS idx_reuniones_cid       ON public.reuniones (cid);
 CREATE INDEX IF NOT EXISTS idx_reuniones_fecha     ON public.reuniones (fecha DESC);
 
+-- 1-oct-2026: la cuenta se llena —y es OBLIGATORIA— en todos los tipos salvo
+-- one_on_one. Este comentario decía «sólo en reuniones de tipo cliente», que
+-- era justo la creencia que hacía al servidor tirar el vínculo de los demás.
 COMMENT ON COLUMN public.reuniones.cuenta_id IS
-  'FK a cuentas.id. Es el vínculo autoritativo. Sólo se llena en reuniones de tipo cliente.';
+  'FK a cuentas.id. Es el vinculo autoritativo. Obligatoria en todo tipo salvo one_on_one; ver lib/reuniones-tipo.ts.';
 COMMENT ON COLUMN public.reuniones.cid IS
   'CID de la cuenta al momento de vincular. Copia denormalizada para reportes.';
 COMMENT ON COLUMN public.reuniones.empresa IS
   'Nombre de la cuenta al momento de vincular. Copia legible; NO usar como llave.';
 
--- Verificación
+-- Verificación. Cierra: las cuatro últimas columnas suman el total.
 SELECT
   count(*)                                             AS total_reuniones,
-  count(*) FILTER (WHERE tipo = 'cliente')             AS de_cliente,
-  count(*) FILTER (WHERE cuenta_id IS NOT NULL)        AS vinculadas,
-  count(*) FILTER (WHERE tipo = 'cliente'
-                     AND cuenta_id IS NULL)            AS cliente_sin_vinculo
+  count(*) FILTER (WHERE tipo = 'one_on_one')          AS one_on_one_sin_cuenta,
+  count(*) FILTER (WHERE tipo <> 'one_on_one'
+                     AND cuenta_id IS NOT NULL
+                     AND tipo =  'cliente')            AS con_cliente_vinculadas,
+  count(*) FILTER (WHERE tipo <> 'one_on_one'
+                     AND cuenta_id IS NOT NULL
+                     AND tipo <> 'cliente')            AS internas_vinculadas,
+  count(*) FILTER (WHERE tipo <> 'one_on_one'
+                     AND cuenta_id IS NULL)            AS HUERFANAS
 FROM public.reuniones;

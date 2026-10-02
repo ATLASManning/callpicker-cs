@@ -12,6 +12,7 @@ import { contarRespuestasRadar } from './radar'
 import { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } from './elegibilidad'
 import { getZohoMap, lookupZoho } from './zoho-enrich'
 import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
+import { esConElCliente, etiquetaTipo } from './reuniones-tipo'
 import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
 import { REPORTE_S22_SEPTIEMBRE_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
@@ -324,12 +325,17 @@ export async function buildAtlasContext(pregunta = ''): Promise<{ text: string; 
         .eq('semana_inicio', monday)
         .limit(50),
 
+      /* `asesor` NO es una columna de `reuniones` — nunca lo fue. Pedirla hacía
+         que PostgREST devolviera 400 (42703) y que `reuRes.data` fuera null,
+         así que la sección PROXIMAS REUNIONES jamás se agregó al contexto:
+         Atlas nunca ha visto una sola reunión. Quien lleva la reunión se lee
+         de `participantes`. */
       supabaseAdmin
         .from('reuniones')
-        .select('titulo,tipo,fecha,asesor,empresa')
+        .select('titulo,tipo,fecha,participantes,empresa')
         .gte('fecha', today)
         .order('fecha', { ascending: true })
-        .limit(6),
+        .limit(7),
 
       // Todas las cuentas (sin filtro de estado) — solo para cruzar nombre →
       // asesor en la sección de churn (las canceladas ya no están "activas")
@@ -415,14 +421,39 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     }
 
     // ── Reuniones próximas ────────────────────────────────────────────────────
+    //
+    // «CON el cliente» vs «SOBRE el cliente» es la distinción que decide si
+    // esto es evidencia de relación. Antes se escribía `con ${empresa}` para
+    // cualquier reunión que trajera empresa; desde que la cuenta es obligatoria
+    // en estrategia, junta semanal y otro, eso habría hecho que el modelo
+    // afirmara contactos con clientes que nunca estuvieron en la sala.
+    //
+    // El tipo se escribe con su etiqueta legible, no con el slug crudo: un
+    // `(estrategia)` sin explicar no le da al modelo con qué desmentir nada.
     if (reuRes.data?.length) {
-      const reu = reuRes.data
-        .map(r =>
-          `  ${r.fecha} — ${r.titulo} (${r.tipo})` +
-          `${r.empresa ? ` con ${r.empresa}` : ''} [${r.asesor}]`
-        )
+      const todas = reuRes.data
+      const muestra = todas.slice(0, 6)
+      const reu = muestra
+        .map((r, i) => {
+          const vinculo = !r.empresa
+            ? ' · sin cuenta vinculada'
+            : esConElCliente(r.tipo)
+            ? ` · CON el cliente ${r.empresa}`
+            : ` · interna SOBRE ${r.empresa} (el cliente NO asiste)`
+          const quien = (r.participantes ?? '').trim()
+          return `  [${i + 1}/${muestra.length}] ${r.fecha} — ${r.titulo} `
+            + `(${etiquetaTipo(r.tipo)})${vinculo}`
+            + (quien ? ` · participantes: ${quien}` : ' · participantes no capturados')
+        })
         .join('\n')
-      sections.push(`PROXIMAS REUNIONES:\n${reu}`)
+      // Cerrar la lista: un corte mudo se lee como «éstas son todas».
+      const cola = todas.length > muestra.length
+        ? `\n  (se muestran ${muestra.length}; hay al menos ${todas.length} agendadas)`
+        : `\n  (son todas las agendadas de hoy en adelante)`
+      sections.push(
+        `PROXIMAS REUNIONES (de ${today} en adelante):\n${reu}${cola}\n`
+        + `  NOTA: solo las marcadas «CON el cliente» son contacto con el cliente. `
+        + `Las «internas» son juntas del equipo sobre esa cuenta y NO cuentan como relación.`)
       modulos.push('reuniones')
     }
 
