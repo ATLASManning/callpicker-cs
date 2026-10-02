@@ -51,6 +51,19 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'gwep',              nombre: 'GWEP (Grupo Gwep)',             consecutivos: ['D54'] },
   { id: 'cargo-lift',        nombre: 'Cargo Lift',                    consecutivos: ['D5']  },
   { id: 'university-4-people', nombre: 'University 4 People (Tec de Monterrey)', consecutivos: ['D58'] },
+  /* ── Sin cuenta en cartera ─────────────────────────────────────────────────
+     `consecutivos: []` NO es un olvido. Son auditorias de cuentas que nunca
+     entraron a `cuentas` y por tanto no tienen consecutivo ni KAM: se vendieron
+     y se perdieron antes de asignarse. El caso vive en el modulo de Auditoria y
+     no hay ficha de cuenta donde pintar el boton — que es exactamente lo que
+     `findAuditoriaForConsecutivo` hace al no encontrar coincidencia. */
+  { id: 'viajes-macull',   nombre: 'Viajes Macull / Viajo Mexico (CP 189846)', consecutivos: [] },
+  /* RDS estaba en `cases.ts` pero NO aqui. No rompia nada —el boton de la ficha
+     simplemente no existia, que es lo correcto para una cuenta sin consecutivo—
+     pero dejaba el registro incompleto: `AUDITORIA_REFS` se usa tambien para
+     saber que cuentas tienen auditoria documentada, y RDS no contaba. Lo
+     encontro `scripts/revisa-casos-auditoria.py` al agregar Viajes Macull. */
+  { id: 'rds-invest-vacay', nombre: 'RDS / Invest Vacay Group (CP 189168)',    consecutivos: [] },
 ]
 
 /** Devuelve la auditoría asociada a un consecutivo de cuenta, o null si no existe. */

@@ -31,6 +31,7 @@ import { LI_FINANCIERA }         from './li-financiera-data'
 import { SOFIA }                 from './sofia-data'
 import { RDS_INVEST_VACAY }      from './rds-invest-vacay-data'
 import { UNIVERSITY_4_PEOPLE }   from './university-4-people-data'
+import { VIAJES_MACULL }        from './viajes-macull-data'
 import type { AuditoriaCase } from './types'
 
 export const STATIC_CASES: AuditoriaCase[] = [
@@ -40,7 +41,7 @@ export const STATIC_CASES: AuditoriaCase[] = [
   HOSPITAL_SANTA_ROSA, TRAVELLING, POLAK_GRUPO, PUBSA,
   DENTAL_DISTRICT, MEDICALL_EXPERT, VAEO_BUSINESS_CLUB, KOMBITEC,
   NERUC_SEDE_CENTRAL, JASON_DE_MEXICO, GWEP, MINT_CARGO, CARGO_LIFT, GRUPO_2711, LI_FINANCIERA, SOFIA, RDS_INVEST_VACAY,
-  UNIVERSITY_4_PEOPLE,
+  UNIVERSITY_4_PEOPLE, VIAJES_MACULL,
 ]
 
 export const STATIC_CASE_IDS: ReadonlySet<string> = new Set(STATIC_CASES.map(c => c.id))
