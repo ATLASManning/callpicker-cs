@@ -2,7 +2,8 @@
 import { ROLES, type Rol } from '@/lib/permisos'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Phone, Mail, Lock, ArrowRight, RefreshCw, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, ArrowRight, RefreshCw, AlertCircle, Eye, EyeOff } from 'lucide-react'
+import LogoCallpicker from '@/components/LogoCallpicker'
 
 type Estado = 'login' | 'expirado' | 'inactivo' | 'sin_password'
 
@@ -87,20 +88,22 @@ export default function AccesoPage() {
         width: '100%', maxWidth: 420, boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
       }}>
 
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-          <div style={{
-            width: 44, height: 44, borderRadius: 12, background: '#1B3FCC',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Phone size={20} color="#fff" />
-          </div>
-          <div>
-            <p style={{ fontWeight: 700, fontSize: 16, color: '#0F172A', margin: 0 }}>Callpicker</p>
-            <p style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
-              Customer Success
-            </p>
-          </div>
+        {/* ── Logotipo ──────────────────────────────────────────────────
+            El mismo vector que el menu lateral, con el mismo componente: dos
+            copias del logotipo se desincronizan la primera vez que la marca
+            cambie.
+
+            AQUI SI VA EN EL AZUL DE MARCA. La tarjeta es blanca, asi que
+            #2696F1 es exactamente lo que debe verse; en el menu, que es azul
+            marino, el mismo azul quedaria apagado y va en blanco. Esa es la
+            razon de que el relleno sea `currentColor` y el color se diga en
+            cada sitio. */}
+        <div style={{ marginBottom: 32, color: '#2696F1' }}>
+          <LogoCallpicker alto={26} />
+          <p style={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase',
+                      letterSpacing: '0.06em', margin: '8px 0 0' }}>
+            Customer Success
+          </p>
         </div>
 
         {/* ── LOGIN ───────────────────────────────────────────────────── */}

@@ -4,11 +4,12 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Users, MessageSquare, TrendingUp,
-  Settings, ChevronRight, Phone, Activity, BookOpenCheck,
+  Settings, ChevronRight, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt, Paperclip,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
   Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox,
 } from 'lucide-react'
+import LogoCallpicker from '@/components/LogoCallpicker'
 import type { SessionPayload } from '@/lib/auth'
 import { esAdminDelTablero, puedeVerUsoDashboard } from '@/lib/auth'
 
@@ -253,20 +254,24 @@ export default function Sidebar() {
     <aside className="w-60 flex-shrink-0 flex flex-col h-full"
       style={{ background: SB, borderRight: `1px solid ${SB_D}`, position: 'relative', zIndex: 20 }}>
 
-      {/* Logo */}
+      {/* ── Logotipo ──────────────────────────────────────────────────────
+          El vector oficial de la marca sustituye al icono de teléfono y al
+          «Callpicker» escrito a mano que había aquí.
+
+          EN BLANCO, NO EN EL AZUL DE MARCA: el menú es azul marino (#1B3FCC)
+          y el #2696F1 del logotipo original encima queda apagado —se lee,
+          pero sin fuerza—. `LogoCallpicker` pinta con `currentColor`, así que
+          el color se dice una sola vez, aquí.
+
+          «Customer Success» se queda debajo: el logotipo dice de quién es la
+          herramienta, el rótulo dice cuál es. */}
       <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB_D}` }}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.18)', boxShadow: '0 2px 8px rgba(0,0,0,0.20)' }}>
-            <Phone size={16} style={{ color: '#FFFFFF' }} />
-          </div>
-          <div>
-            <p className="text-sm font-bold leading-tight" style={{ color: '#FFFFFF' }}>Callpicker</p>
-            <p className="text-[10px] font-semibold tracking-widest uppercase"
-              style={{ color: 'rgba(255,255,255,0.55)' }}>
-              Customer Success
-            </p>
-          </div>
+        <div style={{ color: '#FFFFFF' }}>
+          <LogoCallpicker alto={21} />
+          <p className="text-[10px] font-semibold tracking-widest uppercase mt-1.5"
+            style={{ color: 'rgba(255,255,255,0.55)' }}>
+            Customer Success
+          </p>
         </div>
       </div>
 
