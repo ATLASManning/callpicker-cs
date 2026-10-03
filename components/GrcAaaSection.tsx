@@ -552,8 +552,18 @@ export default function GrcAaaSection() {
                   {churns > 0 && <Pill bg="#FEF2F2" fg="#DC2626" border>{churns} churn{churns !== 1 ? 's' : ''}</Pill>}
                   {filtrado && <Pill bg="#EFF6FF" fg="#1D4ED8">GRC del mes {fmt(grcMes)}</Pill>}
                 </div>
+                {/* EL ALCANCE, DICHO. Estas tarjetas y la tabla de GRC de arriba
+                    miden cosas distintas y las dos son correctas — enero sale
+                    $121,979 aquí y $94,931 allá. La diferencia es que la
+                    tarjeta suma TODA la pérdida real (los tres tipos de churn
+                    más el downgrade) sobre los contratos afectados, mientras
+                    el GRC cuenta sólo «Churn confirmado» sobre el MRR de toda
+                    la compañía. Sin esta línea, el que compare las dos cifras
+                    concluye que el módulo no cuadra, y sí cuadra. */}
                 <p className="text-[11px] text-gray-400 mt-0.5">
-                  MRR inicio del período: {fmtF(mrrIni)}
+                  MRR de los {clientes.length} contratos afectados: {fmtF(mrrIni)}
+                  {' · '}«Ing. perdido real» suma los tres tipos de churn y el downgrade;
+                  {' '}el GRC de arriba cuenta sólo «Churn confirmado»
                   {filtrado && ' · vista filtrada: no cuadra con el GRC hasta quitar los filtros'}
                 </p>
               </div>
