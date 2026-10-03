@@ -27,20 +27,27 @@
 ═══════════════════════════════════════════════════════════════════════ */
 
 /** MRR total de la compañía al inicio de cada mes — denominador del GRC %. */
+/** MRR total de la compañía al inicio de cada mes — denominador del GRC %.
+ *
+ * SALE DEL EXPORT INSTITUCIONAL, ya no se captura a mano. Hasta el 2 oct 2026
+ * el export de este módulo solo traía filas de pérdida, sin la base, así que
+ * el denominador se transcribía del tablero — y se quedaba atrás: agosto decía
+ * $5,006,567.60 cuando el corte nuevo da $5,013,222.60, y septiembre
+ * $4,905,228.27 contra $4,949,144.17. Un denominador viejo con un numerador
+ * nuevo da un porcentaje que no es ninguno de los dos.
+ *
+ * Regenerar junto con aaa-grc-data.ts, del MISMO archivo.
+ */
 export const GRC_BASE_MRR: Record<string, number> = {
-  Enero:   4650020.89,
-  Febrero: 4696696.10,
-  Marzo:   4776920.30,
-  Abril:   4857171.51,
-  Mayo:    5074882.09,
-  Junio:   5103295.12,
-  Julio:   4943564.29,
-  Agosto:  5006567.60,
-  // Confirmada contra el reporte GRC el 20-sep-2026: el tablero de Zoho pinta
-  // $4,905,228.27 de MRR inicio para septiembre, el mismo número que había
-  // salido de sumar los 3,574 contratos del export completo. Ya no es
-  // provisional — lo provisional de septiembre es la PÉRDIDA, no la base.
-  Septiembre: 4905228.27,
+  Enero:      4650020.89,
+  Febrero:    4696696.10,
+  Marzo:      4776920.30,
+  Abril:      4857171.51,
+  Mayo:       5075866.09,
+  Junio:      5103295.12,
+  Julio:      4943564.29,
+  Agosto:     5013222.60,
+  Septiembre: 4949144.17,
 }
 
 /** Meses cuya base NO viene del reporte oficial. Se marcan en pantalla. */
@@ -109,6 +116,19 @@ export interface GrcFilaReporte {
   perdida: number
 }
 
+/* Corte del 2-oct-2026, del export institucional de nueve meses. Cuadra AL
+   CENTAVO con «Gross Revenue Churn - 2026 confirmado» en los nueve: churn,
+   downgrade, pérdida, GRC mensual y acumulado.
+
+   SEPTIEMBRE DEJÓ DE SER UN ARTEFACTO. El export del 20-sep lo traía en
+   $1,257,098.37 porque Zoho marca «Churn confirmado» todo contrato que aún no
+   factura — 26.6% de GRC contra un histórico de 2.2%. Al cerrar el mes entraron
+   los pagos y quedó en $129,905.96, o sea 3.7%. Es exactamente lo que decía la
+   regla del mes vencido: el mes vivo medía retraso de cobranza, no bajas.
+
+   Julio y agosto también se movieron, y por la otra causa documentada: dos
+   contratos reclasificados de pérdida real a fraude/reestructura, que el GRC
+   excluye. Julio $97,109.21 → $94,663.21 y agosto $116,781.35 → $110,934.95. */
 export const GRC_VERIFICACION: GrcFilaReporte[] = [
   { mes: 'Enero',      churn:   74083.11, downgrade: 20848.01, perdida:   94931.12 },
   { mes: 'Febrero',    churn:   65589.19, downgrade: 34216.37, perdida:   99805.56 },
@@ -116,14 +136,9 @@ export const GRC_VERIFICACION: GrcFilaReporte[] = [
   { mes: 'Abril',      churn:   58214.06, downgrade: 26413.59, perdida:   84627.65 },
   { mes: 'Mayo',       churn:   32586.00, downgrade: 42283.26, perdida:   74869.26 },
   { mes: 'Junio',      churn:   87260.00, downgrade: 81522.81, perdida:  168782.81 },
-  { mes: 'Julio',      churn:   71532.46, downgrade: 25576.75, perdida:   97109.21 },
-  { mes: 'Agosto',     churn:   66804.18, downgrade: 49977.17, perdida:  116781.35 },
-  // Septiembre se mueve todos los días: es el mes vivo. Aquí va lo que trae el
-  // export del 20-sep. El tablero de Zoho, consultado más tarde ese mismo día,
-  // ya marcaba $1,252,672.37 — $4,426.00 menos, que son cuentas que pagaron en
-  // el intervalo. No se persigue esa cifra: se vuelve a capturar con cada
-  // export, y al cerrar el mes deja de moverse.
-  { mes: 'Septiembre', churn: 1257098.37, downgrade: 49465.26, perdida: 1306563.63 },
+  { mes: 'Julio',      churn:   69086.46, downgrade: 25576.75, perdida:   94663.21 },
+  { mes: 'Agosto',     churn:   60957.78, downgrade: 49977.17, perdida:  110934.95 },
+  { mes: 'Septiembre', churn:  129905.96, downgrade: 55073.67, perdida:  184979.63 },
 ]
 
 /**

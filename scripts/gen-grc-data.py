@@ -142,6 +142,17 @@ def main():
             if normalizar(r[1]) in FUERA_DEL_CHURN:
                 fuera.append('%s (%s)' % (esc(r[1]), esc(r[0])))
                 continue
+            # SOLO LAS FILAS DE PERDIDA.
+            #
+            # El export que alimentaba este modulo (DT_Churn_etiquetas) ya venia
+            # filtrado: 1,634 filas, solo las que perdieron. El institucional
+            # trae los 3,590 contratos de cada mes —32,310 en total—, y 20,451
+            # son «MRR estable» que no aportan un peso. Embarcarlas todas hizo
+            # el .ts de 7 MB contra 368 KB, 19 veces mas, para pintar lo mismo:
+            # este modulo es un reporte de PERDIDA, no el padron de contratos.
+            # El MRR base del denominador no sale de aqui, sale de GRC_BASE_MRR.
+            if num(r[11]) <= 0 and num(r[12]) <= 0:
+                continue
             porMes.setdefault(esc(r[0]), []).append(fila(r))
         pedidos = [NOMBRES.get(h, h) for h in hojas]
         ausentes = [m for m in pedidos if m not in porMes]
