@@ -90,16 +90,25 @@ for m in SER:
         malos.append(m['mes'])
 prueba('acumulado = suma de mensuales en los %d meses' % len(SER), not malos, str(malos or ''))
 ago = [m for m in SER if m['mes'] == 'Agosto'][0]
-prueba('Agosto acumulado 17.3%% como publica Zoho', abs(ago['grcAcumulado'] - 17.3) < 0.1,
+prueba('Agosto acumulado 23.1%% como publica Zoho', abs(ago['grcAcumulado'] - 23.1) < 0.1,
        '%.1f%%' % ago['grcAcumulado'])
 
 print()
-print('=== 5 · LA SERIE CONTRA LO QUE PUBLICA EL TABLERO ===')
-PUB = {'Enero': (4650020.89, 74083.11, 20848.01), 'Febrero': (4696696.10, 65589.19, 34216.37),
-       'Marzo': (4776920.30, 82546.00, 25734.97), 'Abril': (4857171.51, 58214.06, 26413.59),
-       'Mayo': (5074882.09, 32586.00, 42283.26), 'Junio': (5103295.12, 87260.00, 81522.81),
-       'Julio': (4943564.29, 74017.46, 25576.75), 'Agosto': (5006567.60, 68784.18, 49977.17),
-       'Septiembre': (4905228.27, None, 48432.26)}
+print('=== 5 · LA SERIE CONTRA EL CORTE VIGENTE (candado de regresion) ===')
+# Desde el 2 oct 2026 la serie se CALCULA del export institucional de 9 meses,
+# asi que esta tabla ya no es «lo que publica el tablero»: es el corte vigente,
+# congelado. Si un export futuro mueve un mes cerrado, esto falla — que es
+# justo lo que se quiere: enterarse, no que cambie en silencio.
+PUB = {
+       'Enero': (4650020.89, 101131.11, 20848.01),
+       'Febrero': (4696696.10, 114141.07, 34216.37),
+       'Marzo': (4776920.30, 106538.00, 25734.97),
+       'Abril': (4857171.51, 112420.46, 26413.59),
+       'Mayo': (5075866.09, 65029.31, 42283.26),
+       'Junio': (5103295.12, 114616.00, 81522.81),
+       'Julio': (4943564.29, 92458.46, 25576.75),
+       'Agosto': (5013222.60, 115802.18, 49977.17),
+       'Septiembre': (4949144.17, 190112.98, 55073.67)}
 for m in SER:
     p = PUB.get(m['mes'])
     if not p:

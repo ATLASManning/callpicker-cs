@@ -63,12 +63,14 @@ COLS = {
 MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
-# ── Lo que Zoho ya publico para los meses cerrados ────────────────────────────
-# De la tabla «Gross Revenue Churn - 2026 confirmado». Su detalle NO viene en el
-# export, asi que no hay forma de recalcularlos: se publican tal cual para que
-# la serie no tenga hoyos. La ultima columna es la perdida de la tabla «global»,
-# que incluye churn mensual y financiero ademas del confirmado.
-HISTORIA = [
+# ── LO QUE EL MODULO VENIA PUBLICANDO, para contrastar ───────────────────────
+# Era la FUENTE de los meses cerrados cuando el export traia un solo mes. Desde
+# el 2 oct 2026 el export trae los nueve, asi que la serie se CALCULA y esta
+# tabla se queda solo como contraste: si un mes cerrado se mueve, el generador
+# lo grita. No borrarla — es la unica memoria de lo que direccion ya vio.
+# La tercera columna es SOLO «Churn confirmado»; la quinta es la perdida
+# «global», que incluye ademas churn mensual y financiero.
+HISTORIA_PUBLICADA = [
     ('Enero',      4650020.89,    74083.11,    20848.01,   121979.12),
     ('Febrero',    4696696.10,    65589.19,    34216.37,   148357.44),
     ('Marzo',      4776920.30,    82546.00,    25734.97,   132272.97),
@@ -80,7 +82,7 @@ HISTORIA = [
 ]
 
 # «Detalle de perdida», por mes y movimiento. El tablero solo llega a junio.
-DETALLE_HISTORICO = {
+DETALLE_PUBLICADO = {
     'Enero':   [('Churn mensual', 20587.00, 0.0), ('Churn financiero', 6461.00, 0.0),
                 ('Churn confirmado', 74083.11, 0.0), ('Downgrade', 20848.01, 0.0),
                 ('Downgrade + Fraude', 0.0, 2245.00)],
@@ -189,9 +191,36 @@ ix = {k: (cab.index(v) if v in cab else None) for k, v in COLS.items()}
 faltan = [COLS[k] for k, v in ix.items() if v is None]
 if faltan:
     raise SystemExit('Al export le faltan columnas obligatorias: %s' % faltan)
-crudas = [r for r in it]
+todas = [r for r in it]
 wb.close()
 g = lambda r, k: r[ix[k]]
+
+# ── EL EXPORT YA TRAE TODOS LOS MESES (2 oct 2026) ───────────────────────────
+#
+# Hasta hoy el archivo traia UN mes y los ocho cerrados vivian en la tabla
+# `HISTORIA`, escrita a mano, con esta nota: «su detalle NO viene en el export,
+# asi que no hay forma de recalcularlos». Direccion compartio el export
+# completo —32,310 filas, 9 meses, 3,590 por mes— y eso deja de ser cierto.
+#
+# El trabajo por fila (verificacion contra la cartera, canastas, cortes) sigue
+# siendo del MES VIVO: es el unico que se puede cotejar contra el estado de hoy.
+# Lo que cambia es que la serie de los cerrados ya no se transcribe: se calcula.
+MESES_EN_ARCHIVO = []
+for r in todas:
+    m = str(g(r, 'mes') or '').strip()
+    if m and m not in MESES_EN_ARCHIVO:
+        MESES_EN_ARCHIVO.append(m)
+desconocidos = [m for m in MESES_EN_ARCHIVO if m not in MESES]
+if desconocidos:
+    raise SystemExit('El export trae meses que no reconozco: %s' % desconocidos)
+MESES_EN_ARCHIVO.sort(key=MESES.index)
+
+# El mes vivo es el ULTIMO del calendario, no el primero del archivo: el export
+# no viene ordenado y tomar `crudas[0]` daria «Abril» en un archivo de 9 meses.
+MES_VIVO = MESES_EN_ARCHIVO[-1]
+crudas = [r for r in todas if str(g(r, 'mes') or '').strip() == MES_VIVO]
+print('  meses en el export: %s   ·   mes vivo: %s'
+      % (', '.join(MESES_EN_ARCHIVO), MES_VIVO))
 
 # ── La cartera: lo unico contra lo que se puede cotejar una baja ─────────────
 env = {}
@@ -270,9 +299,65 @@ sin_padre = [k for k, v in MISMA_CUENTA.items()
 if sin_padre:
     raise SystemExit('MISMA_CUENTA apunta a un CID que no existe en la cartera: %s' % sin_padre)
 
-MES = str(crudas[0][ix['mes']]).strip() if crudas else None
-if MES not in MESES:
-    raise SystemExit('El export dice que el mes es «%s» y no lo reconozco.' % MES)
+MES = MES_VIVO
+
+# ── LOS MESES CERRADOS, CALCULADOS DEL ARCHIVO ───────────────────────────────
+#
+# `HISTORIA_PUBLICADA` deja de ser la FUENTE y pasa a ser el CONTRASTE: lo que
+# el modulo venia publicando. Si un mes cerrado se mueve, se dice en voz alta
+# en vez de cambiarlo en silencio — que es exactamente la trampa que ya mordio
+# en el otro dataset (mayo-agosto se movieron -$70,150 contra lo reportado a
+# direccion, y solo se vio porque alguien concilio antes de publicar).
+#
+# La columna `churn` de la tabla vieja es SOLO «Churn confirmado»; el churn
+# real del mes suma ademas «Churn mensual» y «Churn financiero». Por eso se
+# contrasta contra el desglose, no contra ese numero suelto.
+cerradosArchivo, detalleArchivo = [], {}
+for m in MESES_EN_ARCHIVO:
+    rs = [r for r in todas if str(g(r, 'mes') or '').strip() == m]
+    porMov = {}
+    for r in rs:
+        mv = str(g(r, 'movimiento') or '').strip() or '(sin movimiento)'
+        p, fr = porMov.get(mv, (0.0, 0.0))
+        porMov[mv] = (p + num(g(r, 'perdida')), fr + num(g(r, 'fraude')))
+    ch = sum(p for mv, (p, _) in porMov.items() if es_churn(mv))
+    dg = sum(p for mv, (p, _) in porMov.items() if es_downgrade(mv))
+    per = sum(p for p, _ in porMov.values())
+    # Nadie mas puede aportar perdida: si aparece un movimiento nuevo que si la
+    # aporta, se planta en vez de dejarlo fuera de la serie sin avisar.
+    assert abs((ch + dg) - per) < 0.01, (
+        '%s: churn+downgrade suman %.2f y la perdida es %.2f. Hay un movimiento '
+        'con perdida que no es Churn ni Downgrade: %s'
+        % (m, ch + dg, per,
+           {mv: round(p, 2) for mv, (p, _) in porMov.items()
+            if p > 0 and not es_churn(mv) and not es_downgrade(mv)}))
+    cerradosArchivo.append((m, sum(num(g(r, 'mrrIni')) for r in rs), ch, dg, per))
+    detalleArchivo[m] = sorted(((mv, round(p, 2), round(fr, 2))
+                                for mv, (p, fr) in porMov.items() if p > 0 or fr > 0),
+                               key=lambda x: -x[1])
+
+PREV = {h[0]: h for h in HISTORIA_PUBLICADA}
+movidos = []
+for m, mi, ch, dg, per in cerradosArchivo:
+    p = PREV.get(m)
+    if not p or m == MES:
+        continue
+    dMrr, dDg = mi - p[1], dg - p[3]
+    dPer = (per - p[4]) if p[4] is not None else 0.0
+    if max(abs(dMrr), abs(dDg), abs(dPer)) >= 1.0:
+        movidos.append((m, dMrr, dDg, dPer))
+if movidos:
+    print('\n  *** MESES CERRADOS QUE SE MOVIERON contra lo ya publicado ***')
+    print('  %-12s %14s %14s %16s' % ('MES', 'MRR INICIO', 'DOWNGRADE', 'PERDIDA'))
+    for m, a, b, c in movidos:
+        # El `%` de Python no admite el separador de miles: va con format().
+        d_ = lambda v: (('+' if v > 0 else '-') + '$' + format(abs(v), ',.2f')) if v else '='
+        print('  %-12s %14s %14s %16s' % (m, d_(a), d_(b), d_(c)))
+    print('  El export REESCRIBE meses cerrados. Conciliar antes de publicar:')
+    print('  python scripts/concilia-grc-zoho.py <respaldo>\n')
+
+HISTORIA = [(m, mi, ch, dg, per) for m, mi, ch, dg, per in cerradosArchivo if m != MES]
+DETALLE_HISTORICO = {m: v for m, v in detalleArchivo.items() if m != MES}
 
 # ── El mes vivo ──────────────────────────────────────────────────────────────
 S = lambda sel: sum(f['perdida'] for f in sel)
@@ -440,12 +525,27 @@ META = {
     'mesesCerrados': [m for m, _, _, _, _ in HISTORIA],
     'reactivacionesHasta': REACTIVACIONES[-1][0],
     'mesesConDetalle': sorted(detalle.keys(), key=lambda x: MESES.index(x)),
+    # ── LA NOTA DEL CAMBIO ───────────────────────────────────────────────
+    # Direccion, 2 oct 2026: «esta es la ultima informacion de la herramienta
+    # institucional, no puede haber dos cifras; si cambio simplemente cambio».
+    # Las cifras de los meses cerrados se movieron y eso NO se esconde: se
+    # declara aqui, con la razon, para que quien recuerde el numero anterior
+    # sepa por que ya no es ese. Se calcula, no se escribe a mano.
+    'notaCambio': (
+        'Las cifras de los meses cerrados cambiaron el 2 de octubre de 2026. Hasta esa fecha el '
+        'export traía un solo mes y los cerrados se transcribían de la tabla que Zoho publicaba, '
+        'que sólo contaba «Churn confirmado». El export institucional ahora trae los %d meses '
+        'completos, así que la serie se calcula del archivo y cuenta los TRES tipos de churn '
+        '—confirmado, mensual y financiero— igual que el mes en curso, que siempre se midió así. '
+        'Por eso cada mes cerrado subió y el acumulado a %s pasó de 17.3%% a %s. '
+        'No es que el negocio empeorara: antes se publicaba una parte del churn y ahora se publica '
+        'todo. Las únicas bajas son reclasificaciones a fraude, que el GRC excluye por definición.'
+        % (len(MESES_EN_ARCHIVO), HISTORIA[-1][0],
+           ('%.1f%%' % sum(100.0 * h[4] / h[1] for h in HISTORIA)))
+    ),
     'sinFuente': [
-        'La columna «GRC verificado» solo existe para %s. Los meses cerrados no se cotejaron contra '
-        'la base porque su detalle no viene en el export: van sin medir, no en 100%%.' % MES,
-        'Detalle de pérdida por movimiento: Zoho lo publica hasta %s. Julio y agosto no tienen '
-        'desglose y por eso aparecen sin medir, no en cero.'
-        % sorted(DETALLE_HISTORICO.keys(), key=lambda x: MESES.index(x))[-1],
+        'La columna «GRC verificado» solo existe para %s: es el único mes que se puede cotejar '
+        'contra el estado de hoy de la cartera. Los meses cerrados van sin cotejar, no en 100%%.' % MES,
         'Categoría de producto (CP Chat vs CP Voz): el export no trae esa columna.',
         'Reactivaciones: no hay columna en el export; se publica hasta %s, que es lo que Zoho alcanzó a publicar.' % REACTIVACIONES[-1][0],
         'Pagos recuperados y CSAT: son otros datasets, no salen de este export.',

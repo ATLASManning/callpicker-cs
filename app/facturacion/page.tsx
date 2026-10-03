@@ -138,7 +138,7 @@ type Datos = {
     descuadre: number; churnBaja: number; churnViva: number; churnSinVerificar: number
     cuentasBaja: number; cuentasViva: number; cuentasSinVerificar: number
     reactivacionesHasta: string; mesesConDetalle: string[]
-    sinFuente: string[]; advertencia: string
+    sinFuente: string[]; advertencia: string; notaCambio?: string
   }
   serie: Mes[]
   detallePerdida: { mes: string; filas: { movimiento: string; perdida: number; fraude: number }[] }[]
@@ -363,7 +363,7 @@ export default function GrossRevenueChurnPage() {
       {d && tab === 'serie' && (
         <div className="grid gap-4">
           <Tarjeta titulo="Gross Revenue Churn 2026"
-            sub="Los meses cerrados vienen tal como los publicó Zoho: su detalle no está en el export, así que no se pueden recalcular ni cotejar contra la base. El mes en curso se calcula fila por fila. El acumulado es la suma de los porcentajes mensuales, que es como lo define el tablero.">
+            sub="Los nueve meses se calculan del export institucional, fila por fila. El acumulado es la suma de los porcentajes mensuales, que es como lo define el tablero. Las cifras de los meses cerrados cambiaron respecto a lo publicado antes — la nota de abajo dice por qué.">
             <TablaSerie serie={d.serie} promHist={promHist} />
           </Tarjeta>
 
@@ -415,6 +415,23 @@ export default function GrossRevenueChurnPage() {
           sub={`${d.desmentidas.length} cuentas que el corte clasifica «Churn confirmado» y que siguen activas o en riesgo. Antes de reportar cualquiera como baja hay que confirmarla: el mes todavía corre.`}>
           <TablaDesmentidas filas={d.desmentidas} />
         </Tarjeta>
+      )}
+
+      {/* LA NOTA DEL CAMBIO, arriba y en ámbar. Dirección fue explícita: «no
+          puede haber dos cifras, si cambió simplemente cambió... en todo caso
+          solo haz una nota y colócala dentro de la información». La cifra es
+          una sola; lo que no se calla es POR QUÉ dejó de ser la anterior.
+          Quien recuerde el 17.3% tiene que toparse esto antes que la tabla. */}
+      {d?.meta?.notaCambio && (
+        <div className="rounded-xl px-4 py-3 mt-5"
+          style={{ background: 'rgba(217,119,6,0.10)', border: '1px solid rgba(217,119,6,0.35)' }}>
+          <p className="text-[11.5px] font-bold mb-1" style={{ color: '#FBBF24' }}>
+            Por qué cambiaron las cifras de los meses cerrados
+          </p>
+          <p className="text-[11px] leading-relaxed" style={{ color: '#FDE68A' }}>
+            {d.meta.notaCambio}
+          </p>
+        </div>
       )}
 
       {d && (
@@ -564,8 +581,8 @@ function TablaSerie({ serie, promHist }: { serie: Mes[]; promHist: number | null
       <p className="text-[11px] mt-3 leading-relaxed" style={{ color: TENUE }}>
         Los {cerrados.length} meses cerrados promedian <strong>{fp(promHist)}</strong> de GRC. El porcentaje del
         renglón Total incluye el mes en curso con toda su pérdida sin cotejar, así que sirve para reconciliar con
-        el tablero de Zoho, no para juzgar el año. Los meses cerrados vienen tal como los publicó Zoho; el mes en
-        curso —resaltado— se calcula del export, y sus tres lecturas de GRC están en los indicadores de arriba.
+        el tablero de Zoho, no para juzgar el año. El mes en curso va resaltado y sus tres lecturas de GRC están
+        en los indicadores de arriba.
       </p>
     </div>
   )
