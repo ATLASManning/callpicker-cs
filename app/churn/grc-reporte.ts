@@ -181,30 +181,31 @@ export const GRC_REEXPRESION_2026_09_20 = {
 }
 
 /**
- * Totales del renglón "Resumen amplio" del reporte.
+ * Totales del renglón "Resumen amplio", tal como los publica el tablero
+ * institucional. Corte del 2-oct-2026.
  *
- * OJO al leer el salto: la pérdida pasa de $904,252.47 a $2,151,751.56, pero
- * $1,306,563.63 de eso es septiembre — el mes vivo, que no es churn sino
- * cartera por cobrar (ver GRC_MES_EN_CURSO). El porcentaje de septiembre no es
- * una caída del negocio; es el mes sin cerrar. Los ocho meses cerrados suman
- * $845,187.93 y dan 2.16%, en línea con el histórico.
+ * SEPTIEMBRE YA CERRÓ Y EL SALTO DESAPARECIÓ. El corte anterior traía
+ * $2,151,751.56 de pérdida, de los cuales $1,306,563.63 era septiembre con
+ * todos los contratos que aún no facturaban marcados «Churn confirmado».
+ * Entraron los pagos y septiembre quedó en $184,979.63. El acumulado real del
+ * periodo es 2.32%, en línea con el histórico — nunca hubo tal caída.
  */
 export const GRC_RESUMEN_REPORTE = {
-  base:      44014346.17,
-  churn:      1795713.37,
-  downgrade:   356038.19,
-  perdida:    2151751.56,
-  pct:               4.89,
+  base:      44065901.07,
+  churn:      660228.56,
+  downgrade:   361646.60,
+  perdida:    1021875.16,
+  pct:               2.32,
 }
 
 /** El mismo resumen sin el mes en curso — la cifra comparable contra el histórico. */
 export const GRC_RESUMEN_CERRADOS = {
   hasta:     'Agosto',
-  base:      39109117.90,
-  churn:       538615.00,
+  base:      39116756.90,
+  churn:       530322.60,
   downgrade:   306572.93,
-  perdida:     845187.93,
-  pct:               2.16,
+  perdida:     836895.53,
+  pct:               2.14,
 }
 
 /**

@@ -211,14 +211,24 @@ export default function GrcAaaSection() {
      Se calcula sobre TODAS las clasificaciones y con la pérdida REAL: es el
      reporte de dirección, no la vista filtrada de abajo. El fraude /
      reestructura queda fuera, igual que en el reporte GRC.
-     La base de MRR no está en el Excel (sólo trae contratos afectados), así
-     que viene de GRC_BASE_MRR; sin base, el mes no muestra porcentaje. */
+     La base de MRR viene de GRC_BASE_MRR, que sale del export institucional;
+     sin base, el mes no muestra porcentaje.
+
+     CHURN ES SOLO «Churn confirmado». Era `movimiento.includes('Churn')`, que
+     barría los TRES tipos que marca Zoho —confirmado, mensual y financiero— y
+     por eso esta tabla daba $101,131.11 en enero contra los $74,083.11 del
+     tablero institucional, y $190,112.98 en septiembre contra $129,905.96.
+     El tablero «Gross Revenue Churn - 2026 confirmado» cuenta únicamente el
+     confirmado: con esta definición cuadran los nueve meses al centavo.
+     El churn mensual y el financiero SON pérdida real, pero el GRC no los
+     cuenta; se ven en el corte por tipo de movimiento, nunca sumados aquí. */
+  const esChurnGrc = (m: string) => m.startsWith('Churn confirmado')
   const grc = useMemo(() => {
     let acum = 0
     const filas = ORDEN_MES.map(mes => {
       const f = AAA_GRC_FLAT.filter(r => r.mes === mes)
-      const churn     = f.filter(r => r.movimiento.includes('Churn')).reduce((s, r) => s + r.perdido, 0)
-      const downgrade = f.filter(r => r.movimiento.includes('Downgrade')).reduce((s, r) => s + r.perdido, 0)
+      const churn     = f.filter(r => esChurnGrc(r.movimiento)).reduce((s, r) => s + r.perdido, 0)
+      const downgrade = f.filter(r => r.movimiento.startsWith('Downgrade')).reduce((s, r) => s + r.perdido, 0)
       const perdida   = churn + downgrade
       const base      = GRC_BASE_MRR[mes] ?? 0
       const pct       = base ? (perdida / base) * 100 : null
@@ -268,8 +278,8 @@ export default function GrcAaaSection() {
     registros: filas.length,
     perdido:   filas.reduce((s, r) => s + r.perdido, 0),
     fraude:    filas.reduce((s, r) => s + r.perdido2, 0),
-    churns:    filas.filter(r => r.movimiento.includes('Churn')).length,
-    downgrades:filas.filter(r => r.movimiento.includes('Downgrade')).length,
+    churns:    filas.filter(r => esChurnGrc(r.movimiento)).length,
+    downgrades:filas.filter(r => r.movimiento.startsWith('Downgrade')).length,
   }), [filas])
 
   const movimientos = useMemo(() =>
