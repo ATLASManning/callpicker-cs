@@ -44,20 +44,29 @@ print('  filas %s · clientes %s · de la cartera %d'
 vivo = [m for m in SER if not m['cerrado']][0]
 ini = sum(f['mrrIni'] for f in F)
 fin = sum(f['mrrFin'] for f in F)
-per = sum(f['perdida'] for f in F)
+perArchivo = sum(f['perdida'] for f in F)
 fra = sum(f['fraude'] for f in F)
 gan = sum(f['ganado'] for f in F)
 
 print()
 print('=== 1 · ARITMETICA DEL MES ===')
-calc = ini - per - fra + gan
+# La aritmetica del mes usa la perdida COMPLETA del archivo, no la publicada:
+# el MRR fin refleja todo lo que se fue, lo cuente el GRC o no.
+calc = ini - perArchivo - fra + gan
 prueba('inicio - perdida - fraude + ganado = fin', abs(calc - fin) < 1,
        'descuadre %.2f' % (calc - fin))
 
 print()
 print('=== 2 · LAS TRES CANASTAS ===')
-esChurn = lambda f: (f['movimiento'] or '').startswith('Churn')
+# SOLO «Churn confirmado»: es como lo define el tablero institucional.
+# Verificado contra sus nueve cifras publicadas — con esto cuadran el churn, el
+# downgrade, el GRC mensual y el acumulado al centavo en los nueve meses.
+esChurn = lambda f: (f['movimiento'] or '').startswith('Churn confirmado')
 esDown = lambda f: (f['movimiento'] or '').startswith('Downgrade')
+# Perdida real que el GRC NO cuenta: churn mensual y financiero.
+esOtra = lambda f: not esChurn(f) and not esDown(f)
+# `per` es lo que el modulo PUBLICA como perdida del mes: churn + downgrade.
+per = sum(f['perdida'] for f in F if esChurn(f) or esDown(f))
 S = lambda L: sum(x['perdida'] for x in L)
 baja = S([f for f in F if esChurn(f) and f['verificacion'] == 'baja'])
 viva = S([f for f in F if esChurn(f) and f['verificacion'] == 'sigue_viva'])
@@ -67,7 +76,11 @@ down = S([f for f in F if esDown(f)])
 print('  baja verificada %14s · desmentida %14s · sin verificar %14s'
       % (f_(baja), f_(viva), f_(sinv)))
 prueba('las tres canastas agotan el churn', abs(baja + viva + sinv - churn) < 0.01)
-prueba('churn + downgrade agota la perdida', abs(churn + down - per) < 0.01)
+prueba('churn + downgrade es la perdida publicada', abs(churn + down - per) < 0.01)
+otra = S([f for f in F if esOtra(f)])
+prueba('churn + downgrade + otros agotan el archivo',
+       abs(churn + down + otra - perArchivo) < 0.01,
+       'otros (churn mensual y financiero): %s' % f_(otra))
 prueba('ninguna fila de churn quedo sin clasificar',
        not [f for f in F if esChurn(f) and f['perdida'] > 0 and f['verificacion'] == 'na'])
 
@@ -90,7 +103,7 @@ for m in SER:
         malos.append(m['mes'])
 prueba('acumulado = suma de mensuales en los %d meses' % len(SER), not malos, str(malos or ''))
 ago = [m for m in SER if m['mes'] == 'Agosto'][0]
-prueba('Agosto acumulado 23.1%% como publica Zoho', abs(ago['grcAcumulado'] - 23.1) < 0.1,
+prueba('Agosto acumulado 17.1%% como publica Zoho', abs(ago['grcAcumulado'] - 17.1) < 0.1,
        '%.1f%%' % ago['grcAcumulado'])
 
 print()
@@ -100,15 +113,15 @@ print('=== 5 · LA SERIE CONTRA EL CORTE VIGENTE (candado de regresion) ===')
 # congelado. Si un export futuro mueve un mes cerrado, esto falla — que es
 # justo lo que se quiere: enterarse, no que cambie en silencio.
 PUB = {
-       'Enero': (4650020.89, 101131.11, 20848.01),
-       'Febrero': (4696696.10, 114141.07, 34216.37),
-       'Marzo': (4776920.30, 106538.00, 25734.97),
-       'Abril': (4857171.51, 112420.46, 26413.59),
-       'Mayo': (5075866.09, 65029.31, 42283.26),
-       'Junio': (5103295.12, 114616.00, 81522.81),
-       'Julio': (4943564.29, 92458.46, 25576.75),
-       'Agosto': (5013222.60, 115802.18, 49977.17),
-       'Septiembre': (4949144.17, 190112.98, 55073.67)}
+       'Enero': (4650020.89, 74083.11, 20848.01),
+       'Febrero': (4696696.10, 65589.19, 34216.37),
+       'Marzo': (4776920.30, 82546.00, 25734.97),
+       'Abril': (4857171.51, 58214.06, 26413.59),
+       'Mayo': (5075866.09, 32586.00, 42283.26),
+       'Junio': (5103295.12, 87260.00, 81522.81),
+       'Julio': (4943564.29, 69086.46, 25576.75),
+       'Agosto': (5013222.60, 60957.78, 49977.17),
+       'Septiembre': (4949144.17, 129905.96, 55073.67)}
 for m in SER:
     p = PUB.get(m['mes'])
     if not p:

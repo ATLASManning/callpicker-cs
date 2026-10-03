@@ -71,14 +71,16 @@ MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
 # La tercera columna es SOLO «Churn confirmado»; la quinta es la perdida
 # «global», que incluye ademas churn mensual y financiero.
 HISTORIA_PUBLICADA = [
-    ('Enero',      4650020.89,    74083.11,    20848.01,   121979.12),
-    ('Febrero',    4696696.10,    65589.19,    34216.37,   148357.44),
-    ('Marzo',      4776920.30,    82546.00,    25734.97,   132272.97),
-    ('Abril',      4857171.51,    58214.06,    26413.59,   139818.05),
-    ('Mayo',       5074882.09,    32586.00,    42283.26,   107312.57),
-    ('Junio',      5103295.12,    87260.00,    81522.81,   209500.81),
-    ('Julio',      4943564.29,    74017.46,    25576.75,   124690.21),
-    ('Agosto',     5006567.60,    68784.18,    49977.17,   None),  # no esta en «global»
+    # (mes, MRR inicio, churn confirmado, downgrade, perdida publicada)
+    # Lo que el modulo publicaba hasta el 2 oct 2026, antes de este export.
+    ('Enero',      4650020.89,  74083.11, 20848.01,  94931.12),
+    ('Febrero',    4696696.10,  65589.19, 34216.37,  99805.56),
+    ('Marzo',      4776920.30,  82546.00, 25734.97, 108280.97),
+    ('Abril',      4857171.51,  58214.06, 26413.59,  84627.65),
+    ('Mayo',       5074882.09,  32586.00, 42283.26,  74869.26),
+    ('Junio',      5103295.12,  87260.00, 81522.81, 168782.81),
+    ('Julio',      4943564.29,  74017.46, 25576.75,  99594.21),
+    ('Agosto',     5006567.60,  68784.18, 49977.17, 118761.35),
 ]
 
 # «Detalle de perdida», por mes y movimiento. El tablero solo llega a junio.
@@ -171,8 +173,24 @@ def norm(s):
     return re.sub(r'[^a-z0-9]', '', s)
 
 
-es_churn = lambda m: m.startswith('Churn')
+# ── QUE CUENTA COMO CHURN PARA EL GRC ────────────────────────────────────────
+#
+# SOLO «Churn confirmado». No todo lo que empieza por «Churn».
+#
+# Zoho tiene tres tipos —confirmado, mensual y financiero— y el tablero
+# institucional «Gross Revenue Churn - 2026 confirmado» cuenta UNICAMENTE el
+# confirmado. Comprobado contra las nueve cifras que publica: con esta
+# definicion el churn, el downgrade, el GRC mensual y el acumulado cuadran al
+# centavo en los nueve meses; con `startswith('Churn')` no cuadra ninguno
+# (enero daria $101,131 contra los $74,083 del tablero).
+#
+# El churn mensual y el financiero SI son perdida real, pero el GRC no los
+# cuenta. Van en su propia canasta (`otros`) para que la suma cierre y se
+# puedan nombrar, nunca mezclados con el churn del tablero.
+es_churn = lambda m: m.startswith('Churn confirmado')
 es_downgrade = lambda m: m.startswith('Downgrade')
+# Perdida real que el GRC institucional deja fuera: churn mensual y financiero.
+es_otra_perdida = lambda m: not es_churn(m) and not es_downgrade(m)
 pct = lambda a, b: round(100.0 * a / b, 4) if b else 0.0
 
 # ── El export ────────────────────────────────────────────────────────────────
@@ -322,23 +340,22 @@ for m in MESES_EN_ARCHIVO:
         porMov[mv] = (p + num(g(r, 'perdida')), fr + num(g(r, 'fraude')))
     ch = sum(p for mv, (p, _) in porMov.items() if es_churn(mv))
     dg = sum(p for mv, (p, _) in porMov.items() if es_downgrade(mv))
+    ot = sum(p for mv, (p, _) in porMov.items() if es_otra_perdida(mv))
     per = sum(p for p, _ in porMov.values())
-    # Nadie mas puede aportar perdida: si aparece un movimiento nuevo que si la
-    # aporta, se planta en vez de dejarlo fuera de la serie sin avisar.
-    assert abs((ch + dg) - per) < 0.01, (
-        '%s: churn+downgrade suman %.2f y la perdida es %.2f. Hay un movimiento '
-        'con perdida que no es Churn ni Downgrade: %s'
-        % (m, ch + dg, per,
-           {mv: round(p, 2) for mv, (p, _) in porMov.items()
-            if p > 0 and not es_churn(mv) and not es_downgrade(mv)}))
-    cerradosArchivo.append((m, sum(num(g(r, 'mrrIni')) for r in rs), ch, dg, per))
+    # El reparto tiene que AGOTAR la perdida del mes. `otros` es el churn
+    # mensual y financiero, que es perdida real y el GRC no cuenta: va aparte
+    # para poder nombrarlo, no escondido dentro del churn ni fuera de la suma.
+    assert abs((ch + dg + ot) - per) < 0.01, (
+        '%s: churn+downgrade+otros suman %.2f y la perdida es %.2f' % (m, ch + dg + ot, per))
+    # Lo que publica la serie es lo del TABLERO: churn confirmado + downgrade.
+    cerradosArchivo.append((m, sum(num(g(r, 'mrrIni')) for r in rs), ch, dg, ch + dg, ot))
     detalleArchivo[m] = sorted(((mv, round(p, 2), round(fr, 2))
                                 for mv, (p, fr) in porMov.items() if p > 0 or fr > 0),
                                key=lambda x: -x[1])
 
 PREV = {h[0]: h for h in HISTORIA_PUBLICADA}
 movidos = []
-for m, mi, ch, dg, per in cerradosArchivo:
+for m, mi, ch, dg, per, ot in cerradosArchivo:
     p = PREV.get(m)
     if not p or m == MES:
         continue
@@ -356,7 +373,8 @@ if movidos:
     print('  El export REESCRIBE meses cerrados. Conciliar antes de publicar:')
     print('  python scripts/concilia-grc-zoho.py <respaldo>\n')
 
-HISTORIA = [(m, mi, ch, dg, per) for m, mi, ch, dg, per in cerradosArchivo if m != MES]
+HISTORIA = [(m, mi, ch, dg, per) for m, mi, ch, dg, per, ot in cerradosArchivo if m != MES]
+OTROS_POR_MES = {m: ot for m, mi, ch, dg, per, ot in cerradosArchivo}
 DETALLE_HISTORICO = {m: v for m, v in detalleArchivo.items() if m != MES}
 
 # ── El mes vivo ──────────────────────────────────────────────────────────────
@@ -369,16 +387,21 @@ mrrIni = sum(f['mrrIni'] for f in filas)
 mrrFin = sum(f['mrrFin'] for f in filas)
 ganado = sum(f['ganado'] for f in filas)
 fraude = sum(f['fraude'] for f in filas)
-perdida = sum(f['perdida'] for f in filas)
+perdidaArchivo = sum(f['perdida'] for f in filas)
+otros = sum(f['perdida'] for f in filas if es_otra_perdida(f['movimiento'] or ''))
+# Lo que el modulo publica como perdida del mes es lo del TABLERO: churn
+# confirmado + downgrade. El churn mensual y el financiero son perdida real que
+# el GRC institucional no cuenta; van en `otros`, nombrados, no sumados aqui.
+perdida = churn + downg
 
 # La aritmetica del mes tiene que cerrar o el archivo no sirve de nada.
-desc = (mrrIni - perdida - fraude + ganado) - mrrFin
+desc = (mrrIni - perdidaArchivo - fraude + ganado) - mrrFin
 assert abs(desc) < 1.0, 'el mes no cierra: descuadre de %.2f' % desc
 # Y las tres canastas mas el downgrade tienen que agotar la perdida, o hay
 # filas que ninguna tabla esta mostrando.
-assert abs((churn + downg) - perdida) < 0.01, (
-    'las canastas suman %.2f y la perdida es %.2f: hay filas sin clasificar'
-    % (churn + downg, perdida))
+assert abs((churn + downg + otros) - perdidaArchivo) < 0.01, (
+    'las canastas suman %.2f y la perdida del archivo es %.2f: hay filas sin clasificar'
+    % (churn + downg + otros, perdidaArchivo))
 
 vivo = {
     'mes': MES, 'cerrado': False, 'origen': os.path.basename(ORIGEN),
@@ -532,16 +555,16 @@ META = {
     # declara aqui, con la razon, para que quien recuerde el numero anterior
     # sepa por que ya no es ese. Se calcula, no se escribe a mano.
     'notaCambio': (
-        'Las cifras de los meses cerrados cambiaron el 2 de octubre de 2026. Hasta esa fecha el '
-        'export traía un solo mes y los cerrados se transcribían de la tabla que Zoho publicaba, '
-        'que sólo contaba «Churn confirmado». El export institucional ahora trae los %d meses '
-        'completos, así que la serie se calcula del archivo y cuenta los TRES tipos de churn '
-        '—confirmado, mensual y financiero— igual que el mes en curso, que siempre se midió así. '
-        'Por eso cada mes cerrado subió y el acumulado a %s pasó de 17.3%% a %s. '
-        'No es que el negocio empeorara: antes se publicaba una parte del churn y ahora se publica '
-        'todo. Las únicas bajas son reclasificaciones a fraude, que el GRC excluye por definición.'
-        % (len(MESES_EN_ARCHIVO), HISTORIA[-1][0],
-           ('%.1f%%' % sum(100.0 * h[4] / h[1] for h in HISTORIA)))
+        'Las cifras de julio y agosto cambiaron el 2 de octubre de 2026, y no es que el negocio '
+        'empeorara: el export institucional reclasificó dos contratos de pérdida real a '
+        'fraude/reestructura, que el GRC excluye por definición. Julio bajó de $99,594 a $94,663 '
+        '(1.9%% en vez de 2.0%%) y agosto de $118,761 a $110,935 (2.2%% en vez de 2.4%%). '
+        'Lo demás quedó igual. '
+        'Una nota de alcance, aparte de ese cambio: el GRC cuenta «Churn confirmado» más '
+        'downgrade, que es como lo define el tablero institucional. Zoho marca además churn '
+        'mensual y financiero —%s en lo que va del año— que SÍ es pérdida real pero el GRC no '
+        'cuenta; no está sumado en ninguna cifra de esta pantalla.'
+        % ('$' + format(round(sum(OTROS_POR_MES.values())), ',d'))
     ),
     'sinFuente': [
         'La columna «GRC verificado» solo existe para %s: es el único mes que se puede cotejar '
