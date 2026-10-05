@@ -119,6 +119,12 @@ def ooxml(tipo):
 DOCX = ooxml('word'); XLSX = ooxml('xl')
 MIME_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+# Un informe HTML como los que genera el equipo: autonomo y CON un <script>
+# dentro, que es el caso que obliga a los candados de la descarga.
+HTML = (b'<!doctype html><html><head><meta charset=utf8>'
+        b'<title>Informe de prueba</title></head><body>'
+        b'<h1>Llamadas perdidas</h1><script>console.log(1)</script>'
+        b'</body></html>')
 
 try:
     # ── 1. La tabla ya existe ──────────────────────────────────────────────
@@ -128,11 +134,12 @@ try:
     if j.get('tablaExiste') is not True:
         raise SystemExit('sin tabla no tiene sentido seguir')
 
-    # ── 2. Subida real de los tres formatos ────────────────────────────────
+    # ── 2. Subida real de los CUATRO formatos ──────────────────────────────
     print()
     casos = [('Analisis de caso octubre.pdf', 'application/pdf', PDF, 'analisis'),
              ('Propuesta comercial.docx', MIME_DOCX, DOCX, 'venta'),
-             ('Consumo de minutos.xlsx', MIME_XLSX, XLSX, 'producto')]
+             ('Consumo de minutos.xlsx', MIME_XLSX, XLSX, 'producto'),
+             ('Llamadas perdidas.html', 'text/html', HTML, 'falla')]
     for nombre, mime, data, tema in casos:
         cuerpo, ct = multipart(
             {'cuenta_id': CUENTA, 'nombre_documento': f'{MARCA} {tema}',
@@ -179,8 +186,8 @@ try:
     with urllib.request.urlopen(r, timeout=180) as x:
         html = x.read().decode('utf-8', 'replace').replace('<!-- -->', '')
     prueba('la ficha muestra el panel «Anexos de la cuenta»', 'Anexos de la cuenta' in html)
-    prueba('la ficha lista los 3 documentos de prueba',
-           html.count(MARCA) >= 3, f'{html.count(MARCA)} menciones')
+    prueba('la ficha lista los 4 documentos de prueba',
+           html.count(MARCA) >= 4, f'{html.count(MARCA)} menciones')
     # Las etiquetas van acentuadas y en minuscula: «1 análisis · 1 venta · …».
     # El HTML puede traer la tilde literal o como entidad; se normalizan ambas.
     import unicodedata as _u
@@ -202,6 +209,11 @@ try:
         ('cuenta inexistente',  {'cuenta_id': '00000000-0000-0000-0000-000000000000', 'nombre_documento': 'x', 'tema': 'falla'}, ('a.pdf', 'application/pdf', PDF)),
         ('tipo prohibido (.exe)', {'cuenta_id': CUENTA, 'nombre_documento': 'x', 'tema': 'falla'}, ('v.exe', 'application/x-msdownload', b'MZ\x90\x00')),
         ('ejecutable disfrazado de .pdf', {'cuenta_id': CUENTA, 'nombre_documento': 'x', 'tema': 'falla'}, ('v.exe', 'application/pdf', b'MZ\x90\x00')),
+        # La tolerancia que se abrio para el .html NO se extiende a lo demas.
+        # Si estas dos pasaran, bastaria una extension conocida para colar
+        # cualquier binario — que es lo que la pareja MIME+extension cierra.
+        ('binario .pdf declarado octet-stream', {'cuenta_id': CUENTA, 'nombre_documento': 'x', 'tema': 'falla'}, ('v.pdf', 'application/octet-stream', b'MZ\x90\x00')),
+        ('ejecutable con extension .html', {'cuenta_id': CUENTA, 'nombre_documento': 'x', 'tema': 'falla'}, ('v.exe', 'text/html', b'MZ\x90\x00')),
         ('mas de 4 MB',         {'cuenta_id': CUENTA, 'nombre_documento': 'x', 'tema': 'falla'}, ('g.pdf', 'application/pdf', PDF + b'\0' * (4 * 1024 * 1024 + 500))),
     ]
     for etq, campos, arch in malos:

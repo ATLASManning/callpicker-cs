@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   }
   if (!(archivo instanceof File)) {
     return NextResponse.json(
-      { error: 'archivo_requerido', mensaje: 'Adjunta un archivo Word, Excel o PDF.' },
+      { error: 'archivo_requerido', mensaje: 'Adjunta un archivo Word, Excel, PDF o HTML.' },
       { status: 400 })
   }
 
