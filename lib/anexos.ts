@@ -61,7 +61,8 @@ export const BUCKET = 'anexos'
 export const MAX_BYTES = 4 * 1024 * 1024
 
 /**
- * Los formatos que pidió dirección: Word, Excel y PDF.
+ * Los formatos que pidió dirección: Word, Excel, PDF y —desde el 5 oct
+ * 2026— informes HTML.
  *
  * Se valida el MIME **y** la extensión, y tienen que coincidir. El navegador
  * manda el MIME y es trivial falsificarlo; la extensión sola tampoco basta.
@@ -76,12 +77,45 @@ export const FORMATOS: { mime: string; ext: string[]; etiqueta: string }[] = [
   { mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ext: ['.xlsx'], etiqueta: 'Excel' },
   { mime: 'application/vnd.ms-excel.sheet.macroEnabled.12', ext: ['.xlsm'], etiqueta: 'Excel' },
+  /* HTML — los informes autónomos que genera el equipo (llamadas perdidas,
+     análisis por cuenta). Instrucción de dirección, 5 oct 2026.
+
+     ES EL ÚNICO FORMATO DE ESTA LISTA QUE EJECUTA CÓDIGO. Un .docx o un .xlsx
+     los abre Office fuera del navegador; un .html con un `<script>` dentro
+     corre EN el navegador, y si se sirviera desde nuestro origen tendría
+     acceso a la cookie de sesión del tablero. Por eso la descarga va SIEMPRE
+     como adjunto y con `Content-Security-Policy: sandbox` — ver el encabezado
+     de app/api/anexos/[id]/descargar/route.ts. No es paranoia: el informe de
+     ejemplo que motivó esto trae un `<script>` embebido. */
+  { mime: 'text/html', ext: ['.html', '.htm'], etiqueta: 'HTML' },
 ]
 
 export const MIMES_PERMITIDOS = FORMATOS.map(f => f.mime)
 export const EXTENSIONES = FORMATOS.flatMap(f => f.ext)
 /** Para el `accept` del <input type="file">. */
 export const ACCEPT = [...MIMES_PERMITIDOS, ...EXTENSIONES].join(',')
+
+const EXT_HTML = ['.html', '.htm']
+
+/** Un .html que el navegador no supo tipar. Es la única excepción tolerada. */
+function esHtmlSinTipo(nombre: string, mime: string): boolean {
+  return EXT_HTML.includes(extensionDe(nombre))
+      && (!mime || mime === 'text/plain')
+}
+
+/**
+ * El tipo con el que se GUARDA el archivo.
+ *
+ * Si se guardara el `type` crudo del navegador, un .html que llegó sin tipo se
+ * almacenaría con `archivo_tipo: ''` y la descarga saldría como
+ * `application/octet-stream` — el navegador no sabría qué es. Se normaliza
+ * aquí, una sola vez, para que la fila guarde el tipo real.
+ */
+export function mimeEfectivo(nombre: string, mime: string): string {
+  if (FORMATOS.some(f => f.mime === mime)) return mime
+  if (esHtmlSinTipo(nombre, mime)) return 'text/html'
+  return mime
+}
 
 export function extensionDe(nombre: string): string {
   const i = nombre.lastIndexOf('.')
@@ -107,8 +141,15 @@ export function motivoRechazo(nombre: string, mime: string, bytes: number): stri
   }
   const formato = FORMATOS.find(f => f.mime === mime)
   if (!formato) {
+    /* La ÚNICA tolerancia, y es acotada a propósito: un .html que llega sin
+       tipo o como text/plain. Los navegadores varían ahí y rechazarlo sería
+       rechazar un archivo legítimo por un detalle del navegador.
+       NO se extiende a `application/octet-stream` ni a los demás formatos:
+       eso aceptaría cualquier binario con tal de que llevara una extensión
+       conocida, que es justo lo que la pareja MIME+extensión vino a cerrar. */
+    if (esHtmlSinTipo(nombre, mime)) return null
     return `Tipo de archivo no permitido (${mime || 'desconocido'}). `
-         + 'Sólo se aceptan Word, Excel y PDF.'
+         + 'Sólo se aceptan Word, Excel, PDF y HTML.'
   }
   const ext = extensionDe(nombre)
   if (!formato.ext.includes(ext)) {

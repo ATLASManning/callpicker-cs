@@ -106,7 +106,7 @@ export default function AnexosPage() {
     if (!form.cuenta_id)            return setError('Elige el cliente al que pertenece el documento.')
     if (!form.nombre_documento.trim()) return setError('Escribe el nombre del documento.')
     if (!form.tema)                 return setError('Elige el tema del documento.')
-    if (!archivo)                   return setError('Adjunta un archivo Word, Excel o PDF.')
+    if (!archivo)                   return setError('Adjunta un archivo Word, Excel, PDF o HTML.')
     const malo = motivoRechazo(archivo.name, archivo.type, archivo.size)
     if (malo) return setError(malo)
 
@@ -195,7 +195,7 @@ export default function AnexosPage() {
               </span>
             </div>
             <p className="text-sm mt-0.5" style={{ color: '#475569' }}>
-              Documentos de cliente — Word, Excel y PDF. Cada uno queda asociado a su cuenta
+              Documentos de cliente — Word, Excel, PDF e informes HTML. Cada uno queda asociado a su cuenta
               y aparece en su ficha.
             </p>
           </div>
@@ -418,7 +418,7 @@ export default function AnexosPage() {
                 <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
                   Archivo <span style={{ color: '#ef4444' }}>*</span>
                   <span style={{ color: '#64748B', fontWeight: 400 }}>
-                    {' '}· Word, Excel o PDF · máximo {MAX_BYTES / 1024 / 1024} MB
+                    {' '}· Word, Excel, PDF o HTML · máximo {MAX_BYTES / 1024 / 1024} MB
                   </span>
                 </label>
                 <input type="file" accept={ACCEPT}
@@ -427,7 +427,18 @@ export default function AnexosPage() {
                   style={{ padding: 8, borderColor: archivo ? undefined : '#fca5a5' }} />
                 {archivo && (
                   <p className="text-[10px] mt-1" style={{ color: '#059669' }}>
-                    {archivo.name} · {etiquetaFormato(archivo.type)} · {pesoLegible(archivo.size)}
+                    {archivo.name} · {etiquetaFormato(archivo.type) === 'Documento' && /\.html?$/i.test(archivo.name)
+                      ? 'HTML' : etiquetaFormato(archivo.type)} · {pesoLegible(archivo.size)}
+                  </p>
+                )}
+                {/* El HTML puede traer scripts. Se guarda y se descarga, pero NO
+                    se abre dentro del tablero: servirlo desde este origen le
+                    daria acceso a la cookie de sesion. Decirlo evita que alguien
+                    reporte como falla que no se vea en pantalla. */}
+                {archivo && /\.html?$/i.test(archivo.name) && (
+                  <p className="text-[10px] mt-1" style={{ color: '#92400E' }}>
+                    Un informe HTML se guarda y se descarga, pero no se abre dentro del
+                    tablero: se abre desde tu equipo una vez descargado.
                   </p>
                 )}
               </div>

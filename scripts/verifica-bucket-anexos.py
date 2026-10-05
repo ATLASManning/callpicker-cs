@@ -37,6 +37,9 @@ MIME_ESPERADOS = {
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-excel.sheet.macroEnabled.12',
+    # HTML desde el 5 oct 2026. Es el unico que ejecuta codigo: la descarga
+    # va como adjunto y con CSP sandbox. Ver app/api/anexos/[id]/descargar.
+    'text/html',
 }
 
 fallas = []
@@ -87,7 +90,7 @@ def main():
     prueba('tiene limite de tamano', bool(b.get('file_size_limit')),
            f"{(b.get('file_size_limit') or 0) // (1024 * 1024)} MB")
     mimes = set(b.get('allowed_mime_types') or [])
-    prueba('solo acepta PDF, Word y Excel', mimes == MIME_ESPERADOS,
+    prueba('solo acepta PDF, Word, Excel y HTML', mimes == MIME_ESPERADOS,
            f'{len(mimes)} tipos' + ('' if mimes == MIME_ESPERADOS
                                     else f' · sobra/falta: {mimes ^ MIME_ESPERADOS}'))
 

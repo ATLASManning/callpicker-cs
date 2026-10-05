@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, esTablaInexistente } from '@/lib/supabase'
 import {
-  BUCKET, esTema, motivoRechazo, rutaEnBucket, type Anexo,
+  BUCKET, esTema, motivoRechazo, mimeEfectivo, rutaEnBucket, type Anexo,
 } from '@/lib/anexos'
 
 export const dynamic = 'force-dynamic'
@@ -94,12 +94,15 @@ export async function POST(req: NextRequest) {
       { status: 400 })
   }
 
+  /* El tipo que se guarda es el NORMALIZADO: un .html que el navegador no
+     supo tipar se almacenaria con '' y la descarga saldria como binario. */
+  const tipo = mimeEfectivo(archivo.name, archivo.type)
   const ruta = rutaEnBucket(cuentaId, archivo.name, Date.now())
   const bytes = Buffer.from(await archivo.arrayBuffer())
 
   const { error: errSubida } = await supabaseAdmin.storage
     .from(BUCKET)
-    .upload(ruta, bytes, { contentType: archivo.type, upsert: false })
+    .upload(ruta, bytes, { contentType: tipo, upsert: false })
   if (errSubida) {
     const msg = errSubida.message ?? ''
     if (/bucket/i.test(msg) && /not.*found/i.test(msg)) {
@@ -124,7 +127,7 @@ export async function POST(req: NextRequest) {
       tema,
       archivo_nombre: archivo.name,
       archivo_ruta: ruta,
-      archivo_tipo: archivo.type,
+      archivo_tipo: tipo,
       archivo_bytes: archivo.size,
       notas: notas || null,
       subido_por: subidoPor,

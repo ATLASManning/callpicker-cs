@@ -158,6 +158,16 @@ try:
         st, cont, hdrs, _ = api('GET', f"/api/anexos/{fila['id']}/descargar", crudo=True)
         prueba(f'la descarga de {tema} devuelve el MISMO archivo',
                st == 200 and cont == data, f'http {st} · {len(cont)} bytes')
+        # El HTML es el unico que ejecuta codigo: sus candados se comprueban.
+        if nombre.endswith('.html'):
+            prueba('  el HTML se sirve como ADJUNTO, no inline',
+                   'attachment' in hdrs.get('Content-Disposition', ''),
+                   hdrs.get('Content-Disposition', '')[:40])
+            prueba('  trae CSP sandbox (no corre aunque se renderice)',
+                   'sandbox' in (hdrs.get('Content-Security-Policy') or ''),
+                   hdrs.get('Content-Security-Policy') or '(sin CSP)')
+            prueba('  trae nosniff',
+                   'nosniff' in (hdrs.get('X-Content-Type-Options') or ''))
         disp = hdrs.get('Content-Disposition', '')
         prueba(f'  conserva el nombre «{nombre[:22]}»',
                'attachment' in disp and nombre.split('.')[-1] in disp.lower(), disp[:58])

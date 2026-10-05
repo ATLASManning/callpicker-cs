@@ -60,6 +60,27 @@ export async function GET(
   const nombre = anexo.archivo_nombre || `${anexo.nombre_documento}`
   const seguro = nombre.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '')
 
+  /* ── EL HTML ES EL ÚNICO FORMATO QUE EJECUTA CÓDIGO ──────────────────────
+   *
+   * Desde el 5 oct 2026 se aceptan informes .html. Un .docx lo abre Office
+   * fuera del navegador; un .html con un `<script>` dentro corre EN el
+   * navegador — y servido desde ESTE origen tendría acceso a la cookie de
+   * sesión del tablero. Eso es XSS almacenado sobre una aplicación con sesión:
+   * el peor resultado posible de permitir una subida.
+   *
+   * Tres candados, y los tres hacen falta:
+   *   1. `attachment` SIEMPRE. El navegador descarga en vez de renderizar, y
+   *      al abrirlo localmente corre en el origen `file://`, sin acceso a
+   *      nuestras cookies. Esto ya estaba y no se toca.
+   *   2. `nosniff`, para que un MIME mal puesto no se reinterprete.
+   *   3. `Content-Security-Policy: sandbox` — si algún día alguien cambia el
+   *      punto 1, o un navegador lo ignora, el documento se renderiza en un
+   *      origen opaco: sin scripts, sin formularios y sin acceso a la sesión.
+   *      Es el candado que sobrevive a un error futuro, no al de hoy.
+   *
+   * Para el resto de formatos la cabecera no estorba: un PDF o un .xlsx no la
+   * miran. Por eso va en todas y no solo en el HTML — una regla con excepción
+   * es una regla que alguien va a aplicar al revés. */
   return new NextResponse(await objeto.arrayBuffer(), {
     headers: {
       'Content-Type': anexo.archivo_tipo || 'application/octet-stream',
@@ -70,6 +91,7 @@ export async function GET(
       'Cache-Control': 'private, no-store',
       // Nunca se interpreta como HTML, aunque el MIME viniera mal.
       'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "sandbox; default-src 'none'",
     },
   })
 }
