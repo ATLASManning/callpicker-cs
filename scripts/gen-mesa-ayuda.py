@@ -257,11 +257,56 @@ def extrae(ruta):
 
 
 def escribe(corte):
+    """Escribe el corte del dia, pero NUNCA lo hace RETROCEDER.
+
+       Si ya hay un corte guardado de esa fecha con una hora POSTERIOR, se
+       conserva y se dice. Pasa cuando el archivo de origen desaparece: el
+       15-sep-2026 habia dos reportes —08:45 con 11 vencidos y 09:39 con 12—,
+       se guardo el de las 09:39 y despues el `_1.docx` se borro de Downloads.
+       Regenerar habria sustituido el corte bueno por el anterior, y nadie se
+       entera: el dato simplemente empeora.
+
+       Vale tambien para el caso normal: volver a correr `--todos` no puede
+       deshacer un corte mas fresco cargado antes.
+    """
     os.makedirs(DESTINO, exist_ok=True)
     ruta = os.path.join(DESTINO, corte['fecha'] + '.json')
+    if os.path.exists(ruta):
+        try:
+            previo = json.load(io.open(ruta, encoding='utf-8'))
+        except Exception:
+            previo = None
+        hp = re.sub(r'[^\d:]', '', str((previo or {}).get('horaCorte') or ''))
+        hn = re.sub(r'[^\d:]', '', str(corte.get('horaCorte') or ''))
+        if hp and hn and hp > hn:
+            print('  ! %s: se CONSERVA el corte de las %s (%s vencidos); el '
+                  'disponible es de las %s (%s). No se retrocede.'
+                  % (corte['fecha'], hp, (previo or {}).get('kpis', {}).get('vencidos'),
+                     hn, corte['kpis'].get('vencidos')))
+            return ruta
     io.open(ruta, 'w', encoding='utf-8').write(
         json.dumps(corte, ensure_ascii=False, indent=2))
     return ruta
+
+
+def hora_declarada(ruta):
+    """La hora de corte que el PROPIO reporte declara: «cerrada a las HH:MM h».
+
+       Es lo unico comparable entre dos copias del mismo dia. La fecha del
+       archivo no sirve en OneDrive —ahi es la de sincronizacion— y fue lo que
+       hizo retroceder el corte del 15-sep. Devuelve '' si el texto no la trae,
+       para que el desempate caiga en la mtime sin reventar.
+    """
+    try:
+        texto, _ = parrafos_y_tablas(ruta)
+        plano = chr(10).join(texto)
+    except Exception:
+        return ''
+    # El texto trae «cerrada a las ≈09:40 h»: el ≈ hay que tolerarlo o el
+    # patron no casa nunca y el desempate cae siempre en la mtime, que es
+    # justo lo que se queria dejar de usar. Mismo patron que usa `extrae`.
+    m = re.search(r'cerrada a las\s*[≈~]?\s*(\d{1,2}):(\d{2})', plano)
+    return '%02d:%s' % (int(m.group(1)), m.group(2)) if m else ''
 
 
 def elige_por_fecha(rutas):
@@ -274,8 +319,16 @@ def elige_por_fecha(rutas):
 
        Antes ganaba el ultimo por orden alfabetico (`_1` va despues), o sea por
        accidente, y se imprimian las dos lineas sin avisar de nada. Ahora gana el
-       mas RECIENTE por fecha de modificacion —el corte posterior es el estado mas
-       actual del dia— y se dice en voz alta cual se dejo fuera.
+       corte POSTERIOR del dia, y se dice en voz alta cual se dejo fuera.
+
+       SE DECIDE POR LA HORA QUE EL REPORTE DECLARA, NO POR LA DEL ARCHIVO.
+       La fecha de modificacion sirve mientras los dos archivos esten en la
+       misma carpeta; al sumar OneDrive deja de servir, porque ahi la mtime es
+       la de SINCRONIZACION, no la del corte. Paso de verdad el 5-oct-2026: el
+       `_1` del 15-sep —09:39 h, 12 vencidos— perdio contra la copia de
+       OneDrive del mismo dia —08:45 h, 11 vencidos— y el corte RETROCEDIO.
+       El propio reporte dice «cerrada a las HH:MM h»; eso es lo autoritativo.
+       La mtime queda solo como desempate cuando el texto no trae la hora.
     """
     por_fecha = {}
     for r in rutas:
@@ -287,15 +340,17 @@ def elige_por_fecha(rutas):
 
     elegidas = []
     for fecha in sorted(por_fecha):
-        cands = sorted(por_fecha[fecha], key=lambda p: os.path.getmtime(p))
+        cands = sorted(por_fecha[fecha], key=lambda p: (hora_declarada(p), os.path.getmtime(p)))
         gana = cands[-1]
         elegidas.append(gana)
         if len(cands) > 1:
             print('  ! %s: hay %d reportes. Se usa el mas reciente.' % (fecha, len(cands)))
             for c in cands:
                 marca = '<- se usa' if c == gana else '   se descarta'
-                print('      %s  %s  %s'
+                hd = hora_declarada(c)
+                print('      %s  corte %s  (archivo %s)  %s'
                       % (os.path.basename(c),
+                         hd or '--:--',
                          time.strftime('%H:%M', time.localtime(os.path.getmtime(c))), marca))
             # Si difieren en el KPI, no es una copia: es otro corte del dia.
             kpis = []
