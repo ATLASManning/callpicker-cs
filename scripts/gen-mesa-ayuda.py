@@ -51,8 +51,24 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_bufferin
 W = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DESTINO = os.path.join(RAIZ, 'data', 'mesa-ayuda')
-# Donde la tarea programada deja los reportes. Se LEE de aqui; nada se escribe.
-PATRON = r'C:\Users\manni\Downloads\Reporte_Diario_ZohoDesk_*.docx'
+# --------------------------------------------------------------------------
+# DONDE VIVEN LOS REPORTES: HAY QUE MIRAR LAS DOS CARPETAS
+#
+# Se LEE de aqui; nada se escribe.
+#
+# Esto miraba SOLO `Downloads` y por eso se salto el corte del 1-oct-2026 EN
+# SILENCIO: ese dia el archivo quedo en OneDrive y Downloads solo tenia los dos
+# mas recientes. El historico completo —20 reportes— vive en OneDrive; en
+# Downloads caen los que se bajan sueltos. `--todos` decia «2 reporte(s) a
+# procesar» y parecia que no faltaba nada.
+#
+# Un dia que falta no se nota: la serie simplemente no lo tiene y el modulo
+# ensena el corte anterior como si fuera el ultimo. Por eso se miran las DOS, y
+# `elige_por_fecha` se queda con el mas RECIENTE cuando la fecha esta en ambas.
+PATRONES = [
+    r'C:\Users\manni\OneDrive\Escritorio\Zoho Desk\Reporte_Diario_ZohoDesk_*.docx',
+    r'C:\Users\manni\Downloads\Reporte_Diario_ZohoDesk_*.docx',
+]
 
 # La tabla de vencidos, por sus encabezados. NO por su posicion: el reporte
 # tiene mas de treinta tablas y el orden puede cambiar entre versiones.
@@ -333,7 +349,9 @@ def avisa_si_no_es_de_hoy(ruta):
     print('      el mas nuevo es del %s y hoy es %s%s'
           % (fecha, hoy, (' (%d dia(s) de atraso)' % dias) if dias else ''))
     print('      La tarea programada de Zoho Desk no ha corrido, o el archivo no')
-    print('      llego a %s' % os.path.dirname(PATRON))
+    print('      llego a ninguna de las dos carpetas:')
+    for pat in PATRONES:
+        print('        %s' % os.path.dirname(pat))
     print('      El corte se escribe igual, pero NO es el estado de hoy:')
     print('      lo que se vea sera el del %s.' % fecha)
     print('  ' + '=' * 68)
@@ -348,8 +366,8 @@ def main():
     if args:
         rutas = args
     else:
-        crudas = sorted(glob.glob(PATRON))
-        assert crudas, 'no hay reportes en %s' % PATRON
+        crudas = sorted(x for pat in PATRONES for x in glob.glob(pat))
+        assert crudas, 'no hay reportes en:\n    %s' % '\n    '.join(PATRONES)
         rutas = elige_por_fecha(crudas)
         if not todos:
             rutas = rutas[-1:]

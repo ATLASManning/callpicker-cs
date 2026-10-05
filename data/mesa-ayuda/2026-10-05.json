@@ -1,0 +1,102 @@
+{
+  "fecha": "2026-10-05",
+  "horaCorte": null,
+  "origen": "Reporte_Diario_ZohoDesk_2026-10-05.docx",
+  "kpis": {
+    "abiertos": 109,
+    "enEspera": 131,
+    "vencidos": 4,
+    "vencenHoy": 0,
+    "vencenProximaHora": 0,
+    "noAsignados": 1,
+    "nuevos24h": 11,
+    "cerrados24h": 4,
+    "trabajoPendiente": 110
+  },
+  "tiempos": {
+    "primeraRespuesta": "58:18 h",
+    "respuesta": "59:44 h",
+    "resolucion": "68:36 h"
+  },
+  "responsables": [
+    {
+      "responsable": "José Antonio R.",
+      "vencidos": 2,
+      "folioMasViejo": "#113588",
+      "diasAtraso": 31,
+      "cuenta": "90001 – ARDE NAWI"
+    },
+    {
+      "responsable": "Néstor C.",
+      "vencidos": 1,
+      "folioMasViejo": "#106428",
+      "diasAtraso": 155,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Pablo S.",
+      "vencidos": 1,
+      "folioMasViejo": "#115890",
+      "diasAtraso": 6,
+      "cuenta": "75919 – Grupo Inmobiliario MJAP"
+    }
+  ],
+  "ticketsVencidos": [
+    {
+      "folio": "106428",
+      "asunto": "Revisar apertura de conversación con plantilla",
+      "contacto": "Ariana Agundis García",
+      "cid": "130723",
+      "cuenta": "GTC Contact Center",
+      "vence": "2026-05-03",
+      "diasSLA": 155,
+      "ultimaAct": "2026-05-02",
+      "diasSinMover": 156,
+      "estado": "Escalado",
+      "responsable": "Néstor C.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "113588",
+      "asunto": "ayuda",
+      "contacto": "Michel Soto",
+      "cid": "90001",
+      "cuenta": "ARDE NAWI",
+      "vence": "2026-09-04",
+      "diasSLA": 31,
+      "ultimaAct": "2026-08-28",
+      "diasSinMover": 38,
+      "estado": "Abierto",
+      "responsable": "José Antonio R.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "114297",
+      "asunto": "EMPODERA2026: Alta de líneas",
+      "contacto": "Alejandro Toledo",
+      "cid": "114019",
+      "cuenta": "EMPODERA SALUD",
+      "vence": "2026-09-15",
+      "diasSLA": 20,
+      "ultimaAct": "2026-09-08",
+      "diasSinMover": 27,
+      "estado": "Abierto",
+      "responsable": "José Antonio R.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "115890",
+      "asunto": "Seguimiento a reporte de historial de llamadas – Extensión 103",
+      "contacto": "Fany Bentivogli",
+      "cid": "75919",
+      "cuenta": "Grupo Inmobiliario MJAP",
+      "vence": "2026-09-29",
+      "diasSLA": 6,
+      "ultimaAct": "2026-09-22",
+      "diasSinMover": 13,
+      "estado": "Abierto",
+      "responsable": "Pablo S.",
+      "canal": "Teléfono"
+    }
+  ]
+}

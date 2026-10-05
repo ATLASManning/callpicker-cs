@@ -1,0 +1,137 @@
+{
+  "fecha": "2026-10-02",
+  "horaCorte": null,
+  "origen": "Reporte_Diario_ZohoDesk_2026-10-02.docx",
+  "kpis": {
+    "abiertos": 82,
+    "enEspera": 126,
+    "vencidos": 6,
+    "vencenHoy": 0,
+    "vencenProximaHora": 0,
+    "noAsignados": 1,
+    "nuevos24h": 52,
+    "cerrados24h": 48,
+    "trabajoPendiente": 80
+  },
+  "tiempos": {
+    "primeraRespuesta": "14:02 h",
+    "respuesta": "08:12 h",
+    "resolucion": "68:20 h"
+  },
+  "responsables": [
+    {
+      "responsable": "Mario H.",
+      "vencidos": 2,
+      "folioMasViejo": "#114229",
+      "diasAtraso": 29,
+      "cuenta": "12283 – GRUPO 2711"
+    },
+    {
+      "responsable": "José Antonio R.",
+      "vencidos": 2,
+      "folioMasViejo": "#113588",
+      "diasAtraso": 28,
+      "cuenta": "90001 – ARDE NAWI"
+    },
+    {
+      "responsable": "Néstor C.",
+      "vencidos": 1,
+      "folioMasViejo": "#106428",
+      "diasAtraso": 152,
+      "cuenta": "130723 – GTC Contact Center"
+    },
+    {
+      "responsable": "Pablo S.",
+      "vencidos": 1,
+      "folioMasViejo": "#115890",
+      "diasAtraso": 3,
+      "cuenta": "75919 – Grupo Inmobiliario MJAP"
+    }
+  ],
+  "ticketsVencidos": [
+    {
+      "folio": "106428",
+      "asunto": "Revisar apertura de conversación con plantilla",
+      "contacto": "Ariana Agundis García",
+      "cid": "130723",
+      "cuenta": "GTC Contact Center",
+      "vence": "2026-05-03",
+      "diasSLA": 152,
+      "ultimaAct": "2026-05-02",
+      "diasSinMover": 153,
+      "estado": "Escalado",
+      "responsable": "Néstor C.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "114229",
+      "asunto": "Intermitencia al recibir eventos de llamada vía API",
+      "contacto": "Ismael Díaz de León",
+      "cid": "12283",
+      "cuenta": "GRUPO 2711",
+      "vence": "2026-09-03",
+      "diasSLA": 29,
+      "ultimaAct": "2026-08-29",
+      "diasSinMover": 34,
+      "estado": "Abierto",
+      "responsable": "Mario H.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "113588",
+      "asunto": "ayuda",
+      "contacto": "Michel Soto",
+      "cid": "90001",
+      "cuenta": "ARDE NAWI",
+      "vence": "2026-09-04",
+      "diasSLA": 28,
+      "ultimaAct": "2026-08-28",
+      "diasSinMover": 35,
+      "estado": "Abierto",
+      "responsable": "José Antonio R.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "114297",
+      "asunto": "EMPODERA2026: Alta de líneas",
+      "contacto": "Alejandro Toledo",
+      "cid": "114019",
+      "cuenta": "EMPODERA SALUD",
+      "vence": "2026-09-15",
+      "diasSLA": 17,
+      "ultimaAct": "2026-09-08",
+      "diasSinMover": 24,
+      "estado": "Abierto",
+      "responsable": "José Antonio R.",
+      "canal": "Correo"
+    },
+    {
+      "folio": "115121",
+      "asunto": "Ruta de llamada",
+      "contacto": "Andrea Castañeda Hernández",
+      "cid": "130723",
+      "cuenta": "GTC Contact Center",
+      "vence": "2026-09-17",
+      "diasSLA": 15,
+      "ultimaAct": "2026-09-10",
+      "diasSinMover": 22,
+      "estado": "Escalado",
+      "responsable": "Mario H.",
+      "canal": "WhatsApp"
+    },
+    {
+      "folio": "115890",
+      "asunto": "Seguimiento a reporte de historial de llamadas – Extensión 103",
+      "contacto": "Fany Bentivogli",
+      "cid": "75919",
+      "cuenta": "Grupo Inmobiliario MJAP",
+      "vence": "2026-09-29",
+      "diasSLA": 3,
+      "ultimaAct": "2026-09-22",
+      "diasSinMover": 10,
+      "estado": "Abierto",
+      "responsable": "Pablo S.",
+      "canal": "Teléfono"
+    }
+  ]
+}
