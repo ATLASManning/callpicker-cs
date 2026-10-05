@@ -144,11 +144,20 @@ function profileSemaforoForCuenta(c: Cuenta): 'verde' | 'amarillo' | 'naranja' |
   return 'rojo'
 }
 
-// Desde el 24 Ago 2026 la semana del asesor son 4 cuentas: cerrar sus datos de
-// perfil + Radar. Antes eran 15 actividades (3/día × 5 días) y por eso las
-// semanas anteriores muestran cifras de otro orden — no son comparables.
-/** El lote rutinario: cuatro cuentas por semana, Completar Perfil + Radar. */
-const SAC_WEEKLY_TARGET = 4
+/* LA META ES DIEZ, Y ES UNA SOLA.
+ *
+ * Decisión de dirección del 25 sep 2026, reafirmada el 5 oct: «son 10
+ * actividades por semana, no 4». El número vive en `SEGUIMIENTOS_POR_SEMANA`
+ * (lib/cierre-seguimiento.ts), que es el MISMO que usa el generador para
+ * repartir — tenerlo dos veces garantiza que un día dejen de coincidir y el
+ * medidor evalúe contra una meta que ya no se reparte. Que es exactamente lo
+ * que pasó: este panel seguía anunciando «Meta: 4 cuentas/semana» mientras
+ * `LOTE_RUTINARIO` llevaba desde el 28 sep en CERO, o sea que nada repartía
+ * cuatro. Un resto muerto de la regla anterior, a la vista de dirección.
+ *
+ * Las semanas anteriores al 24 ago fueron de 15 actividades (3/día × 5 días)
+ * y las del 24 ago al 25 sep de 4 cuentas; por eso las barras de S-2 a S-4
+ * muestran cifras de otro orden y NO son comparables contra la meta de hoy. */
 const SAC_TARGET_ANTERIOR = 15
 
 // ── Gauge SVG ─────────────────────────────────────────────────────────────────
@@ -769,9 +778,8 @@ function SACWeeklyPanel({
             «4 · Completar Perfil» mientras los medidores muestran diez
             seguimientos seria contradecir al propio panel. */}
         <span style={{ fontSize: 12, color: TX_LOW }}>
-          {hayFocos
-            ? `Meta: ${SEGUIMIENTOS_POR_SEMANA} seguimientos/semana · todas las cuentas por turno`
-            : `Meta: ${SAC_WEEKLY_TARGET} cuentas/semana · Completar Perfil + Radar`}
+          Meta: {SEGUIMIENTOS_POR_SEMANA} seguimientos/semana · todas las cuentas por turno
+          {!hayFocos && ' · aún sin repartir esta semana'}
         </span>
       </div>
 
@@ -798,19 +806,25 @@ function SACWeeklyPanel({
           const focCerr = (focosMap[a.asesor] ?? [0, 0, 0, 0])[0]
           const focAsig = (focosAsignMap[a.asesor] ?? [0, 0, 0, 0])[0]
 
-          const midiendoFocos = hayFocos
-          const thisWeek  = midiendoFocos ? focCerr : rutCerr
-          const asignadas = (midiendoFocos ? focAsig : rutAsig)
-            || (midiendoFocos ? SEGUIMIENTOS_POR_SEMANA : SAC_WEEKLY_TARGET)
-          const metaDeclarada = midiendoFocos ? SEGUIMIENTOS_POR_SEMANA : SAC_WEEKLY_TARGET
+          /* El medidor mide SIEMPRE los seguimientos de cuenta: es el único
+             trabajo que se reparte desde el 28 sep. Ya no alterna con el lote
+             rutinario porque ese lote está en cero.
+             El denominador es lo ASIGNADO, nunca la constante: nadie puede
+             cerrar más de lo que tiene (ver el «5 / 4» del 26 sep). Y cuando
+             todavía no se reparte nada, se dice —no se cambia la meta—. */
+          const thisWeek  = focCerr
+          const sinRepartir = focAsig === 0
+          const asignadas = focAsig || SEGUIMIENTOS_POR_SEMANA
+          const metaDeclarada = SEGUIMIENTOS_POR_SEMANA
           const score = Math.min((thisWeek / asignadas) * 100, 100)
-          // La otra mitad del trabajo, la que no manda esta semana.
-          const otroCerr = midiendoFocos ? rutCerr : focCerr
-          const otroAsig = midiendoFocos ? rutAsig : focAsig
-          const otroNombre = midiendoFocos ? 'del perfil' : 'seguimientos de cuenta'
-          const weeks = midiendoFocos
-            ? (focosMap[a.asesor] ?? [0, 0, 0, 0])
-            : (segsMap[a.asesor] ?? [0, 0, 0, 0])
+          /* El lote rutinario de perfil, si quedara alguno vivo. Se muestra
+             solo cuando existe, y con `LOTE_RUTINARIO` en cero no existe —
+             pero la línea se queda porque volver a encenderlo es cambiar ese
+             número y nada más, y entonces tiene que verse. */
+          const otroCerr = rutCerr
+          const otroAsig = rutAsig
+          const otroNombre = 'del perfil'
+          const weeks = focosMap[a.asesor] ?? [0, 0, 0, 0]
           const gaugeColor = score >= 80 ? '#22C55E' : score >= 50 ? '#EAB308' : '#EF4444'
           const maxPrev = Math.max(...weeks.slice(1), 1)
           const weekLabel = ['S-2', 'S-3', 'S-4']
@@ -835,8 +849,12 @@ function SACWeeklyPanel({
                 <span style={{ fontWeight: 800, fontSize: 15, color: gaugeColor }}>{thisWeek}</span>
                 {' '}<span style={{ color: TX_LOW }}>/ {asignadas}</span>
                 {' '}<span style={{ color: TX_LOW }}>
-                  {midiendoFocos ? 'seguimientos cerrados esta semana' : 'cuentas cerradas esta semana'}
-                  {asignadas !== metaDeclarada && ` · le tocaron ${asignadas}, la meta son ${metaDeclarada}`}
+                  seguimientos cerrados esta semana
+                  {sinRepartir
+                    ? ' · el lote de la semana aún no se reparte'
+                    : asignadas !== metaDeclarada
+                      ? ` · le tocaron ${asignadas}, la meta son ${metaDeclarada}`
+                      : ''}
                 </span>
               </p>
 
