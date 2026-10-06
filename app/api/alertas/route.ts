@@ -17,8 +17,27 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams
   const rolAsesor = req.headers.get('x-user-rol') === 'asesor'
   const suyo = decodeURIComponent(req.headers.get('x-user-asesor') ?? '')
+
+  /* FALLA CERRADO, y la diferencia no es teórica.
+   *
+   * Antes era `rolAsesor && suyo ? suyo : (sp.get('asesor') || undefined)`: si
+   * la sesión decía rol `asesor` pero venía SIN nombre de asesor, la condición
+   * caía al lado derecho, se respetaba el `?asesor=` que mandara el cliente y,
+   * sin ese parámetro, no quedaba filtro ninguno — la cartera entera de la
+   * empresa. El caso que más duele es justo el que parece inofensivo: un
+   * usuario al que se le asignó el rol y se le olvidó el nombre no veía menos,
+   * veía TODO.
+   *
+   * Ahora un rol `asesor` sin nombre no recibe datos. Un permiso incompleto se
+   * resuelve negando, nunca concediendo. */
+  if (rolAsesor && !suyo) {
+    return NextResponse.json(
+      { error: 'La sesión tiene rol de asesor pero no trae asignada una cartera. '
+             + 'Pedir a administración que complete el usuario.' },
+      { status: 403 })
+  }
   // Un asesor ve SU cartera aunque pida otra: el filtro no es decorativo.
-  const asesor = rolAsesor && suyo ? suyo : (sp.get('asesor') || undefined)
+  const asesor = rolAsesor ? suyo : (sp.get('asesor') || undefined)
 
   try {
     const todas = await detectarAlertas(asesor ? { asesor } : undefined)

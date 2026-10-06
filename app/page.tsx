@@ -31,6 +31,7 @@ import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import Link from 'next/link'
 import { TICKETS as TICKETS_NORM, COBERTURA } from '@/lib/tickets-norm'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { ahoraEnMexico, fechaLocal, hoyEnPalabras, selloMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
@@ -1042,7 +1043,16 @@ export default async function DashboardPage() {
   const h = headers()
   const rol          = h.get('x-user-rol') ?? 'viewer'
   const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
-  const isAsesor     = rol === 'asesor' && !!asesorHeader
+
+  /* FALLA CERRADO. `rol === 'asesor' && !!asesorHeader` parecía defensivo y era
+   * lo contrario: con el rol puesto y el nombre vacío, `isAsesor` quedaba en
+   * false, `soloSuCartera` en undefined y la portada servía la cartera COMPLETA
+   * de la empresa — más de lo que vería con su nombre bien puesto. Un permiso a
+   * medio configurar se resuelve negando. */
+  if (rol === 'asesor' && !asesorHeader) {
+    redirect('/acceso?motivo=sin_cartera')
+  }
+  const isAsesor     = rol === 'asesor'
 
   // semana_inicio de hace 3 semanas (para traer 4 semanas de actividades SAC)
   // Esto corre en el SERVIDOR, que va en UTC: con `new Date()` el domingo a
