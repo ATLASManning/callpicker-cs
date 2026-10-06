@@ -191,11 +191,19 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     accion: 'Agendar contacto esta semana antes de que se vuelva silencio largo.',
     enlaceEtiqueta: 'Registrar seguimiento', ancla: 'seguimientos',
   },
+  /* El título dice «contactado» y no «seguimiento» desde el 6 oct 2026, y la
+   * diferencia no es de estilo. Al dejar de contar las notas internas y los
+   * tickets como contacto, esta alerta pasó de 37 a 51 cuentas: las 14 nuevas
+   * SÍ tienen seguimientos escritos —hasta varios—, pero ninguno es una
+   * llamada, un correo, un WhatsApp ni una reunión. Decirles «nunca se le ha
+   * dado un seguimiento» a quien escribió cinco notas hace que cierre la
+   * alerta por falsa, y con ella deje de creerse las demás. */
   nunca_contactada: {
     tipo: 'nunca_contactada', familia: 'riesgo', severidad: 'critica',
-    titulo: 'NUNCA se le ha dado un seguimiento',
-    accion: 'Primer contacto. Es una cuenta que paga y con la que nadie ha hablado.',
-    enlaceEtiqueta: 'Registrar el primer seguimiento', ancla: 'seguimientos',
+    titulo: 'Nunca se le ha contactado',
+    accion: 'Primer contacto por un canal real: llamada, correo, WhatsApp o reunión. '
+          + 'Escribir notas sobre una cuenta no es haber hablado con ella.',
+    enlaceEtiqueta: 'Registrar el primer contacto', ancla: 'seguimientos',
   },
 
   // ── ABANDONO — es nuestro, no del cliente ──────────────────────────────

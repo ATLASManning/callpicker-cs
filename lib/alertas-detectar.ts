@@ -107,9 +107,10 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
   const [radarRows, segRows, actRows, cortes] = await Promise.all([
     traerPorPaginas<{ cuenta_id: string }>((d, h) =>
       supabaseAdmin.from('radar_respuestas').select('cuenta_id').in('cuenta_id', ids).range(d, h)),
-    traerPorPaginas<{ cuenta_id: string; fecha: string; resultado: string | null;
-                      descripcion: string | null }>((d, h) =>
-      supabaseAdmin.from('seguimientos').select('cuenta_id, fecha, resultado, descripcion')
+    traerPorPaginas<{ cuenta_id: string; fecha: string; tipo: string | null;
+                      resultado: string | null; descripcion: string | null }>((d, h) =>
+      supabaseAdmin.from('seguimientos')
+        .select('cuenta_id, fecha, tipo, resultado, descripcion')
         .in('cuenta_id', ids).range(d, h)),
     traerPorPaginas<{ cuenta_id: string; completada: boolean | null; estado: string | null }>((d, h) =>
       supabaseAdmin.from('actividades').select('cuenta_id, completada, estado')
@@ -119,34 +120,56 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
 
   const conRadar = new Set(radarRows.map(r => r.cuenta_id))
 
-  /* ── QUÉ CUENTA COMO CONTACTO QUE LLEGÓ AL CLIENTE ──────────────────────
+  /* ── QUÉ ES UN CONTACTO, Y CUÁNDO LLEGÓ AL CLIENTE ──────────────────────
    *
-   * `resultado` NO es un enum: junto a 'exitoso', 'pendiente' y 'sin_respuesta'
-   * hay frases enteras escritas a mano —«Todo en orden con la cuenta»,
-   * «Intentos de contacto sin éxito», «Cuenta sin respuesta desde junio»—. Así
-   * que no se puede leer como catálogo cerrado.
+   * Dos filtros, y el primero importa más que el segundo.
    *
-   * Se define lo que NO llegó, y todo lo demás cuenta. El sesgo va a propósito
-   * hacia la alarma: confundir un contacto real con uno fallido produce un
-   * aviso de más, molesto; confundir un fallido con un contacto real esconde
-   * una cuenta que se está yendo. Entre las dos equivocaciones, la barata es
-   * la primera. */
+   * 1. SÓLO LOS CANALES CUENTAN. De los 445 seguimientos registrados, 193 son
+   *    `nota` y 38 son `ticket`: actividad interna y enlaces a Zoho, no
+   *    contacto con nadie. Hasta hoy reiniciaban el reloj del silencio igual
+   *    que una llamada, así que escribir una nota diciendo «esta cuenta está
+   *    en riesgo» la hacía parecer recién atendida. Quedan 212 contactos de
+   *    verdad.
+   *
+   * 2. DE ESOS, CUÁLES LLEGARON. `resultado` no es un enum —junto a 'exitoso'
+   *    y 'sin_respuesta' hay frases escritas a mano—, así que se define lo que
+   *    NO llegó y todo lo demás cuenta. Medido: 49 de 212, el 23%.
+   *
+   * `pendiente` NO basta por sí solo para declarar un fallo, y se comprobó
+   * mirando las filas: entre las marcadas así hay una reunión con el cliente y
+   * varias notas de trabajo. Lo que delata el fallo es el TEXTO —«no fue
+   * posible», «se continuará intentando», «ya no forma parte de la empresa»—,
+   * y eso es lo que se busca.
+   *
+   * El sesgo va a propósito hacia la alarma: tomar un contacto real por
+   * fallido cuesta un aviso de más; tomar un fallido por real esconde una
+   * cuenta que se está yendo. */
+  const CANALES = new Set(['llamada', 'whatsapp', 'email', 'correo',
+                           'reunion', 'visita', 'videollamada'])
   const RX_NO_LLEGO = new RegExp(
     [
       'sin[_ ]respuesta', 'sin[_ ]?[eé]xito', 'no contest', 'fuera de servicio',
       'buz[óo]n', 'no se (?:obtuvo|ha obtenido) respuesta', 'intentos? de contacto',
+      'no (?:fue|ha sido) posible', 'se continuar[áa] intentando',
+      'pendiente de respuesta',
+      'ya no (?:forma parte|labora|trabaja|est[áa] en)', 'dej[óo] de laborar',
     ].join('|'), 'i')
   const llego = (s: { resultado: string | null; descripcion: string | null }) => {
     const r = String(s.resultado ?? '').trim().toLowerCase()
-    if (r === 'sin_respuesta' || r === 'pendiente') return false
+    if (r === 'sin_respuesta') return false
     return !(RX_NO_LLEGO.test(r) || RX_NO_LLEGO.test(String(s.descripcion ?? '')))
   }
 
-  /** Por cuenta: el último de cualquier tipo, el último que LLEGÓ, y la racha
-   *  de intentos fallidos consecutivos al final del historial. */
+  /** Por cuenta, SÓLO los canales de contacto: el último, el último que LLEGÓ,
+   *  y la racha de intentos fallidos consecutivos al final del historial. */
   const porCuenta = new Map<string, typeof segRows>()
+  const notasInternas = new Map<string, number>()
   for (const s of segRows) {
     if (!s.cuenta_id || !s.fecha) continue
+    if (!CANALES.has(String(s.tipo ?? '').toLowerCase())) {
+      notasInternas.set(s.cuenta_id, (notasInternas.get(s.cuenta_id) ?? 0) + 1)
+      continue
+    }
     const arr = porCuenta.get(s.cuenta_id) ?? []
     arr.push(s)
     porCuenta.set(s.cuenta_id, arr)
@@ -260,14 +283,23 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
      * desde hace 90—. */
     const racha = rachaFallida.get(c.id) ?? 0
     const fEfectivo = ultimoEfectivo.get(c.id) ?? null
-    const fCualquiera = c.ultimo_contacto ?? ultimoSeg.get(c.id) ?? null
+    /* El orden importa: manda la fecha que sale de un CANAL de contacto, y
+       `cuentas.ultimo_contacto` sólo entra si no hay ninguno. Esa columna
+       recoge cualquier renglón del historial —notas incluidas—, así que
+       dejarla mandar devolvería justo el problema que este bloque corrige. */
+    const fCualquiera = ultimoSeg.get(c.id) ?? c.ultimo_contacto ?? null
     const dEfectivo = diasDesde(fEfectivo, hoy)
     const dCualquiera = diasDesde(fCualquiera, hoy)
 
     if (dCualquiera === null) {
+      const nNotas = notasInternas.get(c.id) ?? 0
       add('nunca_contactada', c,
-          `Cero seguimientos registrados en una cuenta activa de `
-          + `${dinero(c.facturacion ?? 0)} al mes.`)
+          nNotas > 0
+            ? `${nNotas} ${nNotas === 1 ? 'nota interna' : 'notas internas'} y CERO contactos `
+              + `—ni llamada, ni correo, ni WhatsApp, ni reunión— en una cuenta de `
+              + `${dinero(c.facturacion ?? 0)} al mes.`
+            : `Cero seguimientos registrados en una cuenta activa de `
+              + `${dinero(c.facturacion ?? 0)} al mes.`)
     } else if (racha >= UMBRALES.intentosFallidos) {
       const desde = (porCuenta.get(c.id) ?? []).slice(-racha)[0]
       const dDesde = diasDesde(desde ? String(desde.fecha).slice(0, 10) : null, hoy)
