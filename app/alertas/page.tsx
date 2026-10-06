@@ -1,11 +1,11 @@
 import Link from 'next/link'
 import { headers } from 'next/headers'
-import { AlertTriangle, ArrowRight, EyeOff, TrendingDown, UserX, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowRight, EyeOff, TrendingDown, UserX, Sparkles, Lock } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import { detectarAlertas, UMBRALES } from '@/lib/alertas-detectar'
 import {
-  resumir, ETIQUETA_SEVERIDAD, COLOR_SEVERIDAD, ETIQUETA_FAMILIA,
-  type Alerta, type Familia, type Severidad,
+  resumir, ETIQUETA_SEVERIDAD, COLOR_SEVERIDAD, ETIQUETA_FAMILIA, ETIQUETA_DUENO, BLOQUEADA,
+  type Alerta, type Familia, type Severidad, type Dueno,
 } from '@/lib/alertas'
 import { hoyEnPalabras } from '@/lib/fecha-local'
 
@@ -43,6 +43,9 @@ const ICONO_FAMILIA: Record<Familia, typeof EyeOff> = {
 }
 const COLOR_FAMILIA: Record<Familia, string> = {
   ceguera: '#A78BFA', riesgo: '#F87171', abandono: '#FB923C', oportunidad: '#4ADE80',
+}
+const COLOR_DUENO: Record<Dueno, string> = {
+  asesor: '#4ADE80', cliente: '#FBBF24', ingenieria: '#A78BFA', direccion: '#7AA2FF',
 }
 
 /** Cuántas cuentas se dibujan. El resto se declara, no se esconde. */
@@ -107,7 +110,7 @@ function agrupar(alertas: Alerta[]): Grupo[] {
 export default async function AlertasPage({
   searchParams,
 }: {
-  searchParams: { familia?: string; severidad?: string; asesor?: string }
+  searchParams: { familia?: string; severidad?: string; asesor?: string; dueno?: string }
 }) {
   const h = headers()
   const rol = h.get('x-user-rol') ?? 'viewer'
@@ -133,9 +136,11 @@ export default async function AlertasPage({
 
   const famSel = (searchParams.familia || '') as Familia | ''
   const sevSel = (searchParams.severidad || '') as Severidad | ''
+  const dueSel = (searchParams.dueno || '') as Dueno | ''
   let visibles = alertas
   if (famSel) visibles = visibles.filter(a => a.familia === famSel)
   if (sevSel) visibles = visibles.filter(a => a.severidad === sevSel)
+  if (dueSel) visibles = visibles.filter(a => a.dueno === dueSel)
 
   const grupos = agrupar(visibles)
   const dibujados = grupos.slice(0, TOPE_CUENTAS)
@@ -145,7 +150,8 @@ export default async function AlertasPage({
   const q = (cambio: Record<string, string>) => {
     const p = new URLSearchParams()
     const base: Record<string, string> = {
-      familia: famSel, severidad: sevSel, asesor: esAsesor ? '' : asesorPedido,
+      familia: famSel, severidad: sevSel, dueno: dueSel,
+      asesor: esAsesor ? '' : asesorPedido,
     }
     for (const [k, v] of Object.entries({ ...base, ...cambio })) if (v) p.set(k, v)
     const s = p.toString()
@@ -154,6 +160,7 @@ export default async function AlertasPage({
 
   const fam: Familia[] = ['ceguera', 'riesgo', 'abandono', 'oportunidad']
   const sev: Severidad[] = ['critica', 'alta', 'media', 'oportunidad']
+  const due: Dueno[] = ['asesor', 'cliente', 'ingenieria', 'direccion']
   const asesores = Object.entries(resumen.porAsesor).sort((a, b) => b[1].mrr - a[1].mrr)
 
   return (
@@ -234,8 +241,7 @@ export default async function AlertasPage({
               })}
             </div>
 
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap',
-                          marginBottom: asesores.length > 1 && !esAsesor ? 9 : 0 }}>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 9 }}>
               <Chip href={q({ severidad: '' })} activo={!sevSel} color="#7AA2FF">
                 Toda severidad
               </Chip>
@@ -243,6 +249,24 @@ export default async function AlertasPage({
                 <Chip key={s} href={q({ severidad: sevSel === s ? '' : s })}
                   activo={sevSel === s} color={COLOR_SEVERIDAD[s].fg}>
                   {ETIQUETA_SEVERIDAD[s]} · {resumen.porSeveridad[s].n}
+                </Chip>
+              ))}
+            </div>
+
+            {/* ── Quién puede cerrarla ───────────────────────────────── */}
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap',
+                          marginBottom: asesores.length > 1 && !esAsesor ? 9 : 0 }}>
+              <Chip href={q({ dueno: '' })} activo={!dueSel} color="#7AA2FF">
+                Quien sea que la cierre
+              </Chip>
+              {due.map(k => (
+                <Chip key={k} href={q({ dueno: dueSel === k ? '' : k })}
+                  activo={dueSel === k} color={COLOR_DUENO[k]}>
+                  {BLOQUEADA.has(k) && (
+                    <Lock size={10} style={{ display: 'inline', verticalAlign: '-1px',
+                                             marginRight: 4 }} />
+                  )}
+                  {ETIQUETA_DUENO[k]} · {resumen.porDueno[k].n}
                 </Chip>
               ))}
             </div>
@@ -320,6 +344,15 @@ export default async function AlertasPage({
                             <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 7px',
                                            borderRadius: 999, color: col.fg, background: col.bg }}>
                               {ETIQUETA_SEVERIDAD[a.severidad]}
+                            </span>
+                            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 7px',
+                                           borderRadius: 999, color: COLOR_DUENO[a.dueno],
+                                           background: 'rgba(255,255,255,0.06)' }}>
+                              {BLOQUEADA.has(a.dueno) && (
+                                <Lock size={9} style={{ display: 'inline',
+                                                        verticalAlign: '-1px', marginRight: 3 }} />
+                              )}
+                              {ETIQUETA_DUENO[a.dueno]}
                             </span>
                             {a.dias !== null && (
                               <span style={{ background: 'transparent', fontSize: 10.5,

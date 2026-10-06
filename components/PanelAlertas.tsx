@@ -1,8 +1,8 @@
 import Link from 'next/link'
-import { AlertTriangle, ArrowRight, EyeOff, TrendingDown, UserX, Sparkles } from 'lucide-react'
+import { AlertTriangle, ArrowRight, EyeOff, TrendingDown, UserX, Sparkles, Lock } from 'lucide-react'
 import {
-  ETIQUETA_SEVERIDAD, COLOR_SEVERIDAD, ETIQUETA_FAMILIA,
-  type Alerta, type ResumenAlertas, type Familia, type Severidad,
+  ETIQUETA_SEVERIDAD, COLOR_SEVERIDAD, ETIQUETA_FAMILIA, ETIQUETA_DUENO_CORTA, BLOQUEADA,
+  type Alerta, type ResumenAlertas, type Familia,
 } from '@/lib/alertas'
 
 /**
@@ -68,6 +68,8 @@ export default function PanelAlertas({
 }) {
   const fam: Familia[] = ['ceguera', 'riesgo', 'abandono', 'oportunidad']
   const asesores = Object.entries(resumen.porAsesor).sort((a, b) => b[1].mrr - a[1].mrr)
+  const bloqueadas = resumen.porDueno.ingenieria.n + resumen.porDueno.direccion.n
+  const mrrBloqueado = resumen.porDueno.ingenieria.mrr + resumen.porDueno.direccion.mrr
 
   /* Un cero sin medición no es un cero: si el motor falló, el panel lo dice en
      lugar de mostrar «$0 en riesgo», que se leería como buenas noticias. */
@@ -177,31 +179,98 @@ export default function PanelAlertas({
         })}
       </div>
 
-      {/* ── Por ejecutivo: dinero y vencidas, NO cuántas hizo ─────────── */}
-      <p style={{ background: 'transparent', fontSize: 10.5, fontWeight: 700,
-                  textTransform: 'uppercase', letterSpacing: '0.07em', color: TX_LOW,
-                  margin: '0 0 8px' }}>
-        Riesgo por ejecutivo
-      </p>
+      {/* ── Por ejecutivo: lo SUYO separado de lo que no puede cerrar ───
+       *
+       * Antes este bloque decía «Dan 218 · Claudia 213 · Fátima 176» a secas.
+       * Medido el 6 oct 2026: de las 85 críticas de Claudia, 24 no las puede
+       * cerrar ella; de las 77 de Dan, 24; de las 65 de Fátima, 26. Un número
+       * que mezcla las dos cosas se lee como un reproche por trabajo de otros,
+       * y un tablero que reprocha lo imposible se cierra y no se vuelve a
+       * abrir — que es exactamente lo que pasó con el Radar y con las 383
+       * acciones de auditoría.
+       *
+       * El total sigue ahí, porque la cuenta es suya y el riesgo también: nadie
+       * se desentiende de un cliente porque el dato lo deba otro equipo. Lo que
+       * cambia es que el número grande es el que SÍ puede trabajar.
+       */}
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                    marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
+        <p style={{ background: 'transparent', fontSize: 10.5, fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.07em', color: TX_LOW,
+                    margin: 0 }}>
+          Riesgo por ejecutivo
+        </p>
+        <p style={{ fontSize: 10.5, margin: 0 }}>
+          <C c={TX_LOW}>el número grande es lo que puede cerrar él mismo</C>
+        </p>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(asesores.length, 3)}, 1fr)`,
-                    gap: 10, marginBottom: 20 }}>
+                    gap: 10, marginBottom: 14 }}>
         {asesores.map(([nombre, d]) => (
           <Link key={nombre} href={`${verTodas}?asesor=${encodeURIComponent(nombre)}`}
             style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${BORDER}`,
                      borderRadius: 11, padding: '12px 14px', display: 'block' }}>
             <div style={{ background: 'transparent', fontSize: 12.5, fontWeight: 700,
                           color: TX_HI, marginBottom: 6 }}>{nombre}</div>
-            <div style={{ background: 'transparent', fontSize: 21, fontWeight: 800,
-                          color: '#F87171', lineHeight: 1 }}>{miles(d.mrr)}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
+              <span style={{ background: 'transparent', fontSize: 21, fontWeight: 800,
+                             color: '#F87171', lineHeight: 1 }}>{d.propias}</span>
+              <span style={{ background: 'transparent', fontSize: 11, color: TX_MID }}>
+                suyas, {miles(d.mrr - d.mrrBloqueado)}
+              </span>
+            </div>
             <div style={{ fontSize: 10.5, marginTop: 5, lineHeight: 1.5 }}>
-              <C c={TX_MID}>{d.n} alertas</C>
-              <C c={TX_LOW}> · </C>
-              <C c={COLOR_SEVERIDAD.critica.fg} b>{d.criticas} críticas</C>
+              <C c={COLOR_SEVERIDAD.critica.fg} b>{d.criticasPropias} críticas</C>
               {d.top > 0 && <><C c={TX_LOW}> · </C><C c="#FBBF24" b>{d.top} TOP</C></>}
             </div>
+            {d.bloqueadas > 0 && (
+              <div style={{ fontSize: 10, marginTop: 6, paddingTop: 6,
+                            borderTop: `1px solid ${BORDER}`, lineHeight: 1.5 }}>
+                <C c={TX_LOW}>
+                  + <C c="#A78BFA" b>{d.bloqueadas}</C> que no puede cerrar
+                  {d.mrrBloqueado > 0 && <> ({miles(d.mrrBloqueado)})</>}
+                </C>
+              </div>
+            )}
           </Link>
         ))}
       </div>
+
+      {/* ── Lo que está bloqueado en otros equipos ───────────────────────
+       *
+       * Va APARTE y con nombre propio para que escale en vez de desaparecer.
+       * Si se mezcla con lo demás, nadie lo mira: no es de nadie en la mesa.
+       */}
+      {bloqueadas > 0 && (
+        <Link href={`${verTodas}?dueno=ingenieria`}
+          style={{ display: 'block', background: 'rgba(167,139,250,0.10)',
+                   border: '1px solid rgba(167,139,250,0.30)', borderRadius: 11,
+                   padding: '11px 14px', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
+            <Lock size={12} style={{ color: '#A78BFA', flexShrink: 0, alignSelf: 'center' }} />
+            <span style={{ background: 'transparent', fontSize: 12.5, fontWeight: 700,
+                           color: '#A78BFA' }}>
+              {bloqueadas} alertas que el equipo NO puede cerrar
+            </span>
+            <span style={{ background: 'transparent', fontSize: 12, fontWeight: 700,
+                           color: '#FBBF24' }}>{miles(mrrBloqueado)}</span>
+            <span style={{ background: 'transparent', fontSize: 11, color: TX_MID,
+                           marginLeft: 'auto' }}>
+              {resumen.porDueno.ingenieria.n > 0
+                && `${resumen.porDueno.ingenieria.n} en Ingeniería`}
+              {resumen.porDueno.ingenieria.n > 0 && resumen.porDueno.direccion.n > 0 && ' · '}
+              {resumen.porDueno.direccion.n > 0
+                && `${resumen.porDueno.direccion.n} esperan decisión`}
+            </span>
+          </div>
+          <p style={{ fontSize: 10.5, margin: '5px 0 0', lineHeight: 1.5 }}>
+            <C c={TX_LOW}>
+              Ningún ejecutivo puede resolverlas por su cuenta, así que no se les cobran — pero
+              tampoco desaparecen: <C c={TX_MID} b>son de la mesa de dirección</C>.
+            </C>
+          </p>
+        </Link>
+      )}
 
       {/* ── La lista: lo que pide acción hoy ─────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
@@ -243,6 +312,17 @@ export default function PanelAlertas({
                                  borderRadius: 999, color: col.fg, background: col.bg }}>
                     {ETIQUETA_SEVERIDAD[a.severidad]}
                   </span>
+                  {/* Si el ejecutivo no puede cerrarla, se dice AQUÍ y no al
+                      final: las nueve de mayor prioridad del tablero son de
+                      Ingeniería, y verlas arriba sin saberlo es lo que hace
+                      que alguien cierre la pantalla. */}
+                  {BLOQUEADA.has(a.dueno) && (
+                    <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 7px',
+                                   borderRadius: 999, color: '#A78BFA',
+                                   background: 'rgba(167,139,250,0.14)' }}>
+                      {ETIQUETA_DUENO_CORTA[a.dueno]}
+                    </span>
+                  )}
                   <span style={{ background: 'transparent', fontSize: 11.5, fontWeight: 700,
                                  color: '#FBBF24', marginLeft: 'auto' }}>
                     {pesos(a.mrr)}<C c={TX_LOW}>/mes</C>

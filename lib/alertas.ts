@@ -64,10 +64,53 @@ export type TipoAlerta =
   | 'nunca_asignada'
   | 'rebasa_bolsa'
 
+/**
+ * QUIÉN PUEDE CERRAR LA ALERTA. No es lo mismo que de quién es la cuenta.
+ *
+ * Nace de medir el tablero el 6 oct 2026: de las 85 alertas críticas de
+ * Claudia, 24 NO las puede cerrar ella; de las 77 de Dan, 24; de las 65 de
+ * Fátima, 26. Y lo más caro: **las nueve alertas de mayor prioridad de todo el
+ * tablero son `sin_consumo_medible`**, cuyo guion dice literalmente «pedir a
+ * Ingeniería que la incluya». Lo primero que ve un ejecutivo al abrir el
+ * tablero es trabajo que no puede hacer.
+ *
+ * Así murió el Radar —0 de 192 completo— y así quedaron las 383 acciones de
+ * auditoría sin seguir: lo que se percibe como imposible se abandona, y se
+ * lleva por delante la credibilidad de lo que sí era accionable.
+ *
+ * Se deriva del catálogo, así que no cuesta captura ni mantenimiento: es una
+ * propiedad del TIPO de alerta, no de la cuenta ni de la persona.
+ *
+ * `cliente` no es una excusa. El ejecutivo tiene que llamar igual; lo que no
+ * controla es que el cliente vuelva a consumir. Se trabaja, no se suelta.
+ */
+export type Dueno =
+  | 'asesor'      // la cierra solo, esta semana
+  | 'cliente'     // tiene que actuar, pero cerrarla depende del cliente
+  | 'ingenieria'  // NO la puede cerrar: hace falta otro equipo
+  | 'direccion'   // NO la puede cerrar: hace falta una decisión
+
+export const ETIQUETA_DUENO: Record<Dueno, string> = {
+  asesor: 'La cierra el ejecutivo',
+  cliente: 'Depende de que el cliente cambie',
+  ingenieria: 'Bloqueada en Ingeniería',
+  direccion: 'Necesita decisión de dirección',
+}
+
+export const ETIQUETA_DUENO_CORTA: Record<Dueno, string> = {
+  asesor: 'suyas', cliente: 'del cliente',
+  ingenieria: 'Ingeniería', direccion: 'dirección',
+}
+
+/** Las que el ejecutivo NO puede cerrar por sí mismo. */
+export const BLOQUEADA: ReadonlySet<Dueno> = new Set<Dueno>(['ingenieria', 'direccion'])
+
 export interface DefinicionAlerta {
   tipo: TipoAlerta
   familia: Familia
   severidad: Severidad
+  /** Quién puede cerrarla. Ver `Dueno`. */
+  dueno: Dueno
   /** Qué pasa, en una frase que se entiende sin contexto. */
   titulo: string
   /** El guion: qué hacer. Es el «playbook» de Gainsight, en una línea. */
@@ -86,28 +129,28 @@ export interface DefinicionAlerta {
 export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
   // ── CEGUERA ────────────────────────────────────────────────────────────
   sin_consumo_medible: {
-    tipo: 'sin_consumo_medible', familia: 'ceguera', severidad: 'critica',
+    tipo: 'sin_consumo_medible', familia: 'ceguera', severidad: 'critica', dueno: 'ingenieria',
     titulo: 'No podemos ver su consumo',
     accion: 'La cuenta no aparece en el archivo de cortes. Confirmar su CID y pedir '
           + 'a Ingeniería que la incluya: sin esto no hay forma de saber si usa el servicio.',
     enlaceEtiqueta: 'Abrir ficha y verificar CID',
   },
   sin_radar: {
-    tipo: 'sin_radar', familia: 'ceguera', severidad: 'alta',
+    tipo: 'sin_radar', familia: 'ceguera', severidad: 'alta', dueno: 'asesor',
     titulo: 'Sin una sola respuesta de Radar',
     accion: 'Responder las 12 preguntas del Radar. Son cinco minutos y es lo que '
           + 'convierte la cuenta de una fila en un diagnóstico.',
     enlaceEtiqueta: 'Responder el Radar', ancla: 'radar',
   },
   sin_contactos: {
-    tipo: 'sin_contactos', familia: 'ceguera', severidad: 'alta',
+    tipo: 'sin_contactos', familia: 'ceguera', severidad: 'alta', dueno: 'asesor',
     titulo: 'Sin un solo contacto registrado',
     accion: 'Capturar al menos un contacto con nombre, cargo y teléfono. Si mañana '
           + 'esta cuenta llama a cancelar, hoy no sabemos a quién marcarle.',
     enlaceEtiqueta: 'Capturar contactos', ancla: 'contactos',
   },
   sin_ficha: {
-    tipo: 'sin_ficha', familia: 'ceguera', severidad: 'media',
+    tipo: 'sin_ficha', familia: 'ceguera', severidad: 'media', dueno: 'asesor',
     titulo: 'Ficha sin observaciones del KAM',
     accion: 'Escribir qué sabemos de esta cuenta: para qué la usan, quién decide, qué les duele.',
     enlaceEtiqueta: 'Completar la ficha', ancla: 'ficha',
@@ -115,14 +158,14 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
 
   // ── RIESGO ─────────────────────────────────────────────────────────────
   caida_consumo: {
-    tipo: 'caida_consumo', familia: 'riesgo', severidad: 'critica',
+    tipo: 'caida_consumo', familia: 'riesgo', severidad: 'critica', dueno: 'cliente',
     titulo: 'Consumo cayendo tres meses seguidos',
     accion: 'Llamar y preguntar qué cambió en su operación. Una caída sostenida '
           + 'precede a la reducción de plan, no al revés.',
     enlaceEtiqueta: 'Ver la cuenta',
   },
   desplome_consumo: {
-    tipo: 'desplome_consumo', familia: 'riesgo', severidad: 'critica',
+    tipo: 'desplome_consumo', familia: 'riesgo', severidad: 'critica', dueno: 'cliente',
     titulo: 'Desplome de consumo',
     accion: 'Contacto inmediato. Pasó de usar su plan a casi no usarlo: o cambió su '
           + 'operación o ya está usando otra cosa.',
@@ -136,7 +179,7 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
    * siguiente revisión de gastos. Son $72,634 de MRR que estaban archivados
    * como severidad alta cuando son lo más crítico de la cartera. */
   consumo_cero: {
-    tipo: 'consumo_cero', familia: 'riesgo', severidad: 'critica',
+    tipo: 'consumo_cero', familia: 'riesgo', severidad: 'critica', dueno: 'cliente',
     titulo: 'Paga y no usa el servicio en absoluto',
     accion: 'Contacto inmediato con quien firma, no con el usuario operativo. Cero '
           + 'minutos en todo el periodo medido no es uso bajo: es un servicio que ya '
@@ -144,7 +187,7 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     enlaceEtiqueta: 'Ver consumo y adopción', ancla: 'adopcion',
   },
   uso_bajo: {
-    tipo: 'uso_bajo', familia: 'riesgo', severidad: 'alta',
+    tipo: 'uso_bajo', familia: 'riesgo', severidad: 'alta', dueno: 'cliente',
     titulo: 'Paga mucho más de lo que usa',
     accion: 'Sesión de adopción: mostrar qué del plan no está usando. Es la cuenta '
           + 'que al apretarse el presupuesto pide bajar de plan.',
@@ -170,7 +213,7 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
    * Mientras se confundan, la cuenta que se queda sin interlocutor parece una
    * cuenta atendida. */
   sin_interlocutor: {
-    tipo: 'sin_interlocutor', familia: 'riesgo', severidad: 'critica',
+    tipo: 'sin_interlocutor', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
     titulo: 'Se llamó varias veces y no hay nadie del otro lado',
     accion: 'No es falta de seguimiento: es que ya no tenemos interlocutor. Buscar a '
           + 'otra persona por otra vía —el firmante de la factura, cobranza, el correo '
@@ -179,14 +222,14 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     enlaceEtiqueta: 'Actualizar contactos', ancla: 'contactos',
   },
   silencio_60: {
-    tipo: 'silencio_60', familia: 'riesgo', severidad: 'critica',
+    tipo: 'silencio_60', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
     titulo: 'Más de 60 días sin contacto',
     accion: 'Llamar. Dos meses de silencio en una cuenta viva es una relación que '
           + 'dejó de existir.',
     enlaceEtiqueta: 'Registrar seguimiento', ancla: 'seguimientos',
   },
   silencio_30: {
-    tipo: 'silencio_30', familia: 'riesgo', severidad: 'media',
+    tipo: 'silencio_30', familia: 'riesgo', severidad: 'media', dueno: 'asesor',
     titulo: 'Más de 30 días sin contacto',
     accion: 'Agendar contacto esta semana antes de que se vuelva silencio largo.',
     enlaceEtiqueta: 'Registrar seguimiento', ancla: 'seguimientos',
@@ -199,7 +242,7 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
    * dado un seguimiento» a quien escribió cinco notas hace que cierre la
    * alerta por falsa, y con ella deje de creerse las demás. */
   nunca_contactada: {
-    tipo: 'nunca_contactada', familia: 'riesgo', severidad: 'critica',
+    tipo: 'nunca_contactada', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
     titulo: 'Nunca se le ha contactado',
     accion: 'Primer contacto por un canal real: llamada, correo, WhatsApp o reunión. '
           + 'Escribir notas sobre una cuenta no es haber hablado con ella.',
@@ -208,13 +251,13 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
 
   // ── ABANDONO — es nuestro, no del cliente ──────────────────────────────
   asignada_sin_cerrar: {
-    tipo: 'asignada_sin_cerrar', familia: 'abandono', severidad: 'critica',
+    tipo: 'asignada_sin_cerrar', familia: 'abandono', severidad: 'critica', dueno: 'asesor',
     titulo: 'Asignada y sin un solo seguimiento cerrado',
     accion: 'Se le asignó trabajo y no se cerró ninguno. Cerrar o explicar por qué no.',
     enlaceEtiqueta: 'Ver la cuenta',
   },
   nunca_asignada: {
-    tipo: 'nunca_asignada', familia: 'abandono', severidad: 'media',
+    tipo: 'nunca_asignada', familia: 'abandono', severidad: 'media', dueno: 'direccion',
     titulo: 'Nunca ha entrado a un lote de trabajo',
     accion: 'Entra al próximo lote. Una cuenta viva que nunca se trabajó es una '
           + 'cuenta que nadie está cuidando.',
@@ -223,7 +266,7 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
 
   // ── OPORTUNIDAD ────────────────────────────────────────────────────────
   rebasa_bolsa: {
-    tipo: 'rebasa_bolsa', familia: 'oportunidad', severidad: 'oportunidad',
+    tipo: 'rebasa_bolsa', familia: 'oportunidad', severidad: 'oportunidad', dueno: 'asesor',
     titulo: 'Rebasa su bolsa de minutos',
     accion: 'Consume por encima de su plan y se le está cobrando el excedente. '
           + 'Proponer el plan que le corresponde antes de que lo note en la factura.',
@@ -258,6 +301,8 @@ export interface Alerta {
   tipo: TipoAlerta
   familia: Familia
   severidad: Severidad
+  /** Quién puede cerrarla; se deriva del tipo, no de la cuenta. */
+  dueno: Dueno
   cuentaId: string
   consecutivo: string | null
   cid: string | null
@@ -303,7 +348,7 @@ export function construirAlerta(
   const mrr = cuenta.facturacion ?? 0
   return {
     id: `${tipo}:${cuenta.id}`,
-    tipo, familia: d.familia, severidad: d.severidad,
+    tipo, familia: d.familia, severidad: d.severidad, dueno: d.dueno,
     cuentaId: cuenta.id,
     consecutivo: cuenta.consecutivo ?? null,
     cid: cuenta.cid ?? null,
@@ -328,7 +373,24 @@ export interface ResumenAlertas {
   mrrEnRiesgo: number
   porSeveridad: Record<Severidad, { n: number; mrr: number }>
   porFamilia: Record<Familia, { n: number; mrr: number }>
-  porAsesor: Record<string, { n: number; mrr: number; criticas: number; top: number }>
+  porDueno: Record<Dueno, { n: number; mrr: number }>
+  /**
+   * Por ejecutivo, con lo suyo separado de lo que no puede cerrar.
+   *
+   * `n` sigue siendo el total porque la cuenta es suya y el riesgo también:
+   * nadie se desentiende de una cuenta porque el dato lo deba otro equipo. Lo
+   * que cambia es que ya no se le reprocha el tiempo de lo ajeno.
+   */
+  porAsesor: Record<string, {
+    n: number; mrr: number; criticas: number; top: number
+    /** Las que puede cerrar por sí mismo, esta semana. */
+    propias: number
+    /** Críticas que puede cerrar por sí mismo: el número con el que se trabaja. */
+    criticasPropias: number
+    /** Las que NO puede cerrar: Ingeniería o decisión de dirección. */
+    bloqueadas: number
+    mrrBloqueado: number
+  }>
   topEnRiesgo: number
 }
 
@@ -340,6 +402,9 @@ export function resumir(alertas: Alerta[]): ResumenAlertas {
   const porFamilia = {
     ceguera: vacio(), riesgo: vacio(), abandono: vacio(), oportunidad: vacio(),
   } as Record<Familia, { n: number; mrr: number }>
+  const porDueno = {
+    asesor: vacio(), cliente: vacio(), ingenieria: vacio(), direccion: vacio(),
+  } as Record<Dueno, { n: number; mrr: number }>
   const porAsesor: ResumenAlertas['porAsesor'] = {}
 
   /* El MRR se cuenta UNA VEZ POR CUENTA, no por alerta. Si una cuenta de
@@ -353,10 +418,18 @@ export function resumir(alertas: Alerta[]): ResumenAlertas {
     mrrPorCuenta.set(a.cuentaId, a.mrr)
     porSeveridad[a.severidad].n++
     porFamilia[a.familia].n++
+    porDueno[a.dueno].n++
     const k = a.asesor || '(sin asesor)'
-    porAsesor[k] ??= { n: 0, mrr: 0, criticas: 0, top: 0 }
+    porAsesor[k] ??= { n: 0, mrr: 0, criticas: 0, top: 0,
+                       propias: 0, criticasPropias: 0, bloqueadas: 0, mrrBloqueado: 0 }
     porAsesor[k].n++
     if (a.severidad === 'critica') porAsesor[k].criticas++
+    if (BLOQUEADA.has(a.dueno)) {
+      porAsesor[k].bloqueadas++
+    } else {
+      porAsesor[k].propias++
+      if (a.severidad === 'critica') porAsesor[k].criticasPropias++
+    }
   }
   // Y el MRR por corte también por cuenta única, con la misma razón.
   const unicaPor = <T extends string>(sel: (a: Alerta) => T,
@@ -371,7 +444,9 @@ export function resumir(alertas: Alerta[]): ResumenAlertas {
   }
   unicaPor(a => a.severidad, porSeveridad as Record<string, { n: number; mrr: number }>)
   unicaPor(a => a.familia, porFamilia as Record<string, { n: number; mrr: number }>)
+  unicaPor(a => a.dueno, porDueno as Record<string, { n: number; mrr: number }>)
   const vistoAsesor = new Map<string, Set<string>>()
+  const vistoBloq = new Map<string, Set<string>>()
   for (const a of alertas) {
     const k = a.asesor || '(sin asesor)'
     const s = vistoAsesor.get(k) ?? new Set<string>()
@@ -381,6 +456,13 @@ export function resumir(alertas: Alerta[]): ResumenAlertas {
       if (a.esTop) porAsesor[k].top++
     }
     vistoAsesor.set(k, s)
+    // El MRR bloqueado también por cuenta única: una cuenta con dos alertas de
+    // Ingeniería es su MRR, no el doble. Misma razón que arriba.
+    if (BLOQUEADA.has(a.dueno)) {
+      const b = vistoBloq.get(k) ?? new Set<string>()
+      if (!b.has(a.cuentaId)) { b.add(a.cuentaId); porAsesor[k].mrrBloqueado += a.mrr }
+      vistoBloq.set(k, b)
+    }
   }
 
   let mrr = 0
@@ -389,6 +471,6 @@ export function resumir(alertas: Alerta[]): ResumenAlertas {
 
   return {
     total: alertas.length, cuentas: cuentasVistas.size, mrrEnRiesgo: mrr,
-    porSeveridad, porFamilia, porAsesor, topEnRiesgo,
+    porSeveridad, porFamilia, porDueno, porAsesor, topEnRiesgo,
   }
 }

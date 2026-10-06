@@ -46,8 +46,10 @@ export async function GET(req: NextRequest) {
     let filtradas = todas
     const familia = sp.get('familia')
     const severidad = sp.get('severidad')
+    const dueno = sp.get('dueno')
     if (familia) filtradas = filtradas.filter(a => a.familia === familia)
     if (severidad) filtradas = filtradas.filter(a => a.severidad === severidad)
+    if (dueno) filtradas = filtradas.filter(a => a.dueno === dueno)
 
     const limite = Math.min(parseInt(sp.get('limite') ?? '200', 10) || 200, 1000)
     const rows = filtradas.slice(0, limite)
