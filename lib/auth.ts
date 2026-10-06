@@ -34,11 +34,26 @@ const EMAILS_AUTORIZADOS_DEFAULT = [
   'daniel@callpicker.com',
   'josel@callpicker.com',
   'lopezdjosemanuel@gmail.com',
-  // Área de Perfilamiento (3 sep 2026) — acceso limitado por el rol
-  // `perfilamiento`, ver lib/permisos.ts.
+  /* Área de Perfilamiento (3 sep 2026) — acceso limitado por el rol
+   * `perfilamiento`, ver lib/permisos.ts. Queda sólo Roberto.
+   *
+   * ── NANCY Y VALERIA, FUERA EL 6 OCT 2026 ────────────────────────────────
+   *
+   * Dirección: «Nancy Valeria tampoco deben tener acceso».
+   *
+   * Nunca llegaron a tener fila en `usuarios` —comprobado ese día contra la
+   * tabla—, así que no podían iniciar sesión: el login exige la fila. Pero
+   * estaban en ESTA lista, que es la que evalúa el middleware, y una cookie
+   * suya habría pasado. Era una puerta sin llave puesta, no una puerta
+   * abierta; ahora tampoco está la puerta.
+   *
+   * Es justo la deriva inversa a la de `enrique@` y `v.zepeda@`, que sí tienen
+   * fila activa en `usuarios` pero no están aquí: ésos no entran, porque esta
+   * lista manda. Las dos listas hay que mirarlas juntas.
+   */
   'roberto@callpicker.com',
-  'nancy@callpicker.com',
-  'valeria@callpicker.com',
+  // 'nancy@callpicker.com',
+  // 'valeria@callpicker.com',
   /* Asesores de cuenta (7 sep 2026) — rol `asesor`: cada uno ve sólo su
    * cartera. Marcarlos `activo` en Gestión de Usuarios NO basta: esa marca
    * sólo se revisa en login/verify, mientras que esta lista se evalúa en
