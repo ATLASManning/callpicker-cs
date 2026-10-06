@@ -115,12 +115,20 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
     const f = String(s.fecha ?? '').slice(0, 10)
     if (f && f > (ultimoSeg.get(s.cuenta_id) ?? '')) ultimoSeg.set(s.cuenta_id, f)
   }
-  const asignadas = new Set<string>()
+  /* Se cuentan, no solo se marcan: la evidencia de `asignada_sin_cerrar` tiene
+     que poder decir CUÁNTAS se asignaron. «Se le asignó trabajo y no se cerró»
+     es una queja; «se le asignaron 7 y no se cerró ninguna» es un dato. */
+  const nAsignadas = new Map<string, number>()
   const cerradas = new Set<string>()
   for (const a of actRows) {
     if (!a.cuenta_id) continue
-    asignadas.add(a.cuenta_id)
+    nAsignadas.set(a.cuenta_id, (nAsignadas.get(a.cuenta_id) ?? 0) + 1)
     if (a.completada || a.estado === 'completada') cerradas.add(a.cuenta_id)
+  }
+  const nSeguimientos = new Map<string, number>()
+  for (const s of segRows) {
+    if (!s.cuenta_id) continue
+    nSeguimientos.set(s.cuenta_id, (nSeguimientos.get(s.cuenta_id) ?? 0) + 1)
   }
 
   /* Las TOP salen del dinero, no de una lista a mano: la lista envejece y
@@ -151,9 +159,10 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
       // CEGUERA, y es la más grave: 18 de las 25 TOP caen aquí.
       add('sin_consumo_medible', c,
           c.cid
-            ? `El CID ${c.cid} no tiene consumo medible en los últimos cortes `
-              + `(${pcts.length} de 5 meses con dato).`
-            : 'La cuenta no tiene CID capturado, así que no cruza con ningún corte.')
+            ? `El CID ${c.cid} tiene ${pcts.length} de 5 meses con dato de consumo: no `
+              + `alcanza para una serie, y factura ${dinero(c.facturacion ?? 0)} al mes.`
+            : `La cuenta no tiene CID capturado, así que no cruza con ningún corte: `
+              + `${dinero(c.facturacion ?? 0)} al mes sin un solo minuto medible.`)
     } else {
       const ult = pcts[pcts.length - 1]
       const prev = pcts.slice(0, -1)
@@ -188,7 +197,8 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
     const d = diasDesde(ultimo, hoy)
     if (d === null) {
       add('nunca_contactada', c,
-          'No hay un solo seguimiento registrado, y la cuenta está activa.')
+          `Cero seguimientos registrados en una cuenta activa de `
+          + `${dinero(c.facturacion ?? 0)} al mes.`)
     } else if (d > UMBRALES.silencioLargo) {
       add('silencio_60', c, `Último contacto el ${ultimo}: hace ${d} días.`, d)
     } else if (d > UMBRALES.silencioCorto) {
@@ -197,22 +207,30 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
 
     // ── Ceguera de ficha ─────────────────────────────────────────────────
     if (!conRadar.has(c.id)) {
-      add('sin_radar', c, 'Ninguna de las 12 preguntas del Radar está respondida.')
+      add('sin_radar', c,
+          `0 de 12 preguntas del Radar respondidas, en una cuenta de `
+          + `${dinero(c.facturacion ?? 0)} al mes.`)
     }
     if (cuantosContactos(c.contactos_json) === 0) {
       add('sin_contactos', c,
           `Cero contactos capturados en una cuenta de ${dinero(c.facturacion ?? 0)} al mes.`)
     }
     if (!(c.observaciones_kam ?? '').trim()) {
-      add('sin_ficha', c, 'La ficha no tiene observaciones del KAM.')
+      const ns = nSeguimientos.get(c.id) ?? 0
+      add('sin_ficha', c,
+          `Cero observaciones del KAM en una cuenta de ${dinero(c.facturacion ?? 0)} al mes, `
+          + `con ${ns} ${ns === 1 ? 'seguimiento' : 'seguimientos'} en el historial.`)
     }
 
     // ── Abandono: es nuestro, no del cliente ─────────────────────────────
-    if (asignadas.has(c.id) && !cerradas.has(c.id)) {
+    const nAsig = nAsignadas.get(c.id) ?? 0
+    if (nAsig > 0 && !cerradas.has(c.id)) {
       add('asignada_sin_cerrar', c,
-          'Se le asignó trabajo y no se ha cerrado ni un solo seguimiento.')
-    } else if (!asignadas.has(c.id)) {
-      add('nunca_asignada', c, 'Nunca ha entrado a un lote de trabajo semanal.')
+          `Se le asignaron ${nAsig} ${nAsig === 1 ? 'actividad' : 'actividades'} y no se `
+          + `ha cerrado ninguna, en una cuenta de ${dinero(c.facturacion ?? 0)} al mes.`)
+    } else if (nAsig === 0) {
+      add('nunca_asignada', c,
+          `Cero actividades en todo el historial, y paga ${dinero(c.facturacion ?? 0)} al mes.`)
     }
   }
 
