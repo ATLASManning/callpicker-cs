@@ -70,12 +70,25 @@ const EMAILS_AUTORIZADOS_DEFAULT = [
   // 'fatima@callpicker.com',
   // 'claudia@callpicker.com',
   // 'dominguez.dan@callpicker.com',
-  // Aurora (10 sep 2026) — alta por instrucción de dirección. Su registro en
-  // `usuarios` ya existía con contraseña propia y `activo = true`, pero nunca
-  // pudo entrar (`ultimo_acceso` en null): faltaba justamente esta línea.
-  // Rol `viewer`, que en lib/permisos.ts NO es de solo lectura — ve todos los
-  // módulos, igual que Daniel.
-  'auroravelinomartinez1@gmail.com',
+  /* Aurora — alta el 10 sep 2026 por instrucción de dirección, rol `viewer`.
+   *
+   * ── BAJA EL 6 OCT 2026 ──────────────────────────────────────────────────
+   *
+   * Dirección: «Aurora, ya la di de baja». Esta línea es lo que hace que la
+   * baja EXISTA.
+   *
+   * Es el caso más claro de por qué esta lista no es redundante con Gestión de
+   * Usuarios. Al darla de baja, su fila de `usuarios` se BORRÓ —no quedó
+   * inactiva, desapareció— y aun así, medido contra producción ese mismo día,
+   * seguía abriendo el tablero completo: HTTP 200, 990 KB. Una vez que hay
+   * cookie firmada, el middleware no vuelve a mirar la tabla de usuarios; mira
+   * la firma y esta lista, y nada más. Borrar la fila no revoca nada, sólo
+   * impide volver a iniciar sesión — y la cookie dura 30 días.
+   *
+   * Se deja comentada y no se borra para que quede el rastro de que tuvo
+   * acceso y de cuándo se le quitó.
+   */
+  // 'auroravelinomartinez1@gmail.com',
 ]
 
 export function emailsAutorizados(): Set<string> {
