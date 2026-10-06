@@ -1,5 +1,6 @@
 import { supabaseAdmin, traerPorPaginas } from '@/lib/supabase'
 import { todosLosCortes } from '@/lib/cortes-cuenta'
+import { mapaFacturacion, importeDeCuenta, type ImporteCuenta } from '@/lib/facturacion-cuenta'
 import { baseMinutos } from '@/lib/plan-minutos'
 import { hoyEnMexico } from '@/lib/fecha-local'
 import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
@@ -228,15 +229,46 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
     nSeguimientos.set(s.cuenta_id, (nSeguimientos.get(s.cuenta_id) ?? 0) + 1)
   }
 
+  /* ── EL IMPORTE DE CADA CUENTA, RESUELTO UNA SOLA VEZ ──────────────────
+   *
+   * Instrucción de dirección: la facturación sale de Gross Revenue, y de ahí
+   * se toma lo que a la cuenta le falte. Importa aquí más que en ninguna otra
+   * pantalla porque este archivo pondera por dinero: `prioridad()` ordena con
+   * él y el TOP 25 se calcula con él. Una cuenta en cero no es una cuenta
+   * barata, es una cuenta invisible — se iba al fondo de todas las listas.
+   *
+   * Medido el 6 oct 2026: 55 cuentas cambian de importe y la cartera viva pasa
+   * de $1,884,241 a $2,167,114. Entran cuatro al TOP 25, y la mayor —IMPAS
+   * Municipio Chihuahua, $65,640 al mes— figuraba en CERO. */
+  const facturacion = await mapaFacturacion()
+  const importes = new Map<string, ImporteCuenta>()
+  for (const c of cuentas) {
+    const cid = c.cid ? String(c.cid).trim() : null
+    importes.set(c.id, importeDeCuenta(c, facturacion, !!cid && cortes.has(cid)))
+  }
+  /** La cuenta tal como la ve el resto del archivo, ya con el importe bueno. */
+  const conImporte = (c: CuentaAlerta): CuentaAlerta =>
+    ({ ...c, facturacion: importes.get(c.id)?.mrr ?? c.facturacion })
+
+  /* Diez cuentas vivas no tienen importe en NINGUNA fuente. Escribir «$0 al
+     mes» en su evidencia sería decir que no valen nada, cuando lo que pasa es
+     que no lo sabemos. Se dice con palabras. [[feedback-cero-sin-medicion]] */
+  const cuantoPaga = (c: CuentaAlerta): string => {
+    const i = importes.get(c.id)
+    if (!i || i.origen === 'sin_dato') return 'un importe que no está en ninguna fuente'
+    return `${dinero(i.mrr)} al mes`
+  }
+
   /* Las TOP salen del dinero, no de una lista a mano: la lista envejece y
      nadie la actualiza. Ver [[feedback-fuente-unica-cuentas]]. */
+  const mrrDe = (c: CuentaAlerta) => importes.get(c.id)?.mrr ?? (c.facturacion ?? 0)
   const top = new Set(
-    [...cuentas].sort((a, b) => (b.facturacion ?? 0) - (a.facturacion ?? 0))
+    [...cuentas].sort((a, b) => mrrDe(b) - mrrDe(a))
       .slice(0, N_TOP).map(c => c.id))
 
   const alertas: Alerta[] = []
   const add = (tipo: TipoAlerta, c: CuentaAlerta, ev: string, dias: number | null = null) =>
-    alertas.push(construirAlerta(tipo, c, ev, top.has(c.id), dias))
+    alertas.push(construirAlerta(tipo, conImporte(c), ev, top.has(c.id), dias))
 
   for (const c of cuentas) {
     // ── Consumo: la serie de la cuenta, de su propio corte ───────────────
@@ -257,9 +289,9 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
       add('sin_consumo_medible', c,
           c.cid
             ? `El CID ${c.cid} tiene ${pcts.length} de 5 meses con dato de consumo: no `
-              + `alcanza para una serie, y factura ${dinero(c.facturacion ?? 0)} al mes.`
+              + `alcanza para una serie, y factura ${cuantoPaga(c)}.`
             : `La cuenta no tiene CID capturado, así que no cruza con ningún corte: `
-              + `${dinero(c.facturacion ?? 0)} al mes sin un solo minuto medible.`)
+              + `${cuantoPaga(c)} sin un solo minuto medible.`)
     } else {
       const ult = pcts[pcts.length - 1]
       const prev = pcts.slice(0, -1)
@@ -285,11 +317,11 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
            es una frase sin sentido y una severidad equivocada. */
         add('consumo_cero', c,
             `Cero minutos consumidos en los ${pcts.length} meses medidos `
-            + `(${pcts[0].mes} a ${ult.mes}), y paga ${dinero(c.facturacion ?? 0)} al mes.`)
+            + `(${pcts[0].mes} a ${ult.mes}), y paga ${cuantoPaga(c)}.`)
       } else if (Math.max(...pcts.map(p => p.pct)) < UMBRALES.usoBajo) {
         add('uso_bajo', c,
             `Nunca pasó del ${Math.max(...pcts.map(p => p.pct)).toFixed(0)}% de su plan en `
-            + `${pcts.length} meses, y paga ${dinero(c.facturacion ?? 0)} al mes.`)
+            + `${pcts.length} meses, y paga ${cuantoPaga(c)}.`)
       } else if (ult.pct > UMBRALES.rebase) {
         add('rebasa_bolsa', c,
             `En ${ult.mes} consumió el ${ult.pct.toFixed(0)}% de su bolsa: el excedente se cobra.`)
@@ -332,7 +364,7 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
       const nNotas = notasInternas.get(c.id) ?? 0
       const trozos: string[] = [
         `Cero contactos registrados por un canal real —ni llamada, ni correo, `
-        + `ni WhatsApp, ni reunión— en una cuenta de ${dinero(c.facturacion ?? 0)} al mes.`,
+        + `ni WhatsApp, ni reunión— en una cuenta de ${cuantoPaga(c)}.`,
       ]
       if (nNotas > 0) {
         trozos.push(`Hay ${nNotas} ${nNotas === 1 ? 'nota interna' : 'notas internas'}, `
@@ -375,16 +407,16 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
     if (!conRadar.has(c.id)) {
       add('sin_radar', c,
           `0 de 12 preguntas del Radar respondidas, en una cuenta de `
-          + `${dinero(c.facturacion ?? 0)} al mes.`)
+          + `${cuantoPaga(c)}.`)
     }
     if (cuantosContactos(c.contactos_json) === 0) {
       add('sin_contactos', c,
-          `Cero contactos capturados en una cuenta de ${dinero(c.facturacion ?? 0)} al mes.`)
+          `Cero contactos capturados en una cuenta de ${cuantoPaga(c)}.`)
     }
     if (!(c.observaciones_kam ?? '').trim()) {
       const ns = nSeguimientos.get(c.id) ?? 0
       add('sin_ficha', c,
-          `Cero observaciones del KAM en una cuenta de ${dinero(c.facturacion ?? 0)} al mes, `
+          `Cero observaciones del KAM en una cuenta de ${cuantoPaga(c)}, `
           + `con ${ns} ${ns === 1 ? 'seguimiento' : 'seguimientos'} en el historial.`)
     }
 
@@ -405,7 +437,7 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
           + (desde ? ` desde el ${desde}` : '')
           + (dDesde !== null ? ` (hace ${dDesde} días)` : '')
           + ` y no se ha cerrado ninguna, en una cuenta de `
-          + `${dinero(c.facturacion ?? 0)} al mes.`
+          + `${cuantoPaga(c)}.`
           + (heredada
               ? ` OJO: ${nombres.length === 1 ? 'se asignó a' : 'se asignaron a'} `
                 + `${nombres.join(' y ')}, no a ${c.asesor} — viene heredada con la cartera.`
@@ -413,7 +445,7 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
           dDesde)
     } else if (nAsig === 0) {
       add('nunca_asignada', c,
-          `Cero actividades en todo el historial, y paga ${dinero(c.facturacion ?? 0)} al mes.`)
+          `Cero actividades en todo el historial, y paga ${cuantoPaga(c)}.`)
     }
   }
 

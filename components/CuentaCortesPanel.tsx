@@ -47,11 +47,16 @@ const USO_COLOR: Record<string, string> = {
   'entrantes': '#60A5FA', 'salientes': '#FBBF24', 'mixtas': '#A78BFA',
 }
 
+/** El respaldo de Gross Revenue: `undefined` mientras se consulta, `null` si
+ *  tampoco está ahí. Son tres estados distintos y los tres se dicen distinto. */
+interface GrcCuenta { mrr: number; filas: number; agrupadas: number; mes: string | null }
+
 export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null; empresa: string }) {
   const [data,        setData]        = useState<CortesResult | null>(null)
   const [loading,     setLoading]     = useState(true)
   const [openDetalle, setOpenDetalle] = useState(false)
   const [openMes,     setOpenMes]     = useState(false)
+  const [grc,         setGrc]         = useState<GrcCuenta | null | undefined>(undefined)
 
   const informeHref = `/facturacion/cortes?q=${encodeURIComponent(cid || empresa)}&tab=detalle`
 
@@ -61,8 +66,29 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
     if (empresa) p.set('nombre', empresa)
     fetch(`/api/cortes?${p}`)
       .then(r => r.json())
-      .then((d: CortesResult) => { setData(d) })
-      .catch(() => setData({ rows: [], byMes: {}, total: 0 }))
+      .then((d: CortesResult) => {
+        setData(d)
+        /* Sólo si NO hay corte se va a buscar el importe a Gross Revenue. Pedirlo
+           siempre traería una segunda cifra al lado de la del corte, y dos
+           cifras del mismo concepto en la misma ficha es peor que ninguna. */
+        if (!d || d.total === 0) {
+          const q = new URLSearchParams()
+          if (cid) q.set('cid', cid)
+          if (empresa) q.set('nombre', empresa)
+          q.set('mode', 'cuenta')
+          fetch(`/api/grc?${q}`)
+            .then(r => r.json())
+            .then((g: { encontrado?: boolean; mrrFin?: number; filas?: number
+                        mes?: string | null; incluye?: unknown[] }) => {
+              setGrc(g?.encontrado && (g.mrrFin ?? 0) > 0
+                ? { mrr: g.mrrFin ?? 0, filas: g.filas ?? 1,
+                    agrupadas: (g.incluye ?? []).length, mes: g.mes ?? null }
+                : null)
+            })
+            .catch(() => setGrc(null))
+        }
+      })
+      .catch(() => { setData({ rows: [], byMes: {}, total: 0 }); setGrc(null) })
       .finally(() => setLoading(false))
   }, [cid, empresa])
 
@@ -110,10 +136,69 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
       </div>
 
       {noData ? (
-        <div style={{ textAlign: 'center', padding: '16px 0', color: '#94a3b8' }}>
+        /* No hay corte. Antes el panel se quedaba aquí y la ficha no decía de
+           cuánto es la cuenta por ningún lado — y son 46 de las 192 vivas.
+           Instrucción de dirección del 6 oct 2026: donde no haya corte, el
+           importe se toma de Gross Revenue Facturación, que es donde está
+           todo. Se enseña diciendo de dónde salió, porque no es lo mismo un
+           importe medido contra su consumo que uno tomado de la facturación. */
+        <div style={{ textAlign: 'center', padding: '14px 0', color: '#94a3b8' }}>
           <AlertTriangle size={18} style={{ margin: '0 auto 6px' }} />
-          <p style={{ fontSize: 12 }}>Sin cortes de facturación registrados</p>
-          {!cid && <p style={{ fontSize: 11, marginTop: 4, color: '#f59e0b' }}>Configura el CID para búsqueda exacta</p>}
+          <p style={{ fontSize: 12, marginBottom: grc === undefined ? 0 : 10 }}>
+            Sin cortes de facturación registrados
+          </p>
+          {grc === undefined && (
+            <p style={{ fontSize: 11, marginTop: 6 }}>Consultando Gross Revenue…</p>
+          )}
+          {grc !== undefined && grc !== null && (
+            /* Este panel vive dentro de una `.cp-card`, que es una isla oscura:
+               globals.css fuerza a blanco todo <p> y todo <span> que no declare
+               `background`. Por eso cada texto con color va en un <span> con su
+               fondo —vale `transparent`— y los colores son claros, no oscuros.
+               Ver [[atlas-dashboard-contrast-architecture]]. */
+            <div style={{ background: 'rgba(255,255,255,0.05)',
+                          border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
+                          padding: '11px 14px', margin: '0 auto', maxWidth: 340 }}>
+              <p style={{ marginBottom: 3 }}>
+                <span style={{ background: 'transparent', fontSize: 10, color: '#94A3B8',
+                               textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  Importe · Gross Revenue Facturación
+                </span>
+              </p>
+              <p style={{ lineHeight: 1.1 }}>
+                <span style={{ background: 'transparent', fontSize: 22, fontWeight: 800,
+                               color: '#FFFFFF' }}>
+                  ${Math.round(grc.mrr).toLocaleString('es-MX')}
+                </span>
+                <span style={{ background: 'transparent', fontSize: 12, fontWeight: 600,
+                               color: '#94A3B8' }}> /mes</span>
+              </p>
+              <p style={{ marginTop: 4, lineHeight: 1.45 }}>
+                <span style={{ background: 'transparent', fontSize: 10.5, color: '#94A3B8' }}>
+                  No hay corte que medir contra su consumo, así que el importe sale de
+                  facturación{grc.filas > 1
+                    ? ` —suma de ${grc.filas} líneas del mismo cliente${
+                        grc.agrupadas > 0 ? `, ${grc.agrupadas} agrupada${grc.agrupadas > 1 ? 's' : ''} a este CID` : ''}—`
+                    : ''}{grc.mes ? `, corte de ${grc.mes}` : ''}.
+                </span>
+              </p>
+            </div>
+          )}
+          {grc === null && (
+            <p style={{ marginTop: 6 }}>
+              <span style={{ background: 'transparent', fontSize: 11, color: '#FBBF24' }}>
+                Tampoco aparece en Gross Revenue Facturación: el importe de esta cuenta
+                no está en ninguna fuente.
+              </span>
+            </p>
+          )}
+          {!cid && (
+            <p style={{ marginTop: 8 }}>
+              <span style={{ background: 'transparent', fontSize: 11, color: '#FBBF24' }}>
+                Configura el CID para búsqueda exacta
+              </span>
+            </p>
+          )}
         </div>
       ) : (
         <>
