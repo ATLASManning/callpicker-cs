@@ -10,6 +10,7 @@ import TicketsAnalyticsChart, { type TicketsAnalyticsData } from '@/components/c
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
 import DashAlertasCriticas from '@/components/DashAlertasCriticas'
+import PanelAlertas from '@/components/PanelAlertas'
 import DashMetricasSection from '@/components/DashMetricasSection'
 import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVersatil'
 import CandidatoA from '@/components/CandidatoA'
@@ -18,6 +19,8 @@ import { resumenLlamadas } from '@/lib/llamadas-resumen'
 /* Del módulo ligero: `@/lib/focos-riesgo` también lo exporta, pero arrastra los
    3.5 MB de tickets-data.json y el Excel de cortes a esta página. */
 import { SEGUIMIENTOS_POR_SEMANA } from '@/lib/cierre-seguimiento'
+import { detectarAlertas } from '@/lib/alertas-detectar'
+import { resumir } from '@/lib/alertas'
 import { didsDeCuenta } from '@/lib/dids-cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
@@ -1061,12 +1064,24 @@ export default async function DashboardPage() {
      El semáforo por asesora sigue trayendo a las tres a propósito: es una
      comparación entre personas y se explica sola al llevar los tres nombres. */
   const soloSuCartera = isAsesor ? { asesor: asesorHeader } : undefined
-  const [kpis, semaforoAsesor, allCuentas, actsRaw, adopRows] = await Promise.all([
+  const [kpis, semaforoAsesor, allCuentas, actsRaw, adopRows, alertasRes] = await Promise.all([
     getKPIs(soloSuCartera), getSemaforoByAsesor(),
     getCuentas(soloSuCartera),
     getActividadesSAC(semana3back),
     getAdopcionProductoAll(),
+    /* El motor de alertas NO puede tumbar la portada, y tampoco puede fallar en
+       silencio: si una fuente no responde, el panel lo DICE. Un cero aquí se
+       leería como «no hay riesgo», que es la mentira más cara que puede contar
+       este tablero. Ver [[feedback-cero-sin-medicion]]. */
+    detectarAlertas(soloSuCartera).then(
+      alertas => ({ ok: true as const, alertas }),
+      (e: unknown) => ({ ok: false as const,
+                         motivo: (e as Error)?.message || 'una fuente no respondió' })),
   ])
+
+  const alertas       = alertasRes.ok ? alertasRes.alertas : []
+  const resumenAlerts = resumir(alertas)
+  const fallaAlertas  = alertasRes.ok ? null : alertasRes.motivo
 
   // Último nivel registrado por cuenta+producto (puede haber historial)
   const adopMap = new Map<string, Map<string, AdopcionRow>>()
@@ -1339,16 +1354,31 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* ══ §1 Cumplimiento SAC Semanal ════════════════════════════════════ */}
+      {/* ══ §1 ALERTAS DE CLIENTE — lo primero que se ve ═══════════════════
+       *
+       * Antes aquí estaba «Cumplimiento SAC Semanal»: tres medidores de cuántas
+       * actividades había cerrado cada ejecutivo. Instrucción de dirección del
+       * 6 oct 2026 — «no medir cuántas hizo cada ejecutivo, sino conocer
+       * cuántas alertas tiene, de qué cuentas, de qué tipo, el riesgo en
+       * dinero». El SAC no desaparece, baja: sigue siendo la herramienta del
+       * lote semanal, pero dejó de ser el titular del tablero.
+       */}
+      <div className="px-6 pb-5">
+        <PanelAlertas
+          alertas={alertas.slice(0, 10)} resumen={resumenAlerts} falla={fallaAlertas}
+        />
+      </div>
+
+      {/* ══ §1b Top Cuentas · Ranking Versátil ════════════════════════════ */}
+      <TopCuentasVersatil data={rankRows} />
+
+      {/* ══ §1c Cumplimiento SAC Semanal — la ejecución del lote ══════════ */}
       <div className="px-6 pb-5">
         <SACWeeklyPanel
           asesores={asesorStats} segsMap={segsMap} asignMap={asignMap}
           focosMap={focosMap} focosAsignMap={focosAsignMap}
         />
       </div>
-
-      {/* ══ §1b Top Cuentas · Ranking Versátil ════════════════════════════ */}
-      <TopCuentasVersatil data={rankRows} />
 
       {/* ══ Candidato a: — blindaje y crecimiento con evidencia ══════════ */}
       <CandidatoA data={candidatos} />

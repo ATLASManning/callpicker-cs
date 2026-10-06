@@ -476,7 +476,13 @@ export default async function CuentaDetailPage({ params }: Props) {
               )}
             </div>
 
-            {/* Contactos — lista dinámica primero, fallback al campo legacy */}
+            {/* Contactos — lista dinámica primero, fallback al campo legacy
+             *
+             * El `id` es el destino de la alerta `sin_contactos`: el botón del
+             * panel de alertas aterriza aquí, no en lo alto de la ficha. El
+             * `scrollMarginTop` existe porque el encabezado es pegajoso y sin él
+             * el ancla deja la sección justo debajo, fuera de la vista. */}
+            <div id="contactos" style={{ scrollMarginTop: 96 }} />
             {(cuenta.contactos_json && cuenta.contactos_json.length > 0) ? (
               <div className="space-y-2">
                 <p className="text-[10px] text-textLow">Contactos ({cuenta.contactos_json.length})</p>
@@ -541,10 +547,14 @@ export default async function CuentaDetailPage({ params }: Props) {
           {/* Callpicker Chat — solo en las cuentas que lo tienen */}
           {chat && <CuentaChatPanel chat={chat} />}
 
-          {/* Adopción de Producto — interactiva con historial */}
+          {/* Adopción de Producto — interactiva con historial.
+              El ancla la usa la alerta `uso_bajo`. */}
+          <div id="adopcion" style={{ scrollMarginTop: 96 }} />
           <AdopcionProducto cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} />
 
-          {/* Radar de Cuenta — evaluación automática de ATLAS + 12 preguntas del asesor */}
+          {/* Radar de Cuenta — evaluación automática de ATLAS + 12 preguntas del asesor.
+              El ancla la usa la alerta `sin_radar`. */}
+          <div id="radar" style={{ scrollMarginTop: 96 }} />
           <RadarCuenta cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} canEdit={canEdit} />
         </div>
 
@@ -793,7 +803,10 @@ export default async function CuentaDetailPage({ params }: Props) {
               lo de arriba es diagnóstico —lo que la cuenta ES— y esto es
               lo que el KAM escribe. Se lee después de haber visto el caso,
               no antes. */}
-          {/* Seguimientos */}
+          {/* Seguimientos — el ancla la usan las alertas de silencio
+              (`silencio_30`, `silencio_60`, `nunca_contactada`), que se
+              resuelven exactamente aquí: registrando el contacto. */}
+          <div id="seguimientos" style={{ scrollMarginTop: 96 }} />
           <div className="cp-card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide flex items-center gap-2">
@@ -826,7 +839,9 @@ export default async function CuentaDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Notas KAM — Server Actions, build válido */}
+          {/* Notas KAM — Server Actions, build válido.
+              El ancla la usa la alerta `sin_ficha`. */}
+          <div id="ficha" style={{ scrollMarginTop: 96 }} />
           {(() => {
             const obs = cuenta.observaciones_kam?.trim() || null
             const entradas = parseObservaciones(cuenta.observaciones_kam)

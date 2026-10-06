@@ -7,7 +7,7 @@ import {
   Settings, ChevronRight, Activity, BookOpenCheck,
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt, Paperclip,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
-  Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox,
+  Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox, BellRing,
 } from 'lucide-react'
 import LogoCallpicker from '@/components/LogoCallpicker'
 import type { SessionPayload } from '@/lib/auth'
@@ -44,6 +44,7 @@ const NAV_ENTRADAS: NavEntry[] = [
   },
 
   { href: '/activaciones',    label: 'Activaciones 2.0',     icon: Zap },
+  { href: '/alertas',         label: 'Alertas de Cliente',   icon: BellRing },
   { href: '/analisis-llamadas', label: 'Análisis de Llamadas', icon: PhoneCall },
   { href: '/perfil-rol',      label: 'Perfil del Rol',       icon: Target },
   { href: '/base-cs',         label: 'Base de Conocimiento', icon: Library },
