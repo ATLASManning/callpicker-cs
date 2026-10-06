@@ -39,13 +39,37 @@ const EMAILS_AUTORIZADOS_DEFAULT = [
   'roberto@callpicker.com',
   'nancy@callpicker.com',
   'valeria@callpicker.com',
-  // Asesores de cuenta (7 sep 2026) — rol `asesor`: cada uno ve sólo su
-  // cartera. Marcarlos `activo` en Gestión de Usuarios NO basta: esa marca
-  // sólo se revisa en login/verify, mientras que esta lista se evalúa en
-  // cada request desde el middleware.
-  'fatima@callpicker.com',
-  'claudia@callpicker.com',
-  'dominguez.dan@callpicker.com',
+  /* Asesores de cuenta (7 sep 2026) — rol `asesor`: cada uno ve sólo su
+   * cartera. Marcarlos `activo` en Gestión de Usuarios NO basta: esa marca
+   * sólo se revisa en login/verify, mientras que esta lista se evalúa en
+   * cada request desde el middleware.
+   *
+   * ── SUSPENDIDOS EL 6 OCT 2026, POR INSTRUCCIÓN DE DIRECCIÓN ─────────────
+   *
+   * «No habrá acceso para ellos hasta no haber concluido el Dashboard con lo
+   * que solicitó Daniel». El tablero está a media reconstrucción —el concepto
+   * de Actividad SAC se volvió Alerta de Cliente ese mismo día— y entrar
+   * ahora sería trabajar contra una pantalla que va a cambiar debajo.
+   *
+   * POR QUÉ SE COMENTAN AQUÍ Y NO SE DESACTIVAN EN GESTIÓN DE USUARIOS
+   * -----------------------------------------------------------------
+   * Porque desactivarlos ahí NO los saca. Medido en producción ese mismo día:
+   * los tres figuraban «Inactivo» con la contraseña vencida y aun así los tres
+   * abrían el tablero completo —y cada uno veía dentro a los otros dos—. La
+   * marca `activo` se revisa en login/verify; esta lista se revisa en cada
+   * request. Es la única de las dos que muerde contra una cookie ya emitida,
+   * y las cookies duran 30 días.
+   *
+   * CÓMO SE LES DEVUELVE EL ACCESO
+   * ------------------------------
+   * Descomentar estas tres líneas y desplegar. Si corre prisa y no se quiere
+   * desplegar, la escotilla es la variable EMAILS_AUTORIZADOS en Vercel: si
+   * está definida SUSTITUYE a esta lista entera, así que hay que poner en ella
+   * TODOS los correos, no sólo los tres.
+   */
+  // 'fatima@callpicker.com',
+  // 'claudia@callpicker.com',
+  // 'dominguez.dan@callpicker.com',
   // Aurora (10 sep 2026) — alta por instrucción de dirección. Su registro en
   // `usuarios` ya existía con contraseña propia y `activo = true`, pero nunca
   // pudo entrar (`ultimo_acceso` en null): faltaba justamente esta línea.
