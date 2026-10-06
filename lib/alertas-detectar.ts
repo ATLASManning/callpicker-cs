@@ -1,7 +1,7 @@
 import { supabaseAdmin, traerPorPaginas } from '@/lib/supabase'
 import { todosLosCortes } from '@/lib/cortes-cuenta'
 import { baseMinutos } from '@/lib/plan-minutos'
-import { hoyLocal } from '@/lib/fecha-local'
+import { hoyEnMexico } from '@/lib/fecha-local'
 import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
 
 /**
@@ -93,7 +93,12 @@ const dinero = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
  * envejece en vez de renacer.
  */
 export async function detectarAlertas(opciones?: { asesor?: string }): Promise<Alerta[]> {
-  const hoy = hoyLocal()
+  /* `hoyEnMexico()`, NO `hoyLocal()`. Este código corre en el servidor y Vercel
+     va en UTC: de 18:00 a 23:59 de México, `hoyLocal()` ya devuelve el día
+     siguiente. Cada tarde, durante seis horas, todas las antigüedades salían un
+     día infladas y los umbrales se cruzaban una jornada antes de tiempo. Ver
+     [[feedback-fechas-zona-mexico]]. */
+  const hoy = hoyEnMexico()
 
   let q = supabaseAdmin.from('cuentas').select(CAMPOS).in('estado', ['activo', 'en_riesgo'])
   if (opciones?.asesor) q = q.eq('asesor', opciones.asesor)
@@ -283,23 +288,44 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
      * desde hace 90—. */
     const racha = rachaFallida.get(c.id) ?? 0
     const fEfectivo = ultimoEfectivo.get(c.id) ?? null
-    /* El orden importa: manda la fecha que sale de un CANAL de contacto, y
-       `cuentas.ultimo_contacto` sólo entra si no hay ninguno. Esa columna
-       recoge cualquier renglón del historial —notas incluidas—, así que
-       dejarla mandar devolvería justo el problema que este bloque corrige. */
-    const fCualquiera = ultimoSeg.get(c.id) ?? c.ultimo_contacto ?? null
+    /* `cuentas.ultimo_contacto` NO se usa, ni siquiera como último recurso.
+     *
+     * Esa columna la escribe el cierre de CUALQUIER actividad, incluidas las
+     * que no hablan con nadie: `app/api/actividades/[id]/route.ts` pone
+     * `ultimo_contacto = hoy` también al cerrar una de tipo `validacion`,
+     * `analisis`, `kam`, `tickets` o `pagos`. O sea que revisar unos datos
+     * marcaba la cuenta como contactada hoy.
+     *
+     * Y no se pierde nada al soltarla: esa misma ruta —y `/api/seguimientos`—
+     * insertan SIEMPRE la fila en `seguimientos` antes de tocar la columna, así
+     * que `seguimientos` es un superconjunto. La columna sólo añadía ruido.
+     * Fuente única, ver [[feedback-fuente-unica-cuentas]]. */
+    const fCualquiera = ultimoSeg.get(c.id) ?? null
     const dEfectivo = diasDesde(fEfectivo, hoy)
     const dCualquiera = diasDesde(fCualquiera, hoy)
 
     if (dCualquiera === null) {
+      /* Se dice lo que se sabe Y lo que no. Son 100 de las 192 cuentas vivas,
+         y en 49 de ellas la ficha SÍ trae una fecha en `ultimo_contacto`. Esa
+         fecha no prueba una conversación —la escribe también el cierre de una
+         tarea de validación— pero tampoco prueba lo contrario. Callarla sería
+         acusar; darla por buena sería lo que veníamos haciendo. Se enseña y se
+         dice de dónde viene. Ver [[feedback-contexto-ia-sin-huecos]]. */
       const nNotas = notasInternas.get(c.id) ?? 0
-      add('nunca_contactada', c,
-          nNotas > 0
-            ? `${nNotas} ${nNotas === 1 ? 'nota interna' : 'notas internas'} y CERO contactos `
-              + `—ni llamada, ni correo, ni WhatsApp, ni reunión— en una cuenta de `
-              + `${dinero(c.facturacion ?? 0)} al mes.`
-            : `Cero seguimientos registrados en una cuenta activa de `
-              + `${dinero(c.facturacion ?? 0)} al mes.`)
+      const trozos: string[] = [
+        `Cero contactos registrados por un canal real —ni llamada, ni correo, `
+        + `ni WhatsApp, ni reunión— en una cuenta de ${dinero(c.facturacion ?? 0)} al mes.`,
+      ]
+      if (nNotas > 0) {
+        trozos.push(`Hay ${nNotas} ${nNotas === 1 ? 'nota interna' : 'notas internas'}, `
+                    + `que documentan la cuenta pero no son haber hablado con ella.`)
+      }
+      if (c.ultimo_contacto) {
+        trozos.push(`La ficha marca ${String(c.ultimo_contacto).slice(0, 10)} como último `
+                    + `contacto, pero esa fecha la escribe también el cierre de tareas `
+                    + `internas: no acredita una conversación.`)
+      }
+      add('nunca_contactada', c, trozos.join(' '))
     } else if (racha >= UMBRALES.intentosFallidos) {
       const desde = (porCuenta.get(c.id) ?? []).slice(-racha)[0]
       const dDesde = diasDesde(desde ? String(desde.fecha).slice(0, 10) : null, hoy)

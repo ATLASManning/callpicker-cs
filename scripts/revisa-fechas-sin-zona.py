@@ -57,6 +57,24 @@ LLAMADA = re.compile(r'\.(toLocaleDateString|toLocaleTimeString|toLocaleString)\
 # o `n.toLocaleString('es-MX')`, sin opciones de fecha.
 SOLO_IDIOMA = re.compile(r"^\s*['\"][\w-]+['\"]\s*\)")
 
+# ── LA SEGUNDA FAMILIA, anadida el 6 oct 2026 ────────────────────────────────
+#
+# No todo se rompe al FORMATEAR. Tambien se rompe al preguntar «que dia es hoy».
+#
+# `hoyLocal()` esta documentada en lib/fecha-local.ts como «el dia de hoy donde
+# esta el USUARIO», y en un componente de cliente es exactamente lo correcto.
+# En el servidor es UTC, o sea manana a partir de las 18:00 de Mexico.
+#
+# Lo encontro una auditoria adversarial, no este detector: lib/alertas-detectar.ts
+# calculaba la antiguedad de TODAS las alertas con `hoyLocal()`, asi que cada
+# tarde, durante seis horas, los «hace N dias» salian un dia inflados y los
+# umbrales de silencio se cruzaban una jornada antes de tiempo. El detector
+# miraba el formateo y no el calculo, que es la mitad que importa.
+#
+# `fechaLocal(new Date())` es la misma trampa escrita a mano, y por eso tambien
+# se busca.
+RELOJ_LOCAL = re.compile(r'\b(hoyLocal\s*\(\s*\)|fechaLocal\s*\(\s*new\s+Date\s*\(\s*\)\s*\))')
+
 
 def es_cliente(ruta):
     cabeza = io.open(ruta, encoding='utf-8-sig').read(200)
@@ -74,10 +92,25 @@ def main():
         rel = os.path.relpath(arch, RAIZ).replace('\\', '/')
         if es_cliente(arch):
             continue
+        # El archivo que DEFINE los ayudantes de fecha no puede denunciarse a si
+        # mismo: `hoyLocal` tiene que llamar a `fechaLocal(new Date())` por
+        # fuerza, que es justo lo que se persigue en los demas.
+        es_la_fuente = rel == 'lib/fecha-local.ts'
+
+        en_bloque = False
         for n, linea in enumerate(io.open(arch, encoding='utf-8-sig'), 1):
-            # Un comentario que NOMBRA el problema no es el problema.
+            # Un comentario que NOMBRA el problema no es el problema. Y hay que
+            # seguir los bloques `/* ... */` linea por linea: la primera lleva su
+            # marca, pero las de en medio no, y ahi es donde se explica el bug.
             desnuda = linea.strip()
-            if desnuda.startswith('*') or desnuda.startswith('//'):
+            if en_bloque:
+                if '*/' in linea:
+                    en_bloque = False
+                continue
+            if desnuda.startswith('/*') and '*/' not in desnuda:
+                en_bloque = True
+                continue
+            if desnuda.startswith('*') or desnuda.startswith('//') or desnuda.startswith('/*'):
                 continue
             for m in LLAMADA.finditer(linea):
                 metodo, resto = m.group(1), m.group(2)
@@ -90,19 +123,37 @@ def main():
                     if not any(x in resto for x in ('dateStyle', 'timeStyle', 'weekday',
                                                     'year', 'month', 'day', 'hour', 'minute')):
                         continue
-                hallazgos.append((rel, n, desnuda[:110]))
+                hallazgos.append(('formato', rel, n, desnuda[:110]))
+
+            if not es_la_fuente and RELOJ_LOCAL.search(linea):
+                hallazgos.append(('reloj', rel, n, desnuda[:110]))
 
     if not hallazgos:
-        print('ninguna fecha de servidor se formatea sin zona.')
+        print('ninguna fecha de servidor sale del reloj equivocado.')
         return 0
 
-    print(f'{len(hallazgos)} fecha(s) formateadas en SERVIDOR sin `timeZone`:\n')
-    for rel, n, texto in hallazgos:
-        print(f'  {rel}:{n}')
-        print(f'      {texto}')
-    print('\nEn el servidor eso es UTC, no Mexico: de 18:00 a medianoche muestran el')
-    print('dia siguiente. Usar textoFecha / hoyEnPalabras / selloMexico de')
-    print('lib/fecha-local.ts — y leer por que textoFecha decide sola la zona.')
+    fmt = [h for h in hallazgos if h[0] == 'formato']
+    rel_ = [h for h in hallazgos if h[0] == 'reloj']
+
+    if fmt:
+        print(f'{len(fmt)} fecha(s) formateadas en SERVIDOR sin `timeZone`:\n')
+        for _, rel, n, texto in fmt:
+            print(f'  {rel}:{n}')
+            print(f'      {texto}')
+        print('\nEn el servidor eso es UTC, no Mexico: de 18:00 a medianoche muestran el')
+        print('dia siguiente. Usar textoFecha / hoyEnPalabras / selloMexico de')
+        print('lib/fecha-local.ts — y leer por que textoFecha decide sola la zona.')
+
+    if rel_:
+        if fmt:
+            print()
+        print(f'{len(rel_)} vez/veces que el SERVIDOR pregunta el dia a su propio reloj:\n')
+        for _, rel, n, texto in rel_:
+            print(f'  {rel}:{n}')
+            print(f'      {texto}')
+        print('\n`hoyLocal()` es «hoy donde esta el USUARIO» y solo vale en componentes')
+        print("con 'use client'. En el servidor es UTC: a partir de las 18:00 de Mexico")
+        print('ya devuelve manana, y toda cuenta de dias sale inflada. Usar hoyEnMexico().')
     return 1
 
 
