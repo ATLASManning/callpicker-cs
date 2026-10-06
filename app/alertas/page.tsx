@@ -45,7 +45,7 @@ const COLOR_FAMILIA: Record<Familia, string> = {
   ceguera: '#A78BFA', riesgo: '#F87171', abandono: '#FB923C', oportunidad: '#4ADE80',
 }
 const COLOR_DUENO: Record<Dueno, string> = {
-  asesor: '#4ADE80', cliente: '#FBBF24', ingenieria: '#A78BFA', direccion: '#7AA2FF',
+  asesor: '#4ADE80', ingenieria: '#A78BFA', direccion: '#7AA2FF',
 }
 
 /** Cuántas cuentas se dibujan. El resto se declara, no se esconde. */
@@ -160,7 +160,10 @@ export default async function AlertasPage({
 
   const fam: Familia[] = ['ceguera', 'riesgo', 'abandono', 'oportunidad']
   const sev: Severidad[] = ['critica', 'alta', 'media', 'oportunidad']
-  const due: Dueno[] = ['asesor', 'cliente', 'ingenieria', 'direccion']
+  // Un cubo vacío no se pinta: un chip «dirección · 0» invita a picarlo para
+  // encontrar nada, y enseña que el tablero tiene casillas de adorno.
+  const due: Dueno[] = (['asesor', 'ingenieria', 'direccion'] as Dueno[])
+    .filter(k => resumen.porDueno[k].n > 0)
   const asesores = Object.entries(resumen.porAsesor).sort((a, b) => b[1].mrr - a[1].mrr)
 
   return (

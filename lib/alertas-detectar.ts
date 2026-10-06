@@ -117,8 +117,14 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
       supabaseAdmin.from('seguimientos')
         .select('cuenta_id, fecha, tipo, resultado, descripcion')
         .in('cuenta_id', ids).range(d, h)),
-    traerPorPaginas<{ cuenta_id: string; completada: boolean | null; estado: string | null }>((d, h) =>
-      supabaseAdmin.from('actividades').select('cuenta_id, completada, estado')
+    /* `asesor` y `semana_inicio` entran aquí el 6 oct 2026, y no son adorno:
+       sin ellos la alerta `asignada_sin_cerrar` le cobraba al asesor ACTUAL de
+       la cuenta un trabajo que pudo haber recibido otra persona hace meses, sin
+       ventana de tiempo y con severidad crítica. */
+    traerPorPaginas<{ cuenta_id: string; completada: boolean | null; estado: string | null
+                      asesor: string | null; semana_inicio: string | null }>((d, h) =>
+      supabaseAdmin.from('actividades')
+        .select('cuenta_id, completada, estado, asesor, semana_inicio')
         .in('cuenta_id', ids).range(d, h)),
     todosLosCortes(),
   ])
@@ -199,10 +205,22 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
      es una queja; «se le asignaron 7 y no se cerró ninguna» es un dato. */
   const nAsignadas = new Map<string, number>()
   const cerradas = new Set<string>()
+  /** Desde cuándo y a nombre de quién, para que la herencia se vea. */
+  const asignDesde = new Map<string, string>()
+  const asignA = new Map<string, Set<string>>()
   for (const a of actRows) {
     if (!a.cuenta_id) continue
     nAsignadas.set(a.cuenta_id, (nAsignadas.get(a.cuenta_id) ?? 0) + 1)
     if (a.completada || a.estado === 'completada') cerradas.add(a.cuenta_id)
+    const f = String(a.semana_inicio ?? '').slice(0, 10)
+    if (f && (!asignDesde.has(a.cuenta_id) || f < asignDesde.get(a.cuenta_id)!)) {
+      asignDesde.set(a.cuenta_id, f)
+    }
+    if (a.asesor) {
+      const s = asignA.get(a.cuenta_id) ?? new Set<string>()
+      s.add(a.asesor)
+      asignA.set(a.cuenta_id, s)
+    }
   }
   const nSeguimientos = new Map<string, number>()
   for (const s of segRows) {
@@ -375,10 +393,24 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
     if (nAsig > 0 && !cerradas.has(c.id)) {
       // El verbo concuerda con el número, no solo el sustantivo: «se le
       // asignaron 1 actividad» salía en 26 de las 69 alertas de abandono.
+      /* La evidencia DICE desde cuándo y a nombre de quién. Sin eso, una cuenta
+         que cambió de cartera le endosa al nuevo asesor una crítica que nunca
+         recibió, y él no tiene forma de saberlo mirando el tablero. */
+      const desde = asignDesde.get(c.id)
+      const dDesde = diasDesde(desde ?? null, hoy)
+      const nombres = Array.from(asignA.get(c.id) ?? [])
+      const heredada = nombres.length > 0 && c.asesor != null && !nombres.includes(c.asesor)
       add('asignada_sin_cerrar', c,
           (nAsig === 1 ? 'Se le asignó 1 actividad' : `Se le asignaron ${nAsig} actividades`)
+          + (desde ? ` desde el ${desde}` : '')
+          + (dDesde !== null ? ` (hace ${dDesde} días)` : '')
           + ` y no se ha cerrado ninguna, en una cuenta de `
-          + `${dinero(c.facturacion ?? 0)} al mes.`)
+          + `${dinero(c.facturacion ?? 0)} al mes.`
+          + (heredada
+              ? ` OJO: ${nombres.length === 1 ? 'se asignó a' : 'se asignaron a'} `
+                + `${nombres.join(' y ')}, no a ${c.asesor} — viene heredada con la cartera.`
+              : ''),
+          dDesde)
     } else if (nAsig === 0) {
       add('nunca_asignada', c,
           `Cero actividades en todo el historial, y paga ${dinero(c.facturacion ?? 0)} al mes.`)

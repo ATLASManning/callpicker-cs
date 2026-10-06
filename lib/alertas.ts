@@ -84,22 +84,41 @@ export type TipoAlerta =
  * `cliente` no es una excusa. El ejecutivo tiene que llamar igual; lo que no
  * controla es que el cliente vuelva a consumir. Se trabaja, no se suelta.
  */
+/* ── POR QUÉ YA NO HAY UN CUBO «cliente» ──────────────────────────────────
+ *
+ * Lo hubo durante unas horas el 6 oct 2026 y una revisión adversarial lo tumbó
+ * con el argumento correcto: el reparto se estaba aplicando con DOS criterios
+ * distintos a la misma situación.
+ *
+ *   `silencio_60` estaba en `asesor` — y el ejecutivo puede marcar, pero no
+ *   puede hacer que le contesten; el reloj sólo lo reinicia un contacto que
+ *   LLEGÓ al cliente.
+ *
+ *   `caida_consumo` estaba en `cliente` — y su guion dice «Llamar y preguntar
+ *   qué cambió en su operación», que es exactamente la misma clase de acción.
+ *
+ * La misma situación en dos cubos distintos. Y el delator fue un comentario que
+ * yo mismo tuve que escribir: «`cliente` no es una excusa, el ejecutivo tiene
+ * que llamar igual». Cuando hay que explicar que una etiqueta no se lea como se
+ * lee, la etiqueta está mal.
+ *
+ * Son DOS EJES, no uno: de quién es la ACCIÓN (siempre del ejecutivo, salvo
+ * bloqueo real) y de qué depende el CIERRE (a veces del cliente). El segundo ya
+ * vive donde debe, en el texto de `accion` de cada tipo.
+ */
 export type Dueno =
-  | 'asesor'      // la cierra solo, esta semana
-  | 'cliente'     // tiene que actuar, pero cerrarla depende del cliente
+  | 'asesor'      // la acción es suya, aunque el cierre dependa del cliente
   | 'ingenieria'  // NO la puede cerrar: hace falta otro equipo
-  | 'direccion'   // NO la puede cerrar: hace falta una decisión
+  | 'direccion'   // NO la puede cerrar: hace falta una decisión que nadie más toma
 
 export const ETIQUETA_DUENO: Record<Dueno, string> = {
-  asesor: 'La cierra el ejecutivo',
-  cliente: 'Depende de que el cliente cambie',
+  asesor: 'La trabaja el ejecutivo',
   ingenieria: 'Bloqueada en Ingeniería',
   direccion: 'Necesita decisión de dirección',
 }
 
 export const ETIQUETA_DUENO_CORTA: Record<Dueno, string> = {
-  asesor: 'suyas', cliente: 'del cliente',
-  ingenieria: 'Ingeniería', direccion: 'dirección',
+  asesor: 'suyas', ingenieria: 'Ingeniería', direccion: 'dirección',
 }
 
 /** Las que el ejecutivo NO puede cerrar por sí mismo. */
@@ -158,14 +177,14 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
 
   // ── RIESGO ─────────────────────────────────────────────────────────────
   caida_consumo: {
-    tipo: 'caida_consumo', familia: 'riesgo', severidad: 'critica', dueno: 'cliente',
+    tipo: 'caida_consumo', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
     titulo: 'Consumo cayendo tres meses seguidos',
     accion: 'Llamar y preguntar qué cambió en su operación. Una caída sostenida '
           + 'precede a la reducción de plan, no al revés.',
     enlaceEtiqueta: 'Ver la cuenta',
   },
   desplome_consumo: {
-    tipo: 'desplome_consumo', familia: 'riesgo', severidad: 'critica', dueno: 'cliente',
+    tipo: 'desplome_consumo', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
     titulo: 'Desplome de consumo',
     accion: 'Contacto inmediato. Pasó de usar su plan a casi no usarlo: o cambió su '
           + 'operación o ya está usando otra cosa.',
@@ -179,7 +198,7 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
    * siguiente revisión de gastos. Son $72,634 de MRR que estaban archivados
    * como severidad alta cuando son lo más crítico de la cartera. */
   consumo_cero: {
-    tipo: 'consumo_cero', familia: 'riesgo', severidad: 'critica', dueno: 'cliente',
+    tipo: 'consumo_cero', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
     titulo: 'Paga y no usa el servicio en absoluto',
     accion: 'Contacto inmediato con quien firma, no con el usuario operativo. Cero '
           + 'minutos en todo el periodo medido no es uso bajo: es un servicio que ya '
@@ -187,7 +206,7 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     enlaceEtiqueta: 'Ver consumo y adopción', ancla: 'adopcion',
   },
   uso_bajo: {
-    tipo: 'uso_bajo', familia: 'riesgo', severidad: 'alta', dueno: 'cliente',
+    tipo: 'uso_bajo', familia: 'riesgo', severidad: 'alta', dueno: 'asesor',
     titulo: 'Paga mucho más de lo que usa',
     accion: 'Sesión de adopción: mostrar qué del plan no está usando. Es la cuenta '
           + 'que al apretarse el presupuesto pide bajar de plan.',
@@ -256,11 +275,23 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     accion: 'Se le asignó trabajo y no se cerró ninguno. Cerrar o explicar por qué no.',
     enlaceEtiqueta: 'Ver la cuenta',
   },
+  /* El guion decía «Entra al próximo lote», y era falso de dos maneras.
+   *
+   * Primero: nadie decide eso. `loteSemanal()` ignora su argumento y devuelve
+   * la constante de diez por asesor —`lib/focos-riesgo.ts`—, y `focosDeRiesgo`
+   * ya ordena TODAS las cuentas vivas con `nunca_tocada` delante. No hay una
+   * decisión pendiente: hay una cola drenando. Por eso esta alerta estuvo unas
+   * horas en el cubo `direccion`, publicada como deuda en el escritorio de
+   * dirección, donde nadie podía hacer nada con ella.
+   *
+   * Y segundo: si la cola ya la pone primero y lleva meses sin salir, esperar
+   * al lote es precisamente lo que no está funcionando. */
   nunca_asignada: {
-    tipo: 'nunca_asignada', familia: 'abandono', severidad: 'media', dueno: 'direccion',
+    tipo: 'nunca_asignada', familia: 'abandono', severidad: 'media', dueno: 'asesor',
     titulo: 'Nunca ha entrado a un lote de trabajo',
-    accion: 'Entra al próximo lote. Una cuenta viva que nunca se trabajó es una '
-          + 'cuenta que nadie está cuidando.',
+    accion: 'La cola de focos ya la pone delante y aun así no ha salido: tomarla a mano '
+          + 'esta semana en vez de esperar al lote. Una cuenta viva que nunca se trabajó '
+          + 'es una cuenta que nadie está cuidando.',
     enlaceEtiqueta: 'Ver la cuenta',
   },
 
@@ -403,7 +434,7 @@ export function resumir(alertas: Alerta[]): ResumenAlertas {
     ceguera: vacio(), riesgo: vacio(), abandono: vacio(), oportunidad: vacio(),
   } as Record<Familia, { n: number; mrr: number }>
   const porDueno = {
-    asesor: vacio(), cliente: vacio(), ingenieria: vacio(), direccion: vacio(),
+    asesor: vacio(), ingenieria: vacio(), direccion: vacio(),
   } as Record<Dueno, { n: number; mrr: number }>
   const porAsesor: ResumenAlertas['porAsesor'] = {}
 

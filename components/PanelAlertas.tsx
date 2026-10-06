@@ -67,7 +67,17 @@ export default function PanelAlertas({
   verTodas?: string
 }) {
   const fam: Familia[] = ['ceguera', 'riesgo', 'abandono', 'oportunidad']
-  const asesores = Object.entries(resumen.porAsesor).sort((a, b) => b[1].mrr - a[1].mrr)
+  /* Las cuentas sin asesor NO son una persona. `a.asesor || '(sin asesor)'` las
+     agrupa bajo una llave que aquí se dibujaría como una tarjeta más —y la
+     rejilla se dimensiona con `min(n, 3)`, así que una cuarta llave deja una
+     tarjeta huérfana rompiendo la fila—. Se sacan del corte por ejecutivo y se
+     cuentan aparte: que una cuenta viva no tenga dueño SÍ es una decisión de
+     dirección, y se dice como tal. */
+  const SIN_DUENO = '(sin asesor)'
+  const asesores = Object.entries(resumen.porAsesor)
+    .filter(([n]) => n !== SIN_DUENO)
+    .sort((a, b) => b[1].mrr - a[1].mrr)
+  const huerfanas = resumen.porAsesor[SIN_DUENO]
   const bloqueadas = resumen.porDueno.ingenieria.n + resumen.porDueno.direccion.n
   const mrrBloqueado = resumen.porDueno.ingenieria.mrr + resumen.porDueno.direccion.mrr
 
@@ -235,6 +245,29 @@ export default function PanelAlertas({
           </Link>
         ))}
       </div>
+
+      {/* Cuentas vivas sin asesor asignado: eso SÍ es decisión de dirección. */}
+      {huerfanas && huerfanas.n > 0 && (
+        <Link href={`${verTodas}?asesor=${encodeURIComponent(SIN_DUENO)}`}
+          style={{ display: 'block', background: 'rgba(122,162,255,0.10)',
+                   border: '1px solid rgba(122,162,255,0.30)', borderRadius: 11,
+                   padding: '11px 14px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
+            <span style={{ background: 'transparent', fontSize: 12.5, fontWeight: 700,
+                           color: '#7AA2FF' }}>
+              {huerfanas.n} alertas en cuentas SIN ejecutivo asignado
+            </span>
+            <span style={{ background: 'transparent', fontSize: 12, fontWeight: 700,
+                           color: '#FBBF24' }}>{miles(huerfanas.mrr)}</span>
+          </div>
+          <p style={{ fontSize: 10.5, margin: '5px 0 0', lineHeight: 1.5 }}>
+            <C c={TX_LOW}>
+              No se le pueden cobrar a nadie porque no son de nadie.
+              <C c={TX_MID} b> Asignarlas es la decisión.</C>
+            </C>
+          </p>
+        </Link>
+      )}
 
       {/* ── Lo que está bloqueado en otros equipos ───────────────────────
        *
