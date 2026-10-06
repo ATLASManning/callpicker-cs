@@ -54,6 +54,7 @@ export type TipoAlerta =
   | 'sin_ficha'
   | 'caida_consumo'
   | 'desplome_consumo'
+  | 'consumo_cero'
   | 'uso_bajo'
   | 'silencio_60'
   | 'silencio_30'
@@ -125,6 +126,21 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     accion: 'Contacto inmediato. Pasó de usar su plan a casi no usarlo: o cambió su '
           + 'operación o ya está usando otra cosa.',
     enlaceEtiqueta: 'Ver la cuenta',
+  },
+  /* Nace el 6 oct 2026 de una revisión de la redacción en producción. Ocho
+   * cuentas salían como `uso_bajo` con la evidencia «nunca pasó del 0% de su
+   * plan» — y entre ellas una TOP de $38,123 al mes. Cero no es «bajo»: una
+   * cuenta que no consumió un minuto en cinco meses no está sub-aprovechando
+   * el plan, está pagando por algo que ya no usa, y eso se cancela en la
+   * siguiente revisión de gastos. Son $72,634 de MRR que estaban archivados
+   * como severidad alta cuando son lo más crítico de la cartera. */
+  consumo_cero: {
+    tipo: 'consumo_cero', familia: 'riesgo', severidad: 'critica',
+    titulo: 'Paga y no usa el servicio en absoluto',
+    accion: 'Contacto inmediato con quien firma, no con el usuario operativo. Cero '
+          + 'minutos en todo el periodo medido no es uso bajo: es un servicio que ya '
+          + 'nadie ocupa y que se cae solo en la próxima revisión de gastos.',
+    enlaceEtiqueta: 'Ver consumo y adopción', ancla: 'adopcion',
   },
   uso_bajo: {
     tipo: 'uso_bajo', familia: 'riesgo', severidad: 'alta',

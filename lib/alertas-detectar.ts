@@ -36,6 +36,9 @@ export const UMBRALES = {
   desplomeHasta: 10,
   /** Uso crónicamente bajo: nunca pasó de esto en todo el periodo. */
   usoBajo: 15,
+  /** Debajo de esto el consumo es CERO, no bajo. No es 0 exacto para que un
+   *  residuo de punto flotante —0.0000001%— no se lea como uso real. */
+  consumoCero: 0.5,
   /** Silencio. */
   silencioLargo: 60,
   silencioCorto: 30,
@@ -182,6 +185,13 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
         add('desplome_consumo', c,
             `Llegó a usar el ${maxPrev.toFixed(0)}% de su plan y en ${ult.mes} usó `
             + `el ${ult.pct.toFixed(0)}%.`)
+      } else if (Math.max(...pcts.map(p => p.pct)) < UMBRALES.consumoCero) {
+        /* ANTES de `uso_bajo` a propósito: sin esta rama, una cuenta con cero
+           minutos salía con la evidencia «nunca pasó del 0% de su plan», que
+           es una frase sin sentido y una severidad equivocada. */
+        add('consumo_cero', c,
+            `Cero minutos consumidos en los ${pcts.length} meses medidos `
+            + `(${pcts[0].mes} a ${ult.mes}), y paga ${dinero(c.facturacion ?? 0)} al mes.`)
       } else if (Math.max(...pcts.map(p => p.pct)) < UMBRALES.usoBajo) {
         add('uso_bajo', c,
             `Nunca pasó del ${Math.max(...pcts.map(p => p.pct)).toFixed(0)}% de su plan en `
@@ -225,9 +235,12 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
     // ── Abandono: es nuestro, no del cliente ─────────────────────────────
     const nAsig = nAsignadas.get(c.id) ?? 0
     if (nAsig > 0 && !cerradas.has(c.id)) {
+      // El verbo concuerda con el número, no solo el sustantivo: «se le
+      // asignaron 1 actividad» salía en 26 de las 69 alertas de abandono.
       add('asignada_sin_cerrar', c,
-          `Se le asignaron ${nAsig} ${nAsig === 1 ? 'actividad' : 'actividades'} y no se `
-          + `ha cerrado ninguna, en una cuenta de ${dinero(c.facturacion ?? 0)} al mes.`)
+          (nAsig === 1 ? 'Se le asignó 1 actividad' : `Se le asignaron ${nAsig} actividades`)
+          + ` y no se ha cerrado ninguna, en una cuenta de `
+          + `${dinero(c.facturacion ?? 0)} al mes.`)
     } else if (nAsig === 0) {
       add('nunca_asignada', c,
           `Cero actividades en todo el historial, y paga ${dinero(c.facturacion ?? 0)} al mes.`)

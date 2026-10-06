@@ -390,7 +390,9 @@ export default async function AlertasPage({
                 Caída sostenida: {UMBRALES.mesesCaida} meses consecutivos a la baja con al menos{' '}
                 {Math.round(UMBRALES.caidaMinima * 100)}% de pérdida, partiendo de un consumo
                 de {UMBRALES.consumoMinimoParaMirar}% o más. Desplome: venía de{' '}
-                {UMBRALES.desplomeDesde}% y cayó por debajo de {UMBRALES.desplomeHasta}%. Uso
+                {UMBRALES.desplomeDesde}% y cayó por debajo de {UMBRALES.desplomeHasta}%.
+                Consumo cero: ni un minuto en todo el periodo medido, que se separa del uso
+                bajo porque no es lo mismo aprovechar poco el plan que no usarlo. Uso
                 crónicamente bajo: nunca pasó de {UMBRALES.usoBajo}%. Silencio:{' '}
                 {UMBRALES.silencioCorto} y {UMBRALES.silencioLargo} días. Rebase: por encima
                 del {UMBRALES.rebase}% de la bolsa.
