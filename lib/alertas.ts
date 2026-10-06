@@ -56,6 +56,7 @@ export type TipoAlerta =
   | 'desplome_consumo'
   | 'consumo_cero'
   | 'uso_bajo'
+  | 'sin_interlocutor'
   | 'silencio_60'
   | 'silencio_30'
   | 'nunca_contactada'
@@ -148,6 +149,34 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     accion: 'Sesión de adopción: mostrar qué del plan no está usando. Es la cuenta '
           + 'que al apretarse el presupuesto pide bajar de plan.',
     enlaceEtiqueta: 'Ver adopción', ancla: 'adopcion',
+  },
+  /* EL CASO BIOLABORATORIO SADAT, 6 oct 2026. Esta alerta nace de una cuenta
+   * concreta y conviene que se recuerde cuál.
+   *
+   * Cronología: el 4 de julio se descubre que Paulina, la contacto registrada,
+   * ya no trabaja ahí. El 11 y el 17 de julio, dos intentos más sin respuesta.
+   * El 25 de julio la propia asesora escribe en la ficha «alto riesgo de
+   * descontinuación». El 6 de octubre el cliente llama para pedir la baja del
+   * servicio de voz.
+   *
+   * Al 25 de julio llevaba CUATRO intentos fallidos seguidos, y eso ya estaba
+   * en la base de datos. Nadie se lo dijo a nadie.
+   *
+   * POR QUÉ NO BASTABA `silencio_60`. Porque el silencio mide cuánto hace que
+   * NOSOTROS no llamamos, y aquí sí se llamó: tres veces en tres semanas. Lo
+   * que no hubo fue nadie del otro lado. Son dos problemas distintos y se
+   * arreglan distinto: el silencio se resuelve marcando; esto se resuelve
+   * BUSCANDO A OTRA PERSONA, porque el teléfono que tenemos ya no sirve.
+   * Mientras se confundan, la cuenta que se queda sin interlocutor parece una
+   * cuenta atendida. */
+  sin_interlocutor: {
+    tipo: 'sin_interlocutor', familia: 'riesgo', severidad: 'critica',
+    titulo: 'Se llamó varias veces y no hay nadie del otro lado',
+    accion: 'No es falta de seguimiento: es que ya no tenemos interlocutor. Buscar a '
+          + 'otra persona por otra vía —el firmante de la factura, cobranza, el correo '
+          + 'del dominio, LinkedIn— y actualizar el contacto. Una cuenta sin a quién '
+          + 'marcarle se entera de que existimos el día que decide cancelar.',
+    enlaceEtiqueta: 'Actualizar contactos', ancla: 'contactos',
   },
   silencio_60: {
     tipo: 'silencio_60', familia: 'riesgo', severidad: 'critica',

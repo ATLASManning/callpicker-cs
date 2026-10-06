@@ -394,7 +394,11 @@ export default async function AlertasPage({
                 Consumo cero: ni un minuto en todo el periodo medido, que se separa del uso
                 bajo porque no es lo mismo aprovechar poco el plan que no usarlo. Uso
                 crónicamente bajo: nunca pasó de {UMBRALES.usoBajo}%. Silencio:{' '}
-                {UMBRALES.silencioCorto} y {UMBRALES.silencioLargo} días. Rebase: por encima
+                {UMBRALES.silencioCorto} y {UMBRALES.silencioLargo} días, contados desde el
+                último contacto que <strong style={{ background: 'transparent',
+                  color: 'rgba(255,255,255,0.94)' }}>llegó al cliente</strong> — una llamada que
+                nadie contestó no reinicia el reloj. Sin interlocutor:{' '}
+                {UMBRALES.intentosFallidos} intentos fallidos seguidos. Rebase: por encima
                 del {UMBRALES.rebase}% de la bolsa.
               </C>
               <C c={TX_LOW}>

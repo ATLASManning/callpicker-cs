@@ -39,9 +39,12 @@ export const UMBRALES = {
   /** Debajo de esto el consumo es CERO, no bajo. No es 0 exacto para que un
    *  residuo de punto flotante —0.0000001%— no se lea como uso real. */
   consumoCero: 0.5,
-  /** Silencio. */
+  /** Silencio, contado desde el último contacto que LLEGÓ al cliente. */
   silencioLargo: 60,
   silencioCorto: 30,
+  /** Intentos fallidos seguidos para declarar que no hay interlocutor.
+   *  Dos, no tres: Biolaboratorio Sadat llevaba cuatro cuando ya era tarde. */
+  intentosFallidos: 2,
   /** Rebase: por encima de esto se está cobrando excedente. */
   rebase: 100,
 } as const
@@ -104,8 +107,10 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
   const [radarRows, segRows, actRows, cortes] = await Promise.all([
     traerPorPaginas<{ cuenta_id: string }>((d, h) =>
       supabaseAdmin.from('radar_respuestas').select('cuenta_id').in('cuenta_id', ids).range(d, h)),
-    traerPorPaginas<{ cuenta_id: string; fecha: string }>((d, h) =>
-      supabaseAdmin.from('seguimientos').select('cuenta_id, fecha').in('cuenta_id', ids).range(d, h)),
+    traerPorPaginas<{ cuenta_id: string; fecha: string; resultado: string | null;
+                      descripcion: string | null }>((d, h) =>
+      supabaseAdmin.from('seguimientos').select('cuenta_id, fecha, resultado, descripcion')
+        .in('cuenta_id', ids).range(d, h)),
     traerPorPaginas<{ cuenta_id: string; completada: boolean | null; estado: string | null }>((d, h) =>
       supabaseAdmin.from('actividades').select('cuenta_id, completada, estado')
         .in('cuenta_id', ids).range(d, h)),
@@ -113,10 +118,53 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
   ])
 
   const conRadar = new Set(radarRows.map(r => r.cuenta_id))
-  const ultimoSeg = new Map<string, string>()
+
+  /* ── QUÉ CUENTA COMO CONTACTO QUE LLEGÓ AL CLIENTE ──────────────────────
+   *
+   * `resultado` NO es un enum: junto a 'exitoso', 'pendiente' y 'sin_respuesta'
+   * hay frases enteras escritas a mano —«Todo en orden con la cuenta»,
+   * «Intentos de contacto sin éxito», «Cuenta sin respuesta desde junio»—. Así
+   * que no se puede leer como catálogo cerrado.
+   *
+   * Se define lo que NO llegó, y todo lo demás cuenta. El sesgo va a propósito
+   * hacia la alarma: confundir un contacto real con uno fallido produce un
+   * aviso de más, molesto; confundir un fallido con un contacto real esconde
+   * una cuenta que se está yendo. Entre las dos equivocaciones, la barata es
+   * la primera. */
+  const RX_NO_LLEGO = new RegExp(
+    [
+      'sin[_ ]respuesta', 'sin[_ ]?[eé]xito', 'no contest', 'fuera de servicio',
+      'buz[óo]n', 'no se (?:obtuvo|ha obtenido) respuesta', 'intentos? de contacto',
+    ].join('|'), 'i')
+  const llego = (s: { resultado: string | null; descripcion: string | null }) => {
+    const r = String(s.resultado ?? '').trim().toLowerCase()
+    if (r === 'sin_respuesta' || r === 'pendiente') return false
+    return !(RX_NO_LLEGO.test(r) || RX_NO_LLEGO.test(String(s.descripcion ?? '')))
+  }
+
+  /** Por cuenta: el último de cualquier tipo, el último que LLEGÓ, y la racha
+   *  de intentos fallidos consecutivos al final del historial. */
+  const porCuenta = new Map<string, typeof segRows>()
   for (const s of segRows) {
-    const f = String(s.fecha ?? '').slice(0, 10)
-    if (f && f > (ultimoSeg.get(s.cuenta_id) ?? '')) ultimoSeg.set(s.cuenta_id, f)
+    if (!s.cuenta_id || !s.fecha) continue
+    const arr = porCuenta.get(s.cuenta_id) ?? []
+    arr.push(s)
+    porCuenta.set(s.cuenta_id, arr)
+  }
+  const ultimoSeg = new Map<string, string>()
+  const ultimoEfectivo = new Map<string, string>()
+  const rachaFallida = new Map<string, number>()
+  for (const [id, arr] of porCuenta) {
+    arr.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)))
+    ultimoSeg.set(id, String(arr[arr.length - 1].fecha).slice(0, 10))
+    for (const s of arr) {
+      if (!llego(s)) continue
+      const f = String(s.fecha).slice(0, 10)
+      if (f > (ultimoEfectivo.get(id) ?? '')) ultimoEfectivo.set(id, f)
+    }
+    let n = 0
+    for (let i = arr.length - 1; i >= 0 && !llego(arr[i]); i--) n++
+    rachaFallida.set(id, n)
   }
   /* Se cuentan, no solo se marcan: la evidencia de `asignada_sin_cerrar` tiene
      que poder decir CUÁNTAS se asignaron. «Se le asignó trabajo y no se cerró»
@@ -202,17 +250,49 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
       }
     }
 
-    // ── Contacto: silencio o abandono ────────────────────────────────────
-    const ultimo = c.ultimo_contacto ?? ultimoSeg.get(c.id) ?? null
-    const d = diasDesde(ultimo, hoy)
-    if (d === null) {
+    /* ── Contacto ─────────────────────────────────────────────────────────
+     *
+     * El reloj del silencio lo reinicia un contacto que LLEGÓ al cliente, no
+     * cualquier renglón del historial. Medido el 6 oct 2026: con el criterio
+     * viejo había 25 cuentas en silencio largo; con éste aparecen 9 más que
+     * estaban tapadas por actividad que nunca alcanzó a nadie —$53,640 de MRR,
+     * entre ellas SW Sapien, contactada «hace 11 días» y sin un contacto real
+     * desde hace 90—. */
+    const racha = rachaFallida.get(c.id) ?? 0
+    const fEfectivo = ultimoEfectivo.get(c.id) ?? null
+    const fCualquiera = c.ultimo_contacto ?? ultimoSeg.get(c.id) ?? null
+    const dEfectivo = diasDesde(fEfectivo, hoy)
+    const dCualquiera = diasDesde(fCualquiera, hoy)
+
+    if (dCualquiera === null) {
       add('nunca_contactada', c,
           `Cero seguimientos registrados en una cuenta activa de `
           + `${dinero(c.facturacion ?? 0)} al mes.`)
-    } else if (d > UMBRALES.silencioLargo) {
-      add('silencio_60', c, `Último contacto el ${ultimo}: hace ${d} días.`, d)
-    } else if (d > UMBRALES.silencioCorto) {
-      add('silencio_30', c, `Último contacto el ${ultimo}: hace ${d} días.`, d)
+    } else if (racha >= UMBRALES.intentosFallidos) {
+      const desde = (porCuenta.get(c.id) ?? []).slice(-racha)[0]
+      const dDesde = diasDesde(desde ? String(desde.fecha).slice(0, 10) : null, hoy)
+      add('sin_interlocutor', c,
+          `${racha} intentos de contacto seguidos sin que nadie respondiera, `
+          + `desde el ${desde ? String(desde.fecha).slice(0, 10) : '—'}`
+          + (dDesde !== null ? ` (hace ${dDesde} días)` : '')
+          + `. El último que llegó al cliente fue `
+          + (fEfectivo ? `el ${fEfectivo}.` : 'ninguno de los registrados.'),
+          dDesde)
+    } else {
+      // Si nunca hubo uno efectivo, el reloj corre desde el intento: no se
+      // premia con un reloj a cero a quien marcó y no le contestaron.
+      const d = dEfectivo ?? dCualquiera
+      const base = fEfectivo ?? fCualquiera
+      const matiz = fEfectivo && fCualquiera && fEfectivo !== fCualquiera
+        ? ` Hubo actividad más reciente —el ${fCualquiera}—, pero no llegó al cliente.`
+        : ''
+      if (d > UMBRALES.silencioLargo) {
+        add('silencio_60', c, `Último contacto que llegó al cliente: ${base}, `
+            + `hace ${d} días.${matiz}`, d)
+      } else if (d > UMBRALES.silencioCorto) {
+        add('silencio_30', c, `Último contacto que llegó al cliente: ${base}, `
+            + `hace ${d} días.${matiz}`, d)
+      }
     }
 
     // ── Ceguera de ficha ─────────────────────────────────────────────────
