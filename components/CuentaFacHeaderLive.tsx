@@ -38,7 +38,6 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
   fallback: number | null
 }) {
   const [grc, setGrc] = useState<Grc | null>(null)
-  const [zoho, setZoho] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -47,17 +46,28 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
     if (cid) p.set('cid', cid)
     if (empresa) p.set('nombre', empresa)
 
-    const pz = new URLSearchParams({ mode: 'by-cid' })
-    if (cid) pz.set('cid', cid)
-    if (empresa) pz.set('nombre', empresa)
-
+    /* ── YA NO SE CONSULTA EL MRR DEL GRUPO ────────────────────────────
+     *
+     * Hasta el 6 oct 2026 esta cabecera pedía también
+     * `/api/facturacion?mode=by-cid` y, si la cuenta no estaba en el GRC,
+     * enseñaba su `mrrGrupo` bajo el rótulo «Factura Mensual». Eran dos
+     * errores encima del otro:
+     *
+     *   1. `mrrGrupo` es la SUMA de todas las sub-cuentas del grupo, no lo que
+     *      factura esta cuenta. Grupo Petroil tiene 25 líneas en el export y 3
+     *      cuentas en la cartera: la ficha de una enseñaba el dinero de todas.
+     *   2. Esa búsqueda cruza por NOMBRE —el `CID` de esa vista es el id
+     *      interno de Zoho, no el nuestro— y cae a palabras sueltas, que el
+     *      propio endpoint advierte que capturan empresas no relacionadas.
+     *
+     * Ahora el importe sale del GRC por CID, que es exacto, y si no está ahí se
+     * usa lo que ya traía la ficha. Antes que inventar un número grande, se
+     * enseña el que hay. */
     Promise.allSettled([
       fetch(`/api/grc?${p}`).then(r => r.json()),
-      fetch(`/api/facturacion?${pz}`).then(r => r.json()),
-    ]).then(([g, z]) => {
+    ]).then(([g]) => {
       if (!vivo) return
       if (g.status === 'fulfilled' && g.value && !g.value.error) setGrc(g.value as Grc)
-      if (z.status === 'fulfilled' && z.value?.mrrGrupo > 0) setZoho(z.value.mrrGrupo)
     }).finally(() => { if (vivo) setLoading(false) })
 
     return () => { vivo = false }
@@ -67,7 +77,10 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
     n == null ? '—' : '$' + Math.round(n).toLocaleString('es-MX')
 
   const enCorte = !!grc?.encontrado
-  const factura = enCorte ? grc!.facturaMensual : (zoho ?? fallback)
+  /* `facturaMensual` ya es el MRR FINAL —el vigente—, no el de arranque de
+     contrato: la misma cifra que usan las alertas, el TOP 25 y el lote
+     semanal. Una sola cifra en todo el tablero. */
+  const factura = enCorte ? grc!.facturaMensual : fallback
   const acumulado = enCorte ? grc!.acumuladoRecurrente : null
   const hermanas = grc?.hermanas ?? []
   const extra = hermanas.reduce((s, h) => s + h.mrrIni, 0)
@@ -101,7 +114,7 @@ export default function CuentaFacHeaderLive({ cid, empresa, fallback }: {
         <p className="text-[9px] text-cp/70">
           {enCorte
             ? `GRC · ${grc!.mes ?? 'corte del mes'}`
-            : zoho != null ? 'Zoho · en vivo' : 'ficha'}
+            : 'ficha'}
         </p>
       )}
 

@@ -135,11 +135,8 @@ export async function mapaFacturacion(): Promise<MapaFacturacion> {
 export function importeDeCuenta(
   cuenta: { cid?: string | number | null; facturacion?: number | null },
   mapa: MapaFacturacion,
-  tieneCorte: boolean,
 ): ImporteCuenta {
   const propio = cuenta.facturacion ?? 0
-  if (tieneCorte && propio > 0) return { mrr: propio, origen: 'cuentas' }
-
   const cid = cuenta.cid === null || cuenta.cid === undefined
     ? null : String(cuenta.cid).trim()
   const g = cid ? mapa.porCid.get(cid) : undefined
@@ -148,6 +145,45 @@ export function importeDeCuenta(
   }
   if (propio > 0) return { mrr: propio, origen: 'cuentas' }
   return { mrr: 0, origen: 'sin_dato' }
+}
+
+/**
+ * Resuelve el importe de una lista de cuentas. **Es la única puerta.**
+ *
+ * Nace de una contradicción que reportó dirección el 6 oct 2026: Tech People
+ * salía con $86,737 en Alertas y con $55,098 en Cuentas y en Candidaturas.
+ * Había tres reglas distintas conviviendo:
+ *
+ *   · Alertas      → el GRC por CID.
+ *   · Cuentas/KPIs → `enrichCuentasWithZoho`, que sobreescribe `facturacion`
+ *                    con una búsqueda DIFUSA por nombre (las dos primeras
+ *                    palabras o el acrónimo) y SUMA todo lo que coincida.
+ *   · La ficha     → el MRR del grupo de Zoho, también por nombre.
+ *
+ * Mientras existan tres reglas habrá tres cifras. Ahora hay una, y es la que
+ * pidió dirección: **el MRR Final de Gross Revenue Facturación**, cruzado por
+ * CID. Donde el GRC no tiene la cuenta se conserva lo que ya traía la ficha, y
+ * donde no hay nada se dice que no se sabe.
+ *
+ * Medido al cambiarlo: 155 de 192 cuentas vivas mueven su importe y la cartera
+ * pasa de $1,884,241 a $2,220,416. Los saltos grandes van en las dos
+ * direcciones y el GRC está internamente limpio —todas «MRR estable», ini igual
+ * a fin, sin pérdidas—: Tech People $59,423 → $86,737 (suma su línea agrupada),
+ * GRUPO FRISA $1,622 → $17,909 (idem), y Grupo System ooapas $38,123 → $1,078.
+ * Ese último además resuelve una rareza: una cuenta de $38,000 con consumo cero
+ * era inexplicable; una de $1,078, no.
+ */
+export async function resolverImportes<T extends { cid?: string | number | null
+                                                   facturacion?: number | null }>(
+  cuentas: T[],
+): Promise<T[]> {
+  if (!cuentas.length) return cuentas
+  const mapa = await mapaFacturacion()
+  if (mapa.porCid.size === 0) return cuentas   // sin fuente, no se inventa nada
+  return cuentas.map(c => {
+    const i = importeDeCuenta(c, mapa)
+    return i.origen === 'grc' ? { ...c, facturacion: i.mrr } : c
+  })
 }
 
 /**

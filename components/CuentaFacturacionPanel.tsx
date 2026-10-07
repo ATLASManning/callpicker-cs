@@ -68,8 +68,20 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
   const [data, setData] = useState<GroupResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
+  /** El MRR final del GRC, que es LA cifra. `null` si la cuenta no está ahí. */
+  const [grcMrr, setGrcMrr] = useState<number | null>(null)
 
   useEffect(() => {
+    const g = new URLSearchParams({ mode: 'cuenta' })
+    if (cid) g.set('cid', cid)
+    if (empresa) g.set('nombre', empresa)
+    fetch(`/api/grc?${g}`)
+      .then(r => r.json())
+      .then((d: { encontrado?: boolean; facturaMensual?: number }) => {
+        setGrcMrr(d?.encontrado && (d.facturaMensual ?? 0) > 0 ? d.facturaMensual! : null)
+      })
+      .catch(() => setGrcMrr(null))
+
     const params = new URLSearchParams({ mode: 'by-cid' })
     if (cid) params.set('cid', cid)
     if (empresa) params.set('nombre', empresa)
@@ -124,20 +136,36 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
         </div>
       ) : (
         <>
-          {/* Total del grupo — destacado */}
+          {/* ── LA CIFRA ES LA DEL GRC, NO LA DEL GRUPO DE ZOHO ───────────
+           *
+           * Instrucción de dirección del 6 oct 2026: «no debe haber dos cifras,
+           * con el MRR Final». Aquí había una tercera: este bloque enseñaba
+           * `mrrGrupo`, la suma de las sub-cuentas que la vista de Zoho
+           * encuentra POR NOMBRE, mientras la cabecera de la ficha y todo el
+           * resto del tablero usan el MRR final del GRC cruzado por CID.
+           *
+           * No eran matices: para IMPAS, Zoho decía $61,589 y el GRC $65,640;
+           * para PUBLICIDAD EN BUSCADORES, $43,316 contra $15,607.
+           *
+           * El conteo de sub-cuentas se queda —es un conteo, no dinero, y es
+           * lo que este panel aporta— y el detalle por sub-cuenta sigue abajo,
+           * que es donde sirve: para ver de dónde sale cada factura. */}
           <div style={{ background: 'linear-gradient(135deg, #1B3FCC08, #6366f108)', border: '1px solid #1B3FCC20', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-[10px] text-textLow font-semibold uppercase tracking-wide mb-0.5">
-                  MRR Grupo · Actual
+                  MRR · Gross Revenue Facturación
                 </p>
                 <p style={{ fontSize: 22, fontWeight: 800, color: '#1B3FCC', lineHeight: 1 }}>
-                  {fmt$(data!.mrrGrupo)}
+                  {fmt$(grcMrr ?? data!.mrrGrupo)}
                 </p>
                 <p className="text-[10px] text-textLow mt-1">
-                  {data!.subCuentas} sub-cuenta{data!.subCuentas !== 1 ? 's' : ''}
+                  {data!.subCuentas} sub-cuenta{data!.subCuentas !== 1 ? 's' : ''} en Zoho
                   {data!.mesReciente && (
                     <span className="text-textLow/60"> · última factura: {data!.mesReciente}</span>
+                  )}
+                  {grcMrr == null && (
+                    <span className="text-amarillo/90"> · no está en el GRC: se muestra el total del grupo en Zoho</span>
                   )}
                 </p>
               </div>

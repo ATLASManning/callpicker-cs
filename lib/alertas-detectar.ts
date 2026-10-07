@@ -242,10 +242,7 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
    * Municipio Chihuahua, $65,640 al mes— figuraba en CERO. */
   const facturacion = await mapaFacturacion()
   const importes = new Map<string, ImporteCuenta>()
-  for (const c of cuentas) {
-    const cid = c.cid ? String(c.cid).trim() : null
-    importes.set(c.id, importeDeCuenta(c, facturacion, !!cid && cortes.has(cid)))
-  }
+  for (const c of cuentas) importes.set(c.id, importeDeCuenta(c, facturacion))
   /** La cuenta tal como la ve el resto del archivo, ya con el importe bueno. */
   const conImporte = (c: CuentaAlerta): CuentaAlerta =>
     ({ ...c, facturacion: importes.get(c.id)?.mrr ?? c.facturacion })

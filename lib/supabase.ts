@@ -120,11 +120,15 @@ export async function getCuentas(filters?: {
   try {
     const { enrichCuentasWithZoho } = await import('./zoho-enrich')
     const enriched = await enrichCuentasWithZoho(result)
-    for (const c of enriched) {
-      if (c.factura_mensual_zoho != null) c.facturacion = c.factura_mensual_zoho
-    }
-    enriched.sort((a, b) => (b.facturacion ?? 0) - (a.facturacion ?? 0))
-    return enriched
+    /* `factura_mensual_zoho` YA NO sobreescribe el importe. Venía de una
+       búsqueda difusa por nombre que suma todo lo que coincida, y era la razón
+       de que Tech People saliera con $55,098 aquí y con $86,737 en Alertas.
+       Se conserva el resto del enriquecimiento —semáforo, segmento— y el
+       importe lo resuelve la única puerta: el MRR Final del GRC, por CID. */
+    const { resolverImportes } = await import('./facturacion-cuenta')
+    const conImporte = await resolverImportes(enriched)
+    conImporte.sort((a, b) => (b.facturacion ?? 0) - (a.facturacion ?? 0))
+    return conImporte
   } catch {
     return result // sin Zoho configurado: se conserva el dato guardado
   }
@@ -279,10 +283,12 @@ export async function getKPIs(filtro?: { asesor?: string }) {
   try {
     const { enrichCuentasWithZoho } = await import('./zoho-enrich')
     cuentas = await enrichCuentasWithZoho(cuentas)
-    for (const c of cuentas) {
-      if (c.factura_mensual_zoho != null) c.facturacion = c.factura_mensual_zoho
-    }
   } catch { /* sin Zoho: dato guardado */ }
+  /* Mismo criterio que getCuentas y que las alertas: una sola cifra. */
+  try {
+    const { resolverImportes } = await import('./facturacion-cuenta')
+    cuentas = await resolverImportes(cuentas)
+  } catch { /* sin GRC: se queda lo que haya */ }
   const total = cuentas.length
   const facturacionTotal = cuentas.reduce((s, c) => s + (c.facturacion ?? 0), 0)
   const enRiesgo = cuentas.filter(c => c.health_score < 40).length

@@ -135,8 +135,22 @@ function porCuenta(d: Archivo, cid: string, nombre: string) {
     encontrado: propias.length > 0,
     mes: (d.meta as { mesVivo?: string }).mesVivo ?? null,
     origen: (d.meta as { origen?: string }).origen ?? null,
-    /* Factura Mensual ← MRR Inicio Contrato (BCY) */
-    facturaMensual: suma(propias, 'mrrIni'),
+    /* ── «Factura Mensual» ES EL MRR FINAL, desde el 6 oct 2026 ───────────
+     *
+     * Antes salía de `mrrIni` —MRR Inicio Contrato— y eso producía DOS cifras
+     * del mismo concepto: la ficha enseñaba el MRR de arranque del contrato
+     * mientras las alertas, el TOP 25 y el lote semanal usaban el vigente.
+     * Medido: 37 cuentas vivas tienen ini distinto de fin, y la brecha llega a
+     * $37,222 en una sola cuenta.
+     *
+     * Instrucción de dirección: «no debe haber dos cifras, con el MRR Final».
+     * Y es lo correcto además de lo pedido: en una fila de Downgrade, ini
+     * 32,758 y fin 25,313 — lo que el cliente factura HOY es 25,313.
+     *
+     * `mrrInicio` queda abajo para quien necesite el arranque, que es el
+     * contexto de churn y no el de la ficha. */
+    facturaMensual: suma(propias, 'mrrFin'),
+    mrrInicio: suma(propias, 'mrrIni'),
     /* MRR ← Importe Acumulado Recurrente */
     acumuladoRecurrente: suma(propias, 'acumulado'),
     mrrFin: suma(propias, 'mrrFin'),
