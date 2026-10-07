@@ -1,0 +1,333 @@
+{
+ "_aviso": "PROPUESTA, NO MEDICION. Derivada de un campo de texto libre por tres clasificadores independientes y un juez. Antes de publicar un solo percentil hay que validar cada grupo contra el comportamiento telefonico real y sacar del grupo a quien se desvie. Lo dijo el propio juez y es la condicion para usarla.",
+ "generado": "2026-10-07",
+ "encuadre": "Base: ENCUADRE MIXTO (uso del teléfono, partido por sector solo donde el sector cambia los números), con tres injertos de USO y uno de SECTOR, y una disolución. Resultado: 18 grupos, todos de 5+ cuentas, 174 cuentas publicables y 8 fuera. Injertos: (1) de USO, la separación mostrador/pedido corto vs. cotización técnica de equipo y proyecto, que MIXTO tenía revuelta en un «Mayoreo industrial» de 21; (2) de USO, la regla de que la marcación saliente no se mezcla con nada entrante; (3) de USO, la negativa a empujar valores sin información para subir el conteo; (4) de SECTOR, el grupo «Servicio técnico y monitoreo» (mesa de incidentes con técnico en campo), que une línea blanca, reparación Apple, alarmas, GPS y grúas mejor que como lo partía MIXTO. Disolución: mato el grupo «Instituciones y grupos corporativos» de MIXTO, que era una bolsa de residuos (gobierno + ONG + hospital + consorcio) disfrazada de grupo.",
+ "por_que": "MIXTO es el único que cuenta bien a nivel de cuentas y el único cuyo criterio es el correcto para lo que se va a publicar: el bloque comparativo muestra percentiles de telefonía, así que el grupo tiene que estar definido por telefonía, no por sector. SECTOR falla el criterio 2 de raíz: su grupo «Manufactura industrial (20)» junta a quien casi no usa el teléfono con distribuidores que levantan pedidos todo el día, y además deja dos grupos sin publicar (telecom 4, gobierno 2). USO tiene el mejor criterio pero se queda en 14 grupos y deja 6 valores fuera que sí tienen información (farmacéutica aparte). MIXTO llega a 18 grupos publicables con el mismo criterio de USO aplicado con más resolución donde hay cuentas para pagarla.\n\nDonde puse la tensión, a propósito: COMPARABILIDAD arriba, COBERTURA abajo. Arriba —donde hay cuentas de sobra— parto fino aunque cueste: desarrolladora con pauta (7) separada de inmobiliaria con cartera de asesores (14), porque una recibe un orden de magnitud más llamadas de primer contacto; mesa de pedidos (12) separada de cotización técnica (16), porque una ferretería hace decenas de llamadas cortas y un fabricante de calderas unas pocas larguísimas; producto SaaS con base de suscriptores (13) separado de consultoría de TI por proyecto (6); y agencias de marketing (8) separadas de la prospección saliente pura (5) —esta última la mantengo aparte aunque quede justo en 5, porque el tráfico entrante de una agencia no es suyo, es de los DID de rastreo de sus clientes, y meterlo al mismo percentil que un BPO de SDRs contamina la razón entrante/saliente de los dos.\n\nAbajo —donde hay pocas cuentas— dejo grueso solo cuando el patrón telefónico sigue siendo uno: materiales, acabados y equipamiento con visita de instalación quedan juntos (9) porque todos son mostrador/showroom con llamada corta de precio más llamada de agenda; software y telecom quedan juntos (13) porque comparten base de suscriptores que llama a soporte, aunque la escala no se parezca; y salud queda en 19 con consultorio, laboratorio y hospital juntos porque los tres son entrante para agendar.\n\nLo que NO acepto es cobertura comprada con un grupo falso. El «Instituciones y grupos corporativos (5)» de MIXTO junta una dependencia de gobierno, una ONG, un hospital privado y un consorcio diversificado por lo único que comparten —que tienen conmutador—. Eso no es un comparable, es el cajón de sobras con nombre bonito, y es exactamente el caso en que el percentil que ve el cliente es basura. Lo disuelvo: el hospital se va a Salud (entrante para agendar, con la advertencia de escala), y gobierno, ONG, consorcio e «Industria, Comercio, Hospitalidad» se declaran sin clasificar. Sumo «Farmaceutica» a los sin clasificar siguiendo a USO: una palabra que no distingue farmacia de laboratorio, que en teléfono son opuestos. Precio total: 5 cuentas de cobertura contra MIXTO (179 → 174). Lo pago.\n\nDos avisos para antes de publicar: el grupo de prospección saliente queda en exactamente 5 cuentas —una baja y se apaga—, y en los tres grupos grandes (Salud 19, Equipo y proyecto industrial 16, Inmobiliarias 14) y en Software/telecom el informe debe publicar percentiles de FORMA (razón entrante/saliente, tasa de atención, duración mediana) y no de volumen bruto, porque la escala interna varía demasiado. Y lo de fondo: esto es una hipótesis derivada de un campo de texto libre, no una medición. Antes del primer percentil hay que validar cada grupo contra el comportamiento real y sacar del grupo a quien se desvíe.",
+ "veredicto": "SÍ SIRVE, y con mejor cobertura de la que nadie reportó bien: 18 grupos, TODOS de 5 o más cuentas, 174 de las 182 cuentas con giro publican bloque comparativo y 8 quedan fuera declaradas. Base MIXTO —el único que contó bien las cuentas (179) frente a SECTOR, que dijo 171 cuando su cobertura real era 177— con la partición mostrador/cotización técnica y la regla de saliente puro injertadas de USO, y el grupo de servicio técnico y monitoreo injertado de SECTOR.\n\nPago 5 cuentas de cobertura contra MIXTO (179 → 174) por una razón concreta: disuelvo su grupo «Instituciones y grupos corporativos», que juntaba gobierno, ONG, hospital y un consorcio diversificado por lo único que compartían —tener conmutador—. Ese era el cajón de sobras con nombre bonito, y es exactamente el caso en que el percentil engaña al cliente. El hospital se va a Salud; gobierno, ONG, consorcio, «Industria, Comercio, Hospitalidad» y «Farmaceutica» se declaran sin clasificar en lugar de forzarse.\n\nDos condiciones antes de publicar el primer percentil, y no son opcionales. Primera: esto es una hipótesis derivada de texto libre, no una medición — hay que validar cada grupo contra el comportamiento real (mezcla entrante/saliente, duración mediana, distribución por hora) y sacar a quien se desvíe; un grupo que no sea homogéneo en los datos no se publica aunque tenga 19 cuentas. Segunda: en Salud (19), Equipo y proyecto industrial (16), Inmobiliarias (14) y Software/telecom (13) hay que publicar percentiles de FORMA, no de volumen bruto, porque la escala interna varía demasiado. Y vigilar «Prospección saliente» (5 justas) y el calendario en Escuelas, cuyo percentil solo vale comparado en la misma ventana del ciclo. Las 8 cuentas sin clasificar más las 10 que vienen con `sinGiro` vacío —18 en total— se devuelven como tarea de captura del giro real al asesor de la cuenta, y a Daniel Martínez donde no haya asesor asignado.",
+ "cuentas_publicables": 174,
+ "cuentas_fuera": 8,
+ "grupos": [
+  {
+   "nombre": "Desarrolladoras de vivienda y proyecto inmobiliario",
+   "cuentas": 7,
+   "porque_comparan": "El teléfono ES el formulario de contacto: la pauta dispara la llamada, casi todo es entrante de primer contacto y el volumen sube y baja con el gasto en medios. Los números que comparten son llamada perdida y tiempo de respuesta por campaña, con varios DID por desarrollo.",
+   "publicable": true,
+   "valores": [
+    "Construcción de edificios residenciales",
+    "Construcción y desarrollo inmobiliario",
+    "Desarrolladora inmobiliaria: venta de terrenos de inversion... Merida, Yucatan",
+    "Desarrollo Inmobiliario Comercial, Industrial, Residencial y Turístico",
+    "Desarrollo Inmobiliario Residencial. Comunidades estilo californiano...",
+    "Desarrollo inmobiliario (residencial)",
+    "Desarrollo inmobiliario residencial"
+   ]
+  },
+  {
+   "nombre": "Inmobiliarias, brokers y arrendamiento",
+   "cuentas": 14,
+   "porque_comparan": "También captación entrante, pero a escala de asesor y no de campaña: menos llamadas por número, reparto del lead entre agentes, seguimiento saliente que dura semanas y sábado activo. Mezcla entrante/saliente cerca del 50/50. Se mide atención por agente y rellamada, nunca volumen de pauta — por eso NO va con las desarrolladoras.",
+   "publicable": true,
+   "valores": [
+    "Inmobiliaria (n=2)",
+    "Inmobiliario (n=2)",
+    "Alquiler de bienes inmuebles no residenciales",
+    "Franquicia inmobiliaria: compraventa, arrendamiento, valuacion, asesoria patrimonial",
+    "Franquicia maestra Keller Williams Realty — plataforma inmobiliaria",
+    "Hospitality / PropTech — Administración y renta de alojamientos equipados...",
+    "Inmobiliaria (venta, renta, inversión)",
+    "Inversiones Inmobiliarias",
+    "Oficinas Ejecutivas y Business Centers Premium",
+    "Servicios Inmobiliarios / Bienes Raíces",
+    "bienes raíces / arrendamiento de vivienda residencial.",
+    "servicios inmoviliarios"
+   ]
+  },
+  {
+   "nombre": "Agencias de autos, taller y refacciones",
+   "cuentas": 7,
+   "porque_comparan": "Doble mesa en el mismo conmutador: ventas (entrante de pauta local, cita de prueba de manejo) y posventa (cita de taller, refacciones, aviso de auto listo). Volumen entrante alto, IVR por departamento obligatorio, llamada corta, picos de lunes y de cierre de mes, y la llamada perdida se va con la agencia de la esquina. Es el único grupo que coincide con una industria y lo dejo así porque ese patrón de doble destino no se parece a nada más.",
+   "publicable": true,
+   "valores": [
+    "Automotriz (Retail – concesionario de marca)",
+    "Comercialización de vehículos Chevrolet nuevos y seminuevos...",
+    "E-commerce automotriz (O2O) | Compra-Venta de autos seminuevos...",
+    "Mantenimiento, reparación y servicio integral automotriz multimarcas",
+    "Refaccionarias (refacciones gama alta y media)",
+    "Venta de vehículos",
+    "venta y servicio de automóviles"
+   ]
+  },
+  {
+   "nombre": "Clínicas, consultorios y laboratorios",
+   "cuentas": 19,
+   "porque_comparan": "Entrante casi puro para ocupar un espacio en una agenda: llamada corta (2-4 min), horario de consulta, quien contesta es recepción, cero campañas salientes y una llamada perdida es una cita perdida. Su KPI real es tasa de atención y abandono en IVR, no duración. Aquí cae el hospital privado que MIXTO había mandado al conmutador institucional: su tráfico sigue siendo entrante para agendar, solo a otra escala. AVISO: publicar percentil de forma, no de volumen — un hospital y un consultorio de tres extensiones no comparten escala.",
+   "publicable": true,
+   "valores": [
+    "Bienestar y nutrición",
+    "Clínica de restauración capilar",
+    "Consultas médicas",
+    "Consultoria de Salud",
+    "Diagnóstico médico por imagen y análisis clínicos...",
+    "Hospitalidad Clinica Dental",
+    "Laboratorios médicos y de diagnóstico privado",
+    "Medicina Regenerativa / Células Madre",
+    "Salud",
+    "Salud (Healthtech – servicios médicos especializados con enfoque digital)",
+    "Salud - Clinica Privada especializada en enfermedades anorrectales y varices",
+    "Salud / odontología estética",
+    "Salud – Servicios de diagnóstico médico",
+    "Servicios de salud",
+    "Servicios de salud privada / telemedicina / consulta presencial",
+    "Servicios médicos integrales y gestión de atención en salud",
+    "Servicios médicos privados",
+    "Unidad hospitalaria privada",
+    "servicios de salud mental y atención psicológica"
+   ]
+  },
+  {
+   "nombre": "Escuelas, universidades y capacitación",
+   "cuentas": 8,
+   "porque_comparan": "Embudo de admisiones: entra el aspirante traído por pauta, la llamada es larga y consultiva (costos, becas, planes) y le sigue una cola saliente de rellamadas hasta la inscripción. Estacionalidad brutal por ciclo escolar — el mismo número triplica volumen en convocatoria y cae a nada entre ciclos. Por eso su percentil SOLO sirve comparado en la misma ventana del ciclo.",
+   "publicable": true,
+   "valores": [
+    "Educación (n=2)",
+    "Educacion superior privada. Tec de Monterrey, Campus Queretaro...",
+    "Educación / E-learning / EdTech / Formación profesional digital",
+    "Educación superior + educación continua + formación empresarial",
+    "Educación y Formación Profesional - Capacitación, Certificación Internacional...",
+    "Educativo",
+    "Universidad privada de modelo educativo estadounidense..."
+   ]
+  },
+  {
+   "nombre": "Agencias de marketing y rastreo de campañas",
+   "cuentas": 8,
+   "porque_comparan": "Operan números de rastreo propios y de sus clientes para atribuir campañas: muchos DID por cuenta, el volumen depende de la pauta y el indicador es llamada por fuente. Los mantengo separados de la prospección saliente pura porque su tráfico entrante NO es suyo — es de los clientes cuyos números administran — y mezclarlos falsea la razón entrante/saliente de ambos grupos.",
+   "publicable": true,
+   "valores": [
+    "Marketing (n=3)",
+    "Agencia de Marketing Digital — SEM, SEO, PPC, Publicidad en Google, Redes Sociales, Diseño Web",
+    "Agencia de Marketing Digital: Publicidad Digital (Google Ads, Meta Ads, TikTok Ads)...",
+    "Agencia de Marketing Digital: SEO, SEM, Google Ads, Social Media, Diseño Web...",
+    "Agencia de Performance Marketing / Reseller Callpicker (Co-Branding)",
+    "Servicios de marketing digital, contact center y automatización comercial."
+   ]
+  },
+  {
+   "nombre": "Prospección saliente, reclutamiento y cobranza",
+   "cuentas": 5,
+   "porque_comparan": "Los únicos donde el teléfono marca hacia afuera como actividad principal: muchas llamadas por agente, duración corta, altísima proporción de no contestadas y buzones, ocupación del asesor como métrica y curva por bloques de campaña. Compararlos contra cualquier grupo entrante es comparar cosas opuestas. AVISO: queda en exactamente 5 cuentas — una baja y el bloque se apaga.",
+   "publicable": true,
+   "valores": [
+    "Agencia de Business Development Outsourcing (BPO de Ventas). SDRs, Outbound B2B...",
+    "Empresa mexicana de Recursos Humanos + software HRTech",
+    "Generación de Leads B2B / Inteligencia Comercial / Bases de Datos Empresariales",
+    "Movilidad laboral internacional | Vinculación laboral México–Canadá–EUA | Reclutamiento...",
+    "Servicios financieros (Microfinanciera / SOFOM)"
+   ]
+  },
+  {
+   "nombre": "Materiales, acabados y equipamiento con instalación",
+   "cuentas": 9,
+   "porque_comparan": "Mostrador y sala de exhibición: entra el particular o el contratista preguntando precio y existencia, llamada corta y repetida con el mismo cliente, pico de mañana y sábado abierto. El cierre exige medición o visita, así que la segunda llamada agenda al técnico y una tercera coordina la instalación. Uní aquí los dos grupos que USO y MIXTO tenían por separado (materiales de construcción 5 + venta con visita 6) porque el patrón telefónico es el mismo y así ninguno queda al borde del mínimo.",
+   "publicable": true,
+   "valores": [
+    "Comercio venta lozeta y accesorios para baño",
+    "Diseño, fabricación, distribución e instalación de persianas, cortinas, tapices...",
+    "Distribución de Acero Estructural y Comercial, Ferretería y Tlapaleria...",
+    "Distribución de aire acondicionado",
+    "Distribución especializada de herrajes",
+    "Empresa B2B mexicana líder en distribución de textiles especializados... Protección solar",
+    "Iluminación decorativa y funcional",
+    "Purificadores de agua alcalina para hogar y empresa - venta y renta de sistemas...",
+    "Venta y distribución de muebles para baño/cocina, pisos, recubrimientos, tubería..."
+   ]
+  },
+  {
+   "nombre": "Mayoreo y mesa de pedidos",
+   "cuentas": 12,
+   "porque_comparan": "Entrante de alto volumen y llamada corta: «¿tienen, a cómo, cuándo me llega?». Hay lista de precios y existencias, el comprador es recurrente, se resuelve en la primera atención y el enemigo es la cola de la mañana. Transferencia a almacén o a crédito y cobranza, estacionalidad de cierre de mes, cero atribución publicitaria. Separado de la cotización técnica a propósito: aquí el percentil útil es VOLUMEN y tasa de atención.",
+   "publicable": true,
+   "valores": [
+    "Comercialización / Distribución de soluciones hidráulicas, riego, bombeo, PVC...",
+    "Comercialización de cintas de carga",
+    "Comercialización y distribución de soluciones para Lean Manufacturing y control visual industrial",
+    "Comercializadora de alimentos",
+    "Confitería y botanas al por mayor",
+    "Distribución e importación de materias primas y químicos especializados...",
+    "Importación mayorista y distribución de baterías industriales, paneles solares, inversores...",
+    "Producción, distribución y venta de repostería",
+    "Soluciones de empaque y embalaje industrial",
+    "Venta de equipos de oficina",
+    "Venta de gas LP y servicios de carburación para automotores y uso industrial",
+    "servicios de impresión"
+   ]
+  },
+  {
+   "nombre": "Equipo, maquinaria y proyecto industrial",
+   "cuentas": 16,
+   "porque_comparan": "Pocas llamadas entrantes pero largas y calificadoras, con ingeniero o especialista en la línea, más una cola saliente de seguimiento a la cotización que dura semanas. Ticket alto, horario de oficina, volumen bajo y estable. Su percentil útil es DURACIÓN y seguimiento, nunca volumen contra los de mostrador — es justo la partición que USO defendió y que MIXTO había disuelto en un «Mayoreo industrial» de 21. AVISO: publicar percentil de forma; una subastadora y una fabricante de calderas no comparten escala.",
+   "publicable": true,
+   "valores": [
+    "Comercializadora de equipos de cocina",
+    "Comercio al por mayor de maquinaria y equipo para la industria manufacturera.",
+    "Construcción e infraestructura.",
+    "Fabricación de equipos industriales",
+    "Fabricación de maquinaria industrial",
+    "Fabricación y comercialización de equipo y muebles en acero inoxidable para restaurantes...",
+    "Fabricante y distribuidor de compresores de aire (pistón, tornillo, scroll...)",
+    "Giro: Productos para movimiento/izaje y sujeción de carga + servicios (inspecciones / pruebas / capacitación).",
+    "Industria Manufacturera / Ingeniería Mecánica Industrial — Calderas industriales... Pemex, CFE",
+    "Manufactura industrial y comercialización de maquinaria especializada para la industria alimentaria y HORECA",
+    "Manufactura industrial — Soluciones de filtración tecnológica avanzada...",
+    "Producción alimentaria / maquinaria industrial / franquicias",
+    "Soluciones de seguridad y tecnología: seguridad biométrica, control de acceso, videovigilancia...",
+    "Subastas de Maquinaria Pesada - Construccion, Industrial, Agricola, Transporte, Miscelaneos",
+    "Venta de EQUIPO DE CONTROL Y AUTOMATIZACIÓN",
+    "tratamiento de agua"
+   ]
+  },
+  {
+   "nombre": "Manufactura y transformación",
+   "cuentas": 10,
+   "porque_comparan": "El teléfono no es canal de venta sino infraestructura interna: pocas llamadas al mes y largas, con cuentas y proveedores ya conocidos, muchas extensiones por área (compras, ingeniería, calidad, planta) y mucho tráfico interno entre planta y oficina. Cero dependencia de publicidad. El valor que ven es el directorio por extensión, no el rastreo de leads — por eso NO van con el mayoreo ni con la cotización de equipo.",
+   "publicable": true,
+   "valores": [
+    "Automotriz / metalmecánica",
+    "Automotriz / movilidad / manufactura",
+    "Blindaje especializado de transporte de carga / seguridad en movimiento",
+    "Energía y combustibles",
+    "Fabricacion de productos metalicos / proteccion perimetral / rejas y vallas",
+    "Fabricación, distribución y comercialización de baterías para vehículos...",
+    "Industria Quimica Industrial",
+    "Industrial",
+    "Manufactura metalica: Estampado, Maquinado, Formado de Tubo, Ensamble...",
+    "manufactura textil"
+   ]
+  },
+  {
+   "nombre": "Logística, transporte y despacho de carga",
+   "cuentas": 10,
+   "porque_comparan": "El teléfono es la mesa de operación: entra el cliente a preguntar dónde va su embarque y sale la llamada al operador, al almacén o a la unidad. Mezcla entrante/saliente alta, llamadas breves y repetidas sobre el mismo folio, horario extendido o 24/7 y picos de madrugada y de fin de mes. Es el grupo con el horario más plano de la cartera.",
+   "publicable": true,
+   "valores": [
+    "Carga y remolque",
+    "Freight Forwarder / Agente de Carga Internacional — Transporte y logística global...",
+    "Logistica 3PL: almacenaje y distribucion perecederos/no perecederos...",
+    "Logística de Última Milla / Entregas a Domicilio / eCommerce Delivery",
+    "Logística y comercio internacional | eCommerce crossborder | Aduanas...",
+    "Logística y transporte",
+    "Tecnología / movilidad y logística",
+    "Transporte y logística",
+    "Transporte, logística, cadena de suministro y almacenamiento",
+    "logística"
+   ]
+  },
+  {
+   "nombre": "Servicio técnico, monitoreo y despacho a domicilio",
+   "cuentas": 6,
+   "porque_comparan": "Mesa de incidentes con técnico en campo: entra la falla o la alarma, la llamada levanta el reporte y captura dirección, se despacha a la cuadrilla, hay rellamadas de estatus y una última al cliente para cerrar. Volumen entrante alto por base instalada, cola que no puede quedar sin contestar porque del otro lado hay un equipo parado, una alarma activa o un auto en el acotamiento, y marcación saliente constante al técnico. Es el injerto de SECTOR: une línea blanca, reparación Apple, alarmas, GPS y grúas, que MIXTO tenía repartidos.",
+   "publicable": true,
+   "valores": [
+    "Centro de Servicio Autorizado Electrolux - Línea Blanca (reparación, mantenimiento, instalación...)",
+    "De servicio. Rastreo GPS",
+    "Seguridad electrónica / monitoreo",
+    "Servicio de reparación de dispositivos Apple",
+    "Servicio técnico a domicilio en línea blanca: reparación de lavadoras, secadoras...",
+    "Servicios de grúas y auxilio vial"
+   ]
+  },
+  {
+   "nombre": "Software, telecom y suscripciones",
+   "cuentas": 13,
+   "porque_comparan": "Base de suscriptores que llama a soporte y facturación: entrante dominante, fila de espera, mismo llamante recurrente por el mismo caso y picos por incidente o por fecha de su propio producto (timbrado, cierre fiscal, corte de nómina), nunca por temporada comercial. AVISO: metí aquí los 4 de telecom e ISP porque solos no llegan a 5; me compra cobertura y me cuesta homogeneidad de escala, así que en ESTE grupo el informe debe publicar percentiles de forma (razón entrante/saliente, tasa de atención, duración) y no de volumen bruto.",
+   "publicable": true,
+   "valores": [
+    "Desarrollo de Software / Tecnología",
+    "Desarrollo de Software Automotriz — Plataforma SaaS para gestión de talleres...",
+    "Desarrollo de software / Facturación electrónica / SaaS",
+    "Grupo tecnológico y comercial B2B con enfoque en soluciones digitales y distribución",
+    "Proveedor global de soluciones integrales de gestión de flotas basadas en telemática y software",
+    "Servicios digitales",
+    "Tecnología / Software como Servicio (SaaS)",
+    "Tecnología Fiscal / Facturación Electrónica (PAC – SAT No. 55270)...",
+    "Tecnologías Financieras (Fintech)",
+    "Telecomunicaciones (TV de paga + Internet)",
+    "Telecomunicaciones / Internet de fibra óptica",
+    "Telecomunicaciones y comercio electrónico",
+    "Telecomunicaciones y servicios"
+   ]
+  },
+  {
+   "nombre": "Consultoría y desarrollo de TI por proyecto",
+   "cuentas": 6,
+   "porque_comparan": "Venta y gestión por proyecto: poco volumen, llamadas largas con pocos interlocutores, saliente de prospección y juntas agendadas, y el número general casi no suena. Es la forma opuesta al SaaS con base de suscriptores — ahí hay fila de espera, aquí no hay cola — y por eso los separo aunque los dos sean «tecnología».",
+   "publicable": true,
+   "valores": [
+    "Consultoría TI, Integración, Nearshoring, Desarrollo de Software, Fábricas de Software...",
+    "Es un desarrollador de software y soluciones empresariales con foco en aplicaciones móviles.",
+    "Servicios de TI, Consultoría y Tecnología Fiscal.",
+    "Software a la medida / SaaS personalizado",
+    "TI",
+    "Tecnología de información y consultoría TI enfocada en software para ventas, distribución y automatización comercial."
+   ]
+  },
+  {
+   "nombre": "Seguros y servicios financieros",
+   "cuentas": 9,
+   "porque_comparan": "Asesor dueño de la cartera, no cola: mezcla entrante/saliente con el MISMO interlocutor a lo largo del año — cotiza, renueva, reclama, aclara. Llamadas largas, pocas por día, picos en renovación y siniestro, y grabación usada como respaldo de lo acordado por obligación regulatoria. La necesidad es bitácora por asesor, no capacidad de cola.",
+   "publicable": true,
+   "valores": [
+    "Financiera (n=2)",
+    "Broker de seguros / asesoría en gestión de riesgos y protección patrimonial",
+    "Correduría / Despacho de Seguros Independiente - Ramos: Auto, Vida, GMM, Daños, Flotillas",
+    "Correduía / Agencia de Seguros y Fianzas independiente...",
+    "Intermediación de seguros y fianzas, Desarrollo de plataformas tecnológicas propias",
+    "Seguros / servicios financieros",
+    "Servicios Financieros",
+    "seguros dentales, prevención y cuidado bucal"
+   ]
+  },
+  {
+   "nombre": "Despachos y servicios profesionales a empresas",
+   "cuentas": 6,
+   "porque_comparan": "Atienden casos, no pedidos: volumen bajo y predecible, primera consulta larga y después llamadas de seguimiento al mismo expediente o contrato. Sin cola, horario de oficina estricto, extensión por persona y no por área, recepción que criba y transfiere a quien lleva el asunto, y el valor está en la grabación y la bitácora del caso. Nada de campañas ni números rastreables.",
+   "publicable": true,
+   "valores": [
+    "Servicios Jurídicos Migratorios — Firma de abogados especializada en migración México-EE.UU...",
+    "Servicios Profesionales",
+    "Servicios de limpieza profesional (outsourcing)",
+    "Servicios empresariales",
+    "Servicios jurídicos especializados",
+    "Servicios notariales / juridicos"
+   ]
+  },
+  {
+   "nombre": "Reservas y atención al público",
+   "cuentas": 9,
+   "porque_comparan": "Quien llama es consumidor final y quiere apartar un lugar, un cuarto, una mesa, un auto o un boleto: entrante transaccional corto, horario extendido que incluye tarde, noche y fin de semana, y picos agudos atados a un evento, un puente o una salida a venta. El abandono en el pico se traduce en reserva perdida esa misma noche y necesitan desbordar a un segundo punto de atención.",
+   "publicable": true,
+   "valores": [
+    "Adiestramiento, guardería y pensión canina",
+    "Boletería & Ticketing Digital — Venta, distribución y gestión de boletos...",
+    "Entretenimiento / Recreación",
+    "Entretenimiento/Eventos",
+    "Hospedaje / Hotelería",
+    "Hotelería / hospitalidad",
+    "Organización de eventos",
+    "Renta de vehículos",
+    "Restaurante de comida japonesa / sushi"
+   ]
+  }
+ ],
+ "sin_clasificar": [
+  "Administración — una función, no un negocio; no permite inferir nada del uso del teléfono.",
+  "Comercio — una palabra que cubre desde mostrador de ferretería hasta mayoreo industrial, que en teléfono son grupos distintos.",
+  "Mediana — es un TAMAÑO de empresa, no un giro.",
+  "Farmaceutica — no distingue farmacia (entrante de pedido, volumen alto) de laboratorio farmacéutico (B2B, casi sin tráfico), que en telefonía son opuestos.",
+  "Industria, Comercio, Hospitalidad — declara tres patrones telefónicos a la vez; no hay forma de elegir uno sin inventar.",
+  "consorcio corporativo diversificado — igual: varias operaciones sin un patrón dominante declarado.",
+  "Dependencia de gobierno — atención a ciudadano en ventanilla, sin presión comercial ni atribución de campaña; la llamada se mide por resolución, no por venta. Con una sola cuenta no forma grupo y compararla contra centros de soporte privados diría cualquier cosa.",
+  "ONG — atiende beneficiarios sin vender; mismo caso que gobierno, y entre las dos solo llegan a 2 cuentas."
+ ]
+}

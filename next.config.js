@@ -35,6 +35,31 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['xlsx'],
   },
+  /* QUE EL .XLSX VIAJE CON LA LAMBDA QUE LO LEE.
+   *
+   * `lib/cortes-cuenta.ts` abre el archivo con
+   * `path.join(process.cwd(), 'data', 'cortes-facturacion.xlsx')`, y una ruta
+   * armada en tiempo de ejecución el trazador de Next NO la puede seguir: decide
+   * qué ficheros acompañan a cada función leyendo el código. Con el JSON del GRC
+   * esto ya pasó y costó medio día — `/api/grc` lo encontraba y `/api/alertas`
+   * devolvía «No se encontró data/grc-zoho.json (cwd=/var/task)», así que 48
+   * cuentas aparecían en cero y eso se leía como hallazgo.
+   *
+   * Ahí se resolvió con un `await import()` de especificador literal, que
+   * empaqueta el JSON dentro del bundle. Con un .xlsx no se puede: no es un
+   * módulo. Para binarios el mecanismo es éste, declarar la dependencia que el
+   * trazador no ve.
+   *
+   * Las fichas de cuenta y la portada SÍ reciben el archivo hoy —comprobado en
+   * producción, GRUPO 2711 publica sus 18,200 minutos—, pero eso es suerte del
+   * trazador y no una garantía para una ruta nueva. El cron del snapshot se
+   * declara explícito: si el archivo no llegara, `todosLosCortes()` devuelve un
+   * mapa vacío EN SILENCIO y el snapshot registraría «sin consumo» en las 192
+   * cuentas. Con la regla de dirección del 7 oct —un hueco es una tarea— eso
+   * abriría una avalancha de tareas por un hueco que no existe. */
+  outputFileTracingIncludes: {
+    '/api/cron/snapshot-prediccion': ['./data/**'],
+  },
   async headers() {
     return [
       {
