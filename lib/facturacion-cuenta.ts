@@ -150,6 +150,39 @@ export function importeDeCuenta(
   return { mrr: 0, origen: 'sin_dato' }
 }
 
+/**
+ * Rellena `facturacion` desde el GRC en las cuentas que la traen en cero.
+ *
+ * Es la versión para los consumidores que NO saben de cortes y que, aun así,
+ * TOMAN DECISIONES con el importe. Una auditoría del 6 oct 2026 encontró que
+ * `cuentas.facturacion` se lee en diecisiete sitios y que el respaldo aplicado
+ * sólo en las alertas dejaba el mismo número distinto según la pantalla:
+ *
+ *   · `isTopAccount` en la generación de actividades usa el umbral de $3,000 y
+ *     decide el CONTENIDO de la tarea semanal. Con el respaldo pasan de 143 a
+ *     166 las cuentas que reciben la tarea de cuenta TOP: veintitrés cuentas
+ *     —IMPAS entre ellas, con $65,640 al mes— estaban recibiendo la genérica.
+ *   · `focosDeRiesgo` usa el importe para ordenar el lote del lunes.
+ *
+ * No se les pasa `tieneCorte` a propósito: aquí sólo se rellena lo que falta,
+ * que es justo lo que pidió dirección —«aquellos datos que no tengas en las
+ * cuentas, de ahí tómala»—. Lo que ya tiene número no se toca.
+ */
+export async function conImporteGrc<T extends { cid?: string | number | null
+                                                facturacion?: number | null }>(
+  cuentas: T[],
+): Promise<T[]> {
+  if (!cuentas.length) return cuentas
+  const mapa = await mapaFacturacion()
+  if (mapa.porCid.size === 0) return cuentas
+  return cuentas.map(c => {
+    if ((c.facturacion ?? 0) > 0) return c
+    const cid = c.cid === null || c.cid === undefined ? null : String(c.cid).trim()
+    const g = cid ? mapa.porCid.get(cid) : undefined
+    return g && g.mrr > 0 ? { ...c, facturacion: g.mrr } : c
+  })
+}
+
 /** Para los textos: «$12,345 al mes» o la frase que dice que no se sabe. */
 export function textoImporte(i: ImporteCuenta): string {
   if (i.origen === 'sin_dato') return 'importe mensual no disponible en ninguna fuente'

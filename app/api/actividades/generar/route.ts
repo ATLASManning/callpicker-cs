@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { conImporteGrc } from '@/lib/facturacion-cuenta'
 import { ASESOR_CONFIG } from '@/lib/types'
 import { Resend } from 'resend'
 import { detectDataGaps, gapScore, conciliarGaps, type DataGap,
@@ -338,11 +339,14 @@ async function construirFocosDeRiesgo(
      de la cuenta, que el Mapa de Decisores necesita. Con la lista suelta que
      había antes, agregar un campo aquí y olvidarlo allá producía tareas sin
      datos — y una tarea sin datos es la que se contesta en un minuto. */
-  const { data: cuentas } = await supabaseAdmin
+  const { data: cuentasCrudas } = await supabaseAdmin
     .from('cuentas')
     .select(CAMPOS_FOCO_SELECT)
     .eq('asesor', asesor)
-  if (!cuentas?.length) return []
+  if (!cuentasCrudas?.length) return []
+  /* El importe de las que vienen en cero sale de Gross Revenue: aquí ordena el
+     lote del lunes, y una cuenta invisible se va al final de la cola. */
+  const cuentas = await conImporteGrc(cuentasCrudas)
 
   /* El último seguimiento REGISTRADO de cada cuenta. Es el dato que ordena todo
      el turno, porque es el que más predice la baja: 28% de churn en las cuentas
@@ -1026,6 +1030,15 @@ export async function POST(req: NextRequest) {
 
     if (cErr || !cuentas?.length)
       return salidaConAclaraciones({ error: 'No se encontraron cuentas para este asesor' }, 404)
+
+    /* El importe de las que vienen en cero sale de Gross Revenue ANTES de
+       decidir nada. `isTopAccount` usa el umbral de $3,000 y con él cambia el
+       CONTENIDO de la tarea: medido el 6 oct 2026, con el respaldo pasan de 143
+       a 166 las cuentas que reciben la versión de cuenta TOP. Veintitrés
+       estaban recibiendo la genérica, IMPAS entre ellas con $65,640 al mes. */
+    const cuentasConImporte = await conImporteGrc(cuentas)
+    cuentas.length = 0
+    cuentas.push(...(cuentasConImporte as typeof cuentas))
 
     // Conciliar con Churn — tres fuentes, todas en lib/elegibilidad.ts:
     // 1. Zoho · Dormidas en vivo (ver getDormidasEnZoho arriba)
