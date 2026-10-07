@@ -73,9 +73,28 @@ export async function GET(req: NextRequest) {
         nuevos: episodios.nuevos, cerrados: episodios.cerrados,
         sinCerrar: episodios.sinCerrar, falla: episodios.falla,
       },
-      /* Lo que vio la capa CUALITATIVA, y que guarda tiro cada coincidencia.
-         Una capa que no encuentra nada y una que no corre se ven igual. */
-      escritas: ultimoDiag,
+      /* Lo que vio la capa CUALITATIVA, y qué guarda tiró cada coincidencia.
+         Una capa que no encuentra nada y una que no corre se ven igual.
+
+         Se publica SÓLO si el diagnóstico es de esta misma cartera. `ultimoDiag`
+         vive en el módulo y una lambda atiende varias peticiones a la vez, así
+         que entre el `detectar` de arriba y esta línea puede haberlo pisado la
+         corrida de otro usuario — con su cartera, que es más chica. Publicarlo
+         igual sería enseñar 20 textos donde hay 704 y leerlo como «la capa casi
+         no encuentra nada»: un diagnóstico equivocado me hace depurar lo que no
+         está roto, y eso ya pasó. Si no coincide, se dice. */
+      escritas: (() => {
+        const esperado = asesor ?? 'cartera-completa'
+        if (ultimoDiag.ambito !== esperado) {
+          return { ambito: ultimoDiag.ambito, esperado,
+                   aviso: 'El diagnóstico corresponde a otra cartera (petición '
+                        + 'concurrente); los conteos no son de esta consulta.' }
+        }
+        /* El `detalle` lleva fragmentos de prosa del cliente. A un asesor se le
+           dan los conteos —que son de SU cartera y le sirven para saber si la
+           capa corrió— pero no las frases. */
+        return rolAsesor ? { ...ultimoDiag, detalle: undefined } : ultimoDiag
+      })(),
       /* El estado del respaldo de IMPORTES. Si el GRC no carga, las cuentas sin
          `facturacion` salen en cero y eso se confunde con un hallazgo. */
       facturacion: await (async () => {

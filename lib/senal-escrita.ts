@@ -50,6 +50,9 @@ export interface Senal {
   fecha: string | null
   origen: 'seguimiento' | 'observaciones_kam' | 'notas'
   autor: string | null
+  /** Letras que cubrió el patrón. Sólo desempata dos señales de la misma nota;
+   *  nunca se muestra. Opcional para no romper a quien construya una a mano. */
+  largo?: number
 }
 
 export interface TextoCuenta {
@@ -171,21 +174,37 @@ export interface DiagEscrita {
   /** Cuántas tiró cada guarda. Si una se lleva casi todo, está mal calibrada. */
   descartes: Record<'negacion' | 'baja_adjetivo' | 'plantilla' | 'desmentido', number>
   senales: number
+  /** Qué cartera se midió: el nombre del asesor, o `cartera-completa`.
+   *
+   *  No es adorno. `ultimoDiag` vive en el módulo, y una lambda de Vercel
+   *  atiende varias peticiones a la vez: la corrida de un asesor —que ve 20
+   *  cuentas— sobreescribe la del universo completo entre el `detectar` y el
+   *  `return` de otra petición. Sin este campo la API publicaría 20 textos como
+   *  si fueran los 704 y yo leería «la capa casi no encuentra nada». Es el mismo
+   *  error que me costó dos días: un diagnóstico que miente es peor que ninguno. */
+  ambito: string | null
   /** Cada coincidencia con lo que le pasó. Inferir cuál falta a partir de
-   *  totales ya me costó media mañana: aquí se ven una por una. */
-  detalle: Array<{ empresa: string; tipo: string; frag: string; fin: string }>
+   *  totales ya me costó media mañana: aquí se ven una por una.
+   *
+   *  `cuenta` son los 8 primeros caracteres del id, NO el nombre. A propósito:
+   *  esto se publica en una ruta que también contestan los asesores, y el
+   *  fragmento es prosa del cliente. Para resolver el id al nombre hace falta
+   *  acceso a `cuentas`, que ya está acotado por cartera. */
+  detalle: Array<{ cuenta: string; tipo: string; frag: string; fin: string }>
 }
 
 /** Lo que vio la última corrida. Se publica en /api/alertas: una capa que no
  *  encuentra nada y una que no se está ejecutando se ven igual desde fuera. */
 export let ultimoDiag: DiagEscrita = {
-  textos: 0, coincidencias: 0, senales: 0, detalle: [],
+  textos: 0, coincidencias: 0, senales: 0, detalle: [], ambito: null,
   descartes: { negacion: 0, baja_adjetivo: 0, plantilla: 0, desmentido: 0 },
 }
 
-export function senalesEscritas(textos: TextoCuenta[]): Map<string, Senal> {
+export function senalesEscritas(
+  textos: TextoCuenta[], ambito: string | null = null,
+): Map<string, Senal> {
   const diag: DiagEscrita = {
-    textos: textos.length, coincidencias: 0, senales: 0, detalle: [],
+    textos: textos.length, coincidencias: 0, senales: 0, detalle: [], ambito,
     descartes: { negacion: 0, baja_adjetivo: 0, plantilla: 0, desmentido: 0 },
   }
   /* Primero, qué frases son plantilla. Se normaliza y se cuenta en cuántas
@@ -216,7 +235,7 @@ export function senalesEscritas(textos: TextoCuenta[]): Map<string, Senal> {
     while ((m = g.exec(t.texto)) !== null) {
       diag.coincidencias++
       const anota = (fin: string) => diag.detalle.push({
-        empresa: t.cuentaId.slice(0, 8), tipo, frag: m![0].slice(0, 44), fin })
+        cuenta: t.cuentaId.slice(0, 8), tipo, frag: m![0].slice(0, 44), fin })
       if (esNegada(t.texto, m.index)) {
         diag.descartes.negacion++; anota('negacion'); continue
       }
@@ -242,12 +261,31 @@ export function senalesEscritas(textos: TextoCuenta[]): Map<string, Senal> {
       const cand: Senal = {
         tipo, frase: fragmento(t.texto, m.index, m.index + m[0].length),
         fecha: t.fecha, origen: t.origen, autor: t.autor,
+        /* Cuánto texto cubrió el patrón. Sirve para desempatar; no se muestra. */
+        largo: m[0].length,
       }
       const prev = fuera.get(t.cuentaId)
+      /* Gana la más grave; a igual gravedad la más reciente; y a igual fecha
+         —que es el caso normal, porque suelen venir de la MISMA nota— la que
+         cubrió más texto.
+
+         Ese último criterio no es cosmético, y Biolaboratorio Sadat es la
+         prueba. Su nota del 25 de julio dice las dos cosas: «presenta
+         indicadores de riesgo» y «alto riesgo de descontinuación del servicio».
+         Sin desempate ganaba la primera por aparecer antes en el párrafo, y la
+         evidencia que se le enseñaba al asesor era la vaga —la fácil de
+         archivar— mientras la frase que de verdad obligaba a actuar quedaba
+         guardada y sin ver. El 6 de octubre el cliente pidió la baja.
+
+         Más letras cubiertas es una APROXIMACIÓN a más específico, no una
+         medida de significado: el patrón largo exigió más palabras seguidas, y
+         ésas son las que nombran el riesgo en vez de aludirlo. */
       const mejor = !prev
         || PESO[cand.tipo] > PESO[prev.tipo]
         || (PESO[cand.tipo] === PESO[prev.tipo]
-            && (cand.fecha ?? '') > (prev.fecha ?? ''))
+            && ((cand.fecha ?? '') > (prev.fecha ?? '')
+                || ((cand.fecha ?? '') === (prev.fecha ?? '')
+                    && cand.largo > (prev.largo ?? 0))))
       anota(mejor ? 'gana' : 'pierde')
       if (mejor) fuera.set(t.cuentaId, cand)
     }

@@ -155,7 +155,7 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
                     autor: c.asesor, texto: c.notas })
     }
   }
-  const escritas = senalesEscritas(textos)
+  const escritas = senalesEscritas(textos, opciones?.asesor ?? 'cartera-completa')
 
   /* ── QUÉ ES UN CONTACTO, Y CUÁNDO LLEGÓ AL CLIENTE ──────────────────────
    *
