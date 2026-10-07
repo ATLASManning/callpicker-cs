@@ -20,7 +20,7 @@ import { resumenLlamadas } from '@/lib/llamadas-resumen'
    3.5 MB de tickets-data.json y el Excel de cortes a esta página. */
 import { SEGUIMIENTOS_POR_SEMANA } from '@/lib/cierre-seguimiento'
 import { detectarAlertas } from '@/lib/alertas-detectar'
-import { resumir } from '@/lib/alertas'
+import { resumir, riesgoPorCuenta } from '@/lib/alertas'
 import { didsDeCuenta } from '@/lib/dids-cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
@@ -307,6 +307,9 @@ interface AsesorStats {
 function computeAsesorStats(
   asesor: string, cuentas: Cuenta[], auditSet: Set<string>,
   adopMap: Map<string, Map<string, AdopcionRow>>, totalAsignadas: number,
+  /* El conjunto en riesgo lo decide el motor de alertas, no el health score:
+     su mínimo en la cartera viva es 43 y el umbral era 40. Ver la portada. */
+  enRiesgo: Set<string>,
 ): AsesorStats {
   const color = ASESOR_CONFIG[asesor as Asesor]?.color ?? '#6366F1'
   const semDist = { verde: 0, azul: 0, amarillo: 0, naranja: 0, rojo: 0 }
@@ -316,7 +319,7 @@ function computeAsesorStats(
     totalFac += c.facturacion ?? 0
     const s = getSemaforo(c.health_score)
     semDist[s]++
-    if (c.health_score < 40) facEnRiesgo += c.facturacion ?? 0
+    if (enRiesgo.has(String(c.id))) facEnRiesgo += c.facturacion ?? 0
   })
 
   const avgHealth = avg(cuentas.map(c => c.health_score ?? 50))
@@ -1093,6 +1096,32 @@ export default async function DashboardPage() {
   const resumenAlerts = resumir(alertas)
   const fallaAlertas  = alertasRes.ok ? null : alertasRes.motivo
 
+  /* ── QUIÉN ESTÁ EN RIESGO ───────────────────────────────────────────────
+   *
+   * Hasta el 6 oct 2026 el tablero lo definía como `health_score < 40`, y el
+   * health score MÍNIMO de la cartera viva es 43: marcaba 0 cuentas y $0, y lo
+   * iba a seguir marcando pasara lo que pasara. Instrucción de dirección: «una
+   * cuenta con 0% de consumo o más de 60 días sin contacto se marca como riesgo
+   * aunque el Health Score diga Observación».
+   *
+   * Ahora lo decide el motor de alertas, que ya mide esas dos cosas. Una sola
+   * definición para el KPI, para el corte por ejecutivo y para el semáforo. */
+  const riesgo = riesgoPorCuenta(alertas)
+  const idsRiesgo = new Set(riesgo.keys())
+  /* `getSemaforoByAsesor` calcula su propio `facturacion_en_riesgo` con el
+     mismo umbral muerto. Se reescribe aquí para que el semáforo y el corte
+     por ejecutivo digan lo mismo — era otra de las dos cifras. */
+  for (const fila of semaforoAsesor) {
+    let suma = 0
+    for (const r of riesgo.values()) if (r.asesor === fila.asesor) suma += r.mrr
+    fila.facturacion_en_riesgo = suma
+  }
+  const mrrRiesgoDe = (ids: Iterable<string>) => {
+    let s = 0
+    for (const id of ids) s += riesgo.get(id)?.mrr ?? 0
+    return s
+  }
+
   // Último nivel registrado por cuenta+producto (puede haber historial)
   const adopMap = new Map<string, Map<string, AdopcionRow>>()
   adopRows.forEach(r => {
@@ -1175,7 +1204,7 @@ export default async function DashboardPage() {
   const asesorStats: AsesorStats[] = ASESORES.map(a => {
     const ac = cuentas.filter(c => c.asesor === a)
     const totalAsignadas = allCuentas.filter(c => c.asesor === a).length
-    return computeAsesorStats(a, ac, auditSet, adopMap, totalAsignadas)
+    return computeAsesorStats(a, ac, auditSet, adopMap, totalAsignadas, idsRiesgo)
   }).filter(s => s.cuentas.length > 0)
 
   // Top 10 riesgo con tickets
@@ -1194,7 +1223,9 @@ export default async function DashboardPage() {
 
   // Datos para DashMetricasSection
   const activas       = cuentas.filter(c => c.estado === 'activo')
-  const churnRiesgo   = activas.filter(c => c.health_score < 40)
+  /* Mismo criterio que el resto del tablero: lo decide el motor, no el
+     health score, que nunca baja de 43. */
+  const churnRiesgo   = activas.filter(c => idsRiesgo.has(String(c.id)))
   const cuentasObs    = cuentas.filter(c => getSemaforo(c.health_score) === 'amarillo')
   const facObs        = cuentasObs.reduce((s, c) => s + (c.facturacion ?? 0), 0)
   const conUpsell     = activas.filter(c => c.upsell_producto || c.crossell_producto).length
@@ -1406,7 +1437,10 @@ export default async function DashboardPage() {
       </div>
 
       {/* ══ §4 KPIs principales ════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 px-6 pb-5">
+      {/* Seis tarjetas desde que «En Riesgo» tiene número propio: la rejilla
+          pasa de cinco a seis columnas para que no quede una huérfana sola en
+          una segunda fila. */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 px-6 pb-5">
         {/* KPI Auditoría — TOP para anticipar churn */}
         <div style={{
           background: `linear-gradient(145deg, ${PANEL} 0%, rgba(5,13,26,0.95) 100%)`,
@@ -1454,6 +1488,14 @@ export default async function DashboardPage() {
         </div>
         <KpiCard label="Cartera Total" value={formatMXN(kpis.facturacionTotal)} sub={`${kpis.total} cuentas activas`} icon={DollarSign} accent={CYAN} />
         <KpiCard label="Cuentas Saludables" value={kpis.saludables} sub={`${Math.round((kpis.saludables / Math.max(kpis.total, 1)) * 100)}% de la cartera`} icon={CheckCircle2} accent="#22C55E" />
+        {/* «En Riesgo» tiene por fin un número. Hasta el 6 oct 2026 el único
+            criterio era `health_score < 40` y el mínimo de la cartera viva es
+            43: marcaba 0 cuentas y $0, siempre. Ahora lo decide el motor —0%
+            de consumo, más de 60 días sin contacto, o varios intentos
+            seguidos sin que nadie responda— que es lo que pidió dirección. */}
+        <KpiCard label="En Riesgo" value={riesgo.size}
+          sub={`${formatMXN(mrrRiesgoDe(idsRiesgo))} · consumo cero o sin contacto`}
+          icon={AlertTriangle} accent="#EF4444" />
         <KpiCard label="En Observación" value={cuentasObs.length} sub={`${formatMXN(facObs)} en seguimiento`} icon={AlertTriangle} accent="#EAB308" />
         {/* ── «Oportunidades» ya no cuenta una columna que nadie llena ──────
          *

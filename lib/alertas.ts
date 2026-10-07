@@ -397,6 +397,65 @@ export function construirAlerta(
   }
 }
 
+/**
+ * QUÉ CUENTA ESTÁ «EN RIESGO», de verdad.
+ *
+ * Instrucción de dirección, 6 oct 2026: «Una cuenta con 0% de consumo o más de
+ * 60 días sin contacto se marca como riesgo aunque el Health Score diga
+ * Observación».
+ *
+ * ── POR QUÉ HACÍA FALTA DECIRLO ──────────────────────────────────────────
+ *
+ * El tablero definía el riesgo como `health_score < 40`, y el health score
+ * MÍNIMO de toda la cartera viva es 43. El indicador marcaba 0 cuentas y $0 en
+ * riesgo, y lo iba a seguir marcando pasara lo que pasara con los clientes:
+ * estaba muerto por construcción, no por falta de datos. Un indicador que nunca
+ * cambia entrena a no mirarlo.
+ *
+ * ── POR QUÉ `nunca_contactada` NO ENTRA ──────────────────────────────────
+ *
+ * Porque metería 100 cuentas más y el indicador pasaría de marcar el 0% de la
+ * cartera a marcar el 68%, que es la misma inutilidad por el otro lado. Y
+ * además no es lo que dice: «no hay registro de un contacto» es un hueco de
+ * REGISTRO —ceguera—, no una señal de que el cliente se esté yendo. Vive en su
+ * familia, que para eso están separadas.
+ *
+ * `sin_interlocutor` sí entra aunque dirección no lo nombrara: son dos o más
+ * intentos seguidos sin que nadie responda, que es estrictamente peor que
+ * sesenta días de silencio. Es lo que tenía Biolaboratorio Sadat el día que
+ * nadie lo vio.
+ *
+ * Medido: 33 cuentas de 192 (17%), $386,020, seis de ellas TOP.
+ */
+export const TIPOS_RIESGO: ReadonlySet<TipoAlerta> = new Set<TipoAlerta>([
+  'consumo_cero', 'silencio_60', 'sin_interlocutor',
+])
+
+export interface CuentaEnRiesgo {
+  cuentaId: string
+  empresa: string
+  asesor: string | null
+  mrr: number
+  esTop: boolean
+  /** Por qué, para que el número se pueda defender cuenta por cuenta. */
+  motivos: TipoAlerta[]
+}
+
+/** Las cuentas en riesgo, con su dinero y su motivo. El MRR es por cuenta. */
+export function riesgoPorCuenta(alertas: Alerta[]): Map<string, CuentaEnRiesgo> {
+  const m = new Map<string, CuentaEnRiesgo>()
+  for (const a of alertas) {
+    if (!TIPOS_RIESGO.has(a.tipo)) continue
+    const prev = m.get(a.cuentaId)
+    if (prev) { prev.motivos.push(a.tipo); continue }
+    m.set(a.cuentaId, {
+      cuentaId: a.cuentaId, empresa: a.empresa, asesor: a.asesor,
+      mrr: a.mrr, esTop: a.esTop, motivos: [a.tipo],
+    })
+  }
+  return m
+}
+
 /** Resumen para la cabecera del panel. Las particiones CIERRAN. */
 export interface ResumenAlertas {
   total: number
