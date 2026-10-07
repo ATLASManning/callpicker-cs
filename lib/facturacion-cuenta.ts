@@ -75,28 +75,24 @@ async function leer(): Promise<MapaFacturacion> {
   let mes = ''
   let falla: string | null = null
   try {
-    const path = (await import('path')).default
-    const fs = (await import('fs')).default
-    /* Se prueban las dos raíces. En Vercel, el empaquetado de una ruta no
-       siempre deja `data/` colgando de `process.cwd()`, y un `readFileSync`
-       con ruta armada a mano es justo lo que el trazador de Next no puede
-       seguir. `/api/grc` lee este mismo archivo y lo encuentra, así que el
-       archivo se despliega; lo que cambia es desde dónde se mira. */
-    const candidatas = [
-      path.join(process.cwd(), 'data', 'grc-zoho.json'),
-      path.join(process.cwd(), '.next', 'server', 'data', 'grc-zoho.json'),
-      path.join(__dirname, 'data', 'grc-zoho.json'),
-      path.join(__dirname, '..', 'data', 'grc-zoho.json'),
-      path.join(__dirname, '..', '..', 'data', 'grc-zoho.json'),
-      path.join(__dirname, '..', '..', '..', 'data', 'grc-zoho.json'),
-    ]
-    const ruta = candidatas.find(p => { try { return fs.existsSync(p) } catch { return false } })
-    if (!ruta) {
-      falla = `No se encontró data/grc-zoho.json (cwd=${process.cwd()})`
-      _cache = { porCid, mes, falla }; _cacheTime = Date.now()
-      return _cache
-    }
-    const json = JSON.parse(fs.readFileSync(ruta, 'utf8')) as
+    /* ── SE IMPORTA, NO SE LEE DEL DISCO ────────────────────────────────
+     *
+     * La primera versión hacía `readFileSync(path.join(process.cwd(), 'data',
+     * 'grc-zoho.json'))` —igual que `/api/grc`, que funciona— y en producción
+     * devolvía un mapa vacío: «No se encontró data/grc-zoho.json
+     * (cwd=/var/task)». El archivo SÍ se despliega; lo que pasa es que el
+     * trazador de Next decide qué ficheros viajan con cada lambda leyendo el
+     * código, y una ruta que se arma en tiempo de ejecución no se puede
+     * seguir. La ruta `/api/grc` sí lo lleva; la de alertas, no.
+     *
+     * Con un import de especificador literal, webpack lo empaqueta DENTRO del
+     * bundle y deja de depender de dónde quedó el disco. Cuesta 1.2 MB en la
+     * lambda y a cambio no vuelve a fallar en silencio por una ruta.
+     *
+     * Vale también para la portada, que es componente de servidor y monta el
+     * panel de alertas en el primer render. */
+    const mod = await import('@/data/grc-zoho.json')
+    const json = ((mod as { default?: unknown }).default ?? mod) as
       { meta?: { mesVivo?: string }; filas?: FilaGrc[] }
     mes = json.meta?.mesVivo ?? ''
     for (const f of json.filas ?? []) {
