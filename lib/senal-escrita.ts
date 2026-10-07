@@ -297,6 +297,20 @@ export function senalesEscritas(
     probar(t, RX_RIESGO, 'riesgo_escrito')
     probar(t, RX_REDUCCION, 'reduccion_declarada')
   }
+  /* `anota` escribe el veredicto del MOMENTO, así que una coincidencia que
+     ganó y luego fue desplazada por otra mejor queda marcada «gana» igual. En
+     Biolaboratorio Sadat eso se leía como dos señales ganadoras en una cuenta,
+     que es imposible: hay una por cuenta. Se queda «gana» la última y las
+     anteriores pasan a «desplazada» — el rastro tiene que poder leerse sin
+     reconstruir en qué orden corrió el bucle. */
+  const ultimaGanadora = new Map<string, number>()
+  diag.detalle.forEach((x, i) => {
+    if (x.fin === 'gana') ultimaGanadora.set(x.cuenta, i)
+  })
+  diag.detalle.forEach((x, i) => {
+    if (x.fin === 'gana' && ultimaGanadora.get(x.cuenta) !== i) x.fin = 'desplazada'
+  })
+
   diag.senales = fuera.size
   ultimoDiag = diag
   return fuera
