@@ -146,18 +146,21 @@ export interface DiagEscrita {
   /** Cuántas tiró cada guarda. Si una se lleva casi todo, está mal calibrada. */
   descartes: Record<'negacion' | 'baja_adjetivo' | 'plantilla' | 'desmentido', number>
   senales: number
+  /** Cada coincidencia con lo que le pasó. Inferir cuál falta a partir de
+   *  totales ya me costó media mañana: aquí se ven una por una. */
+  detalle: Array<{ empresa: string; tipo: string; frag: string; fin: string }>
 }
 
 /** Lo que vio la última corrida. Se publica en /api/alertas: una capa que no
  *  encuentra nada y una que no se está ejecutando se ven igual desde fuera. */
 export let ultimoDiag: DiagEscrita = {
-  textos: 0, coincidencias: 0, senales: 0,
+  textos: 0, coincidencias: 0, senales: 0, detalle: [],
   descartes: { negacion: 0, baja_adjetivo: 0, plantilla: 0, desmentido: 0 },
 }
 
 export function senalesEscritas(textos: TextoCuenta[]): Map<string, Senal> {
   const diag: DiagEscrita = {
-    textos: textos.length, coincidencias: 0, senales: 0,
+    textos: textos.length, coincidencias: 0, senales: 0, detalle: [],
     descartes: { negacion: 0, baja_adjetivo: 0, plantilla: 0, desmentido: 0 },
   }
   /* Primero, qué frases son plantilla. Se normaliza y se cuenta en cuántas
@@ -187,19 +190,29 @@ export function senalesEscritas(textos: TextoCuenta[]): Map<string, Senal> {
     let m: RegExpExecArray | null
     while ((m = g.exec(t.texto)) !== null) {
       diag.coincidencias++
-      if (esNegada(t.texto, m.index)) { diag.descartes.negacion++; continue }
-      if (esBajaAdjetivo(t.texto, m)) { diag.descartes.baja_adjetivo++; continue }
+      const anota = (fin: string) => diag.detalle.push({
+        empresa: t.cuentaId.slice(0, 8), tipo, frag: m![0].slice(0, 44), fin })
+      if (esNegada(t.texto, m.index)) {
+        diag.descartes.negacion++; anota('negacion'); continue
+      }
+      if (esBajaAdjetivo(t.texto, m)) {
+        diag.descartes.baja_adjetivo++; anota('baja_adjetivo'); continue
+      }
       /* La oración que contiene la coincidencia; si es plantilla, no cuenta. */
       const oracion = oraciones(t.texto).find(o => o.toLowerCase().includes(
         m![0].split(/\s+/).join(' ').toLowerCase()))
-      if (oracion && esPlantilla(oracion)) { diag.descartes.plantilla++; continue }
+      if (oracion && esPlantilla(oracion)) {
+        diag.descartes.plantilla++; anota('plantilla'); continue
+      }
       /* ¿La propia frase se desmiente después? Se mira el resto de la oración,
          o —si la coincidencia no cayó en una oración larga— las ochenta letras
          siguientes. */
       const despues = oracion
         ? oracion.slice(oracion.toLowerCase().indexOf(m[0].toLowerCase()) + m[0].length)
         : t.texto.slice(m.index + m[0].length, m.index + m[0].length + 80)
-      if (RX_DESMENTIDO.test(despues)) { diag.descartes.desmentido++; continue }
+      if (RX_DESMENTIDO.test(despues)) {
+        diag.descartes.desmentido++; anota('desmentido'); continue
+      }
 
       const cand: Senal = {
         tipo, frase: fragmento(t.texto, m.index, m.index + m[0].length),
@@ -210,6 +223,7 @@ export function senalesEscritas(textos: TextoCuenta[]): Map<string, Senal> {
         || PESO[cand.tipo] > PESO[prev.tipo]
         || (PESO[cand.tipo] === PESO[prev.tipo]
             && (cand.fecha ?? '') > (prev.fecha ?? ''))
+      anota(mejor ? 'gana' : 'pierde')
       if (mejor) fuera.set(t.cuentaId, cand)
     }
   }
