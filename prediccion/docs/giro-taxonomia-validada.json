@@ -1,0 +1,234 @@
+{
+ "_que_es": "La taxonomia propuesta, medida contra el comportamiento telefonico real. `publica` es el veredicto: un grupo solo publica percentil si le quedan 5 cuentas con lectura Y es mas parejo que la cartera.",
+ "generado": "2026-10-07",
+ "min_comparables": 5,
+ "umbral_atipico_mad": 3.0,
+ "metricas": [
+  "pctEnt",
+  "pctAtendidas",
+  "pctPerdidas",
+  "pctIvr",
+  "minPorAtend",
+  "pctFuera"
+ ],
+ "vara_cartera": {
+  "pctEnt": {
+   "mediana": 76.53132902500703,
+   "mad": 31.46951765895315,
+   "n": 135
+  },
+  "pctAtendidas": {
+   "mediana": 57.67802357500403,
+   "mad": 23.0715410815103,
+   "n": 135
+  },
+  "pctPerdidas": {
+   "mediana": 19.302325581395348,
+   "mad": 11.570713943626716,
+   "n": 135
+  },
+  "pctIvr": {
+   "mediana": 14.447731755424064,
+   "mad": 13.843313002750763,
+   "n": 135
+  },
+  "minPorAtend": {
+   "mediana": 2.9303763440860218,
+   "mad": 1.0974152506446597,
+   "n": 134
+  },
+  "pctFuera": {
+   "mediana": 13.936559291039528,
+   "mad": 8.87772618506381,
+   "n": 135
+  }
+ },
+ "grupos": [
+  {
+   "nombre": "Clínicas, consultorios y laboratorios",
+   "propuesto": 19,
+   "conDatos": 16,
+   "atipicos": 0,
+   "sobreviven": 16,
+   "estrechez": 0.9882092882058989,
+   "publica": true,
+   "expulsados": []
+  },
+  {
+   "nombre": "Inmobiliarias, brokers y arrendamiento",
+   "propuesto": 14,
+   "conDatos": 14,
+   "atipicos": 0,
+   "sobreviven": 14,
+   "estrechez": 0.8979892865096306,
+   "publica": true,
+   "expulsados": []
+  },
+  {
+   "nombre": "Equipo, maquinaria y proyecto industrial",
+   "propuesto": 16,
+   "conDatos": 14,
+   "atipicos": 1,
+   "sobreviven": 13,
+   "estrechez": 0.6428509600429602,
+   "publica": true,
+   "expulsados": [
+    "Grupo System ooapas"
+   ]
+  },
+  {
+   "nombre": "Logística, transporte y despacho de carga",
+   "propuesto": 10,
+   "conDatos": 9,
+   "atipicos": 0,
+   "sobreviven": 9,
+   "estrechez": 1.052952879256223,
+   "publica": false,
+   "expulsados": []
+  },
+  {
+   "nombre": "Manufactura y transformación",
+   "propuesto": 10,
+   "conDatos": 8,
+   "atipicos": 0,
+   "sobreviven": 8,
+   "estrechez": 0.8814183547263507,
+   "publica": true,
+   "expulsados": []
+  },
+  {
+   "nombre": "Seguros y servicios financieros",
+   "propuesto": 9,
+   "conDatos": 8,
+   "atipicos": 0,
+   "sobreviven": 8,
+   "estrechez": 1.3170005837720202,
+   "publica": false,
+   "expulsados": []
+  },
+  {
+   "nombre": "Materiales, acabados y equipamiento con instalación",
+   "propuesto": 9,
+   "conDatos": 8,
+   "atipicos": 0,
+   "sobreviven": 8,
+   "estrechez": 0.5002120106930166,
+   "publica": true,
+   "expulsados": []
+  },
+  {
+   "nombre": "Software, telecom y suscripciones",
+   "propuesto": 13,
+   "conDatos": 7,
+   "atipicos": 0,
+   "sobreviven": 7,
+   "estrechez": 1.0510229716053028,
+   "publica": false,
+   "expulsados": []
+  },
+  {
+   "nombre": "Reservas y atención al público",
+   "propuesto": 9,
+   "conDatos": 7,
+   "atipicos": 0,
+   "sobreviven": 7,
+   "estrechez": 1.0290226271008693,
+   "publica": false,
+   "expulsados": []
+  },
+  {
+   "nombre": "Mayoreo y mesa de pedidos",
+   "propuesto": 12,
+   "conDatos": 7,
+   "atipicos": 0,
+   "sobreviven": 7,
+   "estrechez": 0.6954538647208182,
+   "publica": true,
+   "expulsados": []
+  },
+  {
+   "nombre": "Consultoría y desarrollo de TI por proyecto",
+   "propuesto": 6,
+   "conDatos": 6,
+   "atipicos": 0,
+   "sobreviven": 6,
+   "estrechez": 1.1278857971568597,
+   "publica": false,
+   "expulsados": []
+  },
+  {
+   "nombre": "Despachos y servicios profesionales a empresas",
+   "propuesto": 6,
+   "conDatos": 5,
+   "atipicos": 0,
+   "sobreviven": 5,
+   "estrechez": 0.9616595180584152,
+   "publica": true,
+   "expulsados": []
+  },
+  {
+   "nombre": "Agencias de autos, taller y refacciones",
+   "propuesto": 7,
+   "conDatos": 5,
+   "atipicos": 0,
+   "sobreviven": 5,
+   "estrechez": 0.7202364830227801,
+   "publica": true,
+   "expulsados": []
+  },
+  {
+   "nombre": "Agencias de marketing y rastreo de campañas",
+   "propuesto": 8,
+   "conDatos": 5,
+   "atipicos": 0,
+   "sobreviven": 5,
+   "estrechez": 0.8666233797876354,
+   "publica": true,
+   "expulsados": []
+  },
+  {
+   "nombre": "Escuelas, universidades y capacitación",
+   "propuesto": 8,
+   "conDatos": 4,
+   "atipicos": 1,
+   "sobreviven": 3,
+   "estrechez": 0.5238754764191783,
+   "publica": false,
+   "expulsados": [
+    "University 4 People"
+   ]
+  },
+  {
+   "nombre": "Servicio técnico, monitoreo y despacho a domicilio",
+   "propuesto": 6,
+   "conDatos": 4,
+   "atipicos": 1,
+   "sobreviven": 3,
+   "estrechez": 0.9718758850940651,
+   "publica": false,
+   "expulsados": [
+    "Gruas el Toques"
+   ]
+  },
+  {
+   "nombre": "Prospección saliente, reclutamiento y cobranza",
+   "propuesto": 5,
+   "conDatos": 4,
+   "atipicos": 0,
+   "sobreviven": 4,
+   "estrechez": 0.5869538615757738,
+   "publica": false,
+   "expulsados": []
+  },
+  {
+   "nombre": "Desarrolladoras de vivienda y proyecto inmobiliario",
+   "propuesto": 7,
+   "conDatos": 4,
+   "atipicos": 0,
+   "sobreviven": 4,
+   "estrechez": 0.7947900296701788,
+   "publica": false,
+   "expulsados": []
+  }
+ ]
+}
