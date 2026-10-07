@@ -112,18 +112,46 @@ async function getZohoData(): Promise<FactRow[]> {
   return data
 }
 
-/* ── Fallback: datos de Supabase cuando Zoho no está disponible ───── */
-async function getSupabaseData(): Promise<FactRow[]> {
+/* ── Fallback: datos de Supabase cuando Zoho no está disponible ─────
+ *
+ * ESTE RESPALDO ESTUVO MUERTO, Y CALLADO (arreglado el 7 oct 2026).
+ *
+ * El `select` pedía `factura_mensual_zoho`, que NO ES UNA COLUMNA de `cuentas`:
+ * es un campo que `enrichCuentasWithZoho` cuelga del objeto en tiempo de
+ * ejecución, leyéndolo de la vista viva de Zoho. PostgREST contestaba
+ *
+ *     HTTP 400 · {"code":"42703","message":"column cuentas.factura_mensual_zoho does not exist"}
+ *
+ * la consulta caía en `if (error) return []`, y el respaldo devolvía una lista
+ * vacía. O sea: el día que Zoho no respondiera, el módulo no diría «el respaldo
+ * está roto», diría que no hay datos — que es indistinguible de un hallazgo y
+ * manda a buscar el problema al lado equivocado.
+ *
+ * Dos cambios: la columna inexistente sale del `select`, y la falla se DEVUELVE
+ * en vez de tragarse. `getData` la propaga y el handler la publica, así que una
+ * consulta rota ya no puede volver a esconderse detrás de un cero.
+ */
+async function getSupabaseData(): Promise<{ rows: FactRow[]; falla: string | null }> {
   const { data: cuentas, error } = await supabaseAdmin
     .from('cuentas')
-    .select('cid, empresa, asesor, estado, facturacion, factura_mensual_zoho, health_score, tamano_empresa, activo_desde, dias_como_cliente')
+    .select('cid, empresa, asesor, estado, facturacion, health_score, tamano_empresa, activo_desde, dias_como_cliente')
     .in('estado', ['activo', 'en_riesgo', 'hibernacion'])
     .order('facturacion', { ascending: false })
 
-  if (error || !cuentas) return []
+  if (error) {
+    return { rows: [], falla: `El respaldo de Supabase falló: ${error.message}` }
+  }
+  if (!cuentas) {
+    return { rows: [], falla: 'El respaldo de Supabase no devolvió filas ni error.' }
+  }
 
-  return cuentas.map(c => {
-    const mrr = (c.factura_mensual_zoho ?? c.facturacion ?? 0) as number
+  const rows = cuentas.map(c => {
+    /* `cuentas.facturacion`, que es lo que hay en la base. NO es el importe
+       oficial de la cartera —ése se arma en `lib/facturacion-cuenta.ts` sumando
+       las filas del GRC por CID— y este módulo tiene su propia semántica de LTV,
+       así que no se mezcla aquí. Lo que ya no se hace es preferir un campo
+       inexistente por delante. */
+    const mrr = (c.facturacion ?? 0) as number
     const hs  = (c.health_score ?? 50) as number
     const dias = (c.dias_como_cliente ?? 0) as number
 
@@ -170,20 +198,29 @@ async function getSupabaseData(): Promise<FactRow[]> {
       'Correo':                     '',
     } satisfies FactRow
   })
+
+  return { rows, falla: null }
 }
 
-async function getData(): Promise<{ rows: FactRow[]; source: 'zoho' | 'supabase' | 'empty' }> {
+async function getData(): Promise<{
+  rows: FactRow[]
+  source: 'zoho' | 'supabase' | 'empty'
+  /** Por qué no hay datos, cuando no hay. `source: 'empty'` por sí solo no
+   *  distingue «el respaldo contestó y no hay filas» de «el respaldo está
+   *  roto», y esa diferencia es la que decide a quién se le pregunta. */
+  falla: string | null
+}> {
   if (isZohoConfigured()) {
     try {
       const rows = await getZohoData()
-      return { rows, source: 'zoho' }
+      return { rows, source: 'zoho', falla: null }
     } catch (err) {
       console.error('[facturacion] Zoho error (fallback a Supabase):', err)
     }
   }
   // Fallback: usar datos de Supabase
-  const rows = await getSupabaseData()
-  return { rows, source: rows.length > 0 ? 'supabase' : 'empty' }
+  const { rows, falla } = await getSupabaseData()
+  return { rows, source: rows.length > 0 ? 'supabase' : 'empty', falla }
 }
 
 function normalize(s: string) {
@@ -212,11 +249,13 @@ export async function GET(req: NextRequest) {
 
   let rows: FactRow[] = []
   let source = 'empty'
+  let falla: string | null = null
 
   try {
     const result = await getData()
     rows = result.rows
     source = result.source
+    falla = result.falla
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     return NextResponse.json({ error: msg, periodos: [], rows: [] }, { status: 200 })
@@ -224,7 +263,7 @@ export async function GET(req: NextRequest) {
 
   /* ── MODO: source ─────────────────────────────────────────────── */
   if (mode === 'source') {
-    return NextResponse.json({ source, zohoConfigured: isZohoConfigured(), rows: rows.length })
+    return NextResponse.json({ source, zohoConfigured: isZohoConfigured(), rows: rows.length, falla })
   }
 
   /* ── MODO: filters ── valores únicos para los dropdowns ──────── */
@@ -237,7 +276,7 @@ export async function GET(req: NextRequest) {
       segmentos: uniq('Segmento Factura'),
       tamanos:   uniq('Tamaño Empresa'),
       semaforos: uniq('Semáforo Actividad'),
-      source,
+      source, falla,
     })
   }
 
@@ -335,7 +374,7 @@ export async function GET(req: NextRequest) {
       activos, dormidos, onTimers,
       bySegmento, byLTV, byRango, bySemaforo,
       topClientes,
-      source,
+      source, falla,
     })
   }
 
@@ -572,7 +611,7 @@ export async function GET(req: NextRequest) {
       mrrGrupo: Math.round(mrrGrupo),
       mesReciente,                    // informativo: mes de la factura más reciente del grupo
       subCuentas: found.length,
-      source,
+      source, falla,
     })
   }
 

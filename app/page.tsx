@@ -103,11 +103,31 @@ function computeFaltantes(c: Cuenta): string[] {
   return faltantes
 }
 
-// Días desde el último contacto registrado. null = nunca se registró uno.
+/**
+ * Días desde que HABLAMOS con el cliente. `null` = nunca se registró uno.
+ *
+ * ERA LA TERCERA DEFINICIÓN DE CONTACTO, Y LA FLOJA (arreglado el 7 oct 2026).
+ *
+ * Esto calculaba el número aquí, a partir de `c.ultimo_contacto`. Dos problemas,
+ * los dos medidos:
+ *
+ *   · `ultimo_contacto` es la definición AMPLIA: la fecha mayor entre la columna
+ *     guardada y cualquier renglón del historial. Y esa columna se escribe al
+ *     cerrar CUALQUIER actividad, incluida una `validacion` interna — 49 cuentas
+ *     con $242,425 parecían contactadas sin un solo contacto por canal real.
+ *   · `new Date(...)` más `Date.now()` en un componente de servidor: Vercel va en
+ *     UTC y México seis horas atrás. Ver [[feedback-fechas-zona-mexico]].
+ *
+ * Por eso Sección Amarilla salía con 36 días aquí y 97 en el reloj de alertas:
+ * son los dos números del §ANO-04 del Prompt Maestro, y venían de dos
+ * definiciones distintas de la misma palabra.
+ *
+ * `getCuentas` ya resuelve `dias_sin_contacto` con la definición ÚNICA de
+ * `lib/contacto-cuenta.ts` —sólo llamada, correo, WhatsApp, reunión, visita y
+ * videollamada—, así que aquí sólo se lee. No se recalcula nada.
+ */
 function diasSinContactoDe(c: Cuenta): number | null {
-  return c.ultimo_contacto
-    ? Math.floor((Date.now() - new Date(c.ultimo_contacto).getTime()) / 86400000)
-    : null
+  return c.dias_sin_contacto ?? null
 }
 
 const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
