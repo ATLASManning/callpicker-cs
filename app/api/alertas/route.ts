@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { detectarAlertas, UMBRALES } from '@/lib/alertas-detectar'
 import { resumir } from '@/lib/alertas'
 import { mapaFacturacion } from '@/lib/facturacion-cuenta'
+import { sincronizarEpisodios } from '@/lib/alertas-episodios'
 
 /**
  * GET /api/alertas — las alertas de cliente de la cartera viva.
@@ -44,6 +45,21 @@ export async function GET(req: NextRequest) {
     const todas = await detectarAlertas(asesor ? { asesor } : undefined)
     const resumen = resumir(todas)
 
+    /* La memoria de las alertas. Una corrida acotada a una cartera NO puede
+       cerrar: cerraría como «remitidas» las alertas de los otros dos ejecutivos
+       por el solo hecho de no estar en la consulta. */
+    const episodios = await sincronizarEpisodios(todas, {
+      alcance: asesor ? 'parcial' : 'completo',
+    })
+    for (const a of todas) {
+      const ant = episodios.antiguedad.get(a.id)
+      if (ant) {
+        a.diasAbierta = ant.dias
+        a.nueva = ant.nueva
+        a.recurrencia = ant.recurrencia
+      }
+    }
+
     let filtradas = todas
     const familia = sp.get('familia')
     const severidad = sp.get('severidad')
@@ -61,9 +77,15 @@ export async function GET(req: NextRequest) {
       filtradas: filtradas.length,
       resumen,
       umbrales: UMBRALES,
-      /* El estado del respaldo de importes. Si el GRC no carga, las cuentas sin
-         `facturacion` salen en cero y eso se confunde con un hallazgo. Aquí se
-         puede ver de un vistazo si la fuente está viva. */
+      /* El estado de la MEMORIA. Si la antigüedad no se está midiendo hay que
+         poder verlo de un vistazo, no deducirlo de que todo diga 0. */
+      episodios: {
+        abiertos: episodios.abiertos, detectados: episodios.detectados,
+        nuevos: episodios.nuevos, cerrados: episodios.cerrados,
+        sinCerrar: episodios.sinCerrar, falla: episodios.falla,
+      },
+      /* El estado del respaldo de IMPORTES. Si el GRC no carga, las cuentas sin
+         `facturacion` salen en cero y eso se confunde con un hallazgo. */
       facturacion: await (async () => {
         const m = await mapaFacturacion()
         return { cid: m.porCid.size, mes: m.mes, falla: m.falla }

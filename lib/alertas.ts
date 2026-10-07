@@ -305,6 +305,34 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
   },
 }
 
+/**
+ * EL GRUPO DE ESCALAMIENTO de cada tipo. Es la llave de los episodios.
+ *
+ * Sale de la estructura del detector, no de una agrupación temática: dentro de
+ * cada grupo los tipos están en un ÚNICO `if/else`, o sea que son mutuamente
+ * excluyentes. Por eso pasar de uno a otro es la misma historia empeorando y no
+ * una alerta nueva — `silencio_30 → silencio_60` y `uso_bajo → consumo_cero`
+ * son el mismo episodio, y con el tipo como llave se habría dado por cerrado el
+ * día que empeoró.
+ *
+ * Los siete valores están replicados en el CHECK de `alertas_episodios`. Si se
+ * agrega un tipo aquí hay que mirarlos los dos.
+ */
+export type Condicion =
+  | 'medicion' | 'consumo' | 'contacto' | 'radar' | 'contactos' | 'ficha' | 'trabajo'
+
+export const CONDICION: Record<TipoAlerta, Condicion> = {
+  sin_consumo_medible: 'medicion',
+  caida_consumo: 'consumo', desplome_consumo: 'consumo',
+  consumo_cero: 'consumo', uso_bajo: 'consumo', rebasa_bolsa: 'consumo',
+  nunca_contactada: 'contacto', sin_interlocutor: 'contacto',
+  silencio_60: 'contacto', silencio_30: 'contacto',
+  sin_radar: 'radar',
+  sin_contactos: 'contactos',
+  sin_ficha: 'ficha',
+  asignada_sin_cerrar: 'trabajo', nunca_asignada: 'trabajo',
+}
+
 /** Para ordenar. La ceguera pesa como el riesgo: una cuenta que no se ve es peor. */
 export const PESO_SEVERIDAD: Record<Severidad, number> = {
   critica: 1000, alta: 300, media: 80, oportunidad: 40,
@@ -352,6 +380,20 @@ export interface Alerta {
   /** Días que lleva la condición, cuando se puede saber. */
   dias: number | null
   prioridad: number
+
+  /* ── Lo que aporta la memoria de episodios ─────────────────────────────
+   * Los rellena `sincronizarEpisodios` y son OPCIONALES a propósito: si la
+   * tabla no existe o falla, se quedan en `undefined` y la pantalla dice que
+   * la antigüedad no se está midiendo. Un 0 ahí significaría «acaba de
+   * empezar» sobre una cuenta que lleva meses.
+   *
+   * OJO con `dias`, que ya existía y significa OTRA cosa: días sin contacto.
+   * Por eso la antigüedad se llama `diasAbierta` y en pantalla se rotulan
+   * distinto — «60 días sin contacto» y «abierta hace 74 días» no son lo
+   * mismo, y en la misma fila conviven. */
+  diasAbierta?: number | null
+  nueva?: boolean
+  recurrencia?: number
 }
 
 /**
