@@ -212,7 +212,12 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                   <th style={{ ...th, textAlign: 'left' }}>Destino</th>
                   <th style={th}>Sin contestar</th>
-                  <th style={th}>Contestadas</th>
+                  {/* «No perdidas», NO «Contestadas»: por destino el archivo
+                      guarda un solo número —todo lo que no fue `Lost`—, así que
+                      ahí van también las del menú y las del buzón. La barra de
+                      arriba sí parte los cuatro desenlaces y su tooltip los
+                      nombra. Ver el mismo arreglo en /analisis-llamadas. */}
+                  <th style={th}>No perdidas</th>
                   <th style={th}>Números</th>
                 </tr>
               </thead>

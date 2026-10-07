@@ -110,7 +110,8 @@ def nueva():
                 'meses': collections.defaultdict(collections.Counter),
                 'dow': collections.Counter(), 'dowL': collections.Counter(),
                 'hora': collections.Counter(), 'horaL': collections.Counter(),
-                'dest': collections.defaultdict(lambda: {'l': 0, 'c': 0, 'm': 0.0, 'n': set()}),
+                'dest': collections.defaultdict(lambda: {'l': 0, 'c': 0, 'm': 0.0, 'n': set(),
+                                                           'redir': 0, 'ivr': 0, 'buzon': 0}),
                 'desde': None, 'hasta': None, 'sinCol': 0},
         'sal': {'total': 0, 'noCon': 0, 'meses': collections.defaultdict(collections.Counter),
                 'desde': None, 'hasta': None},
@@ -177,6 +178,15 @@ for arch, dire, corte in FUENTES:
                     d['lostSinNum'] += 1
             else:
                 dd['c'] += 1
+                # Mismo desglose que en gen-analisis-llamadas.py, y por el mismo
+                # motivo: `c` es «todo lo que no fue Lost» y mete el buzón dentro
+                # de lo que la ficha rotulaba «Contestadas». Ver ahí el detalle.
+                if t == 'Voicemail':
+                    dd['buzon'] += 1
+                elif t == 'Self_service':
+                    dd['ivr'] += 1
+                else:
+                    dd['redir'] += 1
             if mes:
                 d['meses'][mes][t] += 1
                 d['meses'][mes]['total'] += 1
@@ -241,15 +251,18 @@ for cid in sorted(DATOS):
         for especial in (SIN_DESTINO, NO_EXPORTADO):
             x = e['dest'].get(especial)
             if x and x['l'] > 0:
-                dest.append({'d': especial, 'l': x['l'], 'c': x['c'], 'min': round(x['m']), 'n': len(x['n'])})
+                dest.append({'d': especial, 'l': x['l'], 'c': x['c'], 'min': round(x['m']),
+                             'n': len(x['n']), 'redir': x['redir'], 'ivr': x['ivr'], 'buzon': x['buzon']})
         conNombre = [(d, x) for d, x in ordenados if d not in (SIN_DESTINO, NO_EXPORTADO) and x['l'] > 0]
         for d, x in conNombre[:TOP_DESTINOS]:
-            dest.append({'d': d, 'l': x['l'], 'c': x['c'], 'min': round(x['m']), 'n': len(x['n'])})
+            dest.append({'d': d, 'l': x['l'], 'c': x['c'], 'min': round(x['m']),
+                         'n': len(x['n']), 'redir': x['redir'], 'ivr': x['ivr'], 'buzon': x['buzon']})
         resto = conNombre[TOP_DESTINOS:]
         if resto:
             dest.append({'d': 'otros destinos', 'l': sum(x['l'] for _, x in resto),
                          'c': sum(x['c'] for _, x in resto),
-                         'min': round(sum(x['m'] for _, x in resto)), 'n': -1, 'otros': len(resto)})
+                         'min': round(sum(x['m'] for _, x in resto)), 'n': -1,
+                         'redir': sum(x['redir'] for _, x in resto), 'ivr': sum(x['ivr'] for _, x in resto), 'buzon': sum(x['buzon'] for _, x in resto), 'otros': len(resto)})
         assert sum(x['l'] for x in dest) == e['lost'], 'destinos no cierran en CID %s' % cid
 
     me = {m: {'t': mv['total'], 'l': mv.get('Lost', 0), 'r': mv.get('Redirected', 0),

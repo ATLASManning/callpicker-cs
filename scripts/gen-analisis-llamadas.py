@@ -84,7 +84,8 @@ def nueva():
                 'meses': collections.defaultdict(collections.Counter),
                 'dh': collections.Counter(), 'dhL': collections.Counter(),
                 'dia': collections.Counter(), 'diaL': collections.Counter(),
-                'dest': collections.defaultdict(lambda: {'l': 0, 'c': 0, 'm': 0.0, 'n': set()}),
+                'dest': collections.defaultdict(lambda: {'l': 0, 'c': 0, 'm': 0.0, 'n': set(),
+                                                           'redir': 0, 'ivr': 0, 'buzon': 0}),
                 'desde': None, 'hasta': None, 'sinCol': 0},
         'sal': {'tipos': collections.Counter(),
                 'meses': collections.defaultdict(collections.Counter),
@@ -162,6 +163,26 @@ for arch, dire, corte in FUENTES:
                     dd['n'].add(num)
             else:
                 dd['c'] += 1
+                # El desglose DENTRO de «no perdidas», que hasta el 7 oct 2026
+                # no se guardaba. Sin esto la tabla por destino sólo puede decir
+                # «todo lo que no fue Lost» y ahí van juntas la que atendió una
+                # persona, la que resolvió el menú y la que cayó al buzón.
+                #
+                # Lo del menú estaba declarado al pie de la pantalla; el buzón
+                # no estaba declarado en ninguna parte, y es literalmente lo que
+                # describió Daniel: «que te entre el buzón de voz y en
+                # Callpicker aparezcan todas contestadas». Son 25,429 llamadas,
+                # el 1.0% de las entrantes.
+                #
+                # Mientras no se regenere, los dos tableros rotulan la columna
+                # «No perdidas», que es verdad con el dato viejo. Con estos
+                # campos puede volver a llamarse «Atendidas» y ser cierto.
+                if t == 'Voicemail':
+                    dd['buzon'] += 1
+                elif t == 'Self_service':
+                    dd['ivr'] += 1
+                else:
+                    dd['redir'] += 1
     wb.close()
     print('    %s filas' % format(n, ','))
 
@@ -199,13 +220,13 @@ def destinos_de(e):
         x = e['dest'].get(especial)
         if x:
             dest.append({'d': especial, 'l': x['l'], 'c': x['c'],
-                         'min': round(x['m']), 'n': len(x['n'])})
+                         'min': round(x['m']), 'n': len(x['n']), 'redir': x['redir'], 'ivr': x['ivr'], 'buzon': x['buzon']})
             vistos.add(especial)
     conNombre = sorted(((d, x) for d, x in e['dest'].items() if d not in vistos),
                        key=lambda p: -p[1]['l'])
     for d, x in conNombre[:TOP_DESTINOS]:
         dest.append({'d': d, 'l': x['l'], 'c': x['c'],
-                     'min': round(x['m']), 'n': len(x['n'])})
+                     'min': round(x['m']), 'n': len(x['n']), 'redir': x['redir'], 'ivr': x['ivr'], 'buzon': x['buzon']})
     resto = conNombre[TOP_DESTINOS:]
     if resto:
         # n va en -1 a propósito: son conjuntos de números DISTINTOS por cada
@@ -216,6 +237,7 @@ def destinos_de(e):
                      'l': sum(x['l'] for _, x in resto),
                      'c': sum(x['c'] for _, x in resto),
                      'min': round(sum(x['m'] for _, x in resto)),
+                     'redir': sum(x['redir'] for _, x in resto), 'ivr': sum(x['ivr'] for _, x in resto), 'buzon': sum(x['buzon'] for _, x in resto), 
                      'n': -1, 'otros': len(resto)})
     return dest
 

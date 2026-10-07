@@ -254,7 +254,19 @@ export default function AnalisisLlamadas() {
                   entre renglones —un mismo teléfono perdido en dos destinos cuenta en los dos— y no son personas:
                   una línea puede ser un conmutador con cien empleados detrás.
                 </p>
-                <Tabla cabeceras={['Destino', 'Sin contestar', 'Contestadas', 'Números']}
+                {/* «No perdidas», NO «Contestadas». La cifra por destino es
+                    todo lo que no fue `Lost`, así que lleva dentro las que
+                    resolvió el menú y las que cayeron al buzón. Lo del menú ya
+                    se declaraba en el pie; el buzón no se declaraba en ningún
+                    lado, y es exactamente lo que Daniel describió el 6 de
+                    octubre: «que te entre el buzón de voz y en Callpicker
+                    aparezcan todas contestadas». Son 25,429 llamadas, el 1.0%
+                    de las entrantes — pequeño, pero una columna que se llama
+                    «Contestadas» y mete el buzón miente sobre lo único que esa
+                    columna promete. La gráfica de arriba sí parte los cuatro
+                    desenlaces; esta tabla no puede, porque el agregado guarda
+                    un solo número por destino. */}
+                <Tabla cabeceras={['Destino', 'Sin contestar', 'No perdidas', 'Números']}
                   filas={d.destinos.map(x => [
                     x.d === 'otros destinos' && x.otros ? `otros destinos (${nf(x.otros)})` : x.d,
                     nf(x.l), nf(x.c), x.n > 0 ? nf(x.n) : '—',
@@ -319,8 +331,10 @@ export default function AnalisisLlamadas() {
           <p style={{ fontSize: 10, color: '#64748B', lineHeight: 1.7, marginTop: 16 }}>
             Dos entregas con criterio distinto y cero CIDs en común: clientes con consumo de 0 a 40% de su plan
             y el resto de la cartera medida. Juntas cubren {m.cuentas} de las 219 cuentas con asesor y CID.
-            «Sin contestar» = entró la llamada y ninguna extensión la tomó; las que resolvió el menú (Self_service)
-            cuentan como atendidas. Entrantes y salientes miden cosas distintas y nunca se suman: las salientes
+            «Sin contestar» = entró la llamada y ninguna extensión la tomó. En la tabla de destinos la columna
+            «No perdidas» es todo lo demás: incluye las que resolvió el menú (Self_service) y las que cayeron al
+            buzón (Voicemail), porque el archivo guarda un solo número por destino. La gráfica de arriba sí separa
+            los cuatro desenlaces. Entrantes y salientes miden cosas distintas y nunca se suman: las salientes
             se leen como «% que conectó». Lo medido son llamadas y números distintos, nunca personas.
             {m.sinCol > 0 && ` ${nf(m.sinCol)} entrantes (${(100 * m.sinCol / m.entTotal).toFixed(0)}%) vienen de una parte del archivo sin columna de destino: de esas no se sabe a dónde entraron, que no es lo mismo que no haber llegado a ninguna extensión.`}
             {' '}Corte del archivo: {fechaCorta(m.corte)}.

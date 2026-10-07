@@ -146,8 +146,9 @@ def punto(clave, titulo, afectadas, pregunta, quien, medible=True, nota='',
 # tomara. Es LITERALMENTE lo que teme Daniel.
 llam = jload('data/analisis-llamadas.json')
 lcu = llam.get('cuentas') or {}
-conLectura, redirigidas, buzon = [], 0, 0
+conLectura = []
 tipos = collections.Counter()
+totMin = 0.0
 for c in vivas:
     cid = str(c.get('cid') or '').strip()
     d = lcu.get(cid)
@@ -157,27 +158,43 @@ for c in vivas:
     t = d['ent'].get('tipos') or {}
     for k, v in t.items():
         tipos[k] += v
-    redirigidas += t.get('Redirected', 0)
-    buzon += t.get('Voicemail', 0)
+    totMin += sum(float(x.get('min') or 0) for x in (d['ent'].get('dest') or []))
 
-punto('contestada', 'No existe «contestada»: sólo «enrutada»', conLectura,
-      '¿Puede el export marcar si una llamada enrutada la tomó una persona, '
-      'o si timbró y nadie la atendió?',
+# CORREGIDO el 7 oct 2026, y la correccion es el hallazgo.
+#
+# Lo primero que escribi aqui fue que no existe cubeta «contestada» y que las
+# 1,683,879 enrutadas cuentan como atendidas «por descarte y no por medicion».
+# Es FALSO, y lo desmiente una memoria propia de la fuente: `Redirected` esta
+# verificado como contestada —el 99.4% trae minutos > 0, medido sobre el
+# archivo detallado—. Confundi dos fuentes de llamadas distintas y por poco se
+# va al documento de los fundadores.
+#
+# Lo que si hay, y es peor, no es un hueco de la plataforma: es NUESTRO. En el
+# agregado que consume el tablero, el campo `c` de cada destino se calcula como
+# todo lo que no fue `Lost`, asi que dentro van `Self_service` (el IVR, cero
+# minutos) y `Voicemail` (el buzon). La columna de `/analisis-llamadas` rotulada
+# «Contestadas» publica esa cifra. Son 392,794 llamadas que nadie tomo contadas
+# como atendidas — 18.9% de las «contestadas».
+#
+# O sea la frase de Daniel, literal: «que te entre el buzon de voz y en
+# Callpicker aparezcan todas contestadas». Tenia razon, y no habia que pedirselo
+# a nadie. Por eso ya no hay fila de wishlist por esto: hay un arreglo.
+#
+# Lo que SI falta de la plataforma es el tiempo de TIMBRADO. `total_minutes` es
+# tiempo de conversacion y si viene; lo que no existe es cuanto espero el cliente
+# antes de que alguien tomara la llamada, que es la mitad de la pregunta de
+# eficiencia.
+punto('timbrado', 'No se sabe cuánto espera el cliente antes de que contesten',
+      conLectura,
+      '¿Puede el export traer el tiempo de timbrado por llamada —cuánto sonó '
+      'antes de que la tomaran o se perdiera—, aunque sea promediado por mes?',
       'Plataforma Callpicker',
-      sustituto='Se usa «Lost» como no contestada. Sirve para la llamada que '
-                'nunca se enrutó, no para la que se enrutó y nadie tomó.',
-      nota='%s llamadas enrutadas en la cartera viva. Hoy todas cuentan como '
-           'atendidas porque el archivo no ofrece otra lectura.'
-           % format(redirigidas, ','))
-
-punto('duracion', 'Ninguna llamada trae duración', conLectura,
-      '¿Puede el export traer duración de conversación y tiempo de timbrado '
-      'por llamada, o al menos el promedio por cuenta y mes?',
-      'Plataforma Callpicker',
-      sustituto='El reparto por día y hora, que dice CUÁNDO se pierden las '
-                'llamadas pero no cuánto duran las que sí se toman.',
-      nota='Sin duración no hay tiempo de atención, ni abandono, ni la caída '
-           'de eficiencia que pide medir dirección: sólo conteos.')
+      sustituto='Los minutos de conversación, que sí vienen (%s minutos '
+                'entrantes, 2.49 por llamada atendida). Dicen cuánto se habló, '
+                'nunca cuánto se esperó.' % format(totMin, ',.0f'),
+      nota='Sin timbrado no hay tiempo de espera ni abandono, que es justo la '
+           'eficiencia que dirección pide poder ver caer. Los conteos por día y '
+           'hora dicen CUÁNDO se pierden, no cuánto aguantó quien llamó.')
 
 sinLectura = [c for c in vivas if c not in conLectura]
 punto('sin_llamadas', 'Cuentas sin ninguna lectura de llamadas', sinLectura,

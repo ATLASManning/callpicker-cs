@@ -70,29 +70,16 @@
    "pctCartera": 100.0
   },
   {
-   "clave": "contestada",
-   "titulo": "No existe «contestada»: sólo «enrutada»",
+   "clave": "timbrado",
+   "titulo": "No se sabe cuánto espera el cliente antes de que contesten",
    "cuentas": 147,
    "mrr": 1578937.42,
    "sinImporte": 0,
-   "pregunta": "¿Puede el export marcar si una llamada enrutada la tomó una persona, o si timbró y nadie la atendió?",
+   "pregunta": "¿Puede el export traer el tiempo de timbrado por llamada —cuánto sonó antes de que la tomaran o se perdiera—, aunque sea promediado por mes?",
    "quien": "Plataforma Callpicker",
    "medible": true,
-   "nota": "1,683,702 llamadas enrutadas en la cartera viva. Hoy todas cuentan como atendidas porque el archivo no ofrece otra lectura.",
-   "sustituto": "Se usa «Lost» como no contestada. Sirve para la llamada que nunca se enrutó, no para la que se enrutó y nadie tomó.",
-   "pctCartera": 71.10996672119818
-  },
-  {
-   "clave": "duracion",
-   "titulo": "Ninguna llamada trae duración",
-   "cuentas": 147,
-   "mrr": 1578937.42,
-   "sinImporte": 0,
-   "pregunta": "¿Puede el export traer duración de conversación y tiempo de timbrado por llamada, o al menos el promedio por cuenta y mes?",
-   "quien": "Plataforma Callpicker",
-   "medible": true,
-   "nota": "Sin duración no hay tiempo de atención, ni abandono, ni la caída de eficiencia que pide medir dirección: sólo conteos.",
-   "sustituto": "El reparto por día y hora, que dice CUÁNDO se pierden las llamadas pero no cuánto duran las que sí se toman.",
+   "nota": "Sin timbrado no hay tiempo de espera ni abandono, que es justo la eficiencia que dirección pide poder ver caer. Los conteos por día y hora dicen CUÁNDO se pierden, no cuánto aguantó quien llamó.",
+   "sustituto": "Los minutos de conversación, que sí vienen (5,178,088 minutos entrantes, 2.49 por llamada atendida). Dicen cuánto se habló, nunca cuánto se esperó.",
    "pctCartera": 71.10996672119818
   },
   {
