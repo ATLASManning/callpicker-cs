@@ -36,6 +36,8 @@ import openpyxl
 # El mismo helper lo usa gen-analisis-llamadas.py: los dos paneles tienen que
 # decir lo mismo del mismo destino.
 from _texto_roto import arregla, reporte as reporteTexto
+# `ruta()` ABORTA si falta la fuente. Ver scripts/_fuentes.py.
+from _fuentes import ruta
 
 ARCH = r"D:\Archivos"
 SALIDA = r"D:\Windows\Projects\callpicker-cs\app\cuentas\llamadas-data.ts"
@@ -121,11 +123,10 @@ def nueva():
 DATOS = collections.defaultdict(nueva)
 
 for arch, dire, corte in FUENTES:
-    ruta = os.path.join(ARCH, arch)
-    if not os.path.exists(ruta):
-        print('!! FALTA: %s' % arch)
-        continue
-    wb = openpyxl.load_workbook(ruta, data_only=True, read_only=True)
+    # `ruta()` ABORTA si falta. Ver el motivo en gen-analisis-llamadas.py: un
+    # `continue` silencioso aqui produce una salida completa y vacia.
+    camino = ruta(arch)
+    wb = openpyxl.load_workbook(camino, data_only=True, read_only=True)
     ws = wb[wb.sheetnames[0]]
     it = ws.iter_rows(values_only=True)
     cab = [str(c).strip() if c is not None else '' for c in next(it)]

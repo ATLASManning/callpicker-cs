@@ -29,6 +29,10 @@ import openpyxl
 # El mismo helper lo usa gen-llamadas-data.py: los dos paneles tienen que decir
 # lo mismo del mismo destino.
 from _texto_roto import arregla, reporte as reporteTexto
+# `ruta()` ABORTA si no encuentra la fuente. Antes esto era un `print` más un
+# `continue`, y así el generador emitía una salida completa construida con cero
+# filas cuando movieron la carpeta. El motivo largo está en scripts/_fuentes.py.
+from _fuentes import ruta
 
 ARCH = r"D:\Archivos"
 SALIDA = r"D:\Windows\Projects\callpicker-cs\data\analisis-llamadas.json"
@@ -98,14 +102,16 @@ def nueva():
 D = collections.defaultdict(nueva)
 
 for arch, dire, corte in FUENTES:
-    ruta = os.path.join(ARCH, arch)
-    if not os.path.exists(ruta):
-        print('!! FALTA %s' % arch)
-        continue
+    # `ruta()` ABORTA si no encuentra el archivo. Antes esto era un `continue`
+    # con un aviso impreso, y eso es la peor combinacion posible: al moverse las
+    # fuentes a una subcarpeta el generador habria emitido un JSON construido con
+    # cero filas, con su `meta` y su fecha, sin fallar. Un tablero leyendo eso
+    # publica cero llamadas en toda la cartera y lo lee como hallazgo.
+    camino = ruta(arch)
     if arch == 'Salientes Mayor consumo 40 Parte 2.xlsx':
         print('-- omitida (copia exacta de la Parte 1) %s' % arch)
         continue
-    wb = openpyxl.load_workbook(ruta, data_only=True, read_only=True)
+    wb = openpyxl.load_workbook(camino, data_only=True, read_only=True)
     ws = wb[wb.sheetnames[0]]
     it = ws.iter_rows(values_only=True)
     cab = [str(c).strip() if c is not None else '' for c in next(it)]

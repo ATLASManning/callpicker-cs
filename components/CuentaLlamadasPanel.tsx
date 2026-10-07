@@ -238,6 +238,26 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
           <p style={{ ...nota, marginTop: 5 }}>
             Nombres tal como los tiene configurados el cliente. El archivo no dice qué hay detrás de
             cada uno — por eso no se clasifica ninguno.
+            {/* ESTA TABLA NO CIERRA, Y A PROPOSITO. Se listan solo los destinos
+                con al menos una perdida, porque de eso trata: «a dónde se fueron
+                las no contestadas». La columna «Sin contestar» SI suma el total
+                de la cuenta; «No perdidas» no suma nada, le faltan los destinos
+                que nunca perdieron una llamada — 48,885 en la cartera, el 2.4%.
+                Medido al regenerar el 7 oct 2026.
+
+                Está escrito abajo en vez de quitar la columna porque el dato
+                sirve para juzgar un destino: perder 500 contestando 10 no es lo
+                mismo que perder 500 contestando 50,000. Lo que no vale es
+                dejarla pareciendo un total. Ver
+                [[feedback-tablas-deben-cerrar]]. */}
+            {' '}Solo salen los destinos con alguna perdida: «Sin contestar» suma el total de la
+            cuenta, «No perdidas»{' '}
+            {/* El color va en el <span> con su propio `background`, no en el
+                <strong>: globals.css pinta de blanco todo <strong> que no lo
+                declare. Ver [[atlas-dashboard-contrast-architecture]]. */}
+            <span style={{ color: '#CBD5E1', background: 'transparent', fontWeight: 700 }}>
+              no es un total
+            </span>{' '}— faltan los destinos que nunca perdieron una llamada.
             {/* Distinguir «no llegó a ninguna extensión» de «la columna no venía en el archivo»
                 es la diferencia entre un hallazgo de configuración y un hueco de exportación. */}
             {d.ent && d.ent.sinCol > 0 && (
