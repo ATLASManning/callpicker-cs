@@ -356,6 +356,20 @@ export default function PanelAlertas({
                       {ETIQUETA_DUENO_CORTA[a.dueno]}
                     </span>
                   )}
+                  {/* La ANTIGÜEDAD del episodio, que no es lo mismo que `a.dias`
+                      —ésos son días SIN CONTACTO—. Por eso se rotulan distinto
+                      y pueden convivir en la misma fila. */}
+                  {a.nueva && (
+                    <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.04em',
+                                   padding: '1px 6px', borderRadius: 4, color: '#052e16',
+                                   background: '#4ADE80' }}>NUEVA</span>
+                  )}
+                  {!a.nueva && typeof a.diasAbierta === 'number' && (
+                    <span style={{ background: 'transparent', fontSize: 10.5,
+                                   fontWeight: 700, color: '#FB923C' }}>
+                      abierta hace {a.diasAbierta} d
+                    </span>
+                  )}
                   <span style={{ background: 'transparent', fontSize: 11.5, fontWeight: 700,
                                  color: '#FBBF24', marginLeft: 'auto' }}>
                     {pesos(a.mrr)}<C c={TX_LOW}>/mes</C>

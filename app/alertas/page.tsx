@@ -357,12 +357,34 @@ export default async function AlertasPage({
                               )}
                               {ETIQUETA_DUENO[a.dueno]}
                             </span>
-                            {a.dias !== null && (
-                              <span style={{ background: 'transparent', fontSize: 10.5,
-                                             color: TX_LOW }}>
-                                {a.dias} días
+                            {/* Antigüedad del episodio. `a.dias` es otra cosa
+                                —días sin contacto— y por eso van con rótulos
+                                distintos aunque caigan juntas. */}
+                            {a.nueva && (
+                              <span style={{ fontSize: 9, fontWeight: 800,
+                                             padding: '1px 6px', borderRadius: 4,
+                                             color: '#052e16', background: '#4ADE80' }}>
+                                NUEVA
                               </span>
                             )}
+                            {!a.nueva && typeof a.diasAbierta === 'number' && (
+                              <span style={{ background: 'transparent', fontSize: 10.5,
+                                             fontWeight: 700, color: '#FB923C' }}>
+                                abierta hace {a.diasAbierta} d
+                              </span>
+                            )}
+                            {(a.recurrencia ?? 0) > 0 && (
+                              <span style={{ background: 'transparent', fontSize: 10.5,
+                                             color: TX_LOW }}>
+                                {a.recurrencia}.ª vez
+                              </span>
+                            )}
+                            {/* El `{a.dias} días` suelto que había aquí se
+                                retiró: al lado de «abierta hace N d» eran dos
+                                números parecidos midiendo cosas distintas, y
+                                la evidencia de abajo ya lo dice con precisión
+                                —«último contacto que llegó al cliente: X, hace
+                                N días»—. Un dato repetido y ambiguo resta. */}
                           </div>
                           <p style={{ fontSize: 11.5, margin: '0 0 2px', lineHeight: 1.45 }}>
                             <C c={TX_MID}>{a.evidencia}</C>
