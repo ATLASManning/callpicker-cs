@@ -56,6 +56,10 @@ interface FilaGrc { cid?: string | number | null; mrrFin?: number | null; agrupa
 export interface MapaFacturacion {
   porCid: Map<string, { mrr: number; filas: number; agrupadas: number }>
   mes: string
+  /** Por qué el mapa salió vacío, cuando salió vacío. Un respaldo que no
+   *  carga tiene que DECIRLO: si no, cada cuenta sin importe parece una cuenta
+   *  sin dato, y el fallo se confunde con el hallazgo. */
+  falla: string | null
 }
 
 /* El archivo no cambia entre peticiones y leerlo cuesta; se cachea igual que
@@ -69,12 +73,27 @@ const CACHE_TTL = 5 * 60 * 1000
 async function leer(): Promise<MapaFacturacion> {
   const porCid = new Map<string, { mrr: number; filas: number; agrupadas: number }>()
   let mes = ''
+  let falla: string | null = null
   try {
     const path = (await import('path')).default
     const fs = (await import('fs')).default
-    const ruta = path.join(process.cwd(), 'data', 'grc-zoho.json')
-    if (!fs.existsSync(ruta)) {
-      _cache = { porCid, mes }; _cacheTime = Date.now()
+    /* Se prueban las dos raíces. En Vercel, el empaquetado de una ruta no
+       siempre deja `data/` colgando de `process.cwd()`, y un `readFileSync`
+       con ruta armada a mano es justo lo que el trazador de Next no puede
+       seguir. `/api/grc` lee este mismo archivo y lo encuentra, así que el
+       archivo se despliega; lo que cambia es desde dónde se mira. */
+    const candidatas = [
+      path.join(process.cwd(), 'data', 'grc-zoho.json'),
+      path.join(process.cwd(), '.next', 'server', 'data', 'grc-zoho.json'),
+      path.join(__dirname, 'data', 'grc-zoho.json'),
+      path.join(__dirname, '..', 'data', 'grc-zoho.json'),
+      path.join(__dirname, '..', '..', 'data', 'grc-zoho.json'),
+      path.join(__dirname, '..', '..', '..', 'data', 'grc-zoho.json'),
+    ]
+    const ruta = candidatas.find(p => { try { return fs.existsSync(p) } catch { return false } })
+    if (!ruta) {
+      falla = `No se encontró data/grc-zoho.json (cwd=${process.cwd()})`
+      _cache = { porCid, mes, falla }; _cacheTime = Date.now()
       return _cache
     }
     const json = JSON.parse(fs.readFileSync(ruta, 'utf8')) as
@@ -90,11 +109,13 @@ async function leer(): Promise<MapaFacturacion> {
       if (f.agrupada) prev.agrupadas += 1
       porCid.set(cid, prev)
     }
-  } catch {
-    /* Un GRC ilegible no puede tumbar el tablero: se devuelve el mapa vacío y
-       cada cuenta se queda con lo que ya tenía. */
+    if (porCid.size === 0) falla = 'El archivo se leyó pero no trae filas con CID'
+  } catch (e) {
+    /* Un GRC ilegible no puede tumbar el tablero, pero tampoco puede callarse:
+       se devuelve el mapa vacío CON el motivo. */
+    falla = (e as Error)?.message ?? 'error leyendo data/grc-zoho.json'
   }
-  _cache = { porCid, mes }
+  _cache = { porCid, mes, falla }
   _cacheTime = Date.now()
   return _cache
 }

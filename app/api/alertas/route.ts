@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { detectarAlertas, UMBRALES } from '@/lib/alertas-detectar'
 import { resumir } from '@/lib/alertas'
+import { mapaFacturacion } from '@/lib/facturacion-cuenta'
 
 /**
  * GET /api/alertas — las alertas de cliente de la cartera viva.
@@ -60,6 +61,13 @@ export async function GET(req: NextRequest) {
       filtradas: filtradas.length,
       resumen,
       umbrales: UMBRALES,
+      /* El estado del respaldo de importes. Si el GRC no carga, las cuentas sin
+         `facturacion` salen en cero y eso se confunde con un hallazgo. Aquí se
+         puede ver de un vistazo si la fuente está viva. */
+      facturacion: await (async () => {
+        const m = await mapaFacturacion()
+        return { cid: m.porCid.size, mes: m.mes, falla: m.falla }
+      })(),
       generado: new Date().toISOString(),
     })
   } catch (e) {
