@@ -153,6 +153,15 @@ export async function sincronizarEpisodios(
   for (const [k, a] of porLlave) {
     const ep = porId.get(k)
     if (ep) {
+      /* Si ya se confirmó HOY y nada cambió, no se escribe. Sin este corte,
+         cada render de la portada disparaba 607 UPDATE sueltos contra la base
+         —y la portada, /alertas y la API son tres entradas distintas—. El
+         trabajo real es el del primer render del día; el resto es ruido. */
+      const igual = ep.confirmada_el === hoy
+                 && ep.tipo === a.tipo
+                 && ep.severidad_actual === a.severidad
+                 && !ep.ausente_desde
+      if (igual) continue
       confirmar.push({
         id: ep.id,
         tipo: a.tipo,
@@ -265,4 +274,34 @@ export async function sincronizarEpisodios(
     antiguedad, abiertos: abiertos.length, detectados: porLlave.size,
     nuevos: insertar.length, cerrados, sinCerrar, falla: null,
   }
+}
+
+/**
+ * Las alertas YA con su antigüedad. **Es la puerta que deben usar todos.**
+ *
+ * La primera versión conectó la sincronización sólo a `/api/alertas`, y la
+ * portada y `/alertas` siguieron llamando a `detectarAlertas()` por su cuenta
+ * —son componentes de servidor y no pasan por la API—. Resultado: la memoria se
+ * escribía bien y la antigüedad no se veía en ninguna pantalla. Tres entradas,
+ * dos comportamientos.
+ *
+ * `alcance` se deriva aquí y no se pide: una consulta acotada a una cartera es
+ * PARCIAL por definición, y una parcial no cierra nada.
+ */
+export async function alertasConMemoria(
+  detectar: () => Promise<Alerta[]>,
+  opciones?: { asesor?: string },
+): Promise<{ alertas: Alerta[]; memoria: ResultadoSync }> {
+  const alertas = await detectar()
+  const memoria = await sincronizarEpisodios(alertas, {
+    alcance: opciones?.asesor ? 'parcial' : 'completo',
+  })
+  for (const a of alertas) {
+    const ant = memoria.antiguedad.get(a.id)
+    if (!ant) continue
+    a.diasAbierta = ant.dias
+    a.nueva = ant.nueva
+    a.recurrencia = ant.recurrencia
+  }
+  return { alertas, memoria }
 }

@@ -20,6 +20,7 @@ import { resumenLlamadas } from '@/lib/llamadas-resumen'
    3.5 MB de tickets-data.json y el Excel de cortes a esta página. */
 import { SEGUIMIENTOS_POR_SEMANA } from '@/lib/cierre-seguimiento'
 import { detectarAlertas } from '@/lib/alertas-detectar'
+import { alertasConMemoria } from '@/lib/alertas-episodios'
 import { resumir, riesgoPorCuenta } from '@/lib/alertas'
 import { didsDeCuenta } from '@/lib/dids-cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
@@ -1086,8 +1087,8 @@ export default async function DashboardPage() {
        silencio: si una fuente no responde, el panel lo DICE. Un cero aquí se
        leería como «no hay riesgo», que es la mentira más cara que puede contar
        este tablero. Ver [[feedback-cero-sin-medicion]]. */
-    detectarAlertas(soloSuCartera).then(
-      alertas => ({ ok: true as const, alertas }),
+    alertasConMemoria(() => detectarAlertas(soloSuCartera), soloSuCartera).then(
+      ({ alertas }) => ({ ok: true as const, alertas }),
       (e: unknown) => ({ ok: false as const,
                          motivo: (e as Error)?.message || 'una fuente no respondió' })),
   ])

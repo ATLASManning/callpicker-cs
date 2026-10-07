@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { AlertTriangle, ArrowRight, EyeOff, TrendingDown, UserX, Sparkles, Lock } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import { detectarAlertas, UMBRALES } from '@/lib/alertas-detectar'
+import { alertasConMemoria } from '@/lib/alertas-episodios'
 import {
   resumir, ETIQUETA_SEVERIDAD, COLOR_SEVERIDAD, ETIQUETA_FAMILIA, ETIQUETA_DUENO, BLOQUEADA,
   type Alerta, type Familia, type Severidad, type Dueno,
@@ -124,7 +125,11 @@ export default async function AlertasPage({
   let alertas: Alerta[] = []
   let falla: string | null = null
   try {
-    alertas = await detectarAlertas(asesorPedido ? { asesor: asesorPedido } : undefined)
+    const r = await alertasConMemoria(
+      () => detectarAlertas(asesorPedido ? { asesor: asesorPedido } : undefined),
+      asesorPedido ? { asesor: asesorPedido } : undefined,
+    )
+    alertas = r.alertas
   } catch (e) {
     falla = (e as Error)?.message || 'una fuente no respondió'
   }

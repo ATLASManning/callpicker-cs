@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { detectarAlertas, UMBRALES } from '@/lib/alertas-detectar'
 import { resumir } from '@/lib/alertas'
 import { mapaFacturacion } from '@/lib/facturacion-cuenta'
-import { sincronizarEpisodios } from '@/lib/alertas-episodios'
+import { alertasConMemoria } from '@/lib/alertas-episodios'
 
 /**
  * GET /api/alertas — las alertas de cliente de la cartera viva.
@@ -42,23 +42,11 @@ export async function GET(req: NextRequest) {
   const asesor = rolAsesor ? suyo : (sp.get('asesor') || undefined)
 
   try {
-    const todas = await detectarAlertas(asesor ? { asesor } : undefined)
+    const { alertas: todas, memoria: episodios } = await alertasConMemoria(
+      () => detectarAlertas(asesor ? { asesor } : undefined),
+      asesor ? { asesor } : undefined,
+    )
     const resumen = resumir(todas)
-
-    /* La memoria de las alertas. Una corrida acotada a una cartera NO puede
-       cerrar: cerraría como «remitidas» las alertas de los otros dos ejecutivos
-       por el solo hecho de no estar en la consulta. */
-    const episodios = await sincronizarEpisodios(todas, {
-      alcance: asesor ? 'parcial' : 'completo',
-    })
-    for (const a of todas) {
-      const ant = episodios.antiguedad.get(a.id)
-      if (ant) {
-        a.diasAbierta = ant.dias
-        a.nueva = ant.nueva
-        a.recurrencia = ant.recurrencia
-      }
-    }
 
     let filtradas = todas
     const familia = sp.get('familia')
