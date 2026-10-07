@@ -66,14 +66,32 @@ export interface TextoCuenta {
  * cuenta» y «solicitó la baja de algunos DIDs» no son lo mismo: el segundo
  * duele —Neruc perdió 55 de 81 DIDs, un 68% de su pool— pero no es la baja.
  */
+/* ── `\w` NO SIRVE AQUÍ, Y ES LA TRAMPA QUE MÁS CARO SALIÓ ────────────────
+ *
+ * En JavaScript `\w` es `[A-Za-z0-9_]`: NO incluye letras acentuadas. Así que
+ * `solicit\w*\s+` no encuentra «solicitó la baja» — `\w*` se queda en vacío,
+ * el patrón pide un espacio y lo siguiente es la «ó».
+ *
+ * En Python `\w` sí es Unicode por defecto, y por eso mi réplica contaba 16
+ * coincidencias donde producción contaba 12. Las cuatro que faltaban llevaban
+ * todas «solicitó» — incluidas Salud y Hogar y Servinox, que desaparecían
+ * enteras. Lo encontró el rastro coincidencia por coincidencia, no la lectura
+ * del código: las expresiones eran idénticas en los dos lados.
+ *
+ * `LETRA` se usa en lugar de `\w` en todo el vocabulario. En español el verbo
+ * acentuado es la forma NORMAL del pretérito —«solicitó», «confirmó»,
+ * «informó»—, o sea justo la que importa.
+ */
+const LETRA = '[A-Za-z0-9_ÁÉÍÓÚÜÑáéíóúüñ]'
+
 const RX_BAJA = new RegExp([
   // La baja de la CUENTA o del SERVICIO, no de una parte.
-  'solicit\\w*\\s+(?:la|su)\\s+(?:baja|cancelaci[oó]n)\\s+(?:de\\s+(?:la\\s+)?(?:cuenta|servicio|l[ií]nea)|del\\s+servicio)',
+  'solicit' + LETRA + '*\\s+(?:la|su)\\s+(?:baja|cancelaci[oó]n)\\s+(?:de\\s+(?:la\\s+)?(?:cuenta|servicio|l[ií]nea)|del\\s+servicio)',
   'solicitando\\s+la\\s+baja\\s+de\\s+la\\s+cuenta',
   'pid(?:e|i[oó])\\s+la\\s+baja\\s+de\\s+la\\s+cuenta',
   '(?:quiere|desea|va\\s+a)\\s+cancelar\\s+(?:el\\s+servicio|la\\s+cuenta)',
-  'confirm\\w+\\s+(?:la\\s+)?cancelaci[oó]n\\s+(?:de\\s+)?(?:la\\s+cuenta|del\\s+servicio)',
-  'informa\\w*\\s+(?:que\\s+)?se\\s+dan?\\s+de\\s+baja',
+  'confirm' + LETRA + '+\\s+(?:la\\s+)?cancelaci[oó]n\\s+(?:de\\s+)?(?:la\\s+cuenta|del\\s+servicio)',
+  'informa' + LETRA + '*\\s+(?:que\\s+)?se\\s+dan?\\s+de\\s+baja',
   'en\\s+riesgo\\s+de\\s+cancelaci[oó]n',
 ].join('|'), 'i')
 
@@ -84,7 +102,7 @@ const RX_RIESGO = new RegExp([
   'indicadores\\s+de\\s+riesgo',
   'cuenta\\s+en\\s+riesgo',
   'riesgo\\s+de\\s+perder\\s+(?:la\\s+)?(?:cuenta|cliente)',
-  'cotiz\\w+\\s+con\\s+otr',
+  'cotiz' + LETRA + '+\\s+con\\s+otr',
   /* «cambio de proveedor» y «otro proveedor» ESTABAN aquí y se fueron: su
      única coincidencia en toda la cartera fue REJAMEX, y era «una baja de
      Callpicker Chat por cambio de proveedor» —de mayo, de un módulo, y la
@@ -93,7 +111,8 @@ const RX_RIESGO = new RegExp([
 ].join('|'), 'i')
 
 const RX_REDUCCION = new RegExp([
-  'solicit\\w*\\s+(?:la\\s+)?baja\\s+de\\s+(?:algun\\w*|\\d+|\\w+\\s+)?(?:dids?|extensiones|l[ií]neas)',
+  'solicit' + LETRA + '*\\s+(?:la\\s+)?baja\\s+de\\s+'
+    + '(?:algun' + LETRA + '*|\\d+|' + LETRA + '+\\s+)?(?:dids?|extensiones|l[ií]neas)',
   'baja\\s+de\\s+\\d+\\s*/\\s*\\d+\\s+dids?',
   '(?:bajar|reducir)\\s+(?:de\\s+)?plan',
   'reducir\\s+extensiones',
@@ -112,8 +131,14 @@ const RX_BAJA_ADJETIVO = /^\s*(adopci[oó]n|utilizaci[oó]n|uso|actividad|intera
    Chat por cambio de proveedor, la cuenta se encuentra estable». La frase se
    desmiente a sí misma catorce palabras después, y mirar sólo hacia atrás no
    lo ve. Se busca en lo que queda de la oración. */
+/* OJO con la frontera de CIERRE. Sin ella, `\b(estable|…)` coincide con
+   «establecer» — y la frase estrella de Biolaboratorio Sadat, «alto riesgo de
+   descontinuación del servicio, por lo que se recomienda ESTABLECER contacto
+   con el cliente», se descartaba sola. Era justo el caso que motivó todo esto.
+   Las formas verbales abiertas —resolvió/resolvieron, quedó resuelto/resuelta—
+   se dejan como prefijo a propósito, con `\w*` para cerrarlas. */
 const RX_DESMENTIDO =
-  /\b(estable|sin\s+riesgo|sin\s+novedad|todo\s+en\s+orden|se\s+encuentra\s+bien|ya\s+se\s+resolvi|qued[oó]\s+resuelt|se\s+retract|desisti[oó])/i
+  /\b(estable\b|sin\s+riesgo\b|sin\s+novedad\b|todo\s+en\s+orden\b|se\s+encuentra\s+bien\b|ya\s+se\s+resolvi\w*|qued[oó]\s+resuelt\w*|se\s+retract\w*|desisti[oó]\b)/i
 
 /** Una frase legible alrededor de la coincidencia. */
 function fragmento(texto: string, ini: number, fin: number): string {
