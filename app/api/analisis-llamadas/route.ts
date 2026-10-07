@@ -26,7 +26,8 @@ interface Dir {
   meses: Record<string, Record<string, number>>
   dh: number[]; dhL: number[]
   dia: Record<string, number>; diaL: Record<string, number>
-  dest?: { d: string; l: number; c: number; min: number; n: number; otros?: number }[]
+  dest?: { d: string; l: number; c: number; min: number; n: number; otros?: number;
+           redir?: number; ivr?: number; buzon?: number }[]
   desde: string | null; hasta: string | null
   sinCol?: number
 }
@@ -73,7 +74,10 @@ function agregar(cuentas: Cuenta[], dir: 'ent' | 'sal', mes: string) {
   const dh = vacio(168), dhL = vacio(168)
   const meses: Record<string, Record<string, number>> = {}
   const dia: Record<string, number> = {}, diaL: Record<string, number> = {}
-  const dest: Record<string, { l: number; c: number; min: number; n: number; nDesconocido: boolean; otros: number }> = {}
+  const dest: Record<string, { l: number; c: number; min: number; n: number;
+                              nDesconocido: boolean; otros: number;
+                              redir: number; ivr: number; buzon: number;
+                              sinReparto: boolean }> = {}
   let total = 0, perdidas = 0, sinCol = 0
   let desde: string | null = null, hasta: string | null = null
 
@@ -109,8 +113,17 @@ function agregar(cuentas: Cuenta[], dir: 'ent' | 'sal', mes: string) {
     }
     if (dir === 'ent' && d.dest) {
       for (const x of d.dest) {
-        const e = dest[x.d] ?? { l: 0, c: 0, min: 0, n: 0, nDesconocido: false, otros: 0 }
+        const e = dest[x.d] ?? { l: 0, c: 0, min: 0, n: 0, nDesconocido: false, otros: 0,
+                                 redir: 0, ivr: 0, buzon: 0, sinReparto: false }
         e.l += x.l; e.c += x.c; e.min += x.min
+        /* El reparto de `c` en sus tres desenlaces. `sinReparto` se CONTAGIA
+           igual que `nDesconocido`: si una sola cuenta del grupo viene de un
+           archivo anterior al 7 oct 2026, la suma del destino ya no se puede
+           afirmar y se publica «—». Sumar los que sí traen reparto daria un
+           numero menor que la verdad con pinta de verdad, que es peor que no
+           decir nada. Ver [[feedback-cero-sin-medicion]]. */
+        if (x.redir === undefined) e.sinReparto = true
+        else { e.redir += x.redir; e.ivr += x.ivr ?? 0; e.buzon += x.buzon ?? 0 }
         // n < 0 es «no se puede saber»: la bolsa «otros destinos» junta
         // conjuntos de números distintos que no se pueden unir sumando. Se
         // contagia, porque una suma con un sumando desconocido es desconocida.
@@ -256,6 +269,12 @@ export async function GET(req: NextRequest) {
       d, l: x.l, c: x.c, min: x.min,
       n: x.nDesconocido ? -1 : x.n,
       otros: x.otros,
+      /* `undefined`, no 0, cuando alguna cuenta del grupo venia sin reparto: la
+         pantalla enseña «—». Un cero diria «este destino no manda nada al
+         buzon», y lo que pasa es que no se midio. */
+      redir: x.sinReparto ? undefined : x.redir,
+      ivr: x.sinReparto ? undefined : x.ivr,
+      buzon: x.sinReparto ? undefined : x.buzon,
     }))
     const conNombre = todos.filter(x => x.d !== OTROS).sort((x, y) => y.l - x.l)
     const bolsa = [...conNombre.slice(15), ...todos.filter(x => x.d === OTROS)]
@@ -270,6 +289,16 @@ export async function GET(req: NextRequest) {
         // Cuántos destinos distintos quedaron dentro: los cortados aquí valen
         // uno, y los que ya venían agrupados traen su propio conteo.
         otros: bolsa.reduce((s, x) => s + (x.otros || 1), 0),
+        /* El reparto de la bolsa. Si UNO solo de los que caen aquí no lo trae,
+           la bolsa entera queda sin reparto: sumar los demás daría un número
+           corto con aspecto de completo. Es la misma regla de contagio que
+           `n: -1` sigue para los números distintos. */
+        redir: bolsa.some(x => x.redir === undefined) ? undefined
+          : bolsa.reduce((s, x) => s + (x.redir ?? 0), 0),
+        ivr: bolsa.some(x => x.ivr === undefined) ? undefined
+          : bolsa.reduce((s, x) => s + (x.ivr ?? 0), 0),
+        buzon: bolsa.some(x => x.buzon === undefined) ? undefined
+          : bolsa.reduce((s, x) => s + (x.buzon ?? 0), 0),
       })
     }
 

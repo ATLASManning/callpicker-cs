@@ -259,6 +259,19 @@ for cid, v in D.items():
             'destinos no cierran en no contestadas, CID %s' % cid
         assert sum(x['c'] for x in dest) == total - lost, \
             'destinos no cierran en contestadas, CID %s' % cid
+        # Los tres campos nuevos, cada uno contra SU tipo. Comprobar sólo que
+        # `redir + ivr + buzon == c` no sirve de nada: el bucle incrementa `c` y
+        # exactamente uno de los tres en la misma rama, así que esa igualdad
+        # cierra por construcción y pase lo que pase da verde. El corte que de
+        # verdad puede romperse es éste — un destino que se quede fuera del top
+        # sin entrar en «otros», o un tipo nuevo en el archivo que caiga en
+        # `redir` por descarte. Aquí sí se nota.
+        for campo, tipo in (('redir', 'Redirected'), ('ivr', 'Self_service'),
+                            ('buzon', 'Voicemail')):
+            suma = sum(x[campo] for x in dest)
+            assert suma == e['tipos'].get(tipo, 0), \
+                ('destinos no cierran en %s, CID %s: suma %d y el tipo %s trae %d'
+                 % (campo, cid, suma, tipo, e['tipos'].get(tipo, 0)))
     cuentas[cid] = {
         'cid': cid,
         'empresa': v['empresa'].most_common(1)[0][0] if v['empresa'] else '',

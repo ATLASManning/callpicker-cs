@@ -46,12 +46,31 @@ export interface DestinoLlamadas {
   d: string
   /** No contestadas que cayeron en este destino. */
   l: number
-  /** Contestadas por este destino. Sostiene la compuerta del destino por confirmar. */
+  /**
+   * NO PERDIDAS por este destino: todo lo que no fue `Lost`. Sostiene la
+   * compuerta del destino por confirmar.
+   *
+   * No es «contestadas», aunque se publicó con ese rótulo hasta el 7 oct 2026:
+   * dentro van las que resolvió el menú y las que cayeron al buzón. Para
+   * atención por una persona, `redir`.
+   */
   c: number
   min: number
   /** Números distintos que quedaron sin contestar. -1 en el bucket «otros». */
   n: number
   otros?: number
+  /**
+   * El reparto de `c`, que cierra contra el total de su tipo: `redir` la tomó
+   * una persona, `ivr` la resolvió el menú, `buzon` cayó al buzón de voz.
+   *
+   * OPCIONALES a propósito, y no por comodidad: un `llamadas-data.ts` generado
+   * antes del 7 oct 2026 no los trae, y la diferencia entre «no hubo buzón» y
+   * «no se midió» no se puede colapsar a cero. Quien los lea enseña `—` cuando
+   * faltan. Ver [[feedback-cero-sin-medicion]].
+   */
+  redir?: number
+  ivr?: number
+  buzon?: number
 }
 
 export interface MesEntrantes { t: number; l: number; r: number; s: number; v: number }
@@ -122,6 +141,22 @@ export const U = {
 } as const
 
 const SIN_DESTINO = '(sin destino registrado)'
+
+/**
+ * Los renglones que NO son un destino del cliente, sino un cubo que el
+ * generador agrega para que la tabla cierre. Ninguna regla que juzgue un
+ * destino puede aplicárseles: no son un lugar por el que se pueda preguntar.
+ *
+ * Los nombres están duplicados en `scripts/gen-llamadas-data.py`, que es Python
+ * y no puede importar de aquí. Si se renombra uno allá, hay que renombrarlo
+ * aquí — y `revisa-imports.py` no puede verlo porque cruza dos lenguajes.
+ */
+const CUBOS_AGREGADOS: ReadonlySet<string> = new Set([
+  SIN_DESTINO,
+  '(destino no venía en el archivo)',
+  'otros destinos',
+  'destinos sin ninguna perdida',
+])
 const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo']
 const MESES_CORTOS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
@@ -209,7 +244,7 @@ function difiere(a: string, b: string) {
 export function destinoPorConfirmar(d: LlamadasCuenta): DestinoLlamadas | null {
   if (!d.ent || d.ent.lost <= 0) return null
   for (const x of d.ent.dest) {
-    if (x.d === SIN_DESTINO || x.d === 'otros destinos') continue
+    if (CUBOS_AGREGADOS.has(x.d)) continue
     if (x.c === 0 && x.min === 0 && x.l >= U.CONF_MINIMO &&
         x.l / d.ent.lost >= U.CONF_CONCENTRACION) return x
   }

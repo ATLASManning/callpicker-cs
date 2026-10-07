@@ -212,12 +212,19 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                   <th style={{ ...th, textAlign: 'left' }}>Destino</th>
                   <th style={th}>Sin contestar</th>
-                  {/* «No perdidas», NO «Contestadas»: por destino el archivo
-                      guarda un solo número —todo lo que no fue `Lost`—, así que
-                      ahí van también las del menú y las del buzón. La barra de
-                      arriba sí parte los cuatro desenlaces y su tooltip los
-                      nombra. Ver el mismo arreglo en /analisis-llamadas. */}
-                  <th style={th}>No perdidas</th>
+                  {/* TRES COLUMNAS, NO UNA.
+                      Aquí había una sola que decía «Contestadas» y era todo lo
+                      que no fue `Lost`: dentro iban las que resolvió el menú y
+                      las que cayeron al buzón. Es la frase de Daniel — «que te
+                      entre el buzón de voz y en Callpicker aparezcan todas
+                      contestadas».
+                      Ahora el generador guarda los tres desenlaces por destino
+                      y cierran contra el total de su tipo, así que «Atendidas»
+                      por fin significa que una persona la tomó. Buzón en gris:
+                      no es una falla como una perdida, pero tampoco es atención. */}
+                  <th style={th}>Atendidas</th>
+                  <th style={th}>Menú</th>
+                  <th style={th}>Buzón</th>
                   <th style={th}>Números</th>
                 </tr>
               </thead>
@@ -228,7 +235,17 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
                       {x.d}{x.otros ? ` (${x.otros})` : ''}
                     </td>
                     <td style={{ ...td, color: RED, fontWeight: 700 }}>{nf(x.l)}</td>
-                    <td style={td}>{nf(x.c)}</td>
+                    {/* Las tres con «—» cuando faltan, y la de «Atendidas» con
+                        el mismo criterio que las otras dos.
+                        Mi primera versión ponía `?? x.c` de respaldo para un
+                        archivo generado antes de que existieran estos campos, y
+                        eso reintroduce la mentira que este arreglo quita: `c`
+                        lleva dentro el IVR y el buzón, así que publicarlo bajo
+                        «Atendidas» sobreestima la atención. Preferible no decir
+                        nada. Ver [[feedback-cero-sin-medicion]]. */}
+                    <td style={td}>{x.redir === undefined ? '—' : nf(x.redir)}</td>
+                    <td style={td}>{x.ivr === undefined ? '—' : nf(x.ivr)}</td>
+                    <td style={td}>{x.buzon === undefined ? '—' : nf(x.buzon)}</td>
                     <td style={td}>{x.n < 0 ? '—' : nf(x.n)}</td>
                   </tr>
                 ))}
@@ -238,26 +255,20 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
           <p style={{ ...nota, marginTop: 5 }}>
             Nombres tal como los tiene configurados el cliente. El archivo no dice qué hay detrás de
             cada uno — por eso no se clasifica ninguno.
-            {/* ESTA TABLA NO CIERRA, Y A PROPOSITO. Se listan solo los destinos
-                con al menos una perdida, porque de eso trata: «a dónde se fueron
-                las no contestadas». La columna «Sin contestar» SI suma el total
-                de la cuenta; «No perdidas» no suma nada, le faltan los destinos
-                que nunca perdieron una llamada — 48,885 en la cartera, el 2.4%.
-                Medido al regenerar el 7 oct 2026.
-
-                Está escrito abajo en vez de quitar la columna porque el dato
-                sirve para juzgar un destino: perder 500 contestando 10 no es lo
-                mismo que perder 500 contestando 50,000. Lo que no vale es
-                dejarla pareciendo un total. Ver
-                [[feedback-tablas-deben-cerrar]]. */}
-            {' '}Solo salen los destinos con alguna perdida: «Sin contestar» suma el total de la
-            cuenta, «No perdidas»{' '}
-            {/* El color va en el <span> con su propio `background`, no en el
-                <strong>: globals.css pinta de blanco todo <strong> que no lo
-                declare. Ver [[atlas-dashboard-contrast-architecture]]. */}
-            <span style={{ color: '#CBD5E1', background: 'transparent', fontWeight: 700 }}>
-              no es un total
-            </span>{' '}— faltan los destinos que nunca perdieron una llamada.
+            {/* ESTA TABLA AHORA CIERRA, y hubo que arreglarla para eso.
+                Listaba sólo los destinos con al menos una perdida —coherente con
+                su título— y el assert del generador comprobaba únicamente `l`,
+                que cerraba trivialmente porque a los renglones tirados les sobra
+                justo l=0. Medido el 7 oct 2026: faltaba el 1.89% de las
+                atendidas, el 2.11% del menú y el 36.42% del BUZÓN, porque un
+                destino que sólo buzonea rara vez registra un Lost. El desvío no
+                era proporcional, que es lo que lo hacía peligroso.
+                Ahora entra el renglón «destinos sin ninguna perdida» y el
+                generador comprueba los cinco cortes.
+                Ver [[feedback-tablas-deben-cerrar]]. */}
+            {' '}Las cuatro columnas de desenlace suman el total de entrantes de la cuenta: el
+            último renglón recoge los destinos que no perdieron ninguna llamada, que si no
+            quedarían fuera.
             {/* Distinguir «no llegó a ninguna extensión» de «la columna no venía en el archivo»
                 es la diferencia entre un hallazgo de configuración y un hueco de exportación. */}
             {d.ent && d.ent.sinCol > 0 && (

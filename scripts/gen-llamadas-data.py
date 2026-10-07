@@ -264,7 +264,62 @@ for cid in sorted(DATOS):
                          'c': sum(x['c'] for _, x in resto),
                          'min': round(sum(x['m'] for _, x in resto)), 'n': -1,
                          'redir': sum(x['redir'] for _, x in resto), 'ivr': sum(x['ivr'] for _, x in resto), 'buzon': sum(x['buzon'] for _, x in resto), 'otros': len(resto)})
-        assert sum(x['l'] for x in dest) == e['lost'], 'destinos no cierran en CID %s' % cid
+
+        # ── EL CUBO QUE FALTABA, Y POR QUÉ NO ES UN DETALLE ──────────────────
+        #
+        # Todo lo de arriba filtra `x['l'] > 0`: un destino que nunca perdió una
+        # llamada no sale, porque la tabla responde «a dónde se fueron las no
+        # contestadas». Correcto para la tabla y FALSO para la aritmética, y el
+        # viejo assert no lo veía porque sólo comprobaba `l`: a los renglones
+        # tirados les sobra justo l=0, así que cerraba trivialmente.
+        #
+        # Medido el 7 oct 2026 sobre la cartera, sumando destinos contra la
+        # verdad de los contadores mensuales:
+        #
+        #     redir   1,652,004 de 1,683,879    falta  1.89%
+        #     ivr       359,617 de   367,365    falta  2.11%
+        #     buzon      16,167 de    25,429    falta 36.42%   ← aquí
+        #
+        # El desvío NO es proporcional, y esa es la trampa: un destino que sólo
+        # buzonea rara vez registra un Lost, así que el filtro se come más de un
+        # tercio del buzón. Quien revisara esto «a ojo» con el 2% de las otras
+        # dos columnas se equivocaría 18 veces. Y `buzon` es justo el campo que
+        # se agregó para medir lo que señaló Daniel.
+        #
+        # Así que el complemento entra como un renglón más. No se esconde en un
+        # campo aparte: la tabla tiene que CERRAR, y de paso dice algo que vale
+        # leer — estos destinos contestaron todo lo que les entró.
+        # Ver [[feedback-tablas-deben-cerrar]].
+        sinPerdida = [(d, x) for d, x in ordenados if x['l'] == 0]
+        if sinPerdida:
+            # `n` es 0 y NO -1. En los otros buckets el -1 significa «no se
+            # puede saber», porque unir conjuntos de numeros distintos sumando
+            # inventaria un conteo. Aqui si se sabe: `n` cuenta los numeros que
+            # quedaron SIN CONTESTAR y estos destinos no perdieron ninguna, asi
+            # que son cero medidos. Poner -1 diria «no se sabe» de algo que se
+            # sabe, que es el error simetrico al de colapsar a cero lo no
+            # medido. Ver [[feedback-cero-sin-medicion]].
+            dest.append({'d': 'destinos sin ninguna perdida', 'l': 0,
+                         'c': sum(x['c'] for _, x in sinPerdida),
+                         'min': round(sum(x['m'] for _, x in sinPerdida)), 'n': 0,
+                         'redir': sum(x['redir'] for _, x in sinPerdida),
+                         'ivr': sum(x['ivr'] for _, x in sinPerdida),
+                         'buzon': sum(x['buzon'] for _, x in sinPerdida),
+                         'otros': len(sinPerdida)})
+
+        # El cierre, en los CUATRO cortes y no sólo en `l`. Un assert que no
+        # puede fallar es peor que ninguno: da luz verde.
+        tot = collections.Counter()
+        for mv in e['meses'].values():
+            tot.update(mv)
+        for campo, verdad in (('l', e['lost']),
+                              ('c', e['total'] - e['lost']),
+                              ('redir', tot.get('Redirected', 0)),
+                              ('ivr', tot.get('Self_service', 0)),
+                              ('buzon', tot.get('Voicemail', 0))):
+            suma = sum(x[campo] for x in dest)
+            assert suma == verdad, ('destinos no cierran en CID %s: %s suma %d y '
+                                    'deberia ser %d' % (cid, campo, suma, verdad))
 
     me = {m: {'t': mv['total'], 'l': mv.get('Lost', 0), 'r': mv.get('Redirected', 0),
               's': mv.get('Self_service', 0), 'v': mv.get('Voicemail', 0)}

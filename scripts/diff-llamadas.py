@@ -74,6 +74,12 @@ for k in claves:
     print('  %-12s %18s %18s   %s'
           % (k, nf(va) if isinstance(va, int) else va,
              nf(vb) if isinstance(vb, int) else vb, d))
+    # SE COMPRUEBA, no sólo se imprime. La primera versión imprimía estos
+    # deltas y sólo llamaba a `marca()` en tres de ellos, así que un cambio en
+    # el corte, en la ventana o en los meses salía en pantalla y el script
+    # cerraba con «todas las comprobaciones pasan». Imprimir no es comprobar:
+    # nadie lee 130 líneas buscando un «CAMBIO» suelto.
+    marca(va == vb, 'meta.%s sin cambios' % k)
 mesesA, mesesB = ma.get('meses') or [], mb.get('meses') or []
 if mesesA != mesesB:
     print('  meses        %18s %18s   CAMBIO'
@@ -132,7 +138,7 @@ def total(d, dire):
 print('\n' + '=' * 78)
 print('  4. MOVIMIENTO POR CUENTA')
 print('=' * 78)
-movEnt, movSal = [], []
+movEnt, movSal, movEtq = [], [], []
 for k in sorted(set(ca) & set(cb)):
     ea, eb = total(ca[k], 'ent'), total(cb[k], 'ent')
     sa, sb = total(ca[k], 'sal'), total(cb[k], 'sal')
@@ -140,12 +146,25 @@ for k in sorted(set(ca) & set(cb)):
         movEnt.append((k, cb[k].get('empresa') or '?', ea, eb))
     if sa != sb:
         movSal.append((k, cb[k].get('empresa') or '?', sa, sb))
+    # `empresa` y `corte` también. No son adorno: `empresa` sale de un Counter
+    # con most_common(1) alimentado TAMBIÉN por el archivo de salientes, y los
+    # empates se rompen por orden de fila — así que una reexportación de
+    # salientes puede cambiar la grafía ganadora de una cuenta cuyas entrantes
+    # no se movieron. De esa grafía se deriva la llave con la que la ficha cruza
+    # contra la cartera, y comparar sólo totales no la ve.
+    for campo in ('empresa', 'corte'):
+        if ca[k].get(campo) != cb[k].get(campo):
+            movEtq.append((k, campo, ca[k].get(campo), cb[k].get(campo)))
 
 marca(not movEnt, 'ninguna cuenta movio sus ENTRANTES (%d movidas)' % len(movEnt))
 for k, e, x, y in movEnt[:20]:
     print('        %-10s %-34s %10s -> %-10s %s' % (k, e[:34], nf(x), nf(y), delta(x, y)))
 if len(movEnt) > 20:
     print('        ... y %d mas' % (len(movEnt) - 20))
+
+marca(not movEtq, 'ninguna cuenta cambio de nombre ni de corte (%d cambiadas)' % len(movEtq))
+for k, campo, x, y in movEtq[:12]:
+    print('        %-10s %-9s %r -> %r' % (k, campo, x, y))
 
 print('\n  SALIENTES movidas: %d de %d cuentas' % (len(movSal), len(set(ca) & set(cb))))
 movSal.sort(key=lambda r: -abs(r[3] - r[2]))
@@ -168,13 +187,23 @@ print('  ' + '-' * 70)
 for t in sorted(set(TA) | set(TB), key=lambda x: -TB.get(x, 0)):
     print('  %-16s %14s %14s   %s'
           % (t, nf(TA.get(t, 0)), nf(TB.get(t, 0)), delta(TA.get(t, 0), TB.get(t, 0))))
+    # CADA TIPO SE COMPRUEBA. El total puede quedar intacto y haber movimiento
+    # ENTRE desenlaces — mil llamadas pasando de Voicemail a Redirected dejan
+    # `entTotal` clavado. Y esa frontera es justo la que este trabajo toca, así
+    # que es el último sitio donde vale confiar en el total.
+    marca(TA.get(t, 0) == TB.get(t, 0), 'el tipo %s no se movio' % t)
 
 # ── 6. LOS CAMPOS NUEVOS, Y SI PARTEN `c` DE VERDAD ─────────────────────────
 print('\n' + '=' * 78)
-print('  6. LOS CAMPOS NUEVOS: redir + ivr + buzon tienen que ser EXACTAMENTE c')
+print('  6. LOS CAMPOS NUEVOS')
 print('=' * 78)
-print('  Si no cierran, la columna no se puede volver a llamar «Atendidas» —')
-print('  que es para lo que se agregaron. Se revisa destino por destino.')
+print('  AVISO SOBRE LA PRIMERA COMPROBACION. «redir + ivr + buzon == c» NO')
+print('  PUEDE FALLAR: el generador incrementa `c` y exactamente uno de los tres')
+print('  en la misma rama, asi que cierra por construccion y da verde pase lo')
+print('  que pase. Se deja porque cuesta nada y cazaria un volcado a medias,')
+print('  pero el corte que de verdad se rompe es el de abajo: la suma sobre')
+print('  DESTINOS contra el total de SU TIPO. Ahi es donde un filtro que tira')
+print('  renglones se nota — y habia uno.')
 sinCampos, malos, revisados = [], [], 0
 sumR = sumI = sumBz = sumC = 0
 for k, v in cb.items():
@@ -203,6 +232,28 @@ print('    buzon                         : %12s' % nf(sumBz))
 print('    ---------------------------------------------')
 print('    «no perdidas» (c)             : %12s' % nf(sumC))
 marca(sumR + sumI + sumBz == sumC, 'la particion cierra en el agregado de la cartera')
+
+# ── EL CORTE QUE SI SE ROMPE ────────────────────────────────────────────────
+# Sumar los destinos y comparar contra el total de cada TIPO. Esto es lo que
+# caza un filtro que descarta renglones: la ficha tiraba los destinos sin
+# ninguna perdida y se llevaba el 36% del buzon, mientras el assert de arriba
+# seguia en verde. El desvio no es proporcional entre columnas, asi que hay que
+# comprobar las tres por separado — mirar una y extrapolar es lo que falla.
+print('\n  CIERRE CONTRA EL TOTAL DE CADA TIPO (el corte que importa):')
+print('  %-22s %14s %14s   %s' % ('', 'POR DESTINO', 'TOTAL DEL TIPO', 'FALTA'))
+print('  ' + '-' * 72)
+for campo, tipo, suma in (('redir', 'Redirected', sumR), ('ivr', 'Self_service', sumI),
+                          ('buzon', 'Voicemail', sumBz)):
+    verdad = TB.get(tipo, 0)
+    falta = verdad - suma
+    print('  %-22s %14s %14s   %s'
+          % ('%s / %s' % (campo, tipo), nf(suma), nf(verdad),
+             '=' if not falta else '%s (%.2f%%)' % (nf(falta), 100.0 * falta / verdad if verdad else 0)))
+    marca(falta == 0, 'los destinos cierran en %s (faltan %s)' % (campo, nf(falta)))
+cVerdad = sum(TB.values()) - TB.get('Lost', 0)
+marca(sumC == cVerdad, 'los destinos cierran en «no perdidas» (%s contra %s)'
+      % (nf(sumC), nf(cVerdad)))
+
 if sumC:
     print('\n    el buzon es el %.2f%% de lo que se publicaba como «Contestadas»'
           % (100.0 * sumBz / sumC))

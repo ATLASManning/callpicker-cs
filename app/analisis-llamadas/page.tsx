@@ -43,7 +43,8 @@ interface Datos {
   serie: Serie[]
   dh: number[]; dhL: number[]; dow: number[]; dowL: number[]; hora: number[]; horaL: number[]
   dia: { f: string; t: number; l: number }[]
-  destinos: { d: string; l: number; c: number; min: number; n: number; otros?: number }[]
+  destinos: { d: string; l: number; c: number; min: number; n: number; otros?: number;
+               redir?: number; ivr?: number; buzon?: number }[]
   ranking: Rank[]
   rankingBajoBase: number; rankingBaseMinima: number
 }
@@ -254,22 +255,34 @@ export default function AnalisisLlamadas() {
                   entre renglones —un mismo teléfono perdido en dos destinos cuenta en los dos— y no son personas:
                   una línea puede ser un conmutador con cien empleados detrás.
                 </p>
-                {/* «No perdidas», NO «Contestadas». La cifra por destino es
-                    todo lo que no fue `Lost`, así que lleva dentro las que
-                    resolvió el menú y las que cayeron al buzón. Lo del menú ya
-                    se declaraba en el pie; el buzón no se declaraba en ningún
-                    lado, y es exactamente lo que Daniel describió el 6 de
-                    octubre: «que te entre el buzón de voz y en Callpicker
-                    aparezcan todas contestadas». Son 25,429 llamadas, el 1.0%
-                    de las entrantes — pequeño, pero una columna que se llama
-                    «Contestadas» y mete el buzón miente sobre lo único que esa
-                    columna promete. La gráfica de arriba sí parte los cuatro
-                    desenlaces; esta tabla no puede, porque el agregado guarda
-                    un solo número por destino. */}
-                <Tabla cabeceras={['Destino', 'Sin contestar', 'No perdidas', 'Números']}
+                {/* TRES COLUMNAS DONDE HABÍA UNA LLAMADA «Contestadas».
+                    Esa columna era todo lo que no fue `Lost`, así que llevaba
+                    dentro las que resolvió el menú —declarado al pie— y las
+                    25,429 del buzón, que no se declaraban en ningún lado. Es
+                    exactamente lo que describió Daniel el 6 de octubre: «que te
+                    entre el buzón de voz y en Callpicker aparezcan todas
+                    contestadas». El 1.0% de las entrantes, pero el 100% de lo
+                    que esa columna prometía.
+                    Pasó por un rótulo intermedio —«No perdidas», honesto con el
+                    dato de entonces— hasta que el generador aprendió a guardar
+                    el reparto por destino. Ahora «Atendidas» significa que una
+                    persona la tomó, y los cuatro desenlaces cierran contra el
+                    total. Ver [[llamadas-fuente]]. */}
+                <Tabla cabeceras={['Destino', 'Sin contestar', 'Atendidas', 'Menú', 'Buzón', 'Números']}
                   filas={d.destinos.map(x => [
                     x.d === 'otros destinos' && x.otros ? `otros destinos (${nf(x.otros)})` : x.d,
-                    nf(x.l), nf(x.c), x.n > 0 ? nf(x.n) : '—',
+                    nf(x.l),
+                    /* «—» en las tres cuando faltan, y «Atendidas» con el mismo
+                       criterio. Mi primera version ponia `?? x.c` de respaldo
+                       para un archivo anterior a estos campos, y eso vuelve a
+                       meter la mentira que el arreglo quita: `c` lleva dentro el
+                       IVR y el buzon, asi que publicarlo como «Atendidas»
+                       sobreestima la atencion. Mejor no decir nada.
+                       Ver [[feedback-cero-sin-medicion]]. */
+                    x.redir === undefined ? '—' : nf(x.redir),
+                    x.ivr === undefined ? '—' : nf(x.ivr),
+                    x.buzon === undefined ? '—' : nf(x.buzon),
+                    x.n > 0 ? nf(x.n) : '—',
                   ])}
                   // El renglón que cierra la tabla va clavado al pie: es el que
                   // avisa cuánto queda fuera del top, y si hay que buscarlo
@@ -331,10 +344,10 @@ export default function AnalisisLlamadas() {
           <p style={{ fontSize: 10, color: '#64748B', lineHeight: 1.7, marginTop: 16 }}>
             Dos entregas con criterio distinto y cero CIDs en común: clientes con consumo de 0 a 40% de su plan
             y el resto de la cartera medida. Juntas cubren {m.cuentas} de las 219 cuentas con asesor y CID.
-            «Sin contestar» = entró la llamada y ninguna extensión la tomó. En la tabla de destinos la columna
-            «No perdidas» es todo lo demás: incluye las que resolvió el menú (Self_service) y las que cayeron al
-            buzón (Voicemail), porque el archivo guarda un solo número por destino. La gráfica de arriba sí separa
-            los cuatro desenlaces. Entrantes y salientes miden cosas distintas y nunca se suman: las salientes
+            «Sin contestar» = entró la llamada y ninguna extensión la tomó. «Atendidas» = la tomó una persona;
+            las que resolvió el menú y las que cayeron al buzón van en sus propias columnas y no se cuentan como
+            atención. Los cuatro desenlaces suman el total de entrantes. Entrantes y salientes miden cosas
+            distintas y nunca se suman: las salientes
             se leen como «% que conectó». Lo medido son llamadas y números distintos, nunca personas.
             {m.sinCol > 0 && ` ${nf(m.sinCol)} entrantes (${(100 * m.sinCol / m.entTotal).toFixed(0)}%) vienen de una parte del archivo sin columna de destino: de esas no se sabe a dónde entraron, que no es lo mismo que no haber llegado a ninguna extensión.`}
             {' '}Corte del archivo: {fechaCorta(m.corte)}.
