@@ -56,6 +56,9 @@ export type TipoAlerta =
   | 'desplome_consumo'
   | 'consumo_cero'
   | 'uso_bajo'
+  | 'baja_declarada'
+  | 'riesgo_escrito'
+  | 'reduccion_declarada'
   | 'sin_interlocutor'
   | 'silencio_60'
   | 'silencio_30'
@@ -268,6 +271,42 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     enlaceEtiqueta: 'Registrar el primer contacto', ancla: 'seguimientos',
   },
 
+  /* ── LO QUE EL EQUIPO YA ESCRIBIÓ Y NADIE LEYÓ ───────────────────────────
+   *
+   * Daniel Martínez: «apoyarse en IA para lo cualitativo». Nace del caso
+   * Biolaboratorio Sadat, donde la propia asesora escribió «alto riesgo de
+   * descontinuación» el 25 de julio y el cliente pidió la baja el 6 de octubre.
+   * Setenta y tres días con la respuesta escrita en la ficha.
+   *
+   * Son las alertas con la evidencia más fuerte que puede haber: una CITA
+   * textual de alguien del equipo, con su fecha. No hay umbral que discutir.
+   * Ver `lib/senal-escrita.ts` para las cinco guardas que evitan que esto se
+   * llene de falsos positivos. */
+  baja_declarada: {
+    tipo: 'baja_declarada', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
+    titulo: 'Alguien escribió que el cliente pidió la baja',
+    accion: 'Es lo más urgente que hay en la cartera: el cliente ya lo dijo y está '
+          + 'escrito. Llamar hoy a quien firma, entender qué se rompió y poner una '
+          + 'contraoferta sobre la mesa antes de que la baja se procese.',
+    enlaceEtiqueta: 'Ver la cuenta',
+  },
+  riesgo_escrito: {
+    tipo: 'riesgo_escrito', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
+    titulo: 'El propio equipo escribió que la cuenta está en riesgo',
+    accion: 'Alguien de la casa ya diagnosticó el riesgo por escrito y la cuenta sigue '
+          + 'ahí. Releer la nota, confirmar si lo que la motivó sigue vigente y actuar '
+          + 'sobre eso — no sobre una señal nueva.',
+    enlaceEtiqueta: 'Ver la cuenta',
+  },
+  reduccion_declarada: {
+    tipo: 'reduccion_declarada', familia: 'riesgo', severidad: 'alta', dueno: 'asesor',
+    titulo: 'Pidió dar de baja parte del servicio',
+    accion: 'No es la baja de la cuenta, y por eso no es crítica — pero una reducción '
+          + 'es el ensayo de una salida. Entender qué dejó de servirle antes de que la '
+          + 'siguiente reducción sea la última.',
+    enlaceEtiqueta: 'Ver la cuenta',
+  },
+
   // ── ABANDONO — es nuestro, no del cliente ──────────────────────────────
   asignada_sin_cerrar: {
     tipo: 'asignada_sin_cerrar', familia: 'abandono', severidad: 'critica', dueno: 'asesor',
@@ -320,6 +359,9 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
  */
 export type Condicion =
   | 'medicion' | 'consumo' | 'contacto' | 'radar' | 'contactos' | 'ficha' | 'trabajo'
+  /* La octava, de la capa cualitativa. Los tres tipos escritos son mutuamente
+     excluyentes por cuenta —se queda el más fuerte— así que forman un grupo. */
+  | 'escrito'
 
 export const CONDICION: Record<TipoAlerta, Condicion> = {
   sin_consumo_medible: 'medicion',
@@ -331,6 +373,7 @@ export const CONDICION: Record<TipoAlerta, Condicion> = {
   sin_contactos: 'contactos',
   sin_ficha: 'ficha',
   asignada_sin_cerrar: 'trabajo', nunca_asignada: 'trabajo',
+  baja_declarada: 'escrito', riesgo_escrito: 'escrito', reduccion_declarada: 'escrito',
 }
 
 /** Para ordenar. La ceguera pesa como el riesgo: una cuenta que no se ve es peor. */
@@ -471,6 +514,11 @@ export function construirAlerta(
  */
 export const TIPOS_RIESGO: ReadonlySet<TipoAlerta> = new Set<TipoAlerta>([
   'consumo_cero', 'silencio_60', 'sin_interlocutor',
+  /* Si alguien del equipo ESCRIBIÓ que el cliente pidió la baja o que la cuenta
+     está en riesgo, no hace falta ninguna otra señal: es la evidencia más
+     directa que puede haber. `reduccion_declarada` NO entra — una reducción
+     duele pero no es que se vaya. */
+  'baja_declarada', 'riesgo_escrito',
 ])
 
 export interface CuentaEnRiesgo {

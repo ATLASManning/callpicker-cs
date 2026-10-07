@@ -4,6 +4,7 @@ import { mapaFacturacion, importeDeCuenta, type ImporteCuenta } from '@/lib/fact
 import { baseMinutos } from '@/lib/plan-minutos'
 import { hoyEnMexico } from '@/lib/fecha-local'
 import { CANALES_CONTACTO, llegoAlCliente } from '@/lib/contacto-cuenta'
+import { senalesEscritas, type TextoCuenta } from '@/lib/senal-escrita'
 import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
 
 /**
@@ -61,12 +62,13 @@ interface CuentaAlerta {
   facturacion: number | null
   ultimo_contacto: string | null
   observaciones_kam: string | null
+  notas: string | null
   contactos_json: unknown
 }
 
 const CAMPOS =
   'id, cid, consecutivo, empresa, asesor, estado, facturacion, ultimo_contacto, ' +
-  'observaciones_kam, contactos_json'
+  'observaciones_kam, notas, contactos_json'
 
 function diasDesde(fecha: string | null | undefined, hoy: string): number | null {
   if (!fecha) return null
@@ -132,6 +134,28 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
   ])
 
   const conRadar = new Set(radarRows.map(r => r.cuenta_id))
+
+  /* La prosa del equipo, de sus tres fuentes. Los seguimientos ya vienen de la
+     consulta de arriba; la ficha aporta `observaciones_kam` y `notas`, que no
+     guardan fecha — y eso se DICE en la evidencia en vez de inventar una. */
+  const textos: TextoCuenta[] = []
+  for (const s of segRows) {
+    if (s.cuenta_id && s.descripcion) {
+      textos.push({ cuentaId: s.cuenta_id, fecha: String(s.fecha ?? '').slice(0, 10) || null,
+                    origen: 'seguimiento', autor: null, texto: s.descripcion })
+    }
+  }
+  for (const c of cuentas) {
+    if (c.observaciones_kam) {
+      textos.push({ cuentaId: c.id, fecha: null, origen: 'observaciones_kam',
+                    autor: c.asesor, texto: c.observaciones_kam })
+    }
+    if (c.notas) {
+      textos.push({ cuentaId: c.id, fecha: null, origen: 'notas',
+                    autor: c.asesor, texto: c.notas })
+    }
+  }
+  const escritas = senalesEscritas(textos)
 
   /* ── QUÉ ES UN CONTACTO, Y CUÁNDO LLEGÓ AL CLIENTE ──────────────────────
    *
@@ -405,6 +429,22 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
       add('sin_ficha', c,
           `Cero observaciones del KAM en una cuenta de ${cuantoPaga(c)}, `
           + `con ${ns} ${ns === 1 ? 'seguimiento' : 'seguimientos'} en el historial.`)
+    }
+
+    /* ── Lo que el equipo YA ESCRIBIÓ ─────────────────────────────────────
+     * La única alerta cuya evidencia es una CITA. Las guardas que evitan los
+     * falsos positivos viven en lib/senal-escrita.ts, y las cinco salieron de
+     * mirar el texto real, no de imaginarlo. */
+    const se = escritas.get(c.id)
+    if (se) {
+      const cuando = se.fecha
+        ? `Escrito el ${se.fecha}` + (se.autor ? ` por ${se.autor}` : '')
+        : `Escrito en ${se.origen === 'notas' ? 'las notas' : 'la ficha'}`
+            + (se.autor ? ` por ${se.autor}` : '') + ' (sin fecha)'
+      const d = diasDesde(se.fecha, hoy)
+      add(se.tipo, c,
+          `${cuando}${d !== null ? `, hace ${d} días` : ''}: «${se.frase}»`,
+          d)
     }
 
     // ── Abandono: es nuestro, no del cliente ─────────────────────────────
