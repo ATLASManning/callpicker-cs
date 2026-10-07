@@ -3,6 +3,7 @@ import { todosLosCortes } from '@/lib/cortes-cuenta'
 import { mapaFacturacion, importeDeCuenta, type ImporteCuenta } from '@/lib/facturacion-cuenta'
 import { baseMinutos } from '@/lib/plan-minutos'
 import { hoyEnMexico } from '@/lib/fecha-local'
+import { CANALES_CONTACTO, llegoAlCliente } from '@/lib/contacto-cuenta'
 import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
 
 /**
@@ -156,21 +157,10 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
    * El sesgo va a propósito hacia la alarma: tomar un contacto real por
    * fallido cuesta un aviso de más; tomar un fallido por real esconde una
    * cuenta que se está yendo. */
-  const CANALES = new Set(['llamada', 'whatsapp', 'email', 'correo',
-                           'reunion', 'visita', 'videollamada'])
-  const RX_NO_LLEGO = new RegExp(
-    [
-      'sin[_ ]respuesta', 'sin[_ ]?[eé]xito', 'no contest', 'fuera de servicio',
-      'buz[óo]n', 'no se (?:obtuvo|ha obtenido) respuesta', 'intentos? de contacto',
-      'no (?:fue|ha sido) posible', 'se continuar[áa] intentando',
-      'pendiente de respuesta',
-      'ya no (?:forma parte|labora|trabaja|est[áa] en)', 'dej[óo] de laborar',
-    ].join('|'), 'i')
-  const llego = (s: { resultado: string | null; descripcion: string | null }) => {
-    const r = String(s.resultado ?? '').trim().toLowerCase()
-    if (r === 'sin_respuesta') return false
-    return !(RX_NO_LLEGO.test(r) || RX_NO_LLEGO.test(String(s.descripcion ?? '')))
-  }
+  /* La definición de «llegó al cliente» NO vive aquí: vive en
+     lib/contacto-cuenta.ts y la comparten este motor y `getCuentas`. Tenerla
+     dos veces fue exactamente lo que produjo que Sección Amarilla saliera con
+     96 días en una pantalla y 36 en otra. */
 
   /** Por cuenta, SÓLO los canales de contacto: el último, el último que LLEGÓ,
    *  y la racha de intentos fallidos consecutivos al final del historial. */
@@ -178,7 +168,7 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
   const notasInternas = new Map<string, number>()
   for (const s of segRows) {
     if (!s.cuenta_id || !s.fecha) continue
-    if (!CANALES.has(String(s.tipo ?? '').toLowerCase())) {
+    if (!CANALES_CONTACTO.has(String(s.tipo ?? '').toLowerCase())) {
       notasInternas.set(s.cuenta_id, (notasInternas.get(s.cuenta_id) ?? 0) + 1)
       continue
     }
@@ -193,12 +183,12 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
     arr.sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)))
     ultimoSeg.set(id, String(arr[arr.length - 1].fecha).slice(0, 10))
     for (const s of arr) {
-      if (!llego(s)) continue
+      if (!llegoAlCliente(s)) continue
       const f = String(s.fecha).slice(0, 10)
       if (f > (ultimoEfectivo.get(id) ?? '')) ultimoEfectivo.set(id, f)
     }
     let n = 0
-    for (let i = arr.length - 1; i >= 0 && !llego(arr[i]); i--) n++
+    for (let i = arr.length - 1; i >= 0 && !llegoAlCliente(arr[i]); i--) n++
     rachaFallida.set(id, n)
   }
   /* Se cuentan, no solo se marcan: la evidencia de `asignada_sin_cerrar` tiene

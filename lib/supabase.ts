@@ -91,13 +91,22 @@ export async function getCuentas(filters?: {
      `dias_sin_actividad` se deja intacta como columna de base; lo que cambia es
      que ya nadie DECIDE con ella. */
   try {
-    const { ultimoContactoPorCuenta, diasSinContacto } = await import('./contacto-cuenta')
+    const { ultimoContactoPorCuenta, ultimoContactoEfectivoPorCuenta, diasSinContacto } =
+      await import('./contacto-cuenta')
     const guardado = new Map(result.map(c => [String(c.id), c.ultimo_contacto ?? null]))
-    const contacto = await ultimoContactoPorCuenta(guardado)
+    const [contacto, efectivo] = await Promise.all([
+      ultimoContactoPorCuenta(guardado),
+      ultimoContactoEfectivoPorCuenta(),
+    ])
     for (const c of result) {
       const dia = contacto.get(String(c.id)) ?? null
       c.ultimo_contacto = dia
-      c.dias_sin_contacto = diasSinContacto(dia)
+      /* `dias_sin_contacto` = hace cuánto que HABLAMOS con el cliente, contado
+         sólo desde los contactos que llegaron. `dias_sin_actividad`, abajo,
+         sigue siendo cualquier renglón del historial. Son dos preguntas
+         distintas y hasta hoy se respondían con el mismo número: 102 de las 192
+         cuentas vivas daban distinto según la pantalla que las mirara. */
+      c.dias_sin_contacto = diasSinContacto(efectivo.get(String(c.id)) ?? null)
       /* Y `dias_sin_actividad` —la que leen los quince consumidores que ya
          existen— pasa a traer el numero de verdad, para que empiecen a
          funcionar sin tocarlos uno por uno.
@@ -113,7 +122,9 @@ export async function getCuentas(filters?: {
          manda al FINAL de cualquier orden por urgencia. Para la pantalla la
          diferencia se conserva en `dias_sin_contacto`, que vale `null`. */
       const desdeAlta = diasSinContacto(c.activo_desde)
-      c.dias_sin_actividad = c.dias_sin_contacto ?? desdeAlta ?? 0
+      /* Actividad: cualquier renglón del historial, que es lo que ordena las
+         colas de trabajo. Si tampoco hay eso, la antigüedad de la cuenta. */
+      c.dias_sin_actividad = diasSinContacto(dia) ?? desdeAlta ?? 0
     }
   } catch { /* si falla, se queda lo guardado: mejor viejo que inventado */ }
 

@@ -1299,6 +1299,10 @@ export default async function DashboardPage() {
     }),
   )
 
+  /* Las que tienen al menos una candidatura DERIVADA. Ver el KPI más abajo:
+     `conUpsell` contaba captura manual y vale 1 de 192. */
+  const conCandidatura = candidatos.filter(c => c.candidaturas.length > 0).length
+
   const rankRows: CuentaRank[] = cuentas.map(c => {
     const tk = ticketStatsCuenta(c.cid ?? null, c.empresa)
     const porProducto = adopMap.get(c.id)
@@ -1451,7 +1455,21 @@ export default async function DashboardPage() {
         <KpiCard label="Cartera Total" value={formatMXN(kpis.facturacionTotal)} sub={`${kpis.total} cuentas activas`} icon={DollarSign} accent={CYAN} />
         <KpiCard label="Cuentas Saludables" value={kpis.saludables} sub={`${Math.round((kpis.saludables / Math.max(kpis.total, 1)) * 100)}% de la cartera`} icon={CheckCircle2} accent="#22C55E" />
         <KpiCard label="En Observación" value={cuentasObs.length} sub={`${formatMXN(facObs)} en seguimiento`} icon={AlertTriangle} accent="#EAB308" />
-        <KpiCard label="Oportunidades" value={conUpsell} sub="Upsell / Cross-sell activas" icon={TrendingUp} accent="#A855F7" />
+        {/* ── «Oportunidades» ya no cuenta una columna que nadie llena ──────
+         *
+         * Dirección, 6 oct 2026: «Oportunidades marca 0 aunque hay 157 cuentas
+         * con candidatura». Medido: `upsell_producto` / `crossell_producto`
+         * están capturadas en UNA de las 192 cuentas vivas, y la tabla
+         * `oportunidades` tiene CERO filas. El indicador contaba captura
+         * manual, y la captura manual en este equipo no ocurre — el Radar
+         * lleva 0 de 192 y las auditorías dejaron 383 acciones sin seguir.
+         *
+         * La candidatura, en cambio, se DERIVA del consumo, del análisis de
+         * llamadas y de la escalera de producto: ya está calculada aquí mismo
+         * para el bloque «Candidato a:». Se cuenta esa. */}
+        <KpiCard label="Oportunidades" value={conCandidatura}
+          sub={`de ${candidatos.length} evaluadas · señal derivada, no captura`}
+          icon={TrendingUp} accent="#A855F7" />
       </div>
 
       {/* ══ §5 Tacómetros por Asesor ═══════════════════════════════════════ */}

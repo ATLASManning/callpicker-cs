@@ -70,6 +70,81 @@ function diaDe(valor: string | null | undefined): string | null {
  * @param guardado  lo que trae `cuentas.ultimo_contacto`, por id. Se fusiona
  *                  con los seguimientos quedándose con la fecha mayor.
  */
+/* ── CONTACTO ≠ ACTIVIDAD, y el tablero los estaba llamando igual ─────────
+ *
+ * Dirección, 6 oct 2026: «Los días sin contacto no coinciden. Sección Amarilla
+ * aparece con 96 días en un lugar y 36 en otro. Tech People aparece como
+ * "nunca contactada" y también con 46 días». Medido: 102 de las 192 cuentas
+ * vivas daban distinto según la pantalla.
+ *
+ * No era un error de cálculo: eran DOS CONCEPTOS compartiendo nombre.
+ *
+ *   actividad  cualquier renglón del historial, notas y tickets incluidos.
+ *              Dice hace cuánto que alguien TOCÓ la cuenta.
+ *   contacto   una llamada, un correo, un WhatsApp o una reunión que además
+ *              LLEGÓ al cliente. Dice hace cuánto que HABLAMOS con él.
+ *
+ * Y los dos campos ya existían con el nombre correcto —`dias_sin_actividad` y
+ * `dias_sin_contacto`—; lo que pasaba es que se llenaban con lo mismo.
+ *
+ * De 445 seguimientos, 193 son `nota` y 38 `ticket`: actividad interna. De los
+ * 212 que sí son canales, 49 no llegaron. Escribir una nota que dice «esta
+ * cuenta está en riesgo» no es haber hablado con ella — y así se perdió
+ * Biolaboratorio Sadat.
+ *
+ * Estas dos constantes son LA definición, y las importa también el motor de
+ * alertas: mientras vivan en un solo sitio no pueden volver a divergir.
+ */
+export const CANALES_CONTACTO: ReadonlySet<string> = new Set([
+  'llamada', 'whatsapp', 'email', 'correo', 'reunion', 'visita', 'videollamada',
+])
+
+const RX_NO_LLEGO = new RegExp([
+  'sin[_ ]respuesta', 'sin[_ ]?[eé]xito', 'no contest', 'fuera de servicio',
+  'buz[óo]n', 'no se (?:obtuvo|ha obtenido) respuesta', 'intentos? de contacto',
+  'no (?:fue|ha sido) posible', 'se continuar[áa] intentando', 'pendiente de respuesta',
+  'ya no (?:forma parte|labora|trabaja|est[áa] en)', 'dej[óo] de laborar',
+].join('|'), 'i')
+
+/** ¿Este seguimiento llegó al cliente? Sólo los canales, y sólo los que no
+ *  declaran haber fallado. `resultado` no es un enum: junto a 'exitoso' hay
+ *  frases escritas a mano, así que se define lo que NO llegó. */
+export function llegoAlCliente(
+  s: { tipo?: string | null; resultado?: string | null; descripcion?: string | null },
+): boolean {
+  if (!CANALES_CONTACTO.has(String(s.tipo ?? '').toLowerCase())) return false
+  const r = String(s.resultado ?? '').trim().toLowerCase()
+  if (r === 'sin_respuesta') return false
+  return !(RX_NO_LLEGO.test(r) || RX_NO_LLEGO.test(String(s.descripcion ?? '')))
+}
+
+/**
+ * El último contacto que LLEGÓ al cliente, por cuenta.
+ *
+ * No mezcla `cuentas.ultimo_contacto`: esa columna la escribe el cierre de
+ * cualquier actividad —incluidas las de `validacion`, que no hablan con
+ * nadie—, así que revisar unos datos marcaba la cuenta como contactada.
+ */
+export async function ultimoContactoEfectivoPorCuenta(): Promise<Map<string, string>> {
+  const filas = await traerPorPaginas<{ cuenta_id: string; fecha: string
+                                        tipo: string | null; resultado: string | null
+                                        descripcion: string | null }>(
+    (desde, hasta) => supabaseAdmin
+      .from('seguimientos')
+      .select('cuenta_id, fecha, tipo, resultado, descripcion')
+      .range(desde, hasta),
+  )
+  const mapa = new Map<string, string>()
+  for (const f of filas) {
+    if (!f.cuenta_id || !llegoAlCliente(f)) continue
+    const d = diaDe(f.fecha)
+    if (!d) continue
+    const previo = mapa.get(f.cuenta_id)
+    if (!previo || d > previo) mapa.set(f.cuenta_id, d)
+  }
+  return mapa
+}
+
 export async function ultimoContactoPorCuenta(
   guardado: Map<string, string | null> = new Map(),
 ): Promise<Map<string, string>> {
