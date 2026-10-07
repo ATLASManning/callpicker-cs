@@ -3,6 +3,7 @@ import { detectarAlertas, UMBRALES } from '@/lib/alertas-detectar'
 import { resumir } from '@/lib/alertas'
 import { mapaFacturacion } from '@/lib/facturacion-cuenta'
 import { alertasConMemoria } from '@/lib/alertas-episodios'
+import { ultimoDiag } from '@/lib/senal-escrita'
 
 /**
  * GET /api/alertas — las alertas de cliente de la cartera viva.
@@ -72,6 +73,9 @@ export async function GET(req: NextRequest) {
         nuevos: episodios.nuevos, cerrados: episodios.cerrados,
         sinCerrar: episodios.sinCerrar, falla: episodios.falla,
       },
+      /* Lo que vio la capa CUALITATIVA, y que guarda tiro cada coincidencia.
+         Una capa que no encuentra nada y una que no corre se ven igual. */
+      escritas: ultimoDiag,
       /* El estado del respaldo de IMPORTES. Si el GRC no carga, las cuentas sin
          `facturacion` salen en cero y eso se confunde con un hallazgo. */
       facturacion: await (async () => {

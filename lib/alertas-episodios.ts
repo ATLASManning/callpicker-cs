@@ -209,49 +209,66 @@ export async function sincronizarEpisodios(
               + `no cargó, no medio tablero resolviéndose de golpe.`
   }
 
-  try {
-    if (confirmar.length) {
-      for (const c of confirmar) {
-        const { id, ...resto } = c as { id: string } & Record<string, unknown>
-        await supabaseAdmin.from('alertas_episodios').update(resto).eq('id', id)
-      }
-    }
-    if (insertar.length) {
-      /* Payload homogéneo: supabase-js arma un solo INSERT con las columnas de
-         la PRIMERA fila, así que una clave ausente en otra entra como NULL en
-         silencio. `condicion_desde` es justo la que a veces falta. */
-      const claves = Array.from(new Set(insertar.flatMap(o => Object.keys(o))))
-      const homogeneo = insertar.map(o =>
-        Object.fromEntries(claves.map(k => [k, o[k] ?? null])))
-      await supabaseAdmin.from('alertas_episodios').insert(homogeneo)
-    }
+  /* ── TODA ESCRITURA SE MIRA ─────────────────────────────────────────────
+   *
+   * `supabase-js` NO LANZA: devuelve `{ data, error }`. Las cuatro escrituras
+   * de aquí se hacían con un `await` suelto dentro de un try/catch, así que el
+   * catch nunca se enteraba de nada y un rechazo de la base era invisible.
+   *
+   * Se vio en producción el 7 oct 2026: durante un día entero el diagnóstico
+   * publicó «nuevos: 4, abiertos: 607, falla: null» en CADA corrida, con los
+   * mismos cuatro episodios intentándose y fallando una y otra vez porque el
+   * CHECK de la tabla todavía no admitía la condición `escrito`. Cuatro
+   * alertas nuevas que se veían en pantalla y no envejecían nunca, sin una
+   * sola señal de que algo iba mal.
+   *
+   * Es exactamente el mismo error que el del respaldo del GRC el día anterior:
+   * confundir un fallo con un hallazgo. La diferencia es que allí el `catch` sí
+   * atrapaba y yo me lo tragaba a propósito; aquí ni atrapaba. */
+  const fallos: string[] = []
+  const mirar = (etq: string, r: { error: { message?: string } | null }) => {
+    if (r?.error) fallos.push(`${etq}: ${r.error.message ?? 'error sin mensaje'}`)
+    return !r?.error
+  }
 
-    if (!sinCerrar) {
-      for (const e of apagados) {
-        if (!e.ausente_desde) {
-          await supabaseAdmin.from('alertas_episodios')
-            .update({ ausente_desde: hoy }).eq('id', e.id)
-          continue
-        }
-        if (diasEntre(e.ausente_desde, hoy) < DIAS_GRACIA) continue
-        /* `cerrado_en` es el último día en que SE VIO, no hoy: la gracia y los
-           huecos del cron son nuestros, no del cliente. Y el motivo: las
-           condiciones de captura se apagan porque alguien capturó —eso es
-           `resuelta`—; las de consumo y medición se apagan solas, y llamarlas
-           resueltas sería atribuirle al equipo un mérito que no tuvo. */
-        const deCaptura = e.condicion === 'radar' || e.condicion === 'contactos'
-                       || e.condicion === 'ficha' || e.condicion === 'trabajo'
-        await supabaseAdmin.from('alertas_episodios').update({
-          estado: 'cerrada',
-          cerrado_en: e.confirmada_el,
-          cierre_motivo: deCaptura ? 'resuelta' : 'remitio',
-        }).eq('id', e.id)
-        cerrados++
+  for (const c of confirmar) {
+    const { id, ...resto } = c as { id: string } & Record<string, unknown>
+    mirar('confirmar', await supabaseAdmin.from('alertas_episodios')
+      .update(resto).eq('id', id))
+  }
+
+  if (insertar.length) {
+    /* Payload homogéneo: supabase-js arma un solo INSERT con las columnas de
+       la PRIMERA fila, así que una clave ausente en otra entra como NULL en
+       silencio. `condicion_desde` es justo la que a veces falta. */
+    const claves = Array.from(new Set(insertar.flatMap(o => Object.keys(o))))
+    const homogeneo = insertar.map(o =>
+      Object.fromEntries(claves.map(k => [k, o[k] ?? null])))
+    mirar('abrir', await supabaseAdmin.from('alertas_episodios').insert(homogeneo))
+  }
+
+  if (!sinCerrar) {
+    for (const e of apagados) {
+      if (!e.ausente_desde) {
+        mirar('gracia', await supabaseAdmin.from('alertas_episodios')
+          .update({ ausente_desde: hoy }).eq('id', e.id))
+        continue
       }
+      if (diasEntre(e.ausente_desde, hoy) < DIAS_GRACIA) continue
+      /* `cerrado_en` es el último día en que SE VIO, no hoy: la gracia y los
+         huecos del cron son nuestros, no del cliente. Y el motivo: las
+         condiciones de captura se apagan porque alguien capturó —eso es
+         `resuelta`—; las de consumo y medición se apagan solas, y llamarlas
+         resueltas sería atribuirle al equipo un mérito que no tuvo. */
+      const deCaptura = e.condicion === 'radar' || e.condicion === 'contactos'
+                     || e.condicion === 'ficha' || e.condicion === 'trabajo'
+      const ok = mirar('cerrar', await supabaseAdmin.from('alertas_episodios').update({
+        estado: 'cerrada',
+        cerrado_en: e.confirmada_el,
+        cierre_motivo: deCaptura ? 'resuelta' : 'remitio',
+      }).eq('id', e.id))
+      if (ok) cerrados++
     }
-  } catch (e) {
-    return { ...vacio((e as Error)?.message ?? 'no se pudieron escribir los episodios'),
-             abiertos: abiertos.length, detectados: porLlave.size }
   }
 
   /* La antigüedad se CALCULA AL LEER, nunca se guarda: así es inmune a que el
@@ -272,7 +289,13 @@ export async function sincronizarEpisodios(
 
   return {
     antiguedad, abiertos: abiertos.length, detectados: porLlave.size,
-    nuevos: insertar.length, cerrados, sinCerrar, falla: null,
+    /* `nuevos` es lo que SE ABRIÓ, no lo que se intentó. Publicar el intento
+       fue justo lo que escondió el rechazo de la base durante un día. */
+    nuevos: fallos.some(f => f.startsWith('abrir')) ? 0 : insertar.length,
+    cerrados, sinCerrar,
+    falla: fallos.length
+      ? `${fallos.length} escritura(s) rechazada(s) — ${fallos.slice(0, 3).join(' · ')}`
+      : null,
   }
 }
 
