@@ -20,6 +20,12 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 120
 
+/** Qué build sirve esta ruta. Se sube a mano con cada cambio que haya que poder
+ *  confirmar desde fuera, por la misma razón que en `/api/alertas`: sin esto no
+ *  se distingue «el código no está en línea» de «el código está mal», y depurar
+ *  las dos a la vez ya me costó dos rondas. */
+const VERSION = '2026-10-08.5-oportunidad-enganchada'
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams
   const rolAsesor = req.headers.get('x-user-rol') === 'asesor'
@@ -62,6 +68,7 @@ export async function GET(req: NextRequest) {
          veces se desincroniza. */
       catalogo: SITUACION,
       falla,
+      version: VERSION,
       generado: new Date().toISOString(),
     })
   } catch (e) {

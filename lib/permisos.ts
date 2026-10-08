@@ -101,7 +101,6 @@ export const ROLES: Record<Rol, DefinicionRol> = {
     // detrás, que es peor que un error porque se lee como un dato.
     apisLectura: [
       '/api/seguimientos',
-      '/api/actividades',
       '/api/reuniones',
       '/api/anexos',
     ],

@@ -6,6 +6,7 @@ import { todosLosCortes } from '@/lib/cortes-cuenta'
 import { resumenLlamadas } from '@/lib/llamadas-resumen'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { relacionamientoDeCuentas } from '@/lib/relacionamiento'
+import { candidatosDeCartera } from '@/lib/candidatos-cartera'
 import { veredictoDe, type EstadoCuenta, type Veredicto } from '@/lib/alertas-veredicto'
 import type { Alerta } from '@/lib/alertas'
 
@@ -45,6 +46,23 @@ import type { Alerta } from '@/lib/alertas'
  *  no viajó con esta lambda, no que nadie consuma. */
 const CORTES_MINIMOS = 70
 
+/**
+ * Los tipos de candidatura que son CRECIMIENTO. Los otros dos no lo son.
+ *
+ * `evaluarCandidato` devuelve las candidaturas ordenadas con lo que hay que
+ * RESOLVER delante —`estabilizar` cuando hay un ticket abierto, `reactivacion`
+ * cuando la cuenta no usa lo que paga— y el crecimiento detrás. Así que tomar
+ * `candidaturas[0]` habría puesto «Estabilizar primero» como acción de una
+ * situación que se llama Oportunidad y se pinta en verde: la cuenta con el
+ * problema abierto saldría del tablero clasificada como la que va bien.
+ *
+ * Esos dos casos no se pierden: la cuenta que necesita estabilizarse ya trae
+ * sus alertas de riesgo y el veredicto la resuelve mucho antes de llegar aquí
+ * —`se_va`, `apagandose`— o la manda a su auditoría. `oportunidad` es el último
+ * escalón a propósito: sólo llega quien no tiene nada peor.
+ */
+const CRECIMIENTO = new Set(['escalon', 'cross_sell', 'ampliacion', 'blindaje'])
+
 export interface CuentaConVeredicto {
   cuentaId: string
   cid: string | null
@@ -70,6 +88,12 @@ export interface CuentaConVeredicto {
     relacionNivel: string
     tieneAuditoria: boolean
     plan: string | null
+    /** A qué es candidata, si a algo de crecer. `null` = a nada hoy. */
+    candidatura: string | null
+    /** Cuántas candidaturas tiene en total, incluidas las de resolver primero.
+     *  Se publica para que una cuenta con candidatura de `estabilizar` no
+     *  parezca «sin oportunidad»: la tiene, pero antes hay que arreglar algo. */
+    candidaturasTotal: number
     /** Cuántas de las ocho fuentes tienen dato para esta cuenta. Es la
      *  confianza de la predicción, dicha en números y no en adjetivos. */
     fuentes: number
@@ -86,9 +110,22 @@ export async function veredictosDeCartera(
 ): Promise<MapaVeredictos> {
   const fallos: string[] = []
 
+  /* Las seis columnas de la última línea entran el 8 oct 2026 para la
+     CANDIDATURA: `candidatosDeCartera` necesita antigüedad, oficinas, salud y
+     los datos de contacto para contar las señales de la ficha. Sin ellas el
+     evaluador las leería como ausentes y bajaría la certeza de todas las
+     cuentas por una carencia que es mía, no suya.
+
+     `dias_sin_contacto` NO se pide aquí, aunque la candidatura lo use: no es
+     columna de la tabla, es un campo que `getCuentas` calcula y pega en la
+     fila. Pedírselo a PostgREST habría hecho fallar el select COMPLETO y con
+     él la pantalla entera. Aquí ya se resuelve abajo con `efectivo`, que es la
+     misma definición única de `lib/contacto-cuenta.ts`. */
   let q = supabaseAdmin.from('cuentas')
     .select('id, cid, empresa, asesor, estado, facturacion, consecutivo, giro, '
-          + 'nps_score, observaciones_kam, notas, contactos_json, ultimo_contacto')
+          + 'nps_score, observaciones_kam, notas, contactos_json, ultimo_contacto, '
+          + 'activo_desde, num_oficinas, health_score, '
+          + 'contacto_nombre, contacto_tel, contacto_email')
     .in('estado', ['activo', 'en_riesgo'])
   if (filtro?.asesor) q = q.eq('asesor', filtro.asesor)
   const { data: cuentas, error } = await q
@@ -124,6 +161,36 @@ export async function veredictosDeCartera(
               + `la verdad, pero el motivo es la fuente y no las cuentas.`)
   }
 
+  /* ── LA CANDIDATURA, de la misma derivación que la portada ───────────────
+   *
+   * Va DESPUÉS del `Promise.all` y no dentro porque necesita
+   * `dias_sin_contacto`, que no es columna: lo calcula `efectivo`, que se
+   * resuelve ahí arriba. Las cuatro fuentes que lee por debajo —cortes,
+   * llamadas, DIDs, adopción— cachean por módulo, así que esto no vuelve a
+   * leer ningún archivo que la detección ya haya abierto.
+   *
+   * El campo se llena de verdad por primera vez: hasta hoy entraba como `null`
+   * a mano y la situación `oportunidad` del veredicto era inalcanzable. */
+  const candidatos = await candidatosDeCartera(cuentas.map(c => ({
+    id: String(c.id),
+    cid: c.cid === null || c.cid === undefined ? null : String(c.cid).trim(),
+    consecutivo: c.consecutivo ?? null,
+    empresa: String(c.empresa ?? ''),
+    asesor: c.asesor ?? null,
+    estado: c.estado ?? null,
+    facturacion: c.facturacion ?? null,
+    health_score: c.health_score ?? null,
+    activo_desde: c.activo_desde ?? null,
+    dias_sin_contacto: diasSinContacto(efectivo.get(String(c.id)) ?? null),
+    giro: c.giro ?? null,
+    num_oficinas: c.num_oficinas ?? null,
+    contacto_nombre: c.contacto_nombre ?? null,
+    contacto_tel: c.contacto_tel ?? null,
+    contacto_email: c.contacto_email ?? null,
+    observaciones_kam: c.observaciones_kam ?? null,
+    contactos_json: Array.isArray(c.contactos_json) ? c.contactos_json : null,
+  })))
+
   const porCuenta = new Map<string, Alerta[]>()
   for (const a of alertas) {
     const k = String(a.cuentaId)
@@ -146,6 +213,7 @@ export async function veredictosDeCartera(
     const llam = await resumenLlamadas(cid)
     const tk = ticketStatsCuenta(cid, String(c.empresa ?? ''))
     const rel = relacion.get(id)
+    const cand = candidatos.get(id)?.candidaturas ?? []
 
     /* Cuántas de las ocho fuentes hablan de esta cuenta. Es la confianza de la
        predicción dicha en números: con tres fuentes se opina distinto que con
@@ -175,7 +243,13 @@ export async function veredictosDeCartera(
       perdidas: llam ? llam.sinContestar : null,
       pctPerdidas: llam ? llam.pctSinContestar : null,
       tieneAuditoria: !!rel?.conteos.tieneAuditoria,
-      candidatura: null,
+      /* La de mayor prioridad que sea CRECIMIENTO, no la primera de la lista:
+         ver `CRECIMIENTO` arriba. Se publica el producto porque la acción del
+         veredicto se lee «Proponer …» y ahí lo que sirve es el nombre de la
+         cosa, no la etiqueta de la categoría. */
+      candidatura: cand
+        .filter(x => CRECIMIENTO.has(x.tipo))
+        .sort((a, b) => a.prioridad - b.prioridad)[0]?.producto ?? null,
       productosSinUso: null,
       /* `null` cuando la cuenta no aparece en la mesa — que NO es cero tickets.
          Grupo Petroil ya enseñó la diferencia: su F32 tiene cero porque no pasa
@@ -202,6 +276,8 @@ export async function veredictosDeCartera(
         relacionNivel: rel?.nivel ?? 'Sin relación registrada',
         tieneAuditoria: e.tieneAuditoria,
         plan: ultimo?.plan ?? null,
+        candidatura: e.candidatura,
+        candidaturasTotal: cand.length,
         fuentes,
       },
     })

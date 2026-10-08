@@ -40,12 +40,23 @@
 
 export type Severidad = 'critica' | 'alta' | 'media' | 'oportunidad'
 
-/** Las cuatro familias. Separarlas importa: piden trabajos distintos. */
+/** Las tres familias. Separarlas importa: piden trabajos distintos. */
 export type Familia =
   | 'ceguera'      // no podemos VER la cuenta — se resuelve capturando
   | 'riesgo'       // el cliente se está yendo — se resuelve hablando
-  | 'abandono'     // la soltamos nosotros — se resuelve trabajándola
   | 'oportunidad'  // hay dinero sobre la mesa
+/* Eran cuatro. `abandono` —«la soltamos nosotros»— se retiró el 8 oct 2026 con
+   el generador SAC, porque sus dos tipos no medían la cuenta sino nuestra
+   contabilidad interna del lote semanal: `asignada_sin_cerrar` pedía cerrar una
+   actividad en una pantalla que ya no existe, y `nunca_asignada` decía que «la
+   cola de focos ya la pone delante» de una cola que ya no drena. Una alerta
+   cuya acción es imposible es peor que ninguna: entrena a no mirarlas.
+
+   Medido antes de quitarlas: las 69 cuentas que las traían llevaban TODAS al
+   menos otra alerta, así que ninguna se quedó muda, y el veredicto de ALERTAS
+   cubre las 192 por su cuenta. Lo que esas dos querían decir —que nadie está
+   cuidando la cuenta— lo dicen ahora `no_la_vemos` y `sin_auditar` del motor de
+   veredictos, que lo miden sobre el cliente y no sobre nuestra fila. */
 
 export type TipoAlerta =
   | 'sin_consumo_medible'
@@ -63,8 +74,6 @@ export type TipoAlerta =
   | 'silencio_60'
   | 'silencio_30'
   | 'nunca_contactada'
-  | 'asignada_sin_cerrar'
-  | 'nunca_asignada'
   | 'rebasa_bolsa'
 
 /**
@@ -307,33 +316,6 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     enlaceEtiqueta: 'Ver la cuenta',
   },
 
-  // ── ABANDONO — es nuestro, no del cliente ──────────────────────────────
-  asignada_sin_cerrar: {
-    tipo: 'asignada_sin_cerrar', familia: 'abandono', severidad: 'critica', dueno: 'asesor',
-    titulo: 'Asignada y sin un solo seguimiento cerrado',
-    accion: 'Se le asignó trabajo y no se cerró ninguno. Cerrar o explicar por qué no.',
-    enlaceEtiqueta: 'Ver la cuenta',
-  },
-  /* El guion decía «Entra al próximo lote», y era falso de dos maneras.
-   *
-   * Primero: nadie decide eso. `loteSemanal()` ignora su argumento y devuelve
-   * la constante de diez por asesor —`lib/focos-riesgo.ts`—, y `focosDeRiesgo`
-   * ya ordena TODAS las cuentas vivas con `nunca_tocada` delante. No hay una
-   * decisión pendiente: hay una cola drenando. Por eso esta alerta estuvo unas
-   * horas en el cubo `direccion`, publicada como deuda en el escritorio de
-   * dirección, donde nadie podía hacer nada con ella.
-   *
-   * Y segundo: si la cola ya la pone primero y lleva meses sin salir, esperar
-   * al lote es precisamente lo que no está funcionando. */
-  nunca_asignada: {
-    tipo: 'nunca_asignada', familia: 'abandono', severidad: 'media', dueno: 'asesor',
-    titulo: 'Nunca ha entrado a un lote de trabajo',
-    accion: 'La cola de focos ya la pone delante y aun así no ha salido: tomarla a mano '
-          + 'esta semana en vez de esperar al lote. Una cuenta viva que nunca se trabajó '
-          + 'es una cuenta que nadie está cuidando.',
-    enlaceEtiqueta: 'Ver la cuenta',
-  },
-
   // ── OPORTUNIDAD ────────────────────────────────────────────────────────
   rebasa_bolsa: {
     tipo: 'rebasa_bolsa', familia: 'oportunidad', severidad: 'oportunidad', dueno: 'asesor',
@@ -358,7 +340,15 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
  * agrega un tipo aquí hay que mirarlos los dos.
  */
 export type Condicion =
-  | 'medicion' | 'consumo' | 'contacto' | 'radar' | 'contactos' | 'ficha' | 'trabajo'
+  | 'medicion' | 'consumo' | 'contacto' | 'radar' | 'contactos' | 'ficha'
+  /* `trabajo` ya no lo emite ningún tipo —era el grupo de las dos alertas de
+     abandono, retiradas con el generador SAC—, pero SE QUEDA en el tipo porque
+     hay 69 episodios abiertos en `alertas_episodios` con ese valor y hay que
+     poder leerlos para cerrarlos. Quitarlo del tipo mientras la tabla lo tiene
+     sería declarar imposible algo que está en la base; cierran solos en la
+     siguiente corrida completa (medido: quedan 544 condiciones contra un piso
+     de quórum de 368, así que el guardián no se dispara). */
+  | 'trabajo'
   /* La octava, de la capa cualitativa. Los tres tipos escritos son mutuamente
      excluyentes por cuenta —se queda el más fuerte— así que forman un grupo. */
   | 'escrito'
@@ -372,7 +362,6 @@ export const CONDICION: Record<TipoAlerta, Condicion> = {
   sin_radar: 'radar',
   sin_contactos: 'contactos',
   sin_ficha: 'ficha',
-  asignada_sin_cerrar: 'trabajo', nunca_asignada: 'trabajo',
   baja_declarada: 'escrito', riesgo_escrito: 'escrito', reduccion_declarada: 'escrito',
 }
 
@@ -393,8 +382,7 @@ export const COLOR_SEVERIDAD: Record<Severidad, { fg: string; bg: string }> = {
 }
 
 export const ETIQUETA_FAMILIA: Record<Familia, string> = {
-  ceguera: 'No la vemos', riesgo: 'Se está yendo',
-  abandono: 'La soltamos', oportunidad: 'Oportunidad',
+  ceguera: 'No la vemos', riesgo: 'Se está yendo', oportunidad: 'Oportunidad',
 }
 
 export interface Alerta {
@@ -580,7 +568,7 @@ export function resumir(alertas: Alerta[]): ResumenAlertas {
     critica: vacio(), alta: vacio(), media: vacio(), oportunidad: vacio(),
   } as Record<Severidad, { n: number; mrr: number }>
   const porFamilia = {
-    ceguera: vacio(), riesgo: vacio(), abandono: vacio(), oportunidad: vacio(),
+    ceguera: vacio(), riesgo: vacio(), oportunidad: vacio(),
   } as Record<Familia, { n: number; mrr: number }>
   const porDueno = {
     asesor: vacio(), ingenieria: vacio(), direccion: vacio(),

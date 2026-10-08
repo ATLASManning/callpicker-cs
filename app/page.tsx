@@ -14,26 +14,22 @@ import PanelAlertas from '@/components/PanelAlertas'
 import DashMetricasSection from '@/components/DashMetricasSection'
 import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVersatil'
 import CandidatoA from '@/components/CandidatoA'
-import { evaluarCandidato, type EntradaCandidatura, type ResultadoCandidato } from '@/lib/candidato-a'
-import { resumenLlamadas } from '@/lib/llamadas-resumen'
+import { type ResultadoCandidato } from '@/lib/candidato-a'
+import { candidatosDeCartera, faltantesDeFicha } from '@/lib/candidatos-cartera'
 /* Del módulo ligero: `@/lib/focos-riesgo` también lo exporta, pero arrastra los
    3.5 MB de tickets-data.json y el Excel de cortes a esta página. */
-import { SEGUIMIENTOS_POR_SEMANA } from '@/lib/cierre-seguimiento'
 import { detectarAlertas } from '@/lib/alertas-detectar'
 import { alertasConMemoria } from '@/lib/alertas-episodios'
 import { resumir, riesgoPorCuenta } from '@/lib/alertas'
-import { didsDeCuenta } from '@/lib/dids-cuenta'
-import { cortesDeCuenta } from '@/lib/cortes-cuenta'
-import { getKPIs, getSemaforoByAsesor, getCuentas, getActividadesSAC, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
+import { getKPIs, getSemaforoByAsesor, getCuentas, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
 import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor, type SemaforoSalud } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
-import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import Link from 'next/link'
 import { TICKETS as TICKETS_NORM, COBERTURA } from '@/lib/tickets-norm'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { ahoraEnMexico, fechaLocal, hoyEnPalabras, selloMexico } from '@/lib/fecha-local'
+import { hoyEnPalabras, selloMexico } from '@/lib/fecha-local'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,14 +49,9 @@ const CYAN   = '#00B4FF'
    lee. Este es su tono. */
 const TX_SECCION = '#475569'
 
-/* ── Etiquetas de los números, para leer la intención del cliente ─────────
-   Lo que el cliente escribió en su propio panel. «WhatsApp», «Campaña» o
-   «Landing» son evidencia de que ya opera canales digitales; «Available» es
-   la etiqueta por defecto, o sea un número que se paga y nadie asignó.
-   Ninguna de las dos se infiere del giro — ver lib/candidato-a.ts. */
-const RX_CANAL_DIGITAL =
-  /whats\s*app|\bwa\b|facebook|\bfb\b|instagram|tiktok|linkedin|redes|\bgoogle\b|\bads\b|adwords|campa[nñ]a|landing|marketing|\bmkt\b|publicidad/i
-const ETIQUETA_LIBRE = new Set(['available', 'disponible', ''])
+/* Las etiquetas de los números —las que distinguen un canal digital de un
+   número sin asignar— se mudaron a `lib/candidatos-cartera.ts` con la
+   derivación que las usaba. */
 
 const SEM_COLOR: Record<string, string> = {
   verde: '#22C55E', azul: '#3B82F6', amarillo: '#EAB308', naranja: '#F97316', rojo: '#EF4444',
@@ -87,21 +78,11 @@ function avg(nums: number[]) {
   return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0
 }
 
-// Datos relevantes que le faltan a una cuenta para poder operarla bien.
-// Compartido por Alertas Críticas y el ranking versátil de Top Cuentas.
-function computeFaltantes(c: Cuenta): string[] {
-  const faltantes: string[] = []
-  if (!c.contacto_nombre)                      faltantes.push('Contacto')
-  if (!c.contacto_tel)                         faltantes.push('Teléfono')
-  if (!c.contacto_email)                       faltantes.push('Correo')
-  if (!c.activo_desde)                         faltantes.push('Fecha de alta')
-  if (!c.giro)                                 faltantes.push('Giro')
-  if (!c.cid)                                  faltantes.push('CID Zoho')
-  const kam = String(c.observaciones_kam ?? '').trim()
-  if (kam === '' || kam === '0')               faltantes.push('Observaciones KAM')
-  if ((c.contactos_json?.length ?? 0) < 2)     faltantes.push('Mapa de decisores')
-  return faltantes
-}
+/* `computeFaltantes` vivía aquí y ahora es `faltantesDeFicha`, en
+   `lib/candidatos-cartera.ts`. Lo comparten las Alertas Críticas, el ranking
+   versátil y la candidatura: tres consumidores de la misma lista de campos
+   obligatorios, que tenían que contarla igual y ahora no pueden contarla de
+   otra forma. */
 
 /**
  * Días desde que HABLAMOS con el cliente. `null` = nunca se registró uno.
@@ -168,22 +149,6 @@ function profileSemaforoForCuenta(c: Cuenta): 'verde' | 'amarillo' | 'naranja' |
   if (missing === 2) return 'naranja'
   return 'rojo'
 }
-
-/* LA META ES DIEZ, Y ES UNA SOLA.
- *
- * Decisión de dirección del 25 sep 2026, reafirmada el 5 oct: «son 10
- * actividades por semana, no 4». El número vive en `SEGUIMIENTOS_POR_SEMANA`
- * (lib/cierre-seguimiento.ts), que es el MISMO que usa el generador para
- * repartir — tenerlo dos veces garantiza que un día dejen de coincidir y el
- * medidor evalúe contra una meta que ya no se reparte. Que es exactamente lo
- * que pasó: este panel seguía anunciando «Meta: 4 cuentas/semana» mientras
- * `LOTE_RUTINARIO` llevaba desde el 28 sep en CERO, o sea que nada repartía
- * cuatro. Un resto muerto de la regla anterior, a la vista de dirección.
- *
- * Las semanas anteriores al 24 ago fueron de 15 actividades (3/día × 5 días)
- * y las del 24 ago al 25 sep de 4 cuentas; por eso las barras de S-2 a S-4
- * muestran cifras de otro orden y NO son comparables contra la meta de hoy. */
-const SAC_TARGET_ANTERIOR = 15
 
 // ── Gauge SVG ─────────────────────────────────────────────────────────────────
 // Semicircle: 270° (left/9 o'clock) → 90° (right/3 o'clock) via top, 180° sweep
@@ -780,158 +745,6 @@ function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
   )
 }
 
-// ── SAC Cumplimiento Semanal ──────────────────────────────────────────────────
-function SACWeeklyPanel({
-  asesores, segsMap, asignMap, focosMap, focosAsignMap,
-}: {
-  asesores: AsesorStats[]
-  segsMap: Record<string, number[]>
-  /** Cuántas del lote rutinario tiene asignadas cada quien. Es el denominador. */
-  asignMap: Record<string, number[]>
-  focosMap: Record<string, number[]>
-  focosAsignMap: Record<string, number[]>
-}) {
-  /* Si CUALQUIER asesor ya tiene focos repartidos, el panel entero habla de
-     seguimientos. Mezclar dos metas en la misma fila —uno en «/4» y otro en
-     «/10»— haria imposible compararlos de un vistazo, que es para lo que existe
-     ponerlos lado a lado. */
-  const hayFocos = asesores.some(a => (focosAsignMap[a.asesor] ?? [0, 0, 0, 0])[0] > 0)
-  return (
-    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 16 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
-          Cumplimiento SAC Semanal
-        </p>
-        {/* La etiqueta sigue a lo que el medidor esta midiendo. Dejarla fija en
-            «4 · Completar Perfil» mientras los medidores muestran diez
-            seguimientos seria contradecir al propio panel. */}
-        <span style={{ fontSize: 12, color: TX_LOW }}>
-          Meta: {SEGUIMIENTOS_POR_SEMANA} seguimientos/semana · todas las cuentas por turno
-          {!hayFocos && ' · aún sin repartir esta semana'}
-        </span>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-        {asesores.map(a => {
-          /* QUÉ MIDE EL MEDIDOR, Y POR QUÉ CAMBIA SOLO
-           *
-           * Desde el lunes 28 de septiembre el trabajo SAC de la semana son los
-           * DIEZ seguimientos de cuenta por asesor (decisión de dirección, 25
-           * sep 2026). Ese es el número que manda, así que en cuanto hay focos
-           * repartidos el medidor pasa a medirlos a ellos y el lote rutinario
-           * baja a la línea de abajo.
-           *
-           * Antes del lunes no hay ninguno, y un medidor en «0 de 10» esta
-           * semana sería falso: nadie ha incumplido algo que no se ha
-           * repartido. Mientras no haya focos sigue midiendo el lote rutinario,
-           * que es el trabajo que sí existe hoy. La transición no hay que
-           * acordarse de hacerla — ocurre cuando llegan los datos.
-           *
-           * El denominador es siempre lo ASIGNADO, nunca una constante: nadie
-           * puede cerrar más de lo que tiene. Ver el «5 / 4» del 26 sep. */
-          const rutCerr = (segsMap[a.asesor] ?? [0, 0, 0, 0])[0]
-          const rutAsig = (asignMap[a.asesor] ?? [0, 0, 0, 0])[0]
-          const focCerr = (focosMap[a.asesor] ?? [0, 0, 0, 0])[0]
-          const focAsig = (focosAsignMap[a.asesor] ?? [0, 0, 0, 0])[0]
-
-          /* El medidor mide SIEMPRE los seguimientos de cuenta: es el único
-             trabajo que se reparte desde el 28 sep. Ya no alterna con el lote
-             rutinario porque ese lote está en cero.
-             El denominador es lo ASIGNADO, nunca la constante: nadie puede
-             cerrar más de lo que tiene (ver el «5 / 4» del 26 sep). Y cuando
-             todavía no se reparte nada, se dice —no se cambia la meta—. */
-          const thisWeek  = focCerr
-          const sinRepartir = focAsig === 0
-          const asignadas = focAsig || SEGUIMIENTOS_POR_SEMANA
-          const metaDeclarada = SEGUIMIENTOS_POR_SEMANA
-          const score = Math.min((thisWeek / asignadas) * 100, 100)
-          /* El lote rutinario de perfil, si quedara alguno vivo. Se muestra
-             solo cuando existe, y con `LOTE_RUTINARIO` en cero no existe —
-             pero la línea se queda porque volver a encenderlo es cambiar ese
-             número y nada más, y entonces tiene que verse. */
-          const otroCerr = rutCerr
-          const otroAsig = rutAsig
-          const otroNombre = 'del perfil'
-          const weeks = focosMap[a.asesor] ?? [0, 0, 0, 0]
-          const gaugeColor = score >= 80 ? '#22C55E' : score >= 50 ? '#EAB308' : '#EF4444'
-          const maxPrev = Math.max(...weeks.slice(1), 1)
-          const weekLabel = ['S-2', 'S-3', 'S-4']
-
-          return (
-            <div key={a.asesor} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: a.color }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: TX_HI }}>{a.asesor}</span>
-              </div>
-
-              {/* Gauge — muestra el nro real de actividades */}
-              <Gauge
-                score={score}
-                color={gaugeColor}
-                gid={`sac-${a.asesor.replace(/[^a-z]/gi, '')}`}
-                label={String(thisWeek)}
-              />
-
-              <p style={{ fontSize: 12, color: TX_MID, textAlign: 'center' as const, marginTop: -4 }}>
-                <span style={{ fontWeight: 800, fontSize: 15, color: gaugeColor }}>{thisWeek}</span>
-                {' '}<span style={{ color: TX_LOW }}>/ {asignadas}</span>
-                {' '}<span style={{ color: TX_LOW }}>
-                  seguimientos cerrados esta semana
-                  {sinRepartir
-                    ? ' · el lote de la semana aún no se reparte'
-                    : asignadas !== metaDeclarada
-                      ? ` · le tocaron ${asignadas}, la meta son ${metaDeclarada}`
-                      : ''}
-                </span>
-              </p>
-
-              {/* La otra mitad del trabajo. Se muestra solo cuando existe: una
-                  línea en cero antes de que se reparta sería ruido, y peor,
-                  parecería incumplimiento de algo que nadie pidió. */}
-              {otroAsig > 0 && (
-                <p style={{ fontSize: 11, color: TX_LOW, textAlign: 'center' as const, marginTop: -2 }}>
-                  + <span style={{ fontWeight: 700, color: otroCerr >= otroAsig ? '#22C55E' : '#EAB308' }}>{otroCerr}</span>
-                  {' '}de {otroAsig} {otroNombre}
-                </p>
-              )}
-
-              {/* Tendencia: últimas 3 semanas */}
-              <div style={{ width: '100%' }}>
-                <p style={{ fontSize: 11, color: TX_LOW, marginBottom: 5 }}>
-                  Semanas anteriores <span style={{ opacity: 0.7 }}>· meta {SAC_TARGET_ANTERIOR}</span>
-                </p>
-                {/* La altura fija va en la PISTA de cada barra, no en el
-                    contenedor: con height:44 aquí, el contenido (barra +
-                    2 etiquetas ≈ 70px) se desbordaba 26px hacia arriba y
-                    tapaba el título de la sección. */}
-                <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end' }}>
-                  {weeks.slice(1).map((w, i) => {
-                    // Se escalan y colorean contra la meta que estaba vigente
-                    // entonces (15), no contra la actual: mezclarlas pintaría
-                    // de verde una semana de 15 sobre una meta de 4.
-                    const h  = Math.max(Math.round((w / Math.max(maxPrev, SAC_TARGET_ANTERIOR)) * 40), 3)
-                    const bc = (w / SAC_TARGET_ANTERIOR) >= 0.8 ? '#22C55E' : (w / SAC_TARGET_ANTERIOR) >= 0.5 ? '#EAB308' : '#EF4444'
-                    return (
-                      <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                        <div style={{ height: 40, width: '100%', display: 'flex', alignItems: 'flex-end' }}>
-                          <div style={{ height: `${h}px`, width: '100%', borderRadius: 3, background: bc }} />
-                        </div>
-                        <span style={{ fontSize: 11, color: TX_LOW }}>{w}</span>
-                        <span style={{ fontSize: 10, color: TX_LOW }}>{weekLabel[i]}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 // ── Tickets globales ──────────────────────────────────────────────────────────
 // El tipo local desapareció: ahora la forma la define lib/tickets-norm.ts, que
 // es también donde se arreglan los campos crudos del export.
@@ -1078,17 +891,6 @@ export default async function DashboardPage() {
   }
   const isAsesor     = rol === 'asesor'
 
-  // semana_inicio de hace 3 semanas (para traer 4 semanas de actividades SAC)
-  // Esto corre en el SERVIDOR, que va en UTC: con `new Date()` el domingo a
-  // partir de las 18:00 de México ya contaba la semana siguiente.
-  const getMondayOffset = (offsetWeeks: number): string => {
-    const d = ahoraEnMexico(); d.setHours(0,0,0,0)
-    const dow = d.getDay()
-    d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow) - offsetWeeks * 7)
-    return fechaLocal(d)
-  }
-  const semana3back = getMondayOffset(3)
-
   /* LOS TRES BLOQUES, EL MISMO UNIVERSO.
      `getCuentas` ya se filtraba por asesora y `getKPIs` no, así que la portada
      de una asesora ponía su listado de 68 cuentas al lado de la facturación de
@@ -1098,10 +900,9 @@ export default async function DashboardPage() {
      El semáforo por asesora sigue trayendo a las tres a propósito: es una
      comparación entre personas y se explica sola al llevar los tres nombres. */
   const soloSuCartera = isAsesor ? { asesor: asesorHeader } : undefined
-  const [kpis, semaforoAsesor, allCuentas, actsRaw, adopRows, alertasRes] = await Promise.all([
+  const [kpis, semaforoAsesor, allCuentas, adopRows, alertasRes] = await Promise.all([
     getKPIs(soloSuCartera), getSemaforoByAsesor(),
     getCuentas(soloSuCartera),
-    getActividadesSAC(semana3back),
     getAdopcionProductoAll(),
     /* El motor de alertas NO puede tumbar la portada, y tampoco puede fallar en
        silencio: si una fuente no responde, el panel lo DICE. Un cero aquí se
@@ -1174,52 +975,6 @@ export default async function DashboardPage() {
     .filter(c => !(c.consecutivo && auditSet.has(c.consecutivo.toUpperCase())))
     .reduce((s, c) => s + (c.facturacion ?? 0), 0)
 
-  /* ── SAC semanal: CERRADAS sobre ASIGNADAS, no sobre un 4 fijo ──────────
-   *
-   * Antes el denominador era la constante 4 y el numerador contaba CUALQUIER
-   * actividad completada. Eso produjo un «5 / 4» en el tablero del 26 de
-   * septiembre, que es imposible de leer: nadie puede cerrar más de lo que
-   * tiene. La causa fue que Fátima recibió cinco actividades esa semana —una
-   * entró dos días después del lote— y el medidor las contó todas contra un
-   * cuatro inamovible.
-   *
-   * Dos correcciones:
-   *
-   *   1. El denominador es lo que el asesor TIENE esa semana. Si le tocaron
-   *      cinco, el máximo es cinco. La meta de cuatro sigue existiendo, pero
-   *      como referencia en la etiqueta, no como divisor.
-   *
-   *   2. Solo cuenta el LOTE RUTINARIO. Los seguimientos por foco de riesgo
-   *      van diez por semana y las aclaraciones de baja no tienen tope: los dos
-   *      van declaradamente fuera del tope de cuatro. Si siguieran sumando
-   *      aquí, el lunes 28 —cuando entren los diez focos— este medidor diría
-   *      «14 de 4», que no mide nada.
-   *
-   * Los focos se cuentan aparte para que se vean, no para que se escondan.
-   */
-  const FUERA_DEL_LOTE = new Set(['foco_riesgo', 'aclaracion'])
-  const weekKeys = [0, 1, 2, 3].map(i => getMondayOffset(i))
-  const segsMap: Record<string, number[]> = {}
-  const asignMap: Record<string, number[]> = {}
-  const focosMap: Record<string, number[]> = {}
-  const focosAsignMap: Record<string, number[]> = {}
-  const ASESORES_LIST: Asesor[] = ['Fátima', 'Dan', 'Claudia']
-  ASESORES_LIST.forEach(a => {
-    segsMap[a] = [0, 0, 0, 0]; asignMap[a] = [0, 0, 0, 0]
-    focosMap[a] = [0, 0, 0, 0]; focosAsignMap[a] = [0, 0, 0, 0]
-  })
-  actsRaw.forEach(act => {
-    const idx = weekKeys.indexOf(act.semana_inicio)
-    if (idx === -1 || !segsMap[act.asesor]) return
-    if (FUERA_DEL_LOTE.has(String(act.tipo ?? ''))) {
-      focosAsignMap[act.asesor][idx]++
-      if (act.completada) focosMap[act.asesor][idx]++
-      return
-    }
-    asignMap[act.asesor][idx]++
-    if (act.completada) segsMap[act.asesor][idx]++
-  })
-
   // Stats por asesor
   const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
   const asesorStats: AsesorStats[] = ASESORES.map(a => {
@@ -1276,80 +1031,15 @@ export default async function DashboardPage() {
 
   // ── Top Cuentas — ranking versátil (13 dimensiones seleccionables) ────────
   /* ── Candidato a: — a qué es candidata cada cuenta ────────────────────────
-   * Se arma con lo que ya está en memoria (cuentas, adopción, tickets) más los
-   * cortes de facturación, que aportan plan, consumo y uso del panel. El
-   * evaluador nunca inventa: si faltan señales, lo dice. */
-  const candidatos: ResultadoCandidato[] = await Promise.all(
-    cuentas.map(async (c): Promise<ResultadoCandidato> => {
-      const sop = soporteDeCuenta(c.cid ?? null, c.empresa)
-      // Las tres fuentes MEDIDAS que sostienen las candidaturas de producto.
-      // Las tres cachean por módulo, así que las 221 cuentas comparten una
-      // sola lectura de cada archivo.
-      const [cortes, llam, nums] = await Promise.all([
-        cortesDeCuenta(c.cid, 6),
-        resumenLlamadas(c.cid),
-        didsDeCuenta(c.cid),
-      ])
-      const ult3 = cortes.slice(-3)
-      const prom = (xs: number[]) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null
-      const consumoPct = ult3.length ? prom(ult3.map(x => x.pct)) : null
-      const previos    = cortes.slice(0, -2).map(x => x.pct)
-      const recientes  = cortes.slice(-2).map(x => x.pct)
-      const mediaPrev  = prom(previos)
-      const mediaRec   = prom(recientes)
-      const caida = (mediaPrev && mediaPrev > 0 && mediaRec !== null)
-        ? Math.max(0, ((mediaPrev - mediaRec) / mediaPrev) * 100) : null
-
-      const adopcion: Record<string, string> = {}
-      const porProd = adopMap.get(c.id)
-      if (porProd) for (const [prod, row] of Array.from(porProd.entries())) adopcion[prod] = row.nivel
-
-      const entrada: EntradaCandidatura = {
-        id: String(c.id), consecutivo: c.consecutivo ?? '', empresa: c.empresa,
-        asesor: c.asesor ?? null, estado: c.estado ?? null,
-        facturacion: c.facturacion ?? 0, healthScore: c.health_score ?? null,
-        activoDesde: c.activo_desde, diasSinContacto: diasSinContactoDe(c),
-        giro: c.giro ?? null, numOficinas: c.num_oficinas ?? null,
-        tieneContacto: Boolean(
-          (c.contacto_email && String(c.contacto_email).trim() && String(c.contacto_email).trim() !== '0') ||
-          (c.contacto_tel   && String(c.contacto_tel).trim()   && String(c.contacto_tel).trim()   !== '0')),
-        faltantesCount: computeFaltantes(c).length,
-        // Los conteos salen de la fuente COMPLETA, no de `tix.rows`, que viene
-        // cortado a 20 para la tabla: una cuenta con 183 tickets y 15 fallas
-        // declaraba solo las que cupieran en la página.
-        ticketsTotal: sop.historia.total,
-        ticketsFallas: sop.historia.fallas,
-        ticketsAbiertos: sop.historia.abiertos ?? 0,
-        ticketsVencidos: sop.vencidos.length,
-        peorDiasSLA: sop.peorDiasSLA,
-        plan: cortes.at(-1)?.plan ?? null,
-        consumoPct, caidaConsumo: caida,
-        panelPromedio: ult3.length ? prom(ult3.map(x => x.panel)) : null,
-        adopcion,
-
-        /* Medidas. `null` cuando no hay lectura, y el evaluador lo distingue:
-           no medir no es medir cero. */
-        entrantes:       llam?.entrantes ?? null,
-        sinContestar:    llam?.sinContestar ?? null,
-        pctSinContestar: llam?.pctSinContestar ?? null,
-        pctMenu:         llam?.pctMenu ?? null,
-        ventanaLlamadas: llam?.ventana ?? null,
-        // Desarrolladores se SUMA sobre los cortes, no se promedia: una visita
-        // ocurrió o no ocurrió, y promediarla la diluye hasta desaparecer.
-        visitasDesarrolladores: cortes.length
-          ? cortes.reduce((s, x) => s + (x.desarrolladores ?? 0), 0) : null,
-        extensiones:     cortes.at(-1)?.extensiones ?? null,
-        minPorExtension: (() => {
-          const u = cortes.at(-1)
-          return u?.extensiones ? u.cons / u.extensiones : null
-        })(),
-        dids:        nums.length,
-        didsDigital: nums.filter(d => RX_CANAL_DIGITAL.test(d.etiqueta)).length,
-        didsLibres:  nums.filter(d => ETIQUETA_LIBRE.has(d.etiqueta.trim().toLowerCase())).length,
-      }
-      return evaluarCandidato(entrada)
-    }),
-  )
+   * La derivación se mudó a `lib/candidatos-cartera.ts` el 8 oct 2026. Vivía
+   * aquí, setenta líneas en línea, y por eso ALERTAS no podía usarla: su
+   * situación `oportunidad` colgaba de un campo que entraba como `null` y nunca
+   * se podía disparar. Ahora las dos pantallas llaman a la MISMA función, que es
+   * la única forma de que no acaben proponiendo cosas distintas. */
+  const candidatosMap = await candidatosDeCartera(cuentas)
+  const candidatos: ResultadoCandidato[] = cuentas
+    .map(c => candidatosMap.get(String(c.id)))
+    .filter((x): x is ResultadoCandidato => x !== undefined)
 
   /* Las que tienen al menos una candidatura DERIVADA. Ver el KPI más abajo:
      `conUpsell` contaba captura manual y vale 1 de 192. */
@@ -1437,14 +1127,6 @@ export default async function DashboardPage() {
 
       {/* ══ §1b Top Cuentas · Ranking Versátil ════════════════════════════ */}
       <TopCuentasVersatil data={rankRows} />
-
-      {/* ══ §1c Cumplimiento SAC Semanal — la ejecución del lote ══════════ */}
-      <div className="px-6 pb-5">
-        <SACWeeklyPanel
-          asesores={asesorStats} segsMap={segsMap} asignMap={asignMap}
-          focosMap={focosMap} focosAsignMap={focosAsignMap}
-        />
-      </div>
 
       {/* ══ Candidato a: — blindaje y crecimiento con evidencia ══════════ */}
       <CandidatoA data={candidatos} />

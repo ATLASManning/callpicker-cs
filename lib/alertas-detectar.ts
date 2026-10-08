@@ -121,22 +121,22 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
       supabaseAdmin.from('seguimientos')
         .select('cuenta_id, fecha, tipo, resultado, descripcion')
         .in('cuenta_id', ids).range(d, h)),
-    /* `asesor` y `semana_inicio` entran aquí el 6 oct 2026, y no son adorno:
-       sin ellos la alerta `asignada_sin_cerrar` le cobraba al asesor ACTUAL de
-       la cuenta un trabajo que pudo haber recibido otra persona hace meses, sin
-       ventana de tiempo y con severidad crítica. */
     /* `tipo`, las dos fechas, `resultado` y `descripcion` entran el 7 oct 2026,
-       y tampoco son adorno: sin ellos este detector no podía ver que una
-       actividad de tipo `llamada` CERRADA es un contacto real, y acusaba de
-       «nunca contactada» a quince cuentas a las que sí se llamó. Ver el detalle
-       en `lib/contacto-cuenta.ts`. */
-    traerPorPaginas<{ cuenta_id: string; completada: boolean | null; estado: string | null
-                      asesor: string | null; semana_inicio: string | null
+       y no son adorno: sin ellos este detector no podía ver que una actividad
+       de tipo `llamada` CERRADA es un contacto real, y acusaba de «nunca
+       contactada» a quince cuentas a las que sí se llamó. Ver el detalle en
+       `lib/contacto-cuenta.ts`.
+
+       `estado`, `asesor` y `semana_inicio` salen el 8 oct 2026: entraron para
+       que `asignada_sin_cerrar` pudiera decir desde cuándo y a nombre de quién,
+       y esa alerta ya no existe. Esta consulta ahora sirve a UNA cosa —el reloj
+       de contacto— y pide solo lo que esa cosa lee. */
+    traerPorPaginas<{ cuenta_id: string; completada: boolean | null
                       tipo: string | null; completada_en: string | null
                       fecha_programada: string | null; resultado: string | null
                       descripcion: string | null }>((d, h) =>
       supabaseAdmin.from('actividades')
-        .select('cuenta_id, completada, estado, asesor, semana_inicio, tipo, '
+        .select('cuenta_id, completada, tipo, '
               + 'completada_en, fecha_programada, resultado, descripcion')
         .in('cuenta_id', ids).range(d, h)),
     todosLosCortes(),
@@ -253,28 +253,6 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
     if (!f) continue
     if (f > (ultimoSeg.get(a.cuenta_id) ?? '')) ultimoSeg.set(a.cuenta_id, f)
     if (f > (ultimoEfectivo.get(a.cuenta_id) ?? '')) ultimoEfectivo.set(a.cuenta_id, f)
-  }
-  /* Se cuentan, no solo se marcan: la evidencia de `asignada_sin_cerrar` tiene
-     que poder decir CUÁNTAS se asignaron. «Se le asignó trabajo y no se cerró»
-     es una queja; «se le asignaron 7 y no se cerró ninguna» es un dato. */
-  const nAsignadas = new Map<string, number>()
-  const cerradas = new Set<string>()
-  /** Desde cuándo y a nombre de quién, para que la herencia se vea. */
-  const asignDesde = new Map<string, string>()
-  const asignA = new Map<string, Set<string>>()
-  for (const a of actRows) {
-    if (!a.cuenta_id) continue
-    nAsignadas.set(a.cuenta_id, (nAsignadas.get(a.cuenta_id) ?? 0) + 1)
-    if (a.completada || a.estado === 'completada') cerradas.add(a.cuenta_id)
-    const f = String(a.semana_inicio ?? '').slice(0, 10)
-    if (f && (!asignDesde.has(a.cuenta_id) || f < asignDesde.get(a.cuenta_id)!)) {
-      asignDesde.set(a.cuenta_id, f)
-    }
-    if (a.asesor) {
-      const s = asignA.get(a.cuenta_id) ?? new Set<string>()
-      s.add(a.asesor)
-      asignA.set(a.cuenta_id, s)
-    }
   }
   const nSeguimientos = new Map<string, number>()
   for (const s of segRows) {
@@ -486,33 +464,17 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
           d)
     }
 
-    // ── Abandono: es nuestro, no del cliente ─────────────────────────────
-    const nAsig = nAsignadas.get(c.id) ?? 0
-    if (nAsig > 0 && !cerradas.has(c.id)) {
-      // El verbo concuerda con el número, no solo el sustantivo: «se le
-      // asignaron 1 actividad» salía en 26 de las 69 alertas de abandono.
-      /* La evidencia DICE desde cuándo y a nombre de quién. Sin eso, una cuenta
-         que cambió de cartera le endosa al nuevo asesor una crítica que nunca
-         recibió, y él no tiene forma de saberlo mirando el tablero. */
-      const desde = asignDesde.get(c.id)
-      const dDesde = diasDesde(desde ?? null, hoy)
-      const nombres = Array.from(asignA.get(c.id) ?? [])
-      const heredada = nombres.length > 0 && c.asesor != null && !nombres.includes(c.asesor)
-      add('asignada_sin_cerrar', c,
-          (nAsig === 1 ? 'Se le asignó 1 actividad' : `Se le asignaron ${nAsig} actividades`)
-          + (desde ? ` desde el ${desde}` : '')
-          + (dDesde !== null ? ` (hace ${dDesde} días)` : '')
-          + ` y no se ha cerrado ninguna, en una cuenta de `
-          + `${cuantoPaga(c)}.`
-          + (heredada
-              ? ` OJO: ${nombres.length === 1 ? 'se asignó a' : 'se asignaron a'} `
-                + `${nombres.join(' y ')}, no a ${c.asesor} — viene heredada con la cartera.`
-              : ''),
-          dDesde)
-    } else if (nAsig === 0) {
-      add('nunca_asignada', c,
-          `Cero actividades en todo el historial, y paga ${cuantoPaga(c)}.`)
-    }
+    /* Aquí vivía la familia ABANDONO: `asignada_sin_cerrar` y `nunca_asignada`.
+       Se retiraron el 8 oct 2026 con el generador SAC. Las dos medían nuestra
+       contabilidad del lote, no la cuenta: la primera pedía cerrar una
+       actividad en una pantalla que ya borramos, la segunda prometía una cola
+       que ya no drena. «Nadie está cuidando esta cuenta» lo dice ahora el motor
+       de veredictos con `no_la_vemos` y `sin_auditar`, sobre el cliente.
+
+       Lo que NO se fue: el bucle de arriba que mete las actividades cerradas de
+       canal en el reloj de contacto. Esas 87 filas son evidencia de que alguien
+       llamó, y son la razón por la que el tablero dejó de acusar a 32 cuentas
+       de abandono cuando sí se les había llamado. */
   }
 
   return alertas.sort((a, b) =>

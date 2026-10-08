@@ -17,7 +17,6 @@ import {
 } from '@/lib/types'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
-import ActividadesBtn from '@/components/ActividadesBtn'
 import { fechaLocal } from '@/lib/fecha-local'
 
 // ── Paleta azul marino (header) ───────────────────────────────────────────────
@@ -341,7 +340,6 @@ export default function AsesorCard({
                   ? <><ChevronUp size={12} /> Compactar</>
                   : <><ChevronDown size={12} /> Ver cuentas</>}
               </button>
-              <ActividadesBtn asesor={asesor} acColor={ac.color} inline />
             </div>
 
             {/* Datos de contacto */}

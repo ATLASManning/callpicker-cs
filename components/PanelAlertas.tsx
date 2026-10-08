@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { AlertTriangle, ArrowRight, EyeOff, TrendingDown, UserX, Sparkles, Lock } from 'lucide-react'
+import { AlertTriangle, ArrowRight, EyeOff, TrendingDown, Sparkles, Lock } from 'lucide-react'
 import {
   ETIQUETA_SEVERIDAD, COLOR_SEVERIDAD, ETIQUETA_FAMILIA, ETIQUETA_DUENO_CORTA, BLOQUEADA,
   type Alerta, type ResumenAlertas, type Familia,
@@ -38,10 +38,10 @@ const TX_MID = 'rgba(255,255,255,0.72)'
 const TX_LOW = 'rgba(255,255,255,0.48)'
 
 const ICONO_FAMILIA: Record<Familia, typeof EyeOff> = {
-  ceguera: EyeOff, riesgo: TrendingDown, abandono: UserX, oportunidad: Sparkles,
+  ceguera: EyeOff, riesgo: TrendingDown, oportunidad: Sparkles,
 }
 const COLOR_FAMILIA: Record<Familia, string> = {
-  ceguera: '#A78BFA', riesgo: '#F87171', abandono: '#FB923C', oportunidad: '#4ADE80',
+  ceguera: '#A78BFA', riesgo: '#F87171', oportunidad: '#4ADE80',
 }
 
 const pesos = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
@@ -66,7 +66,7 @@ export default function PanelAlertas({
   falla?: string | null
   verTodas?: string
 }) {
-  const fam: Familia[] = ['ceguera', 'riesgo', 'abandono', 'oportunidad']
+  const fam: Familia[] = ['ceguera', 'riesgo', 'oportunidad']
   /* Las cuentas sin asesor NO son una persona. `a.asesor || '(sin asesor)'` las
      agrupa bajo una llave que aquí se dibujaría como una tarjeta más —y la
      rejilla se dimensiona con `min(n, 3)`, así que una cuarta llave deja una
@@ -160,7 +160,9 @@ export default function PanelAlertas({
         </div>
       </div>
 
-      {/* ── Las cuatro familias ──────────────────────────────────────── */}
+      {/* ── Las tres familias ───────────────────────────────────────────
+           Eran cuatro: `abandono` se fue con el generador SAC el 8 oct 2026.
+           La rejilla es `auto-fit`, así que no queda hueco. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(168px,1fr))',
                     gap: 10, marginBottom: 18 }}>
         {fam.map(f => {

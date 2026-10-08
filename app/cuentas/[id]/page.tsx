@@ -30,7 +30,6 @@ import RadarCuenta from '@/components/RadarCuenta'
 import CuentaInfoEditor from '@/components/CuentaInfoEditor'
 import CuentaTicketsPanel from '@/components/CuentaTicketsPanel'
 import CuentaFacturacionPanel from '@/components/CuentaFacturacionPanel'
-import CuentaActividadesSAC from '@/components/CuentaActividadesSAC'
 import CuentaCortesPanel from '@/components/CuentaCortesPanel'
 import CuentaFacHeaderLive from '@/components/CuentaFacHeaderLive'
 import CuentaReunionButton from '@/components/CuentaReunionButton'
@@ -779,7 +778,6 @@ export default async function CuentaDetailPage({ params }: Props) {
           />
 
           {/* Actividades SAC */}
-          <CuentaActividadesSAC actividades={actividades} canEdit={canEdit} />
 
           {/* Facturación — Factura Mensual y MRR salen del corte GRC */}
           <CuentaFacturacionPanel
