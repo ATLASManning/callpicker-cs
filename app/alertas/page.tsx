@@ -1,35 +1,43 @@
 import Link from 'next/link'
 import { headers } from 'next/headers'
-import { AlertTriangle, ArrowRight, EyeOff, TrendingDown, UserX, Sparkles, Lock } from 'lucide-react'
+import { ArrowRight, Lock } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
-import { detectarAlertas, UMBRALES } from '@/lib/alertas-detectar'
-import { alertasConMemoria } from '@/lib/alertas-episodios'
-import {
-  resumir, ETIQUETA_SEVERIDAD, COLOR_SEVERIDAD, ETIQUETA_FAMILIA, ETIQUETA_DUENO, BLOQUEADA,
-  type Alerta, type Familia, type Severidad, type Dueno,
-} from '@/lib/alertas'
+import { veredictosDeCartera, type CuentaConVeredicto } from '@/lib/alertas-estado'
+import { SITUACION, LUZ, type Situacion, type ClaseHallazgo } from '@/lib/alertas-veredicto'
 import { hoyEnPalabras } from '@/lib/fecha-local'
 
 /**
- * /alertas — el expediente completo de riesgo de la cartera.
+ * /alertas — EL OBJETIVO DE TRABAJO DE SAC
  *
- * ── POR QUÉ AGRUPA POR CUENTA Y NO LISTA ALERTAS ─────────────────────────
+ * Instrucción de dirección, 7 oct 2026: ALERTAS sustituye a las actividades SAC
+ * y «debe estar como objetivo de trabajo para SAC». El asesor abre esta pantalla
+ * y esto ES su semana. No hay un generador que le reparta tareas aparte.
  *
- * Medido en producción: 607 alertas sobre 184 cuentas. Una lista de 607
- * renglones no se lee, y además MIENTE sobre la forma del problema: una cuenta
- * con cinco señales encendidas no son cinco problemas, es UNA cuenta en
- * problemas, y repetirla cinco veces la hace parecer cinco veces más grande de
- * lo que es.
+ * ── QUÉ CAMBIÓ RESPECTO A LA VERSIÓN ANTERIOR ────────────────────────────
  *
- * El sujeto es la cuenta —como en Custify y ChurnZero—, y sus alertas son lo
- * que le pasa. El MRR aparece UNA vez por cuenta, y el orden lo da la alerta
- * más grave que tiene.
+ * Antes listaba las cuentas que habían disparado una alerta. Ahora están LAS
+ * 192, porque una cuenta tranquila y una cuenta invisible se veían igual —las
+ * dos ausentes— y son lo contrario la una de la otra. La que está en orden lo
+ * dice, y dice también que no se le invente trabajo.
  *
- * ── LOS FILTROS SON ENLACES, NO ESTADO ───────────────────────────────────
+ * ── UNA ACCIÓN POR CUENTA, NO UNA POR CAMPO VACÍO ────────────────────────
  *
- * Así la pantalla se puede compartir: el enlace que dirección le manda a un
- * ejecutivo abre exactamente lo que dirección estaba viendo. Y mantiene la
- * página como componente de servidor, sin un segundo viaje a la API.
+ * «No hacer tareas innecesarias, deben ser con inteligencia» — dirección. Una
+ * cuenta con consumo en cero, noventa días sin contacto y un ticket fuera de
+ * SLA no tiene tres problemas: tiene uno, se está yendo, y las tres cosas son
+ * la evidencia. Aquí se pinta la acción, y debajo las pruebas.
+ *
+ * ── EL SEMÁFORO NO CUELGA DEL HEALTH SCORE ───────────────────────────────
+ *
+ * Sale de la situación. El Health Score se apoya en dato real un 58% en
+ * promedio y ocho cuentas lo tienen 100% fabricado: sigue siendo una señal,
+ * deja de ser la etiqueta. Hay un semáforo, no dos.
+ *
+ * ── LOS FILTROS SON ENLACES ──────────────────────────────────────────────
+ *
+ * Para que la pantalla se pueda compartir: el enlace que dirección le manda a
+ * un asesor abre exactamente lo que dirección estaba viendo. Y mantiene esto
+ * como componente de servidor, sin un segundo viaje a la API.
  */
 export const dynamic = 'force-dynamic'
 
@@ -39,440 +47,250 @@ const TX_HI = 'rgba(255,255,255,0.94)'
 const TX_MID = 'rgba(255,255,255,0.72)'
 const TX_LOW = 'rgba(255,255,255,0.48)'
 
-const ICONO_FAMILIA: Record<Familia, typeof EyeOff> = {
-  ceguera: EyeOff, riesgo: TrendingDown, abandono: UserX, oportunidad: Sparkles,
-}
-const COLOR_FAMILIA: Record<Familia, string> = {
-  ceguera: '#A78BFA', riesgo: '#F87171', abandono: '#FB923C', oportunidad: '#4ADE80',
-}
-const COLOR_DUENO: Record<Dueno, string> = {
-  asesor: '#4ADE80', ingenieria: '#A78BFA', direccion: '#7AA2FF',
-}
+/** Todo texto de color va en un `<span>` que declara su propio `background`:
+ *  `globals.css` pinta de blanco cualquier `<p>`/`<strong>` que no lo haga, y
+ *  esta pantalla es una isla oscura. Ver [[atlas-dashboard-contrast-architecture]]. */
+const C = (color: string, extra: React.CSSProperties = {}): React.CSSProperties =>
+  ({ color, background: 'transparent', ...extra })
 
-/** Cuántas cuentas se dibujan. El resto se declara, no se esconde. */
-const TOPE_CUENTAS = 120
+const dinero = (n: number | null) =>
+  n === null ? 'sin importe' : `$${n.toLocaleString('es-MX', { maximumFractionDigits: 0 })}`
 
-const pesos = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
-const miles = (n: number) =>
-  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(2)}M`
-  : n >= 1_000 ? `$${Math.round(n / 1000)}K` : pesos(n)
-
-function C({ c, b, children }: { c: string; b?: boolean; children: React.ReactNode }) {
-  return (
-    <span style={{ background: 'transparent', color: c, fontWeight: b ? 700 : undefined }}>
-      {children}
-    </span>
-  )
-}
-
-function Chip({ href, activo, color, children }: {
-  href: string; activo: boolean; color: string; children: React.ReactNode
-}) {
-  return (
-    <Link href={href}
-      style={{ fontSize: 11.5, fontWeight: 600, padding: '6px 12px', borderRadius: 999,
-               color: activo ? '#071018' : color,
-               background: activo ? color : 'rgba(255,255,255,0.05)',
-               border: `1px solid ${activo ? color : BORDER}`, whiteSpace: 'nowrap' }}>
-      {children}
-    </Link>
-  )
-}
-
-interface Grupo {
-  cuentaId: string
-  empresa: string
-  consecutivo: string | null
-  asesor: string | null
-  mrr: number
-  esTop: boolean
-  alertas: Alerta[]
-  prioridad: number
-}
-
-function agrupar(alertas: Alerta[]): Grupo[] {
-  const m = new Map<string, Grupo>()
-  for (const a of alertas) {
-    let g = m.get(a.cuentaId)
-    if (!g) {
-      g = { cuentaId: a.cuentaId, empresa: a.empresa, consecutivo: a.consecutivo,
-            asesor: a.asesor, mrr: a.mrr, esTop: a.esTop, alertas: [], prioridad: 0 }
-      m.set(a.cuentaId, g)
-    }
-    g.alertas.push(a)
-    // La prioridad de la cuenta es la de su alerta MÁS GRAVE, no la suma: una
-    // cuenta con seis avisos medios no es más urgente que una con uno crítico.
-    if (a.prioridad > g.prioridad) g.prioridad = a.prioridad
-  }
-  return [...m.values()].sort((x, y) =>
-    y.prioridad - x.prioridad || y.mrr - x.mrr || x.empresa.localeCompare(y.empresa, 'es'))
-}
+const CLASES: Array<{ k: ClaseHallazgo; etiqueta: string; color: string }> = [
+  { k: 'riesgo',   etiqueta: 'Riesgo',             color: '#F87171' },
+  { k: 'entrega',  etiqueta: 'Para enseñarle',     color: '#60A5FA' },
+  { k: 'analisis', etiqueta: 'Nos falta',          color: '#FBBF24' },
+]
 
 export default async function AlertasPage({
   searchParams,
-}: {
-  searchParams: { familia?: string; severidad?: string; asesor?: string; dueno?: string }
-}) {
+}: { searchParams?: { asesor?: string; situacion?: string } }) {
+  /* El asesor que entra ve SU cartera y nada más. Un rol de asesor sin nombre
+     asignado no ve nada: un permiso incompleto se resuelve negando, nunca
+     concediendo. Es el mismo candado de `/api/alertas`. */
   const h = headers()
-  const rol = h.get('x-user-rol') ?? 'viewer'
+  const rolAsesor = h.get('x-user-rol') === 'asesor'
   const suyo = decodeURIComponent(h.get('x-user-asesor') ?? '')
-  const esAsesor = rol === 'asesor' && !!suyo
-
-  /* Un asesor ve SU cartera aunque el enlace diga otra cosa. El filtro de la
-     barra es una comodidad para dirección, no un permiso. */
-  const asesorPedido = esAsesor ? suyo : (searchParams.asesor || '')
-
-  let alertas: Alerta[] = []
-  let falla: string | null = null
-  try {
-    const r = await alertasConMemoria(
-      () => detectarAlertas(asesorPedido ? { asesor: asesorPedido } : undefined),
-      asesorPedido ? { asesor: asesorPedido } : undefined,
+  if (rolAsesor && !suyo) {
+    return (
+      <div style={{ padding: 24 }}>
+        <PageHeader titulo="Alertas de Cliente" />
+        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
+          <p style={C(TX_HI)}>
+            <Lock size={14} style={{ display: 'inline', marginRight: 6 }} />
+            Tu usuario tiene rol de asesor pero no trae asignada una cartera.
+            Pídele a administración que lo complete.
+          </p>
+        </div>
+      </div>
     )
-    alertas = r.alertas
-  } catch (e) {
-    falla = (e as Error)?.message || 'una fuente no respondió'
   }
+  const asesorFiltro = rolAsesor ? suyo : (searchParams?.asesor || undefined)
+  const sitFiltro = (searchParams?.situacion || undefined) as Situacion | undefined
 
-  // El resumen es del UNIVERSO consultado, antes de los filtros de la barra:
-  // así el total de la cabecera no se mueve al picar un chip, que es lo que
-  // hace que dos personas lean dos cifras distintas del mismo tablero.
-  const resumen = resumir(alertas)
+  const { cuentas, falla } = await veredictosDeCartera(
+    asesorFiltro ? { asesor: asesorFiltro } : undefined)
 
-  const famSel = (searchParams.familia || '') as Familia | ''
-  const sevSel = (searchParams.severidad || '') as Severidad | ''
-  const dueSel = (searchParams.dueno || '') as Dueno | ''
-  let visibles = alertas
-  if (famSel) visibles = visibles.filter(a => a.familia === famSel)
-  if (sevSel) visibles = visibles.filter(a => a.severidad === sevSel)
-  if (dueSel) visibles = visibles.filter(a => a.dueno === dueSel)
-
-  const grupos = agrupar(visibles)
-  const dibujados = grupos.slice(0, TOPE_CUENTAS)
-  const ocultos = grupos.length - dibujados.length
-  const mrrOculto = grupos.slice(TOPE_CUENTAS).reduce((s, g) => s + g.mrr, 0)
-
-  const q = (cambio: Record<string, string>) => {
-    const p = new URLSearchParams()
-    const base: Record<string, string> = {
-      familia: famSel, severidad: sevSel, dueno: dueSel,
-      asesor: esAsesor ? '' : asesorPedido,
-    }
-    for (const [k, v] of Object.entries({ ...base, ...cambio })) if (v) p.set(k, v)
-    const s = p.toString()
-    return '/alertas' + (s ? `?${s}` : '')
+  /* El reparto se calcula sobre TODO lo que se leyó, no sobre lo filtrado: un
+     total que encoge al filtrar diría que hay menos trabajo del que hay. */
+  const porSituacion = new Map<Situacion, { n: number; mrr: number; sinImporte: number }>()
+  for (const c of cuentas) {
+    const k = c.veredicto.situacion
+    const e = porSituacion.get(k) ?? { n: 0, mrr: 0, sinImporte: 0 }
+    e.n += 1
+    if (c.mrr === null) e.sinImporte += 1
+    else e.mrr += c.mrr
+    porSituacion.set(k, e)
   }
+  const orden = (Object.keys(SITUACION) as Situacion[])
+    .sort((a, b) => SITUACION[a].orden - SITUACION[b].orden)
 
-  const fam: Familia[] = ['ceguera', 'riesgo', 'abandono', 'oportunidad']
-  const sev: Severidad[] = ['critica', 'alta', 'media', 'oportunidad']
-  // Un cubo vacío no se pinta: un chip «dirección · 0» invita a picarlo para
-  // encontrar nada, y enseña que el tablero tiene casillas de adorno.
-  const due: Dueno[] = (['asesor', 'ingenieria', 'direccion'] as Dueno[])
-    .filter(k => resumen.porDueno[k].n > 0)
-  const asesores = Object.entries(resumen.porAsesor).sort((a, b) => b[1].mrr - a[1].mrr)
+  const lista = sitFiltro ? cuentas.filter(c => c.veredicto.situacion === sitFiltro) : cuentas
+  const asesores = Array.from(new Set(cuentas.map(c => c.asesor).filter(Boolean) as string[])).sort()
+
+  const enlace = (p: { asesor?: string; situacion?: string }) => {
+    const q = new URLSearchParams()
+    const a = p.asesor !== undefined ? p.asesor : asesorFiltro
+    const s = p.situacion !== undefined ? p.situacion : sitFiltro
+    if (a) q.set('asesor', a)
+    if (s) q.set('situacion', s)
+    const t = q.toString()
+    return t ? `/alertas?${t}` : '/alertas'
+  }
 
   return (
-    <div>
-      <PageHeader
-        title="Alertas de cliente"
-        subtitle={
-          falla
-            ? 'No se pudieron calcular — ver el aviso abajo'
-            : `${resumen.total} alertas sobre ${resumen.cuentas} cuentas · `
-              + `${miles(resumen.mrrEnRiesgo)} de MRR en riesgo · ${hoyEnPalabras()}`
-        }
-      />
+    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <PageHeader titulo="Alertas de Cliente" />
+
+      <p style={C(TX_MID, { fontSize: 12, margin: 0 })}>
+        Las {cuentas.length} cuentas vivas{asesorFiltro ? ` de ${asesorFiltro}` : ''}, cada una con
+        su lectura y una sola acción. {hoyEnPalabras()}.
+      </p>
 
       {falla && (
-        <div className="mx-6 mb-5" style={{ background: PANEL,
-              border: '1px solid rgba(217,119,6,0.45)', borderRadius: 14, padding: 18,
-              display: 'flex', gap: 13, alignItems: 'flex-start' }}>
-          <AlertTriangle size={18} style={{ color: '#D97706', flexShrink: 0, marginTop: 1 }} />
-          <div>
-            <p style={{ fontSize: 13.5, margin: '0 0 4px' }}>
-              <C c={TX_HI} b>No se pudieron calcular las alertas.</C>
-            </p>
-            <p style={{ fontSize: 11.5, margin: 0, lineHeight: 1.55 }}>
-              <C c={TX_MID}>{falla}</C>
-              <C c={TX_LOW}>
-                {' '}— esto <C c={TX_MID} b>no significa que no haya riesgo</C>, significa que
-                hoy no se midió.
-              </C>
-            </p>
-          </div>
+        <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)',
+                      borderRadius: 10, padding: '10px 14px' }}>
+          <span style={C('#FCA5A5', { fontSize: 12 })}>
+            Una fuente no cargó, y eso cambia lo que se puede afirmar: {falla}
+          </span>
         </div>
       )}
 
-      {!falla && (
-        <>
-          {/* ── Cabecera: el dinero y las particiones ───────────────────── */}
-          <div className="mx-6 mb-4" style={{ background: PANEL, border: `1px solid ${BORDER}`,
-                borderRadius: 16, padding: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 11,
-                          flexWrap: 'wrap', marginBottom: 4 }}>
-              <span style={{ background: 'transparent', fontSize: 40, fontWeight: 800,
-                             letterSpacing: '-0.03em', color: '#F87171', lineHeight: 1 }}>
-                {miles(resumen.mrrEnRiesgo)}
-              </span>
-              <span style={{ background: 'transparent', fontSize: 13.5, color: TX_MID }}>
-                de MRR en riesgo · {resumen.cuentas} cuentas · {resumen.total} alertas
-              </span>
-              {resumen.topEnRiesgo > 0 && (
-                <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 10px',
-                               borderRadius: 999, color: '#1B1200', background: '#FBBF24' }}>
-                  {resumen.topEnRiesgo} de las 25 TOP
-                </span>
-              )}
-            </div>
-            <p style={{ fontSize: 11.5, margin: '0 0 16px', lineHeight: 1.55, maxWidth: 680 }}>
-              <C c={TX_LOW}>
-                El dinero se cuenta <C c={TX_MID} b>una vez por cuenta</C>. Las cifras de arriba
-                son del universo completo{asesorPedido ? ` de ${asesorPedido}` : ''} y
-                <C c={TX_MID} b> no cambian al filtrar</C>: los filtros mueven la lista, no el total.
-              </C>
-            </p>
-
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 9 }}>
-              <Chip href={q({ familia: '' })} activo={!famSel} color="#7AA2FF">
-                Todas las familias
-              </Chip>
-              {fam.map(f => {
-                const Icono = ICONO_FAMILIA[f]
-                return (
-                  <Chip key={f} href={q({ familia: famSel === f ? '' : f })}
-                    activo={famSel === f} color={COLOR_FAMILIA[f]}>
-                    <Icono size={11} style={{ display: 'inline', verticalAlign: '-1px',
-                                              marginRight: 5 }} />
-                    {ETIQUETA_FAMILIA[f]} · {resumen.porFamilia[f].n}
-                  </Chip>
-                )
-              })}
-            </div>
-
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginBottom: 9 }}>
-              <Chip href={q({ severidad: '' })} activo={!sevSel} color="#7AA2FF">
-                Toda severidad
-              </Chip>
-              {sev.map(s => (
-                <Chip key={s} href={q({ severidad: sevSel === s ? '' : s })}
-                  activo={sevSel === s} color={COLOR_SEVERIDAD[s].fg}>
-                  {ETIQUETA_SEVERIDAD[s]} · {resumen.porSeveridad[s].n}
-                </Chip>
-              ))}
-            </div>
-
-            {/* ── Quién puede cerrarla ───────────────────────────────── */}
-            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap',
-                          marginBottom: asesores.length > 1 && !esAsesor ? 9 : 0 }}>
-              <Chip href={q({ dueno: '' })} activo={!dueSel} color="#7AA2FF">
-                Quien sea que la cierre
-              </Chip>
-              {due.map(k => (
-                <Chip key={k} href={q({ dueno: dueSel === k ? '' : k })}
-                  activo={dueSel === k} color={COLOR_DUENO[k]}>
-                  {BLOQUEADA.has(k) && (
-                    <Lock size={10} style={{ display: 'inline', verticalAlign: '-1px',
-                                             marginRight: 4 }} />
-                  )}
-                  {ETIQUETA_DUENO[k]} · {resumen.porDueno[k].n}
-                </Chip>
-              ))}
-            </div>
-
-            {!esAsesor && asesores.length > 1 && (
-              <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
-                <Chip href={q({ asesor: '' })} activo={!asesorPedido} color="#94A3B8">
-                  Toda la cartera
-                </Chip>
-                {asesores.map(([n, d]) => (
-                  <Chip key={n} href={q({ asesor: asesorPedido === n ? '' : n })}
-                    activo={asesorPedido === n} color="#94A3B8">
-                    {n} · {miles(d.mrr)}
-                  </Chip>
-                ))}
+      {/* ── EL SEMÁFORO: el reparto de la cartera ───────────────────────── */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {orden.map(k => {
+          const e = porSituacion.get(k)
+          if (!e) return null
+          const activo = sitFiltro === k
+          const col = LUZ[SITUACION[k].luz].color
+          return (
+            <Link key={k} href={enlace({ situacion: activo ? '' : k })}
+                  style={{ textDecoration: 'none', flex: '1 1 150px', minWidth: 150 }}>
+              <div style={{
+                background: activo ? `${col}22` : PANEL,
+                border: `1px solid ${activo ? col : BORDER}`,
+                borderLeft: `3px solid ${col}`, borderRadius: 10, padding: '10px 12px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span style={C(col, { fontSize: 22, fontWeight: 700 })}>{e.n}</span>
+                  <span style={C(TX_LOW, { fontSize: 10 })}>
+                    {e.n === 1 ? 'cuenta' : 'cuentas'}
+                  </span>
+                </div>
+                <div style={C(TX_HI, { fontSize: 12, fontWeight: 600 })}>{SITUACION[k].titulo}</div>
+                <div style={C(TX_LOW, { fontSize: 11 })}>
+                  {dinero(e.mrr)}
+                  {/* Las cuentas sin importe NO se suman como cero: se declaran
+                      aparte. Un cero sin medición no es un cero. */}
+                  {e.sinImporte > 0 && ` · ${e.sinImporte} sin importe`}
+                </div>
               </div>
-            )}
-          </div>
+            </Link>
+          )
+        })}
+      </div>
 
-          {/* ── Las cuentas ─────────────────────────────────────────────── */}
-          <div className="mx-6 pb-6" style={{ display: 'grid', gap: 10 }}>
-            {dibujados.map(g => (
-              <div key={g.cuentaId} style={{ background: PANEL, border: `1px solid ${BORDER}`,
-                    borderRadius: 14, padding: '15px 17px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 9,
-                              flexWrap: 'wrap', marginBottom: 11 }}>
-                  {g.esTop && (
-                    <span style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.05em',
-                                   padding: '2px 7px', borderRadius: 4, color: '#1B1200',
-                                   background: '#FBBF24' }}>TOP</span>
-                  )}
-                  <Link href={`/cuentas/${g.cuentaId}`}
-                    style={{ background: 'transparent', fontSize: 15, fontWeight: 700,
-                             color: TX_HI }}>
-                    {g.empresa}
-                  </Link>
-                  {g.consecutivo && (
-                    <span style={{ background: 'transparent', fontSize: 11, color: TX_LOW }}>
-                      {g.consecutivo}
-                    </span>
-                  )}
-                  {g.asesor && (
-                    <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 8px',
-                                   borderRadius: 999, color: '#CBD5E1',
-                                   background: 'rgba(255,255,255,0.07)' }}>
-                      {g.asesor}
-                    </span>
-                  )}
-                  <span style={{ background: 'transparent', fontSize: 13.5, fontWeight: 700,
-                                 color: '#FBBF24', marginLeft: 'auto' }}>
-                    {pesos(g.mrr)}<C c={TX_LOW}>/mes</C>
-                  </span>
-                  <span style={{ background: 'transparent', fontSize: 11, color: TX_LOW }}>
-                    {g.alertas.length} {g.alertas.length === 1 ? 'alerta' : 'alertas'}
-                  </span>
-                </div>
+      {/* ── FILTRO POR ASESOR ───────────────────────────────────────────── */}
+      {!rolAsesor && asesores.length > 1 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <Link href={enlace({ asesor: '' })} style={{ textDecoration: 'none' }}>
+            <span style={{ ...C(!asesorFiltro ? TX_HI : TX_LOW, { fontSize: 11, padding: '4px 10px',
+                           borderRadius: 999, border: `1px solid ${!asesorFiltro ? TX_LOW : BORDER}` }) }}>
+              Toda la cartera
+            </span>
+          </Link>
+          {asesores.map(a => (
+            <Link key={a} href={enlace({ asesor: a })} style={{ textDecoration: 'none' }}>
+              <span style={{ ...C(asesorFiltro === a ? TX_HI : TX_LOW, { fontSize: 11, padding: '4px 10px',
+                             borderRadius: 999, border: `1px solid ${asesorFiltro === a ? TX_LOW : BORDER}` }) }}>
+                {a}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
 
-                <div style={{ display: 'grid', gap: 6 }}>
-                  {g.alertas.map(a => {
-                    const col = COLOR_SEVERIDAD[a.severidad]
-                    const Icono = ICONO_FAMILIA[a.familia]
-                    return (
-                      <div key={a.id}
-                        style={{ background: 'rgba(255,255,255,0.035)',
-                                 borderLeft: `3px solid ${col.fg}`, borderRadius: 8,
-                                 padding: '9px 12px', display: 'flex', gap: 12,
-                                 alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                        <div style={{ flex: '1 1 300px', minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 7,
-                                        flexWrap: 'wrap', marginBottom: 2 }}>
-                            <Icono size={12} style={{ color: COLOR_FAMILIA[a.familia],
-                                                      flexShrink: 0 }} />
-                            <span style={{ background: 'transparent', fontSize: 12.5,
-                                           fontWeight: 700, color: col.fg }}>{a.titulo}</span>
-                            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 7px',
-                                           borderRadius: 999, color: col.fg, background: col.bg }}>
-                              {ETIQUETA_SEVERIDAD[a.severidad]}
-                            </span>
-                            <span style={{ fontSize: 9.5, fontWeight: 700, padding: '1px 7px',
-                                           borderRadius: 999, color: COLOR_DUENO[a.dueno],
-                                           background: 'rgba(255,255,255,0.06)' }}>
-                              {BLOQUEADA.has(a.dueno) && (
-                                <Lock size={9} style={{ display: 'inline',
-                                                        verticalAlign: '-1px', marginRight: 3 }} />
-                              )}
-                              {ETIQUETA_DUENO[a.dueno]}
-                            </span>
-                            {/* Antigüedad del episodio. `a.dias` es otra cosa
-                                —días sin contacto— y por eso van con rótulos
-                                distintos aunque caigan juntas. */}
-                            {a.nueva && (
-                              <span style={{ fontSize: 9, fontWeight: 800,
-                                             padding: '1px 6px', borderRadius: 4,
-                                             color: '#052e16', background: '#4ADE80' }}>
-                                NUEVA
-                              </span>
-                            )}
-                            {!a.nueva && typeof a.diasAbierta === 'number' && (
-                              <span style={{ background: 'transparent', fontSize: 10.5,
-                                             fontWeight: 700, color: '#FB923C' }}>
-                                abierta hace {a.diasAbierta} d
-                              </span>
-                            )}
-                            {(a.recurrencia ?? 0) > 0 && (
-                              <span style={{ background: 'transparent', fontSize: 10.5,
-                                             color: TX_LOW }}>
-                                {a.recurrencia}.ª vez
-                              </span>
-                            )}
-                            {/* El `{a.dias} días` suelto que había aquí se
-                                retiró: al lado de «abierta hace N d» eran dos
-                                números parecidos midiendo cosas distintas, y
-                                la evidencia de abajo ya lo dice con precisión
-                                —«último contacto que llegó al cliente: X, hace
-                                N días»—. Un dato repetido y ambiguo resta. */}
-                          </div>
-                          <p style={{ fontSize: 11.5, margin: '0 0 2px', lineHeight: 1.45 }}>
-                            <C c={TX_MID}>{a.evidencia}</C>
-                          </p>
-                          <p style={{ fontSize: 11, margin: 0, lineHeight: 1.45 }}>
-                            <C c={TX_LOW}>{a.accion}</C>
-                          </p>
-                        </div>
-                        <Link href={a.enlace}
-                          style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center',
-                                   gap: 5, fontSize: 11, fontWeight: 600, color: '#7AA2FF',
-                                   background: 'rgba(122,162,255,0.10)',
-                                   border: '1px solid rgba(122,162,255,0.28)',
-                                   borderRadius: 8, padding: '6px 10px', whiteSpace: 'nowrap' }}>
-                          {a.enlaceEtiqueta} <ArrowRight size={11} />
-                        </Link>
-                      </div>
-                    )
-                  })}
-                </div>
+      {/* ── LA COLA DE TRABAJO ──────────────────────────────────────────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {lista.map(c => <Ficha key={c.cuentaId} c={c} />)}
+      </div>
+
+      {lista.length === 0 && (
+        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
+          <span style={C(TX_MID, { fontSize: 13 })}>No hay cuentas en esta situación.</span>
+        </div>
+      )}
+
+      <p style={C(TX_LOW, { fontSize: 10, lineHeight: 1.7 })}>
+        El semáforo sale de la situación de la cuenta, no del Health Score: ese número se
+        apoya en dato real un 58% en promedio. «Fuentes» dice de cuántas de las ocho
+        —facturación, consumo, llamadas, tickets, relación, contacto, riesgos y ficha— hay
+        dato; por debajo de tres no se emite juicio, se pide lo que falta.
+      </p>
+    </div>
+  )
+}
+
+function Ficha({ c }: { c: CuentaConVeredicto }) {
+  const v = c.veredicto
+  const col = LUZ[v.luz].color
+  const d = c.datos
+
+  return (
+    <div style={{
+      background: PANEL, border: `1px solid ${BORDER}`,
+      borderLeft: `3px solid ${col}`, borderRadius: 12, padding: '12px 16px',
+    }}>
+      {/* Encabezado: quién, cuánto, y de cuántas fuentes se sabe */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <Link href={`/cuentas/${c.cuentaId}`} style={{ textDecoration: 'none' }}>
+            <span style={C(TX_HI, { fontSize: 14, fontWeight: 600 })}>{c.empresa}</span>
+          </Link>
+          <span style={C(TX_LOW, { fontSize: 11, marginLeft: 8 })}>
+            {c.asesor ?? 'sin asesor'} · {dinero(c.mrr)} al mes
+          </span>
+        </div>
+        <span style={C(col, { fontSize: 11, fontWeight: 600 })}>{SITUACION[v.situacion].titulo}</span>
+      </div>
+
+      {/* LA ACCIÓN. Es lo único que el asesor tiene que hacer con esta cuenta. */}
+      <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+        <ArrowRight size={14} style={{ color: col, flexShrink: 0, marginTop: 3 }} />
+        <div>
+          <div style={C(TX_HI, { fontSize: 13, fontWeight: 600 })}>{v.accion}</div>
+          <div style={C(TX_MID, { fontSize: 11, marginTop: 2, lineHeight: 1.6 })}>{v.porque}</div>
+          {v.pedir && (
+            <div style={C('#FBBF24', { fontSize: 11, marginTop: 4, lineHeight: 1.6 })}>
+              Qué pedir: {v.pedir}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Las cifras, para que la acción se pueda discutir sin abrir la ficha */}
+      <div style={{ marginTop: 8, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <Cifra etq="consumo" val={d.consumoPct === null ? null : `${d.consumoPct.toFixed(0)}%`} />
+        <Cifra etq="sin contacto" val={d.diasSinContacto === null ? null : `${d.diasSinContacto} d`} />
+        <Cifra etq="perdidas" val={d.perdidas === null ? null
+                 : `${d.perdidas.toLocaleString('es-MX')}${d.pctPerdidas !== null ? ` (${d.pctPerdidas.toFixed(0)}%)` : ''}`} />
+        <Cifra etq="tickets" val={d.tickets === null ? null : String(d.tickets)} />
+        <Cifra etq="reuniones" val={String(d.reuniones)} />
+        <Cifra etq="relación" val={`${d.relacionPct}%`} />
+        <Cifra etq="auditoría" val={d.tieneAuditoria ? 'sí' : 'no'} />
+        <Cifra etq="fuentes" val={`${d.fuentes}/8`} />
+      </div>
+
+      {/* Los tres tipos de hallazgo, como los nombró dirección */}
+      {CLASES.map(({ k, etiqueta, color }) => {
+        const hs = v.hallazgos.filter(x => x.clase === k)
+        if (!hs.length) return null
+        return (
+          <div key={k} style={{ marginTop: 8 }}>
+            <span style={C(color, { fontSize: 10, fontWeight: 700, letterSpacing: 0.4 })}>
+              {etiqueta.toUpperCase()}
+            </span>
+            {hs.map((x, i) => (
+              <div key={i} style={{ marginTop: 3 }}>
+                <span style={C(TX_HI, { fontSize: 11.5 })}>{x.titulo}</span>
+                <span style={C(TX_LOW, { fontSize: 11 })}> — {x.prueba}</span>
               </div>
             ))}
-
-            {grupos.length === 0 && (
-              <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 14,
-                            padding: '34px 20px', textAlign: 'center' }}>
-                <p style={{ fontSize: 13.5, margin: 0 }}>
-                  <C c={TX_HI} b>
-                    {famSel || sevSel
-                      ? 'Ningún aviso con este filtro.'
-                      : 'Sin alertas abiertas en esta cartera.'}
-                  </C>
-                </p>
-              </div>
-            )}
-
-            {/* El resto NO se esconde: se declara con su dinero. */}
-            {ocultos > 0 && (
-              <p style={{ fontSize: 11.5, margin: '2px 0 0', lineHeight: 1.55,
-                          textAlign: 'center' }}>
-                <C c={TX_LOW}>
-                  Se dibujan las <C c={TX_MID} b>{TOPE_CUENTAS}</C> cuentas de mayor prioridad.
-                  Quedan <C c={TX_MID} b>{ocultos}</C> más, con{' '}
-                  <C c={TX_MID} b>{miles(mrrOculto)}</C> de MRR entre todas — filtrá por familia
-                  o severidad para llegar a ellas.
-                </C>
-              </p>
-            )}
           </div>
-
-          {/* ── Las reglas, a la vista ──────────────────────────────────── */}
-          <div className="mx-6 mb-6" style={{ background: PANEL, border: `1px solid ${BORDER}`,
-                borderRadius: 14, padding: '15px 18px' }}>
-            <p style={{ background: 'transparent', fontSize: 10.5, fontWeight: 700,
-                        textTransform: 'uppercase', letterSpacing: '0.07em', color: TX_LOW,
-                        margin: '0 0 7px' }}>
-              Con qué umbrales se levantan
-            </p>
-            <p style={{ fontSize: 11.5, margin: 0, lineHeight: 1.65 }}>
-              <C c={TX_MID}>
-                Caída sostenida: {UMBRALES.mesesCaida} meses consecutivos a la baja con al menos{' '}
-                {Math.round(UMBRALES.caidaMinima * 100)}% de pérdida, partiendo de un consumo
-                de {UMBRALES.consumoMinimoParaMirar}% o más. Desplome: venía de{' '}
-                {UMBRALES.desplomeDesde}% y cayó por debajo de {UMBRALES.desplomeHasta}%.
-                Consumo cero: ni un minuto en todo el periodo medido, que se separa del uso
-                bajo porque no es lo mismo aprovechar poco el plan que no usarlo. Uso
-                crónicamente bajo: nunca pasó de {UMBRALES.usoBajo}%. Silencio:{' '}
-                {UMBRALES.silencioCorto} y {UMBRALES.silencioLargo} días, contados desde el
-                último contacto que <strong style={{ background: 'transparent',
-                  color: 'rgba(255,255,255,0.94)' }}>llegó al cliente</strong> — una llamada que
-                nadie contestó no reinicia el reloj. Sin interlocutor:{' '}
-                {UMBRALES.intentosFallidos} intentos fallidos seguidos. Rebase: por encima
-                del {UMBRALES.rebase}% de la bolsa.
-              </C>
-              <C c={TX_LOW}>
-                {' '}Las reglas son deterministas y se leen en <code>lib/alertas-detectar.ts</code>:
-                ninguna alerta la decide un modelo. Cambiar un umbral cambia el volumen de todo
-                el equipo, así que se mueve de común acuerdo con dirección.
-              </C>
-            </p>
-          </div>
-        </>
-      )}
+        )
+      })}
     </div>
+  )
+}
+
+/** Una cifra, o la palabra que dice que no se midió. Nunca un cero inventado. */
+function Cifra({ etq, val }: { etq: string; val: string | null }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: 4, alignItems: 'baseline' }}>
+      <span style={C(TX_LOW, { fontSize: 10 })}>{etq}</span>
+      <span style={C(val === null ? '#FBBF24' : TX_MID, { fontSize: 11, fontWeight: 600 })}>
+        {val === null ? 'sin dato' : val}
+      </span>
+    </span>
   )
 }
