@@ -142,9 +142,27 @@ function dinero(n: number | null): string {
 export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
   const h: Hallazgo[] = []
 
-  /* ── RIESGO: las alertas ya detectadas, cada una con su evidencia ─────── */
+  /* ── Las alertas ya detectadas, cada una en SU clase ───────────────────
+   *
+   * La clase sale de la FAMILIA del catálogo, no de un «todo es riesgo». Las
+   * tres familias caen limpias en las tres clases que nombró dirección:
+   * `riesgo` es que el cliente se está yendo, `ceguera` es exactamente «lo que
+   * nos falta a NOSOTROS para poder opinar», y `oportunidad` —hoy sólo
+   * `rebasa_bolsa`— es algo que mostrarle.
+   *
+   * Antes entraban TODAS como riesgo, y se veía: en la ficha de Salud y Hogar
+   * el guion citaba «Sin una sola respuesta de Radar» como su amenaza más
+   * grave cuando lo que de verdad la tiene a punto de irse es una frase
+   * escrita por su asesor. Un hueco de captura nuestro no es una señal de que
+   * el cliente se vaya, y mezclarlos entierra la que sí lo es.
+   *
+   * No mueve ninguna compuerta del veredicto: el riesgo lo decide `riesgoVivo`
+   * sobre las alertas, y el umbral de entrega cuenta la clase `entrega`. */
   for (const a of e.alertas) {
-    h.push({ clase: 'riesgo', titulo: a.titulo, prueba: a.evidencia })
+    const clase: ClaseHallazgo = a.familia === 'riesgo' ? 'riesgo'
+                               : a.familia === 'oportunidad' ? 'entrega'
+                               : 'analisis'
+    h.push({ clase, titulo: a.titulo, prueba: a.evidencia })
   }
 
   /* ── ENTREGA: lo que se le puede MOSTRAR y hoy no ve ──────────────────── */
