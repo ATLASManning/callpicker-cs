@@ -269,19 +269,40 @@ export function veredictoDe(e: EstadoCuenta): Veredicto {
     }
   }
 
+  const entregables = pruebas('entrega')
+
   /* ── 4. SIN AUDITAR ───────────────────────────────────────────────────── */
+  /* LA AUDITORÍA NO COMPITE CON EL ACERCAMIENTO AL CLIENTE: ES SU PREPARACIÓN.
+   *
+   * La primera versión ponía `sin_auditar` por encima de `hay_que_mostrarle` y
+   * eso enterraba el material del cliente detrás de una tarea interna. Medido
+   * sobre producción: de las 88 cuentas sin auditoría, SESENTA Y NUEVE —el 78%,
+   * $518,372— ya tienen dos o más hallazgos entregables. A esas no se les manda
+   * «escribe un documento»: se les manda escribirlo CON eso y llevárselo.
+   *
+   * Es lo que pidió dirección — que los hallazgos se presenten al cliente y sean
+   * parte del acercamiento, «romper lo cotidiano y darle valor agregado». Una
+   * auditoría que se escribe y se archiva no rompe nada. */
   if (!e.tieneAuditoria) {
+    const conMaterial = entregables.length >= 2
     return {
       situacion: 'sin_auditar', luz: 'amarillo', dueno: 'asesor',
-      accion: 'Escribir la auditoría de la cuenta con lo que ya se sabe de ella',
-      porque: `Hay datos suficientes —llamadas, consumo y contacto— y nadie ha `
-            + `escrito el análisis. Dirección pidió que TODAS las cuentas lo tengan.`,
+      accion: conMaterial
+        ? 'Escribir su auditoría con estos hallazgos y agendar para presentárselos'
+        : 'Escribir la auditoría de la cuenta con lo que ya se sabe de ella',
+      porque: conMaterial
+        ? `Hay ${entregables.length} cosas de su propia operación que el cliente `
+          + `no ve: ${entregables.map(x => x.titulo.toLowerCase()).join(', ')}. `
+          + `Nadie ha escrito su análisis, y ese análisis es justo lo que se le `
+          + `lleva a la reunión.`
+        : `Hay datos suficientes —llamadas, consumo y contacto— y nadie ha `
+          + `escrito el análisis. Dirección pidió que TODAS las cuentas lo tengan.`,
       hallazgos, pedir: null,
     }
   }
 
   /* ── 5. HAY QUE MOSTRARLE ─────────────────────────────────────────────── */
-  const entregables = pruebas('entrega')
+  /* Ya auditada y con material nuevo: toca presentarlo. */
   if (entregables.length >= 2) {
     return {
       situacion: 'hay_que_mostrarle', luz: 'azul', dueno: 'asesor',
