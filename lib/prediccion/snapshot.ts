@@ -390,20 +390,47 @@ export async function tomarSnapshot(
     return true
   })
 
+  /* ── SE LEE LO ABIERTO Y SE INSERTA LO QUE FALTA, SIN `UPSERT` ───────────
+   *
+   * La primera version usaba `upsert` con `onConflict: 'clave,cuenta_id'` y
+   * produccion lo rechazo en su primera corrida:
+   *
+   *     «there is no unique or exclusion constraint matching the ON CONFLICT
+   *      specification»
+   *
+   * El indice es PARCIAL —`WHERE estado = 'abierta' AND cuenta_id IS NOT NULL`—
+   * y Postgres solo usa un indice parcial para un `ON CONFLICT` si la sentencia
+   * repite su predicado. PostgREST no deja expresar ese `WHERE`, asi que la
+   * combinacion no existe.
+   *
+   * El indice parcial NO es el error y no se toca: es lo que permite tener una
+   * tarea abierta por clave y cuenta Y conservar el historico de las cerradas.
+   * Un indice total sobre (clave, cuenta_id) prohibiria para siempre una segunda
+   * tarea de lo mismo en la misma cuenta, y entonces un hueco que reaparece —el
+   * cliente cambia de contacto y vuelve a faltar el correo— no podria volver a
+   * pedirse.
+   *
+   * Lo que sobraba era el upsert. Se lee lo que ya esta abierto y se inserta solo
+   * lo que falta, que ademas es mas claro: una tarea que lleva tres semanas sin
+   * hacerse conserva su `creada_en`, y eso es justo lo que dice cuanto lleva
+   * pendiente. */
+  const yaAbiertas = await supabaseAdmin.schema('prediccion').from('tareas_hueco')
+    .select('id, clave, cuenta_id').eq('estado', 'abierta')
+  mirar('leer tareas abiertas', yaAbiertas)
+  const abiertaYa = new Set(
+    (yaAbiertas.data ?? []).map(t => `${t.clave}|${t.cuenta_id ?? ''}`))
+
+  const nuevas = aAbrir.filter(t => !abiertaYa.has(`${t.clave}|${t.cuentaId ?? ''}`))
+
   let tareasAbiertas = 0
-  for (let i = 0; i < aAbrir.length; i += 100) {
-    const lote = aAbrir.slice(i, i + 100).map(t => ({
+  for (let i = 0; i < nuevas.length; i += 100) {
+    const lote = nuevas.slice(i, i + 100).map(t => ({
       semana, clave: t.clave, dueno: t.dueno, alcance: t.alcance,
       cuenta_id: t.cuentaId, empresa: t.empresa, asesor: t.asesor,
       mrr_ciego: t.mrrCiego, pedir: t.pedir, porque: t.porque,
       donde: t.donde, bloquea: t.bloquea,
     }))
-    /* `ignoreDuplicates`: los indices parciales garantizan una tarea ABIERTA por
-       clave y cuenta, asi que si la del lunes pasado sigue abierta no se duplica
-       — se respeta. Reabrirla cada semana borraria su antiguedad, que es justo
-       lo que dice cuanto lleva sin hacerse. */
-    const r = await supabaseAdmin.schema('prediccion').from('tareas_hueco')
-      .upsert(lote, { onConflict: 'clave,cuenta_id', ignoreDuplicates: true })
+    const r = await supabaseAdmin.schema('prediccion').from('tareas_hueco').insert(lote)
     if (mirar(`tareas lote ${i / 100 + 1}`, r)) tareasAbiertas += lote.length
   }
 
@@ -412,11 +439,13 @@ export async function tomarSnapshot(
      `snapshot`: el dato llego, no hace falta que nadie lo marque a mano. */
   const vigentes = new Set(
     huecosPorCuenta.map(h => `${h.clave}|${h.cuentaId}`))
-  const abiertas = await supabaseAdmin.schema('prediccion').from('tareas_hueco')
-    .select('id, clave, cuenta_id').eq('estado', 'abierta').not('cuenta_id', 'is', null)
-  mirar('leer tareas abiertas', abiertas)
-  const cerrar = (abiertas.data ?? [])
-    .filter(t => !vigentes.has(`${t.clave}|${t.cuenta_id}`))
+  /* Se reusa la lectura de arriba en vez de volver a preguntar: es la misma
+     pregunta y la respuesta no ha cambiado dentro de esta corrida. Las de
+     CARTERA se dejan fuera del cierre automatico —`cuenta_id` nulo—: que el
+     timbrado no exista no es algo que el snapshot pueda dar por resuelto, lo
+     cierra una persona cuando la plataforma conteste. */
+  const cerrar = (yaAbiertas.data ?? [])
+    .filter(t => t.cuenta_id && !vigentes.has(`${t.clave}|${t.cuenta_id}`))
     .map(t => t.id)
   let tareasCerradas = 0
   if (cerrar.length) {
@@ -446,11 +475,17 @@ export async function tomarSnapshot(
     porAsesor[a] = porAsesor[a] ?? { cuentas: 0, tareas: 0 }
     porAsesor[a].cuentas += 1
   }
-  for (const t of aAbrir) {
-    if (t.alcance !== 'cuenta') continue
-    const a = String(t.asesor ?? '(sin asesor)')
-    porAsesor[a] = porAsesor[a] ?? { cuentas: 0, tareas: 0 }
-    porAsesor[a].tareas += 1
+  /* Se cuentan las que de verdad se escribieron, no las que se pensaba escribir.
+     En la primera corrida esto decia «10 por asesor» mientras `tareasAbiertas`
+     valia 0 porque el insert habia fallado: dos cifras de lo mismo en la misma
+     respuesta, y la equivocada era la tranquilizadora. */
+  if (tareasAbiertas > 0) {
+    for (const t of nuevas) {
+      if (t.alcance !== 'cuenta') continue
+      const a = String(t.asesor ?? '(sin asesor)')
+      porAsesor[a] = porAsesor[a] ?? { cuentas: 0, tareas: 0 }
+      porAsesor[a].tareas += 1
+    }
   }
 
   return { semana, cuentasVistas: cuentas.length, filasEscritas,
