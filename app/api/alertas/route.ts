@@ -16,6 +16,21 @@ import { ultimoDiag } from '@/lib/senal-escrita'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
+/**
+ * Qué build está sirviendo esta ruta. Se sube a mano con cada cambio que haya
+ * que poder confirmar desde fuera.
+ *
+ * Existe porque hoy perdí dos rondas infiriendo si un despliegue había llegado:
+ * arreglé el reloj de contacto, la alerta siguió igual, arreglé la segunda vía,
+ * siguió igual — y sin forma de distinguir «el código no está en línea» de «el
+ * código está mal» acabé depurando las dos cosas a la vez. Vercel no publica el
+ * `buildId` en esta app y no hay token para preguntarle.
+ *
+ * Es la misma lección de esta mañana en otra ropa: cuando el veredicto importa,
+ * que lo diga el código que corre. Ver [[feedback-verificar-antes-asegurar]].
+ */
+const VERSION = '2026-10-08.1-contacto-sac'
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams
   const rolAsesor = req.headers.get('x-user-rol') === 'asesor'
@@ -101,6 +116,7 @@ export async function GET(req: NextRequest) {
         const m = await mapaFacturacion()
         return { cid: m.porCid.size, mes: m.mes, falla: m.falla }
       })(),
+      version: VERSION,
       generado: new Date().toISOString(),
     })
   } catch (e) {
