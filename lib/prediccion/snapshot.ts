@@ -165,9 +165,15 @@ export async function tomarSnapshot(
   /* ── LO QUE SE LEE, TODO DE SUS PROPIAS LIBRERIAS ─────────────────────── */
   const { data: cuentas, error: errCuentas } = await supabaseAdmin
     .from('cuentas')
-    .select('id, cid, empresa, asesor, estado, giro, contacto_email, contactos_json, '
-          + 'nps_score, observaciones_kam, health_score, score_actividad, '
-          + 'score_adopcion, score_pago, score_relacional')
+    /* `facturacion` NO estaba en este select y costaba caro: `importeDeCuenta`
+       usa el GRC por CID y, si ahi no hay nada, cae a esta columna. Sin pedirla
+       la veia `undefined`, el respaldo no disparaba nunca y DIECIOCHO cuentas que
+       SI tienen importe salian como `sin_dato`. En la primera corrida real eso
+       dio 28 `sin_importe` donde la Fase 1 habia medido 10, y habria abierto
+       dieciocho tareas pidiendo un dato que ya estaba. */
+    .select('id, cid, empresa, asesor, estado, giro, facturacion, contacto_email, '
+          + 'contactos_json, nps_score, observaciones_kam, health_score, '
+          + 'score_actividad, score_adopcion, score_pago, score_relacional')
     .in('estado', ['activo', 'en_riesgo'])
 
   if (errCuentas || !cuentas) {
@@ -288,7 +294,16 @@ export async function tomarSnapshot(
       consumoPct = ultimo.origenBase === 'sin_medicion' ? null : (ultimo.pct ?? null)
       panel = ultimo.panel ?? null
       desarrolladores = ultimo.desarrolladores ?? null
-      pagoExitoso = ultimo.pagoExitoso === 1
+      /* `true` cuando el corte dice 1, y `null` en cualquier otro caso — NO
+         `false`. En el archivo de origen esta columna viene vacia en 14,851 de
+         21,567 filas y solo NUEVE dicen 1; `cortes-cuenta.ts` pasa los nulos por
+         `num()`, que los vuelve 0, asi que para cuando llegan aqui un cero
+         significa «no pago» O «nadie lo registro» y ya no se pueden separar.
+         Guardarlo como `false` afirmaria lo primero sobre 14,851 filas que son
+         lo segundo. Ver [[feedback-cero-sin-medicion]].
+         Con esa cobertura la columna NO sirve hoy como feature, y eso es un
+         hallazgo del origen, no algo que se arregle aqui. */
+      pagoExitoso = ultimo.pagoExitoso === 1 ? true : null
     } else {
       consumoBase = 'sin_medicion'
       /* Sólo es un HUECO si la fuente cargó. Si no cargó, la cuenta no está
@@ -376,6 +391,20 @@ export async function tomarSnapshot(
   }
 
   /* ── LAS TAREAS ───────────────────────────────────────────────────────── */
+
+  /* Los huecos de CARTERA ciegan a todo el mundo, asi que su `mrrCiego` es el MRR
+     medible completo. En la primera corrida real salieron las cuatro con el
+     dinero en blanco, y ese campo es justo lo que les da prioridad cuando llegan
+     a la mesa de Daniel: «no existe el tiempo de timbrado» es una frase, «no
+     existe para $2,220,416 de cartera» es una decision.
+     `sin_consumo` y `sin_llamadas` NO se tocan aqui: ya traen su suma real,
+     acumulada cuenta por cuenta arriba. */
+  const mrrMedibleTotal = filas.reduce((s, f) => s + (f.mrr ?? 0), 0)
+  for (const clave of ['sin_timbrado', 'tickets_abiertos',
+                       'sin_uso_por_usuario', 'sin_grabacion'] as ClaveHueco[]) {
+    ciegaCartera[clave] = mrrMedibleTotal
+  }
+
   const todas = tareasDeHuecos(huecosPorCuenta, ciegaCartera)
 
   /* Se recorta POR ASESOR, no en total: si se recortara en total, el asesor con
