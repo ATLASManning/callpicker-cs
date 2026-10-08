@@ -463,6 +463,26 @@ export async function tomarSnapshot(
     if (mirar(`tareas lote ${i / 100 + 1}`, r)) tareasAbiertas += lote.length
   }
 
+  /* ── REFRESCAR EL DINERO DE LAS QUE YA ESTABAN ABIERTAS ──────────────────
+   *
+   * Insertar solo lo nuevo conserva la antiguedad, que es lo que dice cuanto
+   * lleva pendiente una tarea — pero congela tambien su `mrr_ciego`, y ese no es
+   * un dato de la tarea: es del mundo, y cambia cada semana. Si una cuenta sube
+   * de MRR, la tarea que la tapa vale mas hoy que el lunes pasado.
+   *
+   * Se vio en la segunda corrida: las cuatro de Daniel seguian con el dinero en
+   * blanco porque ya existian de antes, asi que el arreglo del importe no las
+   * alcanzaba nunca. Aqui se actualiza SOLO el importe; `creada_en` no se toca. */
+  const refrescar = aAbrir.filter(t => abiertaYa.has(`${t.clave}|${t.cuentaId ?? ''}`)
+                                       && t.mrrCiego !== null)
+  for (const t of refrescar) {
+    const q = supabaseAdmin.schema('prediccion').from('tareas_hueco')
+      .update({ mrr_ciego: t.mrrCiego })
+      .eq('clave', t.clave).eq('estado', 'abierta')
+    const r = t.cuentaId ? await q.eq('cuenta_id', t.cuentaId) : await q.is('cuenta_id', null)
+    mirar(`refrescar ${t.clave}`, r)
+  }
+
   /* ── CERRAR LAS QUE YA SE RESOLVIERON ────────────────────────────────────
      Si el hueco ya no se detecta, la tarea se cierra sola y se firma como
      `snapshot`: el dato llego, no hace falta que nadie lo marque a mano. */
