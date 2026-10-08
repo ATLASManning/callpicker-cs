@@ -29,7 +29,7 @@ export const runtime = 'nodejs'
  * Es la misma lección de esta mañana en otra ropa: cuando el veredicto importa,
  * que lo diga el código que corre. Ver [[feedback-verificar-antes-asegurar]].
  */
-const VERSION = '2026-10-08.2-alertas-ocho-fuentes'
+const VERSION = '2026-10-08.3-plantilla-no-es-resultado'
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams

@@ -3,7 +3,7 @@ import { todosLosCortes } from '@/lib/cortes-cuenta'
 import { mapaFacturacion, importeDeCuenta, type ImporteCuenta } from '@/lib/facturacion-cuenta'
 import { baseMinutos } from '@/lib/plan-minutos'
 import { hoyEnMexico } from '@/lib/fecha-local'
-import { CANALES_CONTACTO, llegoAlCliente } from '@/lib/contacto-cuenta'
+import { CANALES_CONTACTO, llegoAlCliente, llegoAlClienteActividad } from '@/lib/contacto-cuenta'
 import { senalesEscritas, type TextoCuenta } from '@/lib/senal-escrita'
 import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
 
@@ -243,7 +243,12 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
    * para un reloj que cuenta en decenas de días no cambia ninguna decisión. */
   for (const a of actRows) {
     if (!a.cuenta_id || !a.completada) continue
-    if (!llegoAlCliente(a)) continue
+    /* `...Actividad` y no `llegoAlCliente`: la `descripcion` de una actividad es
+       la plantilla que generamos nosotros, y la de la llamada preventiva dice
+       «¿Existe algún ticket pendiente sin respuesta?» — que el filtro leía como
+       «el cliente no contestó». 36 llamadas reales de 32 cuentas se caían por el
+       texto de su propio libreto. */
+    if (!llegoAlClienteActividad(a)) continue
     const f = String(a.completada_en ?? a.fecha_programada ?? '').slice(0, 10)
     if (!f) continue
     if (f > (ultimoSeg.get(a.cuenta_id) ?? '')) ultimoSeg.set(a.cuenta_id, f)

@@ -119,6 +119,32 @@ export function llegoAlCliente(
 }
 
 /**
+ * Lo mismo, para una ACTIVIDAD SAC. La diferencia es cuál texto se juzga, y no
+ * es un detalle: ignorarla dejó a 32 cuentas marcadas como nunca contactadas.
+ *
+ * En un `seguimiento`, `descripcion` es lo que ESCRIBIÓ la persona, así que
+ * mirarla para decidir si la llamada llegó es correcto.
+ *
+ * En una `actividad`, `descripcion` es la PLANTILLA que generó el sistema — el
+ * guion de lo que hay que preguntar. Y la plantilla de la llamada preventiva
+ * dice literalmente «¿Existe algún ticket pendiente **sin respuesta**?», que
+ * `RX_NO_LLEGO` reconoce como «el cliente no contestó». Resultado: la llamada
+ * de ODONTOPREV cuyo resultado empieza «Se establece contacto con Guillermo
+ * Cisneros, responsable de la cuenta» se descartaba por el texto de su propio
+ * libreto.
+ *
+ * Medido el 8 oct 2026: de las 87 actividades cerradas de canal real, 36 se
+ * caían SÓLO por la plantilla —las 36 por la misma frase— y con ellas 32
+ * cuentas. Así que aquí se juzga únicamente el `resultado`, que es lo que la
+ * asesora escribió de vuelta.
+ */
+export function llegoAlClienteActividad(
+  a: { tipo?: string | null; resultado?: string | null },
+): boolean {
+  return llegoAlCliente({ tipo: a.tipo, resultado: a.resultado, descripcion: null })
+}
+
+/**
  * El último contacto que LLEGÓ al cliente, por cuenta.
  *
  * No mezcla `cuentas.ultimo_contacto`: esa columna la escribe el cierre de
@@ -187,7 +213,9 @@ export async function ultimoContactoEfectivoPorCuenta(): Promise<Map<string, str
        a un seguimiento — una llamada cerrada con resultado «no contestó» tampoco
        llegó al cliente, venga de donde venga. */
     if (!a.completada) continue
-    if (!llegoAlCliente(a)) continue
+    /* `...Actividad`, no `llegoAlCliente`: aquí la `descripcion` es la plantilla
+       del sistema y juzgarla descartaba 36 llamadas reales. Ver la función. */
+    if (!llegoAlClienteActividad(a)) continue
     /* La fecha. `completada_en` sería la buena —cuándo se cerró es cuándo se
        habló— pero **está vacía en las 87 actividades cerradas de canal**, así que
        hoy la que manda siempre es `fecha_programada`. Es la semana en que tocaba
