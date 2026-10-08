@@ -375,25 +375,55 @@ export function veredictoDe(e: EstadoCuenta): Veredicto {
     }
   }
 
-  /* ── 5. HAY QUE MOSTRARLE ─────────────────────────────────────────────── */
-  /* Ya auditada y con material nuevo: toca presentarlo. */
+  /* ── 5. OPORTUNIDAD ───────────────────────────────────────────────────────
+   *
+   * VA ANTES DE «hay que mostrarle», Y ESO SE MIDIÓ.
+   *
+   * Estaba detrás, y con eso la situación era inalcanzable en la práctica. El
+   * 8 oct 2026, recién enganchada la candidatura, el reparto de las 192 cuentas
+   * se agotaba en los cinco primeros pasos: 6 + 22 + 71 + 81 + 12 = 192, y
+   * `oportunidad` salía CERO. No por los datos —86 cuentas traen candidatura de
+   * crecimiento— sino porque el paso de entregables se lo comía todo.
+   *
+   * La razón es el umbral: entre los hallazgos de entrega están «lo que le hemos
+   * resuelto» (tiene tickets) y «paga minutos que no usa» (consume menos del
+   * 40%), que son casi universales. Dos de dos, así que toda cuenta sana cumplía
+   * «hay dos cosas que mostrarle» y ninguna llegaba más abajo.
+   *
+   * Y puesta en el orden correcto la pregunta se responde sola: una cuenta que
+   * llegó hasta aquí ya sobrevivió salida, apagón, falta de datos y falta de
+   * auditoría — está medida, atendida y auditada. Si además tiene espacio para
+   * crecer, la acción fuerte es proponérselo, y los hallazgos van en la MISMA
+   * visita, no en una distinta. Es lo que pidió dirección: que los hallazgos
+   * sean parte del acercamiento y rompan lo cotidiano. Presentar números y no
+   * proponer nada es justo lo cotidiano.
+   *
+   * Los entregables no se pierden: siguen publicados en `hallazgos` y se nombran
+   * en el `porque`, para que la reunión lleve las dos cosas. */
+  if (e.candidatura) {
+    return {
+      situacion: 'oportunidad', luz: 'verde', dueno: 'asesor',
+      accion: entregables.length
+        ? `Proponer ${e.candidatura}, y llevarle sus hallazgos a la misma reunión`
+        : `Proponer ${e.candidatura}`,
+      porque: `La cuenta está medida, auditada y sin señal de riesgo, y tiene `
+            + `espacio para crecer. Son ${dinero(e.mrr)} hoy.`
+            + (entregables.length
+                ? ` Con qué abrir la conversación: ${entregables.map(x => x.titulo.toLowerCase()).join(', ')}.`
+                : ''),
+      hallazgos, pedir: null,
+    }
+  }
+
+  /* ── 6. HAY QUE MOSTRARLE ─────────────────────────────────────────────── */
+  /* Ya auditada y con material nuevo, pero sin nada que proponerle todavía:
+     toca presentar lo que hay. */
   if (entregables.length >= 2) {
     return {
       situacion: 'hay_que_mostrarle', luz: 'azul', dueno: 'asesor',
       accion: 'Presentarle los hallazgos de su operación en la próxima reunión',
       porque: `Hay ${entregables.length} cosas de su propia operación que el `
             + `cliente no ve en su día a día: ${entregables.map(x => x.titulo.toLowerCase()).join(', ')}.`,
-      hallazgos, pedir: null,
-    }
-  }
-
-  /* ── 6. OPORTUNIDAD ───────────────────────────────────────────────────── */
-  if (e.candidatura) {
-    return {
-      situacion: 'oportunidad', luz: 'verde', dueno: 'asesor',
-      accion: `Proponer ${e.candidatura}`,
-      porque: `La cuenta está en orden y tiene espacio para crecer. `
-            + `Son ${dinero(e.mrr)} hoy.`,
       hallazgos, pedir: null,
     }
   }
@@ -414,6 +444,11 @@ export const SITUACION: Record<Situacion, { titulo: string; luz: Luz; orden: num
   apagandose:       { titulo: 'Se está apagando',     luz: 'naranja',  orden: 2 },
   no_la_vemos:      { titulo: 'No la vemos',          luz: 'amarillo', orden: 3 },
   sin_auditar:      { titulo: 'Falta su auditoría',   luz: 'amarillo', orden: 4 },
+  /* El orden de PANTALLA no es el de decisión: aquí «hay qué mostrarle» va
+     antes porque es trabajo pendiente de entrega y `oportunidad` es una cuenta
+     sana. En `veredictoDe` la oportunidad se evalúa primero, por el motivo que
+     está explicado ahí. Los dos órdenes responden preguntas distintas: aquél
+     cuál gana, éste en qué fila se lee. */
   hay_que_mostrarle:{ titulo: 'Hay qué mostrarle',    luz: 'azul',     orden: 5 },
   oportunidad:      { titulo: 'Oportunidad',          luz: 'verde',    orden: 6 },
   en_orden:         { titulo: 'En orden',             luz: 'verde',    orden: 7 },
