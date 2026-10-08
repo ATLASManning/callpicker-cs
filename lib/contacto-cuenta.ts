@@ -124,24 +124,80 @@ export function llegoAlCliente(
  * No mezcla `cuentas.ultimo_contacto`: esa columna la escribe el cierre de
  * cualquier actividad —incluidas las de `validacion`, que no hablan con
  * nadie—, así que revisar unos datos marcaba la cuenta como contactada.
+ *
+ * ── PERO `seguimientos` NO ES TODO, Y DARLO POR HECHO ACUSÓ A TRES PERSONAS ─
+ *
+ * Al soltar `ultimo_contacto` escribí que «esa misma ruta inserta SIEMPRE la
+ * fila en `seguimientos` antes de tocar la columna, así que `seguimientos` es
+ * un superconjunto». **Es falso**, y lo desmintió una auditoría del 7 oct 2026
+ * que yo mismo lancé. Medido contra la base:
+ *
+ *   · 100 de las 192 cuentas vivas ($573,465) no tienen NI UN seguimiento de
+ *     canal real, así que el motor las marcaba «nunca contactada».
+ *   · De ésas, **QUINCE tienen una actividad SAC CERRADA de llamada o reunión**
+ *     — ODONTOPREV, LOGYMEX, Medicall Expert, KW-Pedregal, JAZAK TRUCKS,
+ *     REJAMEX, ESDIE, CH Desarrollos y siete más, $47,322 entre ellas.
+ *
+ * O sea: el tablero le decía a Claudia, a Dan y a Fátima que habían abandonado
+ * cuentas a las que sí llamaron, y lo decía con una cifra de dinero al lado. Un
+ * detector que acusa en falso se desactiva solo — dejan de creerle.
+ *
+ * `actividades` entra como TERCERA fuente. Una actividad de tipo llamada,
+ * reunión o visita marcada `completada` es contacto real con fecha, exactamente
+ * igual que un seguimiento del mismo canal. Lo que NO entra sigue sin entrar:
+ * las de `validacion`, las de nota, y cualquiera sin cerrar.
  */
 export async function ultimoContactoEfectivoPorCuenta(): Promise<Map<string, string>> {
-  const filas = await traerPorPaginas<{ cuenta_id: string; fecha: string
-                                        tipo: string | null; resultado: string | null
-                                        descripcion: string | null }>(
-    (desde, hasta) => supabaseAdmin
-      .from('seguimientos')
-      .select('cuenta_id, fecha, tipo, resultado, descripcion')
-      .range(desde, hasta),
-  )
+  const [filas, acts] = await Promise.all([
+    traerPorPaginas<{ cuenta_id: string; fecha: string
+                      tipo: string | null; resultado: string | null
+                      descripcion: string | null }>(
+      (desde, hasta) => supabaseAdmin
+        .from('seguimientos')
+        .select('cuenta_id, fecha, tipo, resultado, descripcion')
+        .range(desde, hasta),
+    ),
+    traerPorPaginas<{ cuenta_id: string | null; tipo: string | null
+                      completada: boolean | null; completada_en: string | null
+                      fecha_programada: string | null; resultado: string | null
+                      descripcion: string | null }>(
+      (desde, hasta) => supabaseAdmin
+        .from('actividades')
+        .select('cuenta_id, tipo, completada, completada_en, fecha_programada, '
+              + 'resultado, descripcion')
+        .range(desde, hasta),
+    ),
+  ])
+
   const mapa = new Map<string, string>()
-  for (const f of filas) {
-    if (!f.cuenta_id || !llegoAlCliente(f)) continue
-    const d = diaDe(f.fecha)
-    if (!d) continue
-    const previo = mapa.get(f.cuenta_id)
-    if (!previo || d > previo) mapa.set(f.cuenta_id, d)
+  const anotar = (id: string | null | undefined, dia: string | null) => {
+    if (!id || !dia) return
+    const previo = mapa.get(id)
+    if (!previo || dia > previo) mapa.set(id, dia)
   }
+
+  for (const f of filas) {
+    if (!llegoAlCliente(f)) continue
+    anotar(f.cuenta_id, diaDe(f.fecha))
+  }
+
+  for (const a of acts) {
+    /* Sólo las CERRADAS: una actividad programada y no hecha no es un contacto,
+       es una intención. Y el mismo filtro de canal y de «no llegó» que se aplica
+       a un seguimiento — una llamada cerrada con resultado «no contestó» tampoco
+       llegó al cliente, venga de donde venga. */
+    if (!a.completada) continue
+    if (!llegoAlCliente(a)) continue
+    /* La fecha. `completada_en` sería la buena —cuándo se cerró es cuándo se
+       habló— pero **está vacía en las 87 actividades cerradas de canal**, así que
+       hoy la que manda siempre es `fecha_programada`. Es la semana en que tocaba
+       hacerla, no el día exacto en que se hizo: para un reloj que cuenta en
+       decenas de días la diferencia no cambia ninguna decisión, y es mejor que
+       declarar «nunca» sobre una llamada que existió. Se intenta primero la
+       buena por si algún día empieza a llenarse. */
+    anotar(a.cuenta_id, diaDe(a.completada_en) ?? diaDe(a.fecha_programada))
+  }
+
   return mapa
 }
 
