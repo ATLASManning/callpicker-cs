@@ -44,6 +44,30 @@ RX_YA_BLANCO = re.compile(
     r"""['"]\s*(?:#fff(?:fff)?|white|rgba?\(\s*255\s*,\s*255\s*,\s*255)""", re.I)
 
 
+# `//[^\n]*` y no `(?m)//.*$`: desde Python 3.11 un flag en linea tiene que ir
+# al principio de TODA la expresion, y ahi reventaba con «global flags not at
+# the start». La version sin flag dice lo mismo y no depende de la version.
+RX_COMENTARIO = re.compile(r'/\*[\s\S]*?\*/|//[^\n]*')
+
+
+def en_ambito_oscuro(txt):
+    """¿Este archivo DIBUJA una tarjeta oscura, o solo habla de ellas?
+
+       La diferencia importa. La version anterior preguntaba `'cp-card' in txt`
+       y eso casa tambien dentro de un comentario: `components/AsesorCard.tsx`
+       solo la nombra al explicar la regla y aun asi se revisaba entero, y
+       `components/CuentaVeredicto.tsx` sumo diecisiete avisos el dia que le
+       escribi un comentario citando la arquitectura de contraste. Ninguno de
+       los dos vive dentro de una `.cp-card` —la ficha de cuenta no tiene ni
+       una—, asi que los veintiun avisos eran ruido.
+
+       Y el ruido no es inocuo: un detector con falsos positivos se desactiva a
+       la semana, y entonces deja de cazar los de verdad. Se miran las
+       menciones que quedan DESPUES de quitar los comentarios.
+    """
+    return 'cp-card' in RX_COMENTARIO.sub(' ', txt)
+
+
 def pinta(ruta, linea, etiqueta, fragmento, motivo):
     print('  %s:%d' % (ruta, linea))
     print('     <%s> %s' % (etiqueta, motivo))
@@ -52,8 +76,8 @@ def pinta(ruta, linea, etiqueta, fragmento, motivo):
 
 def revisar(ruta_abs, rel):
     txt = io.open(ruta_abs, encoding='utf-8-sig').read()
-    # Solo tiene sentido donde hay tarjetas oscuras.
-    if 'cp-card' not in txt:
+    # Solo tiene sentido donde se DIBUJA una tarjeta oscura.
+    if not en_ambito_oscuro(txt):
         return []
     fallos = []
 
@@ -93,7 +117,7 @@ def main():
             ruta = os.path.join(base, f)
             rel = os.path.relpath(ruta, RAIZ).replace('\\', '/')
             fallos = revisar(ruta, rel)
-            if 'cp-card' in io.open(ruta, encoding='utf-8-sig').read():
+            if en_ambito_oscuro(io.open(ruta, encoding='utf-8-sig').read()):
                 revisados += 1
             for linea, etiqueta, frag, motivo in fallos:
                 pinta(rel, linea, etiqueta, frag, motivo)
