@@ -15,6 +15,7 @@ import GlosarioTecnico from '@/components/GlosarioTecnico'
 import TelefonosIP from '@/components/TelefonosIP'
 import { TELEFONOS_COMPATIBLES } from '@/lib/telefonos-ip'
 import { GLOSARIO } from '@/lib/glosario'
+import { tonoSobreClaro, tonoSobreFondo, pastillaClara } from '@/lib/contraste'
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
 const PANEL  = '#FFFFFF'
@@ -223,6 +224,15 @@ function Consideracion({ texto, tipo }: { texto: string; tipo?: string }) {
 
 // ── Tarjeta de artículo ───────────────────────────────────────────────────────
 function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor: string; defaultOpen?: boolean }) {
+  /* `catColor` crudo vale para iconos, bordes y rellenos —objetos gráficos—
+     pero NO como letra sobre la tarjeta blanca ni sobre su propio tinte:
+     «Seguridad» #22D3EE daba 1.81:1 e «Informes» #84CC16 1.98:1, y fallaban
+     también Líneas, Cobertura, Call Center, Operativas y Extensiones. Se
+     calculan los dos tonos una vez: `catTx` para el texto sobre el tinte al
+     9.4%, y `catSolido` para el relleno del botón activo, que lleva letra
+     blanca y por tanto tiene que oscurecerse en vez de aclararse. */
+  const catTx = tonoSobreClaro(catColor, 0.094)
+  const catSolido = tonoSobreFondo(catColor, '#FFFFFF', 4.5)
   const [open, setOpen] = useState(defaultOpen ?? false)
   /* El visor del PDF lleva su propio estado, independiente de `open`: así un
      artículo que sólo tiene documento adjunto —sin secciones extra— también
@@ -269,7 +279,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {art.ubicacion && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8 }}>
               <MapPin size={12} style={{ color: catColor }} />
-              <span style={{ fontSize: 12, color: catColor, fontWeight: 600 }}>{art.ubicacion}</span>
+              <span style={{ fontSize: 12, color: catTx, fontWeight: 600 }}>{art.ubicacion}</span>
             </div>
           )}
           {art.utilidad && (
@@ -277,7 +287,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
               padding: '10px 14px', borderRadius: 8,
               background: `${catColor}0F`, border: `1px solid ${catColor}25` }}>
               <Lightbulb size={14} style={{ color: catColor, flexShrink: 0, marginTop: 2 }} />
-              <span style={{ fontSize: 13, color: TX_MID }}><strong style={{ color: catColor }}>Utilidad: </strong>{art.utilidad}</span>
+              <span style={{ fontSize: 13, color: TX_MID }}><strong style={{ color: catTx }}>Utilidad: </strong>{art.utilidad}</span>
             </div>
           )}
         </div>
@@ -307,8 +317,8 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
               type="button"
               onClick={() => setVerDoc(v => !v)}
               aria-expanded={verDoc}
-              style={{ ...ACCION_BASE, background: verDoc ? catColor : `${catColor}18`,
-                color: verDoc ? '#fff' : catColor,
+              style={{ ...ACCION_BASE, background: verDoc ? catSolido : `${catColor}18`,
+                color: verDoc ? '#fff' : catTx,
                 border: `1px solid ${catColor}${verDoc ? '' : '35'}`, cursor: 'pointer' }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -320,7 +330,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {art.pdfUrl && (
             <a
               href={art.pdfUrl} target="_blank" rel="noopener noreferrer"
-              style={{ ...ACCION_BASE, background: `${catColor}18`, color: catColor,
+              style={{ ...ACCION_BASE, background: `${catColor}18`, color: catTx,
                 border: `1px solid ${catColor}35`, textDecoration: 'none' }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -336,7 +346,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
             <a
               href={art.pdfUrl} download
               title={`Descargar ${art.pdfUrl.split('/').pop()}`}
-              style={{ ...ACCION_BASE, background: `${catColor}18`, color: catColor,
+              style={{ ...ACCION_BASE, background: `${catColor}18`, color: catTx,
                 border: `1px solid ${catColor}35`, textDecoration: 'none' }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -348,7 +358,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
           {art.linkUrl && (
             <a
               href={art.linkUrl} target="_blank" rel="noopener noreferrer"
-              style={{ ...ACCION_BASE, background: `${catColor}18`, color: catColor,
+              style={{ ...ACCION_BASE, background: `${catColor}18`, color: catTx,
                 border: `1px solid ${catColor}35`, textDecoration: 'none' }}
               onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -416,7 +426,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {art.modalidades.map((m, i) => (
                   <div key={i} style={{ padding: '10px 14px', borderRadius: 8, background: `${catColor}0A`, border: `1px solid ${catColor}20` }}>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: catColor, marginBottom: 4 }}>{m.nombre}</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: catTx, marginBottom: 4 }}>{m.nombre}</p>
                     <p style={{ fontSize: 14, color: TX_MID, lineHeight: 1.6 }}>{m.descripcion}</p>
                   </div>
                 ))}
@@ -430,7 +440,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
               <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>Funcionamiento</p>
               {art.funcionamiento.map((f, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: catColor, minWidth: 22, paddingTop: 2 }}>{i + 1}.</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: catTx, minWidth: 22, paddingTop: 2 }}>{i + 1}.</span>
                   <span style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>{f}</span>
                 </div>
               ))}
@@ -487,7 +497,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
               {art.apis.map((a, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 8,
                   padding: '8px 12px', borderRadius: 8, background: `${catColor}0A`, border: `1px solid ${catColor}20` }}>
-                  <code style={{ fontSize: 13, fontWeight: 800, color: catColor, flexShrink: 0 }}>{a.nombre}</code>
+                  <code style={{ fontSize: 13, fontWeight: 800, color: catTx, flexShrink: 0 }}>{a.nombre}</code>
                   <span style={{ fontSize: 13, color: TX_MID }}>{conEnlaces(a.descripcion)}</span>
                 </div>
               ))}
@@ -541,7 +551,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
                 )
                 if (b.tipo === 'firma') return (
                   <div key={i} style={{ marginTop: 32, paddingTop: 20, borderTop: `1px solid ${BORDER}`, textAlign: 'right' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: catColor, fontStyle: 'italic' }}>{b.texto}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: catTx, fontStyle: 'italic' }}>{b.texto}</span>
                   </div>
                 )
                 if (b.tipo === 'codigo') return (
@@ -677,7 +687,11 @@ export default function BaseCSPage() {
                   {c.label}
                 </span>
                 {count > 0
-                  ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 10, background: `${c.color}25`, color: c.color }}>{count}</span>
+                  /* El contador pintaba letra y fondo con el MISMO color de
+                     categoría sobre la tarjeta blanca: «Seguridad» #22D3EE
+                     daba 1.64:1 e «Informes» #84CC16 1.76:1. `pastillaClara`
+                     conserva el tinte y calcula la letra hasta 4.5:1. */
+                  ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 10, ...pastillaClara(c.color, 0.145) }}>{count}</span>
                   : <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: 'rgba(0,87,255,0.06)', color: TX_LOW }}>pronto</span>
                 }
               </button>

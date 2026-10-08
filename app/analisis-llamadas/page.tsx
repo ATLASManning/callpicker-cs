@@ -19,6 +19,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { PhoneIncoming, PhoneOutgoing, RefreshCw, AlertTriangle, Users, Clock } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
+import { tonoSobreFondo } from '@/lib/contraste'
 
 /* ── Tipos ─────────────────────────────────────────────────────────────── */
 interface Meta {
@@ -118,8 +119,15 @@ export default function AnalisisLlamadas() {
           {([['ent', 'Entrantes', PhoneIncoming], ['sal', 'Salientes', PhoneOutgoing]] as const).map(([k, lbl, Icon]) => (
             <button key={k} onClick={() => setDir(k)} style={{
               display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 10,
+              /* El relleno del botón activo se OSCURECE hasta que la letra
+                 blanca se lee. «Salientes» usaba el ámbar `AMB` crudo y daba
+                 2.15:1: los dos botones se ven iguales, pero uno era legible y
+                 el otro no. Azul y ámbar no pesan lo mismo, y por eso el tono
+                 se calcula contra el blanco del texto en vez de elegirse. */
               border: `1.5px solid ${dir === k ? (k === 'ent' ? BLU : AMB) : '#e2e8f0'}`,
-              background: dir === k ? (k === 'ent' ? BLU : AMB) : '#fff',
+              background: dir === k
+                ? (k === 'ent' ? BLU : tonoSobreFondo(AMB, '#FFFFFF', 4.5))
+                : '#fff',
               color: dir === k ? '#fff' : '#475569', cursor: 'pointer', fontSize: 13, fontWeight: 700,
             }}>
               <Icon size={14} /> {lbl}
@@ -171,8 +179,13 @@ export default function AnalisisLlamadas() {
         <>
           {/* ── KPIs ───────────────────────────────────────────────── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, marginBottom: 16 }}>
+            {/* El acento del KPI se pinta DENTRO de la isla oscura, así que
+                aquí el azul de marca no sirve: `BLU` (#1B3FCC) sobre #0D1829
+                daba 2.23:1 en el número grande, que es el dato principal de la
+                pantalla y además el estado por omisión. `#60A5FA` es el azul
+                que globals.css ya usa para los enlaces de tarjeta oscura. */}
             <Kpi label={esEnt ? 'Entrantes' : 'Salientes'} valor={nf(d.alcance.total)}
-              sub={`${d.alcance.cuentas} cuenta${d.alcance.cuentas === 1 ? '' : 's'}`} color={esEnt ? BLU : AMB} icon={esEnt ? PhoneIncoming : PhoneOutgoing} />
+              sub={`${d.alcance.cuentas} cuenta${d.alcance.cuentas === 1 ? '' : 's'}`} color={esEnt ? '#60A5FA' : AMB} icon={esEnt ? PhoneIncoming : PhoneOutgoing} />
             <Kpi label={esEnt ? 'Sin contestar' : 'No conectó'} valor={nf(d.alcance.perdidas)}
               sub={d.alcance.pct !== null ? `${d.alcance.pct.toFixed(1)}% del total` : '—'} color={RED} icon={AlertTriangle} />
             {esEnt

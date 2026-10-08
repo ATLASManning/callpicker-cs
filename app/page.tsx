@@ -1186,7 +1186,12 @@ export default async function DashboardPage() {
             semáforo por asesor trae a las tres a propósito y el panel de tickets
             cubre toda la empresa. Rotular la página entera «cartera de Fátima»
             sería tan falso como no rotular nada, solo que al revés. */}
-        <div className="col-span-full" style={{ fontSize: 11, color: TX_LOW, marginBottom: -4 }}>
+        {/* `TX_SECCION` y no `TX_LOW`: este rótulo cuelga de la PÁGINA, no de un
+            panel oscuro. `TX_LOW` es blanco al 45% y sobre el `#EFF6FF` medía
+            1.05:1 — el rótulo que dice de quién son las cifras no se veía. Es
+            el caso exacto por el que se creó `TX_SECCION`, y los títulos de §5
+            y §6 ya la usan. */}
+        <div className="col-span-full" style={{ fontSize: 11, color: TX_SECCION, marginBottom: -4 }}>
           {isAsesor ? `Indicadores de la cartera de ${asesorHeader}` : 'Indicadores de la cartera completa'}
         </div>
         <KpiCard label="Cartera Total" value={formatMXN(kpis.facturacionTotal)} sub={`${kpis.total} cuentas activas`} icon={DollarSign} accent={CYAN} />

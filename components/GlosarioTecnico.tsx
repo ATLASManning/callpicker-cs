@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { Search, AlertTriangle, ArrowRight } from 'lucide-react'
 import { GLOSARIO, CATEGORIAS_GLOSARIO, type TerminoGlosario } from '@/lib/glosario'
 import { integracionDe, PROTOCOLO_SIN_INTEGRACION } from '@/lib/integraciones-catalogo'
+import { tonoSobreClaro, pastillaClara } from '@/lib/contraste'
 import {
   DOCE_ESENCIALES, SEGUNDA_OLA, PRECISIONES, NIVELES_EVOLUCION,
   PREGUNTAS_PERFILAMIENTO, TABLA_EVOLUCION, REGLA_COMERCIAL,
@@ -21,7 +22,12 @@ const BORDER = '#BFDBFE'
 const PANEL  = '#FFFFFF'
 const TX     = '#0F172A'
 const TX_MID = '#475569'
-const TX_LOW = '#94A3B8'
+/* `#94A3B8` medía 2.56:1 sobre el panel blanco y 2.36:1 sobre la página: es el
+   gris de TARJETA OSCURA, y aquí no hay ni una `.cp-card`. Afectaba a diez
+   usos —la sigla del término, «Sirve para ·», «Ej.», las notas, el contador—.
+   `#64748B` es el `textLow` real de tailwind.config: 4.76:1 sobre el panel y
+   4.39:1 sobre la página, y no hay que tocar ninguno de los diez. */
+const TX_LOW = '#64748B'
 
 type Vista = 'terminos' | 'precisiones' | 'perfilamiento' | 'evolucion'
 
@@ -45,6 +51,11 @@ const labelDe = (catId: string) =>
 
 function FichaTermino({ t }: { t: TerminoGlosario }) {
   const color = colorDe(t.cat)
+  /* El color de la categoría CRUDO vale para la barra lateral y los puntos —son
+     objetos gráficos— pero no como letra sobre el panel blanco: Contact Center
+     #F59E0B daba 2.15:1, Calidad de red #22C55E 2.28:1 y Numeración #0EA5E9
+     2.77:1, y ninguna de las demás llegaba a 4.5:1. Se calcula una vez. */
+  const colorTx = tonoSobreClaro(color, 0)
   const esencial = ESENCIALES.has(norm(t.t))
   const segunda  = !esencial && SEGUNDA.has(norm(t.t))
   return (
@@ -61,11 +72,11 @@ function FichaTermino({ t }: { t: TerminoGlosario }) {
           </span>
         )}
         {segunda && (
-          <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 20, background: '#A855F715', color: '#A855F7', letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 20, ...pastillaClara('#A855F7', 0.082), letterSpacing: '0.04em' }}>
             2ª CAPA
           </span>
         )}
-        <span style={{ fontSize: 10, color: color, marginLeft: 'auto', fontWeight: 600 }}>{labelDe(t.cat)}</span>
+        <span style={{ fontSize: 10, color: colorTx, marginLeft: 'auto', fontWeight: 600 }}>{labelDe(t.cat)}</span>
       </div>
 
       <p style={{ fontSize: 13, color: TX_MID, lineHeight: 1.55, marginBottom: t.sirve || t.com || t.ej || t.ojo ? 8 : 0 }}>
@@ -80,7 +91,7 @@ function FichaTermino({ t }: { t: TerminoGlosario }) {
 
       {t.com && (
         <p style={{ fontSize: 12.5, color: TX, lineHeight: 1.5, marginBottom: t.ej || t.ojo ? 6 : 0 }}>
-          <span style={{ color, fontWeight: 700 }}>Comercial · </span>{t.com}
+          <span style={{ color: colorTx, fontWeight: 700 }}>Comercial · </span>{t.com}
         </p>
       )}
 
@@ -237,11 +248,17 @@ export default function GlosarioTecnico() {
               return (
                 <button key={c.id} onClick={() => setCatFiltro(activa ? 'todas' : c.id)} title={c.nota} style={{
                   padding: '5px 11px', borderRadius: 20, fontSize: 11.5, fontWeight: activa ? 800 : 600, cursor: 'pointer',
-                  background: activa ? `${c.color}20` : PANEL,
-                  color: activa ? c.color : TX_MID,
+                  /* La categoría SELECCIONADA se volvía la menos legible de la
+                     fila: pasaba a un tinte al 12.5% del propio color y pintaba
+                     la letra con ese mismo color. `pastillaClara` deja el tinte
+                     y calcula la letra hasta 4.5:1. */
+                  ...(activa ? pastillaClara(c.color, 0.125)
+                             : { background: PANEL, color: TX_MID, borderColor: BORDER }),
                   border: `1px solid ${activa ? `${c.color}60` : BORDER}`,
                 }}>
-                  {c.label} <span style={{ opacity: 0.6 }}>{n}</span>
+                  {/* El contador iba con `opacity: 0.6`, que multiplica sobre un
+                      color ya atenuado. Se baja el tono, no la opacidad. */}
+                  {c.label} <span style={{ color: TX_LOW }}>{n}</span>
                 </button>
               )
             })}
@@ -258,7 +275,11 @@ export default function GlosarioTecnico() {
               {filtrados.map(t => <FichaTermino key={`${t.cat}-${t.t}`} t={t} />)}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '50px 0', opacity: 0.55 }}>
+            {/* Sin `opacity`: se aplica DESPUÉS del color y multiplica el
+                problema. La línea de ayuda quedaba en 1.61:1 —prácticamente
+                invisible— y el título en 2.59:1. Si hay que atenuar, se baja el
+                tono, que sí se puede medir. */}
+            <div style={{ textAlign: 'center', padding: '50px 0' }}>
               <p style={{ fontSize: 15, color: TX_MID, fontWeight: 700, marginBottom: 6 }}>Sin resultados</p>
               <p style={{ fontSize: 13, color: TX_LOW }}>Prueba con la sigla, el nombre en inglés o una palabra de la definición.</p>
             </div>

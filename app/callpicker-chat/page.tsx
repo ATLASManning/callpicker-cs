@@ -9,6 +9,7 @@ import PageHeader from '@/components/PageHeader'
 import StatCard from '@/components/StatCard'
 import DiagnosticoSacUx from './DiagnosticoSacUx'
 import { CHAT_CLIENTES, CHAT_RESUMEN, type SemaforoChat, type ChatCliente, type ChatInbox } from './chat-data'
+import { tonoSobreFondo } from '@/lib/contraste'
 
 /* ── Semáforo de salud de uso ───────────────────────────────────────────────
    No replica `uso_rango` de la hoja de origen: ese campo divide mensajes entre
@@ -19,8 +20,13 @@ const SEMAFORO: Record<SemaforoChat, { label: string; color: string; desc: strin
   intenso:      { label: 'Uso intenso',  color: '#3B82F6', desc: 'Volumen alto o rebasa la bolsa contratada — revisar plan' },
   bajo:         { label: 'Uso bajo',     color: '#F97316', desc: 'Poca actividad, inboxes contratados muertos o tendencia a la baja' },
   sin_uso:      { label: 'Sin uso',      color: '#EF4444', desc: 'Cero mensajes en el periodo completo' },
-  sin_medicion: { label: 'Sin medición', color: '#64748B', desc: 'La recolección del corte falló — la cifra no es confiable' },
-  suspendida:   { label: 'Suspendida',   color: '#334155', desc: 'Cuenta suspendida en el periodo' },
+  /* Los dos neutros van en tono CLARO porque esta pantalla entera es una
+     tarjeta oscura. Iban en `#64748B` y `#334155` —los grises de página— y la
+     pastilla los pinta sobre un tinte de sí mismos: «Suspendida» medía 1.63:1,
+     o sea que solo se leía seleccionándola. Los cuatro de color vivo ya
+     contrastan sobre el navy y se quedan igual. */
+  sin_medicion: { label: 'Sin medición', color: '#CBD5E1', desc: 'La recolección del corte falló — la cifra no es confiable' },
+  suspendida:   { label: 'Suspendida',   color: '#94A3B8', desc: 'Cuenta suspendida en el periodo' },
 }
 
 const ORDEN: SemaforoChat[] = ['sin_uso', 'bajo', 'intenso', 'saludable', 'sin_medicion', 'suspendida']
@@ -42,15 +48,17 @@ const COLOR_TIPO: Record<string, string> = {
 const RECONCILIACION: Record<string, { label: string; color: string }> = {
   OK:   { label: 'Conciliado',        color: '#22C55E' },
   ERR:  { label: 'Error de medición', color: '#F97316' },
-  LIM:  { label: 'Límite de inboxes', color: '#64748B' },
-  SUSP: { label: 'Suspendido',        color: '#334155' },
+  /* Mismo motivo que en SEMAFORO: tonos claros, porque su pastilla también se
+     pinta sobre la tarjeta oscura. */
+  LIM:  { label: 'Límite de inboxes', color: '#CBD5E1' },
+  SUSP: { label: 'Suspendido',        color: '#94A3B8' },
 }
 
 /** Estado operativo de una bandeja, para agruparlas en la ficha. */
 function estadoInbox(i: ChatInbox) {
   if (i.mensajes > 0)  return { clave: 'activa',    label: 'Con actividad',        color: '#22C55E' }
   if (i.contratado)    return { clave: 'ociosa',    label: 'Contratada sin uso',   color: '#F97316' }
-  return                      { clave: 'observada', label: 'Observada sin tráfico', color: '#64748B' }
+  return                      { clave: 'observada', label: 'Observada sin tráfico', color: '#CBD5E1' }
 }
 
 const n = (v: number | null | undefined) => (v ?? 0).toLocaleString('es-MX')
@@ -198,7 +206,15 @@ export default function CallpickerChatPage() {
                   title={cfg.desc}
                   className="rounded-xl px-3 py-3 text-center transition-all"
                   style={{
-                    background: on ? cfg.color : 'rgba(255,255,255,0.06)',
+                    /* El mosaico SELECCIONADO se volvía el ilegible: pasaba a
+                       `cfg.color` crudo —un verde o un naranja de semáforo— y
+                       la etiqueta y el número seguían en blanco. «Saludable»
+                       daba 2.28:1 y «Uso bajo» 2.80:1. El relleno se oscurece
+                       hasta que el blanco se lee, conservando el tono que es
+                       lo que comunica; el borde y el halo se quedan con el
+                       color vivo, que ahí sí es objeto gráfico. */
+                    background: on ? tonoSobreFondo(cfg.color, '#FFFFFF', 4.5)
+                                   : 'rgba(255,255,255,0.06)',
                     border: `1px solid ${on ? cfg.color : 'rgba(255,255,255,0.10)'}`,
                     boxShadow: on ? `0 0 0 3px ${cfg.color}33` : 'none',
                   }}
