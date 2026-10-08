@@ -41,18 +41,21 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Una linea que abre etiqueta JSX: `<div`, `<Tooltip`, `<CustomSelect`...
 RX_ABRE_TAG = re.compile(r'<[A-Za-z][\w.]*')
 
-# TERCERA posicion invalida, y la que falto hasta el 8 oct 2026: la apertura de
-# una rama de ternario o de un cuerpo de funcion flecha.
+# LA REGLA GENERAL, que sustituye a ir cazando casos de uno en uno:
 #
-#     ) : (
-#       {/* comentario */}        <- objeto vacio + JSX = error de sintaxis
-#       <div>…
+#   si la linea anterior termina en `(`, lo que sigue es una EXPRESION.
 #
-# Es posicion de EXPRESION, igual que tras `return (`, solo que escrita de otra
-# forma. Tumbo los dos despliegues de Vercel en el commit e92ba41 — el detector
-# daba verde porque solo miraba `return (` y la posicion de atributo. Ahi va un
-# `/* */` pelado, que si es valido entre parentesis.
-RX_EXPRESION = re.compile(r'(?:\?|:|=>)\s*\($')
+# Un parentesis de apertura nunca abre una lista de hijos — los hijos vienen
+# detras del `>` que cierra una etiqueta. Asi que ahi las llaves no son un
+# comentario de JSX sino un objeto vacio seguido de JSX, y eso no compila.
+#
+# Se llego a esta regla por el camino largo y caro: el 8 oct 2026 tumbe los
+# despliegues DOS veces seguidas. La primera con `) : (` y la segunda con
+# `&& (`, porque al arreglar la primera añadi los tres casos que se me
+# ocurrieron —ternario y flecha— en vez de preguntarme que tenian en comun.
+# `return (` ya se miraba aparte desde antes y por eso la version original
+# parecia suficiente.
+RX_EXPRESION = re.compile(r'\($')
 
 
 def lineas_utiles(lineas, hasta):
@@ -99,8 +102,8 @@ def revisa(ruta):
         if anterior.endswith('return ('):
             malos.append((i + 1, 'va justo despues de `return (`'))
         elif RX_EXPRESION.search(anterior):
-            malos.append((i + 1, 'abre una rama de ternario o un cuerpo de flecha: '
-                                 'es posicion de EXPRESION, no de hijo'))
+            malos.append((i + 1, 'la linea anterior abre un parentesis: lo que sigue es '
+                                 'una EXPRESION, no una lista de hijos'))
         elif en_posicion_de_atributo(lineas, i):
             malos.append((i + 1, 'va en posicion de ATRIBUTO, dentro de una etiqueta sin cerrar'))
     return malos

@@ -24,7 +24,7 @@ export const maxDuration = 120
  *  confirmar desde fuera, por la misma razón que en `/api/alertas`: sin esto no
  *  se distingue «el código no está en línea» de «el código está mal», y depurar
  *  las dos a la vez ya me costó dos rondas. */
-const VERSION = '2026-10-08.9-hallazgo-en-su-clase'
+const VERSION = '2026-10-08.10-contraste-barrido-completo'
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams

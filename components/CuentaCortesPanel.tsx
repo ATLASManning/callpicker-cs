@@ -124,12 +124,12 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
           <h3 style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
             Cortes de Facturación
           </h3>
+          {/* `#1B3FCC` es el azul de marca de la PÁGINA clara, y esta pastilla
+              vive en la tarjeta oscura: azul marino sobre azul casi negro,
+              2.14:1. `#60A5FA` es el azul que el propio archivo ya eligió para
+              `CLAS_COLOR['AAA']` y al que globals redirige los enlaces de
+              tarjeta oscura — 6.5:1. */}
           {!noData && (
-            {/* `#1B3FCC` es el azul de marca de la PÁGINA clara, y esta
-                pastilla vive en la tarjeta oscura: azul marino sobre azul casi
-                negro, 2.14:1. `#60A5FA` es el azul que el propio archivo ya
-                eligió para `CLAS_COLOR['AAA']` y al que globals redirige los
-                enlaces de tarjeta oscura — 6.5:1. */}
             <span style={{ fontSize: 10, background: '#60A5FA20', color: '#60A5FA', fontWeight: 700, padding: '1px 7px', borderRadius: 99 }}>
               {data!.total} cortes
             </span>
