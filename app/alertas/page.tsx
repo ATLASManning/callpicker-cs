@@ -41,11 +41,29 @@ import { hoyEnPalabras } from '@/lib/fecha-local'
  */
 export const dynamic = 'force-dynamic'
 
+/* ── DOS JUEGOS DE TOKENS, Y NO SE MEZCLAN ────────────────────────────────
+ *
+ * Los `TX_*` son para DENTRO de las tarjetas oscuras. Lo que cuelga de la
+ * página —el subtítulo, los filtros— va sobre el `#EFF6FF` claro y necesita
+ * los `PAG_*`. Usar los primeros fuera de la tarjeta fue el bug que José
+ * Manuel reportó el 8 oct 2026: el subtítulo «Las 192 cuentas vivas…» y las
+ * pastillas de asesor sólo se leían seleccionándolos.
+ *
+ * Van con prefijo distinto a propósito. Dos paletas con nombres parecidos en
+ * el mismo archivo son la trampa que ya documentó la 6ª ronda; con nombres que
+ * dicen dónde viven, equivocarse cuesta más. Ver
+ * [[atlas-dashboard-contrast-architecture]]. */
 const PANEL = '#0D1829'
 const BORDER = 'rgba(255,255,255,0.08)'
 const TX_HI = 'rgba(255,255,255,0.94)'
 const TX_MID = 'rgba(255,255,255,0.72)'
 const TX_LOW = 'rgba(255,255,255,0.48)'
+
+/** A nivel de PÁGINA: fondo claro, letra oscura. */
+const PAG_HI  = '#122E5E'
+const PAG_MID = '#334155'
+const PAG_LOW = '#64748B'
+const PAG_BORDE = '#CBD5E1'
 
 /** Todo texto de color va en un `<span>` que declara su propio `background`:
  *  `globals.css` pinta de blanco cualquier `<p>`/`<strong>` que no lo haga, y
@@ -122,7 +140,7 @@ export default async function AlertasPage({
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <PageHeader titulo="Alertas de Cliente" />
 
-      <p style={C(TX_MID, { fontSize: 12, margin: 0 })}>
+      <p style={C(PAG_MID, { fontSize: 12, margin: 0 })}>
         Las {cuentas.length} cuentas vivas{asesorFiltro ? ` de ${asesorFiltro}` : ''}, cada una con
         su lectura y una sola acción. {hoyEnPalabras()}.
       </p>
@@ -146,10 +164,17 @@ export default async function AlertasPage({
           return (
             <Link key={k} href={enlace({ situacion: activo ? '' : k })}
                   style={{ textDecoration: 'none', flex: '1 1 150px', minWidth: 150 }}>
+              {/* El mosaico activo NO cambia de fondo. Lo hacía —pasaba a un
+                  tinte claro `${col}22`— y se quedaba con la letra blanca de
+                  la tarjeta oscura: el seleccionado era el único ilegible de
+                  los seis. Se marca con el borde y la barra, que no tocan el
+                  contraste del texto. Una sola paleta por superficie. */}
               <div style={{
-                background: activo ? `${col}22` : PANEL,
+                background: PANEL,
                 border: `1px solid ${activo ? col : BORDER}`,
-                borderLeft: `3px solid ${col}`, borderRadius: 10, padding: '10px 12px',
+                borderLeft: `${activo ? 5 : 3}px solid ${col}`,
+                borderRadius: 10, padding: '10px 12px',
+                boxShadow: activo ? `0 0 0 2px ${col}44` : 'none',
               }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span style={C(col, { fontSize: 22, fontWeight: 700 })}>{e.n}</span>
@@ -173,16 +198,21 @@ export default async function AlertasPage({
       {/* ── FILTRO POR ASESOR ───────────────────────────────────────────── */}
       {!rolAsesor && asesores.length > 1 && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {/* Pastillas a nivel de PÁGINA: letra oscura y borde oscuro. Iban con
+              los tokens de la tarjeta —blanco al 94% y al 48%, borde blanco al
+              8%— sobre el fondo claro: no se veían ni ellas ni su contorno. */}
           <Link href={enlace({ asesor: '' })} style={{ textDecoration: 'none' }}>
-            <span style={{ ...C(!asesorFiltro ? TX_HI : TX_LOW, { fontSize: 11, padding: '4px 10px',
-                           borderRadius: 999, border: `1px solid ${!asesorFiltro ? TX_LOW : BORDER}` }) }}>
+            <span style={{ ...C(!asesorFiltro ? PAG_HI : PAG_LOW, { fontSize: 11, padding: '4px 10px',
+                           borderRadius: 999, fontWeight: !asesorFiltro ? 700 : 400,
+                           border: `1px solid ${!asesorFiltro ? PAG_HI : PAG_BORDE}` }) }}>
               Toda la cartera
             </span>
           </Link>
           {asesores.map(a => (
             <Link key={a} href={enlace({ asesor: a })} style={{ textDecoration: 'none' }}>
-              <span style={{ ...C(asesorFiltro === a ? TX_HI : TX_LOW, { fontSize: 11, padding: '4px 10px',
-                             borderRadius: 999, border: `1px solid ${asesorFiltro === a ? TX_LOW : BORDER}` }) }}>
+              <span style={{ ...C(asesorFiltro === a ? PAG_HI : PAG_LOW, { fontSize: 11, padding: '4px 10px',
+                             borderRadius: 999, fontWeight: asesorFiltro === a ? 700 : 400,
+                             border: `1px solid ${asesorFiltro === a ? PAG_HI : PAG_BORDE}` }) }}>
                 {a}
               </span>
             </Link>
