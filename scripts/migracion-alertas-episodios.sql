@@ -49,6 +49,14 @@ CREATE TABLE IF NOT EXISTS public.alertas_episodios (
   -- de la estructura if/else del detector: dentro de cada grupo los tipos son
   -- mutuamente excluyentes, así que pasar de uno a otro es la misma historia
   -- empeorando, no una alerta nueva.
+  -- OJO: ESTE ARCHIVO ES LA MIGRACIÓN ORIGINAL, NO EL ESTADO DE LA BASE.
+  -- La tabla se alteró después, el 7 oct 2026, para admitir una OCTAVA
+  -- condición, `escrito`, que es la de la capa cualitativa. Leer sólo esta
+  -- lista lleva a concluir que los tres tipos escritos no pueden abrir
+  -- episodio, y es falso: comprobado contra la base con
+  -- `python scripts/verifica-check-condicion.py`, que intenta la escritura y
+  -- mira el código de error —23514 es el CHECK; cualquier otro dice que la
+  -- fila de prueba está mal armada, no que la base rechace el valor.
   condicion          TEXT NOT NULL CHECK (condicion IN (
                        'medicion',   -- sin_consumo_medible
                        'consumo',    -- caida / desplome / consumo_cero / uso_bajo / rebasa_bolsa
@@ -56,7 +64,11 @@ CREATE TABLE IF NOT EXISTS public.alertas_episodios (
                        'radar',      -- sin_radar
                        'contactos',  -- sin_contactos
                        'ficha',      -- sin_ficha
-                       'trabajo'     -- asignada_sin_cerrar / nunca_asignada
+                       'trabajo'     -- RETIRADA el 8 oct 2026 con el generador SAC.
+                                     -- El valor SE QUEDA en el CHECK: hay 69
+                                     -- episodios abiertos con él y hay que
+                                     -- poder leerlos para cerrarlos.
+                                     -- (y 'escrito', añadida en la base el 7 oct)
                      )),
 
   -- El tipo VIGENTE del catálogo. Cambia si el episodio escala.

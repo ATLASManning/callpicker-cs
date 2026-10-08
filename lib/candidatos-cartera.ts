@@ -122,11 +122,34 @@ export async function candidatosDeCartera(
      así que un mapa vacío significa «no hay escalera»: `evaluarCandidato` cuenta
      la adopción como señal ausente y no propone ningún escalón, que es lo
      correcto. No se deduce del nombre del plan. */
-  const adopMap = new Map<string, Record<string, string>>()
+  /* EL DESEMPATE ES POR `created_at`, Y NO ES OPCIONAL.
+     `adopcion_producto` es append-only —no tiene UNIQUE sobre (cuenta, producto)
+     y lleva un índice `(cuenta_id, producto, created_at DESC)` puesto justo
+     para esto—, y `getAdopcionProductoAll` pagina SIN `order`, así que el orden
+     de llegada no lo garantiza nadie. Quedarse con la última fila que llega
+     puede dejar un `bajo` rancio tapando un `alto` vigente, y las reglas de
+     crecimiento cierran con `adopcion['Callpicker Chat'] !== 'alto'`: el
+     tablero propondría un producto que el cliente ya adoptó.
+     Hoy ninguno de los 50 pares con historial discrepa, así que no hay cifra
+     falsa en pantalla — pero esto se rompe el primer día que un asesor
+     recapture un nivel, que es exactamente para lo que se recaptura. La
+     portada ya desempataba así; al mudar la derivación se había perdido. */
+  const adopMap = new Map<string, Record<string, { nivel: string; cuando: string }>>()
   for (const r of await getAdopcionProductoAll()) {
     const porProd = adopMap.get(r.cuenta_id) ?? {}
-    porProd[r.producto] = r.nivel
+    const previo = porProd[r.producto]
+    if (!previo || String(r.created_at) > previo.cuando) {
+      porProd[r.producto] = { nivel: r.nivel, cuando: String(r.created_at) }
+    }
     adopMap.set(r.cuenta_id, porProd)
+  }
+  /** El nivel VIGENTE por producto, ya desempatado. */
+  const adopcionDe = (id: string): Record<string, string> => {
+    const porProd = adopMap.get(id)
+    if (!porProd) return {}
+    const out: Record<string, string> = {}
+    for (const [prod, v] of Object.entries(porProd)) out[prod] = v.nivel
+    return out
   }
 
   const resultados = await Promise.all(filas.map(async (c): Promise<[string, ResultadoCandidato]> => {
@@ -166,7 +189,7 @@ export async function candidatosDeCartera(
       plan: cortes.at(-1)?.plan ?? null,
       consumoPct, caidaConsumo: caida,
       panelPromedio: ult3.length ? prom(ult3.map(x => x.panel)) : null,
-      adopcion: adopMap.get(id) ?? {},
+      adopcion: adopcionDe(id),
 
       /* Medidas. `null` cuando no hay lectura, y el evaluador lo distingue: no
          medir no es medir cero. */

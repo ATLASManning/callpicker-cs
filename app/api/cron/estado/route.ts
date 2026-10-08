@@ -59,8 +59,17 @@ export async function GET() {
       ? 'El Edge tiene la variable, pero NO es la que mandaste. El valor guardado en ' +
         'Vercel y el de .env.local son distintos: vuelve a pegarlo.'
       : 'Las tareas programadas pueden autenticarse.',
+    /* ESTA LISTA TIENE QUE SER LA DE `vercel.json`, Y SE REVISA AL TOCARLO.
+     *
+     * Es el único sitio en línea que contesta qué está programado, y existe
+     * porque `refresh-tenure` pasó meses sin correr y nadie se enteró. El 8
+     * oct 2026 se retiró el generador SAC y nadie abrió este archivo: siguió
+     * anunciando un «lote semanal de actividades» cuyo cron y cuya ruta ya no
+     * existían, mientras callaba `snapshot-prediccion`, que sí corre los lunes
+     * y sí puede fallar. El diagnóstico mentía en las dos direcciones a la vez
+     * — justo la clase de ceguera que esta ruta se construyó para evitar. */
     tareas: [
-      { ruta: '/api/cron/generar-semana', horario: '0 14 * * 1', descripcion: 'Lote semanal de actividades, lunes 08:00 de México' },
+      { ruta: '/api/cron/snapshot-prediccion', horario: '0 13 * * 1', descripcion: 'Snapshot semanal de predicción, lunes 07:00 de México' },
       { ruta: '/api/cron/refresh-tenure', horario: '0 12 1 * *', descripcion: 'Refresco de antigüedad, día 1 de cada mes' },
     ],
     ahoraEnMexico: `${fechaLocal(hoy)} (${selloMexico()})`,

@@ -247,6 +247,26 @@ export function veredictoDe(e: EstadoCuenta): Veredicto {
   const pruebas = (cls: ClaseHallazgo) => hallazgos.filter(x => x.clase === cls)
 
   const salida = e.alertas.filter(a => SALIDA.has(a.tipo))
+  /* TODA alerta que el CATÁLOGO clasifica como «el cliente se está yendo».
+   *
+   * No es lo mismo que las compuertas de consumo y silencio de más abajo, y
+   * esa diferencia costó una mentira en pantalla el 8 oct 2026: los umbrales
+   * de aquí se escribieron a mano y se separaron de los que de verdad emiten
+   * las alertas. El detector dispara `silencio_60` pasados los SESENTA días y
+   * la compuerta del paso 2 pedía NOVENTA, así que el tramo 61-89 se colaba
+   * entero; `consumo_cero` salta por debajo de 0.5% y la compuerta pedía <= 0;
+   * y `nunca_contactada` deja `diasSinContacto` en `null`, con lo que se
+   * saltaba todas las compuertas de silencio, que están guardadas con
+   * `!== null`.
+   *
+   * Resultado medido: VAEO salía en VERDE diciendo «sin señal de riesgo» con
+   * dos alertas críticas —consumo de 81% a 48% en tres meses, y nunca
+   * contactada— listadas en rojo en su misma tarjeta. Tres de las seis
+   * «oportunidades» estaban así.
+   *
+   * La deriva se arregla no teniendo dos definiciones: quien dice si una
+   * cuenta tiene riesgo es el catálogo, que es quien emitió la alerta. */
+  const riesgoVivo = e.alertas.filter(a => a.familia === 'riesgo')
   const silencio = e.diasSinContacto
   const consumoCero = e.consumoPct !== null && e.consumoPct <= 0
   const consumoBajo = e.consumoPct !== null && e.consumoPct < UMBRAL_CONSUMO_BAJO
@@ -400,14 +420,28 @@ export function veredictoDe(e: EstadoCuenta): Veredicto {
    *
    * Los entregables no se pierden: siguen publicados en `hallazgos` y se nombran
    * en el `porque`, para que la reunión lleve las dos cosas. */
-  if (e.candidatura) {
+  /* LA LUZ VERDE NO SE DA CON UNA ALERTA DE RIESGO ABIERTA. Ni aquí ni en «en
+     orden», y por eso la comprobación está antes de las dos.
+
+     Una cuenta con riesgo vivo y material que enseñar vuelve a «hay qué
+     mostrarle», que es donde estaba antes del reordenamiento: azul, y sin
+     afirmar nada sobre el riesgo. La candidatura no se pierde —se nombra en la
+     acción— pero no pinta la tarjeta de verde. */
+  if (e.candidatura && !riesgoVivo.length) {
     return {
       situacion: 'oportunidad', luz: 'verde', dueno: 'asesor',
       accion: entregables.length
         ? `Proponer ${e.candidatura}, y llevarle sus hallazgos a la misma reunión`
         : `Proponer ${e.candidatura}`,
-      porque: `La cuenta está medida, auditada y sin señal de riesgo, y tiene `
-            + `espacio para crecer. Son ${dinero(e.mrr)} hoy.`
+      /* Dice lo que SE COMPROBÓ, no «sin señal de riesgo» a secas. La frase
+         amplia era falsa para una cuenta con fallas en la mesa, que siguen
+         saliendo en rojo en esta misma tarjeta aunque no sean una alerta. */
+      porque: `Está medida, auditada, sin ninguna alerta de riesgo abierta, y `
+            + `tiene espacio para crecer. Son ${dinero(e.mrr)} hoy.`
+            + (e.fallas > 0
+                ? ` Ojo: ${e.fallas} ${e.fallas === 1 ? 'falla registrada' : 'fallas registradas'} `
+                  + `en la mesa — conviene abrir por ahí, no por la propuesta.`
+                : '')
             + (entregables.length
                 ? ` Con qué abrir la conversación: ${entregables.map(x => x.titulo.toLowerCase()).join(', ')}.`
                 : ''),
@@ -421,19 +455,44 @@ export function veredictoDe(e: EstadoCuenta): Veredicto {
   if (entregables.length >= 2) {
     return {
       situacion: 'hay_que_mostrarle', luz: 'azul', dueno: 'asesor',
-      accion: 'Presentarle los hallazgos de su operación en la próxima reunión',
+      accion: e.candidatura
+        ? `Presentarle sus hallazgos, y de paso proponer ${e.candidatura}`
+        : 'Presentarle los hallazgos de su operación en la próxima reunión',
       porque: `Hay ${entregables.length} cosas de su propia operación que el `
-            + `cliente no ve en su día a día: ${entregables.map(x => x.titulo.toLowerCase()).join(', ')}.`,
+            + `cliente no ve en su día a día: ${entregables.map(x => x.titulo.toLowerCase()).join(', ')}.`
+            + (riesgoVivo.length
+                ? ` Y antes de proponerle nada: ${riesgoVivo[0].titulo.toLowerCase()} `
+                  + `— «${riesgoVivo[0].evidencia}».`
+                : ''),
       hallazgos, pedir: null,
     }
   }
 
-  /* ── 7. EN ORDEN ──────────────────────────────────────────────────────── */
+  /* ── 7. CON RIESGO ABIERTO Y SIN MATERIAL QUE ENSEÑAR ─────────────────── */
+  /* El único sitio al que puede llegar una cuenta con alerta de riesgo que
+     ninguna compuerta de arriba atrapó. Antes caía en «en orden» y salía
+     verde; ahora se nombra el riesgo, que es lo que hay. */
+  if (riesgoVivo.length) {
+    return {
+      situacion: 'apagandose', luz: 'naranja', dueno: 'asesor',
+      accion: 'Atender la alerta abierta antes de cualquier otra cosa',
+      porque: `${riesgoVivo[0].titulo}: «${riesgoVivo[0].evidencia}». `
+            + (riesgoVivo.length > 1 ? `Y ${riesgoVivo.length - 1} alerta(s) más. ` : '')
+            + `Son ${dinero(e.mrr)}.`,
+      hallazgos, pedir: null,
+    }
+  }
+
+  /* ── 8. EN ORDEN ──────────────────────────────────────────────────────── */
   return {
     situacion: 'en_orden', luz: 'verde', dueno: 'asesor',
     accion: 'Nada esta semana',
-    porque: 'Consume, se le ha contactado y no hay señal de riesgo. '
-          + 'Una cuenta en orden no necesita una tarea inventada.',
+    porque: 'Consume, se le ha contactado y no tiene ninguna alerta de riesgo '
+          + 'abierta. Una cuenta en orden no necesita una tarea inventada.'
+          + (e.fallas > 0
+              ? ` Lo único: ${e.fallas} ${e.fallas === 1 ? 'falla registrada' : 'fallas registradas'} `
+                + `en la mesa de ayuda.`
+              : ''),
     hallazgos, pedir: null,
   }
 }

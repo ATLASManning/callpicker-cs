@@ -260,8 +260,17 @@ export async function sincronizarEpisodios(
          condiciones de captura se apagan porque alguien capturó —eso es
          `resuelta`—; las de consumo y medición se apagan solas, y llamarlas
          resueltas sería atribuirle al equipo un mérito que no tuvo. */
+      /* `trabajo` SALE de aquí el 8 oct 2026, y no es un detalle de estilo.
+         Sus dos tipos de alerta —`asignada_sin_cerrar`, `nunca_asignada`— se
+         retiraron con el generador SAC, así que sus 69 episodios abiertos van
+         a dejar de verse en la próxima corrida completa y a cerrarse. Con
+         `trabajo` en esta lista se cerraban como `resuelta`, que en esta tabla
+         significa «alguien la atendió»: habrían sido las PRIMERAS 69 resueltas
+         de la historia del registro, y las 69 falsas. Nadie las atendió; les
+         quitamos el tipo. Cierran como `remitio`, que está documentado como
+         «NO es éxito del ejecutivo: se apagó sola». */
       const deCaptura = e.condicion === 'radar' || e.condicion === 'contactos'
-                     || e.condicion === 'ficha' || e.condicion === 'trabajo'
+                     || e.condicion === 'ficha'
       const ok = mirar('cerrar', await supabaseAdmin.from('alertas_episodios').update({
         estado: 'cerrada',
         cerrado_en: e.confirmada_el,

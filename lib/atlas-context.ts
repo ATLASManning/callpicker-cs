@@ -237,7 +237,11 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
   if (crit.length)  faltantes.push(`perfil con ${crit.length} dato(s) CRITICO(S) sin capturar: ${crit.join(', ')}`)
   if (imp.length)   faltantes.push(`datos importantes faltantes: ${imp.join(', ')}`)
   if (radarN < 12)  faltantes.push(`Radar de Cuenta ${radarN}/12 preguntas respondidas`)
-  if (!acts.length) faltantes.push('sin actividades SAC registradas')
+  /* `sin actividades SAC registradas` SALE de la lista de faltantes el 8 oct
+     2026. Un faltante es algo que alguien puede ir a capturar, y el generador
+     SAC se retiró junto con la pantalla que las capturaba: pedirlas sería
+     mandar al asesor a un sitio que ya no está. Las que hay siguen leyéndose
+     más abajo como historia, porque son evidencia de lo que se hizo. */
   if (!segs.length) faltantes.push('sin seguimientos KAM registrados')
   if (!c.ultimo_contacto) faltantes.push('sin fecha de último contacto')
   if (hsFalta)      faltantes.push('Health Score sin calcular (marca [FALTA_HS])')
@@ -275,7 +279,7 @@ ${cortesTxt}
   Módulos SIN activar: ${modOff.join(', ') || 'ninguno'}
   Upsell/Cross marcado en CRM: ${c.upsell_producto ?? '—'} / ${c.crossell_producto ?? '—'}
   SOPORTE (leer completo antes de opinar de la salud de la cuenta): ${sop.frase}
-  Actividades SAC (últimas): ${acts.length ? `${acts.length} registradas, ${actsComp} completadas; última semana ${acts[0].semana_inicio}` : 'NINGUNA registrada'}
+  Actividades SAC (HISTÓRICO, el generador se retiró el 8 oct 2026 — no se piden más): ${acts.length ? `${acts.length} registradas, ${actsComp} completadas; última semana ${acts[0].semana_inicio}` : 'ninguna quedó registrada'}
   Seguimientos KAM: ${segs.length ? segs.slice(0, 3).map(s => `[${String(s.fecha).slice(0, 10)}] ${s.tipo}: ${(s.descripcion ?? '').slice(0, 70)}`).join(' | ') : 'NINGUNO registrado'}
   Radar de Cuenta: ${radarN}/12 preguntas respondidas
   CALIDAD DE DATOS DE ESTA CUENTA: ${faltantes.length ? 'INCOMPLETA — ' + faltantes.join('; ') : 'completa'}${

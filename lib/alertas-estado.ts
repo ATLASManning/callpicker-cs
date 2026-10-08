@@ -57,9 +57,20 @@ const CORTES_MINIMOS = 70
  * problema abierto saldría del tablero clasificada como la que va bien.
  *
  * Esos dos casos no se pierden: la cuenta que necesita estabilizarse ya trae
- * sus alertas de riesgo y el veredicto la resuelve mucho antes de llegar aquí
- * —`se_va`, `apagandose`— o la manda a su auditoría. `oportunidad` es el último
- * escalón a propósito: sólo llega quien no tiene nada peor.
+ * sus alertas de riesgo, y el veredicto se encarga de que no salga en verde.
+ *
+ * ESTE PÁRRAFO DECÍA OTRA COSA, Y ERA FALSO. Decía que «el veredicto la
+ * resuelve mucho antes de llegar aquí —`se_va`, `apagandose`— o la manda a su
+ * auditoría», y el código no lo cumplía: sus compuertas sólo miraban la salida
+ * declarada, el consumo en cero y el silencio de noventa días, no las once
+ * familias de riesgo del catálogo. Por eso VAEO salió en verde con dos alertas
+ * críticas. Lo que lo cumple ahora es `riesgoVivo` en `alertas-veredicto.ts`,
+ * que pregunta al catálogo en vez de a un umbral escrito aparte.
+ *
+ * Y ojo con la otra mitad: `evaluarCandidato` AGREGA la candidatura de
+ * `estabilizar` sin suprimir las de crecimiento, así que filtrar por
+ * CRECIMIENTO no basta por sí solo para saber que la casa está en orden. Hace
+ * falta lo de arriba.
  */
 const CRECIMIENTO = new Set(['escalon', 'cross_sell', 'ampliacion', 'blindaje'])
 
