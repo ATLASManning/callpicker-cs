@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import type { AuditoriaCase } from './types'
+import { tonoSobreClaro, pastillaClara } from '@/lib/contraste'
 import {
   AlertTriangle, CheckCircle2, Clock, TrendingUp,
   User, Users, Zap, Target, Shield, ChevronDown, ChevronUp,
@@ -21,6 +22,16 @@ const INDIGO = '#6366f1'
  *  es una alarma, es una carga repetida que se puede quitar. */
 const ORANGE = '#f97316'
 
+/* Los mismos tonos, ya oscurecidos hasta 4.5:1 para usarse como LETRA sobre la
+   tarjeta blanca. Los de arriba se quedan para iconos, viñetas y rellenos, que
+   son objetos gráficos y tienen otro umbral.
+   Medido antes: AMBER como texto daba 2.15:1, GREEN 2.28:1 y ORANGE 2.80:1, y
+   caían en los encabezados de columna y en los valores de cada métrica — el
+   dato que la sección existe para enseñar. */
+const AMBER_TX  = tonoSobreClaro(AMBER, 0)
+const GREEN_TX  = tonoSobreClaro(GREEN, 0)
+const ORANGE_TX = tonoSobreClaro(ORANGE, 0)
+
 /* ─── Mapa de colores por estado ─────────────────────────────────────── */
 const ESTADO_COLOR: Record<string, string> = {
   rescatable: '#22c55e',
@@ -40,8 +51,12 @@ const TIPO_COLOR: Record<string, string> = {
 /* ─── Componentes auxiliares ─────────────────────────────────────────── */
 function Badge({ color, children }: { color: string; children: React.ReactNode }) {
   return (
+    /* Pintaba la letra con el MISMO color del fondo: AMBER #f59e0b daba
+       1.95:1 y GREEN #22c55e 2.05:1. Se ve en la clasificación de la cuenta,
+       en el estado y en cada táctica. `pastillaClara` deja el tinte idéntico y
+       calcula la letra hasta 4.5:1. */
     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold"
-      style={{ background: `${color}20`, color, border: `1px solid ${color}40` }}>
+      style={{ ...pastillaClara(color, 0.125), border: `1px solid ${color}40` }}>
       {children}
     </span>
   )
@@ -68,7 +83,11 @@ function StatPill({ label, value, color }: { label: string; value: string; color
   return (
     <div className="flex flex-col items-center justify-center rounded-xl px-5 py-4 border"
       style={{ background: `${color}08`, borderColor: `${color}30` }}>
-      <span className="text-2xl font-bold" style={{ color }}>{value}</span>
+      {/* El valor del KPI con el color que trae el dato sobre un tinte del 3%
+          del mismo color: con los tonos que de hecho usan los casos fallaba
+          casi siempre —#f59e0b 2.15:1, #22c55e 2.28:1, #00B4FF 2.34:1—. Se
+          calcula aquí, UNA vez, en vez de editar los 37 archivos de datos. */}
+      <span className="text-2xl font-bold" style={{ color: tonoSobreClaro(color, 0.03) }}>{value}</span>
       <span className="text-xs text-gray-500 mt-1 text-center">{label}</span>
     </div>
   )
@@ -292,7 +311,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                 </div>
                 {caso.senal_alarma && (
                   <div className="mt-4 p-3 rounded-lg border" style={{ background: `${AMBER}08`, borderColor: `${AMBER}30` }}>
-                    <p className="text-xs font-semibold" style={{ color: AMBER }}>⚠ Señal de alarma</p>
+                    <p className="text-xs font-semibold" style={{ color: AMBER_TX }}>⚠ Señal de alarma</p>
                     <p className="text-xs text-gray-600 mt-1 whitespace-pre-line">{caso.senal_alarma}</p>
                   </div>
                 )}
@@ -378,7 +397,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                     <thead>
                       <tr className="border-b border-gray-200">
                         <th className="text-left py-2 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Métrica</th>
-                        <th className="text-left py-2 pr-4 text-xs font-semibold uppercase tracking-wide" style={{ color: ORANGE }}>Valor</th>
+                        <th className="text-left py-2 pr-4 text-xs font-semibold uppercase tracking-wide" style={{ color: ORANGE_TX }}>Valor</th>
                         <th className="text-left py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Qué significa</th>
                       </tr>
                     </thead>
@@ -386,7 +405,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                       {caso.auditoria_servicio.metricas.map(m => (
                         <tr key={m.metrica} className="border-b border-gray-100 last:border-0">
                           <td className="py-3 pr-4 font-medium text-gray-900 align-top text-xs">{m.metrica}</td>
-                          <td className="py-3 pr-4 align-top text-xs font-bold" style={{ color: ORANGE }}>{m.valor}</td>
+                          <td className="py-3 pr-4 align-top text-xs font-bold" style={{ color: ORANGE_TX }}>{m.valor}</td>
                           <td className="py-3 align-top text-xs text-gray-600">{m.lectura}</td>
                         </tr>
                       ))}
@@ -428,7 +447,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                       <tr className="border-b border-gray-200">
                         <th className="text-left py-2 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Métrica</th>
                         <th className="text-left py-2 pr-4 text-xs font-semibold uppercase tracking-wide" style={{ color: RED }}>Proceso Real</th>
-                        <th className="text-left py-2 text-xs font-semibold uppercase tracking-wide" style={{ color: GREEN }}>Proceso Ideal</th>
+                        <th className="text-left py-2 text-xs font-semibold uppercase tracking-wide" style={{ color: GREEN_TX }}>Proceso Ideal</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -436,7 +455,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                         <tr key={r.metrica} className="border-b border-gray-100 last:border-0">
                           <td className="py-3 pr-4 font-medium text-gray-900 align-top text-xs">{r.metrica}</td>
                           <td className="py-3 pr-4 align-top text-xs" style={{ color: RED }}>{r.real}</td>
-                          <td className="py-3 align-top text-xs" style={{ color: GREEN }}>{r.ideal}</td>
+                          <td className="py-3 align-top text-xs" style={{ color: GREEN_TX }}>{r.ideal}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -478,7 +497,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   {caso.plan_mediano.map((a, i) => (
                     <div key={i} className="flex gap-3 p-3 rounded-lg border border-amber-100 bg-amber-50/30">
                       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                        style={{ background: `${AMBER}20`, color: AMBER }}>
+                        style={{ ...pastillaClara(AMBER, 0.125) }}>
                         <span className="text-[10px] font-bold">{i + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -500,7 +519,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   {caso.plan_estrategico.map((a, i) => (
                     <div key={i} className="flex gap-3 p-3 rounded-lg border border-green-100 bg-green-50/30">
                       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                        style={{ background: `${GREEN}20`, color: GREEN }}>
+                        style={{ ...pastillaClara(GREEN, 0.125) }}>
                         <span className="text-[10px] font-bold">{i + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -577,7 +596,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                 <div className="px-5 py-3 flex items-center gap-2" style={{ background: `${GREEN}12` }}>
                   <Shield size={15} style={{ color: GREEN }} />
-                  <h3 className="font-semibold text-sm" style={{ color: GREEN }}>Fortalezas (Internas)</h3>
+                  <h3 className="font-semibold text-sm" style={{ color: GREEN_TX }}>Fortalezas (Internas)</h3>
                 </div>
                 <ul className="px-5 py-4 space-y-2">
                   {caso.foda.fortalezas.map(item => (
@@ -609,7 +628,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                 <div className="px-5 py-3 flex items-center gap-2" style={{ background: `${AMBER}12` }}>
                   <AlertTriangle size={15} style={{ color: AMBER }} />
-                  <h3 className="font-semibold text-sm" style={{ color: AMBER }}>Debilidades (Internas)</h3>
+                  <h3 className="font-semibold text-sm" style={{ color: AMBER_TX }}>Debilidades (Internas)</h3>
                 </div>
                 <ul className="px-5 py-4 space-y-2">
                   {caso.foda.debilidades.map(item => (
@@ -660,13 +679,13 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                 )}
                 {caso.gana.length > 0 && (
                   <div className="p-4 rounded-lg border" style={{ background: `${GREEN}06`, borderColor: `${GREEN}25` }}>
-                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: GREEN }}>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: GREEN_TX }}>
                       Lo que se gana si actúa
                     </p>
                     <ul className="space-y-1">
                       {caso.gana.map(i => (
                         <li key={i} className="text-xs text-gray-600 flex gap-2">
-                          <span style={{ color: GREEN }}>✓</span>{i}
+                          <span style={{ color: GREEN_TX }}>✓</span>{i}
                         </li>
                       ))}
                     </ul>

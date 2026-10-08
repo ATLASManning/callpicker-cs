@@ -639,15 +639,15 @@ export default function GrcAaaSection() {
                           {/* Ingreso Perdido Contrato (BCY) Real — el campo que alimenta el GRC */}
                           <td className="py-2.5 px-3 text-right font-bold tabular-nums"
                             title="Ingreso Perdido Contrato (BCY) Real"
-                            style={{ color: c.perdido > 0 ? '#B91C1C' : '#CBD5E1', background: '#FEF2F2' }}>
+                            style={{ color: c.perdido > 0 ? '#B91C1C' : '#64748B', background: '#FEF2F2' }}>
                             {c.perdido > 0 ? fmtF(c.perdido) : '—'}
                           </td>
                           <td className="py-2.5 px-3 text-right tabular-nums"
                             title="Ingreso Perdido Contrato (BCY) Fraude-Reestructura"
-                            style={{ color: c.perdido2 > 0 ? '#C2410C' : '#CBD5E1' }}>
+                            style={{ color: c.perdido2 > 0 ? '#C2410C' : '#64748B' }}>
                             {c.perdido2 > 0 ? fmtF(c.perdido2) : '—'}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-semibold tabular-nums" style={{ color: perdTotal > 0 ? '#EA580C' : '#CBD5E1' }}>
+                          <td className="py-2.5 px-3 text-right font-semibold tabular-nums" style={{ color: perdTotal > 0 ? '#EA580C' : '#64748B' }}>
                             {perdTotal > 0 ? fmtF(perdTotal) : '—'}
                           </td>
                           <td className="py-2.5 px-3 text-right text-gray-500 tabular-nums">{fmt(c.acumulado)}</td>
@@ -910,11 +910,11 @@ function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos, sugerencias }
                     {f.asesor}
                   </td>
                   <td className="py-2.5 px-3 text-right tabular-nums text-gray-700">{f.churn || '—'}</td>
-                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realChurn > 0 ? '#B91C1C' : '#CBD5E1' }}>
+                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realChurn > 0 ? '#B91C1C' : '#64748B' }}>
                     {f.realChurn > 0 ? fmtF(f.realChurn) : '—'}
                   </td>
                   <td className="py-2.5 px-3 text-right tabular-nums text-gray-700">{f.dgs || '—'}</td>
-                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realDg > 0 ? '#D97706' : '#CBD5E1' }}>
+                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realDg > 0 ? '#D97706' : '#64748B' }}>
                     {f.realDg > 0 ? fmtF(f.realDg) : '—'}
                   </td>
                   <td className="py-2.5 px-3 text-right tabular-nums font-bold text-gray-900">
@@ -1041,10 +1041,10 @@ function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos, sugerencias }
                             {cargando ? 'cargando…' : 'sin asesor en la cartera'}
                           </span>}
                     </td>
-                    <td className="py-2.5 px-3 text-right tabular-nums font-bold" style={{ color: e.real > 0 ? '#B91C1C' : '#CBD5E1' }}>
+                    <td className="py-2.5 px-3 text-right tabular-nums font-bold" style={{ color: e.real > 0 ? '#B91C1C' : '#64748B' }}>
                       {e.real > 0 ? fmtF(e.real) : '—'}
                     </td>
-                    <td className="py-2.5 px-3 text-right tabular-nums" style={{ color: e.fraude > 0 ? '#C2410C' : '#CBD5E1' }}>
+                    <td className="py-2.5 px-3 text-right tabular-nums" style={{ color: e.fraude > 0 ? '#C2410C' : '#64748B' }}>
                       {e.fraude > 0 ? fmtF(e.fraude) : '—'}
                     </td>
                   </tr>

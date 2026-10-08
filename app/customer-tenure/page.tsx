@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
 import type { SemaforoKey } from '@/lib/zoho-ltv'
+import { tonoSobreFondo } from '@/lib/contraste'
 import {
   Users, DollarSign, TrendingUp, Clock, Search,
   ShieldCheck, AlertTriangle, XCircle, Zap, ChevronLeft,
@@ -103,7 +104,12 @@ function KpiCard({ icon: Icon, label, value, sub, color }: {
       </div>
       <div className="min-w-0">
         <p className="text-xs text-gray-500 font-medium">{label}</p>
-        <p className="text-xl font-bold mt-0.5 truncate" style={{ color }}>{value}</p>
+        {/* El valor del KPI con el color de marca sobre tarjeta blanca fallaba
+            incluso el 3:1 que WCAG concede al texto grande: «LTV acumulado» en
+            #f59e0b daba 2.15:1 y «MRR activo» en #22c55e 2.28:1. El cuadro del
+            icono de arriba sí conserva el color puro — ahí es relleno. */}
+        <p className="text-xl font-bold mt-0.5 truncate"
+           style={{ color: tonoSobreFondo(color, '#FFFFFF', 4.5) }}>{value}</p>
         {sub && <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>}
       </div>
     </div>
@@ -130,8 +136,12 @@ function BucketBadge({ b }: { b: string }) {
   const cfg = BUCKET_CFG[b]
   if (!cfg) return <span className="text-xs text-gray-400">{b}</span>
   return (
+    /* Pintaba la letra con el MISMO color del punto de la gráfica sobre el
+       tinte casi blanco de ese color: «Maduros» 2.07:1, «Activos» 2.18:1,
+       «Sin Actividad» 2.45:1, «Veteranos» 2.64:1, todo a 10px. Se calcula
+       contra el fondo REAL de la pastilla, que es `cfg.bg`. */
     <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-      style={{ background: cfg.bg, color: cfg.color }}>
+      style={{ background: cfg.bg, color: tonoSobreFondo(cfg.color, cfg.bg, 4.5) }}>
       {b}
     </span>
   )
@@ -322,7 +332,12 @@ export default function CustomerTenurePage() {
                       {info.mrr > 0 && (
                         <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${cfg.border}` }}>
                           <p className="text-[10px]" style={{ color: cfg.text, opacity: 0.8 }}>MRR comprometido</p>
-                          <p className="text-sm font-bold" style={{ color: cfg.color }}>{fmtM(info.mrr)}</p>
+                          {/* `cfg.text` como las otras cuatro líneas de la
+                              tarjeta: con `cfg.color` esta cifra de dinero
+                              daba 2.07:1 en «En Riesgo» y 2.18:1 en «Activo»
+                              sobre el tinte pálido. El color de marca ya lo
+                              ponen el icono y la barra, que son gráficos. */}
+                          <p className="text-sm font-bold" style={{ color: cfg.text }}>{fmtM(info.mrr)}</p>
                         </div>
                       )}
                       {/* progress bar */}
@@ -499,7 +514,11 @@ export default function CustomerTenurePage() {
                   <tbody>
                     {stats.topLtv.map((r, i) => (
                       <tr key={r.id_cliente} className="border-t border-gray-50 hover:bg-gray-50/60">
-                        <td className="px-3 py-2.5 font-bold text-gray-300 text-center">{i + 1}</td>
+                        {/* `text-gray-300` medía 1.47:1 sobre la fila blanca y
+                            es la columna que ORDENA la tabla: no se leía sin
+                            seleccionarla. `gray-500` es el primero que cumple;
+                            `gray-400` se queda en 2.5:1. */}
+                        <td className="px-3 py-2.5 font-bold text-gray-500 text-center">{i + 1}</td>
                         <td className="px-3 py-2.5 font-semibold text-gray-800 max-w-[200px] truncate">{r.nombre_cliente}</td>
                         <td className="px-3 py-2.5 text-gray-500">{r.tamano_empresa}</td>
                         <td className="px-3 py-2.5">
@@ -584,11 +603,23 @@ export default function CustomerTenurePage() {
                         <div className="absolute inset-y-0 left-0 rounded-lg flex items-center pl-2"
                           style={{ width: `${c.pctRetention}%`, background: retColor + 'cc', minWidth: c.activos > 0 ? 4 : 0 }} />
                         <div className="absolute inset-0 flex items-center px-2 justify-between">
-                          <span className="text-[10px] font-semibold drop-shadow-sm"
-                            style={{ color: c.pctRetention >= 18 ? '#FFFFFF' : '#334155' }}>
+                          {/* La etiqueta va SIEMPRE oscura. El condicional
+                              miraba el ANCHO de la barra —no su claridad— y
+                              pasaba a blanco al llegar al 18%: sobre el verde
+                              daba 2.06:1 y sobre el ámbar 1.95:1. Oscura mide
+                              ≥4.5:1 sobre las tres barras y sobre el carril
+                              gris, y además deja de depender de un ancho. */}
+                          <span className="text-[10px] font-semibold"
+                            style={{ color: '#334155' }}>
                             {c.activos > 0 ? `${fmtN(c.activos)} activos` : ''}
                           </span>
-                          <span className="text-[10px] font-bold" style={{ color: retColor }}>
+                          {/* El porcentaje cae en el extremo derecho del
+                              carril, que es gris claro: el verde daba 1.84:1 y
+                              el ámbar 1.73:1. El tono conserva el matiz del
+                              semáforo —que es lo que comunica— y se oscurece
+                              hasta leerse sobre ESE fondo. */}
+                          <span className="text-[10px] font-bold"
+                            style={{ color: tonoSobreFondo(retColor, '#E5E7EB', 4.5) }}>
                             {c.pctRetention}%
                           </span>
                         </div>

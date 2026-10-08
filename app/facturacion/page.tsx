@@ -423,12 +423,17 @@ export default function GrossRevenueChurnPage() {
           una sola; lo que no se calla es POR QUÉ dejó de ser la anterior.
           Quien recuerde el 17.3% tiene que toparse esto antes que la tabla. */}
       {d?.meta?.notaCambio && (
+        /* Es una isla CLARA —el recuadro es un ámbar al 10% sobre la página—,
+           así que letra oscura. Iba en #FBBF24 el título y #FDE68A el cuerpo:
+           1.39:1 y 1.03:1, o sea literalmente invisible. El aviso ámbar de más
+           arriba en este mismo archivo ya estaba bien resuelto así, con fondo
+           #FEF3C7 y MARINO; esto copia ese patrón. */
         <div className="rounded-xl px-4 py-3 mt-5"
-          style={{ background: 'rgba(217,119,6,0.10)', border: '1px solid rgba(217,119,6,0.35)' }}>
-          <p className="text-[11.5px] font-bold mb-1" style={{ color: '#FBBF24' }}>
+          style={{ background: '#FEF3C7', border: '1px solid #FCD34D' }}>
+          <p className="text-[11.5px] font-bold mb-1" style={{ color: MARINO }}>
             Por qué cambiaron las cifras de los meses cerrados
           </p>
-          <p className="text-[11px] leading-relaxed" style={{ color: '#FDE68A' }}>
+          <p className="text-[11px] leading-relaxed" style={{ color: '#78350F' }}>
             {d.meta.notaCambio}
           </p>
         </div>

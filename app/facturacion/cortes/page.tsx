@@ -669,7 +669,11 @@ export default function InformeCortesPage() {
             <div style={{ display: 'flex', gap: 14, marginBottom: 20 }}>
               {[
                 { label: 'Con eventos', n: stats.conEventos,                color: '#4ADE80', icon: CheckCircle },
-                { label: 'Sin eventos', n: stats.total - stats.conEventos,  color: '#475569', icon: AlertTriangle },
+                /* `#475569` es el gris de PÁGINA y esta tarjeta es una isla
+                   oscura: 2.24:1 en el número de 22px. `#94A3B8` da 6.4:1 ahí
+                   y sigue leyéndose como «neutro / ausencia», que es lo que
+                   tiene que decir. Es la dirección contraria del bug. */
+                { label: 'Sin eventos', n: stats.total - stats.conEventos,  color: '#94A3B8', icon: AlertTriangle },
               ].map(({ label, n, color, icon: Icon }) => (
                 <div key={label} style={{ flex: 1, padding: '16px', borderRadius: 10, background: color + '14', border: `1px solid ${color}25`, textAlign: 'center' }}>
                   <Icon size={20} style={{ color, margin: '0 auto 8px' }} />
@@ -728,7 +732,11 @@ export default function InformeCortesPage() {
                         boxShadow: isLast ? '0 4px 18px rgba(96,165,250,0.45)' : undefined,
                       }} title={tip} />
                       <span style={{ fontSize: 8, color: v.parcial ? '#FBBF24' : 'rgba(255,255,255,0.38)', textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtMes(mes)}</span>
-                      <span style={{ fontSize: 7, color: v.parcial ? '#FBBF24' : 'rgba(255,255,255,0.22)' }}>
+                      {/* Blanco al 22% sobre la isla oscura son 2.01:1, y a
+                          7px el ojo necesita MÁS contraste, no menos. El piso
+                          documentado del proyecto es 0.48; aquí se sube a 0.6
+                          justo por el tamaño. */}
+                      <span style={{ fontSize: 7, color: v.parcial ? '#FBBF24' : 'rgba(255,255,255,0.60)' }}>
                         {v.parcial ? `1–${Number(v.hasta?.slice(8) ?? 0)}` : v.count}
                       </span>
                     </div>

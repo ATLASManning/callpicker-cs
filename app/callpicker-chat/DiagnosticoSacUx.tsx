@@ -643,7 +643,14 @@ function BandaCobertura() {
                   ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.10) 0 5px, transparent 5px 10px)'
                   : undefined,
               }}>
-              <span className="text-[11px] font-bold" style={{ color: s.k === 'Sin medición' ? '#CBD5E1' : '#06251A' }}>
+              {/* El `background: 'transparent'` NO sobra: este `<span>` cuelga
+                  de una `.cp-card` y `globals.css` fuerza a blanco todo span
+                  que no declare fondo. El #06251A calculado para el segmento
+                  verde se perdía y quedaba blanco sobre #22C55E: 2.06:1. Es el
+                  mismo truco que ya usa la línea 87 de este archivo. */}
+              <span className="text-[11px] font-bold"
+                style={{ background: 'transparent',
+                         color: s.k === 'Sin medición' ? '#CBD5E1' : '#06251A' }}>
                 {s.v}
               </span>
             </div>

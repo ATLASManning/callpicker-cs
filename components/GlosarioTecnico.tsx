@@ -275,10 +275,16 @@ export default function GlosarioTecnico() {
               {filtrados.map(t => <FichaTermino key={`${t.cat}-${t.t}`} t={t} />)}
             </div>
           ) : (
-            {/* Sin `opacity`: se aplica DESPUÉS del color y multiplica el
-                problema. La línea de ayuda quedaba en 1.61:1 —prácticamente
-                invisible— y el título en 2.59:1. Si hay que atenuar, se baja el
-                tono, que sí se puede medir. */}
+            /* Sin `opacity`: se aplica DESPUÉS del color y multiplica el
+               problema. La línea de ayuda quedaba en 1.61:1 —prácticamente
+               invisible— y el título en 2.59:1. Si hay que atenuar, se baja el
+               tono, que sí se puede medir.
+
+               Y ojo con la FORMA del comentario: aquí va el bloque pelado, sin
+               llaves. Esto es una rama de ternario, o sea posición de
+               expresión, y envuelto en llaves sería un objeto vacío seguido de
+               JSX — error de sintaxis. Tumbó los dos despliegues de Vercel en
+               el commit e92ba41. Las llaves solo valen entre HIJOS. */
             <div style={{ textAlign: 'center', padding: '50px 0' }}>
               <p style={{ fontSize: 15, color: TX_MID, fontWeight: 700, marginBottom: 6 }}>Sin resultados</p>
               <p style={{ fontSize: 13, color: TX_LOW }}>Prueba con la sigla, el nombre en inglés o una palabra de la definición.</p>

@@ -19,7 +19,13 @@ import {
   type LecturaLlamadas, type LlamadasMeta,
 } from '@/lib/llamadas-cuenta'
 
-const RED = '#ef4444', BLU = '#1B3FCC', IND = '#6366f1', GRY = '#94a3b8', AMB = '#f59e0b', GRN = '#22c55e'
+/* `BLU` era `#1B3FCC`, el azul de marca de la PÁGINA clara, y este panel es
+   una tarjeta oscura: la pastilla «N entrantes» pintaba letra y fondo con ese
+   mismo azul marino y medía 2.07:1. El cambio aquí arregla de una vez los tres
+   sitios donde se usa —la pastilla, el cuadrito de la leyenda «Atendidas por
+   un agente» (2.23:1) y la serie—, y `#60A5FA` es el azul que globals.css ya
+   aplica a los enlaces dentro de una tarjeta oscura. */
+const RED = '#ef4444', BLU = '#60A5FA', IND = '#6366f1', GRY = '#94a3b8', AMB = '#f59e0b', GRN = '#22c55e'
 const DIA_INI = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const nf = (x: number) => x.toLocaleString('es-MX')
 

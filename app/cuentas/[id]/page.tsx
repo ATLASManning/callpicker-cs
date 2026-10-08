@@ -284,7 +284,11 @@ export default async function CuentaDetailPage({ params }: Props) {
                 <AsesorBadge asesor={cuenta.asesor} size="md" />
                 {cuenta.giro && <span className="text-xs text-textLow">{cuenta.giro}</span>}
                 {cuenta.grupo_empresarial && (
-                  <span className="text-xs text-cpTeal">Grupo: {cuenta.grupo_empresarial}</span>
+                  {/* `text-cpTeal` (#0EA5E9) sobre la página clara da 2.55:1, y
+                      a qué grupo empresarial pertenece la cuenta es dato, no
+                      adorno: no tiene otra señal que lo diga. `text-cp`
+                      (#0057FF) mide 5.07:1 y conserva el acento de marca. */}
+                  <span className="text-xs text-cp">Grupo: {cuenta.grupo_empresarial}</span>
                 )}
               </div>
             </div>
