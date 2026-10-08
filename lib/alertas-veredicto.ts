@@ -1,0 +1,334 @@
+import type { Alerta, TipoAlerta } from '@/lib/alertas'
+
+/**
+ * lib/alertas-veredicto.ts — EL VEREDICTO DE UNA CUENTA, Y SU ÚNICA ACCIÓN
+ *
+ * ── POR QUÉ EXISTE, Y QUÉ CORRIGE ──────────────────────────────────────────
+ *
+ * Instrucción de dirección, 7 oct 2026: «la idea es volvernos eficientes con las
+ * cuentas y no hacer tareas innecesarias, deben ser con inteligencia».
+ *
+ * Es una corrección a lo que yo había construido, y tiene razón. El generador de
+ * huecos abría una tarea por CAMPO VACÍO: faltaba el correo, una tarea; faltaba
+ * el NPS, otra; faltaba el consumo, otra. Tech People salía con tres tareas el
+ * mismo lunes y GRUPO TORRES CORZO con cuatro. Eso no es trabajo, es una lista
+ * de la compra — y una lista de la compra se archiva.
+ *
+ * Una cuenta con consumo en cero, noventa días sin contacto y un ticket fuera de
+ * SLA no tiene tres problemas: tiene UNO, se está yendo, y las tres cosas son la
+ * evidencia. El asesor necesita saber eso y llamar, no tachar tres casillas.
+ *
+ * ── CÓMO SE DECIDE ─────────────────────────────────────────────────────────
+ *
+ * Las situaciones están ORDENADAS y gana la primera que aplica. No se suman
+ * puntos ni se pondera: un score oculta el porqué, y el porqué es lo único que
+ * hace que alguien levante el teléfono. Cada veredicto sale con sus pruebas
+ * citadas, de modo que se puede discutir cuenta por cuenta — que es lo que
+ * dirección pidió cuando dijo «con total objetividad».
+ *
+ * ── LOS TRES TIPOS DE HALLAZGO ─────────────────────────────────────────────
+ *
+ * Dirección los nombró así: «todos los hallazgos que tienen las cuentas, tanto
+ * de entrega al cliente como de trabajo en el análisis, riesgos».
+ *
+ *   · `riesgo`   — lo que amenaza la cuenta. Son los 18 tipos de alerta.
+ *   · `entrega`  — lo que se le puede MOSTRAR al cliente y hoy no ve: sus
+ *                  llamadas perdidas, sus horas pico, lo que paga y no usa.
+ *                  Es la materia del Informe de Valor.
+ *   · `analisis` — lo que nos falta a NOSOTROS para poder opinar: el archivo de
+ *                  llamadas, la auditoría, el dato de ficha.
+ *
+ * Los tres se publican siempre. La acción sale de los tres juntos.
+ */
+
+/** Qué le pasa a esta cuenta, en una palabra. Ordenadas por urgencia. */
+export type Situacion =
+  | 'se_va'          // hay señal de salida, escrita o medida
+  | 'apagandose'     // el uso cae o se detuvo, y nadie ha hablado con ella
+  | 'no_la_vemos'    // faltan los datos para poder opinar
+  | 'sin_auditar'    // hay datos, falta el análisis
+  | 'hay_que_mostrarle' // hay material de valor sin presentar
+  | 'oportunidad'    // la casa en orden y espacio para crecer
+  | 'en_orden'       // nada que hacer esta semana
+
+export type ClaseHallazgo = 'riesgo' | 'entrega' | 'analisis'
+
+export interface Hallazgo {
+  clase: ClaseHallazgo
+  titulo: string
+  /** La cifra o la frase que lo sostiene. Un hallazgo sin prueba no se publica. */
+  prueba: string
+}
+
+/** El semáforo de ALERTAS. Cinco estados, y NO cuelga del Health Score. */
+export type Luz = 'rojo' | 'naranja' | 'amarillo' | 'azul' | 'verde' | 'gris'
+
+export interface Veredicto {
+  situacion: Situacion
+  luz: Luz
+  /** Lo que hay que hacer, en imperativo y en una línea. Una sola. */
+  accion: string
+  /** De quién es: el asesor, o dirección cuando la plataforma tiene que cambiar. */
+  dueno: 'asesor' | 'direccion'
+  /** Por qué, citando las pruebas. Es lo que se discute en la junta. */
+  porque: string
+  hallazgos: Hallazgo[]
+  /** Qué falta por conseguir, si falta algo. Una petición, no nueve. */
+  pedir: string | null
+}
+
+/**
+ * Lo que se sabe de una cuenta cuando se va a juzgar.
+ *
+ * Todo `null` significa NO MEDIDO, nunca cero. La diferencia decide el
+ * veredicto: una cuenta con consumo 0 se está apagando; una con consumo `null`
+ * no se sabe, y confundirlas manda al asesor a pelear con el cliente equivocado.
+ * Ver [[feedback-cero-sin-medicion]].
+ */
+export interface EstadoCuenta {
+  cuentaId: string
+  empresa: string
+  asesor: string | null
+  mrr: number | null
+  esTop: boolean
+  alertas: Alerta[]
+  /** % de la bolsa consumido en el último corte. `null` = sin corte. */
+  consumoPct: number | null
+  /** Días desde el último contacto POR CANAL REAL. `null` = nunca hubo. */
+  diasSinContacto: number | null
+  /** `true` si hay lectura de llamadas de esta cuenta. */
+  tieneLlamadas: boolean
+  /** Llamadas perdidas y su parte, cuando hay lectura. */
+  perdidas: number | null
+  pctPerdidas: number | null
+  /** `true` si existe un caso de auditoría para esta cuenta. */
+  tieneAuditoria: boolean
+  /** Candidatura de crecimiento detectada. */
+  candidatura: string | null
+  /** Productos contratados sin uso, si se sabe. */
+  productosSinUso: number | null
+  /** Tickets cerrados en el histórico. `null` = la cuenta no pasa por la mesa. */
+  tickets: number | null
+}
+
+/* Los tipos de alerta que significan SALIDA, no deterioro. Se separan a
+   propósito: una baja escrita por el asesor no es lo mismo que un consumo bajo,
+   y tratarlas igual retrasa la llamada que sí urge. */
+const SALIDA: ReadonlySet<TipoAlerta> = new Set([
+  'baja_declarada', 'riesgo_escrito', 'reduccion_declarada',
+] as TipoAlerta[])
+
+const UMBRAL_SILENCIO = 60      // días sin contacto real que ya preocupan
+const UMBRAL_SILENCIO_GRAVE = 90
+const UMBRAL_CONSUMO_BAJO = 10  // % de la bolsa
+
+function dinero(n: number | null): string {
+  return n === null ? 'un importe que no está en ninguna fuente'
+                    : `$${n.toLocaleString('es-MX', { maximumFractionDigits: 0 })} al mes`
+}
+
+/** Los hallazgos de la cuenta, en las tres clases que pidió dirección. */
+export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
+  const h: Hallazgo[] = []
+
+  /* ── RIESGO: las alertas ya detectadas, cada una con su evidencia ─────── */
+  for (const a of e.alertas) {
+    h.push({ clase: 'riesgo', titulo: a.titulo, prueba: a.evidencia })
+  }
+
+  /* ── ENTREGA: lo que se le puede MOSTRAR y hoy no ve ──────────────────── */
+  if (e.tieneLlamadas && e.perdidas !== null && e.perdidas > 0) {
+    h.push({
+      clase: 'entrega',
+      titulo: 'Llamadas que se le están escapando',
+      prueba: `${e.perdidas.toLocaleString('es-MX')} entrantes sin contestar`
+            + (e.pctPerdidas !== null ? `, el ${e.pctPerdidas.toFixed(0)}% de las que recibe` : ''),
+    })
+  }
+  if (e.productosSinUso !== null && e.productosSinUso > 0) {
+    h.push({
+      clase: 'entrega',
+      titulo: 'Capacidades que paga y no aprovecha',
+      prueba: `${e.productosSinUso} producto(s) contratados sin uso registrado`,
+    })
+  }
+  if (e.consumoPct !== null && e.consumoPct < 40) {
+    h.push({
+      clase: 'entrega',
+      titulo: 'Está pagando por minutos que no usa',
+      prueba: `consume el ${e.consumoPct.toFixed(0)}% de su bolsa`,
+    })
+  }
+  if (e.consumoPct !== null && e.consumoPct > 95) {
+    h.push({
+      clase: 'entrega',
+      titulo: 'Se está acercando al límite de su plan',
+      prueba: `consume el ${e.consumoPct.toFixed(0)}% de su bolsa; rebasar se cobra`,
+    })
+  }
+
+  /* ── ANÁLISIS: lo que nos falta a NOSOTROS para poder opinar ──────────── */
+  if (!e.tieneLlamadas) {
+    h.push({ clase: 'analisis', titulo: 'No hay lectura de sus llamadas',
+             prueba: 'esta cuenta no aparece en el reporte; su atención es no medible' })
+  }
+  if (e.consumoPct === null) {
+    h.push({ clase: 'analisis', titulo: 'No hay medición de consumo',
+             prueba: 'sin corte de facturación: no se sabe cuánto de su plan usa' })
+  }
+  if (!e.tieneAuditoria) {
+    h.push({ clase: 'analisis', titulo: 'La cuenta no tiene auditoría',
+             prueba: 'nadie ha escrito el análisis de esta cuenta' })
+  }
+  if (e.diasSinContacto === null) {
+    h.push({ clase: 'analisis', titulo: 'No hay un solo contacto registrado',
+             prueba: 'ni llamada, ni correo, ni WhatsApp, ni reunión en el historial' })
+  }
+  if (e.tickets === null || e.tickets === 0) {
+    h.push({ clase: 'analisis', titulo: 'No pasa por la mesa de ayuda',
+             prueba: 'cero tickets en el histórico: o no tiene incidencias, o se '
+                   + 'atienden por fuera y no se ven' })
+  }
+
+  return h
+}
+
+/**
+ * El veredicto. Gana la PRIMERA situación que aplica — no se suman puntos.
+ *
+ * El orden es el de la urgencia real, y está pensado para que el asesor abra la
+ * lista y lea de arriba abajo sin tener que decidir él qué es más grave.
+ */
+export function veredictoDe(e: EstadoCuenta): Veredicto {
+  const hallazgos = hallazgosDe(e)
+  const pruebas = (cls: ClaseHallazgo) => hallazgos.filter(x => x.clase === cls)
+
+  const salida = e.alertas.filter(a => SALIDA.has(a.tipo))
+  const silencio = e.diasSinContacto
+  const consumoCero = e.consumoPct !== null && e.consumoPct <= 0
+  const consumoBajo = e.consumoPct !== null && e.consumoPct < UMBRAL_CONSUMO_BAJO
+
+  /* ── 1. SE VA ─────────────────────────────────────────────────────────── */
+  if (salida.length) {
+    return {
+      situacion: 'se_va', luz: 'rojo', dueno: 'asesor',
+      accion: 'Llamar esta semana y confirmar qué está pasando',
+      porque: `Hay señal de salida escrita: «${salida[0].evidencia}». `
+            + `Son ${dinero(e.mrr)}.`,
+      hallazgos, pedir: null,
+    }
+  }
+  if (consumoCero && silencio !== null && silencio >= UMBRAL_SILENCIO) {
+    return {
+      situacion: 'se_va', luz: 'rojo', dueno: 'asesor',
+      accion: 'Llamar esta semana: dejó de usar el servicio y nadie ha hablado con ella',
+      porque: `Consumo en cero y ${silencio} días sin un contacto real. `
+            + `Son ${dinero(e.mrr)}. Las dos cosas juntas son la firma de una baja `
+            + `que todavía no se ha dicho en voz alta.`,
+      hallazgos, pedir: null,
+    }
+  }
+
+  /* ── 2. APAGÁNDOSE ────────────────────────────────────────────────────── */
+  if (consumoCero || (consumoBajo && silencio !== null && silencio >= UMBRAL_SILENCIO)) {
+    return {
+      situacion: 'apagandose', luz: 'naranja', dueno: 'asesor',
+      accion: 'Revisar con el cliente por qué bajó el uso, y qué le falta para volver',
+      porque: consumoCero
+        ? `No registra consumo en su último corte` + (silencio !== null ? ` y lleva ${silencio} días sin contacto.` : '.')
+        : `Consume el ${e.consumoPct!.toFixed(0)}% de su plan y lleva ${silencio} días sin contacto.`,
+      hallazgos, pedir: null,
+    }
+  }
+  if (silencio !== null && silencio >= UMBRAL_SILENCIO_GRAVE) {
+    return {
+      situacion: 'apagandose', luz: 'naranja', dueno: 'asesor',
+      accion: 'Retomar el contacto: lleva más de tres meses sin que hablemos con ella',
+      porque: `${silencio} días sin una llamada, correo, WhatsApp ni reunión. `
+            + `Son ${dinero(e.mrr)}.`,
+      hallazgos, pedir: null,
+    }
+  }
+
+  /* ── 3. NO LA VEMOS ───────────────────────────────────────────────────── */
+  /* UNA petición, no una por campo. Es la corrección que pidió dirección: el
+     asesor hace una gestión —pedir el archivo— y se destraban varias cosas a la
+     vez. Nueve tareas para la misma cuenta el mismo lunes no es rigor, es ruido. */
+  if (!e.tieneLlamadas || e.consumoPct === null) {
+    const falta: string[] = []
+    if (!e.tieneLlamadas) falta.push('sus llamadas')
+    if (e.consumoPct === null) falta.push('su consumo')
+    return {
+      situacion: 'no_la_vemos', luz: 'amarillo', dueno: 'asesor',
+      accion: 'Pedir el Excel de llamadas entrantes y salientes de los últimos 3 a 6 meses',
+      porque: `No se puede opinar de esta cuenta: falta ${falta.join(' y ')}. `
+            + `Son ${dinero(e.mrr)} sin medición.`,
+      hallazgos,
+      pedir: 'El export por cuenta y periodo, CON la columna `destination_data_1` '
+           + '— sin ella se pierde a dónde entraron las llamadas, que es lo más útil.',
+    }
+  }
+
+  /* ── 4. SIN AUDITAR ───────────────────────────────────────────────────── */
+  if (!e.tieneAuditoria) {
+    return {
+      situacion: 'sin_auditar', luz: 'amarillo', dueno: 'asesor',
+      accion: 'Escribir la auditoría de la cuenta con lo que ya se sabe de ella',
+      porque: `Hay datos suficientes —llamadas, consumo y contacto— y nadie ha `
+            + `escrito el análisis. Dirección pidió que TODAS las cuentas lo tengan.`,
+      hallazgos, pedir: null,
+    }
+  }
+
+  /* ── 5. HAY QUE MOSTRARLE ─────────────────────────────────────────────── */
+  const entregables = pruebas('entrega')
+  if (entregables.length >= 2) {
+    return {
+      situacion: 'hay_que_mostrarle', luz: 'azul', dueno: 'asesor',
+      accion: 'Presentarle los hallazgos de su operación en la próxima reunión',
+      porque: `Hay ${entregables.length} cosas de su propia operación que el `
+            + `cliente no ve en su día a día: ${entregables.map(x => x.titulo.toLowerCase()).join(', ')}.`,
+      hallazgos, pedir: null,
+    }
+  }
+
+  /* ── 6. OPORTUNIDAD ───────────────────────────────────────────────────── */
+  if (e.candidatura) {
+    return {
+      situacion: 'oportunidad', luz: 'verde', dueno: 'asesor',
+      accion: `Proponer ${e.candidatura}`,
+      porque: `La cuenta está en orden y tiene espacio para crecer. `
+            + `Son ${dinero(e.mrr)} hoy.`,
+      hallazgos, pedir: null,
+    }
+  }
+
+  /* ── 7. EN ORDEN ──────────────────────────────────────────────────────── */
+  return {
+    situacion: 'en_orden', luz: 'verde', dueno: 'asesor',
+    accion: 'Nada esta semana',
+    porque: 'Consume, se le ha contactado y no hay señal de riesgo. '
+          + 'Una cuenta en orden no necesita una tarea inventada.',
+    hallazgos, pedir: null,
+  }
+}
+
+/** Cómo se llama cada situación en pantalla, y de qué color. */
+export const SITUACION: Record<Situacion, { titulo: string; luz: Luz; orden: number }> = {
+  se_va:            { titulo: 'Se está yendo',        luz: 'rojo',     orden: 1 },
+  apagandose:       { titulo: 'Se está apagando',     luz: 'naranja',  orden: 2 },
+  no_la_vemos:      { titulo: 'No la vemos',          luz: 'amarillo', orden: 3 },
+  sin_auditar:      { titulo: 'Falta su auditoría',   luz: 'amarillo', orden: 4 },
+  hay_que_mostrarle:{ titulo: 'Hay qué mostrarle',    luz: 'azul',     orden: 5 },
+  oportunidad:      { titulo: 'Oportunidad',          luz: 'verde',    orden: 6 },
+  en_orden:         { titulo: 'En orden',             luz: 'verde',    orden: 7 },
+}
+
+export const LUZ: Record<Luz, { label: string; color: string }> = {
+  rojo:     { label: 'Se está yendo',    color: '#EF4444' },
+  naranja:  { label: 'Se está apagando', color: '#F97316' },
+  amarillo: { label: 'Nos falta ver',    color: '#EAB308' },
+  azul:     { label: 'Hay qué mostrarle',color: '#3B82F6' },
+  verde:    { label: 'En orden',         color: '#22C55E' },
+  gris:     { label: 'Sin servicio',     color: '#64748B' },
+}
