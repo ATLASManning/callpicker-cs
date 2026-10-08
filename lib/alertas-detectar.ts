@@ -125,10 +125,19 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
        sin ellos la alerta `asignada_sin_cerrar` le cobraba al asesor ACTUAL de
        la cuenta un trabajo que pudo haber recibido otra persona hace meses, sin
        ventana de tiempo y con severidad crítica. */
+    /* `tipo`, las dos fechas, `resultado` y `descripcion` entran el 7 oct 2026,
+       y tampoco son adorno: sin ellos este detector no podía ver que una
+       actividad de tipo `llamada` CERRADA es un contacto real, y acusaba de
+       «nunca contactada» a quince cuentas a las que sí se llamó. Ver el detalle
+       en `lib/contacto-cuenta.ts`. */
     traerPorPaginas<{ cuenta_id: string; completada: boolean | null; estado: string | null
-                      asesor: string | null; semana_inicio: string | null }>((d, h) =>
+                      asesor: string | null; semana_inicio: string | null
+                      tipo: string | null; completada_en: string | null
+                      fecha_programada: string | null; resultado: string | null
+                      descripcion: string | null }>((d, h) =>
       supabaseAdmin.from('actividades')
-        .select('cuenta_id, completada, estado, asesor, semana_inicio')
+        .select('cuenta_id, completada, estado, asesor, semana_inicio, tipo, '
+              + 'completada_en, fecha_programada, resultado, descripcion')
         .in('cuenta_id', ids).range(d, h)),
     todosLosCortes(),
   ])
@@ -214,6 +223,31 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
     let n = 0
     for (let i = arr.length - 1; i >= 0 && !llegoAlCliente(arr[i]); i--) n++
     rachaFallida.set(id, n)
+  }
+
+  /* ── LAS ACTIVIDADES SAC CERRADAS TAMBIÉN SON CONTACTO ───────────────────
+   *
+   * Los dos relojes de arriba se arman SÓLO con `seguimientos`, y eso costó
+   * caro: 100 de las 192 cuentas vivas no tienen ni un seguimiento de canal
+   * real, y QUINCE de ellas tienen una actividad SAC cerrada de llamada —
+   * ODONTOPREV, LOGYMEX, Medicall Expert, KW-Pedregal, JAZAK TRUCKS, REJAMEX,
+   * ESDIE, CH Desarrollos y siete más, $47,322. El tablero les decía a las
+   * asesoras que habían abandonado cuentas a las que sí llamaron.
+   *
+   * Pasa por el MISMO `llegoAlCliente`: una llamada cerrada con resultado «no
+   * contestó» tampoco llegó, venga de donde venga. Y se descartan las que no
+   * están cerradas: una actividad programada y no hecha es una intención.
+   *
+   * La fecha sale de `fecha_programada` porque `completada_en` está vacío en
+   * las 87 cerradas de canal — es la semana en que tocaba, no el día exacto, y
+   * para un reloj que cuenta en decenas de días no cambia ninguna decisión. */
+  for (const a of actRows) {
+    if (!a.cuenta_id || !a.completada) continue
+    if (!llegoAlCliente(a)) continue
+    const f = String(a.completada_en ?? a.fecha_programada ?? '').slice(0, 10)
+    if (!f) continue
+    if (f > (ultimoSeg.get(a.cuenta_id) ?? '')) ultimoSeg.set(a.cuenta_id, f)
+    if (f > (ultimoEfectivo.get(a.cuenta_id) ?? '')) ultimoEfectivo.set(a.cuenta_id, f)
   }
   /* Se cuentan, no solo se marcan: la evidencia de `asignada_sin_cerrar` tiene
      que poder decir CUÁNTAS se asignaron. «Se le asignó trabajo y no se cerró»
