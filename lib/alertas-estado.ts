@@ -4,31 +4,45 @@ import { mapaFacturacion, importeDeCuenta } from '@/lib/facturacion-cuenta'
 import { ultimoContactoEfectivoPorCuenta, diasSinContacto } from '@/lib/contacto-cuenta'
 import { todosLosCortes } from '@/lib/cortes-cuenta'
 import { resumenLlamadas } from '@/lib/llamadas-resumen'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+import { relacionamientoDeCuentas } from '@/lib/relacionamiento'
 import { veredictoDe, type EstadoCuenta, type Veredicto } from '@/lib/alertas-veredicto'
 import type { Alerta } from '@/lib/alertas'
 
 /**
- * lib/alertas-estado.ts — REÚNE LO QUE SE SABE DE LAS 192 Y PIDE SU VEREDICTO
+ * lib/alertas-estado.ts — TODO LO QUE SE SABE DE UNA CUENTA, EN UN SOLO SITIO
  *
- * El cambio de alcance que pidió dirección el 7 oct 2026: ALERTAS deja de ser
- * «las cuentas que dispararon una alerta» y pasa a ser **todas las cuentas**,
- * cada una con su lectura. Una cuenta sin una sola alerta también tiene un
- * veredicto — «en orden», o «no la vemos» si lo que falta son los datos — y eso
- * es justamente lo que hoy no se puede contestar: hoy una cuenta tranquila y una
- * cuenta invisible se ven igual, porque las dos están ausentes de la lista.
+ * ALERTAS deja de ser «las cuentas que dispararon algo» y pasa a ser el objetivo
+ * de trabajo de SAC: el asesor abre Alertas de Cliente y eso ES su semana.
+ * Instrucción de dirección, 7 oct 2026 — «debemos ser más eficientes con la
+ * herramienta, la cual debe estar como objetivo de trabajo para SAC».
  *
- * NO REPRODUCE NINGUNA REGLA. Todo se lee de donde ya vive:
- *   MRR       → `facturacion-cuenta`   (GRC por CID, la fuente única)
- *   contacto  → `contacto-cuenta`      (sólo canales reales)
- *   consumo   → `cortes-cuenta`        (el `pct` ya viene recalculado)
- *   alertas   → `alertas-detectar`     (los 18 tipos)
- *   auditoría → `app/auditoria/cases`  (los casos escritos a mano)
+ * Y la regla que gobierna el alcance, también suya: «en la medida que más
+ * información tengas mayor es tu predicción; lo que haga falta deberás
+ * solicitarlo al asesor o marcarlo en el apartado».
+ *
+ * ── LAS OCHO FUENTES ───────────────────────────────────────────────────────
+ *
+ *   facturación   `facturacion-cuenta`    MRR oficial, GRC por CID
+ *   consumo       `cortes-cuenta`         minutos y % del plan, ya recalculado
+ *   llamadas      `llamadas-resumen`      entrantes, perdidas, atendidas
+ *   tickets       `tickets-cuenta`        total, fallas, último — sólo cerrados
+ *   relación      `relacionamiento`       reuniones, contactos, actividades SAC
+ *                                         y si la cuenta tiene auditoría
+ *   contacto      `contacto-cuenta`       días desde que se habló, canal real
+ *   riesgos       `alertas-detectar`      los 18 tipos
+ *   ficha         `cuentas`               plan, giro, observaciones, NPS
+ *
+ * NINGUNA se reproduce: se leen de donde ya viven. Dos cifras de la misma cosa
+ * es lo que dirección prohibió, y aquí habría ocho oportunidades de romperlo.
+ *
+ * Lo que una cuenta NO tiene se marca y se pide. Un dato ausente no es un cero:
+ * es una petición con dueño. Ver [[feedback-cero-sin-medicion]].
  */
 
 /** Cuántos CIDs tiene que traer el panel de cortes para creerle.
  *  Hay 146 cuentas vivas con corte; un mapa de un puñado significa que el .xlsx
- *  no viajó con esta lambda, no que nadie consuma. Ver el mismo guardia en
- *  `lib/prediccion/snapshot.ts`. */
+ *  no viajó con esta lambda, no que nadie consuma. */
 const CORTES_MINIMOS = 70
 
 export interface CuentaConVeredicto {
@@ -39,24 +53,32 @@ export interface CuentaConVeredicto {
   mrr: number | null
   esTop: boolean
   veredicto: Veredicto
+  /** Lo medido, para que la ficha no vuelva a calcularlo ni a pedirlo. */
+  datos: {
+    consumoPct: number | null
+    diasSinContacto: number | null
+    entrantes: number | null
+    perdidas: number | null
+    pctPerdidas: number | null
+    tickets: number | null
+    fallas: number | null
+    ultimoTicket: string | null
+    reuniones: number
+    contactos: number
+    actividadesCerradas: number
+    relacionPct: number
+    relacionNivel: string
+    tieneAuditoria: boolean
+    plan: string | null
+    /** Cuántas de las ocho fuentes tienen dato para esta cuenta. Es la
+     *  confianza de la predicción, dicha en números y no en adjetivos. */
+    fuentes: number
+  }
 }
 
 export interface MapaVeredictos {
   cuentas: CuentaConVeredicto[]
-  /** Por qué no se pudo leer algo, cuando no se pudo. Una fuente caída que se
-   *  calla se convierte en 192 cuentas «no la vemos», que leído de fuera parece
-   *  un hallazgo y es un fallo. */
   falla: string | null
-}
-
-/** Normaliza un nombre para cruzar los casos de auditoría contra la cartera.
- *  Los casos son archivos escritos a mano y su `nombre` no siempre coincide
- *  letra por letra con `cuentas.empresa`. */
-function norma(s: string): string {
-  return s.toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .trim()
 }
 
 export async function veredictosDeCartera(
@@ -65,7 +87,8 @@ export async function veredictosDeCartera(
   const fallos: string[] = []
 
   let q = supabaseAdmin.from('cuentas')
-    .select('id, cid, empresa, asesor, estado, facturacion')
+    .select('id, cid, empresa, asesor, estado, facturacion, consecutivo, giro, '
+          + 'nps_score, observaciones_kam, notas, contactos_json, ultimo_contacto')
     .in('estado', ['activo', 'en_riesgo'])
   if (filtro?.asesor) q = q.eq('asesor', filtro.asesor)
   const { data: cuentas, error } = await q
@@ -74,37 +97,32 @@ export async function veredictosDeCartera(
     return { cuentas: [], falla: `No se pudieron leer las cuentas: ${error?.message ?? 'sin filas'}` }
   }
 
-  const [mapa, efectivo, cortes, alertas, casos] = await Promise.all([
+  const [mapa, efectivo, cortes, alertas, relacion] = await Promise.all([
     mapaFacturacion(),
     ultimoContactoEfectivoPorCuenta(),
     todosLosCortes(),
     detectarAlertas(filtro?.asesor ? { asesor: filtro.asesor } : undefined),
-    /* `STATIC_CASES`, que es como se llama el índice de los 34 casos escritos a
-       mano. El `catch` NO se traga el motivo: si el módulo no carga se declara
-       abajo, porque «ninguna cuenta tiene auditoría» y «no pude leer el índice»
-       se ven igual en pantalla y mandan a arreglar cosas distintas. */
-    import('@/app/auditoria/cases')
-      .then(m => m.STATIC_CASES ?? [])
-      .catch((err: unknown) => {
-        fallos.push(`auditoría: no se pudo leer el índice de casos — `
-                  + `${err instanceof Error ? err.message : String(err)}`)
-        return []
-      }),
+    /* Trae en UNA pasada reuniones, contactos, actividades SAC cerradas y si la
+       cuenta tiene auditoría. Lo último por `consecutivo`, que es más fiable que
+       cruzar el nombre de la empresa contra el título de un documento — es lo
+       que yo hacía y mezclaba cuentas parecidas. */
+    relacionamientoDeCuentas(cuentas.map(c => ({
+      cuentaId: String(c.id),
+      consecutivo: c.consecutivo ?? null,
+      ultimoContacto: c.ultimo_contacto ?? null,
+      contactosJson: c.contactos_json ?? null,
+      observacionesKam: c.observaciones_kam ?? null,
+      notas: c.notas ?? null,
+    }))),
   ])
   if (mapa.falla) fallos.push(`facturación: ${mapa.falla}`)
 
   const cortesFiables = cortes.size >= CORTES_MINIMOS
   if (!cortesFiables) {
     fallos.push(`cortes: la fuente devolvió ${cortes.size} CID(s), menos de los `
-              + `${CORTES_MINIMOS} mínimos. El consumo sale como no medido, que `
-              + `es la verdad, pero el motivo es la fuente y no las cuentas.`)
+              + `${CORTES_MINIMOS} mínimos. El consumo sale como no medido, que es `
+              + `la verdad, pero el motivo es la fuente y no las cuentas.`)
   }
-
-  /* Los casos de auditoría se cruzan por nombre normalizado. Es lo único que
-     hay: son archivos .ts escritos a mano desde un documento y no llevan el id
-     ni el CID de la cuenta. */
-  const auditadas = new Set(
-    (casos as Array<{ nombre?: string }>).map(c => norma(String(c?.nombre ?? ''))).filter(Boolean))
 
   const porCuenta = new Map<string, Alerta[]>()
   for (const a of alertas) {
@@ -126,34 +144,69 @@ export async function veredictosDeCartera(
       ? (ultimo.pct ?? null) : null
 
     const llam = await resumenLlamadas(cid)
+    const tk = ticketStatsCuenta(cid, String(c.empresa ?? ''))
+    const rel = relacion.get(id)
+
+    /* Cuántas de las ocho fuentes hablan de esta cuenta. Es la confianza de la
+       predicción dicha en números: con tres fuentes se opina distinto que con
+       ocho, y el asesor tiene derecho a saber sobre qué se le está pidiendo
+       actuar. */
+    const fuentes = [
+      mrr !== null,
+      consumoPct !== null,
+      !!llam,
+      tk.total > 0,
+      (rel?.conteos.reuniones ?? 0) > 0,
+      diasSinContacto(efectivo.get(id) ?? null) !== null,
+      !!rel?.conteos.tieneAuditoria,
+      !!(c.observaciones_kam && String(c.observaciones_kam).trim() !== ''),
+    ].filter(Boolean).length
 
     const e: EstadoCuenta = {
       cuentaId: id,
       empresa: String(c.empresa ?? ''),
       asesor: c.asesor ?? null,
       mrr,
-      esTop: false,          // lo marca el detector; aquí no se recalcula
+      esTop: false,
       alertas: porCuenta.get(id) ?? [],
       consumoPct,
       diasSinContacto: diasSinContacto(efectivo.get(id) ?? null),
       tieneLlamadas: !!llam,
       perdidas: llam ? llam.sinContestar : null,
       pctPerdidas: llam ? llam.pctSinContestar : null,
-      tieneAuditoria: auditadas.has(norma(String(c.empresa ?? ''))),
-      candidatura: null,     // se enchufa cuando se exponga el veredicto de crecimiento
+      tieneAuditoria: !!rel?.conteos.tieneAuditoria,
+      candidatura: null,
       productosSinUso: null,
-      tickets: null,
+      /* `null` cuando la cuenta no aparece en la mesa — que NO es cero tickets.
+         Grupo Petroil ya enseñó la diferencia: su F32 tiene cero porque no pasa
+         por la mesa, no porque esté sin incidencias. */
+      tickets: tk.comoCruzo === 'ninguno' ? null : tk.total,
+      reuniones: rel?.conteos.reuniones ?? 0,
+      fallas: tk.fallas,
+      relacionPct: rel?.pct ?? 0,
+      fuentes,
     }
 
     salida.push({
       cuentaId: id, cid, empresa: e.empresa, asesor: e.asesor,
       mrr, esTop: e.esTop, veredicto: veredictoDe(e),
+      datos: {
+        consumoPct, diasSinContacto: e.diasSinContacto,
+        entrantes: llam ? llam.entrantes : null,
+        perdidas: e.perdidas, pctPerdidas: e.pctPerdidas,
+        tickets: e.tickets, fallas: tk.fallas, ultimoTicket: tk.ultima,
+        reuniones: rel?.conteos.reuniones ?? 0,
+        contactos: rel?.conteos.contactos ?? 0,
+        actividadesCerradas: rel?.conteos.actividadesCompletadas ?? 0,
+        relacionPct: rel?.pct ?? 0,
+        relacionNivel: rel?.nivel ?? 'Sin relación registrada',
+        tieneAuditoria: e.tieneAuditoria,
+        plan: ultimo?.plan ?? null,
+        fuentes,
+      },
     })
   }
 
-  /* Orden: por urgencia de la situación y, dentro de ella, por dinero. Las de
-     importe desconocido NO van al final como si valieran cero: van justo
-     después de las medidas de su misma situación. */
   const { SITUACION } = await import('@/lib/alertas-veredicto')
   salida.sort((a, b) => {
     const d = SITUACION[a.veredicto.situacion].orden - SITUACION[b.veredicto.situacion].orden

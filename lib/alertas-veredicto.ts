@@ -109,6 +109,17 @@ export interface EstadoCuenta {
   productosSinUso: number | null
   /** Tickets cerrados en el histórico. `null` = la cuenta no pasa por la mesa. */
   tickets: number | null
+  /** Fallas registradas por la mesa. Una falla es distinta de una consulta. */
+  fallas: number
+  /** Reuniones con el cliente. Cero no es lo mismo que nunca haberlo visto:
+   *  es que no se registró ninguna. */
+  reuniones: number
+  /** Qué tan construida está la relación, 0-100, de `lib/relacionamiento.ts`. */
+  relacionPct: number
+  /** De cuántas de las ocho fuentes hay dato. Es la confianza de la predicción
+   *  dicha en números, y entra en el veredicto: con dos fuentes no se acusa a
+   *  nadie de nada, se pide el resto. */
+  fuentes: number
 }
 
 /* Los tipos de alerta que significan SALIDA, no deterioro. Se separan a
@@ -189,6 +200,38 @@ export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
              prueba: 'cero tickets en el histórico: o no tiene incidencias, o se '
                    + 'atienden por fuera y no se ven' })
   }
+  if (e.reuniones === 0) {
+    h.push({ clase: 'analisis', titulo: 'Nunca se ha registrado una reunión',
+             prueba: 'no hay junta con el cliente en el historial' })
+  }
+
+  /* ── RIESGO que no viene del catálogo de alertas ──────────────────────── */
+  if (e.fallas > 0) {
+    h.push({
+      clase: 'riesgo',
+      titulo: 'Ha reportado fallas del servicio',
+      prueba: `${e.fallas} ${e.fallas === 1 ? 'falla registrada' : 'fallas registradas'} `
+            + `en la mesa de ayuda`,
+    })
+  }
+  if (e.relacionPct < 30 && e.fuentes >= 3) {
+    h.push({
+      clase: 'riesgo',
+      titulo: 'La relación está sin construir',
+      prueba: `${e.relacionPct}% de relacionamiento: pocos contactos, pocas `
+            + `reuniones y poco rastro de trabajo sobre la cuenta`,
+    })
+  }
+
+  /* ── ENTREGA que sale de la mesa ──────────────────────────────────────── */
+  if (e.tickets !== null && e.tickets > 0) {
+    h.push({
+      clase: 'entrega',
+      titulo: 'Lo que le hemos resuelto',
+      prueba: `${e.tickets} ${e.tickets === 1 ? 'ticket atendido' : 'tickets atendidos'}`
+            + (e.fallas > 0 ? `, ${e.fallas} de ellos por falla` : ''),
+    })
+  }
 
   return h
 }
@@ -247,6 +290,37 @@ export function veredictoDe(e: EstadoCuenta): Veredicto {
       porque: `${silencio} días sin una llamada, correo, WhatsApp ni reunión. `
             + `Son ${dinero(e.mrr)}.`,
       hallazgos, pedir: null,
+    }
+  }
+
+  /* ── 2bis. CON POCAS FUENTES NO SE ACUSA: SE PIDE ──────────────────────
+   *
+   * «En la medida que más información tengas mayor es tu predicción» —
+   * dirección, 7 oct 2026. El corolario es el que importa y es el que faltaba:
+   * con POCA información la predicción vale menos, y afirmarla igual es
+   * inventar.
+   *
+   * Las dos situaciones de arriba —se va, apagándose— se sostienen en hechos
+   * duros: una frase escrita por el asesor, un consumo en cero. Ésas se
+   * declaran con las fuentes que haya, porque el hecho ya está.
+   *
+   * De aquí para abajo el veredicto es un JUICIO, y un juicio con dos fuentes
+   * de ocho no es un juicio: es una corazonada con tipografía de tablero. Una
+   * cuenta así no se clasifica «en orden» ni «hay que mostrarle» — se pide lo
+   * que falta, que es la única acción honesta.
+   *
+   * Tres de ocho es el piso. Por debajo sólo se sabe que paga. */
+  const MIN_FUENTES = 3
+  if (e.fuentes < MIN_FUENTES) {
+    return {
+      situacion: 'no_la_vemos', luz: 'amarillo', dueno: 'asesor',
+      accion: 'Pedir el Excel de llamadas y completar la ficha: hoy no alcanza para opinar',
+      porque: `Sólo ${e.fuentes} de ocho fuentes tienen dato de esta cuenta. `
+            + `Con eso no se puede decir si está bien o mal, y decirlo igual `
+            + `sería inventar. Son ${dinero(e.mrr)}.`,
+      hallazgos,
+      pedir: 'El export de llamadas de 3 a 6 meses CON la columna '
+           + '`destination_data_1`, y los datos de ficha que estén vacíos.',
     }
   }
 
