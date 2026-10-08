@@ -1015,7 +1015,7 @@ export default async function DashboardPage() {
   // Una cuenta entra a la alerta si le falta al menos un dato relevante para
   // operarla, o si lleva más de 30 días sin un seguimiento registrado.
   const alertasCriticas = cuentas.map(c => {
-    const faltantes = computeFaltantes(c)
+    const faltantes = faltantesDeFicha(c)
     const diasSinContacto = diasSinContactoDe(c)
 
     return {
@@ -1068,7 +1068,7 @@ export default async function DashboardPage() {
       ticketsFallas: tk.fallas,
       upsellValor: c.valor_upsell_estimado ?? 0,
       adopcionPct,
-      faltantesCount: computeFaltantes(c).length,
+      faltantesCount: faltantesDeFicha(c).length,
     }
   })
 
