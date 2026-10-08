@@ -1,7 +1,7 @@
 import { getCuentas, getSemaforoByAsesor } from '@/lib/supabase'
 import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { enrichCuentasWithZoho } from '@/lib/zoho-enrich'
-import { esCuentaSinServicio, type Asesor } from '@/lib/types'
+import { esCuentaSinServicio, ASESOR_CONFIG, type Asesor } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import AsesorCard from '@/components/AsesorCard'
 import AutoRefresh from '@/components/AutoRefresh'
@@ -9,9 +9,10 @@ import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { construirResolutor } from '@/lib/grc-asesor-alias'
 import { churnPorAsesor, deAsesor, PERIODO_GRC } from '@/lib/churn-por-asesor'
 import { auditoriasPorAsesor, auditoriasDe } from '@/lib/auditorias-por-asesor'
-import { veredictosDeCartera } from '@/lib/alertas-estado'
+import { veredictosDeCartera, type MapaVeredictos } from '@/lib/alertas-estado'
 import { SITUACION, LUZ } from '@/lib/alertas-veredicto'
-import type { AlertasAsesor } from '@/components/AsesorCard'
+import ColaDeTrabajoAsesor, { ColaCargando, type AlertasAsesor } from '@/components/ColaDeTrabajoAsesor'
+import { Suspense } from 'react'
 import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -71,12 +72,19 @@ export default async function AsesoresPage() {
    *
    * NO puede tumbar la página: si falla, cada tarjeta publica el motivo en
    * lugar de un cero, que se leería como «no tienes nada que hacer».
+   *
+   * Y NO SE ESPERA AQUÍ. La promesa se crea y se pasa sin `await`: el motor
+   * tarda entre 1.6 y 2.7 segundos —medido, y filtrar por asesora casi no lo
+   * baja porque lo que pesa son las lecturas globales, no las cuentas—, así
+   * que aguardarlo antes de pintar subía `/asesores` de 1.8 a 4.5 segundos.
+   * En la pantalla con la que empiezan el día. Cada tarjeta envuelve su cola
+   * en `<Suspense>` y se transmite cuando esté.
    */
-  const veredictos = await veredictosDeCartera(isAsesor ? { asesor: asesorHeader } : undefined)
+  const veredictos = veredictosDeCartera(isAsesor ? { asesor: asesorHeader } : undefined)
     .catch(e => ({ cuentas: [], falla: (e as Error).message ?? 'error desconocido' }))
 
-  const alertasDe = (quien: string): AlertasAsesor => {
-    const suyas = veredictos.cuentas.filter(c => c.asesor === quien)
+  const alertasDe = (v: MapaVeredictos, quien: string): AlertasAsesor => {
+    const suyas = v.cuentas.filter(c => c.asesor === quien)
     const porSit = new Map<string, { n: number; mrr: number }>()
     for (const c of suyas) {
       const k = c.veredicto.situacion
@@ -111,8 +119,22 @@ export default async function AsesoresPage() {
         color:    LUZ[c.veredicto.luz].color,
         accion:   c.veredicto.accion,
       })),
-      falla: veredictos.falla,
+      falla: v.falla,
     }
+  }
+
+  /* El componente que espera. Es `async`, así que React lo suspende y suelta
+     el resto de la página mientras tanto. Las tres tarjetas aguardan la MISMA
+     promesa, así que el motor corre una vez y no tres. */
+  async function Cola({ quien }: { quien: Asesor }) {
+    const v = await veredictos
+    return (
+      <ColaDeTrabajoAsesor
+        asesor={quien}
+        alertas={alertasDe(v, quien)}
+        acento={ASESOR_CONFIG[quien]?.color ?? '#3B82F6'}
+      />
+    )
   }
 
   return (
@@ -189,7 +211,11 @@ export default async function AsesoresPage() {
               churn={deAsesor(churn, asesor)}
               periodoChurn={PERIODO_GRC}
               auditorias={auditoriasDe(auditorias, asesor)}
-              alertas={alertasDe(asesor)}
+              colaDeTrabajo={
+                <Suspense fallback={<ColaCargando />}>
+                  <Cola quien={asesor} />
+                </Suspense>
+              }
               defaultOpen={idx === 0}   // Primer asesor abierto por defecto
             />
           )
