@@ -407,20 +407,13 @@ export async function tomarSnapshot(
 
   const todas = tareasDeHuecos(huecosPorCuenta, ciegaCartera)
 
-  /* Se recorta POR ASESOR, no en total: si se recortara en total, el asesor con
-     las cuentas mas grandes se llevaria las diez y los otros dos ninguna. */
-  const cupo = new Map<string, number>()
-  const aAbrir = todas.filter(t => {
-    if (t.alcance === 'cartera') return true          // una sola, siempre entra
-    const a = String(t.asesor ?? '(sin asesor)')
-    const n = cupo.get(a) ?? 0
-    if (n >= TAREAS_POR_ASESOR) return false
-    cupo.set(a, n + 1)
-    return true
-  })
-
-  /* ── SE LEE LO ABIERTO Y SE INSERTA LO QUE FALTA, SIN `UPSERT` ───────────
+  /* ── LO QUE YA ESTA ABIERTO, QUE HACE FALTA PARA DOS COSAS ──────────────
    *
+   * Se lee ANTES de decidir que abrir, porque el cupo depende de ello. Trae el
+   * `asesor` a proposito: sin esa columna no se puede saber de quien es una
+   * tarea vieja cuyo hueco ya no se detecta, y esas tambien ocupan cupo.
+   *
+   * ── SE LEE Y SE INSERTA, SIN `UPSERT` ──
    * La primera version usaba `upsert` con `onConflict: 'clave,cuenta_id'` y
    * produccion lo rechazo en su primera corrida:
    *
@@ -437,18 +430,49 @@ export async function tomarSnapshot(
    * Un indice total sobre (clave, cuenta_id) prohibiria para siempre una segunda
    * tarea de lo mismo en la misma cuenta, y entonces un hueco que reaparece —el
    * cliente cambia de contacto y vuelve a faltar el correo— no podria volver a
-   * pedirse.
-   *
-   * Lo que sobraba era el upsert. Se lee lo que ya esta abierto y se inserta solo
-   * lo que falta, que ademas es mas claro: una tarea que lleva tres semanas sin
-   * hacerse conserva su `creada_en`, y eso es justo lo que dice cuanto lleva
-   * pendiente. */
+   * pedirse. */
   const yaAbiertas = await supabaseAdmin.schema('prediccion').from('tareas_hueco')
-    .select('id, clave, cuenta_id').eq('estado', 'abierta')
+    .select('id, clave, cuenta_id, asesor').eq('estado', 'abierta')
   mirar('leer tareas abiertas', yaAbiertas)
   const abiertaYa = new Set(
     (yaAbiertas.data ?? []).map(t => `${t.clave}|${t.cuenta_id ?? ''}`))
 
+  /* ── EL CUPO CUENTA LAS ABIERTAS, NO LAS NUEVAS ────────────────────────
+   *
+   * La primera version limitaba a diez NUEVAS por corrida, y eso no limita nada:
+   * las que no se hacen siguen abiertas y la semana siguiente se les suman diez
+   * mas. Lo vi en las corridas de prueba — Dan y Fatima llegaron a catorce en una
+   * tarde. En cinco semanas serian cincuenta y la lista dejaria de leerse, que es
+   * exactamente lo que el cupo existe para evitar.
+   *
+   * Ahora el tope es de diez ABIERTAS por asesor: si tiene diez pendientes no se
+   * le abre ninguna hasta que cierre alguna. El atraso sigue siendo visible —no
+   * se borra nada— pero deja de crecer, y «no hay nada nuevo hasta que despejes»
+   * es un mensaje mas util que una lista de cincuenta.
+   *
+   * Se recorta POR ASESOR y no en total: si se recortara en total, el de las
+   * cuentas mas grandes se llevaria las diez y los otros dos ninguna. */
+  const cupo = new Map<string, number>()
+  for (const t of (yaAbiertas.data ?? [])) {
+    if (!t.cuenta_id) continue                        // las de cartera no gastan cupo
+    const a = String(t.asesor ?? '(sin asesor)')
+    cupo.set(a, (cupo.get(a) ?? 0) + 1)
+  }
+
+  const aAbrir = todas.filter(t => {
+    if (t.alcance === 'cartera') return true          // una sola, siempre entra
+    /* Las que ya estan abiertas no se cuentan dos veces: ya gastaron su cupo
+       arriba y aqui solo pasan para que se les refresque el importe. */
+    if (abiertaYa.has(`${t.clave}|${t.cuentaId ?? ''}`)) return true
+    const a = String(t.asesor ?? '(sin asesor)')
+    const n = cupo.get(a) ?? 0
+    if (n >= TAREAS_POR_ASESOR) return false
+    cupo.set(a, n + 1)
+    return true
+  })
+
+  /* Lo que falta por abrir. Las ya abiertas conservan su `creada_en`, que es lo
+     que dice cuanto llevan pendientes; mas abajo solo se les refresca el importe. */
   const nuevas = aAbrir.filter(t => !abiertaYa.has(`${t.clave}|${t.cuentaId ?? ''}`))
 
   let tareasAbiertas = 0
