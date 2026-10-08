@@ -18,6 +18,9 @@ import { getSemaforoCuenta, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
 import EstadoCuentaBadge from '@/components/EstadoCuentaBadge'
 import CuentaBloqueoBanner from '@/components/CuentaBloqueoBanner'
+import CuentaVeredicto from '@/components/CuentaVeredicto'
+import { veredictosDeCartera } from '@/lib/alertas-estado'
+import { guionDe } from '@/lib/alertas-guion'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
@@ -95,7 +98,7 @@ export default async function CuentaDetailPage({ params }: Props) {
   const cuentaUUID = cuenta.id
 
   const [seguimientos, oportunidades, tickets, historial, actividades, revisionesAdopcion, enriquecido,
-         reunionesCuenta, relacion, anexosCuenta] = await Promise.all([
+         reunionesCuenta, relacion, anexosCuenta, veredictoRes] = await Promise.all([
     getSeguimientos(cuentaUUID),
     getOportunidades(cuentaUUID),
     getTickets(cuentaUUID),
@@ -117,7 +120,22 @@ export default async function CuentaDetailPage({ params }: Props) {
     }),
     // Documentos anexados a esta cuenta (Word/Excel/PDF en el bucket privado).
     getAnexosDeCuenta(cuentaUUID),
+    /* El VEREDICTO de esta cuenta, acotado a ella: `veredictosDeCartera` pasa
+       el `cuentaId` hasta el detector, así que no calcula las 192 para tirar
+       191. Entra en el `Promise.all` y no después para no sumar su latencia a
+       la de la ficha.
+       `.catch` y no `try`: el motor de alertas NO puede tumbar la ficha. Si
+       falla, el panel no se dibuja y el resto de la pantalla sigue en pie —
+       pero tampoco se dibuja un veredicto inventado. */
+    veredictosDeCartera({ cuentaId: cuentaUUID })
+      .catch(e => { console.warn('[CuentaVeredicto] no se pudo calcular:', e); return null }),
   ])
+
+  /* La fila de esta cuenta dentro del resultado. Viene acotado a una, pero se
+     busca por id en vez de tomar `[0]`: si el filtro cambiara algún día, un
+     índice fijo mostraría el veredicto de OTRA cuenta en esta ficha, que es la
+     peor forma de equivocarse aquí. */
+  const veredictoCuenta = veredictoRes?.cuentas.find(c => c.cuentaId === cuentaUUID) ?? null
 
   // Números (DIDs) que Callpicker le entrega a esta cuenta. Se cruzan SOLO por
   // CID: la columna «CUENTA» del export es la etiqueta de cada número, no la
@@ -327,6 +345,21 @@ export default async function CuentaDetailPage({ params }: Props) {
               Solicita al cliente: <strong>fecha de inicio</strong> · <strong>contacto principal</strong> · <strong>giro de negocio</strong> · <strong>servicios contratados</strong> · <strong>MRR</strong>
             </p>
           </div>
+        </div>
+      )}
+
+      {/* ══ El veredicto de esta cuenta — su ALERTA, en su propia ficha ══════
+          Va arriba del todo y antes de los paneles de detalle: es la respuesta
+          a «¿qué le pasa a esta cuenta y qué hago hoy?», que es con lo que el
+          asesor entra. Los paneles de abajo son la evidencia. */}
+      {veredictoCuenta && (
+        <div className="mx-6 mt-4">
+          <CuentaVeredicto
+            veredicto={veredictoCuenta.veredicto}
+            guion={guionDe(veredictoCuenta)}
+            fuentes={veredictoCuenta.datos.fuentes}
+            verTodas={`/alertas${cuenta.asesor ? `?asesor=${encodeURIComponent(cuenta.asesor)}` : ''}`}
+          />
         </div>
       )}
 

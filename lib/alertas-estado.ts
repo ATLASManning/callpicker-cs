@@ -117,7 +117,7 @@ export interface MapaVeredictos {
 }
 
 export async function veredictosDeCartera(
-  filtro?: { asesor?: string },
+  filtro?: { asesor?: string; cuentaId?: string },
 ): Promise<MapaVeredictos> {
   const fallos: string[] = []
 
@@ -139,6 +139,12 @@ export async function veredictosDeCartera(
           + 'contacto_nombre, contacto_tel, contacto_email')
     .in('estado', ['activo', 'en_riesgo'])
   if (filtro?.asesor) q = q.eq('asesor', filtro.asesor)
+  /* El filtro de UNA cuenta, para la ficha. Se pasa también al detector, que
+     es quien de verdad cuesta: sin eso la ficha calcularía las 192 alertas
+     para quedarse con las de una. El filtro de asesor SIGUE aplicándose
+     encima, así que un asesor que teclee el id de una cuenta ajena recibe
+     vacío — la regla de fallar cerrado no se relaja por abrir una ficha. */
+  if (filtro?.cuentaId) q = q.eq('id', filtro.cuentaId)
   const { data: cuentas, error } = await q
 
   if (error || !cuentas) {
@@ -149,7 +155,8 @@ export async function veredictosDeCartera(
     mapaFacturacion(),
     ultimoContactoEfectivoPorCuenta(),
     todosLosCortes(),
-    detectarAlertas(filtro?.asesor ? { asesor: filtro.asesor } : undefined),
+    detectarAlertas(filtro?.asesor || filtro?.cuentaId
+      ? { asesor: filtro.asesor, cuentaId: filtro.cuentaId } : undefined),
     /* Trae en UNA pasada reuniones, contactos, actividades SAC cerradas y si la
        cuenta tiene auditoría. Lo último por `consecutivo`, que es más fiable que
        cruzar el nombre de la empresa contra el título de un documento — es lo

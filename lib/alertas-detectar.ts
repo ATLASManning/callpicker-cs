@@ -96,7 +96,9 @@ const dinero = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
  * misma condición detectada mañana empata con la fila de hoy y la alerta
  * envejece en vez de renacer.
  */
-export async function detectarAlertas(opciones?: { asesor?: string }): Promise<Alerta[]> {
+export async function detectarAlertas(
+  opciones?: { asesor?: string; cuentaId?: string },
+): Promise<Alerta[]> {
   /* `hoyEnMexico()`, NO `hoyLocal()`. Este código corre en el servidor y Vercel
      va en UTC: de 18:00 a 23:59 de México, `hoyLocal()` ya devuelve el día
      siguiente. Cada tarde, durante seis horas, todas las antigüedades salían un
@@ -106,6 +108,12 @@ export async function detectarAlertas(opciones?: { asesor?: string }): Promise<A
 
   let q = supabaseAdmin.from('cuentas').select(CAMPOS).in('estado', ['activo', 'en_riesgo'])
   if (opciones?.asesor) q = q.eq('asesor', opciones.asesor)
+  /* `cuentaId` existe para la FICHA, que necesita el veredicto de UNA cuenta.
+     Se filtra aquí arriba y no al final a propósito: todo lo de abajo —radar,
+     seguimientos, actividades, cortes— se consulta con `in('cuenta_id', ids)`,
+     así que acotar la lista de cuentas acota la corrida entera en vez de
+     calcular las 192 para tirar 191. */
+  if (opciones?.cuentaId) q = q.eq('id', opciones.cuentaId)
   const { data: cuentasRaw, error } = await q
   if (error) throw error
   const cuentas = (cuentasRaw ?? []) as unknown as CuentaAlerta[]

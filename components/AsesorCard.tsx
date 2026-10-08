@@ -7,6 +7,7 @@ import {
   DollarSign, LifeBuoy, Phone, Mail, Hash,
   Search, X, ArrowUpDown,
   Activity, Moon, TrendingDown, ArrowDownRight, Sparkles, UserX, ClipboardList,
+  BellRing,
 } from 'lucide-react'
 import type { ChurnAsesor } from '@/lib/churn-por-asesor'
 import type { AuditoriasAsesor } from '@/lib/auditorias-por-asesor'
@@ -111,6 +112,27 @@ interface SemaforoResumen {
   facturacion_total: number
 }
 
+/**
+ * La cola de trabajo del asesor, ya resumida en el servidor.
+ *
+ * Llega calculada y no se deriva aquí a propósito: el veredicto de una cuenta
+ * lo decide `lib/alertas-veredicto.ts` y rehacerlo en el cliente sería la
+ * segunda definición de lo mismo. Ver [[feedback-fuente-unica-cuentas]].
+ */
+export interface AlertasAsesor {
+  /** Cuentas con veredicto emitido. */
+  total: number
+  /** Lo que piden trabajo: todo menos «en orden». */
+  mrrEnRiesgo: number
+  porSituacion: Array<{ k: string; titulo: string; color: string; n: number; mrr: number }>
+  top: Array<{
+    cuentaId: string; empresa: string; mrr: number | null
+    color: string; accion: string
+  }>
+  /** Motivo por el que NO se pudo medir. Nunca se dibuja un cero en su lugar. */
+  falla: string | null
+}
+
 interface Props {
   asesor:      string
   cuentas:     CuentaRich[]
@@ -129,6 +151,9 @@ interface Props {
   /** Auditorías del asesor y su estatus. Lo calcula la página en el servidor:
    *  los 33 casos pesan ~1 MB y aquí solo llega el resumen. */
   auditorias?: AuditoriasAsesor
+  /** Su cola de trabajo de ALERTAS. `undefined` = la página no la pidió (no
+   *  es lo mismo que «no tiene»: eso sería `total: 0`). */
+  alertas?: AlertasAsesor
   defaultOpen?: boolean
 }
 
@@ -201,7 +226,7 @@ const BTN_ACCION = 'inline-flex items-center justify-center gap-1.5 px-3 py-1.5 
   + 'whitespace-nowrap hover:brightness-110'
 
 export default function AsesorCard({
-  asesor, cuentas, resumen, fueraDeCartera = 0,
+  asesor, cuentas, resumen, fueraDeCartera = 0, alertas,
   churn = SIN_CHURN, periodoChurn = '—', auditorias = SIN_AUDITORIAS,
   defaultOpen = false,
 }: Props) {
@@ -397,7 +422,7 @@ export default function AsesorCard({
           {sinContacto > 0 && (
             <KpiCard icon={<UserX size={14} />} label="Sin contacto"
               value={String(sinContacto)} accent="#F97316"
-              sub="bloquean actividades SAC" />
+              sub="sin con quién hablar" />
           )}
           {auditorias.total > 0 && (
             <KpiCard icon={<ClipboardList size={14} />} label="Auditorías"
@@ -407,6 +432,103 @@ export default function AsesorCard({
                 : 'todas cerradas'} />
           )}
         </div>
+
+        {/* ══ MIS ALERTAS — la cola de trabajo de la semana ═══════════════
+             Pregunta de dirección, 8 oct 2026: «¿y dónde están las ALERTAS
+             para los asesores en sus módulos?». Aquí es donde faltaban. Esta
+             tarjeta es la pantalla de inicio del asesor —`inicio: '/asesores'`
+             en lib/permisos— y desde que se retiró el generador SAC no tenía
+             ni una palabra sobre su trabajo de la semana.
+
+             NO repite el semáforo de salud de arriba: aquel clasifica cuentas
+             por Health Score, esto las reparte por lo que HAY QUE HACER con
+             ellas. Son dos preguntas distintas y por eso conviven. */}
+        {alertas && (
+          <div className="px-6 pb-5">
+            <div className="rounded-xl p-4"
+              style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${NAVY_LINE}` }}>
+
+              {alertas.falla ? (
+                /* Un cero sin medición no es un cero: si el motor falló se dice,
+                   en vez de pintar «0 alertas», que se leería como buenas
+                   noticias. Ver [[feedback-cero-sin-medicion]]. */
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={14} style={{ color: '#D97706', flexShrink: 0, marginTop: 1 }} />
+                  <p className="text-[11.5px]" style={{ color: TX_MID, background: 'transparent' }}>
+                    No se pudieron calcular tus alertas: {alertas.falla}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-widest"
+                        style={{ color: TX_LOW, background: 'transparent' }}>Mis alertas</span>
+                      <span className="text-[11px]" style={{ color: TX_LOW, background: 'transparent' }}>
+                        {alertas.total} cuenta{alertas.total !== 1 ? 's' : ''} con veredicto
+                        {alertas.mrrEnRiesgo > 0 && ` · ${formatMXN(alertas.mrrEnRiesgo)} pidiendo trabajo`}
+                      </span>
+                    </div>
+                    <Link href={`/alertas?asesor=${encodeURIComponent(asesor)}`}
+                      className={BTN_ACCION} style={{ background: ac.color }}>
+                      <BellRing size={12} /> Abrir mi cola de trabajo
+                    </Link>
+                  </div>
+
+                  {/* El reparto. Cada mosaico filtra la pantalla: el número es
+                      el enlace, no un adorno al lado de uno. */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {alertas.porSituacion.map(s => (
+                      <Link key={s.k}
+                        href={`/alertas?asesor=${encodeURIComponent(asesor)}&situacion=${s.k}`}
+                        className="rounded-lg px-3 py-2 transition-all hover:brightness-125"
+                        style={{ background: `${s.color}1A`, border: `1px solid ${s.color}44`, minWidth: 124 }}>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-[17px] font-extrabold leading-none"
+                            style={{ color: s.color, background: 'transparent' }}>{s.n}</span>
+                          <span className="text-[10px]" style={{ color: TX_LOW, background: 'transparent' }}>
+                            {s.mrr > 0 ? formatMXN(s.mrr) : ''}
+                          </span>
+                        </div>
+                        <p className="text-[10.5px] font-semibold mt-0.5"
+                          style={{ color: s.color, background: 'transparent' }}>{s.titulo}</p>
+                      </Link>
+                    ))}
+                  </div>
+
+                  {/* Lo primero de la cola, ya con su acción: que no haya que
+                      abrir otra pantalla para saber por dónde empezar. */}
+                  {alertas.top.length > 0 && (
+                    <div className="space-y-1.5">
+                      {alertas.top.map(t => (
+                        <Link key={t.cuentaId} href={`/cuentas/${t.cuentaId}`}
+                          className="flex items-start gap-2.5 rounded-lg px-3 py-2 transition-colors hover:bg-white/5"
+                          style={{ background: 'rgba(255,255,255,0.03)' }}>
+                          <span style={{ width: 7, height: 7, borderRadius: 999, background: t.color,
+                                         display: 'inline-block', flexShrink: 0, marginTop: 5 }} />
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-semibold truncate"
+                              style={{ color: TX_HI, background: 'transparent' }}>
+                              {t.empresa}
+                              {t.mrr !== null && (
+                                <span className="font-normal ml-1.5"
+                                  style={{ color: TX_LOW, background: 'transparent' }}>
+                                  {formatMXN(t.mrr)}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-[11px] leading-snug"
+                              style={{ color: TX_MID, background: 'transparent' }}>{t.accion}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Auditorías por estatus ─────────────────────────────────────
              El número solo no dice nada: diez auditorías «activo» y diez

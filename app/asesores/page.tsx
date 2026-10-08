@@ -9,6 +9,9 @@ import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { construirResolutor } from '@/lib/grc-asesor-alias'
 import { churnPorAsesor, deAsesor, PERIODO_GRC } from '@/lib/churn-por-asesor'
 import { auditoriasPorAsesor, auditoriasDe } from '@/lib/auditorias-por-asesor'
+import { veredictosDeCartera } from '@/lib/alertas-estado'
+import { SITUACION, LUZ } from '@/lib/alertas-veredicto'
+import type { AlertasAsesor } from '@/components/AsesorCard'
 import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -55,6 +58,62 @@ export default async function AsesoresPage() {
 
   // Enriquecer con Factura Mensual + MRR en vivo de Zoho (misma fuente que Facturación/Cuentas)
   const cuentas = await enrichCuentasWithZoho(cuentasRaw)
+
+  /* ── LA COLA DE TRABAJO DE CADA ASESOR ───────────────────────────────────
+   *
+   * Una sola corrida para las tres tarjetas: `veredictosDeCartera` lee ocho
+   * fuentes y pedirla por asesor la correría tres veces sobre los mismos
+   * archivos. Se agrupa aquí, en el servidor.
+   *
+   * Un asesor sólo pide la suya — el filtro va a la consulta, no al reparto
+   * de abajo: recortar después dejaría pasar la lectura completa de la
+   * cartera ajena por el servidor, que es justo lo que el rol no debe hacer.
+   *
+   * NO puede tumbar la página: si falla, cada tarjeta publica el motivo en
+   * lugar de un cero, que se leería como «no tienes nada que hacer».
+   */
+  const veredictos = await veredictosDeCartera(isAsesor ? { asesor: asesorHeader } : undefined)
+    .catch(e => ({ cuentas: [], falla: (e as Error).message ?? 'error desconocido' }))
+
+  const alertasDe = (quien: string): AlertasAsesor => {
+    const suyas = veredictos.cuentas.filter(c => c.asesor === quien)
+    const porSit = new Map<string, { n: number; mrr: number }>()
+    for (const c of suyas) {
+      const k = c.veredicto.situacion
+      const a = porSit.get(k) ?? { n: 0, mrr: 0 }
+      a.n++
+      a.mrr += c.mrr ?? 0
+      porSit.set(k, a)
+    }
+    return {
+      total: suyas.length,
+      /* Todo menos «en orden». Una cuenta en orden no pide trabajo y sumar su
+         facturación aquí inflaría la cifra con la que el asesor prioriza. */
+      mrrEnRiesgo: suyas
+        .filter(c => c.veredicto.situacion !== 'en_orden')
+        .reduce((s, c) => s + (c.mrr ?? 0), 0),
+      porSituacion: Array.from(porSit.entries())
+        .map(([k, v]) => ({
+          k,
+          titulo: SITUACION[k as keyof typeof SITUACION].titulo,
+          color:  LUZ[SITUACION[k as keyof typeof SITUACION].luz].color,
+          n: v.n, mrr: v.mrr,
+        }))
+        .sort((a, b) =>
+          SITUACION[a.k as keyof typeof SITUACION].orden
+          - SITUACION[b.k as keyof typeof SITUACION].orden),
+      /* Las tres primeras de la cola. `veredictosDeCartera` ya las devuelve
+         ordenadas por urgencia y, dentro de ella, por dinero. */
+      top: suyas.slice(0, 3).map(c => ({
+        cuentaId: c.cuentaId,
+        empresa:  c.empresa,
+        mrr:      c.mrr,
+        color:    LUZ[c.veredicto.luz].color,
+        accion:   c.veredicto.accion,
+      })),
+      falla: veredictos.falla,
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -130,6 +189,7 @@ export default async function AsesoresPage() {
               churn={deAsesor(churn, asesor)}
               periodoChurn={PERIODO_GRC}
               auditorias={auditoriasDe(auditorias, asesor)}
+              alertas={alertasDe(asesor)}
               defaultOpen={idx === 0}   // Primer asesor abierto por defecto
             />
           )
