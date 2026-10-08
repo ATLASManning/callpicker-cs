@@ -358,7 +358,11 @@ export default function AdopcionProducto({
                 <a
                   href="https://supabase.com/dashboard/project/zhgqdytsmczeexqhvliz/sql"
                   target="_blank" rel="noopener noreferrer"
-                  className="text-cp underline">
+                  /* `text-cp` es el azul de marca de la página clara y este
+                     enlace cae sobre la tarjeta oscura: 3.05:1. El azul claro
+                     es el que globals.css ya aplicaría si el enlace no
+                     trajera clase propia. */
+                  className="underline" style={{ color: '#60A5FA' }}>
                   Supabase → SQL Editor
                 </a>:
               </p>
@@ -400,7 +404,12 @@ export default function AdopcionProducto({
         <button
           onClick={openEdit}
           className="flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-1.5 rounded-lg transition-colors"
-          style={{ background: '#1B3FCC10', color: '#1B3FCC' }}>
+          /* Azul de marca sobre su propio tinte dentro de la tarjeta oscura:
+             2.16:1, y es el ÚNICO control de escritura del panel. Aquí
+             `tonoSobreFondo` no sirve —solo oscurece y el fondo ya es
+             oscuro—: hay que aclarar la letra. `#60A5FA` da 6.78:1 y es el
+             azul que globals.css ya aplica a los enlaces de tarjeta oscura. */
+          style={{ background: '#60A5FA1A', color: '#60A5FA' }}>
           <Edit3 size={11} />
           {sinDatos ? 'Registrar' : 'Actualizar'}
         </button>

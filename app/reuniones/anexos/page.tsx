@@ -305,11 +305,16 @@ export default function AnexosPage() {
               return (
                 <div key={a.id} className="cp-card" style={{ padding: '12px 14px' }}>
                   <div className="flex items-start gap-3 flex-wrap">
-                    <FileText size={18} style={{ color: c.fg, marginTop: 2, flexShrink: 0 }} />
+                    <FileText size={18} style={{ color: c.fgCard, marginTop: 2, flexShrink: 0 }} />
                     <div style={{ flex: '1 1 260px', minWidth: 0 }}>
                       <div className="flex items-center gap-2 flex-wrap mb-1">
+                        {/* `fgCard`, no `fg`: esta pastilla vive en una
+                            `.cp-card`. Con el tono de página, Proyecto daba
+                            2.91:1, Producto 2.99:1 y Falla 3.50:1 a 10px. El
+                            botón de filtro de arriba SIGUE usando `fg`, que
+                            ahí es relleno sólido con letra blanca. */}
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                          style={{ background: c.bg, color: c.fg, border: `1px solid ${c.fg}40` }}>
+                          style={{ background: c.bg, color: c.fgCard, border: `1px solid ${c.fg}40` }}>
                           {ETIQUETA_TEMA[a.tema]}
                         </span>
                         <Link href={`/cuentas/${a.cuenta_id}`}

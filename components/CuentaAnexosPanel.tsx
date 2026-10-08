@@ -81,13 +81,18 @@ export default function CuentaAnexosPanel({
           </span>
 
           {anexos.slice(0, 8).map(a => {
-            const col = COLOR_TEMA[a.tema] ?? { fg: TENUE, bg: 'rgba(255,255,255,0.08)' }
+            /* `fgCard` y no `fg`: este panel es una tarjeta oscura y con el
+               tono de página tres de los cinco temas no se leían —Proyecto
+               2.91:1, Producto 2.99:1, Falla 3.50:1— en texto de 9px. Aquí
+               `fg` no se usa nunca como relleno sólido, así que la barra
+               lateral también pasa al tono claro. */
+            const col = COLOR_TEMA[a.tema] ?? { fg: TENUE, bg: 'rgba(255,255,255,0.08)', fgCard: TENUE }
             return (
-              <div key={a.id} style={{ borderLeft: `2px solid ${col.fg}`, paddingLeft: 10 }}>
+              <div key={a.id} style={{ borderLeft: `2px solid ${col.fgCard}`, paddingLeft: 10 }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <span style={{
                     fontSize: 9, fontWeight: 700, padding: '1px 7px', borderRadius: 999,
-                    color: col.fg, background: col.bg, border: `1px solid ${col.fg}40`,
+                    color: col.fgCard, background: col.bg, border: `1px solid ${col.fg}40`,
                     textTransform: 'uppercase', letterSpacing: '0.04em',
                   }}>
                     {ETIQUETA_TEMA[a.tema] ?? a.tema}

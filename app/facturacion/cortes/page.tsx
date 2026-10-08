@@ -828,7 +828,9 @@ export default function InformeCortesPage() {
                   </div>
                 ))}
               </div>
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', marginTop: 16 }}>
+              {/* Blanco al 22% sobre la isla oscura son 2.01:1. El piso
+                  documentado del proyecto es 0.48, que da 4.91:1. */}
+              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.48)', marginTop: 16 }}>
                 * Basado en promedio de los últimos {Math.min(mesTendencia.length, 3)} meses. No considera estacionalidad ni eventos especiales.
               </p>
             </div>

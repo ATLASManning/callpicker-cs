@@ -28,12 +28,18 @@ type Reunion = {
 /** Cuenta seleccionable para vincular una reunión de cliente. */
 type CuentaOpcion = { id: string; consecutivo: string | null; cid: string | null; empresa: string; asesor: string | null }
 
+/* Los tonos son para la TARJETA OSCURA, que es donde se pintan estas
+   pastillas. Iban con la paleta de página y tres de los cinco no se leían:
+   Otro #475569 daba 2.24:1, One To One #7C3AED 2.96:1 y Junta Semanal #0057FF
+   3.04:1. Se aclaran los tres; «Con Cliente» y «Estrategia» ya cumplían y se
+   quedan igual para no mover el código de color que el equipo ya reconoce.
+   `TIPOS` es local de este archivo, así que el cambio no sale de aquí. */
 const TIPOS: Record<TipoReunion, { label: string; color: string; bg: string }> = {
-  junta_semanal: { label: 'Junta Semanal',  color: '#0057FF', bg: 'rgba(0,87,255,0.08)' },
-  one_on_one:    { label: 'One To One',     color: '#7C3AED', bg: 'rgba(124,58,237,0.08)' },
+  junta_semanal: { label: 'Junta Semanal',  color: '#60A5FA', bg: 'rgba(0,87,255,0.08)' },
+  one_on_one:    { label: 'One To One',     color: '#A78BFA', bg: 'rgba(124,58,237,0.08)' },
   cliente:       { label: 'Con Cliente',    color: '#059669', bg: 'rgba(5,150,105,0.08)' },
   estrategia:    { label: 'Estrategia',     color: '#D97706', bg: 'rgba(217,119,6,0.08)' },
-  otro:          { label: 'Otro',           color: '#475569', bg: 'rgba(71,85,105,0.08)' },
+  otro:          { label: 'Otro',           color: '#94A3B8', bg: 'rgba(71,85,105,0.08)' },
 }
 
 /* `llevaCuenta` y `exigeCuenta` viven en lib/reuniones-tipo.ts porque el
@@ -654,7 +660,13 @@ export default function ReunionesPage() {
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
                               style={r.tipo === 'cliente'
                                 ? { background: 'rgba(5,150,105,0.1)', color: '#059669', border: '1px solid rgba(5,150,105,0.2)' }
-                                : { background: 'rgba(100,116,139,0.12)', color: '#475569', border: '1px solid rgba(100,116,139,0.25)' }}>
+                                /* `#475569` sobre el marino de la tarjeta era
+                                   el peor de los ocho archivos: 2.08:1. Solo
+                                   cambia la LETRA; el fondo y el borde grises
+                                   se quedan, porque son los que dicen
+                                   «interna» frente al verde de «con el
+                                   cliente». */
+                                : { background: 'rgba(100,116,139,0.12)', color: '#CBD5E1', border: '1px solid rgba(100,116,139,0.25)' }}>
                               <Building2 size={9} />{r.empresa}
                             </span>
                           )}

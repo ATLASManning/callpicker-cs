@@ -27,12 +27,27 @@ export const ETIQUETA_TEMA: Record<Tema, string> = {
   analisis: 'Análisis',
 }
 
-export const COLOR_TEMA: Record<Tema, { fg: string; bg: string }> = {
-  falla:    { fg: '#DC2626', bg: 'rgba(220,38,38,0.10)'  },
-  venta:    { fg: '#059669', bg: 'rgba(5,150,105,0.10)'  },
-  producto: { fg: '#0057FF', bg: 'rgba(0,87,255,0.10)'   },
-  proyecto: { fg: '#7C3AED', bg: 'rgba(124,58,237,0.10)' },
-  analisis: { fg: '#D97706', bg: 'rgba(217,119,6,0.10)'  },
+/**
+ * El color de cada tema, en sus DOS variantes, porque tiene dos trabajos
+ * opuestos y usar uno para los dos deja la mitad ilegible.
+ *
+ * `fg` es el tono de PÁGINA: sirve como relleno sólido del botón de filtro
+ * activo, que lleva letra blanca encima, y como letra sobre fondo claro.
+ *
+ * `fgCard` es el mismo tono aclarado para usarse como LETRA sobre la tarjeta
+ * oscura. Nace el 8 oct 2026: las pastillas de tema de `/reuniones/anexos` y
+ * de la ficha de cuenta pintaban `fg` sobre el marino y tres de los cinco no
+ * se leían — Proyecto 2.91:1, Producto 2.99:1, Falla 3.50:1, a 9 y 10px.
+ *
+ * No se «arregla» `fg` a secas: aclararlo rompería el botón de filtro, que lo
+ * usa de fondo. Son dos usos distintos y por eso son dos campos.
+ */
+export const COLOR_TEMA: Record<Tema, { fg: string; bg: string; fgCard: string }> = {
+  falla:    { fg: '#DC2626', bg: 'rgba(220,38,38,0.10)',  fgCard: '#F87171' },
+  venta:    { fg: '#059669', bg: 'rgba(5,150,105,0.10)',  fgCard: '#34D399' },
+  producto: { fg: '#0057FF', bg: 'rgba(0,87,255,0.10)',   fgCard: '#60A5FA' },
+  proyecto: { fg: '#7C3AED', bg: 'rgba(124,58,237,0.10)', fgCard: '#A78BFA' },
+  analisis: { fg: '#D97706', bg: 'rgba(217,119,6,0.10)',  fgCard: '#FBBF24' },
 }
 
 export function esTema(v: unknown): v is Tema {

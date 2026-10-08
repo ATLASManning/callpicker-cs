@@ -20,6 +20,7 @@ import EstadoCuentaBadge from '@/components/EstadoCuentaBadge'
 import CuentaBloqueoBanner from '@/components/CuentaBloqueoBanner'
 import CuentaVeredicto from '@/components/CuentaVeredicto'
 import { veredictosDeCartera } from '@/lib/alertas-estado'
+import { tonoSobreClaro, pastillaClara } from '@/lib/contraste'
 import { guionDe } from '@/lib/alertas-guion'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
@@ -248,7 +249,12 @@ export default async function CuentaDetailPage({ params }: Props) {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold"
-              style={{ background: `${cfg.color}20`, color: cfg.color, border: `1px solid ${cfg.color}40` }}>
+              /* La inicial de la empresa es lo PRIMERO de la ficha y pintaba
+                 la letra con el color del semáforo sobre su propio tinte al
+                 12.5%, encima de la página clara: «Observación» 1.64:1,
+                 «Saludable» 1.90:1, «En Riesgo» 2.28:1. El tono se calcula;
+                 el fondo y el borde se quedan igual. */
+              style={{ background: `${cfg.color}20`, color: tonoSobreClaro(cfg.color, 0.125), border: `1px solid ${cfg.color}40` }}>
               {cuenta.empresa.charAt(0)}
             </div>
             <div>
@@ -713,7 +719,11 @@ export default async function CuentaDetailPage({ params }: Props) {
                     <span style={{ fontSize:11, fontWeight:700, color:'#0F172A', textTransform:'uppercase', letterSpacing:'0.06em' }}>
                       Observaciones Auditoría
                     </span>
-                    <span style={{ fontSize:9, fontWeight:700, color:stColor, background:`${stColor}18`, padding:'2px 8px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                    {/* Letra y fondo del mismo color: con «rescatable» el
+                        verde daba 2.10:1 a 9px. Los otros cuatro estados se
+                        quedaban entre 3.3 y 4.3:1 — se leían, pero tampoco
+                        cumplían. `pastillaClara` los arregla los cinco. */}
+                    <span style={{ fontSize:9, fontWeight:700, ...pastillaClara(stColor), padding:'2px 8px', borderRadius:99, textTransform:'uppercase', letterSpacing:'0.05em' }}>
                       {stLabel}
                     </span>
                   </div>
@@ -733,7 +743,11 @@ export default async function CuentaDetailPage({ params }: Props) {
                   <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:12 }}>
                     {auditoriaCase.kpis.map((k, i) => (
                       <div key={i} style={{ background:`${k.color}10`, border:`1px solid ${k.color}30`, borderRadius:8, padding:'4px 10px' }}>
-                        <p style={{ fontSize:9, color:k.color, fontWeight:700, textTransform:'uppercase', margin:0 }}>{k.label}</p>
+                        {/* El alfa real del fondo es `10` = 0.0627, no el 0.14
+                            por omisión: calcular contra el fondo equivocado es
+                            el error que ya costó dos etiquetas hoy. A 9px el
+                            objetivo se queda en 4.5:1, no se baja. */}
+                        <p style={{ fontSize:9, color:tonoSobreClaro(k.color, 0.0627), fontWeight:700, textTransform:'uppercase', margin:0 }}>{k.label}</p>
                         <p style={{ fontSize:11, color:'#0F172A', fontWeight:600, margin:0 }}>{k.value}</p>
                       </div>
                     ))}

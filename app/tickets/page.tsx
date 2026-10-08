@@ -197,7 +197,13 @@ function KpiCard({ icon: Icon, label, value, sub, color }:
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs text-gray-500">{label}</p>
-          <p className="text-xl font-bold mt-1" style={{ color }}>{value}</p>
+          {/* La cifra recibía el tono crudo del llamador: GREEN daba 2.28:1 y
+              AMBER 2.15:1 sobre la tarjeta blanca, fallando incluso el 3:1 que
+              WCAG concede al texto grande. Se calcula AQUÍ, una vez, para que
+              cubra los diez llamadores y los que vengan. El icono se queda con
+              el tono puro: es objeto gráfico y su umbral es 3:1. */}
+          <p className="text-xl font-bold mt-1"
+             style={{ color: tonoSobreFondo(color, '#FFFFFF', 4.5) }}>{value}</p>
           {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
         </div>
         <div className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -1255,7 +1261,11 @@ export default function TicketsPage() {
                               <td className="py-2.5 px-4 text-xs text-gray-500">{r.ultima || '—'}</td>
                               {concTab === 'matched' && r.cuenta && <>
                                 <td className="py-2.5 px-4 text-xs font-medium"
-                                  style={{ color: r.cuenta.sinServicio ? '#64748B' : GREEN }}>
+                                  /* GREEN crudo sobre la tabla blanca da
+                                     2.28:1 en 12px. La rama gris ya estaba
+                                     bien (6.3:1). */
+                                  style={{ color: r.cuenta.sinServicio ? '#64748B'
+                                                : tonoSobreFondo(GREEN, '#FFFFFF', 4.5) }}>
                                   {r.cuenta.empresa}
                                   {r.cuenta.sinServicio && (
                                     /* #475569 sobre #E2E8F0 mide 6.15:1. El slate-500

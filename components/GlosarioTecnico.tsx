@@ -360,7 +360,7 @@ export default function GlosarioTecnico() {
               {DOCE_ESENCIALES.join(' · ')}
             </p>
             <p style={{ fontSize: 12.5, color: TX_MID, lineHeight: 1.6, marginTop: 6 }}>
-              <span style={{ fontWeight: 800, color: '#A855F7' }}>Y después: </span>
+              <span style={{ fontWeight: 800, color: tonoSobreClaro('#A855F7', 0) }}>Y después: </span>
               {SEGUNDA_OLA.join(' · ')}
             </p>
           </div>
