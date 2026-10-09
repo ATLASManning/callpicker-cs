@@ -934,10 +934,11 @@ export default async function DashboardPage() {
    * alternativa —pasarle las alertas ya detectadas— le cambiaría la firma a
    * una función que usan tres pantallas para ahorrar algo que el usuario no
    * espera. Si algún día el motor se cachea, esto se cae solo. */
+  const alcance = { asesor: isAsesor ? asesorHeader : null }
   const tablero = veredictosDeCartera(soloSuCartera)
-    .then(v => proyectaTablero(v.cuentas, v.falla))
+    .then(v => proyectaTablero(v.cuentas, v.falla, alcance))
     .catch((e: unknown) => proyectaTablero([], (e as Error)?.message
-      ?? 'el motor de veredictos no respondió'))
+      ?? 'el motor de veredictos no respondió', alcance))
 
   async function Graficas() {
     return <DashAlertasGraficas datos={await tablero} />
