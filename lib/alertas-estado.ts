@@ -74,6 +74,24 @@ const CORTES_MINIMOS = 70
  */
 const CRECIMIENTO = new Set(['escalon', 'cross_sell', 'ampliacion', 'blindaje'])
 
+/** Las ocho fuentes, con el nombre que ve quien lee el tablero y a quién se le
+ *  pide lo que falta. El orden es el del comentario de cabecera de este archivo
+ *  y es el que usa la pantalla: una lista de fuentes escrita dos veces se
+ *  desincroniza. */
+export const FUENTES = [
+  { k: 'facturacion', etiqueta: 'Facturación', pedirA: 'ya viene de GRC; si falta, es que el CID no cruza' },
+  { k: 'consumo',     etiqueta: 'Consumo',     pedirA: 'Ingeniería — que incluya el CID en el archivo de cortes' },
+  { k: 'llamadas',    etiqueta: 'Llamadas',    pedirA: 'el asesor — el Excel de entrantes y salientes' },
+  { k: 'tickets',     etiqueta: 'Tickets',     pedirA: 'la mesa de ayuda; o la cuenta no pasa por ella' },
+  { k: 'reuniones',   etiqueta: 'Reuniones',   pedirA: 'el asesor — registrar la junta cuando ocurre' },
+  { k: 'contacto',    etiqueta: 'Contacto',    pedirA: 'el asesor — registrar llamada, correo, WhatsApp o reunión' },
+  { k: 'auditoria',   etiqueta: 'Auditoría',   pedirA: 'el asesor — escribir el análisis de la cuenta' },
+  { k: 'ficha',       etiqueta: 'Ficha',       pedirA: 'el asesor — las observaciones del KAM' },
+] as const
+
+export type ClaveFuente = typeof FUENTES[number]['k']
+export type FuentesDetalle = Record<ClaveFuente, boolean>
+
 export interface CuentaConVeredicto {
   cuentaId: string
   cid: string | null
@@ -106,8 +124,11 @@ export interface CuentaConVeredicto {
      *  parezca «sin oportunidad»: la tiene, pero antes hay que arreglar algo. */
     candidaturasTotal: number
     /** Cuántas de las ocho fuentes tienen dato para esta cuenta. Es la
-     *  confianza de la predicción, dicha en números y no en adjetivos. */
+     *  confianza de la predicción, dicha en números y no en adjetivos.
+     *  Se DERIVA de `fuentesDetalle`: no son dos cuentas distintas. */
     fuentes: number
+    /** Cuáles de las ocho, para poder decir qué falta y a quién pedírselo. */
+    fuentesDetalle: FuentesDetalle
   }
 }
 
@@ -233,20 +254,30 @@ export async function veredictosDeCartera(
     const rel = relacion.get(id)
     const cand = candidatos.get(id)?.candidaturas ?? []
 
-    /* Cuántas de las ocho fuentes hablan de esta cuenta. Es la confianza de la
-       predicción dicha en números: con tres fuentes se opina distinto que con
-       ocho, y el asesor tiene derecho a saber sobre qué se le está pidiendo
-       actuar. */
-    const fuentes = [
-      mrr !== null,
-      consumoPct !== null,
-      !!llam,
-      tk.total > 0,
-      (rel?.conteos.reuniones ?? 0) > 0,
-      diasSinContacto(efectivo.get(id) ?? null) !== null,
-      !!rel?.conteos.tieneAuditoria,
-      !!(c.observaciones_kam && String(c.observaciones_kam).trim() !== ''),
-    ].filter(Boolean).length
+    /* CUÁLES de las ocho fuentes hablan de esta cuenta, y de ahí cuántas.
+     *
+     * Era sólo el número. Es la confianza de la predicción dicha en cifras —con
+     * tres fuentes se opina distinto que con ocho— pero un «4 de 8» no dice qué
+     * hay que conseguir, y lo que convierte el dato en trabajo es justamente
+     * eso: a quién pedirle qué. El tablero lo necesita para poder contestar
+     * «cuánto dinero está tapado por la falta de cortes» en vez de «hay 63
+     * cuentas con 4 fuentes».
+     *
+     * EL CONTEO SE DERIVA DEL DETALLE, no se cuenta aparte. Dos listas de las
+     * mismas ocho condiciones se desincronizan en cuanto alguien añade una
+     * novena, y entonces el número y el desglose dirían cosas distintas sobre
+     * la misma cuenta. Ver [[feedback-fuente-unica-cuentas]]. */
+    const detalle: FuentesDetalle = {
+      facturacion: mrr !== null,
+      consumo:     consumoPct !== null,
+      llamadas:    !!llam,
+      tickets:     tk.total > 0,
+      reuniones:   (rel?.conteos.reuniones ?? 0) > 0,
+      contacto:    diasSinContacto(efectivo.get(id) ?? null) !== null,
+      auditoria:   !!rel?.conteos.tieneAuditoria,
+      ficha:       !!(c.observaciones_kam && String(c.observaciones_kam).trim() !== ''),
+    }
+    const fuentes = FUENTES.filter(f => detalle[f.k]).length
 
     const e: EstadoCuenta = {
       cuentaId: id,
@@ -297,6 +328,7 @@ export async function veredictosDeCartera(
         candidatura: e.candidatura,
         candidaturasTotal: cand.length,
         fuentes,
+        fuentesDetalle: detalle,
       },
     })
   }
