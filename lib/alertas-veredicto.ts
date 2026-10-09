@@ -165,6 +165,43 @@ export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
     h.push({ clase, titulo: a.titulo, prueba: a.evidencia })
   }
 
+  /* ── UN HECHO SE DICE UNA VEZ ──────────────────────────────────────────
+   *
+   * Lo que sigue son comprobaciones propias del veredicto, y dos de ellas
+   * repiten con otras palabras algo que el CATÁLOGO ya acaba de decir en el
+   * bucle de arriba. Medido el 8 oct 2026 sobre las 192 cuentas vivas:
+   *
+   *   «No hay medición de consumo»          49 cuentas, y las 49 llevaban
+   *   «No podemos ver su consumo»           también ésta. Cero excepciones.
+   *
+   *   «No hay un solo contacto registrado» 101 cuentas, y las 93 que llevan
+   *   «Nunca se le ha contactado»           la de riesgo llevaban las DOS.
+   *
+   * O sea 142 fichas afirmando lo mismo dos veces, y —lo que de verdad
+   * importa— dos barras en cualquier gráfica que agregue por hallazgo, que se
+   * leen como un error de conteo. No es que sobre una de las dos medidas: es
+   * que son LA MISMA medida contada por dos caminos.
+   *
+   * No se borra la comprobación, se calla cuando su gemela ya habló: las 8
+   * cuentas que tienen el hueco de contacto sin que la alerta de riesgo haya
+   * disparado SÍ lo dicen, porque ahí nadie más lo está diciendo.
+   *
+   * El mapa va por título y no por tipo porque el catálogo entra aquí ya
+   * aplanado a `{clase, titulo, prueba}` — el `TipoAlerta` se pierde en el
+   * push de arriba. Si algún día hace falta algo más fino, lo que hay que
+   * cambiar es eso, no esto. */
+  const GEMELA: Record<string, string> = {
+    'No hay medición de consumo':         'No podemos ver su consumo',
+    'Sin historial de conversaciones':    'Nunca se le ha contactado',
+  }
+  const yaDicho = new Set(h.map(x => x.titulo))
+  const anota = (x: Hallazgo) => {
+    const g = GEMELA[x.titulo]
+    if (g && yaDicho.has(g)) return
+    h.push(x)
+    yaDicho.add(x.titulo)
+  }
+
   /* ── ENTREGA: lo que se le puede MOSTRAR y hoy no ve ──────────────────── */
   if (e.tieneLlamadas && e.perdidas !== null && e.perdidas > 0) {
     h.push({
@@ -202,16 +239,22 @@ export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
              prueba: 'esta cuenta no aparece en el reporte; su atención es no medible' })
   }
   if (e.consumoPct === null) {
-    h.push({ clase: 'analisis', titulo: 'No hay medición de consumo',
-             prueba: 'sin corte de facturación: no se sabe cuánto de su plan usa' })
+    anota({ clase: 'analisis', titulo: 'No hay medición de consumo',
+            prueba: 'sin corte de facturación: no se sabe cuánto de su plan usa' })
   }
   if (!e.tieneAuditoria) {
-    h.push({ clase: 'analisis', titulo: 'La cuenta no tiene auditoría',
-             prueba: 'nadie ha escrito el análisis de esta cuenta' })
+    anota({ clase: 'analisis', titulo: 'La cuenta no tiene auditoría',
+            prueba: 'nadie ha escrito el análisis de esta cuenta' })
   }
+  /* El título decía «No hay un solo contacto registrado» y el catálogo tiene
+     «Sin un solo contacto registrado» para algo DISTINTO: aquél es que no hay
+     una conversación en el historial, éste que no hay una PERSONA capturada en
+     la ficha. Dos hechos que no se implican —25 cuentas tienen conversaciones
+     y ninguna persona, 35 al revés— con dos títulos que sólo se diferencian en
+     la primera palabra. Como etiqueta de una barra eran indistinguibles. */
   if (e.diasSinContacto === null) {
-    h.push({ clase: 'analisis', titulo: 'No hay un solo contacto registrado',
-             prueba: 'ni llamada, ni correo, ni WhatsApp, ni reunión en el historial' })
+    anota({ clase: 'analisis', titulo: 'Sin historial de conversaciones',
+            prueba: 'ni llamada, ni correo, ni WhatsApp, ni reunión en el historial' })
   }
   if (e.tickets === null || e.tickets === 0) {
     h.push({ clase: 'analisis', titulo: 'No pasa por la mesa de ayuda',
