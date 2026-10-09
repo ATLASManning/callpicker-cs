@@ -225,4 +225,56 @@ export function textoImporte(i: ImporteCuenta): string {
   return '$' + Math.round(i.mrr).toLocaleString('es-MX') + ' al mes'
 }
 
+/** Las TOP: las 25 de mayor facturación. «El cliente 25 ya factura 20,000». */
+export const N_TOP = 25
+
+let _topCache: { set: Set<string>; sello: number } | null = null
+
+/**
+ * LAS CUENTAS TOP DE LA EMPRESA. Una definición, y es la de toda la cartera.
+ *
+ * ── EL PROBLEMA QUE RESUELVE ──────────────────────────────────────────────
+ * «TOP» se calculaba dentro de `detectarAlertas` sobre las cuentas que ESA
+ * llamada había cargado. Con un filtro de asesora encima, eso son las 25
+ * mayores DE ELLA: a Fátima «TOP» le significaba una cosa, al tablero otra, y
+ * la palabra era la misma en los dos sitios. Una cifra que cambia de
+ * significado con un filtro es la misma trampa de las tres reglas de importe
+ * que se documenta arriba.
+ *
+ * Aquí es siempre la cartera viva completa. Si un asesor tiene dos de las 25
+ * de la empresa, ve dos — no las 25 suyas disfrazadas.
+ *
+ * ── POR QUÉ SU PROPIA CONSULTA ────────────────────────────────────────────
+ * Porque quien llama puede venir filtrado, y entonces sus filas no sirven para
+ * esto. Son tres columnas de ~192 filas y se cachea por proceso junto con el
+ * sello del mapa de facturación: cuando el GRC se recarga, esto se recalcula.
+ */
+export async function topDeCartera(mapa: MapaFacturacion): Promise<Set<string>> {
+  if (_topCache && _topCache.sello === mapa.porCid.size) return _topCache.set
+
+  /* `import()` y no un import estático arriba: de este módulo cuelgan
+     `textoImporte` e `importeDeCuenta`, que son funciones puras y las usa
+     también código de cliente. Un import estático de supabase las arrastraría
+     al bundle del navegador. */
+  const { supabaseAdmin } = await import('@/lib/supabase')
+  const { data, error } = await supabaseAdmin
+    .from('cuentas')
+    .select('id, cid, facturacion')
+    .in('estado', ['activo', 'en_riesgo'])
+
+  /* Sin lectura NO se inventa un TOP vacío: un `Set` vacío diría que ninguna
+     cuenta es grande, que es falso y además silencioso. Se devuelve vacío pero
+     SIN cachear, para que el siguiente intento vuelva a leer. */
+  if (error || !data) return new Set<string>()
+
+  const set = new Set(
+    [...data]
+      .sort((a, b) => importeDeCuenta(b, mapa).mrr - importeDeCuenta(a, mapa).mrr)
+      .slice(0, N_TOP)
+      .map(c => String(c.id)),
+  )
+  _topCache = { set, sello: mapa.porCid.size }
+  return set
+}
+
 export type { Cuenta }

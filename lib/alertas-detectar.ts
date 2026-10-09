@@ -1,6 +1,8 @@
 import { supabaseAdmin, traerPorPaginas } from '@/lib/supabase'
 import { todosLosCortes } from '@/lib/cortes-cuenta'
-import { mapaFacturacion, importeDeCuenta, type ImporteCuenta } from '@/lib/facturacion-cuenta'
+import {
+  mapaFacturacion, importeDeCuenta, topDeCartera, type ImporteCuenta,
+} from '@/lib/facturacion-cuenta'
 import { baseMinutos } from '@/lib/plan-minutos'
 import { hoyEnMexico } from '@/lib/fecha-local'
 import { CANALES_CONTACTO, llegoAlCliente, llegoAlClienteActividad } from '@/lib/contacto-cuenta'
@@ -22,9 +24,6 @@ import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
  * se puede defender frente al cliente ni frente al equipo, y es exactamente
  * lo que convirtió las 383 acciones de auditoría en texto que nadie siguió.
  */
-
-/** Las TOP: las 25 de mayor facturación. «El cliente 25 ya factura 20,000». */
-const N_TOP = 25
 
 /** Umbrales. Están juntos A PROPÓSITO: son la perilla del volumen. */
 export const UMBRALES = {
@@ -296,11 +295,15 @@ export async function detectarAlertas(
   }
 
   /* Las TOP salen del dinero, no de una lista a mano: la lista envejece y
-     nadie la actualiza. Ver [[feedback-fuente-unica-cuentas]]. */
-  const mrrDe = (c: CuentaAlerta) => importes.get(c.id)?.mrr ?? (c.facturacion ?? 0)
-  const top = new Set(
-    [...cuentas].sort((a, b) => mrrDe(b) - mrrDe(a))
-      .slice(0, N_TOP).map(c => c.id))
+     nadie la actualiza. Ver [[feedback-fuente-unica-cuentas]].
+
+     Y salen de la CARTERA COMPLETA, no de las cuentas que esta llamada cargó.
+     Se calculaban aquí mismo sobre `cuentas`, que con un filtro de asesora son
+     sólo las suyas: a Fátima «TOP» le significaba sus 25 mayores y al tablero
+     las 25 de la empresa, con la misma palabra en los dos sitios. La prioridad
+     de una alerta multiplica por 1.6 si la cuenta es TOP, así que el orden de
+     la cola de un asesor dependía de a quién pertenecía la cuenta. */
+  const top = await topDeCartera(facturacion)
 
   const alertas: Alerta[] = []
   const add = (tipo: TipoAlerta, c: CuentaAlerta, ev: string, dias: number | null = null) =>

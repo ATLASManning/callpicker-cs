@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import {
   DollarSign, AlertTriangle, TrendingUp,
   CalendarDays, CheckCircle2, AlertCircle, Ticket, LifeBuoy,
@@ -10,7 +11,7 @@ import TicketsAnalyticsChart, { type TicketsAnalyticsData } from '@/components/c
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
 import DashAlertasCriticas from '@/components/DashAlertasCriticas'
-import PanelAlertas from '@/components/PanelAlertas'
+import DashAlertasGraficas, { GraficasCargando } from '@/components/DashAlertasGraficas'
 import DashMetricasSection from '@/components/DashMetricasSection'
 import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVersatil'
 import CandidatoA from '@/components/CandidatoA'
@@ -20,7 +21,9 @@ import { candidatosDeCartera, faltantesDeFicha } from '@/lib/candidatos-cartera'
    3.5 MB de tickets-data.json y el Excel de cortes a esta página. */
 import { detectarAlertas } from '@/lib/alertas-detectar'
 import { alertasConMemoria } from '@/lib/alertas-episodios'
-import { resumir, riesgoPorCuenta } from '@/lib/alertas'
+import { riesgoPorCuenta } from '@/lib/alertas'
+import { veredictosDeCartera } from '@/lib/alertas-estado'
+import { proyectaTablero } from '@/lib/alertas-tablero'
 import { getKPIs, getSemaforoByAsesor, getCuentas, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
 import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor, type SemaforoSalud } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
@@ -914,9 +917,31 @@ export default async function DashboardPage() {
                          motivo: (e as Error)?.message || 'una fuente no respondió' })),
   ])
 
-  const alertas       = alertasRes.ok ? alertasRes.alertas : []
-  const resumenAlerts = resumir(alertas)
-  const fallaAlertas  = alertasRes.ok ? null : alertasRes.motivo
+  const alertas = alertasRes.ok ? alertasRes.alertas : []
+
+  /* ── EL ANÁLISIS DE ALERTAS, SIN BLOQUEAR LA PORTADA ────────────────────
+   *
+   * `veredictosDeCartera` cuesta entre 1.6 y 2.7 segundos —medido, y lo que
+   * pesa son las lecturas globales de facturación y cortes, no el número de
+   * cuentas—. La promesa se crea aquí y NO se espera: el componente `Graficas`
+   * es `async`, así que React lo suspende y suelta el resto de la portada
+   * mientras tanto. Es el mismo patrón que bajó `/asesores` de 4.5 a 1.8
+   * segundos, y la portada es la pantalla con la que se empieza el día.
+   *
+   * SÍ, ESTO VUELVE A CORRER `detectarAlertas` — una vez aquí y otra dentro
+   * del motor de veredictos, que no cachea. Se asume a sabiendas: la segunda
+   * pasada va fuera del camino crítico gracias al `<Suspense>`, y la
+   * alternativa —pasarle las alertas ya detectadas— le cambiaría la firma a
+   * una función que usan tres pantallas para ahorrar algo que el usuario no
+   * espera. Si algún día el motor se cachea, esto se cae solo. */
+  const tablero = veredictosDeCartera(soloSuCartera)
+    .then(v => proyectaTablero(v.cuentas, v.falla))
+    .catch((e: unknown) => proyectaTablero([], (e as Error)?.message
+      ?? 'el motor de veredictos no respondió'))
+
+  async function Graficas() {
+    return <DashAlertasGraficas datos={await tablero} />
+  }
 
   /* ── QUIÉN ESTÁ EN RIESGO ───────────────────────────────────────────────
    *
@@ -1110,20 +1135,26 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* ══ §1 ALERTAS DE CLIENTE — lo primero que se ve ═══════════════════
+      {/* ══ §1 ALERTAS DE CLIENTE — el ANÁLISIS, no la lista ═══════════════
        *
-       * Antes aquí estaba «Cumplimiento SAC Semanal»: tres medidores de cuántas
-       * actividades había cerrado cada ejecutivo. Instrucción de dirección del
-       * 6 oct 2026 — «no medir cuántas hizo cada ejecutivo, sino conocer
-       * cuántas alertas tiene, de qué cuentas, de qué tipo, el riesgo en
-       * dinero». El SAC no desaparece, baja: sigue siendo la herramienta del
-       * lote semanal, pero dejó de ser el titular del tablero.
+       * Aquí vivió «Cumplimiento SAC Semanal» —tres medidores de actividades
+       * cerradas por ejecutivo— hasta que dirección lo cambió por el panel de
+       * alertas el 6 oct 2026. Y ese panel duraba hasta hoy.
+       *
+       * Instrucción del 8 oct 2026, con la captura del Dashboard delante:
+       * «esto es exactamente lo que encontramos en Alertas de cliente; lo que
+       * debe existir en el Dashboard son gráficas del tema en cuestión, con
+       * los combos que permita elegir datos para obtener data».
+       *
+       * Tenía razón: `PanelAlertas` pintaba las mismas cifras y las mismas
+       * diez filas que `/alertas`. Dos pantallas para lo mismo. La lista se
+       * queda donde ya estaba y el Dashboard pasa a responder lo que una
+       * lista no puede: de qué está hecha la cartera y qué nos falta para
+       * poder opinar de ella.
        */}
-      <div className="px-6 pb-5">
-        <PanelAlertas
-          alertas={alertas.slice(0, 10)} resumen={resumenAlerts} falla={fallaAlertas}
-        />
-      </div>
+      <Suspense fallback={<GraficasCargando />}>
+        <Graficas />
+      </Suspense>
 
       {/* ══ §1b Top Cuentas · Ranking Versátil ════════════════════════════ */}
       <TopCuentasVersatil data={rankRows} />

@@ -1,6 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { detectarAlertas } from '@/lib/alertas-detectar'
-import { mapaFacturacion, importeDeCuenta } from '@/lib/facturacion-cuenta'
+import { mapaFacturacion, importeDeCuenta, topDeCartera } from '@/lib/facturacion-cuenta'
 import { ultimoContactoEfectivoPorCuenta, diasSinContacto } from '@/lib/contacto-cuenta'
 import { todosLosCortes } from '@/lib/cortes-cuenta'
 import { resumenLlamadas } from '@/lib/llamadas-resumen'
@@ -193,6 +193,13 @@ export async function veredictosDeCartera(
   ])
   if (mapa.falla) fallos.push(`facturación: ${mapa.falla}`)
 
+  /* Las TOP de la EMPRESA, no las del filtro. Va después del `Promise.all`
+     porque necesita el mapa de facturación ya resuelto, y hace su propia
+     consulta justamente para no heredar el filtro de asesor: ver
+     `topDeCartera`. Hasta hoy este campo entraba escrito a mano como `false`
+     en las 192, así que nada aguas abajo podía distinguir una cuenta grande. */
+  const top = await topDeCartera(mapa)
+
   const cortesFiables = cortes.size >= CORTES_MINIMOS
   if (!cortesFiables) {
     fallos.push(`cortes: la fuente devolvió ${cortes.size} CID(s), menos de los `
@@ -284,7 +291,7 @@ export async function veredictosDeCartera(
       empresa: String(c.empresa ?? ''),
       asesor: c.asesor ?? null,
       mrr,
-      esTop: false,
+      esTop: top.has(id),
       alertas: porCuenta.get(id) ?? [],
       consumoPct,
       diasSinContacto: diasSinContacto(efectivo.get(id) ?? null),
