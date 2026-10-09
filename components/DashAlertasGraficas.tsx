@@ -451,10 +451,15 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
         {/* A quién se le pide lo que más dinero tapa. Una alerta sin dueño es
             una queja; esto nombra a quién va dirigida. */}
         {g3[0] && g3[0].nSin > 0 && (
+          /* «Se pide a {pedirA}» daba «Se pide a el asesor»: los textos de
+             `FUENTES.pedirA` ya empiezan por su sujeto —«el asesor —…»,
+             «Ingeniería —…»— y la preposición sobraba. Se vio leyendo el HTML
+             servido, no el código. */
           <p style={C(TX_LOW, { fontSize: 11, marginTop: 10, lineHeight: 1.6 })}>
-            Lo que más tapa es <span style={C(TX_HI, { fontWeight: 700 })}>{g3[0].etiqueta.toLowerCase()}</span>:
-            {' '}{g3[0].nSin} cuentas y {pesos(g3[0].dineroSin)} al mes sin ese dato.
-            Se pide a {g3[0].pedirA}.
+            La fuente que más dinero tapa es <span style={C(TX_HI, { fontWeight: 700 })}>
+              {g3[0].etiqueta.toLowerCase()}</span>: {g3[0].nSin} cuentas
+            y {pesos(g3[0].dineroSin)} al mes sin ese dato.
+            {' '}Quién lo consigue: {g3[0].pedirA}.
           </p>
         )}
 
