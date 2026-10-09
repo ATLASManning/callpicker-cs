@@ -625,25 +625,38 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                                  fontVariantNumeric: 'tabular-nums' })}>
                   {f.nSin} sin dato
                 </span>
+                {/* El «≥» NO es adorno. Si algunas de las cuentas sin este
+                    dato tampoco tienen importe, la cifra es un SUELO: el
+                    dinero real que tapa el hueco es ése más lo que no se
+                    sabe. La primera versión ponía «$1.78M +9», y un «+9»
+                    pegado a una cifra en millones se lee como nueve millones.
+                    Un símbolo que ya significa «al menos» no se malinterpreta. */}
                 <span style={C(medible ? TX_HI : '#FBBF24',
-                               { fontSize: 11, fontWeight: 700, width: 92, textAlign: 'right',
+                               { fontSize: 11, fontWeight: 700, width: 86, textAlign: 'right',
                                  flexShrink: 0, fontVariantNumeric: 'tabular-nums' })}
                       title={f.nSinImporte > 0
-                        ? `${f.nSinImporte} de las ${f.nSin} sin este dato tampoco tienen importe en ninguna fuente`
+                        ? `${f.nSinImporte} de las ${f.nSin} cuentas sin este dato tampoco tienen `
+                          + `importe en ninguna fuente, así que el dinero tapado es al menos éste`
                         : undefined}>
-                  {medible ? miles(f.dineroSin) : 'sin medir'}
-                  {f.nSinImporte > 0 && medible && (
-                    <span style={C('#FBBF24', { fontSize: 9.5 })}> +{f.nSinImporte}</span>
-                  )}
+                  {medible
+                    ? `${f.nSinImporte > 0 ? '≥ ' : ''}${miles(f.dineroSin)}`
+                    : 'sin medir'}
                 </span>
               </div>
             )
           })}
         </div>
 
-        <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap',
+                      alignItems: 'baseline' }}>
           <Pastilla color={VERDE} texto="con dato" />
           <Pastilla color={GRIS} texto="sin dato" />
+          {g3.some(f => f.nSinImporte > 0) && (
+            <span style={C(TX_LOW, { fontSize: 10.5 })}>
+              «≥» quiere decir que parte de las cuentas sin ese dato tampoco tienen importe:
+              el dinero tapado es al menos el que se ve.
+            </span>
+          )}
         </div>
 
         {g3[0] && g3[0].nSin > 0 && g3[0].dineroSin > 0 && (
