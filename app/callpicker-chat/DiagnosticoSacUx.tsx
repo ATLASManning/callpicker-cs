@@ -646,11 +646,22 @@ function BandaCobertura() {
               {/* El `background: 'transparent'` NO sobra: este `<span>` cuelga
                   de una `.cp-card` y `globals.css` fuerza a blanco todo span
                   que no declare fondo. El #06251A calculado para el segmento
-                  verde se perdía y quedaba blanco sobre #22C55E: 2.06:1. Es el
-                  mismo truco que ya usa la línea 87 de este archivo. */}
+                  verde se perdía y quedaba blanco sobre #22C55E: 2.28:1. Es el
+                  mismo truco que ya usa la línea 87 de este archivo.
+                  (Aquí decía 2.06:1, que era falso; la medición del 8 oct 2026
+                  da 2.28. El arreglo valía igual —2.28 también reprueba— pero
+                  una cifra inventada en un comentario es lo que hace que no se
+                  crea la siguiente.)
+
+                  Un tono por segmento, porque la banda tiene tres fondos
+                  distintos: #06251A se calculó contra el verde y sobre el rojo
+                  #EF4444 del segmento «Sin uso» se quedaba corto. #3B0A0A da
+                  4.52:1 sobre ese rojo. */}
               <span className="text-[11px] font-bold"
                 style={{ background: 'transparent',
-                         color: s.k === 'Sin medición' ? '#CBD5E1' : '#06251A' }}>
+                         color: s.k === 'Sin medición' ? '#CBD5E1'
+                              : s.k === 'Sin uso'      ? '#3B0A0A'
+                              : '#06251A' }}>
                 {s.v}
               </span>
             </div>

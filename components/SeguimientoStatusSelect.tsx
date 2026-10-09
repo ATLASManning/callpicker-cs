@@ -1,6 +1,14 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 
+/**
+ * @contraste-padre: este selector no dibuja fondo propio — los valores de
+ * `COLOR` son tintes al 10% y viven dentro de la `.cp-card` azul marino
+ * (`#0D1829`) de la tabla de seguimientos. Compuestos sobre ella, los seis
+ * fondos quedan entre `#0D1829` y `#252A27` y la letra blanca mide de 14.60:1
+ * a 17.80:1. Medido el 8 oct 2026.
+ */
+
 const RESULTADOS = ['exitoso','sin_respuesta','escalado','interesado','no_interesado','pendiente'] as const
 type Resultado = typeof RESULTADOS[number]
 
@@ -81,6 +89,9 @@ export default function SeguimientoStatusSelect({
       </button>
 
       {open && (
+        /* El `bg-blue-500` del renglón seleccionado daba 3.68:1 contra el
+           blanco de su propia letra — el `-500` de Tailwind no admite texto
+           blanco a 10px, y para eso existe el `-600`, que da 5.17:1. */
         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded shadow-lg z-50"
           style={{ minWidth: '100%' }}>
           {RESULTADOS.map(r => (
@@ -88,7 +99,7 @@ export default function SeguimientoStatusSelect({
               key={r}
               onClick={() => handleChange(r)}
               className={`w-full text-left px-2 py-1.5 text-[10px] font-semibold hover:bg-blue-100
-                ${r === valor ? 'bg-blue-500 text-white' : 'text-gray-900'}`}
+                ${r === valor ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
               style={{ color: r === valor ? '#fff' : '#0F172A' }}
             >
               {r}

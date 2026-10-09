@@ -52,6 +52,15 @@ interface Datos {
 
 /* ── Paleta y formato ──────────────────────────────────────────────────── */
 const BLU = '#1B3FCC', IND = '#6366f1', GRY = '#94a3b8', RED = '#ef4444', AMB = '#f59e0b'
+/* El azul de marca tiene DOS trabajos en esta pantalla y no sirve para los
+   dos. `BLU` cae bien sobre la página clara —el spinner, los botones de
+   dirección— y se hunde dentro de la isla oscura `#0D1829`: 2.23:1, que es
+   justo lo que el arreglo del KPI diagnosticó bien y luego aplicó en UN solo
+   sitio. Los otros seis seguían crudos, y dos de ellos eran las barras de las
+   gráficas: `rgba(27,63,204,0.55)` compuesto sobre el navy da 1.47:1, o sea
+   una barra que prácticamente no se ve.
+   `#60A5FA` es el azul que globals.css ya usa dentro de tarjeta oscura. */
+const BLU_OSC = '#60A5FA'
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const MES_C = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 const nf = (n: number) => n.toLocaleString('es-MX')
@@ -185,7 +194,7 @@ export default function AnalisisLlamadas() {
                 pantalla y además el estado por omisión. `#60A5FA` es el azul
                 que globals.css ya usa para los enlaces de tarjeta oscura. */}
             <Kpi label={esEnt ? 'Entrantes' : 'Salientes'} valor={nf(d.alcance.total)}
-              sub={`${d.alcance.cuentas} cuenta${d.alcance.cuentas === 1 ? '' : 's'}`} color={esEnt ? '#60A5FA' : AMB} icon={esEnt ? PhoneIncoming : PhoneOutgoing} />
+              sub={`${d.alcance.cuentas} cuenta${d.alcance.cuentas === 1 ? '' : 's'}`} color={esEnt ? BLU_OSC : AMB} icon={esEnt ? PhoneIncoming : PhoneOutgoing} />
             <Kpi label={esEnt ? 'Sin contestar' : 'No conectó'} valor={nf(d.alcance.perdidas)}
               sub={d.alcance.pct !== null ? `${d.alcance.pct.toFixed(1)}% del total` : '—'} color={RED} icon={AlertTriangle} />
             {esEnt
@@ -317,9 +326,14 @@ export default function AnalisisLlamadas() {
                     {([['pct', '%'], ['cant', 'Cantidad']] as const).map(([k, lbl]) => (
                       <button key={k} onClick={() => setOrden(k)} style={{
                         padding: '3px 10px', borderRadius: 7, fontSize: 10, fontWeight: 700, cursor: 'pointer',
-                        border: `1px solid ${orden === k ? BLU : 'rgba(255,255,255,0.18)'}`,
-                        background: orden === k ? BLU : 'transparent',
-                        color: orden === k ? '#fff' : 'rgba(255,255,255,0.6)',
+                        border: `1px solid ${orden === k ? BLU_OSC : 'rgba(255,255,255,0.18)'}`,
+                        background: orden === k ? BLU_OSC : 'transparent',
+                        /* Con el relleno en azul CLARO la letra blanca cae a
+                           2.52:1: el activo invierte a texto oscuro, que sobre
+                           ese azul mide 7.08:1. Cambiar el fondo obliga a
+                           mirar el texto — es la trampa que ya costó el
+                           mosaico de /alertas. */
+                        color: orden === k ? '#0F172A' : 'rgba(255,255,255,0.6)',
                       }}>{lbl}</button>
                     ))}
                   </div>
@@ -407,7 +421,7 @@ function SerieMensual({ serie, esEnt, corte }: { serie: Serie[]; esEnt: boolean;
     <>
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'flex-end', marginBottom: 6 }}>
         {(esEnt
-          ? [[BLU, 'Atendidas por un agente'], [IND, 'Resueltas por el menú (IVR)'], [GRY, 'Buzón'], [RED, 'Sin contestar']]
+          ? [[BLU_OSC, 'Atendidas por un agente'], [IND, 'Resueltas por el menú (IVR)'], [GRY, 'Buzón'], [RED, 'Sin contestar']]
           : [[AMB, 'Conectó'], [RED, 'No conectó']]
         ).map(([c, t]) => (
           <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>
@@ -433,7 +447,7 @@ function SerieMensual({ serie, esEnt, corte }: { serie: Serie[]; esEnt: boolean;
           const op = parcial ? 0.55 : 1
           let y = PT + ih
           const segs: [number, string][] = esEnt
-            ? [[s.perdidas, RED], [s.buzon, GRY], [s.ivr, IND], [s.atendidas, BLU]]
+            ? [[s.perdidas, RED], [s.buzon, GRY], [s.ivr, IND], [s.atendidas, BLU_OSC]]
             : [[s.perdidas, RED], [s.total - s.perdidas, AMB]]
           return (
             <g key={s.mes}>
@@ -521,7 +535,7 @@ function Barras({ etiquetas, total, perd, compacto }: {
           <div key={e} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}
             title={`${e} — ${nf(total[i])} llamadas · ${nf(perd[i])} sin contestar (${pct.toFixed(1)}%)`}>
             <div style={{ height: H, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', width: '100%' }}>
-              <div style={{ height: ht - hp, background: 'rgba(27,63,204,0.55)', borderRadius: '3px 3px 0 0' }} />
+              <div style={{ height: ht - hp, background: 'rgba(96,165,250,0.55)', borderRadius: '3px 3px 0 0' }} />
               <div style={{ height: hp, background: RED, borderRadius: hp === ht ? '3px 3px 0 0' : 0 }} />
             </div>
             <span style={{ fontSize: compacto ? 8 : 10, color: 'rgba(255,255,255,0.5)' }}>{e}</span>
@@ -545,7 +559,7 @@ function SerieDiaria({ dia }: { dia: { f: string; t: number; l: number }[] }) {
         return (
           <g key={x.f}>
             <title>{`${fechaCorta(x.f)} — ${nf(x.t)} llamadas · ${nf(x.l)} sin contestar`}</title>
-            <rect x={i * bw} y={H - 14 - ht} width={Math.max(bw - 0.4, 0.6)} height={ht - hp} fill="rgba(27,63,204,0.5)" />
+            <rect x={i * bw} y={H - 14 - ht} width={Math.max(bw - 0.4, 0.6)} height={ht - hp} fill="rgba(96,165,250,0.5)" />
             <rect x={i * bw} y={H - 14 - hp} width={Math.max(bw - 0.4, 0.6)} height={hp} fill={RED} opacity={0.85} />
           </g>
         )

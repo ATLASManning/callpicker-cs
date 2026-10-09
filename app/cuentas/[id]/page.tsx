@@ -20,7 +20,7 @@ import EstadoCuentaBadge from '@/components/EstadoCuentaBadge'
 import CuentaBloqueoBanner from '@/components/CuentaBloqueoBanner'
 import CuentaVeredicto from '@/components/CuentaVeredicto'
 import { veredictosDeCartera } from '@/lib/alertas-estado'
-import { tonoSobreClaro, pastillaClara } from '@/lib/contraste'
+import { tonoSobreClaro, tonoSobrePagina, pastillaClara } from '@/lib/contraste'
 import { guionDe } from '@/lib/alertas-guion'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
@@ -252,9 +252,13 @@ export default async function CuentaDetailPage({ params }: Props) {
               /* La inicial de la empresa es lo PRIMERO de la ficha y pintaba
                  la letra con el color del semáforo sobre su propio tinte al
                  12.5%, encima de la página clara: «Observación» 1.64:1,
-                 «Saludable» 1.90:1, «En Riesgo» 2.28:1. El tono se calcula;
-                 el fondo y el borde se quedan igual. */
-              style={{ background: `${cfg.color}20`, color: tonoSobreClaro(cfg.color, 0.125), border: `1px solid ${cfg.color}40` }}>
+                 «Saludable» 1.90:1, «En Riesgo» 2.28:1.
+
+                 El tono se calcula contra la PÁGINA, no contra blanco: este
+                 encabezado no tiene fondo propio y debajo está el `#EFF6FF`.
+                 Con `tonoSobreClaro` los seis estados se quedaban en
+                 4.17–4.33:1 — pasaban el cálculo y no la pantalla. */
+              style={{ background: `${cfg.color}20`, color: tonoSobrePagina(cfg.color, 0.125), border: `1px solid ${cfg.color}40` }}>
               {cuenta.empresa.charAt(0)}
             </div>
             <div>

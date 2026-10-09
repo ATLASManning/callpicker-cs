@@ -257,7 +257,10 @@ export default function AuditoriaPage() {
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                /* `bg-red-500` con letra blanca mide 3.76:1 — por debajo de AA
+                   y en el botón que borra, que es donde menos conviene dudar
+                   de lo que se lee. El `-600` da 4.83:1. */
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors"
               >
                 Eliminar
               </button>

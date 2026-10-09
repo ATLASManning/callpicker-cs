@@ -17,11 +17,21 @@ import { formatMXN } from '@/lib/types'
  * tarjeta sale de inmediato y la cola aterriza un segundo después, en su
  * hueco. Un tablero que tarda cinco segundos en aparecer se abre menos veces,
  * y éste tiene que abrirse todos los días.
+ *
+ * @contraste-padre: este componente no dibuja fondo — se monta en el hueco
+ * `colaDeTrabajo` de `AsesorCard`, dentro del degradado
+ * `linear-gradient(135deg, #0A1628, #0F2040)`. La medición se hace contra
+ * `#0F2040`, que es el extremo MÁS CLARO del degradado y por tanto el que
+ * aprieta: medir contra `#0A1628` regalaría décimas que la pantalla no da.
  */
 
-const TX_HI  = '#FFFFFF'
-const TX_MID = 'rgba(255,255,255,0.70)'
-const TX_LOW = 'rgba(255,255,255,0.45)'
+const TX_HI  = '#FFFFFF'                      /* 16.14:1 sobre #0F2040 */
+const TX_MID = 'rgba(255,255,255,0.70)'       /*  8.48:1 */
+/* El 0.45 de la primera versión medía 4.31:1 — por debajo del 4.5 de AA, y
+   justo en las etiquetas de 11px, que son las que menos perdonan. El alfa
+   mínimo que pasa es 0.47 (4.57:1) y ése va demasiado al filo: 0.50 da
+   4.84:1. Medido el 8 oct 2026 contra #0F2040. */
+const TX_LOW = 'rgba(255,255,255,0.50)'       /*  4.84:1 */
 const LINEA  = 'rgba(255,255,255,0.10)'
 
 export interface AlertasAsesor {

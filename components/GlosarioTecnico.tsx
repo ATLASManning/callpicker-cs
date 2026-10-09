@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react'
 import { Search, AlertTriangle, ArrowRight } from 'lucide-react'
 import { GLOSARIO, CATEGORIAS_GLOSARIO, type TerminoGlosario } from '@/lib/glosario'
 import { integracionDe, PROTOCOLO_SIN_INTEGRACION } from '@/lib/integraciones-catalogo'
-import { tonoSobreClaro, pastillaClara } from '@/lib/contraste'
+import { tonoSobreClaro, pastillaClara, textoSobreSolido } from '@/lib/contraste'
 import {
   DOCE_ESENCIALES, SEGUNDA_OLA, PRECISIONES, NIVELES_EVOLUCION,
   PREGUNTAS_PERFILAMIENTO, TABLA_EVOLUCION, REGLA_COMERCIAL,
@@ -383,8 +383,13 @@ export default function GlosarioTecnico() {
                   borderRadius: 12, padding: '14px 16px', height: '100%',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                    {/* El blanco de antes fallaba en CINCO de los siete
+                        rellenos: 2.28:1 sobre el verde, 2.56 sobre el gris
+                        pizarra, 2.77 sobre el cian, 3.95 y 4.27 sobre los dos
+                        morados. `textoSobreSolido` lo decide midiendo, así que
+                        añadir un paso al arreglo no reabre el problema. */}
                     <span style={{
-                      fontSize: 11, fontWeight: 900, color: '#fff', background: tono,
+                      fontSize: 11, fontWeight: 900, color: textoSobreSolido(tono), background: tono,
                       borderRadius: 6, padding: '2px 7px',
                     }}>{n.n}</span>
                     <span style={{ fontSize: 14, fontWeight: 800, color: TX }}>{n.titulo}</span>

@@ -1,5 +1,5 @@
 import { getEstadoCuentaConfig } from '@/lib/types'
-import { tonoSobreClaro } from '@/lib/contraste'
+import { tonoSobrePagina } from '@/lib/contraste'
 
 /**
  * Estatus comercial de la cuenta, dicho con todas sus letras.
@@ -34,10 +34,16 @@ export default function EstadoCuentaBadge({
            no se lee. Y es la rama que se ve casi siempre, porque `activo` y
            `en_riesgo` son los dos estados normales de la cartera.
 
-           El tono se CALCULA hasta 4.5:1 en vez de elegirse: es exactamente el
-           caso para el que se escribió `tonoSobreClaro`. La rama no viva se
-           queda como está — blanco sobre relleno sólido ya mide 4.8:1. */
-        color:      cfg.viva ? tonoSobreClaro(cfg.color, 0.094) : '#fff',
+           El tono se CALCULA hasta 4.5:1 en vez de elegirse. Y se calcula
+           contra la PÁGINA, no contra blanco: el primer arreglo usó
+           `tonoSobreClaro`, que compone el tinte sobre blanco, y salió a
+           4.30:1 en la pantalla aunque el cálculo dijera 4.65. El encabezado
+           de la ficha no tiene fondo propio — debajo está el `#EFF6FF`, que
+           es un pelo más oscuro y se come tres décimas de ratio.
+
+           La rama no viva se queda como está: blanco sobre relleno sólido ya
+           mide 4.8:1. */
+        color:      cfg.viva ? tonoSobrePagina(cfg.color, 24 / 255) : '#fff',
         background: cfg.viva ? `${cfg.color}18` : cfg.color,
         border:     `1px solid ${cfg.color}${cfg.viva ? '55' : ''}`,
       }}

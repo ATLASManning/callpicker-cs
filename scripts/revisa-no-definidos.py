@@ -1,7 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 """Identificadores que un archivo USA y que no existen EN NINGUNA PARTE.
 
-   POR QUE EXISTE â€” EL HUECO QUE DEJO SU HERMANO
+   POR QUE EXISTE — EL HUECO QUE DEJO SU HERMANO
    ----------------------------------------------
    `revisa-usados-sin-importar.py` solo marca un nombre si OTRO modulo del
    proyecto lo exporta. Esa condicion es la que lo hace fiable, y es tambien su
@@ -12,17 +12,17 @@
    quedaron dos llamadas vivas en app/page.tsx. La funcion era LOCAL de ese
    archivo: no la exportaba nadie, asi que `u not in EXPORTA` la dejo pasar y
    los trece detectores dieron verde. El error aparecio en la cara del usuario
-   â€”Â«Application error: a server-side exception has occurredÂ»â€” porque
+   —«Application error: a server-side exception has occurred»— porque
    next.config.js lleva ignoreBuildErrors y el despliegue tambien dio verde.
 
    Este hace la pregunta complementaria y mas simple: el nombre que se usa,
-   Â¿existe en algun sitio? Ni importado, ni declarado, ni global del lenguaje.
+   ¿existe en algun sitio? Ni importado, ni declarado, ni global del lenguaje.
 
    POR QUE NO EXPLOTA EN FALSOS POSITIVOS
    --------------------------------------
    Ya se intento un analisis de ambito general y dio 2,696 falsos positivos.
-   Esto no es eso. Mira SOLO dos formas de uso â€”la llamada `foo(` y el
-   componente o tipo `<Foo`â€” y declara conocido CUALQUIER nombre que aparezca
+   Esto no es eso. Mira SOLO dos formas de uso —la llamada `foo(` y el
+   componente o tipo `<Foo`— y declara conocido CUALQUIER nombre que aparezca
    declarado en el archivo, sin importar el ambito. Ser permisivo con lo
    declarado es a proposito: prefiere callar un bug a inventarse diez.
 
@@ -70,7 +70,7 @@ GLOBALES = {
     'Uint8Array', 'Int8Array', 'Uint16Array', 'Int16Array', 'Uint32Array',
     'Int32Array', 'Float32Array', 'Float64Array', 'BigInt64Array',
     'BigUint64Array', 'Uint8ClampedArray',
-    # Tipos de utilidad de TypeScript â€” se escriben como `<Foo>` y no se importan
+    # Tipos de utilidad de TypeScript — se escriben como `<Foo>` y no se importan
     'Record', 'Partial', 'Required', 'Readonly', 'Pick', 'Omit', 'Exclude',
     'Extract', 'NonNullable', 'ReturnType', 'Parameters', 'ConstructorParameters',
     'InstanceType', 'Awaited', 'ThisType', 'Uppercase', 'Lowercase',
@@ -138,14 +138,14 @@ def solo_codigo(s):
        Hace falta un recorredor y no cuatro expresiones regulares porque los
        cuatro casos se enredan entre si. Dos que lo demuestran:
 
-         Â· Un literal de expresion regular como /(termin|cerr)(o|Ã³)/ deja un
+         · Un literal de expresion regular como /(termin|cerr)(o|ó)/ deja un
            `termin(` que se lee igual que una llamada. Medido: 14 falsos
            positivos de un solo archivo, lib/actividades/cierre.ts.
-         Â· Y no se puede borrar primero las cadenas y luego las regex, porque
-           una regex puede CONTENER una comilla â€”/['"]/ es de lo mas comunâ€” y
+         · Y no se puede borrar primero las cadenas y luego las regex, porque
+           una regex puede CONTENER una comilla —/['"]/ es de lo mas comun— y
            el borrador de cadenas se comeria el codigo que viene detras.
 
-       La ambiguedad de `/` â€”division o inicio de regexâ€” se resuelve por lo que
+       La ambiguedad de `/` —division o inicio de regex— se resuelve por lo que
        precede, que es como la resuelve el propio lenguaje.
     """
     out = []
@@ -331,10 +331,10 @@ RX_USO_JSX = re.compile(r'<([A-Z][\w$]*)[\s/>]')
 # â”€â”€ Prosa del JSX: la trampa que hace inservible a este detector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 #
 # `sin_comentarios` quita cadenas y comentarios, pero el texto de un JSX no va
-# entre comillas: `<p>Hay que ver la raÃ­z (del problema)</p>` deja un `raÃ­z (`
+# entre comillas: `<p>Hay que ver la raíz (del problema)</p>` deja un `raíz (`
 # suelto que se lee igual que una llamada. Medido en la primera version: de 71
-# hallazgos, la inmensa mayoria eran palabras en espaÃ±ol â€”Â«eneroÂ», Â«solicitudÂ»,
-# Â«contactosÂ»â€” delante de un parentesis de inciso.
+# hallazgos, la inmensa mayoria eran palabras en español —«enero», «solicitud»,
+# «contactos»— delante de un parentesis de inciso.
 #
 # Lo que separa la prosa del codigo no es la palabra sino lo que viene ANTES.
 # En codigo, una llamada va detras de un operador, de un signo de puntuacion o
@@ -349,7 +349,7 @@ PALABRA_ANTES_VALE = {
 
 
 def es_codigo(s, ini):
-    """Â¿El uso que empieza en `ini` esta en posicion de codigo o de prosa?"""
+    """¿El uso que empieza en `ini` esta en posicion de codigo o de prosa?"""
     i = ini - 1
     while i >= 0 and s[i] in ' \t':
         i -= 1

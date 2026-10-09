@@ -15,7 +15,7 @@ import GlosarioTecnico from '@/components/GlosarioTecnico'
 import TelefonosIP from '@/components/TelefonosIP'
 import { TELEFONOS_COMPATIBLES } from '@/lib/telefonos-ip'
 import { GLOSARIO } from '@/lib/glosario'
-import { tonoSobreClaro, tonoSobreFondo, pastillaClara } from '@/lib/contraste'
+import { tonoSobreClaro, tonoSobreFondo, tonoSobrePagina, pastillaClara } from '@/lib/contraste'
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
 const PANEL  = '#FFFFFF'
@@ -190,15 +190,23 @@ for (const c of KB) for (const a of c.articulos) INDICE.set(a.id, textoDeArticul
 
 // ── Componentes pequeños ──────────────────────────────────────────────────────
 function Badge({ type }: { type: 'roto' | 'pronto' | 'avanzado' | 'nuevo' }) {
+  /* Los tres de color pintaban letra y fondo con el MISMO tono sobre la
+     tarjeta blanca: «Nuevo» 2.87:1, «Avanzado» 2.79:1, «Roto» 3.97:1. El
+     barrido anterior arregló `catColor` en ocho sitios de este archivo y
+     dejó estos cuatro, que tienen su propio color local.
+
+     «Pronto» era otra cosa: su fondo `rgba(255,255,255,0.08)` es un idioma de
+     tarjeta OSCURA —un blanco translúcido no oscurece nada— y sobre la
+     tarjeta blanca no se veía ni el fondo, con la letra en 2.56:1. */
   const map = {
-    roto:     { label: 'Roto',     bg: `${RED}20`,    color: RED    },
-    pronto:   { label: 'Pronto',   bg: 'rgba(255,255,255,0.08)', color: TX_LOW },
-    avanzado: { label: 'Avanzado', bg: `${AMBER}20`,  color: AMBER  },
-    nuevo:    { label: 'Nuevo',    bg: `${GREEN}20`,  color: GREEN  },
+    roto:     { label: 'Roto',     ...pastillaClara(RED, 0.125)   },
+    pronto:   { label: 'Pronto',   background: '#F1F5F9', color: '#475569' },
+    avanzado: { label: 'Avanzado', ...pastillaClara(AMBER, 0.125) },
+    nuevo:    { label: 'Nuevo',    ...pastillaClara(GREEN, 0.125) },
   }
   const s = map[type]
   return (
-    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: s.bg, color: s.color }}>
+    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: s.background, color: s.color }}>
       {s.label}
     </span>
   )
@@ -409,7 +417,9 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
                       <td style={{ padding: '11px 14px', borderBottom: `1px solid ${BORDER}`, textAlign: 'right' }}>
                         <span style={{
                           fontSize: 13, fontWeight: 700, padding: '3px 12px', borderRadius: 6,
-                          color: NIVEL_COLOR[t.nivel], background: `${NIVEL_COLOR[t.nivel]}18`,
+                          /* Mismo patrón color==fondo: verde 2.97:1, ámbar
+                             2.88:1, rojo 4.18:1 sobre la tarjeta blanca. */
+                          ...pastillaClara(NIVEL_COLOR[t.nivel], 0.094),
                         }}>{t.regla}</span>
                       </td>
                     </tr>
@@ -688,10 +698,22 @@ export default function BaseCSPage() {
                 </span>
                 {count > 0
                   /* El contador pintaba letra y fondo con el MISMO color de
-                     categoría sobre la tarjeta blanca: «Seguridad» #22D3EE
-                     daba 1.64:1 e «Informes» #84CC16 1.76:1. `pastillaClara`
-                     conserva el tinte y calcula la letra hasta 4.5:1. */
-                  ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 10, ...pastillaClara(c.color, 0.145) }}>{count}</span>
+                     categoría: «Seguridad» #22D3EE daba 1.64:1 e «Informes»
+                     #84CC16 1.76:1.
+
+                     Y el primer arreglo usó `pastillaClara`, que compone el
+                     tinte sobre BLANCO — aquí no hay blanco: el nav no declara
+                     fondo, debajo está el `#EFF6FF`, y cuando la categoría
+                     está activa el botón pinta otro tinte por debajo. Medido:
+                     4.20–4.38:1 con la categoría inactiva y 3.80:1 con la
+                     activa, cuando el cálculo decía 4.54–4.72.
+
+                     El alfa 0.2254 es el de los DOS tintes apilados
+                     —1−(1−0.145)(1−0.094)—, o sea el caso peor. El tono que
+                     sale sirve para los dos estados. */
+                  ? <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 6px', borderRadius: 10,
+                                   background: `${c.color}25`, color: tonoSobrePagina(c.color, 0.2254),
+                                   border: `1px solid ${c.color}55` }}>{count}</span>
                   : <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 10, background: 'rgba(0,87,255,0.06)', color: TX_LOW }}>pronto</span>
                 }
               </button>

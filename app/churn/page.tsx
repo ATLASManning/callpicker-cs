@@ -3219,8 +3219,10 @@ export default function ChurnPage() {
                 className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
                 Cancelar
               </button>
+              {/* Igual que el de /auditoria: el blanco sobre `bg-red-500`
+                  mide 3.76:1. El `-600` da 4.83:1. */}
               <button onClick={() => handleDelete(delConfirm)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors">
                 Eliminar
               </button>
             </div>

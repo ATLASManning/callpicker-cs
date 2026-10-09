@@ -219,13 +219,16 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
               {
                 icon: TrendingUp, label: 'Monto acum.',
                 value: fmt$(montoTotal),
-                color: '#1B3FCC',
+                /* El mismo `#1B3FCC` que ya se corrigió en la pastilla de
+                   arriba: aquí pinta el icono del KPI sobre la tarjeta
+                   oscura, 2.23:1. Un icono pide 3:1 y tampoco llegaba. */
+                color: '#60A5FA',
                 sub: `${meses.length} periodos`,
               },
               {
                 icon: BarChart2, label: 'Uso princ.',
                 value: usoPrincipal || '—',
-                color: usoPrincipal === 'entrantes' ? '#1B3FCC' : usoPrincipal === 'salientes' ? '#f59e0b' : '#6366f1',
+                color: usoPrincipal === 'entrantes' ? '#60A5FA' : usoPrincipal === 'salientes' ? '#f59e0b' : '#6366f1',
                 sub: 'llamadas',
               },
             ].map(({ icon: Icon, label, value, color, sub }) => (

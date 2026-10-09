@@ -4,8 +4,8 @@
    POR QUE EXISTE
    --------------
    Octava ronda del mismo bug (8 oct 2026). `revisa-contraste-cpcard.py` cubre
-   una direccion â€”el color que la cascada de `.cp-card` pinta de blanco dentro
-   de una tarjeta oscuraâ€” y NO cubre la contraria, que es la que vuelve: texto
+   una direccion —el color que la cascada de `.cp-card` pinta de blanco dentro
+   de una tarjeta oscura— y NO cubre la contraria, que es la que vuelve: texto
    claro sobre el `#EFF6FF` de la pagina, que solo se lee seleccionandolo.
 
    LA REGLA, QUE AQUI SI ES DECIDIBLE
@@ -15,12 +15,12 @@
    NINGUNA superficie oscura no tiene donde poner letra clara**. Si ese archivo
    escribe blanco, es blanco sobre la pagina clara. Sin ambiguedad.
 
-   Los archivos que declaran las dos cosas se cuentan aparte, como Â«hay que
-   leerlosÂ»: ahi la heuristica no alcanza y decirlo es mas honesto que inventar
+   Los archivos que declaran las dos cosas se cuentan aparte, como «hay que
+   leerlos»: ahi la heuristica no alcanza y decirlo es mas honesto que inventar
    un veredicto.
 
    Resuelve las CONSTANTES del propio archivo, que es como se escribe de verdad
-   â€”`const TX_HI = 'rgba(255,255,255,0.94)'` y luego `color: TX_HI`â€”; mirar solo
+   —`const TX_HI = 'rgba(255,255,255,0.94)'` y luego `color: TX_HI`—; mirar solo
    los literales en linea no habria visto ni uno de los tres de `/alertas`.
 
    Es de SOLO LECTURA.
@@ -70,6 +70,23 @@ RX_HEX = re.compile(r'#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b')
 RX_RGBA = re.compile(r'rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)')
 # Clases de Tailwind que pintan blanco pase lo que pase.
 RX_CLASE_BLANCA = re.compile(r'\btext-white(?:/\d{1,3})?\b')
+
+# ── LA ESCOTILLA, Y POR QUE TIENE QUE EXISTIR ─────────────────────────────
+# Hay un caso que NINGUNA lectura de un archivo puede resolver: el componente
+# no dibuja su fondo porque lo dibuja quien lo monta. `AtlasPresencia` vive
+# dentro de un `PageHeader dark` sobre el `#070C16` de `atlas.module.css`;
+# `ColaDeTrabajoAsesor` va sobre el degradado marino de `AsesorCard`. Su letra
+# clara es correcta y el detector no tiene como saberlo.
+#
+# Dejarlo como hallazgo permanente es peor que no detectar: tres avisos que
+# siempre estan ahi ensenan a saltarse la lista entera. Y bajar el umbral para
+# que callen apaga el detector.
+#
+# Asi que el autor lo declara, Y DICE QUIEN PONE EL FONDO. Se exige un motivo
+# de 25 caracteres para que no sirva de interruptor: hay que nombrar al padre,
+# y entonces queda auditable en el archivo y no en la cabeza de nadie.
+RX_PADRE = re.compile(r'@contraste-padre:[ \t]*(\S[^\n]*)')
+MOTIVO_MINIMO = 25
 
 
 def canal(c):
@@ -125,10 +142,10 @@ def a_rgb(valor):
 
 
 def objetos_style(txt):
-    """Cada `style={{ â€¦ }}` del archivo, con su contenido y su linea.
+    """Cada `style={{ … }}` del archivo, con su contenido y su linea.
 
        Se recorre con balance de llaves y no con una expresion regular porque
-       dentro hay `${â€¦}`, objetos anidados y plantillas: un `[^}]*` corta en la
+       dentro hay `${…}`, objetos anidados y plantillas: un `[^}]*` corta en la
        primera llave y se pierde justo el `color` que viene despues.
     """
     out = []
@@ -255,6 +272,19 @@ def archivos():
                     yield os.path.join(dp, f)
 
 
+def padre_declarado(txt):
+    """El motivo de la escotilla, o None. Se busca en el texto CRUDO.
+
+       `sin_comentarios` borra el comentario donde vive la marca, asi que hay
+       que leerla antes de limpiar.
+    """
+    m = RX_PADRE.search(txt)
+    if not m:
+        return None
+    motivo = m.group(1).strip().rstrip('*/').strip()
+    return motivo if len(motivo) >= MOTIVO_MINIMO else None
+
+
 def analiza(txt):
     """Devuelve (tiene_oscuro, tiene_claro, [(nombre_o_valor, rgb)] claros)."""
     limpio = sin_comentarios(txt)
@@ -267,20 +297,42 @@ def analiza(txt):
             return a_rgb(consts[nombre])
         return None
 
-    # â”€â”€ Â¿Dibuja alguna superficie oscura? â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    tiene_oscuro = 'cp-card' in limpio
+    # â”€â”€ ¿Dibuja alguna superficie oscura? â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    tiene_oscuro = 'cp-card' in limpio or padre_declarado(txt) is not None
     tiene_claro_fondo = False
-    for lit, nom in RX_FONDO.findall(limpio):
-        rgb = resuelve(lit, nom)
+
+    def anota(rgb):
+        """Clasifica una superficie. Devuelve nada; mueve las dos banderas."""
         if rgb is None:
-            continue
+            return
         # Un blanco translucido NO oscurece: hereda lo de detras. Es el caso
         # de `rgba(255,255,255,0.04)`, que sobre pagina clara sigue claro.
         l = luminancia(rgb)
         if l < LUM_OSCURA:
-            tiene_oscuro = True
+            banderas[0] = True
         elif l > LUM_CLARA:
-            tiene_claro_fondo = True
+            banderas[1] = True
+
+    banderas = [tiene_oscuro, tiene_claro_fondo]
+    for lit, nom in RX_FONDO.findall(limpio):
+        anota(resuelve(lit, nom))
+
+    # UN FONDO OSCURO DECLARADO EN UN TERNARIO SIGUE SIENDO UN FONDO OSCURO.
+    # `RX_FONDO` solo reconoce `background: '#hex'` y `background: CONSTANTE`,
+    # asi que `background: catFiltro === 'todas' ? TX : PANEL` no lo veia y el
+    # archivo se contaba como «sin ninguna superficie oscura». Era el caso de
+    # `GlosarioTecnico.tsx`: pinta `#0F172A` y `#0057FF` en dos botones y salia
+    # acusado por el blanco que va justamente encima de ellos. Un detector con
+    # falsos positivos deja de leerse, que es peor que no tenerlo.
+    #
+    # El efecto de leer las ramas es mover el archivo de «hallazgo» a «hay que
+    # leerlo», que es la verdad: con las dos clases de fondo en el archivo, la
+    # heuristica ya no puede decidir.
+    for m in RX_TERNARIO_FONDO.finditer(limpio):
+        anota(resuelve(m.group(1), m.group(2)))
+        anota(resuelve(m.group(3), m.group(4)))
+
+    tiene_oscuro, tiene_claro_fondo = banderas
 
     # â”€â”€ Los colores de texto claros â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     claros = []
@@ -305,6 +357,14 @@ CASOS_CAZA = [
      "  return <p style={{ color: '#FFFFFF' }}>hola</p>\n}\n"),
     ('clase text-white a nivel de pagina',
      "export default function P() { return <p className=\"text-white\">hola</p> }\n"),
+    # LA ESCOTILLA AL REVES: si bastara con escribir la marca, seria un
+    # interruptor de apagado y el detector no valdria nada.
+    ('la marca @contraste-padre SIN motivo no calla a nadie',
+     "/* @contraste-padre: */\n"
+     "export default function P() { return <p style={{ color: '#FFFFFF' }}>x</p> }\n"),
+    ('la marca con un motivo de dos palabras tampoco',
+     "/* @contraste-padre: el padre */\n"
+     "export default function P() { return <p style={{ color: '#FFFFFF' }}>x</p> }\n"),
 ]
 CASOS_MUDOS = [
     ('tarjeta oscura declarada en el propio archivo',
@@ -325,6 +385,20 @@ CASOS_MUDOS = [
      "export default function P() {\n"
      "  return <div style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #0F2040 100%)` }}>\n"
      "    <span style={{ color: '#FFFFFF' }}>hola</span></div>\n}\n"),
+    # El caso de GlosarioTecnico: el fondo oscuro solo aparece en una rama de
+    # un ternario. Sin leer las ramas, el archivo se acusaba por el blanco que
+    # va encima de ese mismo fondo.
+    ('fondo oscuro declarado SOLO en una rama de un ternario',
+     "const PANEL = '#FFFFFF'\nconst TX = '#0F172A'\n"
+     "export default function P({ act }) {\n"
+     "  return <button style={{ background: act ? TX : PANEL, color: '#fff' }}>x</button>\n}\n"),
+    ('fondo oscuro en un ternario con hex literal en la rama',
+     "export default function P({ act }) {\n"
+     "  return <button style={{ background: act ? '#0057FF' : '#FFFFFF' }}>\n"
+     "    <span style={{ color: '#FFFFFF' }}>x</span></button>\n}\n"),
+    ('la escotilla CON un motivo que nombra al padre',
+     "/* @contraste-padre: vive dentro del degradado marino de AsesorCard */\n"
+     "export default function P() { return <p style={{ color: '#FFFFFF' }}>x</p> }\n"),
 ]
 
 # Los dos casos MEDIBLES, que no dependen de ninguna heuristica del arbol.
@@ -421,8 +495,8 @@ print('  %d archivo(s) .tsx revisados.\n' % n)
 
 if medidos:
     print('  *** FONDO Y COLOR EN EL MISMO ELEMENTO, Y NO CONTRASTAN ***')
-    print('  Esto no es heurÃ­stica: los dos lados estÃ¡n en el mismo `style`,')
-    print('  asÃ­ que se mide. Por debajo de 3:1 no se lee.\n')
+    print('  Esto no es heurística: los dos lados están en el mismo `style`,')
+    print('  así que se mide. Por debajo de 3:1 no se lee.\n')
     for rel, linea, ratio, col, fon in sorted(medidos, key=lambda x: x[2]):
         print('  %s:%d  %.2f:1' % (rel, linea, ratio))
         print('      color %s  sobre  %s' % (str(col)[:34], str(fon)[:38]))
@@ -430,7 +504,7 @@ if medidos:
 
 if flips:
     print('  *** EL FONDO CAMBIA DE CLARO A OSCURO Y EL TEXTO NO ***')
-    print('  Un estado que voltea el fondo con una condiciÃ³n deja al texto de')
+    print('  Un estado que voltea el fondo con una condición deja al texto de')
     print('  dentro correcto en uno de los dos y mal en el otro. Fue el mosaico')
     print('  seleccionado de /alertas.\n')
     for rel, linea, frag, col in flips:
@@ -441,16 +515,16 @@ if flips:
 if seguros:
     print('  *** LETRA CLARA SIN NINGUNA SUPERFICIE OSCURA ***')
     print('  Estos archivos no declaran ni una `.cp-card` ni un fondo oscuro,')
-    print('  asÃ­ que su texto claro cae sobre el #EFF6FF de la pÃ¡gina.\n')
+    print('  así que su texto claro cae sobre el #EFF6FF de la página.\n')
     for rel, cs in seguros:
         print('  %s' % rel)
         print('      %s' % ', '.join(cs)[:100])
 else:
-    print('  ningÃºn archivo pone letra clara sin tener dÃ³nde ponerla.')
+    print('  ningún archivo pone letra clara sin tener dónde ponerla.')
 
 if mixtos:
     print('\n  --- Y %d con fondos de los DOS tipos: hay que leerlos ---' % len(mixtos))
-    print('  La heurÃ­stica no sabe cuÃ¡l texto cae en cuÃ¡l fondo. No son')
+    print('  La heurística no sabe cuál texto cae en cuál fondo. No son')
     print('  hallazgos: son los que no se pueden decidir desde fuera.')
     for rel, cs in mixtos:
         print('  %s' % rel)

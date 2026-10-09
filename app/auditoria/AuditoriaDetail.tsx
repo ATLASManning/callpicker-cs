@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import type { AuditoriaCase } from './types'
-import { tonoSobreClaro, pastillaClara } from '@/lib/contraste'
+import { tonoSobreClaro, tonoSobreFondo, pastillaClara } from '@/lib/contraste'
 import {
   AlertTriangle, CheckCircle2, Clock, TrendingUp,
   User, Users, Zap, Target, Shield, ChevronDown, ChevronUp,
@@ -31,6 +31,14 @@ const ORANGE = '#f97316'
 const AMBER_TX  = tonoSobreClaro(AMBER, 0)
 const GREEN_TX  = tonoSobreClaro(GREEN, 0)
 const ORANGE_TX = tonoSobreClaro(ORANGE, 0)
+/* Los TRES que faltaban. La primera pasada definió tono de texto para los de
+   arriba y dejó éstos crudos — en la celda de AL LADO de la misma tabla
+   («Proceso Real» en RED a 3.76:1 junto a «Proceso Ideal» en GREEN_TX a
+   4.71:1) y en la casilla vecina de la misma rejilla FODA. Arreglar el caso y
+   no la clase, otra vez. */
+const RED_TX    = tonoSobreClaro(RED, 0)
+const BLUE_TX   = tonoSobreClaro(BLUE, 0)
+const INDIGO_TX = tonoSobreClaro(INDIGO, 0)
 
 /* ─── Mapa de colores por estado ─────────────────────────────────────── */
 const ESTADO_COLOR: Record<string, string> = {
@@ -226,7 +234,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                 {caso.hallazgos.map((h, i) => (
                   <div key={i} className="flex gap-3">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{ background: `${RED}20`, color: RED }}>
+                      style={{ ...pastillaClara(RED, 0.125) }}>
                       <span className="text-[10px] font-bold">{String(i + 1).padStart(2, '0')}</span>
                     </div>
                     <p className="text-sm text-gray-700 leading-relaxed">{h}</p>
@@ -420,7 +428,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-sm font-bold text-gray-900">{r.patron}</span>
                         <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{ background: `${RED}18`, color: RED }}>{r.veces}</span>
+                          style={{ background: `${RED}18`, color: tonoSobreFondo(RED, '#FDE6DD', 4.5) }}>{r.veces}</span>
                       </div>
                       <p className="text-xs text-gray-600 mt-1">{r.causa}</p>
                     </div>
@@ -446,7 +454,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                     <thead>
                       <tr className="border-b border-gray-200">
                         <th className="text-left py-2 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Métrica</th>
-                        <th className="text-left py-2 pr-4 text-xs font-semibold uppercase tracking-wide" style={{ color: RED }}>Proceso Real</th>
+                        <th className="text-left py-2 pr-4 text-xs font-semibold uppercase tracking-wide" style={{ color: RED_TX }}>Proceso Real</th>
                         <th className="text-left py-2 text-xs font-semibold uppercase tracking-wide" style={{ color: GREEN_TX }}>Proceso Ideal</th>
                       </tr>
                     </thead>
@@ -454,7 +462,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                       {caso.comparativo.map(r => (
                         <tr key={r.metrica} className="border-b border-gray-100 last:border-0">
                           <td className="py-3 pr-4 font-medium text-gray-900 align-top text-xs">{r.metrica}</td>
-                          <td className="py-3 pr-4 align-top text-xs" style={{ color: RED }}>{r.real}</td>
+                          <td className="py-3 pr-4 align-top text-xs" style={{ color: RED_TX }}>{r.real}</td>
                           <td className="py-3 align-top text-xs" style={{ color: GREEN_TX }}>{r.ideal}</td>
                         </tr>
                       ))}
@@ -475,7 +483,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   {caso.plan_inmediato.map((a, i) => (
                     <div key={i} className="flex gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50/50">
                       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                        style={{ background: `${RED}15`, color: RED }}>
+                        style={{ ...pastillaClara(RED, 0.082) }}>
                         <span className="text-[10px] font-bold">{i + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -541,7 +549,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   {caso.areas_oportunidad.map((o, i) => (
                     <div key={i} className="flex gap-3 p-3 rounded-lg border border-gray-100">
                       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${INDIGO}15`, color: INDIGO }}>
+                        style={{ ...pastillaClara(INDIGO, 0.082) }}>
                         <span className="text-[10px] font-bold">{i + 1}</span>
                       </div>
                       <div className="flex-1">
@@ -612,7 +620,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                 <div className="px-5 py-3 flex items-center gap-2" style={{ background: `${BLUE}12` }}>
                   <TrendingUp size={15} style={{ color: BLUE }} />
-                  <h3 className="font-semibold text-sm" style={{ color: BLUE }}>Oportunidades (Externas)</h3>
+                  <h3 className="font-semibold text-sm" style={{ color: BLUE_TX }}>Oportunidades (Externas)</h3>
                 </div>
                 <ul className="px-5 py-4 space-y-2">
                   {caso.foda.oportunidades.map(item => (
@@ -644,7 +652,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                 <div className="px-5 py-3 flex items-center gap-2" style={{ background: `${RED}12` }}>
                   <AlertCircle size={15} style={{ color: RED }} />
-                  <h3 className="font-semibold text-sm" style={{ color: RED }}>Amenazas (Externas)</h3>
+                  <h3 className="font-semibold text-sm" style={{ color: RED_TX }}>Amenazas (Externas)</h3>
                 </div>
                 <ul className="px-5 py-4 space-y-2">
                   {caso.foda.amenazas.map(item => (
@@ -665,13 +673,13 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 {caso.pierde.length > 0 && (
                   <div className="p-4 rounded-lg border" style={{ background: `${RED}06`, borderColor: `${RED}25` }}>
-                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: RED }}>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: RED_TX }}>
                       Lo que se pierde si no actúa
                     </p>
                     <ul className="space-y-1">
                       {caso.pierde.map(i => (
                         <li key={i} className="text-xs text-gray-600 flex gap-2">
-                          <span style={{ color: RED }}>✕</span>{i}
+                          <span style={{ color: RED_TX }}>✕</span>{i}
                         </li>
                       ))}
                     </ul>

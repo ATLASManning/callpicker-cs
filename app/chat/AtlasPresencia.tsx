@@ -15,10 +15,16 @@ import s from './atlas.module.css'
 
    NO DICE «ESCRIBIENDO…» NI FINGE NADA. Cada texto corresponde a algo que de
    verdad está pasando en la aplicación.
+
+   @contraste-padre: este chip no dibuja fondo — va en el `actions` de un
+   `PageHeader dark`, dentro del `.pantalla` de `atlas.module.css`, cuyo fondo
+   es `#070C16`. Contra ese negro azulado los cuatro tonos miden 6.05:1 el
+   `#7C90B2` de «Sin conexión» —que es el más apretado—, 7.70:1 el `#60A5FA`,
+   11.23:1 el `#4ADE80` y 11.74:1 el `#7DD3FC`. Medido el 8 oct 2026.
    ══════════════════════════════════════════════════════════════════════════ */
 
 const TEXTO: Record<EstadoSenal, { label: string; color: string }> = {
-  // #5E7396 daba 4.07:1 sobre el fondo, por debajo del 4.5 de AA. Este da 6.05.
+  // #5E7396 daba 4.07:1 sobre el #070C16, por debajo del 4.5 de AA. Este, 6.05.
   dormida:    { label: 'Sin conexión',  color: '#7C90B2' },
   disponible: { label: 'En línea',      color: '#4ADE80' },
   escuchando: { label: 'Escuchando',    color: '#7DD3FC' },

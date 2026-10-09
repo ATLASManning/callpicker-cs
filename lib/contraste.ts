@@ -74,8 +74,13 @@ export function tonoSobreClaro(hex: string, alfa = 0.14, objetivo = 4.5): string
   const fondo = compone(base, alfa)
   let r = '#0F172A'
   for (let k = 1; k > 0.02; k -= 0.025) {
-    const cand = base.map(c => c * k)
-    if (contraste(cand, fondo) >= objetivo) { r = rgbAHex(cand); break }
+    /* SE MIDE EL HEX, NO EL FLOTANTE. El candidato se calcula con decimales y
+       se sirve redondeado a enteros, y ese redondeo se come hasta una décima:
+       el verde `#22C55E` salía del descenso con 4.5001:1 y llegaba a la
+       pantalla con 4.4997. Pasaba la revisión por un pelo del lado malo.
+       Medir el hex ya redondeado hace que la garantía sea exacta. */
+    const cand = rgbAHex(base.map(c => c * k))
+    if (contraste(hexARgb(cand), fondo) >= objetivo) { r = cand; break }
   }
   CACHE.set(clave, r)
   return r
@@ -105,8 +110,9 @@ export function tonoSobreFondo(hex: string, fondoHex: string, objetivo = 3): str
     r = rgbAHex(base)
   } else {
     for (let k = 1; k > 0.02; k -= 0.02) {
-      const cand = base.map(c => c * k)
-      if (contraste(cand, fondo) >= objetivo) { r = rgbAHex(cand); break }
+      /* Redondeado antes de medir, igual que arriba. */
+      const cand = rgbAHex(base.map(c => c * k))
+      if (contraste(hexARgb(cand), fondo) >= objetivo) { r = cand; break }
     }
   }
   CACHE.set(clave, r)
@@ -125,4 +131,102 @@ export function pastillaClara(hex: string, alfa = 0.14) {
     color: tonoSobreClaro(hex, alfa),
     borderColor: `${hex}55`,
   }
+}
+
+/**
+ * EL FONDO DE LA PÁGINA. No es blanco, y esa diferencia descuadra la medición.
+ *
+ * `app/globals.css` pone `html, body { background: #EFF6FF }`. Un tinte
+ * translúcido encima de eso NO compone sobre blanco: compone sobre este azul
+ * clarito, que es un pelo más oscuro y se come unas tres décimas de ratio.
+ */
+export const FONDO_PAGINA = '#EFF6FF'
+
+/**
+ * El tono de letra para una pastilla que vive A NIVEL DE PÁGINA.
+ *
+ * `tonoSobreClaro` compone el tinte sobre BLANCO, que es correcto dentro de
+ * una tarjeta blanca y equivocado en cualquier otro sitio. Usarla en la página
+ * deja el tono corto: medido el 8 oct 2026, la pastilla de estatus de la ficha
+ * salía a 4.65:1 según el cálculo y a **4.30:1** en la pantalla, y la inicial
+ * de la empresa a 4.17:1 en sus seis estados. Pasaban la revisión y no pasaban
+ * el ojo.
+ *
+ * Existe para que la diferencia no haya que recordarla: si el elemento cuelga
+ * de la página, ésta; si cuelga de una tarjeta blanca, `tonoSobreClaro`.
+ */
+export function tonoSobrePagina(hex: string, alfa = 0.14, objetivo = 4.5): string {
+  const fondo = compone(hexARgb(hex), alfa, hexARgb(FONDO_PAGINA))
+  return tonoSobreFondo(hex, rgbAHex(fondo), objetivo)
+}
+
+/** Como `pastillaClara`, pero para una pastilla que vive sobre la página. */
+export function pastillaSobrePagina(hex: string, alfa = 0.14) {
+  return {
+    background: `${hex}${Math.round(alfa * 255).toString(16).padStart(2, '0')}`,
+    color: tonoSobrePagina(hex, alfa),
+    borderColor: `${hex}55`,
+  }
+}
+
+/**
+ * EL CUARTO CASO: letra sobre un relleno SÓLIDO de color.
+ *
+ * Las tres funciones de arriba suponen un fondo claro —blanco, la página, o un
+ * tinte translúcido— y oscurecen la letra. Aquí el fondo es el color entero, y
+ * la respuesta no siempre es oscurecer: sobre un azul `#0057FF` el blanco mide
+ * 5.52:1 y es correcto, mientras que sobre el mismo azul la letra oscura no
+ * llega a 4.5 por mucho que se baje.
+ *
+ * Lo que NO se puede hacer es poner blanco por costumbre. Medido el 8 oct 2026
+ * en las pastillas numeradas del glosario: de los siete rellenos de los pasos,
+ * **cinco** dejaban el blanco por debajo de AA —`#22C55E` en 2.28:1, `#94A3B8`
+ * en 2.56, `#0EA5E9` en 2.77, `#A855F7` en 3.95 y `#8B5CF6` en 4.27—. Los
+ * `bg-*-500` de Tailwind son el mismo caso: su blanco mide 3.68 (azul) y 3.76
+ * (rojo), que es justamente por qué existe el `-600`.
+ *
+ * Decide por medición: blanco si el blanco pasa, y si no, el propio tono
+ * oscurecido hasta que pase —así la pastilla conserva su color—. Si ninguno
+ * llega al objetivo (un relleno de luminancia intermedia puede no admitir
+ * ninguno de los dos), devuelve el que más contraste da, que es lo más honesto
+ * que se puede hacer sin cambiarle el fondo.
+ */
+export function textoSobreSolido(hex: string, objetivo = 4.5): string {
+  const clave = `s|${hex}|${objetivo}`
+  const guardado = CACHE.get(clave)
+  if (guardado) return guardado
+
+  const fondo = hexARgb(hex)
+  const BLANCO = [255, 255, 255]
+  const cBlanco = contraste(BLANCO, fondo)
+
+  let r = ''
+  if (cBlanco >= objetivo) {
+    r = '#FFFFFF'
+  } else {
+    /* El mismo descenso que `tonoSobreFondo`, pero contra el propio relleno.
+       EN CUANTO ALCANZA EL OBJETIVO SE PARA: así gana el tono con el color
+       conservado y no el marino. La primera versión comparaba el marino
+       contra el ganador del descenso, y como el marino mide más sobre un
+       relleno claro —7.83:1 sobre el verde `#22C55E` frente a los 4.5 justos
+       del verde oscuro—, se llevaba todos los casos y el color se perdía.
+
+       El marino queda solo como semilla, para el caso en que el descenso NO
+       alcance el objetivo. Con el 4.5 de AA ese caso no existe: si el blanco
+       falla es que la luminancia del relleno pasa de 0.183, y entonces el
+       negro mide más de 4.67:1. Pero con un objetivo de AAA (7:1) sí puede
+       quedarse corto, y entonces se devuelve lo que más mida de los tres. */
+    let mejor = '#0F172A'
+    let cMejor = contraste(hexARgb(mejor), fondo)
+    for (let k = 1; k > 0.02; k -= 0.02) {
+      /* Redondeado antes de medir, igual que en las dos de arriba. */
+      const cand = rgbAHex(fondo.map(c => c * k))
+      const c = contraste(hexARgb(cand), fondo)
+      if (c >= objetivo) { mejor = cand; cMejor = c; break }
+      if (c > cMejor) { mejor = cand; cMejor = c }
+    }
+    r = cMejor >= objetivo || cMejor >= cBlanco ? mejor : '#FFFFFF'
+  }
+  CACHE.set(clave, r)
+  return r
 }
