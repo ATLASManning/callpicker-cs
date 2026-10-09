@@ -268,11 +268,20 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
 
   /* ── GRÁFICA 3 · qué fuente falta y cuánto dinero tapa ───────────────── */
   const g3 = useMemo(() => datos.fuentes.map((fu, i) => {
-    let con = 0, sin = 0, dineroSin = 0, nSin = 0
+    let con = 0, sin = 0, dineroSin = 0, nSin = 0, nSinImporte = 0
     for (const f of filas) {
-      if (f.fuentes[i]) { con += vale(f) } else { sin += vale(f); dineroSin += f.mrr ?? 0; nSin += 1 }
+      if (f.fuentes[i]) { con += vale(f); continue }
+      sin += vale(f)
+      nSin += 1
+      /* El dinero tapado NO suma las cuentas sin importe como cero. Se vio
+         mirando la pantalla servida: la fila de «Facturación» decía «10 sin
+         dato · $0», y leído así parece que ese hueco no esconde nada — cuando
+         es justo el único hueco cuyo dinero no se puede conocer. Se cuentan
+         aparte y la fila lo dice. */
+      if (f.mrr === null) nSinImporte += 1
+      else dineroSin += f.mrr
     }
-    return { ...fu, con, sin, dineroSin, nSin }
+    return { ...fu, con, sin, dineroSin, nSin, nSinImporte }
   }).sort((a, b) => b.dineroSin - a.dineroSin), [filas, medida, datos.fuentes])
 
   const tooltip = {
@@ -434,9 +443,16 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                                  fontVariantNumeric: 'tabular-nums' })}>
                   {f.nSin} sin dato
                 </span>
-                <span style={C(TX_HI, { fontSize: 11, fontWeight: 700, width: 74, textAlign: 'right',
-                                        flexShrink: 0, fontVariantNumeric: 'tabular-nums' })}>
-                  {miles(f.dineroSin)}
+                <span style={C(f.nSin > f.nSinImporte ? TX_HI : '#FBBF24',
+                               { fontSize: 11, fontWeight: 700, width: 92, textAlign: 'right',
+                                 flexShrink: 0, fontVariantNumeric: 'tabular-nums' })}
+                      title={f.nSinImporte > 0
+                        ? `${f.nSinImporte} de las ${f.nSin} sin este dato tampoco tienen importe en ninguna fuente`
+                        : undefined}>
+                  {f.nSin > f.nSinImporte ? miles(f.dineroSin) : 'sin medir'}
+                  {f.nSinImporte > 0 && f.nSin > f.nSinImporte && (
+                    <span style={C('#FBBF24', { fontSize: 9.5 })}> +{f.nSinImporte}</span>
+                  )}
                 </span>
               </div>
             )
@@ -450,7 +466,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
 
         {/* A quién se le pide lo que más dinero tapa. Una alerta sin dueño es
             una queja; esto nombra a quién va dirigida. */}
-        {g3[0] && g3[0].nSin > 0 && (
+        {g3[0] && g3[0].nSin > 0 && g3[0].dineroSin > 0 && (
           /* «Se pide a {pedirA}» daba «Se pide a el asesor»: los textos de
              `FUENTES.pedirA` ya empiezan por su sujeto —«el asesor —…»,
              «Ingeniería —…»— y la preposición sobraba. Se vio leyendo el HTML
