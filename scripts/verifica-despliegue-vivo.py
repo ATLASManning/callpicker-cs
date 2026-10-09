@@ -15,9 +15,25 @@
         codigo y solo cambia si compilo.
      3. Que el commit que menciona el correo sea o no ancestro del HEAD.
 
+   LA VERSION ESPERADA SE LEE DEL FUENTE, NO SE PASA A MANO
+   --------------------------------------------------------
+   La primera version solo comparaba si se le daba la version por argumento.
+   Llamada sin argumentos imprimia la VERSION en linea y acto seguido
+   declaraba «el codigo de HEAD esta sirviendo» — sin haber comparado nada.
+   Paso el 8 oct 2026: dijo que HEAD estaba sirviendo mientras el marcador en
+   linea era `.10` y el fuente ya iba por `.11`.
+
+   Un verificador que concluye exito por defecto es peor que no tenerlo: da
+   la tranquilidad sin el trabajo. Ahora la espera sale de
+   `app/api/alertas/veredictos/route.ts`, y si no se puede leer, eso es un
+   fallo y no un «todo bien».
+
    USO
    ---
        python scripts/verifica-despliegue-vivo.py [version-esperada] [commit-del-correo]
+
+   El primer argumento solo hace falta para comparar contra algo que no sea
+   el fuente de ahora.
 """
 import io
 import os
@@ -30,7 +46,20 @@ import urllib.request
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 BASE = 'https://callpicker-cs.vercel.app'
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ESPERADA = sys.argv[1] if len(sys.argv) > 1 else None
+RUTA_VERSION = os.path.join(RAIZ, 'app', 'api', 'alertas', 'veredictos', 'route.ts')
+
+
+def version_del_fuente():
+    """La `VERSION` que el codigo de ahora deberia estar sirviendo."""
+    try:
+        txt = io.open(RUTA_VERSION, encoding='utf-8').read()
+    except OSError:
+        return None
+    m = re.search(r"""const\s+VERSION\s*=\s*['"]([^'"]+)['"]""", txt)
+    return m.group(1) if m else None
+
+
+ESPERADA = sys.argv[1] if len(sys.argv) > 1 else version_del_fuente()
 DEL_CORREO = sys.argv[2] if len(sys.argv) > 2 else None
 
 
@@ -82,9 +111,14 @@ print('  VERSION en linea          %s' % viva)
 
 fallas = []
 if ESPERADA:
-    print('  VERSION esperada          %s' % ESPERADA)
+    print('  VERSION esperada          %s%s'
+          % (ESPERADA, '' if len(sys.argv) > 1 else '   (leida del fuente)'))
     if viva != ESPERADA:
         fallas.append('la VERSION no coincide: el build NO esta en linea')
+else:
+    # SIN ESPERA NO HAY VEREDICTO. Antes se caia por aqui y el script decia
+    # que todo estaba bien sin haber comparado nada.
+    fallas.append('no se pudo leer la VERSION del fuente: no hay con que comparar')
 
 # ── 3. El commit del correo, en su sitio de la cadena ─────────────────────
 if DEL_CORREO:
