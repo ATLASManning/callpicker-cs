@@ -343,6 +343,10 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
     return xs.length % 2 ? xs[m] : (xs[m - 1] + xs[m]) / 2
   }, [filas])
 
+  /** La mediana SÓLO si cae justo en una columna del histograma. */
+  const medianaEnColumna = medianaFuentes !== null && Number.isInteger(medianaFuentes)
+    ? medianaFuentes : null
+
   const datosG2 = g2.map(c => ({ name: `${c.n}/8`, ...c.por }))
   /* Los cubos que tienen cuentas pero valen 0 en dinero. Son las más ciegas
      —sin importe medible— y en modo dinero su columna se dibuja a altura
@@ -546,7 +550,10 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
           Con tres fuentes de ocho no se emite juicio, se pide lo que falta.
           {medianaFuentes !== null && (
             <> La mediana de esta cartera está en <span style={C(TX_HI, { fontWeight: 700 })}>
-              {medianaFuentes} de 8</span>.</>
+              {medianaFuentes} de 8</span>
+              {medianaEnColumna === null
+                ? ' — cae entre dos columnas, así que no se marca ninguna.'
+                : ', marcada con la raya.'}</>
           )}
         </p>
 
@@ -564,12 +571,18 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
             {/* Dos líneas superpuestas: la de abajo hace de funda del color del
                 panel para que la discontinua se lea también sobre la barra, que
                 es justo donde cae. Sola, el blanco al 45% sobre el morado de
-                Fátima medía 1.57:1. */}
-            {medianaFuentes !== null && (
-              <ReferenceLine x={`${Math.round(medianaFuentes)}/8`} stroke={PANEL} strokeWidth={3} />
+                Fátima medía 1.57:1.
+
+                Y SÓLO SI LA MEDIANA CAE EN UNA COLUMNA. Con un número par de
+                cuentas —192 lo es— la mediana puede ser x.5, y entonces una
+                raya redondeada se planta sobre «5/8» mientras el párrafo de
+                arriba dice 4.5: la raya contradiría al texto. Cuando pasa, no
+                hay raya y el texto lo dice con palabras. */}
+            {medianaEnColumna !== null && (
+              <ReferenceLine x={`${medianaEnColumna}/8`} stroke={PANEL} strokeWidth={3} />
             )}
-            {medianaFuentes !== null && (
-              <ReferenceLine x={`${Math.round(medianaFuentes)}/8`} stroke={TX_HI}
+            {medianaEnColumna !== null && (
+              <ReferenceLine x={`${medianaEnColumna}/8`} stroke={TX_HI}
                 strokeWidth={1} strokeDasharray="3 3" />
             )}
           </BarChart>
