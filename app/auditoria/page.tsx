@@ -1,14 +1,20 @@
 'use client'
 import { useState, useEffect } from 'react'
 import PageHeader from '@/components/PageHeader'
-import { Plus, Trash2, FolderOpen, ChevronDown, ChevronRight } from 'lucide-react'
+/* `FolderOpen`, `ChevronDown` y `ChevronRight` salieron con el acordeón: la
+   barra ya no abre ni cierra carpetas, el estado se elige arriba. */
+import { Plus, Trash2 } from 'lucide-react'
 import type { AuditoriaCase, EstadoAuditoria } from './types'
 import { STATIC_CASES, STATIC_CASE_IDS } from './cases'
 import AuditoriaDetail from './AuditoriaDetail'
 import AuditoriaForm from './AuditoriaForm'
-import { tonoSobreClaro } from '@/lib/contraste'
+import { tonoSobreClaro, tonoSobreFondo, tonoSobreTinte } from '@/lib/contraste'
 
 const LS_KEY = 'auditoria_casos'
+
+/** El fondo REAL de esta página: `bg-gray-50`, no blanco. Todo tono que caiga
+ *  aquí se calcula contra esto — ver `tonoSobreTinte` en `lib/contraste.ts`. */
+const FONDO_PAGINA_AUDITORIA = '#F9FAFB'
 
 const ESTADO_COLOR: Record<string, string> = {
   en_riesgo:      '#ef4444',
@@ -79,8 +85,19 @@ export default function AuditoriaPage() {
     return acc
   }, [])
 
-  const toggleFolder = (estado: string) =>
-    setOpenFolder(prev => (prev === estado ? null : estado))
+  /* FILTRO, no acordeón: siempre hay exactamente un estado elegido.
+     Volver a pulsar el activo no lo apaga — una barra vacía no es un estado
+     útil, y antes se podía llegar a ella sin querer. */
+  const elegirEstado = (estado: string) => setOpenFolder(estado)
+
+  /* El estado que se está viendo, y sus casos. Si el elegido se queda sin
+     casos —se borró el último— cae al primero que tenga, en vez de dejar la
+     barra vacía con un rótulo que promete contenido. */
+  const estadoActivo = grouped.some(g => g.estado === openFolder)
+    ? openFolder
+    : grouped[0]?.estado ?? null
+  const casosVisibles = grouped.find(g => g.estado === estadoActivo)?.cases ?? []
+  const colorActivo = ESTADO_COLOR[estadoActivo ?? ''] ?? '#6366f1'
 
   const handleSave = (newCase: AuditoriaCase) => {
     const id = userCases.some(c => c.id === newCase.id)
@@ -104,9 +121,74 @@ export default function AuditoriaPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+      {/* ── LOS ESTADOS, EN HORIZONTAL Y FRENTE AL TÍTULO ───────────────
+       *
+       * Instrucción de dirección, 9 oct 2026: «colócalas de manera horizontal
+       * frente al título, para que se aproveche toda la página y permita verse
+       * mejor la información».
+       *
+       * Vivían apiladas dentro de la barra de 256px, cada una como carpeta de
+       * acordeón. Eso costaba dos cosas: cinco renglones de alto antes de ver
+       * un solo caso, y que el reparto de la cartera auditada —23 · 1 · 1 · 6
+       * · 3— sólo se pudiera leer barriendo la columna de arriba abajo. En
+       * fila se lee de un vistazo y la barra queda para lo que es, la lista de
+       * casos del estado elegido.
+       *
+       * Dejan de ser acordeón y pasan a ser FILTRO: uno a la vez. Antes dos
+       * grupos podían estar abiertos y la barra se volvía una lista larga sin
+       * saber a qué estado pertenecía cada fila al llegar a la mitad. */}
       <PageHeader
         title="Auditoría Cuentas"
         subtitle="Análisis estratégico de cuentas complejas · Uso exclusivo Dirección General"
+        actions={
+          <div className="flex flex-wrap items-center gap-1.5 justify-end">
+            {grouped.map(({ estado, cases }) => {
+              const color  = ESTADO_COLOR[estado] ?? '#6366f1'
+              const activo = openFolder === estado
+              return (
+                <button
+                  key={estado}
+                  onClick={() => elegirEstado(estado)}
+                  title={`${cases.length} ${cases.length === 1 ? 'caso' : 'casos'} en ${ESTADO_LABEL[estado] ?? estado}`}
+                  className="flex items-center gap-1.5 rounded-lg transition-all"
+                  style={{
+                    padding: '6px 10px',
+                    /* El tinte del seleccionado es el DOBLE del de reposo, no
+                       un color distinto: así la fila entera se lee como una
+                       sola escala y el elegido no parece de otra familia. */
+                    background: activo ? `${color}22` : `${color}10`,
+                    border: `1px solid ${activo ? color : `${color}33`}`,
+                    boxShadow: activo ? `0 0 0 2px ${color}22` : 'none',
+                  }}
+                >
+                  <span style={{
+                    width: 8, height: 8, borderRadius: 999, flexShrink: 0,
+                    /* El punto NO va con el color crudo: medido el 9 oct, el
+                       ámbar daba 2.06:1 contra el `#F9FAFB` de la página y el
+                       verde 2.18:1, cuando un objeto gráfico pide 3:1. Se
+                       oscurece lo justo; el relleno de la pastilla conserva el
+                       tono original, que es lo que comunica. */
+                    background: tonoSobreFondo(color, FONDO_PAGINA_AUDITORIA, 3),
+                  }} />
+                  <span className="text-[11.5px] font-semibold"
+                    style={{ color: activo ? '#122E5E' : '#334155' }}>
+                    {ESTADO_LABEL[estado] ?? estado}
+                  </span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={{
+                      background: `${color}22`,
+                      /* Contra el fondo REAL —el tinte sobre el gris de la
+                         página—, no contra blanco. Las seis salían entre 4.32
+                         y 4.43:1 con el cálculo anterior. */
+                      color: tonoSobreTinte(color, 0.094 + 0.133, FONDO_PAGINA_AUDITORIA),
+                    }}>
+                    {cases.length}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        }
       />
 
       {/* ── Layout de dos columnas ──────────────────────────────────── */}
@@ -115,103 +197,79 @@ export default function AuditoriaPage() {
         {/* ─── Sidebar izquierdo: navegador de casos ─────────────────── */}
         <aside className="w-64 flex-shrink-0 flex flex-col border-r border-gray-200 bg-white overflow-hidden">
 
-          {/* Cabecera del sidebar */}
+          {/* Cabecera del sidebar: ya no dice «Casos auditados» a secas, dice
+              DE QUÉ ESTADO son los que están debajo. Con el filtro arriba, la
+              barra enseña un subconjunto y callarlo haría que 7 casos se
+              leyeran como toda la cartera auditada. El total sigue visible. */}
           <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 flex-shrink-0">
-            <FolderOpen size={14} className="text-gray-400" />
-            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-              Casos auditados
+            <span style={{
+              width: 9, height: 9, borderRadius: 999, flexShrink: 0,
+              background: tonoSobreFondo(colorActivo, '#FFFFFF', 3),
+            }} />
+            <span className="text-[11px] font-semibold uppercase tracking-wide"
+              style={{ color: tonoSobreClaro(colorActivo, 0) }}>
+              {ESTADO_LABEL[estadoActivo ?? ''] ?? 'Casos auditados'}
             </span>
-            <span className="ml-auto text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
-              {allCases.length}
+            <span className="ml-auto text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+              {casosVisibles.length} de {allCases.length}
             </span>
           </div>
 
-          {/* Lista scrollable de grupos y casos */}
-          <div className="flex-1 overflow-y-auto py-2">
-            {grouped.map(({ estado, cases }) => {
-              const isOpen = openFolder === estado
-              const color  = ESTADO_COLOR[estado] ?? '#6366f1'
-              const label  = ESTADO_LABEL[estado] ?? estado
+          {/* Los casos del estado elegido. La lista ya no se anida bajo una
+              carpeta: el estado lo dice la cabecera de arriba y el filtro del
+              encabezado, así que la sangría sólo quitaba ancho al nombre de la
+              cuenta, que es lo único que hay que leer aquí. */}
+          <div className="flex-1 overflow-y-auto py-1">
+            {casosVisibles.map(c => {
+              const active = selectedId === c.id
+              const isUser = !STATIC_CASE_IDS.has(c.id)
 
               return (
-                <div key={estado}>
-                  {/* Grupo de estado */}
+                <div key={c.id} className="relative group pr-2">
                   <button
-                    onClick={() => toggleFolder(estado)}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <div
-                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      style={{ background: color }}
-                    />
-                    <span className="text-xs font-semibold text-gray-700 flex-1">{label}</span>
-                    <span
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ background: `${color}18`, color: tonoSobreClaro(color, 0.09) }}
-                    >
-                      {cases.length}
-                    </span>
-                    {isOpen
-                      ? <ChevronDown  size={12} className="text-gray-400 flex-shrink-0" />
-                      : <ChevronRight size={12} className="text-gray-400 flex-shrink-0" />
+                    onClick={() => setSelectedId(c.id)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors rounded-r-lg"
+                    style={active
+                      ? { background: '#1B3FCC12', borderLeft: '3px solid #1B3FCC' }
+                      : { borderLeft: '3px solid transparent' }
                     }
+                  >
+                    {c.asesor && (
+                      <div
+                        className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold"
+                        style={{ background: '#0A1628', color: ASESOR_COLORS[c.asesor] ?? '#fff' }}
+                      >
+                        {c.asesor[0]}
+                      </div>
+                    )}
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <p
+                        className="text-xs font-medium truncate"
+                        style={{ color: active ? '#1B3FCC' : '#374151' }}
+                      >
+                        {c.nombre}
+                      </p>
+                      <span className="text-[10px] text-gray-500">{c.fecha_auditoria}</span>
+                    </div>
                   </button>
 
-                  {/* Casos del grupo */}
-                  {isOpen && (
-                    <div
-                      className="ml-5 border-l pb-1"
-                      style={{ borderColor: `${color}30` }}
+                  {isUser && (
+                    <button
+                      onClick={e => { e.stopPropagation(); setDeleteConfirm(c.id) }}
+                      className="absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-red-500 p-0.5 rounded"
                     >
-                      {cases.map(c => {
-                        const active = selectedId === c.id
-                        const isUser = !STATIC_CASE_IDS.has(c.id)
-
-                        return (
-                          <div key={c.id} className="relative group pr-2">
-                            <button
-                              onClick={() => setSelectedId(c.id)}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors rounded-r-lg ml-px"
-                              style={active
-                                ? { background: '#1B3FCC12', borderLeft: `2px solid #1B3FCC` }
-                                : { borderLeft: '2px solid transparent' }
-                              }
-                            >
-                              {c.asesor && (
-                                <div
-                                  className="flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-bold"
-                                  style={{ background: '#0A1628', color: ASESOR_COLORS[c.asesor] ?? '#fff' }}
-                                >
-                                  {c.asesor[0]}
-                                </div>
-                              )}
-                              <div className="flex flex-col min-w-0 flex-1">
-                                <p
-                                  className="text-xs font-medium truncate"
-                                  style={{ color: active ? '#1B3FCC' : '#374151' }}
-                                >
-                                  {c.nombre}
-                                </p>
-                                <span className="text-[10px] text-gray-400">{c.fecha_auditoria}</span>
-                              </div>
-                            </button>
-
-                            {isUser && (
-                              <button
-                                onClick={e => { e.stopPropagation(); setDeleteConfirm(c.id) }}
-                                className="absolute top-2 right-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-400 p-0.5 rounded"
-                              >
-                                <Trash2 size={10} />
-                              </button>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
+                      <Trash2 size={10} />
+                    </button>
                   )}
                 </div>
               )
             })}
+
+            {!casosVisibles.length && (
+              <p className="px-4 py-6 text-xs text-gray-500">
+                No hay casos auditados en este estado.
+              </p>
+            )}
           </div>
 
           {/* Nueva Auditoría — pegada al fondo del sidebar */}

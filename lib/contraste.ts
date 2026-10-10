@@ -156,7 +156,35 @@ export const FONDO_PAGINA = '#EFF6FF'
  * de la página, ésta; si cuelga de una tarjeta blanca, `tonoSobreClaro`.
  */
 export function tonoSobrePagina(hex: string, alfa = 0.14, objetivo = 4.5): string {
-  const fondo = compone(hexARgb(hex), alfa, hexARgb(FONDO_PAGINA))
+  return tonoSobreTinte(hex, alfa, FONDO_PAGINA, objetivo)
+}
+
+/**
+ * EL CASO GENERAL: una pastilla tintada sobre CUALQUIER superficie.
+ *
+ * `tonoSobreClaro` supone blanco y `tonoSobrePagina` supone el `#EFF6FF` de la
+ * página. Entre esos dos extremos vive media aplicación: `/auditoria` corre
+ * sobre `bg-gray-50` (`#F9FAFB`), las tarjetas de `/churn` sobre otro gris, y
+ * cada uno desplaza el cálculo lo justo para que no se note hasta que se mide.
+ *
+ * Medido el 9 oct 2026 en las seis pastillas de estado de `/auditoria`, que
+ * usaban `tonoSobreClaro`: las SEIS salían entre 4.32 y 4.43:1 sobre su fondo
+ * real, todas por debajo del 4.5 de AA, y todas lo pasaban contra el blanco
+ * que el cálculo suponía. Es exactamente el error del 8 oct otra vez —pasaban
+ * la revisión y no pasaban el ojo— y volvió porque la herramienta sólo sabía
+ * de dos fondos.
+ *
+ * Con esto hay una sola regla y no tres: **el tono se calcula contra el fondo
+ * donde de verdad cae la letra.** `tonoSobreClaro` y `tonoSobrePagina` son
+ * ahora atajos de este caso para los dos fondos más comunes.
+ */
+export function tonoSobreTinte(
+  hex: string,
+  alfa: number,
+  fondoHex: string,
+  objetivo = 4.5,
+): string {
+  const fondo = compone(hexARgb(hex), alfa, hexARgb(fondoHex))
   return tonoSobreFondo(hex, rgbAHex(fondo), objetivo)
 }
 
