@@ -141,26 +141,67 @@ def a_rgb(valor):
     return None
 
 
-def objetos_style(txt):
-    """Cada `style={{ … }}` del archivo, con su contenido y su linea.
+def _cierra_llave(txt, desde, prof):
+    """El índice de la llave que cierra, partiendo con profundidad `prof`.
 
-       Se recorre con balance de llaves y no con una expresion regular porque
-       dentro hay `${…}`, objetos anidados y plantillas: un `[^}]*` corta en la
-       primera llave y se pierde justo el `color` que viene despues.
+       Se recorre con balance y no con una expresion regular porque dentro hay
+       `${…}`, objetos anidados y plantillas: un `[^}]*` corta en la primera
+       llave y se pierde justo el `color` que viene despues.
     """
+    i, n = desde, len(txt)
+    while i < n and prof:
+        if txt[i] == '{':
+            prof += 1
+        elif txt[i] == '}':
+            prof -= 1
+            if prof == 0:
+                return i
+        i += 1
+    return i
+
+
+def objetos_style(txt):
+    """Cada `style={{ … }}` del archivo, con su contenido y su linea."""
     out = []
     for m in re.finditer(r'style=\{\{', txt):
-        i = m.end()
-        prof, n = 2, len(txt)
-        while i < n and prof:
-            if txt[i] == '{':
-                prof += 1
-            elif txt[i] == '}':
-                prof -= 1
-                if prof == 0:
-                    break
-            i += 1
+        i = _cierra_llave(txt, m.end(), 2)
         out.append((txt.count('\n', 0, m.start()) + 1, txt[m.end():i]))
+    return out
+
+
+# UN OBJETO DE ESTILO EN UNA CONSTANTE ES UN `style` QUE EL DETECTOR NO VEÍA.
+#
+# Décima ronda del bug de contraste (10 oct 2026), y la primera que ningún
+# detector podía cazar. `ActivacionesCharts.tsx` migró a paleta clara —`TX`
+# pasó a ser `#0F172A`— pero su tooltip se quedó con el fondo marino del tema
+# viejo:
+#
+#     const TT_STYLE = { background:'#0A1E35', …, color: TX }
+#
+# Eso es `#0F172A` sobre `#0A1E35`: **1.06:1**, o sea los valores del tooltip
+# invisibles. Las dos mitades del problema están en el MISMO objeto, así que es
+# tan medible como un `style={{…}}` en línea — sólo que `objetos_style` busca
+# literalmente `style={{` y aquí no lo hay. El objeto viaja después a
+# `<div style={TT_STYLE}>` y a `contentStyle={TT_STYLE}`.
+#
+# Un punto ciego de la forma «lo decidible que no se mira» es peor que una
+# heurística floja: da verde con la pantalla rota.
+RX_CONST_OBJ = re.compile(
+    r"""(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*(?::\s*[^=\n]+?)?=\s*\{""")
+
+
+def objetos_constantes(txt):
+    """Cada `const NOMBRE = { … }` que pudiera ser un objeto de estilo.
+
+       No se exige que el nombre parezca de estilo: `TT_STYLE`, `TT_DARK` y
+       `cardBase` son todos reales, y adivinar por el nombre deja fuera el
+       siguiente. El filtro de verdad lo pone `pares_medibles`, que sólo mide
+       los objetos donde hay `background` Y `color`.
+    """
+    out = []
+    for m in RX_CONST_OBJ.finditer(txt):
+        i = _cierra_llave(txt, m.end(), 1)
+        out.append((txt.count('\n', 0, m.start()) + 1, txt[m.end():i], m.group(1)))
     return out
 
 
@@ -195,7 +236,13 @@ def pares_medibles(txt):
         return None, None
 
     malos, volteos = [], []
-    for linea, cuerpo in objetos_style(limpio):
+    # Los `style={{…}}` en línea Y los objetos de estilo guardados en una
+    # constante. Los dos son igual de decidibles: las dos mitades viven en el
+    # mismo objeto. Que el segundo grupo faltara es lo que dejó pasar el
+    # tooltip de Activaciones a 1.06:1.
+    piezas = [(l, c) for l, c in objetos_style(limpio)]
+    piezas += [(l, c) for l, c, _ in objetos_constantes(limpio)]
+    for linea, cuerpo in piezas:
         # â”€â”€ El fondo que CAMBIA de claro a oscuro con una condicion â”€â”€â”€â”€â”€â”€â”€
         # El texto de dentro no puede ser correcto en los dos estados. Es el
         # bug del mosaico seleccionado de /alertas, 8 oct 2026.
@@ -412,6 +459,20 @@ CASOS_MEDIBLE_CAZA = [
      "export default function P() {\n"
      "  return <div style={{ background: '#0D1829', color: '#1B3FCC' }}>hola</div>\n}\n",
      'medido'),
+    # EL TOOLTIP DE ACTIVACIONES, tal cual estaba: paleta clara migrada y fondo
+    # del tema viejo. 1.06:1, y ningún detector lo veía porque el objeto no es
+    # un `style={{…}}` sino una constante que viaja a `contentStyle`.
+    ('objeto de estilo en una CONSTANTE, oscuro sobre oscuro',
+     "const TX = '#0F172A'\n"
+     "const TT_STYLE = {\n"
+     "  background:'#0A1E35', border:'1px solid rgba(0,180,255,0.28)',\n"
+     "  borderRadius:10, fontSize:13, color:TX,\n}\n"
+     "export default function P() { return <div style={TT_STYLE}>x</div> }\n",
+     'medido'),
+    ('objeto de estilo CON anotacion de tipo',
+     "const TT: React.CSSProperties = { background: '#0D1829', color: '#122E5E' }\n"
+     "export default function P() { return <div style={TT}>x</div> }\n",
+     'medido'),
 ]
 CASOS_MEDIBLE_MUDOS = [
     ('pestana que cambia fondo Y letra',
@@ -432,6 +493,16 @@ CASOS_MEDIBLE_MUDOS = [
      "const RED_BG = 'rgba(239,68,68,0.09)'\n"
      "export default function P() {\n"
      "  return <span style={{ background: RED_BG, color: '#FCA5A5' }}>x</span>\n}\n"),
+    # Los otros tres tooltips del tablero son así y están BIEN: el detector
+    # nuevo no debe acusarlos, o se apaga solo a base de falsos positivos.
+    ('objeto de estilo en constante, claro sobre oscuro — correcto',
+     "const TT_DARK = {\n"
+     "  background: '#0A1E35', borderRadius: 10, color: '#E8F4FF',\n}\n"
+     "export default function P() { return <div style={TT_DARK}>x</div> }\n"),
+    ('mapa de colores en constante: no es un objeto de estilo',
+     "const COLOR_SITUACION: Record<string, string> = {\n"
+     "  apagandose: '#B5651D', sin_auditar: '#EAB308',\n}\n"
+     "export default function P() { return <div>{COLOR_SITUACION.apagandose}</div> }\n"),
 ]
 
 if '--autoprueba' in sys.argv:

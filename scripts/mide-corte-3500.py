@@ -123,6 +123,55 @@ for f in sorted(sel, key=lambda x: -num(x.get('1er Pago')))[:12]:
              str(f.get('Mes 1er Pago') or '')[:10], str(f.get('Ejecutivo') or '')[:12],
              str(f.get('Tipo') or '')))
 
+# ── ¿Se atiende distinto a una activación grande? ────────────────────────
+#
+# Esta es la pregunta que decide si el módulo lleva un bloque de operación o
+# no. Si las 143 se parecen al resto en días, complejidad, contacto y encuesta,
+# ese bloque no merece pantalla: sería un indicador que nunca cambia, y esos
+# entrenan a no mirar. Se mide ANTES de dibujar.
+print(u'\n  ── ¿SE ATIENDEN DISTINTO? las %d contra las otras %d ─────────'
+      % (len(sel), len(act) - len(sel)))
+resto = [f for f in act if num(f.get('1er Pago')) <= CORTE]
+
+
+def dias(f):
+    v = f.get('Dias activacion')
+    # UN CERO SIN MEDICIÓN NO ES UN CERO: el módulo trata <= 0 como «no
+    # medido» (`diasActivacion: null`), y aquí hay que hacer lo mismo o el
+    # promedio sale hundido por los huecos.
+    return float(v) if isinstance(v, (int, float)) and v > 0 else None
+
+
+for etq, grupo in ((u'> $3,500', sel), (u'<= $3,500', resto)):
+    ds = [d for d in (dias(f) for f in grupo) if d is not None]
+    sinmedir = len(grupo) - len(ds)
+    ds_ord = sorted(ds)
+    print(u'\n      %s  (%d activaciones)' % (etq, len(grupo)))
+    if ds:
+        print(u'        días de activación: promedio %.1f · mediana %.0f · p90 %.0f'
+              % (sum(ds) / len(ds), ds_ord[len(ds_ord) // 2],
+                 ds_ord[min(int(.9 * (len(ds_ord) - 1)), len(ds_ord) - 1)]))
+        print(u'        en 7 días o menos: %d de %d medidas (%.0f%%)'
+              % (sum(1 for d in ds if d <= 7), len(ds),
+                 100.0 * sum(1 for d in ds if d <= 7) / len(ds)))
+    print(u'        SIN MEDIR los días: %d (%.0f%%)'
+          % (sinmedir, 100.0 * sinmedir / max(len(grupo), 1)))
+    for campo, nombre in (('Complejidad', u'complejidad'),
+                          (u'¿Se tuvo contacto?', u'contacto'),
+                          ('Encuesta Satisfaccion al cliente', u'encuesta')):
+        if campo not in cab:
+            print(u'        %s: LA COLUMNA NO EXISTE en el archivo' % nombre)
+            continue
+        m = {}
+        for f in grupo:
+            k = str(f.get(campo) or '').strip() or u'(vacío)'
+            m[k] = m.get(k, 0) + 1
+        orden = sorted(m.items(), key=lambda kv: -kv[1])
+        assert sum(v for _, v in orden) == len(grupo), u'%s no cierra' % nombre
+        print(u'        %-12s %s' % (nombre + ':', u' · '.join(
+            u'%s %d (%.0f%%)' % (k[:18], v, 100.0 * v / len(grupo))
+            for k, v in orden[:4])))
+
 # ── ¿Y si «facturan» fuera el MRR vigente? ───────────────────────────────
 print(u'\n  ── LA OTRA LECTURA: el MRR VIGENTE de la cuenta ──────────────')
 foto = (r'C:\Users\manni\AppData\Local\Temp\claude\C--Users-manni--claude'
@@ -132,16 +181,46 @@ if not os.path.exists(foto):
 else:
     import json
     rows = json.load(io.open(foto, encoding='utf-8'))['fuentes']['veredictos']['rows']
-    porNom = {norm(r['empresa']): r for r in rows}
     arriba_mrr = [r for r in rows if (r.get('mrr') or 0) > CORTE]
-    print(u'      %d de las %d cuentas vivas facturan hoy más de $%s'
-          % (len(arriba_mrr), len(rows), format(int(CORTE), ',d')))
-    # ¿Cuántas de las activaciones que pasan el corte son cuentas vivas?
-    cruzan = [f for f in sel if norm(f.get('Cliente')) in porNom]
-    print(u'      de las %d activaciones que pasan el corte por PRIMER PAGO,'
-          % len(sel))
-    print(u'      %d cruzan por nombre con una cuenta viva de la cartera (%.0f%%)'
-          % (len(cruzan), 100.0 * len(cruzan) / max(len(sel), 1)))
-    print(u'      — cruzar por nombre mezcla cuentas y este archivo no trae CID')
-    print(u'        normalizado, así que un módulo apoyado en el MRR vigente')
-    print(u'        heredaría ese cruce difuso. Ver [[dids-fuente]].')
+    print(u'      %d de las %d cuentas vivas facturan hoy más de $%s (%.0f%%)'
+          % (len(arriba_mrr), len(rows), format(int(CORTE), ',d'),
+             100.0 * len(arriba_mrr) / len(rows)))
+    print(u'      — %.0f%% no es un corte: ese umbral no separa nada en la cartera'
+          % (100.0 * len(arriba_mrr) / len(rows)))
+
+    # EL CRUCE SE MIDE CON LA LLAVE FUERTE, NO CON EL NOMBRE.
+    #
+    # La primera versión cruzaba por nombre normalizado y daba 27%. Eso medía
+    # mal: la columna `ID` del .xlsx ES el CID —la propia pantalla la usa así
+    # en `/api/activaciones/detalle?cid=${r.id}`— y la foto de cartera trae
+    # `cid`. Un porcentaje con el denominador equivocado no es un dato débil,
+    # es un dato falso, y éste iba a sostener la decisión del módulo.
+    def digitos(v):
+        return re.sub(r'\D', '', str(v or ''))
+
+    porCid = {digitos(r.get('cid')): r for r in rows if digitos(r.get('cid'))}
+    porNom = {norm(r['empresa']): r for r in rows}
+    cruzan_cid = [f for f in sel if digitos(f.get('ID')) in porCid]
+    cruzan_nom = [f for f in sel if norm(f.get('Cliente')) in porNom]
+    print(u'\n      de las %d activaciones que pasan el corte por PRIMER PAGO:' % len(sel))
+    print(u'        por CID (la llave real):    %3d  (%.0f%%)'
+          % (len(cruzan_cid), 100.0 * len(cruzan_cid) / max(len(sel), 1)))
+    print(u'        por nombre normalizado:     %3d  (%.0f%%)'
+          % (len(cruzan_nom), 100.0 * len(cruzan_nom) / max(len(sel), 1)))
+
+    # ¿Y las que SÍ cruzan, cuánto facturan hoy contra lo que pagaron al entrar?
+    # Si el primer pago no predice el MRR, entonces un módulo de primer pago NO
+    # está midiendo valor de cuenta, y el título tiene que decirlo.
+    pares = [(num(f.get('1er Pago')), porCid[digitos(f.get('ID'))].get('mrr') or 0)
+             for f in cruzan_cid]
+    conmrr = [(a, b) for a, b in pares if b > 0]
+    if conmrr:
+        sube = sum(1 for a, b in conmrr if b > a)
+        print(u'\n      de las %d que cruzan por CID, %d traen MRR medible:'
+              % (len(cruzan_cid), len(conmrr)))
+        print(u'        %d facturan hoy MÁS que su primer pago, %d menos'
+              % (sube, len(conmrr) - sube))
+        print(u'        primer pago mediano $%s · MRR mediano $%s'
+              % (format(int(sorted(a for a, _ in conmrr)[len(conmrr) // 2]), ',d'),
+                 format(int(sorted(b for _, b in conmrr)[len(conmrr) // 2]), ',d')))
+        print(u'      — el primer pago mide ORIGINACIÓN, no valor vigente.')

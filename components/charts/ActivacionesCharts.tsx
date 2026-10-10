@@ -6,7 +6,7 @@ import {
 } from 'recharts'
 import { formatMXN } from '@/lib/types'
 import CustomSelect from '@/components/CustomSelect'
-import { tonoSobreClaro } from '@/lib/contraste'
+import { tonoSobreClaro, tonoSobreFondo } from '@/lib/contraste'
 
 // ── Paleta clara ──────────────────────────────────────────────────────────────
 const BG      = '#EFF6FF'
@@ -77,11 +77,27 @@ const MES_ES: Record<string, string> = {
   July:'Jul', August:'Ago', September:'Sep', October:'Oct', November:'Nov', December:'Dic',
 }
 
+/* ── EL TOOLTIP VA CLARO, COMO LA PÁGINA ───────────────────────────────────
+   Hasta el 10 oct 2026 esto pintaba `background:'#0A1E35'` —el marino del
+   tema viejo— con `color: TX`, y `TX` vale `#0F172A` desde que la pantalla
+   migró a paleta clara. Eso es **1.06:1**: los valores del tooltip, que son
+   lo único que alguien viene a leer aquí, estaban invisibles. Las etiquetas
+   iban a 2.22:1 y el título a 3.05:1.
+
+   Ningún detector lo vio, y la razón importa más que el caso: los dos lados
+   viven en una CONSTANTE, y `revisa-letra-clara-en-claro.py` sólo miraba los
+   `style={{…}}` en línea. Ya mira también los objetos en constantes.
+
+   Sobre blanco NINGÚN color de marca sirve a secas: el verde del dinero
+   (#22C55E) da 2.28:1. Todos pasan por `lib/contraste.ts` contra el blanco
+   REAL de la tarjeta. */
 const TT_STYLE = {
-  background:'#0A1E35', border:'1px solid rgba(0,180,255,0.28)',
+  background:'#FFFFFF', border:`1px solid ${BORDER}`,
   borderRadius:10, fontSize:13, color:TX,
-  boxShadow:'0 4px 24px rgba(0,0,0,0.55)', padding:'12px 16px',
+  boxShadow:'0 10px 30px rgba(15,23,42,0.16)', padding:'12px 16px',
 }
+/** El verde del dinero, oscurecido hasta que se lee sobre blanco. */
+const TT_VERDE = tonoSobreFondo('#22C55E', '#FFFFFF', 4.5)
 
 export interface RegistroItem {
   id:string; cliente:string; primerPago:number; tamano:string
@@ -152,15 +168,22 @@ function Chip({label,color,capitalize=false}:{label:string;color:string;capitali
   )
 }
 
+/* El `background:'transparent'` de los <span> no es decoración: globals.css
+   tiene `.cp-card span:not([style*="background"]){color:#fff!important}`, y un
+   `!important` de hoja le gana al color en línea. Declararlo —aunque sea
+   transparente— saca al span de esa regla. Mismo motivo que en
+   `components/CustomSelect.tsx`. */
+const SPAN = { background:'transparent' } as const
+
 function TTMes({active,payload,label}:any) {
   if(!active||!payload?.length) return null
   return (
     <div style={TT_STYLE}>
-      <p style={{fontWeight:800,color:ACCENT,marginBottom:8}}>{label}</p>
+      <p style={{fontWeight:800,color:tonoSobreFondo(ACCENT,'#FFFFFF',4.5),marginBottom:8}}>{label}</p>
       {payload.map((p:any)=>(
         <div key={p.name} style={{display:'flex',justifyContent:'space-between',gap:28,marginBottom:4}}>
-          <span style={{color:p.color??TX_MID}}>{p.name}</span>
-          <span style={{fontWeight:700,color:TX,fontVariantNumeric:'tabular-nums'}}>
+          <span style={{...SPAN,color:p.color ? tonoSobreFondo(p.color,'#FFFFFF',4.5) : TX_MID}}>{p.name}</span>
+          <span style={{...SPAN,fontWeight:700,color:TX,fontVariantNumeric:'tabular-nums'}}>
             {p.name==='Activaciones' ? p.value : formatMXN(p.value)}
           </span>
         </div>
@@ -172,15 +195,17 @@ function TTMes({active,payload,label}:any) {
 function TTBar({active,payload,label,colorMap}:any) {
   if(!active||!payload?.length) return null
   const d = payload[0]?.payload
-  const color = colorMap?.[label] ?? ACCENT
+  const color = tonoSobreFondo(colorMap?.[label] ?? ACCENT, '#FFFFFF', 4.5)
   return (
     <div style={TT_STYLE}>
       <p style={{fontWeight:800,color,marginBottom:8}}>{label}</p>
       <div style={{display:'flex',justifyContent:'space-between',gap:28,marginBottom:4}}>
-        <span style={{color:TX_MID}}>Activaciones</span><span style={{fontWeight:700,color:TX}}>{d?.count}</span>
+        <span style={{...SPAN,color:TX_MID}}>Activaciones</span>
+        <span style={{...SPAN,fontWeight:700,color:TX}}>{d?.count}</span>
       </div>
       <div style={{display:'flex',justifyContent:'space-between',gap:28}}>
-        <span style={{color:TX_MID}}>Facturación</span><span style={{fontWeight:700,color:'#22C55E'}}>{formatMXN(d?.fac??0)}</span>
+        <span style={{...SPAN,color:TX_MID}}>Facturación</span>
+        <span style={{...SPAN,fontWeight:700,color:TT_VERDE}}>{formatMXN(d?.fac??0)}</span>
       </div>
     </div>
   )
@@ -544,7 +569,11 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
                 cx="50%" cy="50%" innerRadius={46} outerRadius={74} paddingAngle={3}>
                 {porTamano.map(d=><Cell key={d.name} fill={d.color} />)}
               </Pie>
-              <Tooltip contentStyle={TT_STYLE} itemStyle={{color:TX}} formatter={(v:any,n:string)=>[v,n]} />
+              {/* Los TRES estilos: sin `labelStyle` ni `itemStyle`, recharts
+                  pinta el texto con el color de la serie, que aquí es un
+                  relleno de pastel y sobre blanco no se lee. */}
+              <Tooltip contentStyle={TT_STYLE} labelStyle={{color:TX,fontWeight:800}}
+                itemStyle={{color:TX}} formatter={(v:any,n:string)=>[v,n]} />
             </PieChart>
             <div style={{flex:1,display:'flex',flexDirection:'column',gap:9}}>
               {porTamano.map(d=>{
