@@ -210,8 +210,15 @@ for nom in esp['nuevas']:
 
 # ── El módulo de clientes arriba de $3,500 ──────────────────────────────────
 print(u'')
-exige(hay(esp['grandes']),
-      u'aparece el conteo de clientes arriba de $3,500 (%s)' % format(esp['grandes'], ',d'))
+# UN CONTEO DE TRES DÍGITOS A SECAS NO DISCRIMINA. «143» sale por cualquier
+# otra cosa en 1.8 MB de HTML, y la sonda lo daba por bueno antes de que el
+# módulo existiera. Se ancla a la frase que el encabezado imprime de verdad:
+# «143 de 2,148 activaciones». Es la misma lección del «571 demos».
+exige(re.search(r'\b%s\s+de\s+%s\s+activaciones'
+                % (format(esp['grandes'], ',d'), format(esp['reales'], ',d')), t)
+      is not None,
+      u'el módulo escribe «%s de %s activaciones»'
+      % (format(esp['grandes'], ',d'), format(esp['reales'], ',d')))
 # El importe se busca con el formato que la pantalla imprime: `Intl` con
 # `maximumFractionDigits: 0` da «$1,163,212». Buscar el entero crudo no
 # serviría.
