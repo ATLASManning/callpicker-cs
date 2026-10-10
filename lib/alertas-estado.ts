@@ -200,6 +200,21 @@ export async function veredictosDeCartera(
      en las 192, así que nada aguas abajo podía distinguir una cuenta grande. */
   const top = await topDeCartera(mapa)
 
+  /* LA MESA DE AYUDA TIENE QUE HABER VIAJADO CON LA LAMBDA.
+   *
+   * `lib/mesa-ayuda.ts` abre un DIRECTORIO con una ruta de tiempo de
+   * ejecución, y el trazador de Next no puede seguir eso — está declarado en
+   * `next.config.js`, pero una declaración se puede caer en un refactor y el
+   * modo de fallo no se ve: sin cortes, las tres alarmas de mesa no se emiten
+   * y la ausencia de una alarma es indistinguible de que todo esté bien.
+   * Aquí se dice en voz alta, como ya se hace con los cortes de consumo. */
+  const { resumenMesa } = await import('@/lib/mesa-ayuda')
+  if (resumenMesa().cortes === 0) {
+    fallos.push('mesa de ayuda: no llegó ningún corte a esta función, así que las '
+              + 'alarmas de SLA, atraso crónico y fallas NO se evaluaron. No es que '
+              + 'no haya tickets vencidos: es que no se miraron.')
+  }
+
   const cortesFiables = cortes.size >= CORTES_MINIMOS
   if (!cortesFiables) {
     fallos.push(`cortes: la fuente devolvió ${cortes.size} CID(s), menos de los `

@@ -59,6 +59,27 @@ const nextConfig = {
    * abriría una avalancha de tareas por un hueco que no existe. */
   outputFileTracingIncludes: {
     '/api/cron/snapshot-prediccion': ['./data/**'],
+
+    /* LA MESA DE AYUDA, declarada para las seis rutas que la necesitan desde
+     * el 9 oct 2026, cuando el detector de alertas empezó a leerla.
+     *
+     * Aquí NO cabe confiar en la suerte del trazador, y por una razón más
+     * fuerte que la de arriba: `lib/mesa-ayuda.ts` no abre un fichero, abre un
+     * DIRECTORIO con `fs.readdirSync` y una ruta armada en tiempo de
+     * ejecución. El trazador lee el código para decidir qué acompaña a cada
+     * función; un `readdir` no le dice nada de qué hay dentro.
+     *
+     * Y el modo de fallo es el peor que hay: `cortes()` devolvería la lista
+     * vacía, `mesaDeCuenta()` el estado VACÍO, y las tres alarmas de mesa
+     * sencillamente no se emitirían. Ni un error, ni un cero: la ausencia de
+     * una alarma es indistinguible de que todo esté bien. Por eso además se
+     * declara el hueco en `veredictosDeCartera`. */
+    '/api/alertas': ['./data/mesa-ayuda/**'],
+    '/api/alertas/veredictos': ['./data/mesa-ayuda/**'],
+    '/': ['./data/mesa-ayuda/**'],
+    '/alertas': ['./data/mesa-ayuda/**'],
+    '/asesores': ['./data/mesa-ayuda/**'],
+    '/cuentas/[id]': ['./data/mesa-ayuda/**'],
   },
   async headers() {
     return [

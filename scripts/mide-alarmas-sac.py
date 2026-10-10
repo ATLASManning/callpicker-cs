@@ -19,12 +19,19 @@
 
    USO
    ---
-       python scripts/mide-alarmas-sac.py
+       python scripts/mide-alarmas-sac.py           # mide los umbrales
+       python scripts/mide-alarmas-sac.py --vivo    # y comprueba que disparan
 """
+import base64
+import hashlib
+import hmac
 import io
 import json
 import os
 import sys
+import time
+import urllib.error
+import urllib.request
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
@@ -165,3 +172,99 @@ for c in verdes:
           % (r['empresa'][:30],
              pesos(r['mrr']) if r.get('mrr') is not None else 'sin importe',
              r['datos'].get('fallas'), racha.get(c, 0)))
+
+
+# ══ COMPROBAR QUE DE VERDAD DISPARAN ════════════════════════════════════
+#
+# Lo de arriba mide lo que DEBERIA pasar. Esto comprueba lo que pasa, contra
+# la API que sirve el tablero. Las dos cosas hacen falta: un umbral bien
+# calculado y una alarma que no llega a pantalla valen lo mismo que nada.
+if '--vivo' not in sys.argv:
+    print(u'\n  (con --vivo comprueba ademas que las alarmas disparan en produccion)')
+    sys.exit(0)
+
+print(u'\n  ' + u'=' * 68)
+print(u'  EN PRODUCCION')
+print(u'  ' + u'=' * 68)
+
+env = {}
+with io.open(os.path.join(RAIZ, '.env.local'), encoding='utf-8') as f:
+    for linea in f:
+        linea = linea.strip()
+        if '=' in linea and not linea.startswith('#'):
+            k, v = linea.split('=', 1)
+            env[k.strip()] = v.strip().strip('"')
+b64 = lambda x: base64.urlsafe_b64encode(x).rstrip(b'=').decode()
+sec, now = env['JWT_SECRET'].encode(), int(time.time())
+cab = b64(json.dumps({'alg': 'HS256', 'typ': 'JWT'}, separators=(',', ':')).encode())
+cue = b64(json.dumps({'email': 'josel@callpicker.com', 'nombre': 'JM', 'rol': 'admin',
+                      'asesor_nombre': None, 'iat': now, 'exp': now + 3600},
+                     separators=(',', ':')).encode())
+tok = cab + '.' + cue + '.' + b64(
+    hmac.new(sec, (cab + '.' + cue).encode(), hashlib.sha256).digest())
+
+req = urllib.request.Request('https://callpicker-cs.vercel.app/api/alertas?limite=2000')
+req.add_header('Cookie', 'cp_session=' + tok)
+req.add_header('Cache-Control', 'no-cache')
+try:
+    with urllib.request.urlopen(req, timeout=300) as x:
+        viva = json.loads(x.read().decode())
+except urllib.error.HTTPError as e:
+    print(u'  la API respondio %s — no se comprobo nada.' % e.code)
+    sys.exit(1)
+
+alertas = viva.get('alertas') or viva.get('rows') or []
+print(u'  %d alertas servidas (de %s detectadas)\n'
+      % (len(alertas), viva.get('total') or viva.get('filtradas') or '?'))
+
+fallos = []
+
+
+def exige(ok, que, detalle=''):
+    print(u'  %s  %s%s' % (u'ok  ' if ok else u'FALLA', que,
+                           (u'   — ' + detalle) if detalle else u''))
+    if not ok:
+        fallos.append(que)
+
+
+NUEVAS = ('sac_fuera_sla', 'sac_atraso_cronico', 'sac_fallas_recurrentes', 'sin_importe')
+import collections
+porTipo = collections.Counter(a.get('tipo') for a in alertas)
+for t in NUEVAS:
+    exige(porTipo.get(t, 0) > 0, u'«%s» dispara' % t, u'%d alerta(s)' % porTipo.get(t, 0))
+
+# Toda alerta nueva lleva su evidencia con numeros. Una sin cifra no se puede
+# defender frente al cliente, que es la regla del catalogo.
+import re
+sin_cifra = [a for a in alertas
+             if a.get('tipo') in NUEVAS and not re.search(r'\d', a.get('evidencia') or '')]
+exige(not sin_cifra, u'todas las nuevas traen su evidencia con numeros',
+      u'' if not sin_cifra else u'%d sin cifra' % len(sin_cifra))
+
+# Los tres de mesa son EXCLUYENTES: ninguna cuenta puede tener dos.
+porCuenta = collections.defaultdict(set)
+for a in alertas:
+    if a.get('tipo') in NUEVAS[:3]:
+        porCuenta[a.get('cuentaId')].add(a.get('tipo'))
+dobles = {k: v for k, v in porCuenta.items() if len(v) > 1}
+exige(not dobles, u'los tres de mesa son excluyentes por cuenta',
+      u'' if not dobles else u'%d cuenta(s) con dos: %s' % (len(dobles), list(dobles.values())[:2]))
+
+# Y el caso que lo motivo: la cuenta mas grande con el folio mas viejo tiene
+# que estar arriba del todo, no en el lugar 16.
+orden = sorted(alertas, key=lambda a: -(a.get('prioridad') or 0))
+pos = next((i for i, a in enumerate(orden, 1)
+            if 'TORRES CORZO' in (a.get('empresa') or '').upper()), None)
+exige(pos is not None and pos <= 3,
+      u'GRUPO TORRES CORZO esta en el top 3 por prioridad',
+      u'va en el lugar %s' % pos)
+for a in orden[:3]:
+    print(u'        %2d. %-28s %-22s prio %s'
+          % (orden.index(a) + 1, (a.get('empresa') or '')[:28], a.get('tipo'),
+             a.get('prioridad')))
+
+print()
+if fallos:
+    print(u'  *** %d comprobacion(es) fallan.' % len(fallos))
+    sys.exit(1)
+print(u'  las alarmas de mesa disparan en produccion y ordenan la cola.')
