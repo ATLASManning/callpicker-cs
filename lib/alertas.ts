@@ -75,6 +75,26 @@ export type TipoAlerta =
   | 'silencio_30'
   | 'nunca_contactada'
   | 'rebasa_bolsa'
+  /* ── LA MESA DE AYUDA, QUE NO LLEGABA AL MOTOR ──────────────────────────
+   *
+   * Dirección, 9 oct 2026: «habrá que reforzar, robustecer las alarmas de las
+   * cuentas, darles mayor peso a tus hallazgos».
+   *
+   * Medido el 9 oct: el `health_score` correlaciona con `fallas` en **+0.121**
+   * y con `tickets` en **+0.098** — EN POSITIVO. Más incidencias, mejor
+   * puntaje, porque no existe ninguna ruta de código de la mesa al número.
+   * GRUPO TORRES CORZO lleva un folio escalado **155 días** —156 sin que nadie
+   * lo mueva— sobre $316,541 al mes, el 14.3% de la cartera, y el tablero lo
+   * ponía en el lugar 16. Y la causa raíz del único churn confirmado de la
+   * cartera, Polak Grupo, fue INTERNA: descontinuación de Legacy, meses de
+   * llamadas caídas. El servicio que falla es el motivo de baja mejor
+   * documentado que tiene este proyecto, y era el único que no disparaba nada. */
+  | 'sac_fuera_sla'
+  | 'sac_atraso_cronico'
+  | 'sac_fallas_recurrentes'
+  /* La octava fuente era la única que se medía, se publicaba en la tabla de
+     huecos del tablero y no encendía ninguna luz. */
+  | 'sin_importe'
 
 /**
  * QUIÉN PUEDE CERRAR LA ALERTA. No es lo mismo que de quién es la cuenta.
@@ -324,6 +344,48 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
           + 'Proponer el plan que le corresponde antes de que lo note en la factura.',
     enlaceEtiqueta: 'Ver consumo',
   },
+
+  // ── LA MESA DE AYUDA ───────────────────────────────────────────────────
+  //
+  // Las tres salen del «Reporte Diario Mesa de Ayuda» (`lib/mesa-ayuda.ts`,
+  // 20 cortes). Los umbrales se midieron ANTES de escribirlas, con
+  // `scripts/mide-alarmas-sac.py`, porque una alarma que salta en el 80% de
+  // la cartera no es una alarma: es un color de fondo.
+  sac_fuera_sla: {
+    tipo: 'sac_fuera_sla', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
+    titulo: 'Tiene un ticket fuera de SLA',
+    accion: 'Llamar al cliente HOY para decirle que lo sabemos, y escalar el folio '
+          + 'con fecha comprometida. Un ticket vencido que nadie menciona se '
+          + 'convierte en el motivo de la baja, y el cliente ya lo sabe.',
+    enlaceEtiqueta: 'Ver la mesa de ayuda',
+  },
+  sac_atraso_cronico: {
+    tipo: 'sac_atraso_cronico', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
+    titulo: 'Arrastra tickets vencidos corte tras corte',
+    accion: 'Esto no es un mal día: es un patrón. Pedir a la mesa la revisión '
+          + 'completa de la cuenta y presentarle al cliente qué se va a cambiar, '
+          + 'no sólo qué se va a cerrar.',
+    enlaceEtiqueta: 'Ver la mesa de ayuda',
+  },
+  sac_fallas_recurrentes: {
+    tipo: 'sac_fallas_recurrentes', familia: 'riesgo', severidad: 'alta', dueno: 'asesor',
+    titulo: 'Ha reportado varias fallas del servicio',
+    accion: 'Primero estabilizar: con fallas abiertas no se propone nada. '
+          + 'Revisar con Ingeniería si son la misma causa y llevarle al cliente '
+          + 'el diagnóstico, no una disculpa.',
+    enlaceEtiqueta: 'Ver sus tickets',
+  },
+
+  // ── LA OCTAVA FUENTE ───────────────────────────────────────────────────
+  sin_importe: {
+    tipo: 'sin_importe', familia: 'ceguera', severidad: 'alta', dueno: 'ingenieria',
+    titulo: 'No sabemos cuánto paga',
+    accion: 'La cuenta está viva y no tiene importe en ninguna fuente: ni en el '
+          + 'GRC por CID, ni en su propia ficha. Confirmar el CID y pedir que se '
+          + 'incluya en facturación — sin esto, esta cuenta no pesa en ninguna '
+          + 'decisión que se tome por dinero.',
+    enlaceEtiqueta: 'Abrir ficha y verificar CID',
+  },
 }
 
 /**
@@ -352,6 +414,15 @@ export type Condicion =
   /* La octava, de la capa cualitativa. Los tres tipos escritos son mutuamente
      excluyentes por cuenta —se queda el más fuerte— así que forman un grupo. */
   | 'escrito'
+  /* La mesa de ayuda (9 oct 2026). Los tres tipos son mutuamente excluyentes
+     por construcción en el detector —crónico gana a vencido, y vencido a
+     fallas— porque son la misma historia empeorando: un folio que se atora,
+     que se vuelve costumbre, y el servicio que falla debajo. */
+  | 'mesa'
+  /* Que no sepamos cuánto paga es su propia condición: una cuenta puede no
+     tener importe Y no tener consumo a la vez, así que no cabe en `medicion`
+     sin romper la regla de exclusividad del grupo. */
+  | 'importe'
 
 export const CONDICION: Record<TipoAlerta, Condicion> = {
   sin_consumo_medible: 'medicion',
@@ -363,6 +434,8 @@ export const CONDICION: Record<TipoAlerta, Condicion> = {
   sin_contactos: 'contactos',
   sin_ficha: 'ficha',
   baja_declarada: 'escrito', riesgo_escrito: 'escrito', reduccion_declarada: 'escrito',
+  sac_atraso_cronico: 'mesa', sac_fuera_sla: 'mesa', sac_fallas_recurrentes: 'mesa',
+  sin_importe: 'importe',
 }
 
 /** Para ordenar. La ceguera pesa como el riesgo: una cuenta que no se ve es peor. */
@@ -507,6 +580,22 @@ export const TIPOS_RIESGO: ReadonlySet<TipoAlerta> = new Set<TipoAlerta>([
      directa que puede haber. `reduccion_declarada` NO entra — una reducción
      duele pero no es que se vaya. */
   'baja_declarada', 'riesgo_escrito',
+  /* LA MESA ENTRA AQUÍ, y no es una ampliación cosmética (9 oct 2026).
+   *
+   * El único churn confirmado de esta cartera —Polak Grupo, contrato ya
+   * firmado con otro proveedor— tiene causa raíz INTERNA escrita en su propio
+   * expediente: descontinuación de Legacy y meses de llamadas caídas. El
+   * servicio que falla es el motivo de baja mejor documentado que tenemos, y
+   * no contaba como riesgo en ninguna parte.
+   *
+   * Entran los DOS de atraso: un folio fuera de SLA es que hoy le estamos
+   * fallando, y arrastrarlo corte tras corte es que ya no lo notamos. No entra
+   * `sac_fallas_recurrentes`: una falla es un problema de calidad y hay 16
+   * cuentas con tres o más — meterlas aquí inflaría el KPI «En Riesgo» de 33
+   * a 49 y lo volvería a hacer inútil por el otro lado, que es justo el error
+   * que este conjunto estrecho existe para no repetir. Sigue siendo familia
+   * `riesgo`, así que bloquea la luz verde y sale en rojo en la ficha. */
+  'sac_fuera_sla', 'sac_atraso_cronico',
 ])
 
 export interface CuentaEnRiesgo {

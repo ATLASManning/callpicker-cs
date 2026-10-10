@@ -7,6 +7,8 @@ import { baseMinutos } from '@/lib/plan-minutos'
 import { hoyEnMexico } from '@/lib/fecha-local'
 import { CANALES_CONTACTO, llegoAlCliente, llegoAlClienteActividad } from '@/lib/contacto-cuenta'
 import { senalesEscritas, type TextoCuenta } from '@/lib/senal-escrita'
+import { mesaDeCuenta } from '@/lib/mesa-ayuda'
+import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
 
 /**
@@ -24,6 +26,25 @@ import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
  * se puede defender frente al cliente ni frente al equipo, y es exactamente
  * lo que convirtió las 383 acciones de auditoría en texto que nadie siguió.
  */
+
+/**
+ * Los umbrales de la mesa de ayuda, medidos ANTES de escribir las alarmas con
+ * `scripts/mide-alarmas-sac.py`. Una alarma que salta en el 80% de la cartera
+ * no es una alarma: es un color de fondo.
+ *
+ *   fuera de SLA, cualquier día   2 cuentas (1.0%)  $332,221  ← el 15% del dinero
+ *   >= 3 de 20 cortes con vencidos 6 cuentas (3.1%)  $365,949
+ *   >= 3 fallas en el histórico   16 cuentas (8.3%)  $590,633
+ *
+ * Con `>= 1 falla` serían 59 cuentas, el 30.7% — demasiado para que la palabra
+ * «recurrente» signifique algo.
+ */
+export const MESA = {
+  /** Cortes con vencidos a partir de los cuales deja de ser un mal día. */
+  cortesCronico: 3,
+  /** Fallas en el histórico para hablar de recurrencia. */
+  fallas: 3,
+}
 
 /** Umbrales. Están juntos A PROPÓSITO: son la perilla del volumen. */
 export const UMBRALES = {
@@ -486,6 +507,62 @@ export async function detectarAlertas(
        canal en el reloj de contacto. Esas 87 filas son evidencia de que alguien
        llamó, y son la razón por la que el tablero dejó de acusar a 32 cuentas
        de abandono cuando sí se les había llamado. */
+
+    /* ── LA MESA DE AYUDA ──────────────────────────────────────────────────
+     *
+     * Dirección, 9 oct 2026: «reforzar, robustecer las alarmas de las cuentas,
+     * darles mayor peso a tus hallazgos».
+     *
+     * Hasta hoy el detector no abría `lib/mesa-ayuda.ts` ni una vez. Medido el
+     * mismo día: el `health_score` correlaciona con `fallas` en +0.121 y con
+     * `tickets` en +0.098 —EN POSITIVO—, porque no existe ninguna ruta de
+     * código de la mesa al número. GRUPO TORRES CORZO arrastra el folio 106428
+     * escalado 155 días, 156 sin que nadie lo mueva, sobre $316,541 al mes, y
+     * salía en el lugar 16 del tablero.
+     *
+     * LOS TRES SON EXCLUYENTES, y en ese orden, porque comparten grupo de
+     * episodio (`CONDICION[...] = 'mesa'`) y dentro de un grupo los tipos
+     * tienen que serlo: son la misma historia empeorando. Crónico gana a
+     * vencido porque arrastrarlo veinte cortes dice más que tenerlo hoy. */
+    const mesa = mesaDeCuenta(c.cid)
+    const peor = mesa.peor
+    if (mesa.cortesConVencidos >= MESA.cortesCronico && mesa.cortesTotales > 0) {
+      add('sac_atraso_cronico', c,
+          `Aparece con tickets vencidos en ${mesa.cortesConVencidos} de los `
+        + `${mesa.cortesTotales} cortes de la mesa`
+        + (peor
+            ? `. Hoy el peor es el folio ${peor.folio} con ${peor.diasSLA} días fuera `
+              + `de SLA y ${peor.diasSinMover} sin que nadie lo mueva (${peor.estado})`
+            : `. Hoy no tiene ninguno abierto`)
+        + `. Corte del ${mesa.fechaCorte}`,
+          peor?.diasSLA ?? null)
+    } else if (peor) {
+      add('sac_fuera_sla', c,
+          `Folio ${peor.folio} con ${peor.diasSLA} días fuera de SLA y `
+        + `${peor.diasSinMover} sin que nadie lo mueva (${peor.estado}`
+        + (peor.responsable ? `, ${peor.responsable}` : '') + `). `
+        + `«${peor.asunto}». Corte del ${mesa.fechaCorte}`,
+          peor.diasSLA)
+    } else {
+      /* Las fallas son del histórico de la mesa, NO de una ventana de 60 días:
+         `ticketStatsCuenta` no la publica. Se dice así en la evidencia, porque
+         «3 fallas en 60 días» y «3 fallas en el histórico» no son lo mismo y la
+         diferencia la discute el cliente. */
+      const tk = ticketStatsCuenta(c.cid ?? null, c.empresa)
+      if (tk.fallas >= MESA.fallas) {
+        add('sac_fallas_recurrentes', c,
+            `${tk.fallas} fallas del servicio registradas en el histórico de la `
+          + `mesa, sobre ${tk.total} tickets atendidos`
+          + (tk.ultima ? `. El último, el ${tk.ultima}` : ''))
+      }
+    }
+
+    /* ── LA OCTAVA FUENTE, que se medía y no encendía nada ─────────────── */
+    if (importes.get(c.id)?.origen === 'sin_dato') {
+      add('sin_importe', c,
+          'La cuenta está viva y no tiene importe ni en el GRC por CID ni en su '
+        + 'propia ficha: no pesa en ninguna cifra de dinero del tablero')
+    }
   }
 
   return alertas.sort((a, b) =>
