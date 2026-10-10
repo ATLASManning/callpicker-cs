@@ -1,6 +1,7 @@
 import path from 'path'
 import ActivacionesCharts, { RegistroItem } from '@/components/charts/ActivacionesCharts'
 import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico'
+import ActivacionesGrandes from '@/components/charts/ActivacionesGrandes'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +39,19 @@ function normTipo(t: string): string {
 }
 
 // ── Lectura del Excel ─────────────────────────────────────────────────────────
-async function getRegistros(): Promise<RegistroItem[]> {
+/** Una fila que el filtro de año aparta. Lleva `primerPago` para poder decir
+ *  si alguna de las apartadas habría entrado al corte de las grandes: sin el
+ *  importe, el módulo no puede afirmar que no se le escapó ninguna. */
+interface Descartada {
+  id: string; cliente: string; ejecutivo: string; ano: number; primerPago: number
+}
+
+/* El tipo declarado decía `Promise<RegistroItem[]>` y la función devuelve un
+   objeto con dos listas. `next.config.js` trae `ignoreBuildErrors`, así que
+   compilaba mintiendo. */
+async function getRegistros(): Promise<{
+  registros: RegistroItem[]; descartadas: Descartada[]
+}> {
   try {
     // Importación dinámica para que Next.js no falle en build client-side
     const xlsx = (await import('xlsx')).default
@@ -69,7 +82,18 @@ async function getRegistros(): Promise<RegistroItem[]> {
         vendedor:       normVendedor(String(r['Vendedor'])),
         giro:           normGiro(String(r['Giro'])),
         tipo:           normTipo(String(r['Tipo'])),
-        diasActivacion: typeof r['Dias activacion'] === 'number' && r['Dias activacion'] > 0 ? r['Dias activacion'] : null,
+        /* UN CERO AQUÍ SÍ ES UNA MEDICIÓN: significa «se activó el mismo día».
+           Esto decía `> 0`, así que 24 activaciones del mismo día se volvían
+           «sin medir» y desaparecían del mejor caso de la operación. Medido en
+           `scripts/mide-dias-cero.py`: de esas 24, veintidós traen mes,
+           importe Y ejecutivo —casi todas `sencillo` y de importe chico, el
+           perfil exacto de una activación que se resuelve el mismo día—, y en
+           todo el archivo esa columna no tiene ni una celda vacía: 2,121
+           números positivos, 24 ceros, 3 negativos y 579 guiones que son
+           exactamente los 579 demos.
+           Los NEGATIVOS sí son basura de captura —no existen los días
+           negativos— y siguen siendo `null`. */
+        diasActivacion: typeof r['Dias activacion'] === 'number' && r['Dias activacion'] >= 0 ? r['Dias activacion'] : null,
         contacto:       String(r['¿Se tuvo contacto?'] ?? '').trim() || 'N/A',
         encuesta:       String(r['Encuesta Satisfaccion al cliente'] ?? '').trim() || 'N/A',
         complejidad:    String(r['Complejidad'] ?? '').trim().toLowerCase() || 'N/A',
@@ -84,7 +108,8 @@ async function getRegistros(): Promise<RegistroItem[]> {
     const validas = filas.filter(r => r.ano >= 2020)
     const descartadas = filas
       .filter(r => r.ano < 2020)
-      .map(r => ({ id: r.id, cliente: r.cliente, ejecutivo: r.ejecutivo, ano: r.ano }))
+      .map(r => ({ id: r.id, cliente: r.cliente, ejecutivo: r.ejecutivo,
+                   ano: r.ano, primerPago: r.primerPago }))
     return { registros: validas, descartadas }
 
   } catch (err) {
@@ -184,6 +209,7 @@ export default async function ActivacionesPage() {
       {/* Charts */}
       <div style={{ padding: '28px 32px 64px' }}>
         <ActivacionesCharts registros={registros} anos={anos} />
+        <ActivacionesGrandes registros={registros} />
         <ActivacionesDiagnostico registros={registros} />
       </div>
     </div>

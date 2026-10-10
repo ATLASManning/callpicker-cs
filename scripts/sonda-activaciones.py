@@ -91,8 +91,31 @@ def lee_archivo():
         return int(d) if d else 0
     nuevas = [str(f.get('Cliente')).strip()
               for f in sorted(act, key=idnum, reverse=True)[:3]]
+
+    # ── El módulo de clientes arriba de $3,500 ──────────────────────────
+    # Mismo filtro que `components/charts/ActivacionesGrandes.tsx`: sin demos
+    # y `primerPago > UMBRAL` ESTRICTO. Las cifras salen del archivo, así que
+    # la sonda cubre el módulo sin que haya que tocarla en la carga siguiente.
+    def pago(f):
+        v = f.get('1er Pago')
+        if isinstance(v, (int, float)):
+            return float(v)
+        try:
+            return float(re.sub(r'[$,\s]', '', str(v or '')))
+        except ValueError:
+            return 0.0
+
+    UMBRAL = 3500.0
+    grandes = [f for f in act if pago(f) > UMBRAL]
+    # Los tres de mayor importe: si el módulo no llegara, estos nombres no
+    # están en la página aunque el resto del corte sí se sirva.
+    cabeza = [str(f.get('Cliente')).strip()
+              for f in sorted(grandes, key=pago, reverse=True)[:3]]
     return {'filas': len(regs), 'reales': len(act),
-            'demos': len(regs) - len(act), 'nuevas': nuevas}
+            'demos': len(regs) - len(act), 'nuevas': nuevas,
+            'grandes': len(grandes),
+            'dinero_grandes': int(round(sum(pago(f) for f in grandes))),
+            'cabeza': cabeza}
 
 
 # ── Producción ──────────────────────────────────────────────────────────────
@@ -131,6 +154,8 @@ def pide(ruta):
 esp = lee_archivo()
 print(u'  el archivo dice: %s filas · %s activaciones · %s demos'
       % tuple(format(esp[k], ',d') for k in ('filas', 'reales', 'demos')))
+print(u'  arriba de $3,500: %s clientes · $%s'
+      % (format(esp['grandes'], ',d'), format(esp['dinero_grandes'], ',d')))
 
 # ── Comparadores ────────────────────────────────────────────────────────────
 t = u''
@@ -182,6 +207,21 @@ exige(re.search(r'\b%s\s+demos\b' % format(esp['demos'], ',d'), t) is not None,
 
 for nom in esp['nuevas']:
     exige(nom.lower() in t.lower(), u'llega la activación de ID más alto «%s»' % nom)
+
+# ── El módulo de clientes arriba de $3,500 ──────────────────────────────────
+print(u'')
+exige(hay(esp['grandes']),
+      u'aparece el conteo de clientes arriba de $3,500 (%s)' % format(esp['grandes'], ',d'))
+# El importe se busca con el formato que la pantalla imprime: `Intl` con
+# `maximumFractionDigits: 0` da «$1,163,212». Buscar el entero crudo no
+# serviría.
+exige(format(esp['dinero_grandes'], ',d') in t,
+      u'aparece la suma del módulo ($%s)' % format(esp['dinero_grandes'], ',d'))
+exige(u'primer pago de la activación' in t.lower(),
+      u'el pie aclara que la cifra es el primer pago, no el cobro vigente')
+for nom in esp['cabeza']:
+    exige(nom.lower() in t.lower(),
+          u'el módulo lista a «%s», de los de mayor importe' % nom)
 
 m = re.search(r'Activaciones 2\.0.{0,200}', t)
 if m:
