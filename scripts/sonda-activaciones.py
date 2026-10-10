@@ -111,11 +111,23 @@ def lee_archivo():
     # están en la página aunque el resto del corte sí se sirva.
     cabeza = [str(f.get('Cliente')).strip()
               for f in sorted(grandes, key=pago, reverse=True)[:3]]
+    # ¿Alguna de las que pasan el corte trae un hueco? El módulo marca las
+    # ausencias con palabras —«no capturado»— y esa frase es lo único que
+    # distingue este despliegue del anterior. Pero exigirla a secas se
+    # PUDRIRÍA: el día que el origen venga completo, la frase desaparece con
+    # razón y la sonda gritaría. Así que la expectativa sale del archivo.
+    def hueco(f, col):
+        v = str(f.get(col) or '').strip()
+        return v == '' or v.upper() == 'N/A'
+
+    con_hueco = sum(1 for f in grandes
+                    if any(hueco(f, c) for c in ('Giro', 'Ejecutivo', u'Tamaño')))
+
     return {'filas': len(regs), 'reales': len(act),
             'demos': len(regs) - len(act), 'nuevas': nuevas,
             'grandes': len(grandes),
             'dinero_grandes': int(round(sum(pago(f) for f in grandes))),
-            'cabeza': cabeza}
+            'cabeza': cabeza, 'con_hueco': con_hueco}
 
 
 # ── Producción ──────────────────────────────────────────────────────────────
@@ -229,6 +241,14 @@ exige(u'primer pago de la activación' in t.lower(),
 for nom in esp['cabeza']:
     exige(nom.lower() in t.lower(),
           u'el módulo lista a «%s», de los de mayor importe' % nom)
+
+# Las ausencias se marcan CON PALABRAS, nunca con un «N/A» pelado. Se exige
+# sólo si el archivo trae huecos; si viniera completo, la frase no debe estar.
+if esp['con_hueco'] > 0:
+    exige(u'no capturado' in t.lower(),
+          u'las %d con huecos dicen «no capturado», no «N/A»' % esp['con_hueco'])
+else:
+    print(u'  --    el archivo no trae huecos en el corte: nada que marcar')
 
 m = re.search(r'Activaciones 2\.0.{0,200}', t)
 if m:

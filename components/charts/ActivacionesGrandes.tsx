@@ -67,8 +67,9 @@ const pesos = (n: number) =>
  *  dice si el dato no existe, no aplica o nadie lo capturó. Aquí siempre es lo
  *  último, así que se escribe. «Sin vendedor» ya viene redactado del
  *  normalizador y se deja tal cual. */
+const AUSENTE = 'no capturado'
 const sinDato = (v: string) =>
-  (!v || v.trim() === '' || v.trim().toUpperCase() === 'N/A') ? 'no capturado' : v
+  (!v || v.trim() === '' || v.trim().toUpperCase() === 'N/A') ? AUSENTE : v
 
 function Pastilla({ texto }: { texto: string }) {
   const color = EJEC_COLOR[texto] ?? '#64748B'
@@ -224,7 +225,13 @@ export default function ActivacionesGrandes({ registros }: { registros: Registro
                   <td style={{ ...TD, color: TX_MID, whiteSpace: 'nowrap' }}>
                     {sinDato(r.vendedor)}
                   </td>
-                  <td style={{ ...TD, color: TX_MID, textTransform: 'capitalize' }}>
+                  {/* El `capitalize` sólo va cuando hay valor: aplicado a la
+                      marca de ausencia la dejaba como «No Capturado», que
+                      parece un título mal escrito en vez de una nota. */}
+                  <td style={{
+                    ...TD, color: TX_MID,
+                    textTransform: sinDato(r.tamano) === AUSENTE ? 'none' : 'capitalize',
+                  }}>
                     {sinDato(r.tamano)}
                   </td>
                   <td style={{ ...TD, color: TX_MID }}>{sinDato(r.giro)}</td>
