@@ -62,6 +62,14 @@ const pesos = (n: number) =>
     style: 'currency', currency: 'MXN', maximumFractionDigits: 0,
   }).format(n)
 
+/** Una ausencia se marca CON PALABRAS. El archivo entrega «N/A» en giro,
+ *  ejecutivo y tamaño cuando la celda viene vacía, y un «N/A» en una tabla no
+ *  dice si el dato no existe, no aplica o nadie lo capturó. Aquí siempre es lo
+ *  último, así que se escribe. «Sin vendedor» ya viene redactado del
+ *  normalizador y se deja tal cual. */
+const sinDato = (v: string) =>
+  (!v || v.trim() === '' || v.trim().toUpperCase() === 'N/A') ? 'no capturado' : v
+
 function Pastilla({ texto }: { texto: string }) {
   const color = EJEC_COLOR[texto] ?? '#64748B'
   return (
@@ -208,12 +216,18 @@ export default function ActivacionesGrandes({ registros }: { registros: Registro
                       ? `${MES_ES[r.mes]} ${r.ano}`
                       : `${r.ano || 'sin año'} · sin mes`}
                   </td>
-                  <td style={TD}><Pastilla texto={r.ejecutivo} /></td>
-                  <td style={{ ...TD, color: TX_MID }}>{r.vendedor}</td>
-                  <td style={{ ...TD, color: TX_MID, textTransform: 'capitalize' }}>
-                    {r.tamano}
+                  <td style={TD}><Pastilla texto={sinDato(r.ejecutivo)} /></td>
+                  {/* `whiteSpace: nowrap` porque «Sin vendedor» partía en dos
+                      líneas y dejaba la fila del doble de alto que sus vecinas:
+                      una lista de 143 renglones con alturas desparejas se lee
+                      peor de lo que parece en una captura de doce. */}
+                  <td style={{ ...TD, color: TX_MID, whiteSpace: 'nowrap' }}>
+                    {sinDato(r.vendedor)}
                   </td>
-                  <td style={{ ...TD, color: TX_MID }}>{r.giro}</td>
+                  <td style={{ ...TD, color: TX_MID, textTransform: 'capitalize' }}>
+                    {sinDato(r.tamano)}
+                  </td>
+                  <td style={{ ...TD, color: TX_MID }}>{sinDato(r.giro)}</td>
                   <td style={{
                     ...TD, textAlign: 'right', fontWeight: 800,
                     fontVariantNumeric: 'tabular-nums',
