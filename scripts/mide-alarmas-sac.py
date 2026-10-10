@@ -231,7 +231,34 @@ NUEVAS = ('sac_fuera_sla', 'sac_atraso_cronico', 'sac_fallas_recurrentes', 'sin_
 import collections
 porTipo = collections.Counter(a.get('tipo') for a in alertas)
 for t in NUEVAS:
-    exige(porTipo.get(t, 0) > 0, u'«%s» dispara' % t, u'%d alerta(s)' % porTipo.get(t, 0))
+    print(u'        %-26s %3d alerta(s)' % (t, porTipo.get(t, 0)))
+
+# EXIGIR QUE CADA TIPO DISPARE SERIA EXIGIRLE A LOS DATOS, NO AL CODIGO.
+#
+# La primera version pedia `> 0` en los cuatro y fallaba en `sac_fuera_sla`
+# con cero — correctamente: los tres de mesa son excluyentes y el cronico
+# gana, asi que una cuenta con un folio vencido HOY que ademas lo arrastra
+# sale como cronica. Las dos del ultimo corte que estan en la cartera llevan
+# racha de 12 y 20 cortes, asi que no queda ninguna para `sac_fuera_sla`. Eso
+# no es un fallo: es que hoy nadie estrena un vencido.
+#
+# Lo que SI hay que exigir es el invariante: ninguna cuenta de la cartera con
+# un folio vencido en el ultimo corte puede quedarse sin alarma de mesa.
+MESA3 = set(NUEVAS[:3])
+con_alarma_mesa = {a.get('cuentaId') for a in alertas if a.get('tipo') in MESA3}
+ids_vencidos_hoy = {porCid[c]['cuentaId'] for c in cids_ult if c in porCid}
+huerfanas = ids_vencidos_hoy - con_alarma_mesa
+exige(not huerfanas,
+      u'toda cuenta con folio vencido hoy tiene alarma de mesa',
+      u'%d con vencido · %d sin alarma' % (len(ids_vencidos_hoy), len(huerfanas)))
+exige(porTipo.get('sac_atraso_cronico', 0) > 0, u'«sac_atraso_cronico» dispara',
+      u'%d' % porTipo.get('sac_atraso_cronico', 0))
+exige(porTipo.get('sac_fallas_recurrentes', 0) > 0, u'«sac_fallas_recurrentes» dispara',
+      u'%d' % porTipo.get('sac_fallas_recurrentes', 0))
+exige(porTipo.get('sin_importe', 0) == len([r for r in rows if r.get('mrr') is None]),
+      u'«sin_importe» dispara en todas las que no tienen cifra',
+      u'%d alertas para %d cuentas sin importe'
+      % (porTipo.get('sin_importe', 0), len([r for r in rows if r.get('mrr') is None])))
 
 # Toda alerta nueva lleva su evidencia con numeros. Una sin cifra no se puede
 # defender frente al cliente, que es la regla del catalogo.

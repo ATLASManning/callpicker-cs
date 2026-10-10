@@ -559,9 +559,19 @@ export async function detectarAlertas(
 
     /* ── LA OCTAVA FUENTE, que se medía y no encendía nada ─────────────── */
     if (importes.get(c.id)?.origen === 'sin_dato') {
+      /* CON CIFRAS, como todas. La primera versión decía «no tiene importe en
+         ninguna fuente» y nada más: cero números en una alerta cuyo asunto ES
+         un número. Lo cazó `mide-alarmas-sac.py --vivo`, que exige que toda
+         evidencia traiga dígitos — una alerta sin su cifra no se puede
+         defender ni frente al cliente ni frente al equipo. Aquí la cifra que
+         se puede dar es cuál CID se buscó y qué guarda la ficha. */
       add('sin_importe', c,
-          'La cuenta está viva y no tiene importe ni en el GRC por CID ni en su '
-        + 'propia ficha: no pesa en ninguna cifra de dinero del tablero')
+          (c.cid
+            ? `El CID ${c.cid} no aparece en el Gross Revenue Facturación`
+            : 'La cuenta no tiene CID con el que buscarla en el Gross Revenue '
+              + 'Facturación')
+        + ` y su ficha guarda $${(c.facturacion ?? 0).toLocaleString('es-MX')}. `
+        + 'Está viva y no pesa en ninguna cifra de dinero del tablero.')
     }
   }
 

@@ -11,6 +11,10 @@
 
 Sello de la lectura: 9 oct 2026, commit `d213e1f`, 192 cuentas vivas.
 
+> **Actualizado el 9 oct 2026 (`d340391`)** con las cuatro alarmas de mesa de
+> ayuda y facturación que pidió dirección — «reforzar, robustecer las alarmas
+> de las cuentas, darles mayor peso a tus hallazgos». Ver §4-bis.
+
 ---
 
 ## 0. Primero, el mapa de nombres
@@ -139,6 +143,58 @@ disparado lo siguen diciendo, porque ahí nadie más lo dice.
 
 **26 títulos distintos**, de plantilla fija (sólo dos llevan dígitos, y son
 umbrales: «Más de 30 días sin contacto», «Más de 60 días»).
+
+---
+
+## 4-bis. Las cuatro alarmas nuevas (9 oct 2026)
+
+**Por qué.** El `health_score` correlacionaba con `fallas` en **+0.121** y con
+`tickets` en **+0.098** —en POSITIVO— porque no existía ninguna ruta de código
+de la mesa de ayuda al motor. `detectarAlertas` no abría `lib/mesa-ayuda.ts`
+ni una vez, aunque el módulo lleva 20 cortes con los días fuera de SLA de cada
+folio. GRUPO TORRES CORZO arrastraba el folio 106428 escalado **155 días**
+sobre $316,541 al mes y el tablero lo ponía en el lugar 16.
+
+Y hay un precedente que lo zanja: el único churn confirmado de la cartera
+—Polak Grupo— tiene causa raíz **interna** escrita en su expediente
+(descontinuación de Legacy, meses de llamadas caídas). El servicio que falla
+es el motivo de baja mejor documentado del proyecto, y no disparaba nada.
+
+| Tipo | Familia | Sev. | Regla | Pega a |
+|---|---|---|---|---|
+| `sac_atraso_cronico` | riesgo | crítica | vencidos en ≥3 de los 20 cortes | 6 cuentas · $365,949 |
+| `sac_fuera_sla` | riesgo | crítica | algún folio fuera de SLA en el último corte | 2 cuentas · $332,221 |
+| `sac_fallas_recurrentes` | riesgo | alta | ≥3 fallas en el histórico | 16 cuentas · $590,633 |
+| `sin_importe` | ceguera | alta | viva sin MRR en ninguna fuente | 10 cuentas |
+
+Umbrales en `MESA` (`lib/alertas-detectar.ts`), **medidos antes de escribir las
+alarmas** con `scripts/mide-alarmas-sac.py`: con `≥1 falla` serían 59 cuentas,
+el 30.7% de la cartera — demasiado para que «recurrente» signifique algo.
+
+**Los tres de mesa son excluyentes**, en ese orden (crónico › fuera de SLA ›
+fallas): comparten grupo de episodio `'mesa'` y dentro de un grupo los tipos
+tienen que serlo. Son la misma historia empeorando.
+
+**En `TIPOS_RIESGO` entran sólo los dos de atraso.** `sac_fallas_recurrentes`
+no: son 16 cuentas y meterlas inflaría el KPI «En Riesgo» de 33 a 49, que es
+volver a hacerlo inútil por el otro lado. Sigue siendo familia `riesgo`, así
+que bloquea la luz verde y sale en rojo en la ficha.
+
+**Efecto medido:** 18 cuentas tocan al menos una alarma nueva (12 ya en
+`no_la_vemos`, 4 en `sin_auditar`, 1 en `se_va`) y **una deja de estar en luz
+verde**: GRUPO 2711, $12,780, con 10 fallas y vencidos en 18 de 20 cortes,
+clasificada hasta hoy como «Oportunidad».
+
+**Dos candados de despliegue**, porque `mesa-ayuda` lee un DIRECTORIO con ruta
+de tiempo de ejecución y el trazador de Next no puede seguir eso:
+`outputFileTracingIncludes` declara `./data/mesa-ayuda/**` para las seis rutas
+que la leen, y `veredictosDeCartera` empuja a `fallos` si no llegó ningún
+corte — «no es que no haya tickets vencidos, es que no se miraron».
+
+**Pendiente, y no bloquea:** `scripts/migracion-condicion-mesa.sql` añade
+`'mesa'` e `'importe'` al CHECK de `alertas_episodios.condicion`. Sin correrla
+las alarmas funcionan igual; lo único que no abre es su memoria de episodios,
+y el rechazo se publica en `falla` en vez de callarse.
 
 ---
 
@@ -285,8 +341,15 @@ etiqueta.
 ```bash
 python scripts/verifica-graficas-dashboard.py     # 21 invariantes de agregación
 python scripts/mide-dimensiones-dashboard.py      # dispersión + «un hecho una vez»
+python scripts/mide-alarmas-sac.py --vivo         # que las alarmas de mesa disparen
 python scripts/verifica-despliegue-vivo.py        # qué commit está sirviendo
 ```
+
+El tercero exige cuatro cosas contra producción: que los cuatro tipos nuevos
+disparen, que **toda** evidencia nueva traiga cifras —una alerta sin su número
+no se puede defender frente al cliente—, que los tres de mesa sean
+excluyentes por cuenta, y que GRUPO TORRES CORZO esté en el top 3 por
+prioridad, que era la prueba de aceptación que fallaba.
 
 El segundo trae el invariante que impide que vuelvan las gemelas: busca
 títulos cuyo conjunto de cuentas esté **contenido** en el de otro, que es la
