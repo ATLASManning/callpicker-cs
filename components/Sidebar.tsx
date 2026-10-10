@@ -47,9 +47,24 @@ const NAV_ENTRADAS: NavEntry[] = [
   { href: '/alertas',         label: 'Alertas de Cliente',   icon: BellRing },
   { href: '/analisis-llamadas', label: 'Análisis de Llamadas', icon: PhoneCall },
   { href: '/perfil-rol',      label: 'Perfil del Rol',       icon: Target },
-  { href: '/base-cs',         label: 'Base de Conocimiento', icon: Library },
-  { href: '/chat',            label: 'Atlas IA',          icon: MessageSquare },
-  { href: '/auditoria',       label: 'Auditoría Cuentas', icon: ClipboardList },
+  // ── Grupo: Atlas IA ──────────────────────────────────────────────────────
+  // Instrucción de dirección, 9 oct 2026: «Base de Conocimiento debe vivir
+  // dentro de ATLAS IA». Tienen sentido juntas: la base es exactamente el
+  // material que Atlas lee para contestar, y estaban en extremos opuestos del
+  // menú por el orden alfabético.
+  //
+  // El hijo se llama «Chat con Atlas» y no «Chat» a secas porque en este menú
+  // ya vive «Callpicker Chat», que es un producto del cliente y no esta
+  // pantalla. Dos entradas llamadas «Chat» en la misma barra es una pregunta
+  // que nadie debería tener que hacerse.
+  {
+    group: 'Atlas IA',
+    icon: MessageSquare,
+    children: [
+      { href: '/chat',    label: 'Chat con Atlas',        icon: MessageSquare },
+      { href: '/base-cs', label: 'Base de Conocimiento',  icon: Library },
+    ],
+  },
   { href: '/churn',           label: 'Churn',             icon: TrendingDown },
   { href: '/callpicker-chat', label: 'Callpicker Chat',   icon: MessageCircle },
   { href: '/buzon',           label: 'Buzón del Cliente', icon: Inbox },
@@ -61,12 +76,28 @@ const NAV_ENTRADAS: NavEntry[] = [
       { href: '/facturacion/cortes', label: 'Informe de Cortes', icon: BarChart2  },
     ],
   },
+  // ── Grupo: Cuentas ───────────────────────────────────────────────────────
+  // Instrucción de dirección, 9 oct 2026: «el apartado auditoría de cuentas
+  // debe vivir dentro del apartado Cuentas».
+  //
+  // Va de TERCERA y no entre las dos primeras: «Activas» y «Dormidas» son los
+  // dos estados de la cartera y se leen como un par; la auditoría no es un
+  // tercer estado, es el análisis que se escribe sobre cualquiera de los dos.
+  // El orden de los hijos no lo toca el alfabeto a propósito — ver la nota de
+  // `NAV` más abajo.
+  //
+  // La RUTA no se mueve. `/auditoria` está enlazada desde la portada, desde el
+  // catálogo de alertas y desde los 30 expedientes de `app/auditoria/*-data.ts`;
+  // cambiarla a `/cuentas/auditoria` sería tocar decenas de archivos y dejar
+  // enlaces viejos rotos, a cambio de nada que se vea. Lo que pidió dirección
+  // es dónde vive en el menú.
   {
     group: 'Cuentas',
     icon: Users,
     children: [
-      { href: '/cuentas',          label: 'Activas',  icon: Users    },
-      { href: '/cuentas/dormidas', label: 'Dormidas', icon: Archive  },
+      { href: '/cuentas',          label: 'Activas',   icon: Users         },
+      { href: '/cuentas/dormidas', label: 'Dormidas',  icon: Archive       },
+      { href: '/auditoria',        label: 'Auditoría', icon: ClipboardList },
     ],
   },
   { href: '/customer-tenure', label: 'Customer Tenure',   icon: Clock },
@@ -228,22 +259,44 @@ export default function Sidebar() {
   const rolColor = definicionRol(me?.rol).color
   const rolLabel = definicionRol(me?.rol).label
 
-  // Filtrar nav segun rol. Los grupos se podan por dentro: si a un rol le
-  // quedan cero hijos visibles, el grupo entero desaparece — antes se mostraba
-  // el encabezado aunque no llevara a ningun lado.
+  /* Filtrar nav segun rol. Los grupos se podan por dentro: si a un rol le
+     quedan cero hijos visibles, el grupo entero desaparece — antes se mostraba
+     el encabezado aunque no llevara a ningun lado.
+
+     ── LA REGLA DEL VIEWER SE APLICA A LOS HIJOS TAMBIÉN ─────────────────
+     Estaba escrita sólo en la rama de los items PLANOS, y eso la hacía
+     depender de dónde cuelga cada entrada en el menú y no de quién mira.
+     Consecuencias medidas el 9 oct 2026:
+
+       · `/seguimiento` lleva tiempo dentro del grupo «Asesores», así que la
+         regla NUNCA se ejecutaba para él: el viewer ya lo veía.
+       · Y al mover `/auditoria` dentro de «Cuentas» —lo que pidió dirección—
+         habría pasado exactamente lo mismo, en silencio y el mismo día.
+
+     Un permiso que se cae solo al reacomodar un menú no es un permiso. Ahora
+     es un predicado y se aplica en las dos ramas.
+
+     Que quede claro lo que esto es y lo que no: `viewer` tiene `paginas: null`
+     en `lib/permisos.ts`, o sea que PUEDE abrir las dos páginas escribiendo la
+     URL. Esto ordena el menú, no cierra una puerta. Ver
+     [[auditoria-acceso-oct2026]]: ocultar un enlace no protege nada por sí
+     solo, y el candado de verdad está en el middleware. */
+  const VIEWER_NO_VE = ['/seguimiento', '/auditoria']
+  const visible = (href: string) =>
+    puedeVerModulo(me!.rol, href)
+    && !(me!.rol === 'viewer' && VIEWER_NO_VE.includes(href))
+
   const navFiltered = NAV.reduce<NavEntry[]>((acc, entry) => {
     if (!me || me.rol === 'admin') { acc.push(entry); return acc }
 
     if (isGroup(entry)) {
-      const hijos = entry.children.filter(c => puedeVerModulo(me.rol, c.href))
+      const hijos = entry.children.filter(c => visible(c.href))
       if (hijos.length) acc.push({ ...entry, children: hijos })
       return acc
     }
 
     const item = entry as NavItem
-    if (!puedeVerModulo(me.rol, item.href)) return acc
-    // Viewers no ven seguimiento ni auditoria
-    if (me.rol === 'viewer' && ['/seguimiento', '/auditoria'].includes(item.href)) return acc
+    if (!visible(item.href)) return acc
     acc.push(item)
     return acc
   }, [])
