@@ -17,11 +17,31 @@ import sys, io, re, urllib.request, urllib.error
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
 BASE = 'https://callpicker-cs.vercel.app'
+
+# Las agujas se pueden pasar por argumento: cada una como `etiqueta=texto`, o
+# `-texto` para exigir que NO este. Sin argumentos usa las de siempre.
+#
+# POR QUE HACE FALTA LA NEGATIVA: un bloque que vive detras de una pestana no
+# esta en el HTML inicial, asi que comprobar «ya no aparece» contra la pagina
+# servida pasa EN VACIO — pasaria igual con el deploy sin entrar. En el bundle
+# si esta el codigo de todas las pestanas, asi que aqui la negativa si prueba
+# algo.
 AGUJAS = [
     ('explicacion de «Numeros»',      'conmutador con cien empleados'),
     ('declaracion de periodo',        'El filtro de mes no aplica a esta tabla'),
     ('bolsa que hace cerrar',         'otros destinos'),
 ]
+NEGATIVAS = []
+if len(sys.argv) > 1:
+    AGUJAS = []
+    for a in sys.argv[1:]:
+        if a.startswith('-'):
+            NEGATIVAS.append(a[1:])
+        elif '=' in a:
+            e, t = a.split('=', 1)
+            AGUJAS.append((e, t))
+        else:
+            AGUJAS.append((a[:26], a))
 
 
 def baja(u):
@@ -61,9 +81,21 @@ plano = re.sub(r'\\x([0-9a-fA-F]{2})', lambda m: chr(int(m.group(1), 16)), texto
 plano = re.sub(r'\\u([0-9a-fA-F]{4})', lambda m: chr(int(m.group(1), 16)), plano)
 
 print()
+falla = 0
 for etiqueta, a in AGUJAS:
-    print('  %s %-26s %s' % ('SI ' if a in plano else '** ', etiqueta, a[:46]))
+    hay = a in plano
+    if not hay:
+        falla += 1
+    print('  %s %-26s %s' % ('SI ' if hay else '** ', etiqueta, a[:46]))
+for a in NEGATIVAS:
+    hay = a in plano
+    if hay:
+        falla += 1
+    print('  %s %-26s %s' % ('SI ' if not hay else '** ', 'NO debe estar', a[:46]))
 print()
+if NEGATIVAS or len(sys.argv) > 1:
+    print('resultado: %s' % ('todas las agujas cuadran' if not falla
+                             else '*** %d aguja(s) no cuadran' % falla))
 print('Si salen ** puede ser que el chunk de la ruta protegida no este listado')
 print('en el manifiesto — eso NO prueba que el deploy fallo, solo que no se')
 print('alcanzo a leer desde fuera de la sesion.')
