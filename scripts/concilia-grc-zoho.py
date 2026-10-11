@@ -79,8 +79,39 @@ def main():
               f"{('delta ' + f_(d[2])):>26}")
 
     # ── 2. Quien cambio, cliente por cliente ──────────────────────────────
-    ka = {f['cliente']: f for f in ant['filas']}
-    kn = {f['cliente']: f for f in nue['filas']}
+    # ── UN DICCIONARIO POR NOMBRE DESCARTA DUPLICADOS EN SILENCIO ────────
+    # Esto era `{f['cliente']: f for f in ...}`, y un cliente con varias filas
+    # perdia todas menos la ultima: 3,608 filas para 3,590 clientes son 18
+    # filas tiradas. Mientras tanto `per_a`/`per_n` de abajo suman TODAS, asi
+    # que el reparto por causa no podia cerrar nunca que un nombre repetido
+    # cargara perdida — y el script acusaba al dato de un descuadre suyo.
+    # Un verificador que no cierra por su propia culpa ensena a ignorarlo.
+    # Ahora se AGREGA: la perdida se suma y el movimiento que se muestra es el
+    # de la fila que mas pesa, diciendo cuantas filas hay detras.
+    def porCliente(filas):
+        acc = {}
+        for f in filas:
+            k = f['cliente']
+            e = acc.get(k)
+            if e is None:
+                acc[k] = {'cliente': k, 'perdida': f.get('perdida') or 0.0,
+                          'movimiento': f.get('movimiento'), 'n': 1,
+                          '_peor': abs(f.get('perdida') or 0.0)}
+            else:
+                e['perdida'] += f.get('perdida') or 0.0
+                e['n'] += 1
+                if abs(f.get('perdida') or 0.0) > e['_peor']:
+                    e['_peor'] = abs(f.get('perdida') or 0.0)
+                    e['movimiento'] = f.get('movimiento')
+        return acc
+
+    ka = porCliente(ant['filas'])
+    kn = porCliente(nue['filas'])
+    dupA = sum(1 for v in ka.values() if v['n'] > 1)
+    dupN = sum(1 for v in kn.values() if v['n'] > 1)
+    if dupA or dupN:
+        print(f'\n  clientes con VARIAS filas: {dupA} antes · {dupN} ahora '
+              f'(se agregan, no se tiran)')
     altas = [k for k in kn if k not in ka]
     bajas = [k for k in ka if k not in kn]
     print(f'\n  CLIENTES: {len(altas)} altas · {len(bajas)} BAJAS')

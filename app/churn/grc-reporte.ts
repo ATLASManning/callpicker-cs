@@ -39,6 +39,36 @@
  * Regenerar junto con aaa-grc-data.ts, del MISMO archivo.
  */
 export const GRC_BASE_MRR: Record<string, number> = {
+  Enero:      4650270.89,
+  Febrero:    4696946.10,
+  Marzo:      4777170.30,
+  Abril:      4857421.51,
+  Mayo:       5076566.09,
+  Junio:      5103995.12,
+  Julio:      4944264.29,
+  Agosto:     5013922.60,
+  Septiembre: 4950369.50,
+  Octubre:    4886743.00,
+}
+
+/**
+ * REEXPRESIÓN DEL 11-OCT-2026 — las bases ANTERIORES, para que el cambio sea
+ * auditable y no una corrección silenciosa.
+ *
+ * El export `Gross_Revenue_Facturación.xlsx` trajo OCTUBRE y de paso reexpresó
+ * los nueve meses cerrados: +$250 de enero a abril, +$700 de mayo a agosto y
+ * +$1,225.33 en septiembre. Son décimas sobre una base de cinco millones, pero
+ * se registran porque un denominador viejo con un numerador nuevo da un
+ * porcentaje que no es ninguno de los dos.
+ *
+ * OJO: el correo de Análisis DATA del cierre de T3 (6 oct) traía las bases
+ * ANTERIORES y cuadraban al centavo con ellas. Desde este export ya no: la
+ * diferencia es de +$700 en julio y agosto y +$1,225.33 en septiembre. No es
+ * un error de nadie — es que el institucional reexpresó después de que Data
+ * mandó su corte. Instrucción de dirección: «si cambió simplemente cambió, haz
+ * una nota». Ésta es la nota.
+ */
+export const GRC_BASE_MRR_ANTES_2026_10_11: Record<string, number> = {
   Enero:      4650020.89,
   Febrero:    4696696.10,
   Marzo:      4776920.30,
@@ -79,7 +109,14 @@ export const GRC_BASE_PROVISIONAL: readonly string[] = []
  * Al cerrar el mes: poner aquí el siguiente mes vivo. Sus bajas sobrevivientes
  * pasan a ser churn real y generan aclaración solas.
  */
-export const GRC_MES_EN_CURSO: string | null = 'Septiembre'
+/* OCTUBRE desde el export del 11 oct 2026. Septiembre ya cerró: su GRC quedó
+   en 2.7% ($134,758 de pérdida) tras bajar el churn −$50,422 — y de esa bajada
+   la mayor parte NO son pagos que entraron sino contratos reclasificados de
+   «Churn confirmado» a «Churn mensual», que el GRC no cuenta. Octubre marca
+   52.2% y es exactamente la patología del mes vivo: de sus 1,487 filas de
+   churn, 90 están DESMENTIDAS por la base y 1,396 no se pueden cotejar. El
+   piso verificado es 0.5%. Ver [[regla-churn-mes-vencido]]. */
+export const GRC_MES_EN_CURSO: string | null = 'Octubre'
 
 /**
  * RECUPERACIÓN POR PAGOS — la prueba de que el mes vivo no es churn.

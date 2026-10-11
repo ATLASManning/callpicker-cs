@@ -103,7 +103,12 @@ for m in SER:
         malos.append(m['mes'])
 prueba('acumulado = suma de mensuales en los %d meses' % len(SER), not malos, str(malos or ''))
 ago = [m for m in SER if m['mes'] == 'Agosto'][0]
-prueba('Agosto acumulado 17.1%% como publica Zoho', abs(ago['grcAcumulado'] - 17.1) < 0.1,
+# 17.1% era lo que Zoho publicaba ANTES de la reexpresion del 11 oct 2026.
+# Al bajar el churn de agosto -$4,745.00 y subir su base +$700.00, el acumulado
+# cae una decima a 17.0%. Se mueve el contraste, no se afloja la tolerancia:
+# ensanchar el margen para que «pase» es apagar la prueba.
+prueba('Agosto acumulado 17.0%% (era 17.1%% antes de la reexpresion del 11 oct)',
+       abs(ago['grcAcumulado'] - 17.0) < 0.1,
        '%.1f%%' % ago['grcAcumulado'])
 
 print()
@@ -112,7 +117,25 @@ print('=== 5 · LA SERIE CONTRA EL CORTE VIGENTE (candado de regresion) ===')
 # asi que esta tabla ya no es «lo que publica el tablero»: es el corte vigente,
 # congelado. Si un export futuro mueve un mes cerrado, esto falla — que es
 # justo lo que se quiere: enterarse, no que cambie en silencio.
-PUB = {
+# ── REEXPRESION DEL 11-OCT-2026 (export `Gross_Revenue_Facturación.xlsx`) ──
+# El export trajo OCTUBRE y de paso reescribio los NUEVE meses cerrados. El
+# delta quedo EXPLICADO al centavo con `concilia-grc-zoho.py` antes de tocar
+# esta tabla — que es la condicion que el propio conciliador exige.
+#
+# Que se movio, y por que:
+#   · MRR inicio: +$250 de enero a abril, +$700 de mayo a agosto y +$1,225.33
+#     en septiembre. Zoho reexpresa la base de toda la compania.
+#   · Agosto churn -$4,745.00 y downgrade -$125.33.
+#   · Septiembre churn -$50,422.00 y downgrade +$200.00. Es el mes que mas se
+#     mueve, y sigue la patologia de siempre: contratos marcados «Churn
+#     confirmado» que desde entonces facturaron. Ver [[regla-churn-mes-vencido]].
+#
+# Instruccion de direccion (2 oct): «esta es la ultima informacion de la
+# herramienta institucional, no puede haber dos cifras; si cambio simplemente
+# cambio. En todo caso solo haz una nota y colocala dentro de la informacion».
+# Los valores ANTERIORES quedan abajo para que el cambio sea auditable y no una
+# correccion silenciosa.
+PUB_ANTES_2026_10_11 = {
        'Enero': (4650020.89, 74083.11, 20848.01),
        'Febrero': (4696696.10, 65589.19, 34216.37),
        'Marzo': (4776920.30, 82546.00, 25734.97),
@@ -122,6 +145,17 @@ PUB = {
        'Julio': (4943564.29, 69086.46, 25576.75),
        'Agosto': (5013222.60, 60957.78, 49977.17),
        'Septiembre': (4949144.17, 129905.96, 55073.67)}
+
+PUB = {
+       'Enero': (4650270.89, 74083.11, 20848.01),
+       'Febrero': (4696946.10, 65589.19, 34216.37),
+       'Marzo': (4777170.30, 82546.00, 25734.97),
+       'Abril': (4857421.51, 58214.06, 26413.59),
+       'Mayo': (5076566.09, 32586.00, 42283.26),
+       'Junio': (5103995.12, 87260.00, 81522.81),
+       'Julio': (4944264.29, 69086.46, 25576.75),
+       'Agosto': (5013922.60, 56212.78, 49851.84),
+       'Septiembre': (4950369.50, 79483.96, 55273.67)}
 for m in SER:
     p = PUB.get(m['mes'])
     if not p:

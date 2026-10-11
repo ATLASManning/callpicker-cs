@@ -16,8 +16,13 @@ FILA = re.compile(
     r"\{ cliente: '(.*?)', clas: '([^']*)',.*?"
     r"movimiento: '([^']*)', perdido: ([-\d.]+), perdido2: ([-\d.]+)")
 
-MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-         'Julio', 'Agosto', 'Septiembre']
+# EL ORDEN DEL AÑO, no la lista de meses a comparar. Esa se DERIVA de los dos
+# archivos: la lista estaba fija y terminaba en 'Septiembre', asi que al llegar
+# el export de octubre el script ni siquiera miraba el mes nuevo y declaraba un
+# descuadre de $245,186.65 que era, al centavo, la perdida vieja de septiembre.
+# Un conciliador con el calendario escrito a mano caduca cada mes.
+ORDEN = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
+         'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 
 def lee(ruta):
@@ -33,6 +38,15 @@ def lee(ruta):
 
 
 ant, nue = lee(sys.argv[1]), lee(sys.argv[2])
+
+# Los meses salen de los DOS archivos, en orden de calendario. Y «el mes nuevo»
+# es, por definicion, el que esta en el nuevo y no en el anterior — no uno
+# escrito a mano.
+MESES = [m for m in ORDEN if m in ant or m in nue]
+NUEVOS = [m for m in MESES if m not in ant]
+print('  meses comparados: %s' % ', '.join(MESES))
+print('  mes(es) NUEVO(s) en este export: %s'
+      % (', '.join(NUEVOS) if NUEVOS else 'ninguno — el export no trajo mes nuevo'))
 
 print('%-12s %13s %13s %12s   %s' % ('Mes', 'perdida antes', 'perdida ahora', 'delta', 'filas'))
 print('-' * 80)
@@ -66,8 +80,10 @@ print('%-12s %13s %13s %12s' % ('DELTA TOTAL', '', '', format(gran_delta, ',.2f'
 
 # El mes nuevo no es un "cambio": se separa para que el movimiento de los meses
 # YA REPORTADOS quede a la vista solo.
-sep_nuevo = sum(f['per'] for f in nue.get('Septiembre', []))
-print('  de los cuales Septiembre (mes nuevo): %s' % format(sep_nuevo, ',.2f'))
+sep_nuevo = sum(f['per'] for m in NUEVOS for f in nue.get(m, []))
+print('  de los cuales %-21s %s'
+      % ((', '.join(NUEVOS) + ' (mes nuevo):') if NUEVOS else 'ningun mes nuevo:',
+         format(sep_nuevo, ',.2f')))
 print('  movimiento en meses YA CERRADOS:      %s' % format(gran_delta - sep_nuevo, ',.2f'))
 
 if detalles:
@@ -77,7 +93,7 @@ if detalles:
           % ('Mes', 'Que', 'Cliente / movimiento', 'antes', 'ahora', 'delta'))
     suma = 0.0
     for m, que, cli, mov, va, vn, d in detalles:
-        if m == 'Septiembre':
+        if m in NUEVOS:
             continue
         print('%-11s %-6s %-44s %12s %12s %12s'
               % (m, que, (cli[:28] + ' / ' + mov[:13])[:44],

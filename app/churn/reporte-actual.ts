@@ -24,8 +24,15 @@ import type { ChurnReporte } from './tipos'
      · los 14 downgrades de más del 60% suman $22,399.83 ✓
      · los 4 artículos de CP Chat cierran su categoría en $45,452.51 ✓
      · CP Chat + CP Voz = la «pérdida total» del resumen amplio ✓
-     · las TRES bases de MRR coinciden al centavo con `GRC_BASE_MRR`, que sale
-       del export institucional — dos fuentes independientes ✓
+     · las TRES bases de MRR coincidían al centavo con `GRC_BASE_MRR` cuando
+       se publicó este corte — dos fuentes independientes ✓
+
+   OJO, 11 OCT 2026: el export institucional `Gross_Revenue_Facturación.xlsx`
+   REEXPRESÓ las bases después de que Data mandó este corte (+$700 en julio y
+   agosto, +$1,225.33 en septiembre) y bajó el churn de septiembre a
+   $79,483.96. Las cifras de ESTE corte se conservan tal como llegaron —es lo
+   que Data publicó el 6 de octubre— y la nota queda aquí. Ver
+   `GRC_BASE_MRR_ANTES_2026_10_11` en `grc-reporte.ts`.
 
    LO QUE NO CIERRA, Y ESTÁ EN LA NOTA ESPECIAL: el Top 5 de CP Voz deja fuera
    $99,642.28 (22.8% de su categoría), y las dos bases de MRR del mismo
@@ -109,8 +116,14 @@ export const REPORTE_S23_T3_2026: ChurnReporte = {
       + 'columnas; Downgrade + Churn = Baja Total en cada mes; los tres porcentajes reconstruidos '
       + 'desde sus propias cifras; las 24 salidas tempranas ($26,808.00); los 14 downgrades '
       + '($22,399.83); los 4 artículos de CP Chat ($45,452.51); CP Chat + CP Voz = la pérdida total '
-      + 'del resumen amplio ($482,999.06); y las TRES bases de MRR del correo coinciden al centavo '
-      + 'con las del export institucional que ya vive en el repo.',
+      + 'del resumen amplio ($482,999.06); y las TRES bases de MRR del correo coincidían al centavo '
+      + 'con las del export institucional cuando se publicó este corte. '
+      + '⑧ ACTUALIZACIÓN DEL 11 OCT: el export institucional reexpresó esas bases DESPUÉS de que '
+      + 'Data mandó este corte —+$700 en julio y agosto, +$1,225.33 en septiembre— y bajó el churn '
+      + 'de septiembre de $100,567.96 a $79,483.96. No es un error de nadie: es que el '
+      + 'institucional se mueve. Y la bajada de septiembre NO es sólo cobranza que entró: la mayor '
+      + 'parte son contratos reclasificados de «Churn confirmado» a «Churn mensual», que el GRC no '
+      + 'cuenta. Las cifras de este corte se conservan tal como Data las publicó el 6 de octubre.',
   },
 
   /* El cierre de trimestre NO reporta Top 10 de cuentas Activo. Va vacío
