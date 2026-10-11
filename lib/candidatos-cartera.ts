@@ -162,10 +162,15 @@ export async function candidatosDeCartera(
       didsDeCuenta(cid),
     ])
 
-    const ult3 = cortes.slice(-3)
+    /* Sólo los cortes MEDIBLES entran a los promedios. Un plan sin base
+       —un Agente CP Chat— traía `pct` 0 y hundía la media como si el cliente
+       hubiera dejado de consumir; ahora trae null y se queda fuera del
+       cálculo en vez de falsearlo. Ver [[feedback-cero-sin-medicion]]. */
+    const medible = (x: { pct: number | null }): x is { pct: number } => x.pct !== null
+    const ult3 = cortes.slice(-3).filter(medible)
     const consumoPct = ult3.length ? prom(ult3.map(x => x.pct)) : null
-    const mediaPrev = prom(cortes.slice(0, -2).map(x => x.pct))
-    const mediaRec  = prom(cortes.slice(-2).map(x => x.pct))
+    const mediaPrev = prom(cortes.slice(0, -2).filter(medible).map(x => x.pct))
+    const mediaRec  = prom(cortes.slice(-2).filter(medible).map(x => x.pct))
     const caida = (mediaPrev && mediaPrev > 0 && mediaRec !== null)
       ? Math.max(0, ((mediaPrev - mediaRec) / mediaPrev) * 100) : null
 

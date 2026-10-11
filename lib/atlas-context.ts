@@ -230,7 +230,10 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
   const modOff = modulos.filter(([, v]) => !v).map(([n]) => n)
 
   const cortesTxt = cortes.length
-    ? cortes.map(x => `    ${x.mes}: ${x.plan} | incl ${x.incl} min, consumidos ${x.cons} (${x.pct.toFixed(1)}%) | $${Math.round(x.monto).toLocaleString('es-MX')} | uso ${x.uso || '?'}`).join('\n')
+    /* `pct` es null cuando el plan no tiene base medible. Se dice con
+       palabras: a Atlas un «0.0%» le serviría para concluir que la cuenta
+       dejó de usar el servicio. Ver [[feedback-contexto-ia-sin-huecos]]. */
+    ? cortes.map(x => `    ${x.mes}: ${x.plan} | incl ${x.incl} min, consumidos ${x.cons} (${x.pct === null ? 'sin base medible' : `${x.pct.toFixed(1)}%`}) | $${Math.round(x.monto).toLocaleString('es-MX')} | uso ${x.uso || '?'}`).join('\n')
     : '    Sin cortes registrados para su CID'
 
   const faltantes: string[] = []

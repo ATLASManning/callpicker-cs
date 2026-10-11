@@ -7,7 +7,7 @@ import path from 'path'
 import { baseMinutos, type OrigenBase } from '@/lib/plan-minutos'
 
 export interface CorteCuenta {
-  mes: string; plan: string; incl: number; cons: number; pct: number; monto: number; uso: string
+  mes: string; plan: string; incl: number; cons: number; pct: number | null; monto: number; uso: string
   /**
    * Minutos reales del plan y de dónde salen. En los planes por extensiones la
    * columna «Minutos Incluidos» del archivo trae 1, no minutos: `base` aplica
@@ -82,7 +82,13 @@ async function leerArchivo(): Promise<Map<string, CorteCuenta[]>> {
       plan,
       incl,
       cons,
-      pct:   b.base && b.base > 0 ? (100 * cons) / b.base : 0,
+      /* `null`, NUNCA 0. Un plan sin base medible —un Agente CP Chat, un
+         paquete sin voz— no consume el 0% de su plan: no tiene plan contra el
+         cual medir. Colapsarlo a 0 lo pinta como un cliente que dejó de usar
+         el servicio, y de ahí salen alertas de «consumo cero» y promedios
+         hundidos. `pctConsumo()` en `lib/plan-minutos.ts` ya devolvía null;
+         esta línea era la que discrepaba. Ver [[feedback-cero-sin-medicion]]. */
+      pct:   b.base && b.base > 0 ? (100 * cons) / b.base : null,
       base:  b.base, extensiones: b.extensiones, origenBase: b.origen,
       monto: num(r['Monto del plan']),
       uso:   String(r['Uso Principal de llamadas'] ?? '').trim(),
