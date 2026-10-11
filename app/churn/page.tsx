@@ -2247,7 +2247,13 @@ function AccesoBtn({ active, onClick, icon, label, bg, badge, href }: {
 ═══════════════════════════════════════════════════════════════════════ */
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
-  const [selectedId,   setSelectedId]   = useState<string>('s21-septiembre-2026')
+  /* LA SELECCIÓN POR DEFECTO SE DERIVA DEL CORTE VIGENTE, no se escribe.
+     Estaba fija en 's21-septiembre-2026' y nadie la movió al rotar: con el
+     S22 ya publicado, el módulo seguía ABRIENDO en la Semana 21, un corte de
+     tres semanas antes. El `?? REPORTE_…` de abajo no lo salvaba, porque
+     `find` encontraba el S21 y el fallback nunca entraba. Atada a la
+     constante, la próxima rotación sólo tiene que cambiar el import. */
+  const [selectedId,   setSelectedId]   = useState<string>(REPORTE_S23_T3_2026.id)
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [acumCancelSort, setAcumCancelSort] = useState<{ col: 'cliente' | 'mrr' | 'mesesActivo' | 'acumulado' | 'periodo'; dir: 'asc' | 'desc' }>({ col: 'mrr', dir: 'desc' })
@@ -2399,7 +2405,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId('s21-septiembre-2026')
+    if (selectedId === id) setSelectedId(REPORTE_S23_T3_2026.id)
     setDelConfirm(null)
   }
 
