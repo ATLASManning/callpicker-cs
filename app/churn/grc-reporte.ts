@@ -11,9 +11,10 @@
    que es el MRR TOTAL de la compañía. Ese dato vive en el reporte GRC, no en
    el export, así que se captura aquí a mano desde el reporte.
 
-   ➕ Al cerrar un mes nuevo: añade su base aquí Y su fila de verificación en
-      GRC_VERIFICACION. Si no se agrega la base, el mes aparece en la tabla
-      sin porcentaje (no se inventa un denominador).
+   ➕ Al cerrar un mes nuevo: añade su base aquí. Si no se agrega, el mes
+      aparece en la tabla sin porcentaje (no se inventa un denominador). Y
+      corre `scripts/verifica-contra-tablero.py`, que es donde vive ahora el
+      contraste contra el tablero oficial de Zoho.
 
    ── REEXPRESIÓN DEL 20-SEP-2026 ───────────────────────────────────────────
    El export `DT_Churn_etiquetas.xlsx` no sólo trajo septiembre: reescribió
@@ -48,7 +49,10 @@ export const GRC_BASE_MRR: Record<string, number> = {
   Julio:      4944264.29,
   Agosto:     5013922.60,
   Septiembre: 4950369.50,
-  Octubre:    4886743.00,
+  /* 4886742.85, no 4886743. Lo escribí redondeado al cargar y lo cazó
+     `verifica-contra-tablero.py`: un denominador redondeado da un porcentaje
+     que no es el del tablero. Aquí se copia al centavo. */
+  Octubre:    4886742.85,
 }
 
 /**
@@ -139,44 +143,25 @@ export const GRC_RECUPERACION_PAGOS = {
   ],
 }
 
-/**
- * Cifras tal como aparecen en el reporte GRC, para CONTRASTAR contra lo que
- * el dashboard calcula desde el Excel. No se muestran: se usan sólo para
- * detectar divergencias. Si al regenerar los datos algún mes deja de cuadrar,
- * el módulo lo señala en pantalla en vez de mostrar un número equivocado
- * con cara de correcto.
- */
-export interface GrcFilaReporte {
-  mes: string
-  churn: number
-  downgrade: number
-  perdida: number
-}
+/* -- RETIRADO el 11 oct 2026 ---------------------------------------------
+   Aqui vivian `GrcFilaReporte`, `GRC_VERIFICACION` y `GRC_RESUMEN_REPORTE`:
+   una copia CONGELADA del reporte GRC que el modulo contrastaba contra el
+   export, pintando en rojo cada diferencia.
 
-/* Corte del 2-oct-2026, del export institucional de nueve meses. Cuadra AL
-   CENTAVO con «Gross Revenue Churn - 2026 confirmado» en los nueve: churn,
-   downgrade, pérdida, GRC mensual y acumulado.
+   Se retiran por instruccion de direccion. El motivo no es que molestaran:
+   es que comparar un reporte de un momento dado contra un tablero vivo
+   DIVERGE SIEMPRE, porque el institucional reexpresa los meses cerrados
+   conforme entran pagos tardios y Zoho reclasifica contratos entre tipos de
+   churn. En el corte del 11 oct marcaba siete «descuadres» y ninguno era un
+   error: eran el paso del tiempo. Una alarma encendida de forma permanente
+   ensena a ignorar la pantalla.
 
-   SEPTIEMBRE DEJÓ DE SER UN ARTEFACTO. El export del 20-sep lo traía en
-   $1,257,098.37 porque Zoho marca «Churn confirmado» todo contrato que aún no
-   factura — 26.6% de GRC contra un histórico de 2.2%. Al cerrar el mes entraron
-   los pagos y quedó en $129,905.96, o sea 3.7%. Es exactamente lo que decía la
-   regla del mes vencido: el mes vivo medía retraso de cobranza, no bajas.
+   El contraste contra la fuente oficial NO se pierde: vive en
+   `scripts/verifica-contra-tablero.py`, que compara celda por celda contra el
+   tablero de Zoho y FALLA AL CARGAR, que es donde sirve, y no en la cara de
+   quien lee el modulo.
+   ----------------------------------------------------------------------- */
 
-   Julio y agosto también se movieron, y por la otra causa documentada: dos
-   contratos reclasificados de pérdida real a fraude/reestructura, que el GRC
-   excluye. Julio $97,109.21 → $94,663.21 y agosto $116,781.35 → $110,934.95. */
-export const GRC_VERIFICACION: GrcFilaReporte[] = [
-  { mes: 'Enero',      churn:   74083.11, downgrade: 20848.01, perdida:   94931.12 },
-  { mes: 'Febrero',    churn:   65589.19, downgrade: 34216.37, perdida:   99805.56 },
-  { mes: 'Marzo',      churn:   82546.00, downgrade: 25734.97, perdida:  108280.97 },
-  { mes: 'Abril',      churn:   58214.06, downgrade: 26413.59, perdida:   84627.65 },
-  { mes: 'Mayo',       churn:   32586.00, downgrade: 42283.26, perdida:   74869.26 },
-  { mes: 'Junio',      churn:   87260.00, downgrade: 81522.81, perdida:  168782.81 },
-  { mes: 'Julio',      churn:   69086.46, downgrade: 25576.75, perdida:   94663.21 },
-  { mes: 'Agosto',     churn:   60957.78, downgrade: 49977.17, perdida:  110934.95 },
-  { mes: 'Septiembre', churn:  129905.96, downgrade: 55073.67, perdida:  184979.63 },
-]
 
 /**
  * Lo que este archivo decía ANTES del export del 20-sep-2026, con el porqué
@@ -207,7 +192,9 @@ export const GRC_REEXPRESION_2026_09_20 = {
     { mes: 'Junio',  churn:  87260.00, downgrade: 82424.66, perdida: 169684.66 },
     { mes: 'Julio',  churn:  76624.46, downgrade: 28143.20, perdida: 104767.66 },
     { mes: 'Agosto', churn: 114612.17, downgrade: 49977.17, perdida: 164589.34 },
-  ] as GrcFilaReporte[],
+  /* El tipo que llevaba aquí (`GrcFilaReporte`) se retiró con el contraste
+     congelado. Esto es un registro histórico y se describe solo. */
+  ] as { mes: string; churn: number; downgrade: number; perdida: number }[],
   resumenAnterior: {
     base:      39109117.90,
     churn:       591514.99,
@@ -217,32 +204,15 @@ export const GRC_REEXPRESION_2026_09_20 = {
   },
 }
 
-/**
- * Totales del renglón "Resumen amplio", tal como los publica el tablero
- * institucional. Corte del 2-oct-2026.
- *
- * SEPTIEMBRE YA CERRÓ Y EL SALTO DESAPARECIÓ. El corte anterior traía
- * $2,151,751.56 de pérdida, de los cuales $1,306,563.63 era septiembre con
- * todos los contratos que aún no facturaban marcados «Churn confirmado».
- * Entraron los pagos y septiembre quedó en $184,979.63. El acumulado real del
- * periodo es 2.32%, en línea con el histórico — nunca hubo tal caída.
- */
-export const GRC_RESUMEN_REPORTE = {
-  base:      44065901.07,
-  churn:      660228.56,
-  downgrade:   361646.60,
-  perdida:    1021875.16,
-  pct:               2.32,
-}
 
 /** El mismo resumen sin el mes en curso — la cifra comparable contra el histórico. */
 export const GRC_RESUMEN_CERRADOS = {
-  hasta:     'Agosto',
-  base:      39116756.90,
-  churn:       530322.60,
-  downgrade:   306572.93,
-  perdida:     836895.53,
-  pct:               2.14,
+  hasta:     'Septiembre',
+  base:      44070926.40,
+  churn:       605061.56,
+  downgrade:   361721.27,
+  perdida:     966782.83,
+  pct:               2.19,
 }
 
 /**

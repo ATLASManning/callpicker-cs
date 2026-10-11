@@ -13,7 +13,7 @@ import { AAA_GRC_2026, AAA_GRC_FLAT } from '@/app/churn/aaa-grc-data'
 import type { AAAGrcRow } from '@/app/churn/aaa-grc-data'
 import { normalizarNombre } from '@/lib/elegibilidad'
 import {
-  GRC_BASE_MRR, GRC_VERIFICACION, GRC_RESUMEN_REPORTE,
+  GRC_BASE_MRR,
   GRC_BASE_PROVISIONAL, GRC_RESUMEN_CERRADOS, GRC_MES_EN_CURSO,
   GRC_RECUPERACION_PAGOS,
 } from '@/app/churn/grc-reporte'
@@ -248,30 +248,19 @@ export default function GrcAaaSection() {
     return { filas, tot, pctGlobal: tot.base ? (tot.perdida / tot.base) * 100 : 0 }
   }, [])
 
-  /* Contraste contra el reporte GRC: si al regenerar los datos algún mes deja
-     de cuadrar, se dice en pantalla en vez de mostrar un número equivocado. */
-  const descuadres = useMemo(() => {
-    const cerca = (a: number, b: number) => Math.abs(a - b) < 0.005
-    const porMes = grc.filas.flatMap(f => {
-      const esperado = GRC_VERIFICACION.find(v => v.mes === f.mes)
-      if (!esperado) return [`${f.mes}: sin fila de verificación en el reporte`]
-      if (cerca(f.churn, esperado.churn) && cerca(f.downgrade, esperado.downgrade)
-        && cerca(f.perdida, esperado.perdida)) return []
-      return [`${f.mes}: dashboard ${fmtF(f.perdida)} vs reporte ${fmtF(esperado.perdida)}`]
-    })
-    const R = GRC_RESUMEN_REPORTE
-    const totales = [
-      ['base de MRR',  grc.tot.base,      R.base],
-      ['churn',        grc.tot.churn,     R.churn],
-      ['downgrade',    grc.tot.downgrade, R.downgrade],
-      ['pérdida',      grc.tot.perdida,   R.perdida],
-    ] as const
-    return [
-      ...porMes,
-      ...totales.filter(([, a, b]) => !cerca(a, b))
-        .map(([etq, a, b]) => `Resumen amplio · ${etq}: dashboard ${fmtF(a)} vs reporte ${fmtF(b)}`),
-    ]
-  }, [grc])
+  /* RETIRADO el 11 oct 2026 por instrucción de dirección.
+     Aquí vivía un contraste contra una copia congelada del reporte GRC
+     (`GRC_VERIFICACION` / `GRC_RESUMEN_REPORTE`) que pintaba en rojo cada
+     diferencia. El problema no eran las diferencias: era que comparar un
+     reporte de un momento dado contra un tablero vivo diverge SIEMPRE, porque
+     el institucional reexpresa los meses cerrados conforme entran pagos y
+     Zoho reclasifica. En el corte del 11 oct marcaba siete «descuadres» y
+     ninguno era un error — eran el paso del tiempo.
+     Una alarma que siempre está encendida enseña a ignorar la pantalla.
+     Lo que manda es el export institucional, y eso se dice abajo con
+     palabras. El contraste contra el tablero oficial sigue existiendo, pero
+     donde sirve: en `scripts/verifica-contra-tablero.py`, que se corre al
+     cargar y falla ahí, no en la cara del usuario. */
 
   /* ── KPIs ── */
   const kpi = useMemo(() => ({
@@ -310,27 +299,20 @@ export default function GrcAaaSection() {
             <h4 className="font-bold text-gray-900 text-sm">Gross Revenue Churn — 2026 confirmado</h4>
             <p className="text-xs text-gray-500 mt-0.5">
               Todas las clasificaciones · pérdida real, sin fraude ni reestructura ·
-              la base de MRR proviene del reporte GRC, no del export
+              las cifras son las del tablero institucional de Zoho
             </p>
           </div>
-          {descuadres.length === 0 ? (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex-shrink-0"
-              style={{ background: '#05966915', color: '#059669' }}>
-              <CheckCircle2 size={12} /> Conciliado con el reporte GRC
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg flex-shrink-0"
-              style={{ background: '#DC262615', color: '#DC2626' }}>
-              <AlertTriangle size={12} /> {descuadres.length} mes(es) sin cuadrar
-            </span>
-          )}
         </div>
 
-        {descuadres.length > 0 && (
-          <ul className="px-5 py-3 bg-red-50 border-b border-red-100 text-[11px] text-red-700 space-y-0.5">
-            {descuadres.map(d => <li key={d}>· {d}</li>)}
-          </ul>
-        )}
+        {/* Lo que antes era una lista de «descuadres» en rojo. No se sustituye
+            por otra alarma: se explica una vez, en gris, por qué un mes ya
+            reportado puede cambiar. */}
+        <p className="px-5 py-2.5 bg-gray-50 border-b border-gray-100 text-[11px] text-gray-500">
+          Los meses cerrados se <strong className="font-semibold text-gray-600">reexpresan</strong>:
+          el institucional corrige hacia atrás conforme entran pagos tardíos y Zoho
+          reclasifica contratos entre tipos de churn. Que una cifra ya reportada cambie
+          no es un error del tablero — es el paso del tiempo.
+        </p>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs" style={{ minWidth: 680 }}>
