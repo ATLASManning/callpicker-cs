@@ -17,6 +17,17 @@ export interface ChurnGRC {
   evolucion:   { mes: string; pct: number; anterior?: number }[]
   acumulado:   number
   anterior?:   number
+  /**
+   * Qué periodo cubre `acumulado`, cuando NO es el acumulado del año.
+   *
+   * La tarjeta rotula «GRC Acumulado {último mes de evolución}», que durante
+   * toda la serie ha querido decir acumulado 2026. El cierre de T3 publica un
+   * porcentaje del TRIMESTRE (2.39%) mientras el último acumulado anual era
+   * 23.7%: sin esta etiqueta la tarjeta diría «GRC Acumulado Septiembre 2.39%»
+   * y se leería como un desplome del año que no existe. Un rótulo falso no se
+   * arregla con una nota debajo.
+   */
+  acumuladoEtiqueta?: string
   notaClave:   string
   notaEspecial?: string
 }
