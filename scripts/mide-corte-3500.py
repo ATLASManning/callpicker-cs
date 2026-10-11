@@ -91,6 +91,29 @@ sel = [f for f in act if num(f.get('1er Pago')) > CORTE]
 print(u'\n  ── LAS %d QUE PASAN $%s ───────────────────────────────────' % (len(sel), format(int(CORTE), ',d')))
 
 
+# ── Los tramos DENTRO de las que pasan ───────────────────────────────────
+# El módulo parte las 143 en tres poblaciones y necesita que la partición
+# cierre por construcción Y por recuento independiente. Los bordes van medio
+# abiertos a la derecha para reproducir exactamente los cortes de la tabla.
+TRAMOS = ((CORTE, 5000.0), (5000.0, 10000.0), (10000.0, float('inf')))
+print(u'\n      los tres tramos:')
+tn, ts = 0, 0.0
+for lo, hi in TRAMOS:
+    g = [f for f in sel if lo < num(f.get('1er Pago')) <= hi]
+    s = sum(num(f.get('1er Pago')) for f in g)
+    tn += len(g)
+    ts += s
+    etq = (u'> $%s' % format(int(lo), ',d')) if hi == float('inf') else \
+          (u'$%s – $%s' % (format(int(lo), ',d'), format(int(hi), ',d')))
+    print(u'        %-18s %4d  $%-12s ticket $%s'
+          % (etq, len(g), format(int(s), ',d'),
+             format(int(s / len(g)) if g else 0, ',d')))
+assert tn == len(sel), u'los tramos no cierran en n: %d != %d' % (tn, len(sel))
+assert abs(ts - sum(num(f.get('1er Pago')) for f in sel)) < 0.01, \
+    u'los tramos no cierran en dinero'
+print(u'        %-18s %4d  (la partición cierra)' % (u'suma', tn))
+
+
 def reparto(campo, etq, top=8):
     m = {}
     for f in sel:
