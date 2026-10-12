@@ -5,8 +5,9 @@ import {
   ArrowUpRight, Target, RefreshCw,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
-import SemaforoDashChart from '@/components/charts/SemaforoDashChart'
-import AsesorLineasChart from '@/components/charts/AsesorLineasChart'
+import SaludCarteraChart, { type FilaSalud } from '@/components/charts/SaludCarteraChart'
+import BarraFiltros from '@/components/charts/BarraFiltros'
+import { DashFiltrosProvider } from '@/lib/dash-filtros'
 import TicketsAnalyticsChart, { type TicketsAnalyticsData } from '@/components/charts/TicketsAnalyticsChart'
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
@@ -21,10 +22,10 @@ import { candidatosDeCartera, faltantesDeFicha } from '@/lib/candidatos-cartera'
    3.5 MB de tickets-data.json y el Excel de cortes a esta página. */
 import { detectarAlertas } from '@/lib/alertas-detectar'
 import { alertasConMemoria } from '@/lib/alertas-episodios'
-import { riesgoPorCuenta } from '@/lib/alertas'
+import { riesgoPorCuenta, CATALOGO } from '@/lib/alertas'
 import { veredictosDeCartera } from '@/lib/alertas-estado'
 import { proyectaTablero } from '@/lib/alertas-tablero'
-import { getKPIs, getSemaforoByAsesor, getCuentas, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
+import { getKPIs, getCuentas, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
 import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor, type SemaforoSalud } from '@/lib/types'
 import { AUDITORIA_REFS } from '@/app/auditoria/registry'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
@@ -900,11 +901,12 @@ export default async function DashboardPage() {
      las 192 de la empresa, sin una etiqueta que lo dijera. Medido: las barras
      de distribución de Dan sumaban el 35% del alto, las de Fátima el 33% y las
      de Claudia el 32% — cada una un tercio, porque el denominador era de todos.
-     El semáforo por asesora sigue trayendo a las tres a propósito: es una
-     comparación entre personas y se explica sola al llevar los tres nombres. */
+     Desde el 12 oct 2026 la salud de la cartera también sale de `cuentas`, así
+     que una asesora ve la suya. `getSemaforoByAsesor` ya no se llama aquí: sólo
+     alimentaba los tres paneles que `SaludCarteraChart` sustituye. */
   const soloSuCartera = isAsesor ? { asesor: asesorHeader } : undefined
-  const [kpis, semaforoAsesor, allCuentas, adopRows, alertasRes] = await Promise.all([
-    getKPIs(soloSuCartera), getSemaforoByAsesor(),
+  const [kpis, allCuentas, adopRows, alertasRes] = await Promise.all([
+    getKPIs(soloSuCartera),
     getCuentas(soloSuCartera),
     getAdopcionProductoAll(),
     /* El motor de alertas NO puede tumbar la portada, y tampoco puede fallar en
@@ -956,14 +958,6 @@ export default async function DashboardPage() {
    * definición para el KPI, para el corte por ejecutivo y para el semáforo. */
   const riesgo = riesgoPorCuenta(alertas)
   const idsRiesgo = new Set(riesgo.keys())
-  /* `getSemaforoByAsesor` calcula su propio `facturacion_en_riesgo` con el
-     mismo umbral muerto. Se reescribe aquí para que el semáforo y el corte
-     por ejecutivo digan lo mismo — era otra de las dos cifras. */
-  for (const fila of semaforoAsesor) {
-    let suma = 0
-    for (const r of riesgo.values()) if (r.asesor === fila.asesor) suma += r.mrr
-    fila.facturacion_en_riesgo = suma
-  }
   const mrrRiesgoDe = (ids: Iterable<string>) => {
     let s = 0
     for (const id of ids) s += riesgo.get(id)?.mrr ?? 0
@@ -982,12 +976,23 @@ export default async function DashboardPage() {
   // Solo activas + en_riesgo para análisis
   const cuentas = allCuentas.filter(c => c.estado === 'activo' || c.estado === 'en_riesgo')
 
-  // Distribución semáforo global
-  // `cuentas` ya viene filtrada a activo/en_riesgo (línea de arriba), así que
-  // esta distribución es de cartera viva y getSemaforo basta: no puede
-  // aparecer 'inactivo'. Por eso el reparto tiene exactamente 5 llaves.
-  const dist: Record<SemaforoSalud, number> = { verde: 0, azul: 0, amarillo: 0, naranja: 0, rojo: 0 }
-  cuentas.forEach(c => { dist[getSemaforo(c.health_score)]++ })
+  /* ── Salud de la cartera: una fila por cuenta viva ─────────────────────
+     La banda la decide la tarjeta (`bandaDe`) con la regla de dirección: el
+     motor de alertas manda sobre el Health Score. Aquí sólo se le pasa el
+     dato crudo, sin rellenar huecos: un Health Score o un importe que no
+     existen viajan como `null`, nunca como 50 o como 0. */
+  const filasSalud: FilaSalud[] = cuentas.map(c => {
+    const r = riesgo.get(String(c.id))
+    return {
+      id: String(c.id),
+      consecutivo: c.consecutivo ?? '',
+      empresa: c.empresa,
+      asesor: c.asesor ?? null,
+      hs: c.health_score ?? null,
+      mrr: c.facturacion ?? null,
+      motivos: r ? Array.from(new Set(r.motivos.map(t => CATALOGO[t]?.titulo ?? t))) : [],
+    }
+  })
 
   // ── Cobertura de auditoría ────────────────────────────────────────────────
   const auditSet = new Set(
@@ -1102,6 +1107,10 @@ export default async function DashboardPage() {
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
+    /* El proveedor de filtros envuelve la portada: es lo que deja que elegir un
+       asesor en una tarjeta filtre las demás. Es un componente de cliente que
+       recibe hijos de servidor, así que no convierte la página en cliente. */
+    <DashFiltrosProvider>
     <div className="min-h-screen">
       <AutoRefresh intervalMs={300_000} showIndicator={false} />
 
@@ -1153,9 +1162,21 @@ export default async function DashboardPage() {
        * lista no puede: de qué está hecha la cartera y qué nos falta para
        * poder opinar de ella.
        */}
+      <BarraFiltros />
       <Suspense fallback={<GraficasCargando />}>
         <Graficas />
       </Suspense>
+
+      {/* ══ §1a Salud de la cartera ══════════════════════════════════════
+          Sustituye a «Semáforo por Asesor», «Distribución General» y
+          «Distribución por Asesor · Rango de Salud» (12 oct 2026): los tres
+          pintaban el mismo dato, dos de sus cinco colores eran cero por
+          construcción y el importe de las líneas era un promedio. Va aquí,
+          junto al análisis de alertas y al ranking, porque los tres comparten
+          el filtro de asesor. Ver el encabezado de `SaludCarteraChart`. */}
+      <div className="px-6 pb-5" style={{ maxWidth: 1440, margin: '0 auto' }}>
+        <SaludCarteraChart filas={filasSalud} />
+      </div>
 
       {/* ══ §1b Top Cuentas · Ranking Versátil ════════════════════════════ */}
       <TopCuentasVersatil data={rankRows} />
@@ -1295,55 +1316,6 @@ export default async function DashboardPage() {
         </Panel>
       </div>
 
-      {/* ══ §8 Semáforo + Distribución ════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 px-6 pb-5">
-        <Panel className="lg:col-span-2">
-          <PanelTitle>Semáforo por Asesor</PanelTitle>
-          <SemaforoDashChart data={semaforoAsesor} />
-        </Panel>
-        <Panel>
-          <PanelTitle>Distribución General</PanelTitle>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {(Object.entries(dist) as [string, number][]).map(([key, count]) => {
-              const pct = kpis.total > 0 ? Math.round((count / kpis.total) * 100) : 0
-              return (
-                <div key={key}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: SEM_COLOR[key] }}>{SEM_LABEL[key]}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: TX_HI }}>{count} <span style={{ fontWeight: 400, color: TX_LOW }}>({pct}%)</span></span>
-                  </div>
-                  <div style={{ height: 5, borderRadius: 99, background: '#e2e8f0', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: SEM_COLOR[key], boxShadow: `0 0 6px ${SEM_COLOR[key]}60` }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${BORDER2}` }}>
-            {semaforoAsesor.map(a => (
-              <div key={a.asesor} style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: TX_MID }}>{a.asesor}</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: TX_HI }}>{formatMXN(a.facturacion_total)}</span>
-                </div>
-                <p style={{ fontSize: 12, color: TX_LOW }}>{a.total} cuentas · {formatMXN(a.facturacion_en_riesgo)} en riesgo</p>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      </div>
-
-      {/* ══ §9 Tendencia por Asesor ════════════════════════════════════════ */}
-      <div className="px-6 pb-5">
-        <Panel>
-          <PanelTitle>Distribución por Asesor · Rango de Salud</PanelTitle>
-          <p style={{ fontSize: 13, color: TX_MID, marginBottom: 16, marginTop: -8 }}>
-            Cuentas e importe por semáforo — alterna entre vista de cantidad e importe facturado
-          </p>
-          <AsesorLineasChart data={semaforoAsesor} />
-        </Panel>
-      </div>
-
       {/* ══ §10 Top Cuentas en Riesgo ═══════════════════════════════════════ */}
       <div className="px-6 pb-5">
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: 'hidden' }}>
@@ -1436,5 +1408,6 @@ export default async function DashboardPage() {
         <span>{selloMexico()}</span>
       </div>
     </div>
+    </DashFiltrosProvider>
   )
 }

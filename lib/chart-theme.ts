@@ -54,7 +54,42 @@ export const TX = {
 /* ── Rejilla y bordes ─────────────────────────────────────────────────────── */
 export const GRID = 'rgba(192,198,206,0.10)'   // plata al 10%, como pide el encargo
 export const BORDE = 'rgba(192,198,206,0.15)'  // plata al 15%
+export const BORDE_SUAVE = 'rgba(192,198,206,0.08)'  // separadores internos
 export const FOCO = ORANGE[500]                // anillo de foco, siempre naranja
+
+/* ── LA PÁGINA ES CLARA Y LAS TARJETAS SON ISLAS OSCURAS ──────────────────
+ * Esto no es una decisión del rediseño: es la arquitectura del tablero, y
+ * todo lo de arriba son tokens para DENTRO de la tarjeta. En el Dashboard
+ * convive lo uno con lo otro —rótulos que cuelgan de la página, chips de
+ * aviso sobre la página, y paneles oscuros—, así que cada cosa se mide
+ * contra SU fondo real. Medir contra un fondo supuesto es exactamente lo
+ * que costó nueve rondas del mismo bug.
+ */
+export const PAGINA = '#EFF6FF'          // el claro del tablero
+export const TARJETA_CLARA = WHITE.pure  // un chip o una isla clara
+export const TX_PAGINA = {
+  /** Títulos y cuerpo sobre la página clara: 16.5:1 sobre blanco. */
+  hi:  NAVY[900],
+  /** Rótulos de sección: 6.96:1 sobre la página. */
+  mid: '#475569',
+} as const
+
+/**
+ * EL NARANJA NO ES UNO, SON DOS, Y SE ELIGEN POR EL FONDO.
+ *
+ * Medido, y es una asimetría fuerte que se olvida enseguida:
+ *
+ *   naranja-500 (#FF7A1A) sobre la tarjeta navy-700 →  5.04:1  ✓
+ *   naranja-500 (#FF7A1A) sobre blanco              →  2.61:1  ✗
+ *   naranja-700 (#C85A00) sobre blanco              →  4.27:1  ✓
+ *
+ * O sea que el naranja vivo es un acento de fondo OSCURO y no vale ni como
+ * borde en la página clara. Ahí el naranja es el 700. Escribirlo aquí es
+ * más barato que volver a medirlo: la primera versión de los chips de aviso
+ * de la portada usaba el 500 de borde y se quedaba en 2.61.
+ */
+export const ACENTO = ORANGE[500]        // sobre tarjeta oscura
+export const ACENTO_CLARO = ORANGE[700]  // sobre página o chip claro
 
 /* ── EL TRILEMA DEL COLOR, Y POR QUÉ LA FORMA CAMBIA ───────────────────────
  *
@@ -104,6 +139,75 @@ export const ORDEN_SITUACION: readonly string[] = [
 export function acentoDeSituacion(situacion: string): string {
   const i = ORDEN_SITUACION.indexOf(situacion)
   return i >= 0 ? TIRA_RIESGO[i] : SILVER[500]
+}
+
+/* ── LAS TRES BANDAS: el techo medido de la paleta ────────────────────────
+ * La tira de arriba vale para pintar un ACENTO por fila, porque esos siete
+ * tonos nunca se tocan entre sí. Cuando hay que APILARLOS —segmentos
+ * contiguos de una misma barra— el ojo los compara borde con borde y hace
+ * falta separación real. Y ahí la paleta tiene un techo que se midió:
+ *
+ *   la polilínea plata→naranja mide 22.3 ΔE DE LARGO. Repartida:
+ *     3 escalones → 11.1 cada uno   ✓  (umbral 10)
+ *     4 escalones →  7.4            ✗
+ *     5 escalones →  5.5            ✗  (ni la mitad del umbral)
+ *
+ * Buscando sobre los DIECISÉIS colores del tema, no sólo sobre la tira, y
+ * exigiendo que el tono avance de verdad (en OKLab, que `a` y `b` no bajen
+ * nunca: sin eso la búsqueda daba por bueno blanco→plata→NARANJA→PLATA→
+ * naranja, que pasa el ΔE de sobra y aun así zigzaguea y se lee como cinco
+ * categorías en vez de cinco niveles) salen CERO secuencias de cinco y seis
+ * de cuatro. El techo real es cuatro, y cuatro sólo estirando el extremo
+ * claro al blanco puro.
+ *
+ * De ahí la regla de todo el Dashboard: **lo que se apila lleva TRES
+ * bandas**, y las 7 situaciones o los 5 semáforos originales viven en la
+ * leyenda, en la etiqueta directa y en el tooltip, que es donde el detalle
+ * se lee de uno en uno y no por comparación de bordes.
+ *
+ * Son los mismos tres tonos en la gráfica A y en el semáforo a propósito:
+ * dos escalas de riesgo en la misma pantalla con colores distintos obligan
+ * a aprenderse dos códigos.
+ */
+export const BANDA = {
+  bajo:  SILVER[300],   // 7.65:1 sobre la tarjeta
+  medio: '#E5A585',     // 6.30:1 — el centro de la tira
+  alto:  ORANGE[500],   // 5.04:1
+} as const
+
+export type Banda = keyof typeof BANDA
+
+/** Las bandas de menor a mayor riesgo. Es el orden de apilado. */
+export const ORDEN_BANDA: readonly Banda[] = ['bajo', 'medio', 'alto']
+
+/** La banda «alto» SIEMPRE va con trama: ver `TRAMAS`. */
+export const BANDA_TRAMA: Record<Banda, boolean> = {
+  bajo: false, medio: false, alto: true,
+}
+
+/** En qué banda cae cada situación del catálogo. Sale del ORDEN, no de una
+ *  lista escrita aparte: así una situación nueva no se queda sin banda. */
+export function bandaDeSituacion(situacion: string): Banda {
+  const i = ORDEN_SITUACION.indexOf(situacion)
+  if (i < 0) return 'medio'
+  return i <= 2 ? 'bajo' : i <= 4 ? 'medio' : 'alto'
+}
+
+/** En qué banda cae cada luz del semáforo.
+ *
+ *  El corte NO lo elegí yo: es el que el propio tooltip de la gráfica ya
+ *  usaba para resumir —`saludables = Verde + Azul`, `riesgo = Naranja +
+ *  Rojo`, y amarillo solo en medio—. O sea que la lectura de la pantalla ya
+ *  era de tres grupos; lo único que cambia es que ahora el dibujo lo dice. */
+export const BANDA_DE_SEMAFORO = {
+  verde: 'bajo', azul: 'bajo', amarillo: 'medio', naranja: 'alto', rojo: 'alto',
+} as const satisfies Record<string, Banda>
+
+/** El nombre de cada banda en la leyenda, con las luces que agrupa. */
+export const BANDA_SEMAFORO_ETIQUETA: Record<Banda, string> = {
+  bajo:  'Sanas · saludable + estable',
+  medio: 'En observación',
+  alto:  'En riesgo · riesgo + riesgo alto',
 }
 
 /* ── Asesores: CATEGÓRICO, no ordenado ────────────────────────────────────

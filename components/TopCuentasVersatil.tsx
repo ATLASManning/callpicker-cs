@@ -9,6 +9,7 @@ import CustomSelect from '@/components/CustomSelect'
 import { formatMXN } from '@/lib/types'
 import * as TEMA from '@/lib/chart-theme'
 import ChartCard from '@/components/charts/ChartCard'
+import { useAsesorCompartido } from '@/lib/dash-filtros'
 
 /**
  * El Health Score como anillo, no como número suelto.
@@ -156,7 +157,8 @@ const N_OPTS = [5, 10, 15, 20]
 export default function TopCuentasVersatil({ data }: Props) {
   const [dim, setDim]   = useState<Dim>('healthBajo')
   const [topN, setTopN] = useState(10)
-  const [fAsesor, setFAsesor] = useState('')
+  /* Compartido con el resto del Dashboard: ver `useAsesorCompartido`. */
+  const [fAsesor, setFAsesor] = useAsesorCompartido()
   const [busca, setBusca] = useState('')
   /** La fila bajo el cursor. Sincroniza gráfica y tabla en las DOS
    *  direcciones: pasar por una barra resalta su renglón y al revés. */

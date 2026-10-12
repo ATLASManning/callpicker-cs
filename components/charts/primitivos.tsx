@@ -303,3 +303,39 @@ export function FilaApilada({
     </div>
   )
 }
+
+/* ── Control segmentado ─────────────────────────────────────────────────
+   Botones a la vista en vez de un combo: con dos a cinco opciones, un
+   desplegable esconde lo que se puede elegir y obliga a un clic de más para
+   descubrirlo. */
+export function Segmentado({ etiqueta, opciones, valor, onCambio }: {
+  etiqueta: string
+  opciones: [string, string][]
+  valor: string
+  onCambio: (v: string) => void
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ background: 'transparent', color: TX.low, fontSize: 12 }}>{etiqueta}</span>
+      <div role="group" aria-label={etiqueta} style={{
+        display: 'flex', gap: 2, padding: 2, borderRadius: 9,
+        background: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDE}`,
+      }}>
+        {opciones.map(([v, l]) => {
+          const on = v === valor
+          return (
+            <button key={v} type="button" className="dash-foco" aria-pressed={on}
+              onClick={() => onCambio(v)}
+              style={{
+                padding: '5px 12px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                minHeight: MINIMOS.areaClic, fontSize: FUENTE.etiqueta, fontWeight: 700,
+                background: on ? ORANGE[500] : 'transparent',
+                color: on ? NAVY[900] : TX.mid,
+                transition: `background ${MOTION.rapido}ms, color ${MOTION.rapido}ms`,
+              }}>{l}</button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

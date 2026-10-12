@@ -502,6 +502,12 @@ body {
   to   { transform: scaleX(1); opacity: 1; }
 }
 
+/* Entrada de un panel que se abre debajo (el desglose de un tramo). */
+@keyframes dash-entra-y {
+  from { transform: translateY(-6px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
 /* EL FOCO SE VE, Y SE VE EN NARANJA.
    `:focus-visible` y no `:focus`: con `:focus` el anillo aparece también al
    hacer clic con el ratón, la gente lo percibe como un defecto y acaba

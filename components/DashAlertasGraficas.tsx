@@ -8,6 +8,7 @@ import CustomSelect from '@/components/CustomSelect'
 import type { PayloadTablero, FilaTablero } from '@/lib/alertas-tablero'
 import * as TEMA from '@/lib/chart-theme'
 import ChartCard from '@/components/charts/ChartCard'
+import { useAsesorCompartido } from '@/lib/dash-filtros'
 
 /**
  * EL DASHBOARD DEJA DE REPETIR LA LISTA Y PASA A ANALIZARLA.
@@ -185,7 +186,9 @@ const TOPE_FILAS = 12
 export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }) {
   const [medida, setMedida] = useState<Medida>('mrr')
   const [corte,  setCorte]  = useState<Corte>('situacion')
-  const [quien,  setQuien]  = useState('')
+  /* El asesor NO es estado de esta tarjeta: es el del Dashboard entero. Elegirlo
+     aquí filtra también la salud de la cartera y el ranking. */
+  const [quien,  setQuien]  = useAsesorCompartido()
   const [clase,  setClase]  = useState<Clase>('')
   const [modoG2, setModoG2] = useState<'apilado' | 'agrupado' | 'pct'>('apilado')
 
@@ -363,7 +366,11 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
     ? `los cubos suman ${fmt(sumaG1)} y la cartera filtrada mide ${fmt(totalG1)}`
     : null
 
-  const datosG1 = g1.filas.map(f => ({ name: f.label, ...f.por }))
+  /* `total` va EXPLÍCITO y después del reparto. Sin él, el insight, la
+     descripción para lectores de pantalla y el modo 100% leían `d.total` de un
+     objeto que no lo tenía: el insight no salía nunca y la descripción decía
+     «NaN». Lo cazó `tsc` el 12 oct 2026, la primera vez que se pudo correr. */
+  const datosG1 = g1.filas.map(f => ({ name: f.label, ...f.por, total: f.total }))
 
   /** Cuántas apariciones hay de cada clase de hallazgo en la vista. */
   const mezclaClases = useMemo(() => {
@@ -415,7 +422,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
   const medianaEnColumna = medianaFuentes !== null && Number.isInteger(medianaFuentes)
     ? medianaFuentes : null
 
-  const datosG2 = g2.map(c => ({ name: `${c.n}/8`, ...c.por }))
+  const datosG2 = g2.map(c => ({ name: `${c.n}/8`, ...c.por, total: c.valor }))
   /* Los cubos que tienen cuentas pero valen 0 en dinero. Son las más ciegas
      —sin importe medible— y en modo dinero su columna se dibuja a altura
      cero, idéntica a «aquí no hay nadie». Se nombran debajo. */

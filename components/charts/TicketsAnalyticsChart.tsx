@@ -1,29 +1,34 @@
 'use client'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, ComposedChart, Line, Cell,
+  CartesianGrid, Brush,
 } from 'recharts'
-import { Ticket, AlertTriangle, RepeatIcon, TrendingUp, RefreshCw } from 'lucide-react'
+import ChartCard from '@/components/charts/ChartCard'
+import { ChartTooltip, ChartLegend, fondoConTrama, Segmentado } from '@/components/charts/primitivos'
+import * as TEMA from '@/lib/chart-theme'
+import { hoyEnMexico } from '@/lib/fecha-local'
 
-/* ── Tokens (match app/page.tsx dark palette) ───────────────────────── */
-const PANEL   = '#0F2040'
-const BORDER  = 'rgba(255,255,255,0.10)'
-const BORDER2 = 'rgba(255,255,255,0.06)'
-const TX_HI   = '#FFFFFF'
-const TX_MID  = 'rgba(255,255,255,0.70)'
-const TX_LOW  = 'rgba(255,255,255,0.45)'
-const CYAN    = '#00B4FF'
-const RED     = '#EF4444'
-const AMBER   = '#F59E0B'
+/* ── TICKETS, EN EL TEMA DEL DASHBOARD (12 oct 2026) ─────────────────────
+ *
+ * Era la última tarjeta con paleta propia: cian y rojo sobre `#0F2040`, con
+ * sus propios tokens copiados de `app/page.tsx`. Ahora:
+ *
+ *   · ATENCIÓN en plata, FALLAS en naranja con trama. Las fallas son lo que
+ *     hay que ver, así que llevan el único acento; y la trama las distingue
+ *     sin color —impresión en gris, daltonismo—.
+ *   · La leyenda ENCIENDE Y APAGA series. Con las fallas solas, el ranking de
+ *     clientes cambia de forma: quién reporta más fallas no es quién más
+ *     tickets abre.
+ *   · Clientes y servicios se ORDENAN por total o por fallas.
+ *   · La tendencia lleva un deslizador de rango cuando hay más de seis meses.
+ *
+ * Los datos y sus universos NO cambian: siguen siendo los tickets de
+ * CLIENTES, con los internos (CID 0 y 1) contados aparte. Ver
+ * [[tickets-fuente]] — el archivo sólo trae CERRADOS, y la tendencia va por
+ * mes de APERTURA (lo arma `app/page.tsx`).
+ */
 
-const TT_STYLE = {
-  background: '#0A1E35', border: '1px solid rgba(0,180,255,0.25)',
-  borderRadius: 10, fontSize: 12, color: TX_HI,
-  boxShadow: '0 4px 24px rgba(0,0,0,0.55)', padding: '10px 14px',
-}
-
-/* ── Types ───────────────────────────────────────────────────────────── */
 export interface TicketsAnalyticsData {
   topClientes:  { empresa: string; total: number; fallas: number }[]
   porCategoria: { categoria: string; total: number; fallas: number }[]
@@ -45,262 +50,312 @@ export interface TicketsAnalyticsData {
 }
 
 type TabKey = 'clientes' | 'servicio' | 'reincidencia' | 'tendencia'
+type Orden = 'total' | 'fallas'
 
-const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
-  { key: 'clientes',     label: 'Top Clientes',  icon: Ticket        },
-  { key: 'servicio',     label: 'Por Servicio',   icon: RefreshCw     },
-  { key: 'reincidencia', label: 'Reincidencia',   icon: RepeatIcon    },
-  { key: 'tendencia',    label: 'Tendencia',       icon: TrendingUp    },
-]
+const COLOR = { otros: TEMA.SILVER[300], fallas: TEMA.ORANGE[500] } as const
+const NOMBRE = { otros: 'Atención', fallas: 'Fallas' } as const
+const TRAMA_ID = 'trama-fallas-tickets'
+const n = (x: number) => x.toLocaleString('es-MX')
 
-/* ── Tooltip, uno solo para las tres pestañas ───────────────────────────
- *
- * Había dos, y uno de ellos mentía. `HBarTooltip` buscaba en el payload de
- * Recharts una serie con `dataKey === 'total'`, pero las barras que se dibujan
- * son `otros` y `fallas`: el `find` devolvía undefined, caía en el `?? 0` y el
- * tooltip decía «Total: 0» en Top Clientes y en Por Servicio — dos de las
- * cuatro pestañas. `payload: any` en la firma impedía que TypeScript lo viera.
- *
- * El total se reconstruye sumando lo que SÍ está dibujado. Un solo tooltip para
- * las tres pestañas de barras apiladas: dos funciones idénticas salvo por un
- * error es exactamente cómo el error sobrevive. */
-function StackedTooltip({ active, payload, label }: any) {
+/* El total se reconstruye sumando lo que SÍ está dibujado. Había un tooltip
+   que buscaba `dataKey === 'total'` —una serie que no se dibuja— y decía
+   «Total: 0» en dos de las cuatro pestañas. */
+function TooltipTickets({ active, payload, label }: {
+  active?: boolean; label?: string
+  payload?: { dataKey?: string; value?: number; payload?: Record<string, number> }[]
+}) {
   if (!active || !payload?.length) return null
-  const otros  = payload.find((p: any) => p.dataKey === 'otros')?.value ?? 0
-  const fallas = payload.find((p: any) => p.dataKey === 'fallas')?.value ?? 0
-  const total  = otros + fallas
-  const pct    = total > 0 ? ((fallas / total) * 100).toFixed(1) : '0'
+  const fila = payload[0]?.payload ?? {}
+  const otros = Number(fila.otros) || 0
+  const fallas = Number(fila.fallas) || 0
+  const total = otros + fallas
   return (
-    <div style={TT_STYLE}>
-      <p style={{ fontWeight: 700, marginBottom: 6, color: TX_HI }}>{label}</p>
-      <p style={{ color: CYAN }}>Total: <strong>{total}</strong></p>
-      {fallas > 0 && <p style={{ color: RED }}>Fallas: <strong>{fallas}</strong> ({pct}%)</p>}
-    </div>
+    <ChartTooltip
+      titulo={String(label ?? '')}
+      lineas={[
+        { etiqueta: 'Tickets', valor: n(total) },
+        { etiqueta: NOMBRE.otros, valor: n(otros), color: COLOR.otros },
+        { etiqueta: NOMBRE.fallas, valor: n(fallas), color: COLOR.fallas,
+          delta: total > 0 ? `${((fallas / total) * 100).toFixed(1)}%` : undefined },
+      ]}
+    />
   )
 }
 
-/* ── Chart: Top Clientes (horizontal bars) ──────────────────────────── */
-function TopClientesChart({ data }: { data: TicketsAnalyticsData['topClientes'] }) {
-  const chartData = data.map(d => ({ ...d, otros: d.total - d.fallas }))
-  const maxLen = Math.max(...data.map(d => d.empresa.length))
-  const yWidth = Math.min(maxLen * 6.5, 160)
-
+function Barras({ datos, clave, apagadas, horizontal, alto }: {
+  datos: Record<string, string | number>[]
+  clave: string
+  apagadas: Set<string>
+  horizontal: boolean
+  alto: number
+}) {
+  const ancho = horizontal
+    ? Math.min(220, Math.max(110, ...datos.map(d => String(d[clave]).length * 7)))
+    : 0
+  const series = (['otros', 'fallas'] as const).filter(s => !apagadas.has(s))
   return (
-    <ResponsiveContainer width="100%" height={320}>
-      <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 40, left: 8, bottom: 0 }}>
-        <CartesianGrid horizontal={false} stroke={BORDER2} strokeDasharray="3 3" />
-        <XAxis type="number" tick={{ fill: TX_LOW, fontSize: 11 }} axisLine={false} tickLine={false} />
-        <YAxis type="category" dataKey="empresa" width={yWidth}
-          tick={{ fill: TX_MID, fontSize: 11 }}
-          tickFormatter={v => v.length > 22 ? v.slice(0, 21) + '…' : v}
-          axisLine={false} tickLine={false} />
-        <Tooltip content={<StackedTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-        <Bar dataKey="otros" name="Tickets" stackId="t" fill={CYAN} fillOpacity={0.85}
-          radius={[0, 0, 0, 0]} barSize={14} />
-        <Bar dataKey="fallas" name="Fallas" stackId="t" fill={RED} fillOpacity={0.9}
-          radius={[0, 3, 3, 0]} barSize={14} />
+    <ResponsiveContainer width="100%" height={alto}>
+      <BarChart data={datos} layout={horizontal ? 'vertical' : 'horizontal'}
+        margin={{ top: 4, right: 24, left: 4, bottom: 0 }}>
+        {/* La trama de las fallas, como `<defs>` CRUDO. recharts descarta los
+            hijos que no reconoce: un componente propio que devolviera este
+            mismo `<defs>` no llegaba al SVG, y las fallas salían sin pintar
+            (pasó, lo cazó el arnés local). Y va DENTRO de este SVG: un
+            `<pattern>` de otro SVG no es alcanzable por `url(#id)`. */}
+        <defs>
+          <pattern id={TRAMA_ID} width="6" height="6" patternUnits="userSpaceOnUse"
+            patternTransform="rotate(45)">
+            <rect width="6" height="6" fill={COLOR.fallas} />
+            <line x1="0" y1="0" x2="0" y2="6" stroke={TEMA.NAVY[900]} strokeWidth="2" opacity="0.42" />
+          </pattern>
+        </defs>
+        <CartesianGrid stroke={TEMA.GRID} horizontal={!horizontal} vertical={horizontal} />
+        {horizontal ? (
+          <>
+            <XAxis type="number" {...TEMA.EJE_COMUN} />
+            <YAxis type="category" dataKey={clave} width={ancho} {...TEMA.EJE_COMUN}
+              tick={{ fill: TEMA.TX.mid, fontSize: TEMA.FUENTE.eje }}
+              tickFormatter={(v: string) => v.length > 30 ? v.slice(0, 29) + '…' : v} />
+          </>
+        ) : (
+          <>
+            <XAxis dataKey={clave} {...TEMA.EJE_COMUN} />
+            <YAxis {...TEMA.EJE_COMUN} width={44} />
+          </>
+        )}
+        <Tooltip content={<TooltipTickets />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+        {series.map(s => (
+          <Bar key={s} dataKey={s} name={NOMBRE[s]} stackId="t"
+            fill={s === 'fallas' ? `url(#${TRAMA_ID})` : COLOR[s]}
+            stroke={TEMA.NAVY[700]} strokeWidth={1}
+            maxBarSize={horizontal ? 18 : 44}
+            animationDuration={TEMA.MOTION.entrada} />
+        ))}
+        {!horizontal && datos.length > 6 && (
+          /* El rango arranca en los últimos seis meses: es lo que se mira a
+             diario, y el resto queda a un arrastre. */
+          <Brush dataKey={clave} height={22} stroke={TEMA.SILVER[500]}
+            fill={TEMA.NAVY[900]} travellerWidth={10}
+            startIndex={Math.max(0, datos.length - 6)}
+            tickFormatter={() => ''} />
+        )}
       </BarChart>
     </ResponsiveContainer>
   )
 }
 
-/* ── Chart: Por Servicio (horizontal bars) ──────────────────────────── */
-function PorServicioChart({ data }: { data: TicketsAnalyticsData['porCategoria'] }) {
-  const chartData = data.map(d => ({ ...d, otros: d.total - d.fallas }))
-  return (
-    <ResponsiveContainer width="100%" height={320}>
-      <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 40, left: 8, bottom: 0 }}>
-        <CartesianGrid horizontal={false} stroke={BORDER2} strokeDasharray="3 3" />
-        <XAxis type="number" tick={{ fill: TX_LOW, fontSize: 11 }} axisLine={false} tickLine={false} />
-        <YAxis type="category" dataKey="categoria" width={160}
-          tick={{ fill: TX_MID, fontSize: 11 }}
-          tickFormatter={v => v.length > 24 ? v.slice(0, 23) + '…' : v}
-          axisLine={false} tickLine={false} />
-        <Tooltip content={<StackedTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-        <Bar dataKey="otros" name="Tickets" stackId="s" fill={CYAN} fillOpacity={0.85}
-          radius={[0, 0, 0, 0]} barSize={14} />
-        <Bar dataKey="fallas" name="Fallas" stackId="s" fill={RED} fillOpacity={0.9}
-          radius={[0, 3, 3, 0]} barSize={14} />
-      </BarChart>
-    </ResponsiveContainer>
-  )
-}
-
-/* ── Reincidencia: ranked list ───────────────────────────────────────── */
-function ReincidenciaList({ data }: { data: TicketsAnalyticsData['reincidentes'] }) {
-  const max = data[0]?.count ?? 1
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {data.map((r, i) => {
-        const pct = Math.round((r.count / max) * 100)
-        const hasFallas = r.fallas > 0
-        return (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Rank */}
-            <span style={{ fontSize: 12, fontWeight: 800, color: i < 3 ? AMBER : TX_LOW, width: 20, textAlign: 'right', flexShrink: 0 }}>
-              {i + 1}
-            </span>
-            {/* Info */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: TX_HI, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {r.empresa}
-                  </span>
-                  <span style={{ fontSize: 11, color: TX_LOW, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    · {r.categoria}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                  {hasFallas && (
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: 'rgba(239,68,68,0.14)', color: RED, border: '1px solid rgba(239,68,68,0.25)' }}>
-                      {r.fallas} falla{r.fallas > 1 ? 's' : ''}
-                    </span>
-                  )}
-                  <span style={{ fontSize: 14, fontWeight: 800, color: CYAN, width: 28, textAlign: 'right' }}>{r.count}</span>
-                </div>
-              </div>
-              {/* Bar */}
-              <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: hasFallas ? RED : CYAN, opacity: 0.8 }} />
-              </div>
-            </div>
-          </div>
-        )
-      })}
-      <p style={{ fontSize: 11, color: TX_LOW, marginTop: 4 }}>
-        Combinaciones empresa × tipo de soporte con 3 o más tickets · ordenado por volumen
-      </p>
-    </div>
-  )
-}
-
-/* ── Chart: Tendencia mensual (stacked bars) ────────────────────────── */
-function TendenciaChart({ data }: { data: TicketsAnalyticsData['tendencia'] }) {
-  return (
-    <ResponsiveContainer width="100%" height={280}>
-      <ComposedChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-        <CartesianGrid vertical={false} stroke={BORDER2} strokeDasharray="3 3" />
-        <XAxis dataKey="label" tick={{ fill: TX_LOW, fontSize: 11 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: TX_LOW, fontSize: 11 }} axisLine={false} tickLine={false} />
-        <Tooltip content={<StackedTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-        <Bar dataKey="otros" name="Atención" stackId="m" fill={CYAN} fillOpacity={0.80}
-          radius={[0, 0, 0, 0]} barSize={40} />
-        <Bar dataKey="fallas" name="Fallas" stackId="m" fill={RED} fillOpacity={0.90}
-          radius={[3, 3, 0, 0]} barSize={40} />
-      </ComposedChart>
-    </ResponsiveContainer>
-  )
-}
-
-/* ── Leyenda compartida ─────────────────────────────────────────────── */
-function Leyenda() {
-  return (
-    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: TX_MID }}>
-        <span style={{ width: 10, height: 10, borderRadius: 2, background: CYAN, display: 'inline-block' }} />
-        Tickets de atención
-      </span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: TX_MID }}>
-        <span style={{ width: 10, height: 10, borderRadius: 2, background: RED, display: 'inline-block' }} />
-        Fallas reportadas
-      </span>
-    </div>
-  )
-}
-
-/* ── Panel principal ─────────────────────────────────────────────────── */
 export default function TicketsAnalyticsChart({ data }: { data: TicketsAnalyticsData }) {
   const [tab, setTab] = useState<TabKey>('clientes')
-  const fallaPct = data.totalTickets > 0
-    ? ((data.totalFallas / data.totalTickets) * 100).toFixed(1) : '0'
+  const [orden, setOrden] = useState<Orden>('total')
+  const [apagadas, setApagadas] = useState<Set<string>>(new Set())
+
+  const fallaPct = data.totalTickets > 0 ? (data.totalFallas / data.totalTickets) * 100 : 0
+
+  const clientes = useMemo(() => data.topClientes
+    .map(d => ({ empresa: d.empresa, otros: d.total - d.fallas, fallas: d.fallas, total: d.total }))
+    .sort((a, b) => orden === 'fallas' ? b.fallas - a.fallas || b.total - a.total : b.total - a.total),
+  [data.topClientes, orden])
+
+  const servicios = useMemo(() => data.porCategoria
+    .map(d => ({ categoria: d.categoria, otros: d.total - d.fallas, fallas: d.fallas, total: d.total }))
+    .sort((a, b) => orden === 'fallas' ? b.fallas - a.fallas || b.total - a.total : b.total - a.total),
+  [data.porCategoria, orden])
+
+  /* ── El hallazgo de cada pestaña, calculado. `null` si no hay nada. ───── */
+  const insight = useMemo(() => {
+    if (tab === 'tendencia') {
+      /* SE COMPARAN MESES CERRADOS. La primera versión comparaba el último
+         contra el anterior y, a 12 de octubre, publicaba «oct: 70% menos que
+         sep» — un mes a medias contra uno entero. Es el mismo error que el
+         churn del mes vivo: ver [[regla-churn-mes-vencido]]. El mes en curso
+         se dice aparte, con lo que lleva. */
+      const mesVivo = hoyEnMexico().slice(0, 7)
+      const cerrados = data.tendencia.filter(x => x.mes < mesVivo)
+      const vivo = data.tendencia.find(x => x.mes === mesVivo)
+      const enCurso = vivo ? ` ${vivo.label} va en ${n(vivo.total)}, y aún no cierra.` : ''
+      if (cerrados.length < 2) return enCurso.trim() || null
+      const u = cerrados[cerrados.length - 1], p = cerrados[cerrados.length - 2]
+      if (p.total === 0) return enCurso.trim() || null
+      const d = Math.round(((u.total - p.total) / p.total) * 100)
+      const cambio = Math.abs(d) < 5 ? 'casi igual que' : d > 0 ? `${d}% más que` : `${-d}% menos que`
+      return `${u.label} cerró con ${n(u.total)} tickets, ${cambio} ${p.label}.${enCurso}`
+    }
+    if (tab === 'clientes' && data.totalTickets > 0) {
+      const top = data.totalTickets - data.restoTickets
+      return `Diez clientes abren el ${Math.round((top / data.totalTickets) * 100)}% de los tickets;`
+        + ` las otras ${n(data.restoCuentas)} cuentas, el resto.`
+    }
+    if (tab === 'servicio' && servicios.length > 0) {
+      const peor = [...servicios].sort((a, b) => b.fallas - a.fallas)[0]
+      if (!peor || peor.fallas === 0 || data.totalFallas === 0) return null
+      return `${peor.categoria} concentra ${n(peor.fallas)} fallas, el `
+        + `${Math.round((peor.fallas / data.totalFallas) * 100)}% de todas.`
+    }
+    if (tab === 'reincidencia' && data.reincidentes[0]) {
+      const r = data.reincidentes[0]
+      return `${r.empresa} ha pedido ${r.count} veces ayuda con ${r.categoria}.`
+    }
+    return null
+  }, [tab, data, servicios])
+
+  const exportar = () => {
+    let cab: string[] = [], filas: (string | number)[][] = []
+    if (tab === 'clientes') { cab = ['cliente', 'tickets', 'fallas']; filas = clientes.map(c => [c.empresa, c.total, c.fallas]) }
+    if (tab === 'servicio') { cab = ['servicio', 'tickets', 'fallas']; filas = servicios.map(c => [c.categoria, c.total, c.fallas]) }
+    if (tab === 'reincidencia') { cab = ['cliente', 'servicio', 'tickets', 'fallas']; filas = data.reincidentes.map(r => [r.empresa, r.categoria, r.count, r.fallas]) }
+    if (tab === 'tendencia') { cab = ['mes', 'tickets', 'fallas']; filas = data.tendencia.map(t => [t.mes, t.total, t.fallas]) }
+    const csv = [cab, ...filas].map(f => f.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+    a.download = `tickets-${tab}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  const reestablecer = () => { setTab('clientes'); setOrden('total'); setApagadas(new Set()) }
+
+  const nota = (t: string) => (
+    <p style={{ marginTop: 10, lineHeight: 1.55 }}>
+      <span style={{ background: 'transparent', color: TEMA.TX.low, fontSize: 12 }}>{t}</span>
+    </p>
+  )
 
   return (
-    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
-        <div>
-          <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: TX_MID }}>
-            Análisis de Tickets
-          </p>
-          <p style={{ fontSize: 12, color: TX_LOW, marginTop: 2 }}>
-            {data.totalTickets.toLocaleString()} tickets de clientes ·&nbsp;
-            <span style={{ color: RED, fontWeight: 700 }}>{data.totalFallas} fallas ({fallaPct}%)</span>
-            {data.totalInternos > 0 && <> · {data.totalInternos} internos, fuera de estas vistas</>}
-          </p>
+    <ChartCard
+      titulo="Análisis de tickets"
+      subtitulo={`${n(data.totalTickets)} tickets de clientes · ${n(data.totalFallas)} fallas `
+        + `(${fallaPct.toFixed(1)}%)`
+        + (data.totalInternos > 0 ? ` · ${n(data.totalInternos)} internos, fuera de estas vistas` : '')}
+      ayuda="Tickets de Zoho Desk. El archivo sólo trae los CERRADOS, así que no hay «abiertos»
+        que contar. La vista por mes los pone en el mes en que se ABRIERON, y por eso el mes en
+        curso sale corto: sólo trae lo que ya se cerró. Los CID 0 y 1 son internos y se cuentan
+        aparte. Clic en la leyenda para dejar sólo las fallas."
+      insight={insight}
+      descripcion={`Tickets de clientes por ${tab}. ${n(data.totalTickets)} en total, `
+        + `${n(data.totalFallas)} fallas.`}
+      vacio={data.totalTickets === 0 ? 'No llegó ningún ticket. Revisa la carga de Zoho Desk antes de leer esto como «cero problemas».' : null}
+      onReestablecer={reestablecer}
+      onExportar={exportar}
+    >
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+        <Segmentado etiqueta="Ver"
+          opciones={[['clientes', 'Clientes'], ['servicio', 'Servicio'],
+                     ['reincidencia', 'Reincidencia'], ['tendencia', 'Por mes']]}
+          valor={tab} onCambio={v => setTab(v as TabKey)} />
+        {(tab === 'clientes' || tab === 'servicio') && (
+          <Segmentado etiqueta="Ordenar por"
+            opciones={[['total', 'Tickets'], ['fallas', 'Fallas']]}
+            valor={orden} onCambio={v => setOrden(v as Orden)} />
+        )}
+      </div>
+
+      {tab !== 'reincidencia' && (
+        <div style={{ marginBottom: 8 }}>
+          <ChartLegend
+            items={[
+              { k: 'otros', label: 'Atención', color: COLOR.otros },
+              { k: 'fallas', label: 'Fallas reportadas', color: COLOR.fallas, trama: true },
+            ]}
+            apagados={apagadas}
+            onAlternar={k => setApagadas(prev => {
+              const s = new Set(prev)
+              if (s.has(k)) s.delete(k)
+              /* Nunca las dos apagadas: una gráfica sin series parece rota. */
+              else if (s.size === 0) s.add(k)
+              return s
+            })}
+          />
         </div>
-        <Leyenda />
-      </div>
+      )}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
-        {TABS.map(t => {
-          const active = tab === t.key
-          return (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 14px', borderRadius: 99, border: 'none', cursor: 'pointer',
-                fontSize: 12, fontWeight: active ? 700 : 500,
-                background: active ? `${CYAN}20` : 'rgba(255,255,255,0.05)',
-                color: active ? CYAN : TX_MID,
-                outline: active ? `1px solid ${CYAN}40` : '1px solid transparent',
-                transition: 'all 0.15s',
-              }}>
-              <t.icon size={13} />
-              {t.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Content */}
       {tab === 'clientes' && (
         <>
-          <p style={{ fontSize: 12, color: TX_LOW, marginBottom: 12 }}>
-            Top 10 por volumen — barras apiladas: atención (azul) + fallas (rojo)
-          </p>
-          <TopClientesChart data={data.topClientes} />
-          {data.restoCuentas > 0 && (
-            <p style={{ fontSize: 11, color: TX_LOW, marginTop: 10 }}>
-              Estas diez son{' '}
-              <strong style={{ color: TX_MID }}>
-                {(data.totalTickets - data.restoTickets).toLocaleString()} de {data.totalTickets.toLocaleString()}
-              </strong>{' '}
-              tickets de clientes ({Math.round(((data.totalTickets - data.restoTickets) / Math.max(data.totalTickets, 1)) * 100)}%).
-              Las otras {data.restoCuentas.toLocaleString()} cuentas suman {data.restoTickets.toLocaleString()}.
-            </p>
-          )}
+          <Barras datos={clientes} clave="empresa" apagadas={apagadas} horizontal
+            alto={Math.max(240, clientes.length * 32)} />
+          {data.restoCuentas > 0 && nota(
+            `Estas diez son ${n(data.totalTickets - data.restoTickets)} de ${n(data.totalTickets)} tickets. `
+            + `Las otras ${n(data.restoCuentas)} cuentas suman ${n(data.restoTickets)}.`
+            + (orden === 'fallas' ? ' Ordenado por fallas DENTRO de las diez de más tickets.' : ''))}
         </>
       )}
 
       {tab === 'servicio' && (
         <>
-          <p style={{ fontSize: 12, color: TX_LOW, marginBottom: 12 }}>
-            Distribución por tipo de servicio · {data.porCategoria.length} categorías activas
-          </p>
-          <PorServicioChart data={data.porCategoria} />
-        </>
-      )}
-
-      {tab === 'reincidencia' && (
-        <>
-          <p style={{ fontSize: 12, color: TX_LOW, marginBottom: 16 }}>
-            Clientes con mayor repetición de solicitudes en un mismo tipo de soporte ·{' '}
-            {data.reincidentes.length} de {data.reincidentesTotal} combinaciones que reinciden
-          </p>
-          <ReincidenciaList data={data.reincidentes} />
+          <Barras datos={servicios} clave="categoria" apagadas={apagadas} horizontal
+            alto={Math.max(240, servicios.length * 30)} />
+          {nota(`${servicios.length} tipos de servicio con tickets.`)}
         </>
       )}
 
       {tab === 'tendencia' && (
         <>
-          <p style={{ fontSize: 12, color: TX_LOW, marginBottom: 12 }}>
-            Volumen mensual de tickets · barras apiladas por tipo (atención + fallas)
-          </p>
-          <TendenciaChart data={data.tendencia} />
+          <Barras datos={data.tendencia} clave="label" apagadas={apagadas} horizontal={false} alto={300} />
+          {nota(data.tendencia.length > 6
+            ? 'Arrastra los extremos de la franja de abajo para cambiar el rango de meses.'
+            : 'Cada columna es un mes, por fecha de apertura.')}
         </>
       )}
+
+      {tab === 'reincidencia' && (
+        <Reincidencia datos={data.reincidentes} total={data.reincidentesTotal} />
+      )}
+    </ChartCard>
+  )
+}
+
+/* ── Reincidencia: lista ordenada, no gráfica ─────────────────────────────
+   Son pares cliente × servicio; una barra por par necesita dos rótulos y no
+   caben en un eje. La lista lleva su barra de proporción y la falla, si la
+   hay, en naranja con trama — el mismo código que el resto de la tarjeta. */
+function Reincidencia({ datos, total }: {
+  datos: TicketsAnalyticsData['reincidentes']; total: number
+}) {
+  const max = datos[0]?.count ?? 1
+  return (
+    <div>
+      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex',
+                   flexDirection: 'column', gap: 10 }}>
+        {datos.map((r, i) => (
+          <li key={`${r.empresa}-${r.categoria}`} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ background: 'transparent', width: 22, textAlign: 'right', flexShrink: 0,
+                           fontSize: TEMA.FUENTE.etiqueta, fontWeight: 800,
+                           color: i < 3 ? TEMA.ORANGE[400] : TEMA.TX.low }}>{i + 1}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 5 }}>
+                <span style={{ background: 'transparent', minWidth: 0, overflow: 'hidden',
+                               textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                               fontSize: TEMA.FUENTE.cuerpo, color: TEMA.TX.hi, fontWeight: 700 }}>
+                  {r.empresa}
+                  <span style={{ background: 'transparent', color: TEMA.TX.low, fontWeight: 500,
+                                 fontSize: TEMA.FUENTE.etiqueta }}> · {r.categoria}</span>
+                </span>
+                <span style={{ background: 'transparent', flexShrink: 0, display: 'flex', gap: 10,
+                               alignItems: 'baseline', ...TEMA.TABULAR }}>
+                  {r.fallas > 0 && (
+                    <span style={{ background: 'transparent', color: TEMA.ORANGE[400],
+                                   fontSize: TEMA.FUENTE.etiqueta, fontWeight: 700 }}>
+                      {r.fallas} falla{r.fallas > 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <span style={{ background: 'transparent', color: TEMA.TX.hi,
+                                 fontSize: TEMA.FUENTE.valor, fontWeight: 800 }}>{r.count}</span>
+                </span>
+              </div>
+              <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)',
+                            overflow: 'hidden', display: 'flex' }}>
+                <div style={{ width: `${((r.count - r.fallas) / max) * 100}%`, background: COLOR.otros }} />
+                <div style={{ width: `${(r.fallas / max) * 100}%`, background: fondoConTrama(COLOR.fallas, true) }} />
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <p style={{ marginTop: 12 }}>
+        <span style={{ background: 'transparent', color: TEMA.TX.low, fontSize: 12 }}>
+          Cliente × tipo de soporte con 3 o más tickets · {datos.length} de {total} combinaciones
+          que reinciden, ordenadas por volumen.
+        </span>
+      </p>
     </div>
   )
 }
