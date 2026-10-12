@@ -129,9 +129,17 @@ export default function ChartCard({
               <HelpCircle size={15} />
             </button>
           </div>
+          {/* EL COLOR VA EN UN <span> CON `background`, NO EN EL <p>.
+              `globals.css` tiene `.cp-card p { color:#fff !important }` y un
+              `!important` de hoja le gana al color en línea: el subtítulo
+              saldría blanco y el insight perdería su naranja, que es
+              justamente lo que lo hace visible. El selector mira la subcadena
+              «background» en el atributo `style`, así que declararlo —aunque
+              sea transparente— saca al span de la regla. */}
           {subtitulo && (
-            <p style={{ fontSize: FUENTE.subtitulo, color: TX.low, marginTop: 4 }}>
-              {subtitulo}
+            <p style={{ marginTop: 4 }}>
+              <span style={{ background: 'transparent', color: TX.low,
+                             fontSize: FUENTE.subtitulo }}>{subtitulo}</span>
             </p>
           )}
         </div>
@@ -168,10 +176,12 @@ export default function ChartCard({
           rellenar el hueco es peor que el hueco. */}
       {insight && !cargando && !error && (
         <p style={{
-          margin: 0, padding: '10px 20px', fontSize: FUENTE.cuerpo, lineHeight: 1.55,
-          color: ORANGE[400], fontWeight: 650,
+          margin: 0, padding: '10px 20px', lineHeight: 1.55,
           borderBottom: `1px solid ${BORDE}`,
-        }}>{insight}</p>
+        }}>
+          <span style={{ background: 'transparent', color: ORANGE[400],
+                         fontSize: FUENTE.cuerpo, fontWeight: 650 }}>{insight}</span>
+        </p>
       )}
 
       {/* ── Cuerpo ────────────────────────────────────────────────────── */}
@@ -232,18 +242,19 @@ function Esqueleto() {
 
 function Vacio({ texto }: { texto: string }) {
   return (
-    <p style={{
-      fontSize: FUENTE.cuerpo, color: TX.low, lineHeight: 1.65,
-      padding: '28px 0', textAlign: 'center',
-    }}>{texto}</p>
+    <p style={{ padding: '28px 0', textAlign: 'center', lineHeight: 1.65 }}>
+      <span style={{ background: 'transparent', color: TX.low,
+                     fontSize: FUENTE.cuerpo }}>{texto}</span>
+    </p>
   )
 }
 
 function Error({ texto, onReintentar }: { texto: string; onReintentar?: () => void }) {
   return (
     <div role="alert" style={{ padding: '20px 0', textAlign: 'center' }}>
-      <p style={{ fontSize: FUENTE.cuerpo, color: ORANGE[400], lineHeight: 1.6 }}>
-        {texto}
+      <p style={{ lineHeight: 1.6 }}>
+        <span style={{ background: 'transparent', color: ORANGE[400],
+                       fontSize: FUENTE.cuerpo }}>{texto}</span>
       </p>
       {onReintentar && (
         <button

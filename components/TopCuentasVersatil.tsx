@@ -1,12 +1,48 @@
 'use client'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Trophy } from 'lucide-react'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-} from 'recharts'
+/* recharts ya no se importa aquí: el ranking pasó a lollipop dibujado con
+   elementos propios. Con valores apiñados, lo que el ojo compara es la
+   POSICIÓN DEL PUNTO, no la longitud de siete rectángulos casi iguales — y
+   eso recharts no lo da sin pelearse con su layout. */
 import CustomSelect from '@/components/CustomSelect'
 import { formatMXN } from '@/lib/types'
+import * as TEMA from '@/lib/chart-theme'
+import ChartCard from '@/components/charts/ChartCard'
+
+/**
+ * El Health Score como anillo, no como número suelto.
+ *
+ * El número ya está: el anillo le añade la referencia contra 100, que es lo
+ * que convierte «48» en «menos de la mitad». Y el color sale de la rampa del
+ * tema, no de un verde/ámbar/rojo aparte.
+ */
+function AnilloHealth({ valor }: { valor: number }) {
+  const v = Math.max(0, Math.min(100, Math.round(valor)))
+  const R = 9
+  const C = 2 * Math.PI * R
+  /* Más score = menos riesgo = más plata; menos score = más naranja. */
+  const paso = Math.round(((100 - v) / 100) * (TEMA.TIRA_RIESGO.length - 1))
+  const color = TEMA.TIRA_RIESGO[paso]
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end',
+                   width: '100%' }}>
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden style={{ flexShrink: 0 }}>
+        <circle cx="12" cy="12" r={R} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
+        <circle cx="12" cy="12" r={R} fill="none" stroke={color} strokeWidth="3"
+          strokeDasharray={`${(v / 100) * C} ${C}`} strokeLinecap="round"
+          transform="rotate(-90 12 12)" />
+      </svg>
+      <span style={{ fontWeight: 700, color: TEMA.TX.hi, ...TEMA.TABULAR,
+                     background: 'transparent' }}>{v}</span>
+    </span>
+  )
+}
+
+/* @contraste-padre: el fondo oscuro lo pinta ChartCard, que envuelve todo el
+   componente con `cp-card` y `background: NAVY[700]`. Antes el envoltorio con
+   fondo vivía aquí; al pasar a la tarjeta compartida, este archivo se quedó
+   declarando letra clara sin superficie propia. */
 
 /* ── Paleta — igual que DashMetricasSection (sección contigua) ──────────── */
 const PANEL   = '#0F2040'
@@ -123,6 +159,10 @@ export default function TopCuentasVersatil({ data }: Props) {
   const [dim, setDim]   = useState<Dim>('healthBajo')
   const [topN, setTopN] = useState(10)
   const [fAsesor, setFAsesor] = useState('')
+  const [busca, setBusca] = useState('')
+  /** La fila bajo el cursor. Sincroniza gráfica y tabla en las DOS
+   *  direcciones: pasar por una barra resalta su renglón y al revés. */
+  const [sobre, setSobre] = useState<string | null>(null)
 
   const asesores = useMemo(() =>
     Array.from(new Set(data.map(r => r.asesor).filter(Boolean))).sort() as string[], [data])
@@ -138,26 +178,99 @@ export default function TopCuentasVersatil({ data }: Props) {
       .slice(0, topN)
   }, [data, def, fAsesor, topN])
 
-  const chartData = rows.map(({ r, v }) => ({ name: r.empresa, value: v, id: r.id }))
+  /* ── BÚSQUEDA ────────────────────────────────────────────────────────
+     Va DESPUÉS del recorte a Top N a propósito: busca dentro de lo que se
+     está viendo, no en toda la cartera. Buscar sobre el universo y luego
+     recortar devolvía resultados que el usuario no había pedido ver. */
+  const visibles = useMemo(() => {
+    const q = busca.trim().toLowerCase()
+    if (!q) return rows
+    return rows.filter(({ r }) =>
+      r.empresa.toLowerCase().includes(q)
+      || r.consecutivo.toLowerCase().includes(q)
+      || (r.asesor ?? '').toLowerCase().includes(q))
+  }, [rows, busca])
+
+  /* ── EL PROBLEMA DE LAS BARRAS CASI IGUALES ──────────────────────────
+     En «Health Score» los valores se apiñan —el esquema deja los bloques en
+     50 por omisión— y siete barras del mismo largo no dicen nada. No se
+     resuelve con color: se resuelve cambiando lo que se mide.
+
+     Si el rango es menos del 15% de la mediana, se dibuja la DIFERENCIA
+     CONTRA LA MEDIANA en vez del valor absoluto. Entonces sí hay variación
+     útil, y la gráfica LO DICE — un eje truncado sin avisar es la forma más
+     común de mentir con una gráfica. */
+  const { mediana, apinado } = useMemo(() => {
+    const vs = visibles.map(x => x.v).sort((a, b) => a - b)
+    if (vs.length === 0) return { mediana: 0, apinado: false }
+    const m = vs[Math.floor(vs.length / 2)]
+    const rango = vs[vs.length - 1] - vs[0]
+    return { mediana: m, apinado: m !== 0 && rango / Math.abs(m) < 0.15 && vs.length > 2 }
+  }, [visibles])
+
+  /* El color de cada fila sale de su POSICIÓN en el ranking, no de un color
+     fijo para todas: plata (extremo bueno) → naranja (extremo a vigilar). */
+  const colorDe = (i: number, n: number) => {
+    if (n <= 1) return TEMA.TIRA_RIESGO[TEMA.TIRA_RIESGO.length - 1]
+    const t = i / (n - 1)
+    const paso = Math.round(t * (TEMA.TIRA_RIESGO.length - 1))
+    /* `dir: 'desc'` ordena de mayor a menor, así que la primera fila es el
+       extremo que la dimensión considera «más». Si ese extremo es el malo
+       —health bajo, más fallas— el naranja va arriba; si es el bueno, abajo. */
+    const invertir = dim === 'healthAlto' || dim === 'facMayor' || dim === 'antiguas'
+    return TEMA.TIRA_RIESGO[invertir ? paso : TEMA.TIRA_RIESGO.length - 1 - paso]
+  }
+
+  /** El hallazgo, en una frase. `null` cuando no hay nada que destacar. */
+  const insight = useMemo(() => {
+    if (visibles.length === 0) return null
+    if (apinado) {
+      return `Las ${visibles.length} están dentro del 15% de la mediana: aquí no hay un `
+        + `extremo claro, hay un bloque. Mirar la tabla antes de priorizar.`
+    }
+    const p = visibles[0]
+    const dinero = visibles.reduce((s, x) => s + x.r.facturacion, 0)
+    return `Encabeza ${p.r.empresa} con ${def.fmt(p.v)}`
+      + (dinero > 0 ? `. Entre las ${visibles.length} suman ${formatMXN(dinero)} al mes.` : '.')
+  }, [visibles, apinado, def])
+
+  const exportarCsv = () => {
+    const cab = ['#', 'consecutivo', 'cuenta', 'asesor', def.label, 'facturacion', 'health']
+    const filas = visibles.map(({ r, v }, i) => [
+      i + 1, r.consecutivo, r.empresa, r.asesor ?? '', v, r.facturacion, Math.round(r.healthScore),
+    ])
+    const csv = [cab, ...filas]
+      .map(f => f.map(c => {
+        const s = String(c)
+        return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+      }).join(','))
+      .join('\n')
+    /* BOM: sin él, Excel en es-MX abre los acentos rotos. */
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `top-cuentas-${dim}.csv`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
 
   return (
-    <div className="px-6 pb-5">
-      <div className="rounded-2xl p-5" style={{ background: PANEL, border: `1px solid ${BORDER}` }}>
-
-        {/* Header + combos */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-                      gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-          <div>
-            <div className="flex items-center gap-2">
-              <Trophy size={13} style={{ color: '#EAB308' }} />
-              <h3 className="text-xs font-bold uppercase tracking-[0.10em]" style={{ color: TX_HI }}>
-                Top Cuentas · Ranking Versátil
-              </h3>
-            </div>
-            <p style={{ fontSize: 11, color: TX_LOW, marginTop: 3 }}>
-              {def.label} — cada asesor debe conocer sus propios extremos, no solo el promedio
-            </p>
-          </div>
+    <div className="px-6 pb-5" style={{ maxWidth: TEMA.ANCHO_MAX, margin: '0 auto' }}>
+      <ChartCard
+        titulo="Top cuentas · ranking versátil"
+        subtitulo={`${def.label} — cada asesor debe conocer sus propios extremos, no solo el promedio`}
+        ayuda={'Lollipop en lugar de barras: con valores parecidos el ojo compara mejor la '
+          + 'posición de un punto que la longitud de siete rectángulos casi iguales. El color '
+          + 'de cada fila sale de su posición en el ranking, de plata a naranja. Y si los '
+          + 'valores se apiñan, la gráfica dibuja la diferencia contra la mediana y LO DICE: '
+          + 'un eje truncado sin avisar es la forma más común de mentir con una gráfica.'}
+        insight={insight}
+        descripcion={`Ranking de ${def.label.toLowerCase()}. `
+          + visibles.slice(0, 10).map(({ r, v }, i) => `${i + 1}. ${r.empresa}: ${def.fmt(v)}`).join('. ')}
+        onExportar={exportarCsv}
+        onReestablecer={() => { setDim('healthBajo'); setTopN(10); setFAsesor(''); setBusca('') }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <div style={{ minWidth: 220 }}>
               <CustomSelect value={dim} onChange={v => setDim(v as Dim)}
@@ -177,30 +290,116 @@ export default function TopCuentasVersatil({ data }: Props) {
           </div>
         </div>
 
-        {rows.length === 0 ? (
-          <p style={{ fontSize: 12, color: TX_LOW, padding: '24px 0', textAlign: 'center' }}>
-            Sin datos suficientes capturados para esta métrica todavía.
+        {/* Búsqueda rápida dentro de lo que se está viendo. */}
+        <div style={{ marginBottom: 12 }}>
+          <input
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            placeholder="Buscar cuenta, consecutivo o asesor…"
+            aria-label="Buscar dentro del ranking"
+            className="dash-foco"
+            style={{
+              width: '100%', maxWidth: 340, padding: '7px 12px', borderRadius: 8,
+              fontSize: TEMA.FUENTE.cuerpo, color: TEMA.TX.hi,
+              background: 'rgba(255,255,255,0.06)', border: `1px solid ${TEMA.BORDE}`,
+              outline: 'none',
+            }}
+          />
+        </div>
+
+        {visibles.length === 0 ? (
+          <p style={{ fontSize: TEMA.FUENTE.cuerpo, color: TX_LOW, padding: '24px 0', textAlign: 'center' }}>
+            {busca
+              ? `Ninguna de las ${rows.length} cuentas de esta vista coincide con «${busca}».`
+              : 'Sin datos suficientes capturados para esta métrica todavía.'}
           </p>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height={Math.max(160, rows.length * 28)}>
-              <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
-                <XAxis type="number" tick={{ fill: TX_LOW, fontSize: 10 }} axisLine={false} tickLine={false}
-                  tickFormatter={v => def.money ? `$${(v / 1000).toFixed(0)}k` : String(Math.round(v))} />
-                <YAxis type="category" dataKey="name" tick={{ fill: TX_MID, fontSize: 10 }}
-                  axisLine={false} tickLine={false} width={150}
-                  tickFormatter={(v: string) => v.length > 18 ? v.slice(0, 18) + '…' : v} />
-                <Tooltip
-                  formatter={(v: number) => [def.fmt(v), def.label]}
-                  contentStyle={{ background: '#0A1628', border: `1px solid ${def.color}40`, borderRadius: 8, fontSize: 12 }}
-                  labelStyle={{ color: TX_HI, fontWeight: 700 }}
-                  itemStyle={{ color: TX_HI }}
-                  cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={20}>
-                  {chartData.map((_, i) => <Cell key={i} fill={def.color} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {apinado && (
+              <p style={{
+                fontSize: TEMA.FUENTE.cuerpo, color: TEMA.ORANGE[400],
+                marginBottom: 10, lineHeight: 1.55, fontWeight: 600,
+              }}>
+                Los valores están apiñados —el rango es menos del 15% de la mediana— así que
+                aquí se dibuja la <strong>diferencia contra la mediana ({def.fmt(mediana)})</strong>,
+                no el valor absoluto. Con el valor absoluto, estas {visibles.length} barras
+                saldrían del mismo largo y no dirían nada.
+              </p>
+            )}
+
+            {/* ── LOLLIPOP ──────────────────────────────────────────────
+                Una línea fina y un punto, no una barra maciza. Con valores
+                parecidos, lo que el ojo compara es la POSICIÓN DEL PUNTO, y
+                eso se resuelve mejor que la longitud de siete rectángulos
+                casi iguales. */}
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }} className="dash-anima">
+              {visibles.map(({ r, v }, i) => {
+                const dibuja = apinado ? v - mediana : v
+                const tope = Math.max(...visibles.map(x => Math.abs(apinado ? x.v - mediana : x.v)), 1)
+                const pct = (Math.abs(dibuja) / tope) * 100
+                const color = colorDe(i, visibles.length)
+                const act = sobre === null || sobre === r.id
+                return (
+                  <li
+                    key={r.id}
+                    onMouseEnter={() => setSobre(r.id)}
+                    onMouseLeave={() => setSobre(null)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      minHeight: TEMA.MINIMOS.altoFila,
+                      opacity: act ? 1 : 0.4,
+                      transition: `opacity ${TEMA.MOTION.rapido}ms`,
+                    }}
+                  >
+                    <span style={{
+                      width: 22, flexShrink: 0, textAlign: 'right',
+                      fontSize: TEMA.FUENTE.eje, color: TX_LOW, ...TEMA.TABULAR,
+                    }}>{i + 1}</span>
+
+                    <Link href={`/cuentas/${r.id}`} style={{
+                      width: 170, flexShrink: 0, textDecoration: 'none',
+                      fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.mid,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }} title={`${r.consecutivo} · ${r.empresa}`}>{r.empresa}</Link>
+
+                    <div style={{ flex: 1, position: 'relative', height: TEMA.MINIMOS.areaClic,
+                                  display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                      {/* La raya de referencia: con diferencias, el cero es la
+                          mediana y hay que verlo. */}
+                      {apinado && (
+                        <i aria-hidden style={{
+                          position: 'absolute', left: 0, top: 0, bottom: 0, width: 1,
+                          background: TEMA.SILVER[700],
+                        }} />
+                      )}
+                      <i aria-hidden style={{
+                        height: 2, width: `max(2px, ${pct}%)`, background: color,
+                        borderRadius: 1, display: 'block',
+                        animation: `dash-entra-x ${TEMA.MOTION.entrada}ms ${TEMA.MOTION.ease} both`,
+                        animationDelay: `${i * TEMA.MOTION.stagger}ms`,
+                        transformOrigin: 'left center',
+                      }} />
+                      <i aria-hidden style={{
+                        width: 11, height: 11, borderRadius: 999, background: color,
+                        flexShrink: 0, marginLeft: -1,
+                        boxShadow: sobre === r.id ? `0 0 0 4px ${color}44` : 'none',
+                        transition: `box-shadow ${TEMA.MOTION.rapido}ms`,
+                      }} />
+                    </div>
+
+                    <span style={{
+                      width: 104, flexShrink: 0, textAlign: 'right',
+                      fontSize: TEMA.FUENTE.valor, fontWeight: 750, color: TEMA.TX.hi,
+                      ...TEMA.TABULAR,
+                    }}>
+                      {apinado
+                        ? `${v - mediana >= 0 ? '+' : ''}${def.fmt(v - mediana)}`
+                        : def.fmt(v)}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
 
             {/* Tabla de contexto */}
             <div style={{ overflowX: 'auto', marginTop: 10 }}>
@@ -215,8 +414,15 @@ export default function TopCuentasVersatil({ data }: Props) {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(({ r, v }, i) => (
-                    <tr key={r.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  {visibles.map(({ r, v }, i) => (
+                    <tr key={r.id}
+                      onMouseEnter={() => setSobre(r.id)}
+                      onMouseLeave={() => setSobre(null)}
+                      style={{
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        background: sobre === r.id ? 'rgba(255,122,26,0.10)' : 'transparent',
+                        transition: `background ${TEMA.MOTION.rapido}ms`,
+                      }}>
                       <td style={{ padding: '7px 10px', color: TX_LOW }}>{i + 1}</td>
                       <td style={{ padding: '7px 10px' }}>
                         <Link href={`/cuentas/${r.id}`} style={{ textDecoration: 'none' }}>
@@ -227,13 +433,14 @@ export default function TopCuentasVersatil({ data }: Props) {
                         </Link>
                       </td>
                       <td style={{ padding: '7px 10px', color: TX_MID }}>{r.asesor ?? '—'}</td>
-                      <td style={{ padding: '7px 10px', fontWeight: 700, color: def.color }}>{def.fmt(v)}</td>
-                      <td style={{ padding: '7px 10px', textAlign: 'right', color: TX_MID, fontVariantNumeric: 'tabular-nums' }}>
+                      <td style={{ padding: '7px 10px', fontWeight: 700, color: colorDe(i, visibles.length) }}>
+                        {def.fmt(v)}
+                      </td>
+                      <td style={{ padding: '7px 10px', textAlign: 'right', color: TX_MID, ...TEMA.TABULAR }}>
                         {formatMXN(r.facturacion)}
                       </td>
-                      <td style={{ padding: '7px 10px', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                        color: r.healthScore < 40 ? '#EF4444' : r.healthScore < 60 ? '#EAB308' : '#22C55E' }}>
-                        {Math.round(r.healthScore)}
+                      <td style={{ padding: '7px 10px' }}>
+                        <AnilloHealth valor={r.healthScore} />
                       </td>
                     </tr>
                   ))}
@@ -242,7 +449,7 @@ export default function TopCuentasVersatil({ data }: Props) {
             </div>
           </>
         )}
-      </div>
+      </ChartCard>
     </div>
   )
 }
