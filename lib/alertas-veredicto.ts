@@ -395,13 +395,25 @@ export function veredictoDe(e: EstadoCuenta): Veredicto {
   if (e.fuentes < MIN_FUENTES) {
     return {
       situacion: 'no_la_vemos', luz: 'amarillo', dueno: 'asesor',
-      accion: 'Pedir el Excel de llamadas y completar la ficha: hoy no alcanza para opinar',
+      /* MISMA REGLA QUE ABAJO: el Excel sólo se nombra si de verdad falta.
+         Esta rama también lo pedía a ciegas, y `llamadas` es una de las ocho
+         fuentes — una cuenta puede llegar aquí CON su lectura de llamadas y
+         sin casi nada más, y entonces pedírselo es pedir lo que ya dio. */
+      accion: e.tieneLlamadas
+        ? 'Completar la ficha: hoy no alcanza para opinar de esta cuenta'
+        : 'Pedir el Excel de llamadas y completar la ficha: hoy no alcanza para opinar',
       porque: `Sólo ${e.fuentes} de ocho fuentes tienen dato de esta cuenta. `
             + `Con eso no se puede decir si está bien o mal, y decirlo igual `
-            + `sería inventar. Son ${dinero(e.mrr)}.`,
+            + `sería inventar. Son ${dinero(e.mrr)}.`
+            + (e.tieneLlamadas
+                ? ' Sus llamadas SÍ las tenemos: lo que falta es el resto.'
+                : ''),
       hallazgos,
-      pedir: 'El export de llamadas de 3 a 6 meses CON la columna '
-           + '`destination_data_1`, y los datos de ficha que estén vacíos.',
+      pedir: e.tieneLlamadas
+        ? 'Los datos de ficha que estén vacíos. El Excel de llamadas NO: esta '
+        + 'cuenta ya aparece en Análisis de Llamadas.'
+        : 'El export de llamadas de 3 a 6 meses CON la columna '
+        + '`destination_data_1`, y los datos de ficha que estén vacíos.',
     }
   }
 
@@ -413,11 +425,63 @@ export function veredictoDe(e: EstadoCuenta): Veredicto {
     const falta: string[] = []
     if (!e.tieneLlamadas) falta.push('sus llamadas')
     if (e.consumoPct === null) falta.push('su consumo')
+
+    /* ── LA ACCIÓN DEPENDE DE QUÉ FALTA, Y ANTES NO ────────────────────────
+     *
+     * La condición de arriba es un O, pero la acción estaba FIJA en «Pedir el
+     * Excel de llamadas». Así que a una cuenta con lectura de llamadas y sin
+     * consumo se le pedía igual el archivo.
+     *
+     * Lo vio dirección el 12 oct 2026 en GRUPO FRISA: su ficha pedía el Excel
+     * mientras el módulo de Análisis de Llamadas traía 1,827 entrantes y 6,803
+     * salientes de esa misma cuenta.
+     *
+     * MEDIDO con `scripts/mide-pedido-llamadas.py` sobre la cartera: de las
+     * 118 cuentas que caen aquí, **56 tenían ya sus llamadas** y sólo les
+     * faltaba el consumo — $1,102,008 al mes. Casi la mitad de las cuentas y
+     * más de la mitad del dinero de este cubo, pidiéndole al cliente un
+     * archivo que ya está en el tablero.
+     *
+     * Y el error es doble, porque el consumo NO ES DEL CLIENTE: sale de
+     * `todosLosCortes()`, que es nuestro Informe de Cortes de Facturación. Ahí
+     * la gestión es interna —averiguar por qué esa cuenta no aparece en el
+     * corte— y no una llamada a pedirle nada a nadie.
+     *
+     * Pedir lo que ya se tiene no es sólo trabajo de más: enseña al cliente
+     * que no miramos lo que nos dio.
+     */
+    const soloConsumo = e.tieneLlamadas && e.consumoPct === null
+
+    if (soloConsumo) {
+      return {
+        situacion: 'no_la_vemos', luz: 'amarillo',
+        /* Dirección y no asesor: quien puede destrabar un hueco del Informe de
+           Cortes es quien maneja facturación, no quien lleva la cuenta. */
+        dueno: 'direccion',
+        accion: 'Revisar por qué esta cuenta no aparece en el Informe de Cortes',
+        porque: `De esta cuenta sí tenemos sus llamadas, pero falta su consumo `
+              + `de minutos, y ése sale de NUESTRO corte de facturación — no `
+              + `del cliente. Son ${dinero(e.mrr)} sin medición de uso. `
+              + `No hay nada que pedirle: hay que encontrar el hueco en el corte.`,
+        hallazgos,
+        pedir: 'El Informe de Cortes con esta cuenta dentro. Si no aparece, '
+             + 'confirmar con Facturación si cambió de CID, si se facturó por '
+             + 'otro contrato, o si quedó fuera del export.',
+      }
+    }
+
     return {
       situacion: 'no_la_vemos', luz: 'amarillo', dueno: 'asesor',
       accion: 'Pedir el Excel de llamadas entrantes y salientes de los últimos 3 a 6 meses',
       porque: `No se puede opinar de esta cuenta: falta ${falta.join(' y ')}. `
-            + `Son ${dinero(e.mrr)} sin medición.`,
+            + `Son ${dinero(e.mrr)} sin medición.`
+            /* Cuando faltan las DOS, se dice que la segunda no se le pide a
+               él: si no, el asesor sale de la llamada creyendo que el cliente
+               le va a resolver el consumo. */
+            + (falta.length > 1
+                ? ' El consumo no se le pide al cliente: ése sale de nuestro '
+                + 'Informe de Cortes, y va aparte.'
+                : ''),
       hallazgos,
       pedir: 'El export por cuenta y periodo, CON la columna `destination_data_1` '
            + '— sin ella se pierde a dónde entraron las llamadas, que es lo más útil.',

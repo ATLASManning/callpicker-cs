@@ -465,6 +465,27 @@ const GUIONES: Record<Situacion, Guion> = {
 export function guionDe(c: CuentaConVeredicto): Guion | null {
   const base = GUIONES[c.veredicto.situacion]
   if (!base) return null
+
+  /* ── UN GUION DE LLAMADA EXIGE QUE HAYA LLAMADA ────────────────────────
+   *
+   * El guion se elige por SITUACIÓN, y `no_la_vemos` tiene dos caminos desde
+   * el 12 oct 2026 (ver `alertas-veredicto.ts`): a la cuenta le faltan las
+   * llamadas —y entonces sí hay que llamarle al cliente a pedírselas— o le
+   * falta sólo el consumo, que sale de NUESTRO Informe de Cortes y no se le
+   * pide a nadie de fuera.
+   *
+   * En ese segundo caso el veredicto pone `dueno: 'direccion'` y su acción es
+   * interna. Dibujar debajo una «LLAMADA DE LEVANTAMIENTO DE DATOS» con
+   * preguntas para el cliente contradice a la línea de arriba en la misma
+   * tarjeta, y es justo lo que dirección señaló en GRUPO FRISA: la pantalla
+   * mandando pedir algo que ya tenemos.
+   *
+   * Así que aquí no hay guion. El veredicto ya dice qué hacer y dónde, y no
+   * dibujar nada es más honesto que dibujar un guion que no aplica.
+   */
+  if (c.veredicto.situacion === 'no_la_vemos' && c.veredicto.dueno === 'direccion') {
+    return null
+  }
   const m = marcasDe(c)
 
   const antes     = resolverLista(base.antes, m)
