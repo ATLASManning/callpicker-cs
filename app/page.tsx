@@ -1,19 +1,15 @@
 import { Suspense } from 'react'
 import {
-  DollarSign, AlertTriangle, TrendingUp,
-  CalendarDays, CheckCircle2, AlertCircle, Ticket, LifeBuoy,
-  ArrowUpRight, Target, RefreshCw,
+  CalendarDays, AlertCircle, Ticket, LifeBuoy, ArrowUpRight,
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import SaludCarteraChart, { type FilaSalud } from '@/components/charts/SaludCarteraChart'
 import BarraFiltros from '@/components/charts/BarraFiltros'
 import { DashFiltrosProvider } from '@/lib/dash-filtros'
-import TicketsAnalyticsChart, { type TicketsAnalyticsData } from '@/components/charts/TicketsAnalyticsChart'
+import * as TEMA from '@/lib/chart-theme'
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
-import DashAlertasCriticas from '@/components/DashAlertasCriticas'
 import DashAlertasGraficas, { GraficasCargando } from '@/components/DashAlertasGraficas'
-import DashMetricasSection from '@/components/DashMetricasSection'
 import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVersatil'
 import CandidatoA from '@/components/CandidatoA'
 import { type ResultadoCandidato } from '@/lib/candidato-a'
@@ -26,11 +22,10 @@ import { riesgoPorCuenta, CATALOGO } from '@/lib/alertas'
 import { veredictosDeCartera } from '@/lib/alertas-estado'
 import { proyectaTablero } from '@/lib/alertas-tablero'
 import { getKPIs, getCuentas, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
-import { formatMXN, getSemaforo, ASESOR_CONFIG, type Cuenta, type Asesor, type SemaforoSalud } from '@/lib/types'
-import { AUDITORIA_REFS } from '@/app/auditoria/registry'
+import { type Cuenta } from '@/lib/types'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import Link from 'next/link'
-import { TICKETS as TICKETS_NORM, COBERTURA } from '@/lib/tickets-norm'
+import { COBERTURA } from '@/lib/tickets-norm'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { hoyEnPalabras, selloMexico } from '@/lib/fecha-local'
@@ -38,44 +33,14 @@ import { hoyEnPalabras, selloMexico } from '@/lib/fecha-local'
 export const dynamic = 'force-dynamic'
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
-const PANEL  = '#0F2040'
-const PANEL2 = '#0D1B35'
-const BORDER  = 'rgba(255,255,255,0.10)'
-const BORDER2 = 'rgba(255,255,255,0.06)'
-const TX_HI  = '#FFFFFF'
-const TX_MID = 'rgba(255,255,255,0.70)'
-const TX_LOW = 'rgba(255,255,255,0.45)'
-const CYAN   = '#00B4FF'
+// Toda sale de `lib/chart-theme.ts` (importado como TEMA). La paleta local de
+// esta página —cian, verde, ámbar, rojo— se fue con las secciones que la
+// usaban, retiradas por dirección el 12 oct 2026.
 
-/* Los TX_* de arriba son para DENTRO de los paneles oscuros (PANEL/PANEL2).
-   Los títulos de sección cuelgan del `min-h-screen` sin fondo propio, o sea
-   sobre el #EFF6FF claro de la página: ahí TX_LOW es blanco al 45% y no se
-   lee. Este es su tono. */
-const TX_SECCION = '#475569'
 
 /* Las etiquetas de los números —las que distinguen un canal digital de un
    número sin asignar— se mudaron a `lib/candidatos-cartera.ts` con la
    derivación que las usaba. */
-
-const SEM_COLOR: Record<string, string> = {
-  verde: '#22C55E', azul: '#3B82F6', amarillo: '#EAB308', naranja: '#F97316', rojo: '#EF4444',
-}
-const SEM_LABEL: Record<string, string> = {
-  verde: 'Saludable', azul: 'Estable', amarillo: 'Observación', naranja: 'En Riesgo', rojo: 'Riesgo Alto',
-}
-
-// ── Config adopción y perfil ──────────────────────────────────────────────────
-// Adopción real: se calcula desde la tabla `adopcion_producto` (capturada por
-// asesores en cada Cuenta), NO desde los flags booleanos de `cuentas` — esos
-// flags nunca se llenan y siempre reportaban 0%.
-const ADOPT_FEATURES: { key: keyof Cuenta; label: string; producto: string }[] = [
-  { key: 'tiene_chat_activo',     label: 'Chat',       producto: 'Callpicker Chat' },
-  { key: 'tiene_ia_voz',          label: 'IA Voz',     producto: 'IA de Voz' },
-  { key: 'tiene_ia_chat',         label: 'IA Chat',    producto: 'IA de Chat' },
-  { key: 'tiene_integracion_api', label: 'API',        producto: 'Integración API' },
-  { key: 'tiene_pago_automatico', label: 'Pago Auto',  producto: 'Pago Automático' },
-  { key: 'dashboard_revisado',    label: 'Dashboard',  producto: 'Uso del Panel Administrador' },
-]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function avg(nums: number[]) {
@@ -133,626 +98,9 @@ function fmtSelloMx(sello: string) {
   return `${m[3]} ${mes} ${m[1].slice(2)}`
 }
 
-// ── Diagnóstico de perfiles ───────────────────────────────────────────────────
-const CRITICAL_FIELDS: (keyof Cuenta)[] = ['contacto_nombre', 'contacto_cargo', 'contacto_tel']
-const IMPORTANT_FIELDS: (keyof Cuenta)[] = ['giro', 'nps_score', 'observaciones_kam', 'total_empleados', 'num_oficinas', 'pagina_web']
-const CRITICAL_LABELS: Record<string, string> = {
-  contacto_nombre: 'Contacto principal', contacto_cargo: 'Cargo', contacto_tel: 'Teléfono',
-}
-const IMPORTANT_LABELS: Record<string, string> = {
-  giro: 'Giro', nps_score: 'NPS', observaciones_kam: 'Obs. KAM',
-  total_empleados: 'No. empleados', num_oficinas: 'No. sitios', pagina_web: 'Sitio web',
-}
-
-const isFieldFilled = (v: unknown) => v !== null && v !== undefined && v !== ''
-
-function profileSemaforoForCuenta(c: Cuenta): 'verde' | 'amarillo' | 'naranja' | 'rojo' {
-  const missing = CRITICAL_FIELDS.filter(f => !isFieldFilled(c[f])).length
-  if (missing === 0) return 'verde'
-  if (missing === 1) return 'amarillo'
-  if (missing === 2) return 'naranja'
-  return 'rojo'
-}
-
-// ── Gauge SVG ─────────────────────────────────────────────────────────────────
-// Semicircle: 270° (left/9 o'clock) → 90° (right/3 o'clock) via top, 180° sweep
-function Gauge({ score, color, gid, label }: { score: number; color: string; gid: string; label?: string }) {
-  const W = 180, H = 100
-  const cx = 90, cy = 92, r = 74
-
-  const toRad = (deg: number) => (deg - 90) * Math.PI / 180
-  const px = (deg: number) => cx + r * Math.cos(toRad(deg))
-  const py = (deg: number) => cy + r * Math.sin(toRad(deg))
-
-  const arc = (from: number, to: number) => {
-    const sweep = ((to - from) + 360) % 360
-    const large = sweep > 180 ? 1 : 0
-    return `M ${px(from).toFixed(1)},${py(from).toFixed(1)} A ${r} ${r} 0 ${large} 1 ${px(to).toFixed(1)},${py(to).toFixed(1)}`
-  }
-
-  const fillDeg = 270 + Math.max(score, 0.5) * 180 / 100
-  const sw = 12
-  const filtId = `g-${gid}`
-
-  // Needle
-  const nr = r * 0.82
-  const nDeg = fillDeg
-  const nx = cx + nr * Math.cos(toRad(nDeg))
-  const ny = cy + nr * Math.sin(toRad(nDeg))
-
-  // Threshold ticks at 20, 40, 60, 80
-  const tickDots = [20, 40, 60, 80].map(v => {
-    const d = 270 + v * 180 / 100
-    return { x: px(d), y: py(d), c: v < 40 ? '#EF4444' : v < 60 ? '#EAB308' : v < 80 ? '#3B82F6' : '#22C55E' }
-  })
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', display: 'block', overflow: 'visible' }}>
-      <defs>
-        <filter id={filtId} x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-
-      {/* Track */}
-      <path d={arc(270, 90)} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={sw} strokeLinecap="round" />
-
-      {/* Fill arc */}
-      <path d={arc(270, fillDeg)} fill="none" stroke={color} strokeWidth={sw} strokeLinecap="round"
-        filter={`url(#${filtId})`} />
-
-      {/* Threshold dots */}
-      {tickDots.map((t, i) => (
-        <circle key={i} cx={t.x.toFixed(1)} cy={t.y.toFixed(1)} r="3" fill={t.c} />
-      ))}
-
-      {/* Needle */}
-      <line x1={cx} y1={cy} x2={nx.toFixed(1)} y2={ny.toFixed(1)}
-        stroke="rgba(255,255,255,0.85)" strokeWidth="2" strokeLinecap="round" />
-      <circle cx={cx} cy={cy} r="6" fill={color} />
-      <circle cx={cx} cy={cy} r="2.5" fill="white" />
-
-      {/* Score text */}
-      <text x={cx} y={cy - 28} textAnchor="middle" dominantBaseline="middle"
-        fill="white" fontSize="28" fontWeight="900">
-        {label ?? Math.round(score)}
-      </text>
-    </svg>
-  )
-}
-
-// ── UI Components ─────────────────────────────────────────────────────────────
-function KpiCard({ label, value, sub, icon: Icon, accent }: {
-  label: string; value: string | number; sub: string
-  icon: React.ElementType; accent: string
-}) {
-  return (
-    <div style={{
-      background: `linear-gradient(145deg, ${PANEL} 0%, rgba(5,13,26,0.95) 100%)`,
-      border: `1px solid ${accent}22`, borderRadius: 16, padding: '20px',
-      position: 'relative', overflow: 'hidden',
-      boxShadow: `0 0 24px ${accent}0D, 0 4px 16px rgba(0,0,0,0.4)`,
-    }}>
-      <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderBottomLeftRadius: '100%', pointerEvents: 'none', background: `radial-gradient(circle at top right, ${accent}15 0%, transparent 70%)` }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <div style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${accent}18`, border: `1px solid ${accent}30` }}>
-          <Icon size={15} style={{ color: accent }} />
-        </div>
-        <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: TX_LOW }}>{label}</span>
-      </div>
-      <p style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em', color: TX_HI, marginBottom: 6 }}>{value}</p>
-      <p style={{ fontSize: 11, color: TX_MID, lineHeight: 1.4 }}>{sub}</p>
-    </div>
-  )
-}
-
-function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={className} style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
-      {children}
-    </div>
-  )
-}
-
-function PanelTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID, marginBottom: 16 }}>
-      {children}
-    </p>
-  )
-}
-
-function MiniBar({ pct, color }: { pct: number; color: string }) {
-  return (
-    <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden', flex: 1 }}>
-      <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, borderRadius: 99, background: color, transition: 'width 0.3s' }} />
-    </div>
-  )
-}
-
-// ── Asesor Stats type ─────────────────────────────────────────────────────────
-interface AsesorStats {
-  asesor: string
-  color: string
-  cuentas: Cuenta[]
-  totalAsignadas: number
-  totalFac: number
-  facEnRiesgo: number
-  avgHealth: number
-  semDist: { verde: number; azul: number; amarillo: number; naranja: number; rojo: number }
-  adoptRates: Record<string, number>
-  profilePct: number
-  subScores: { actividad: number; adopcion: number; pago: number; relacional: number }
-  topRisk: Cuenta | null
-  topSaludable: Cuenta | null
-  upsellCount: number
-  auditCount: number
-  auditPct: number
-  profileDist: { verde: number; amarillo: number; naranja: number; rojo: number }
-  criticosFaltantes: number
-  importantesFaltantes: number
-}
-
-function computeAsesorStats(
-  asesor: string, cuentas: Cuenta[], auditSet: Set<string>,
-  adopMap: Map<string, Map<string, AdopcionRow>>, totalAsignadas: number,
-  /* El conjunto en riesgo lo decide el motor de alertas, no el health score:
-     su mínimo en la cartera viva es 43 y el umbral era 40. Ver la portada. */
-  enRiesgo: Set<string>,
-): AsesorStats {
-  const color = ASESOR_CONFIG[asesor as Asesor]?.color ?? '#6366F1'
-  const semDist = { verde: 0, azul: 0, amarillo: 0, naranja: 0, rojo: 0 }
-  let totalFac = 0, facEnRiesgo = 0
-
-  cuentas.forEach(c => {
-    totalFac += c.facturacion ?? 0
-    const s = getSemaforo(c.health_score)
-    semDist[s]++
-    if (enRiesgo.has(String(c.id))) facEnRiesgo += c.facturacion ?? 0
-  })
-
-  const avgHealth = avg(cuentas.map(c => c.health_score ?? 50))
-
-  // Adopción real desde `adopcion_producto` (capturada por el asesor en cada
-  // Cuenta): por cuenta con registro y nivel aplicable, alto=100 medio=50
-  // bajo=0. Se excluye `no_aplica` (el producto no le corresponde a la cuenta,
-  // no cuenta como "no adoptado"). Sin registros → 0% (pendiente de captura).
-  const adoptRates: Record<string, number> = {}
-  for (const f of ADOPT_FEATURES) {
-    const scores: number[] = []
-    cuentas.forEach(c => {
-      const nivel = adopMap.get(c.id)?.get(f.producto)?.nivel
-      if (!nivel || nivel === 'no_aplica') return
-      scores.push(nivel === 'alto' ? 100 : nivel === 'medio' ? 50 : 0)
-    })
-    adoptRates[f.key as string] = scores.length > 0 ? avg(scores) : 0
-  }
-
-  const profilePct = cuentas.length > 0
-    ? (cuentas.reduce((sum, c) => {
-        let filled = 0
-        if (c.contacto_nombre)  filled++
-        if (c.giro)             filled++
-        if (c.activo_desde)     filled++
-        if (c.observaciones_kam) filled++
-        if (c.pagina_web)       filled++
-        return sum + filled / 5
-      }, 0) / cuentas.length) * 100 : 0
-
-  const subScores = {
-    actividad:  avg(cuentas.map(c => c.score_actividad  ?? 50)),
-    adopcion:   avg(cuentas.map(c => c.score_adopcion   ?? 50)),
-    pago:       avg(cuentas.map(c => c.score_pago       ?? 50)),
-    relacional: avg(cuentas.map(c => c.score_relacional ?? 50)),
-  }
-
-  const sorted = [...cuentas].sort((a, b) => a.health_score - b.health_score)
-  const upsellCount = cuentas.filter(c => c.upsell_producto || c.crossell_producto).length
-  const auditCount = cuentas.filter(c => c.consecutivo && auditSet.has(c.consecutivo.toUpperCase())).length
-  const auditPct   = cuentas.length > 0 ? (auditCount / cuentas.length) * 100 : 0
-
-  const profileDist = { verde: 0, amarillo: 0, naranja: 0, rojo: 0 }
-  let criticosFaltantes = 0, importantesFaltantes = 0
-  cuentas.forEach(c => {
-    profileDist[profileSemaforoForCuenta(c)]++
-    criticosFaltantes    += CRITICAL_FIELDS.filter(f => !isFieldFilled(c[f])).length
-    importantesFaltantes += IMPORTANT_FIELDS.filter(f => !isFieldFilled(c[f])).length
-  })
-
-  return {
-    asesor, color, cuentas, totalAsignadas, totalFac, facEnRiesgo, avgHealth, semDist,
-    adoptRates, profilePct, subScores,
-    topRisk: sorted[0] ?? null,
-    topSaludable: sorted[sorted.length - 1] ?? null,
-    upsellCount, auditCount, auditPct,
-    profileDist, criticosFaltantes, importantesFaltantes,
-  }
-}
-
-// ── Gauge Card ────────────────────────────────────────────────────────────────
-function GaugeCard({ st }: { st: AsesorStats }) {
-  const semOrder = ['verde', 'azul', 'amarillo', 'naranja', 'rojo'] as const
-  const semLabel = getSemaforo(st.avgHealth)
-  const semColor = SEM_COLOR[semLabel]
-
-  return (
-    <div style={{ background: PANEL, border: `1px solid ${st.color}22`, borderRadius: 16, padding: '20px 16px 16px', display: 'flex', flexDirection: 'column', gap: 0 }}>
-      {/* Asesor header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 10, height: 10, borderRadius: '50%', background: st.color, boxShadow: `0 0 8px ${st.color}` }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: TX_HI }}>{st.asesor}</span>
-        </div>
-        <span style={{ fontSize: 12, fontWeight: 600, padding: '2px 8px', borderRadius: 99, background: `${semColor}20`, color: semColor, border: `1px solid ${semColor}40` }}>
-          {SEM_LABEL[semLabel]}
-        </span>
-      </div>
-
-      {/* Gauge */}
-      <Gauge score={st.avgHealth} color={st.color} gid={st.asesor.replace(/[^a-z]/gi, '')} />
-
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-        <div style={{ flex: 1, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 10px' }}>
-          <p style={{ fontSize: 16, fontWeight: 800, color: TX_HI, lineHeight: 1 }}>{st.totalAsignadas}</p>
-          <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>cuentas</p>
-          {st.totalAsignadas > st.cuentas.length && (
-            <p style={{ fontSize: 9, color: TX_LOW, marginTop: 2, opacity: 0.75 }}>{st.cuentas.length} activas/riesgo</p>
-          )}
-        </div>
-        <div style={{ flex: 2, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 10px' }}>
-          <p style={{ fontSize: 15, fontWeight: 800, color: TX_HI, lineHeight: 1 }}>{formatMXN(st.totalFac)}</p>
-          <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>MRR total</p>
-        </div>
-        <div style={{ flex: 1, background: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 10px' }}>
-          <p style={{ fontSize: 16, fontWeight: 800, color: '#A855F7', lineHeight: 1 }}>{st.upsellCount}</p>
-          <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>oportunidades</p>
-        </div>
-      </div>
-
-      {/* Semáforo pills */}
-      <div style={{ display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' as const }}>
-        {semOrder.map(s => {
-          const n = st.semDist[s]
-          if (!n) return null
-          return (
-            <span key={s} style={{ fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: `${SEM_COLOR[s]}20`, color: SEM_COLOR[s], border: `1px solid ${SEM_COLOR[s]}30` }}>
-              {n} {SEM_LABEL[s]}
-            </span>
-          )
-        })}
-      </div>
-
-      {/* Cobertura auditoría */}
-      <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${BORDER2}` }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: TX_LOW }}>
-            Cobertura análisis
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: st.auditPct >= 30 ? '#22C55E' : st.auditPct >= 15 ? '#EAB308' : '#EF4444' }}>
-              {st.auditCount}/{st.cuentas.length}
-            </span>
-            <span style={{ fontSize: 11, color: TX_LOW }}>auditadas</span>
-          </div>
-        </div>
-        <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
-          <div style={{
-            height: '100%', borderRadius: 99,
-            width: `${Math.min(st.auditPct, 100)}%`,
-            background: st.auditPct >= 30 ? '#22C55E' : st.auditPct >= 15 ? '#EAB308' : '#EF4444',
-          }} />
-        </div>
-        {st.cuentas.length - st.auditCount > 0 && (
-          <p style={{ fontSize: 11, color: '#F97316', marginTop: 3 }}>
-            {st.cuentas.length - st.auditCount} sin analizar · punto ciego de churn
-          </p>
-        )}
-      </div>
-
-      {/* Facturación en riesgo */}
-      {st.facEnRiesgo > 0 && (
-        <div style={{ marginTop: 6, fontSize: 12, color: '#F97316', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <AlertTriangle size={12} />
-          <span>{formatMXN(st.facEnRiesgo)} en riesgo</span>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Asesor Detail Card ────────────────────────────────────────────────────────
-function AsesorDetailCard({ st }: { st: AsesorStats }) {
-  const subEntries = [
-    { key: 'actividad',  label: 'Actividad',  val: st.subScores.actividad },
-    { key: 'adopcion',   label: 'Adopción',   val: st.subScores.adopcion },
-    { key: 'pago',       label: 'Pago',       val: st.subScores.pago },
-    { key: 'relacional', label: 'Relacional', val: st.subScores.relacional },
-  ]
-  const bestSub  = subEntries.reduce((a, b) => a.val > b.val ? a : b)
-  const worstSub = subEntries.reduce((a, b) => a.val < b.val ? a : b)
-
-  return (
-    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: st.color }} />
-        <span style={{ fontSize: 14, fontWeight: 700, color: TX_HI }}>{st.asesor}</span>
-        <span style={{ fontSize: 12, color: TX_LOW, marginLeft: 'auto' }}>{st.cuentas.length} cuentas</span>
-      </div>
-
-      {/* Sub-scores */}
-      <div>
-        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: TX_LOW, marginBottom: 8 }}>Sub-scores promedio</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {subEntries.map(e => {
-            const c = e.val >= 80 ? '#22C55E' : e.val >= 60 ? '#3B82F6' : e.val >= 40 ? '#EAB308' : '#EF4444'
-            return (
-              <div key={e.key}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                  <span style={{ fontSize: 12, color: TX_MID }}>{e.label}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: c }}>{Math.round(e.val)}</span>
-                </div>
-                <MiniBar pct={e.val} color={c} />
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Adopción de features */}
-      <div>
-        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: TX_LOW, marginBottom: 8 }}>Adopción de producto</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {ADOPT_FEATURES.map(f => {
-            const pct = st.adoptRates[f.key as string] ?? 0
-            const c = pct >= 60 ? '#22C55E' : pct >= 30 ? '#EAB308' : '#EF4444'
-            return (
-              <div key={f.key as string} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12, color: TX_MID, width: 72, flexShrink: 0 }}>{f.label}</span>
-                <MiniBar pct={pct} color={c} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: c, width: 34, textAlign: 'right' as const }}>{Math.round(pct)}%</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Completitud de info */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.1em', color: TX_LOW }}>Completitud de fichas</p>
-          <span style={{ fontSize: 13, fontWeight: 800, color: st.profilePct >= 70 ? '#22C55E' : st.profilePct >= 40 ? '#EAB308' : '#EF4444' }}>
-            {Math.round(st.profilePct)}%
-          </span>
-        </div>
-        <MiniBar pct={st.profilePct} color={st.profilePct >= 70 ? '#22C55E' : st.profilePct >= 40 ? '#EAB308' : '#EF4444'} />
-        <p style={{ fontSize: 11, color: TX_LOW, marginTop: 4 }}>Contacto · Giro · Antigüedad · Obs. KAM · Web</p>
-      </div>
-
-      {/* Áreas a replicar / de seguimiento */}
-      <div style={{ display: 'flex', gap: 6 }}>
-        <div style={{ flex: 1, background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 10, padding: '8px 10px' }}>
-          <p style={{ fontSize: 11, color: '#22C55E', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 3 }}>Replicar</p>
-          <p style={{ fontSize: 13, fontWeight: 700, color: TX_HI }}>{bestSub.label}</p>
-          <p style={{ fontSize: 12, color: '#22C55E' }}>{Math.round(bestSub.val)}</p>
-        </div>
-        <div style={{ flex: 1, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '8px 10px' }}>
-          <p style={{ fontSize: 11, color: '#F97316', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 3 }}>Seguimiento</p>
-          <p style={{ fontSize: 13, fontWeight: 700, color: TX_HI }}>{worstSub.label}</p>
-          <p style={{ fontSize: 12, color: '#F97316' }}>{Math.round(worstSub.val)}</p>
-        </div>
-      </div>
-
-      {/* Top risk / top saludable */}
-      {(st.topRisk || st.topSaludable) && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          {st.topRisk && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, color: '#EF4444', fontWeight: 700, width: 68, flexShrink: 0 }}>Mayor riesgo</span>
-              <Link href={`/cuentas/${st.topRisk.id}`} style={{ fontSize: 12, color: TX_MID, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }} className="hover:underline">
-                {st.topRisk.empresa}
-              </Link>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#EF4444', flexShrink: 0 }}>{st.topRisk.health_score}</span>
-            </div>
-          )}
-          {st.topSaludable && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, color: '#22C55E', fontWeight: 700, width: 68, flexShrink: 0 }}>Más saludable</span>
-              <Link href={`/cuentas/${st.topSaludable.id}`} style={{ fontSize: 12, color: TX_MID, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }} className="hover:underline">
-                {st.topSaludable.empresa}
-              </Link>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#22C55E', flexShrink: 0 }}>{st.topSaludable.health_score}</span>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── Adopción Matrix ───────────────────────────────────────────────────────────
-function AdopcionMatrix({ asesores }: { asesores: AsesorStats[] }) {
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th style={{ padding: '10px 14px', textAlign: 'left' as const, fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase' as const, letterSpacing: '0.08em', borderBottom: `1px solid ${BORDER2}` }}>Feature</th>
-            {asesores.map(a => (
-              <th key={a.asesor} style={{ padding: '10px 14px', textAlign: 'center' as const, fontSize: 13, fontWeight: 700, color: a.color, borderBottom: `1px solid ${BORDER2}` }}>
-                {a.asesor}
-              </th>
-            ))}
-            <th style={{ padding: '10px 14px', textAlign: 'center' as const, fontSize: 12, fontWeight: 700, color: TX_LOW, textTransform: 'uppercase' as const, letterSpacing: '0.06em', borderBottom: `1px solid ${BORDER2}` }}>Global</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ADOPT_FEATURES.map((f, fi) => {
-            const globalPct = asesores.length > 0
-              ? avg(asesores.map(a => a.adoptRates[f.key as string] ?? 0)) : 0
-            return (
-              <tr key={f.key as string} style={{ background: fi % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent' }}>
-                <td style={{ padding: '10px 14px', fontSize: 13, color: TX_MID }}>{f.label}</td>
-                {asesores.map(a => {
-                  const pct = a.adoptRates[f.key as string] ?? 0
-                  const c = pct >= 60 ? '#22C55E' : pct >= 30 ? '#EAB308' : '#EF4444'
-                  return (
-                    <td key={a.asesor} style={{ padding: '10px 14px', textAlign: 'center' as const }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: c }}>{Math.round(pct)}%</span>
-                        <div style={{ width: 44, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: c, borderRadius: 99 }} />
-                        </div>
-                      </div>
-                    </td>
-                  )
-                })}
-                <td style={{ padding: '10px 14px', textAlign: 'center' as const }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: TX_MID }}>{Math.round(globalPct)}%</span>
-                </td>
-              </tr>
-            )
-          })}
-          {/* Profile completeness row */}
-          <tr style={{ borderTop: `1px solid ${BORDER2}`, background: 'rgba(255,255,255,0.03)' }}>
-            <td style={{ padding: '10px 14px', fontSize: 13, color: TX_MID, fontStyle: 'italic' }}>Completitud fichas</td>
-            {asesores.map(a => {
-              const c = a.profilePct >= 70 ? '#22C55E' : a.profilePct >= 40 ? '#EAB308' : '#EF4444'
-              return (
-                <td key={a.asesor} style={{ padding: '10px 14px', textAlign: 'center' as const }}>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: c }}>{Math.round(a.profilePct)}%</span>
-                </td>
-              )
-            })}
-            <td style={{ padding: '8px 12px', textAlign: 'center' as const }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: TX_MID }}>{Math.round(avg(asesores.map(a => a.profilePct)))}%</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
-// ── Diagnóstico de Perfiles ───────────────────────────────────────────────────
-function PerfilDistPanel({ asesores }: { asesores: AsesorStats[] }) {
-  const totalCriticos    = asesores.reduce((s, a) => s + a.criticosFaltantes, 0)
-  const totalImportantes = asesores.reduce((s, a) => s + a.importantesFaltantes, 0)
-  const totalCuentas     = asesores.reduce((s, a) => s + a.cuentas.length, 0)
-  const totalVerdes      = asesores.reduce((s, a) => s + a.profileDist.verde, 0)
-  const totalSinContacto = asesores.reduce((s, a) => s + a.profileDist.rojo, 0)
-
-  return (
-    <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 20 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_MID }}>
-          Diagnóstico de Perfiles · {totalCuentas} cuentas
-        </p>
-        <div style={{ display: 'flex', gap: 8, fontSize: 11, color: TX_LOW }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} />Sin contacto</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F97316', display: 'inline-block' }} />2 campos</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EAB308', display: 'inline-block' }} />1 campo</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />Completo</span>
-        </div>
-      </div>
-
-      {/* KPI resumen */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[
-          { val: totalCriticos,    label: 'datos críticos faltantes',    color: '#EF4444' },
-          { val: totalImportantes, label: 'datos importantes faltantes', color: '#EAB308' },
-          { val: totalSinContacto, label: 'cuentas sin contacto',        color: '#F97316' },
-          { val: totalVerdes,      label: `de ${totalCuentas} perfiles completos`, color: '#22C55E' },
-        ].map((item, i) => (
-          <div key={i} style={{ flex: 1, background: `${item.color}10`, border: `1px solid ${item.color}25`, borderRadius: 10, padding: '10px 12px', textAlign: 'center' as const }}>
-            <p style={{ fontSize: 22, fontWeight: 900, color: item.color, lineHeight: 1 }}>{item.val}</p>
-            <p style={{ fontSize: 11, color: TX_LOW, marginTop: 4, lineHeight: 1.3 }}>{item.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Stacked bars por asesor */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {asesores.map(a => {
-          const total = a.cuentas.length
-          if (!total) return null
-          const d = a.profileDist
-          // % de campos críticos cubiertos (no cuentas, sino campos totales)
-          const maxCriticos = total * CRITICAL_FIELDS.length
-          const filledCriticos = maxCriticos - a.criticosFaltantes
-          const pctCriticos = Math.round((filledCriticos / maxCriticos) * 100)
-          const colorPct = pctCriticos >= 80 ? '#22C55E' : pctCriticos >= 50 ? '#EAB308' : '#EF4444'
-
-          return (
-            <div key={a.asesor}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: a.color }} />
-                  <span style={{ fontSize: 12, fontWeight: 700, color: TX_HI }}>{a.asesor}</span>
-                  <span style={{ fontSize: 12, color: TX_LOW }}>{total} cuentas</span>
-                </div>
-                <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
-                  <span style={{ color: '#EF4444' }}>{a.criticosFaltantes} críticos</span>
-                  <span style={{ color: '#EAB308' }}>{a.importantesFaltantes} importantes</span>
-                  <span style={{ color: colorPct, fontWeight: 700 }}>{pctCriticos}% críticos cubiertos</span>
-                </div>
-              </div>
-              {/* Stacked bar */}
-              <div style={{ display: 'flex', height: 16, borderRadius: 8, overflow: 'hidden', gap: 1 }}>
-                {d.rojo     > 0 && <div style={{ flex: d.rojo,     background: '#EF4444' }} title={`${d.rojo} sin contacto`} />}
-                {d.naranja  > 0 && <div style={{ flex: d.naranja,  background: '#F97316' }} title={`${d.naranja} con 2 críticos faltantes`} />}
-                {d.amarillo > 0 && <div style={{ flex: d.amarillo, background: '#EAB308' }} title={`${d.amarillo} con 1 crítico faltante`} />}
-                {d.verde    > 0 && <div style={{ flex: d.verde,    background: '#22C55E' }} title={`${d.verde} críticos completos`} />}
-              </div>
-              {/* Labels */}
-              <div style={{ display: 'flex', gap: 12, marginTop: 4, fontSize: 11, color: TX_LOW }}>
-                {d.rojo     > 0 && <span style={{ fontSize: 11, color: '#EF4444' }}>{d.rojo} sin contacto</span>}
-                {d.naranja  > 0 && <span style={{ fontSize: 11, color: '#F97316' }}>{d.naranja} críticos ×2</span>}
-                {d.amarillo > 0 && <span style={{ fontSize: 11, color: '#EAB308' }}>{d.amarillo} crítico ×1</span>}
-                {d.verde    > 0 && <span style={{ fontSize: 11, color: '#22C55E' }}>{d.verde} ok</span>}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Campos más faltantes */}
-      <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${BORDER2}` }}>
-        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.10em', color: TX_LOW, marginBottom: 8 }}>
-          Campos más faltantes
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6 }}>
-          {CRITICAL_FIELDS.map(f => {
-            const n = asesores.reduce((s, a) => s + a.cuentas.filter(c => !isFieldFilled(c[f])).length, 0)
-            if (!n) return null
-            return (
-              <span key={String(f)} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.25)', fontWeight: 600 }}>
-                {CRITICAL_LABELS[String(f)]} ({n})
-              </span>
-            )
-          })}
-          {IMPORTANT_FIELDS.map(f => {
-            const n = asesores.reduce((s, a) => s + a.cuentas.filter(c => !isFieldFilled(c[f])).length, 0)
-            if (!n) return null
-            return (
-              <span key={String(f)} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 99, background: 'rgba(234,179,8,0.10)', color: '#EAB308', border: '1px solid rgba(234,179,8,0.25)', fontWeight: 600 }}>
-                {IMPORTANT_LABELS[String(f)]} ({n})
-              </span>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── Tickets globales ──────────────────────────────────────────────────────────
 // El tipo local desapareció: ahora la forma la define lib/tickets-norm.ts, que
 // es también donde se arreglan los campos crudos del export.
-const _allTickets = TICKETS_NORM
 const globalTickets = {
   total:  COBERTURA.total,
   fallas: COBERTURA.fallasBandera,
@@ -770,114 +118,6 @@ const globalTickets = {
    */
   ultima: COBERTURA.hasta,
 }
-
-// ── Tickets analytics (server-side, static) ───────────────────────────────────
-const ticketsAnalytics: TicketsAnalyticsData = (() => {
-  // Lo interno se marca por CID (0 y 1), no por el nombre: filtrar por la cadena
-  // 'Callpicker' dejaba entrar 'Digitum' (63 tickets, mismo CID 1), 'Callpicker
-  // pruebas' y 'Sin cuenta' con mayúscula (31), así que el segundo emisor de
-  // todo el archivo seguía compitiendo con los clientes reales.
-  const deClientes = _allTickets.filter(t => !t.interno)
-
-  // Top clientes — agrupado por CID, para que un cliente no salga partido en
-  // dos renglones por una variante de captura ('GRUPO FRISA' / 'Grupo Frisa').
-  const cliMap = new Map<string, { empresa: string; total: number; fallas: number }>()
-  for (const t of deClientes) {
-    const k = t.cid || t.empresaCanon
-    const e = cliMap.get(k) ?? { empresa: t.empresaCanon || t.empresa, total: 0, fallas: 0 }
-    e.total++
-    if (t.esFallaBandera) e.fallas++
-    cliMap.set(k, e)
-  }
-  /* El top-10 CIERRA. Antes era un `slice(0, 10)` a secas: las diez barras
-     sumaban 635 de los 5,786 tickets de clientes —el 11%— y los 5,151 restantes,
-     repartidos entre 1,537 CIDs, no se mencionaban. Eso deja creer que esos diez
-     clientes SON el problema de soporte, cuando el soporte está repartido entre
-     mil quinientos.
-     El cubo se construye como el resto exacto, así que el cierre no depende de
-     que nadie se equivoque sumando: lo visible más lo agrupado es, por
-     construcción, el universo entero. */
-  const porVolumen = Array.from(cliMap.values()).sort((a, b) => b.total - a.total)
-  const topClientes = porVolumen.slice(0, 10)
-  const resto = porVolumen.slice(10)
-
-  /* Por categoría — canónica: 'Sin categoria' y 'Sin categoría' ya no son dos.
-     Y sobre `deClientes`, no sobre todo: el encabezado del panel contaba 6,034
-     —con los 248 tickets internos de los CID 0 y 1 dentro— mientras las barras
-     de Top Clientes dibujaban 5,786. Sumar la mitad de una pestaña con la mitad
-     de otra no daba el total de ninguna. Un panel, un universo. */
-  const catMap: Record<string, { total: number; fallas: number }> = {}
-  for (const t of deClientes) {
-    const cat = t.categoriaNorm || 'Sin categorizar'
-    if (!catMap[cat]) catMap[cat] = { total: 0, fallas: 0 }
-    catMap[cat].total++
-    if (t.esFallaBandera) catMap[cat].fallas++
-  }
-  const porCategoria = Object.entries(catMap)
-    .map(([categoria, v]) => ({ categoria, ...v }))
-    .sort((a, b) => b.total - a.total)
-
-  // Reincidencia (empresa × categoría)
-  const reinMap: Record<string, { empresa: string; categoria: string; count: number; fallas: number }> = {}
-  for (const t of deClientes) {
-    const cat = t.categoriaNorm || 'Sin categorizar'
-    const emp = t.empresaCanon || t.empresa
-    const k = `${t.cid}||${cat}`
-    if (!reinMap[k]) reinMap[k] = { empresa: emp, categoria: cat, count: 0, fallas: 0 }
-    reinMap[k].count++
-    if (t.esFallaBandera) reinMap[k].fallas++
-  }
-  const reincidentesTodos = Object.values(reinMap)
-    .filter(x => x.count >= 3)
-    .sort((a, b) => b.count - a.count)
-  const reincidentes = reincidentesTodos.slice(0, 12)
-
-  // Tendencia mensual — por mes de APERTURA (cuándo entró el ticket). Antes iba
-  // por `mes`, que es el mes de CIERRE: 851 tickets se graficaban en un mes
-  // distinto de aquel en que entraron.
-  const mesMap: Record<string, { total: number; fallas: number }> = {}
-  for (const t of deClientes) {
-    const m = t.mesApertura
-    if (!m) continue
-    if (!mesMap[m]) mesMap[m] = { total: 0, fallas: 0 }
-    mesMap[m].total++
-    if (t.esFallaBandera) mesMap[m].fallas++
-  }
-  const tendencia = Object.entries(mesMap)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([mes, v]) => ({
-      mes,
-      label: `${MES_CORTO[Number(mes.slice(5, 7)) - 1] ?? mes} ${mes.slice(2, 4)}`,
-      total: v.total,
-      fallas: v.fallas,
-      otros: v.total - v.fallas,
-    }))
-
-  return {
-    topClientes,
-    porCategoria,
-    reincidentes,
-    tendencia,
-    /* El universo del panel es el de sus barras: tickets DE CLIENTES. Antes el
-       encabezado decía 6,034 (todo el archivo) y las barras dibujaban 5,786, y
-       las fallas venían de `COBERTURA.fallasBandera`, que también cuenta los
-       internos — o sea un porcentaje con numerador de un conjunto y denominador
-       de otro. Los internos no desaparecen: se declaran aparte. */
-    totalTickets:       deClientes.length,
-    totalFallas:        deClientes.filter(t => t.esFallaBandera).length,
-    totalInternos:      _allTickets.length - deClientes.length,
-    reincidentesTotal:  reincidentesTodos.length,
-    /* EL CIERRE SE DICE, NO SE DIBUJA. Meter el resto como una barra mas
-       cerraba la cuenta y arruinaba la grafica: el cubo vale 5,151 contra un
-       maximo de 186, asi que Recharts escalaba el eje a 5,151 y las diez
-       barras que la pestana existe para comparar quedaban en el 3% y el 0.7%
-       del ancho — indistinguibles entre si.
-       Un top-N sigue sin poder tirar el resto en silencio, asi que el resto
-       va en palabras debajo de la grafica, con su monto y sus cuentas. */
-    restoTickets:       resto.reduce((s, x) => s + x.total, 0),
-    restoCuentas:       resto.length,
-  }
-})()
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default async function DashboardPage() {
@@ -957,12 +197,6 @@ export default async function DashboardPage() {
    * Ahora lo decide el motor de alertas, que ya mide esas dos cosas. Una sola
    * definición para el KPI, para el corte por ejecutivo y para el semáforo. */
   const riesgo = riesgoPorCuenta(alertas)
-  const idsRiesgo = new Set(riesgo.keys())
-  const mrrRiesgoDe = (ids: Iterable<string>) => {
-    let s = 0
-    for (const id of ids) s += riesgo.get(id)?.mrr ?? 0
-    return s
-  }
 
   // Último nivel registrado por cuenta+producto (puede haber historial)
   const adopMap = new Map<string, Map<string, AdopcionRow>>()
@@ -994,26 +228,6 @@ export default async function DashboardPage() {
     }
   })
 
-  // ── Cobertura de auditoría ────────────────────────────────────────────────
-  const auditSet = new Set(
-    AUDITORIA_REFS.flatMap(r => r.consecutivos.map(c => c.toUpperCase()))
-  )
-  const cuentasAuditadas  = cuentas.filter(c => c.consecutivo && auditSet.has(c.consecutivo.toUpperCase()))
-  const cuentasSinAudit   = cuentas.length - cuentasAuditadas.length
-  const auditCovPct       = Math.round((cuentasAuditadas.length / Math.max(cuentas.length, 1)) * 100)
-  // MRR de cuentas sin auditar — son el "punto ciego"
-  const facSinAudit       = cuentas
-    .filter(c => !(c.consecutivo && auditSet.has(c.consecutivo.toUpperCase())))
-    .reduce((s, c) => s + (c.facturacion ?? 0), 0)
-
-  // Stats por asesor
-  const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
-  const asesorStats: AsesorStats[] = ASESORES.map(a => {
-    const ac = cuentas.filter(c => c.asesor === a)
-    const totalAsignadas = allCuentas.filter(c => c.asesor === a).length
-    return computeAsesorStats(a, ac, auditSet, adopMap, totalAsignadas, idsRiesgo)
-  }).filter(s => s.cuentas.length > 0)
-
   // Top 10 riesgo con tickets
   const topRiesgo = [...cuentas]
     .sort((a, b) => a.health_score - b.health_score)
@@ -1028,38 +242,6 @@ export default async function DashboardPage() {
   const topRiesgoTix    = topRiesgo.reduce((s, c) => s + (c.zoho_tickets?.total  ?? 0), 0)
   const topRiesgoFallas = topRiesgo.reduce((s, c) => s + (c.zoho_tickets?.fallas ?? 0), 0)
 
-  // Datos para DashMetricasSection
-  const activas       = cuentas.filter(c => c.estado === 'activo')
-  /* Mismo criterio que el resto del tablero: lo decide el motor, no el
-     health score, que nunca baja de 43. */
-  const churnRiesgo   = activas.filter(c => idsRiesgo.has(String(c.id)))
-  const cuentasObs    = cuentas.filter(c => getSemaforo(c.health_score) === 'amarillo')
-  const facObs        = cuentasObs.reduce((s, c) => s + (c.facturacion ?? 0), 0)
-  const conUpsell     = activas.filter(c => c.upsell_producto || c.crossell_producto).length
-
-  const top10Fac = [...activas].sort((a, b) => b.facturacion - a.facturacion).slice(0, 10)
-    .map(c => ({ empresa: c.empresa, facturacion: c.facturacion, consecutivo: c.consecutivo ?? '' }))
-  const churnRows = churnRiesgo.sort((a, b) => a.health_score - b.health_score)
-    .map(c => ({ id: c.id, consecutivo: c.consecutivo ?? '', empresa: c.empresa, asesor: c.asesor, facturacion: c.facturacion, health_score: c.health_score, dias_sin_actividad: c.dias_sin_actividad, dias_sin_contacto: c.dias_sin_contacto ?? null }))
-
-  // ── Alertas críticas: datos faltantes + cuentas sin contacto ──────────────
-  // Una cuenta entra a la alerta si le falta al menos un dato relevante para
-  // operarla, o si lleva más de 30 días sin un seguimiento registrado.
-  const alertasCriticas = cuentas.map(c => {
-    const faltantes = faltantesDeFicha(c)
-    const diasSinContacto = diasSinContactoDe(c)
-
-    return {
-      id: String(c.id),
-      consecutivo: c.consecutivo ?? '',
-      empresa: c.empresa,
-      asesor: c.asesor ?? null,
-      facturacion: c.facturacion ?? 0,
-      diasSinContacto,
-      faltantes,
-    }
-  }).filter(c => c.faltantes.length > 0 || c.diasSinContacto === null || c.diasSinContacto > 30)
-
   // ── Top Cuentas — ranking versátil (13 dimensiones seleccionables) ────────
   /* ── Candidato a: — a qué es candidata cada cuenta ────────────────────────
    * La derivación se mudó a `lib/candidatos-cartera.ts` el 8 oct 2026. Vivía
@@ -1071,10 +253,6 @@ export default async function DashboardPage() {
   const candidatos: ResultadoCandidato[] = cuentas
     .map(c => candidatosMap.get(String(c.id)))
     .filter((x): x is ResultadoCandidato => x !== undefined)
-
-  /* Las que tienen al menos una candidatura DERIVADA. Ver el KPI más abajo:
-     `conUpsell` contaba captura manual y vale 1 de 192. */
-  const conCandidatura = candidatos.filter(c => c.candidaturas.length > 0).length
 
   const rankRows: CuentaRank[] = cuentas.map(c => {
     const tk = ticketStatsCuenta(c.cid ?? null, c.empresa)
@@ -1102,8 +280,6 @@ export default async function DashboardPage() {
       faltantesCount: faltantesDeFicha(c).length,
     }
   })
-
-  const nowISO = new Date().toISOString()
 
   // ── RENDER ──────────────────────────────────────────────────────────────────
   return (
@@ -1184,219 +360,87 @@ export default async function DashboardPage() {
       {/* ══ Candidato a: — blindaje y crecimiento con evidencia ══════════ */}
       <CandidatoA data={candidatos} />
 
-      {/* ══ §2 Alertas Críticas · datos faltantes y sin contacto ══════════ */}
-      <DashAlertasCriticas cuentas={alertasCriticas} totalCuentas={cuentas.length} />
-
-      {/* ══ §3 Diagnóstico de Perfiles ════════════════════════════════════ */}
-      <div className="px-6 pb-5">
-        <PerfilDistPanel asesores={asesorStats} />
-      </div>
-
-      {/* ══ §4 KPIs principales ════════════════════════════════════════════ */}
-      {/* Seis tarjetas desde que «En Riesgo» tiene número propio: la rejilla
-          pasa de cinco a seis columnas para que no quede una huérfana sola en
-          una segunda fila. */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 px-6 pb-5">
-        {/* KPI Auditoría — TOP para anticipar churn */}
-        <div style={{
-          background: `linear-gradient(145deg, ${PANEL} 0%, rgba(5,13,26,0.95) 100%)`,
-          border: `1px solid ${auditCovPct >= 30 ? '#22C55E' : auditCovPct >= 15 ? '#EAB30888' : '#EF444444'}`,
-          borderRadius: 16, padding: '20px',
-          position: 'relative', overflow: 'hidden',
-          boxShadow: `0 0 28px ${auditCovPct >= 30 ? '#22C55E' : '#EF4444'}0F, 0 4px 16px rgba(0,0,0,0.4)`,
-        }}>
-          <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, borderBottomLeftRadius: '100%', pointerEvents: 'none', background: `radial-gradient(circle at top right, ${auditCovPct >= 30 ? '#22C55E' : '#EF4444'}15 0%, transparent 70%)` }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${auditCovPct >= 30 ? '#22C55E' : '#EF4444'}18`, border: `1px solid ${auditCovPct >= 30 ? '#22C55E' : '#EF4444'}30` }}>
-              <Target size={15} style={{ color: auditCovPct >= 30 ? '#22C55E' : '#EF4444' }} />
-            </div>
-            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.12em', color: TX_LOW }}>Cobertura Auditoría</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
-            <p style={{ fontSize: 26, fontWeight: 900, lineHeight: 1, letterSpacing: '-0.02em', color: TX_HI }}>
-              {cuentasAuditadas.length}
-              <span style={{ fontSize: 14, fontWeight: 400, color: TX_LOW }}> / {cuentas.length}</span>
-            </p>
-            <span style={{ fontSize: 13, fontWeight: 800, color: auditCovPct >= 30 ? '#22C55E' : '#EF4444' }}>{auditCovPct}%</span>
-          </div>
-          {/* Progress bar */}
-          <div style={{ height: 5, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden', marginBottom: 6 }}>
-            <div style={{ height: '100%', borderRadius: 99, width: `${auditCovPct}%`, background: auditCovPct >= 30 ? '#22C55E' : auditCovPct >= 15 ? '#EAB308' : '#EF4444', boxShadow: `0 0 6px ${auditCovPct >= 30 ? '#22C55E' : '#EF4444'}60` }} />
-          </div>
-          <p style={{ fontSize: 12, color: TX_MID, lineHeight: 1.5 }}>
-            {cuentasSinAudit > 0
-              ? <><span style={{ color: '#F97316', fontWeight: 700 }}>{cuentasSinAudit} sin analizar</span> · {formatMXN(facSinAudit)} punto ciego</>
-              : <span style={{ color: '#22C55E' }}>Cartera totalmente cubierta</span>
-            }
-          </p>
-          <Link href="/auditoria" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 8, fontSize: 12, color: CYAN, fontWeight: 600, textDecoration: 'none' }} className="hover:underline">
-            Ver auditorías <ArrowUpRight size={12} />
-          </Link>
-        </div>
-
-        {/* EL ALCANCE VA DONDE SE APLICA, NO EN EL ENCABEZADO.
-            Estas cuatro tarjetas sí se filtran por asesora. La página NO: el
-            semáforo por asesor trae a las tres a propósito y el panel de tickets
-            cubre toda la empresa. Rotular la página entera «cartera de Fátima»
-            sería tan falso como no rotular nada, solo que al revés. */}
-        {/* `TX_SECCION` y no `TX_LOW`: este rótulo cuelga de la PÁGINA, no de un
-            panel oscuro. `TX_LOW` es blanco al 45% y sobre el `#EFF6FF` medía
-            1.05:1 — el rótulo que dice de quién son las cifras no se veía. Es
-            el caso exacto por el que se creó `TX_SECCION`, y los títulos de §5
-            y §6 ya la usan. */}
-        <div className="col-span-full" style={{ fontSize: 11, color: TX_SECCION, marginBottom: -4 }}>
-          {isAsesor ? `Indicadores de la cartera de ${asesorHeader}` : 'Indicadores de la cartera completa'}
-        </div>
-        <KpiCard label="Cartera Total" value={formatMXN(kpis.facturacionTotal)} sub={`${kpis.total} cuentas activas`} icon={DollarSign} accent={CYAN} />
-        <KpiCard label="Cuentas Saludables" value={kpis.saludables} sub={`${Math.round((kpis.saludables / Math.max(kpis.total, 1)) * 100)}% de la cartera`} icon={CheckCircle2} accent="#22C55E" />
-        {/* «En Riesgo» tiene por fin un número. Hasta el 6 oct 2026 el único
-            criterio era `health_score < 40` y el mínimo de la cartera viva es
-            43: marcaba 0 cuentas y $0, siempre. Ahora lo decide el motor —0%
-            de consumo, más de 60 días sin contacto, o varios intentos
-            seguidos sin que nadie responda— que es lo que pidió dirección. */}
-        <KpiCard label="En Riesgo" value={riesgo.size}
-          sub={`${formatMXN(mrrRiesgoDe(idsRiesgo))} · consumo cero o sin contacto`}
-          icon={AlertTriangle} accent="#EF4444" />
-        <KpiCard label="En Observación" value={cuentasObs.length} sub={`${formatMXN(facObs)} en seguimiento`} icon={AlertTriangle} accent="#EAB308" />
-        {/* ── «Oportunidades» ya no cuenta una columna que nadie llena ──────
-         *
-         * Dirección, 6 oct 2026: «Oportunidades marca 0 aunque hay 157 cuentas
-         * con candidatura». Medido: `upsell_producto` / `crossell_producto`
-         * están capturadas en UNA de las 192 cuentas vivas, y la tabla
-         * `oportunidades` tiene CERO filas. El indicador contaba captura
-         * manual, y la captura manual en este equipo no ocurre — el Radar
-         * lleva 0 de 192 y las auditorías dejaron 383 acciones sin seguir.
-         *
-         * La candidatura, en cambio, se DERIVA del consumo, del análisis de
-         * llamadas y de la escalera de producto: ya está calculada aquí mismo
-         * para el bloque «Candidato a:». Se cuenta esa. */}
-        <KpiCard label="Oportunidades" value={conCandidatura}
-          sub={`de ${candidatos.length} evaluadas · señal derivada, no captura`}
-          icon={TrendingUp} accent="#A855F7" />
-      </div>
-
-      {/* ══ §5 Tacómetros por Asesor ═══════════════════════════════════════ */}
-      <div className="px-6 pb-2">
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_SECCION }}>
-            Salud Promedio por Asesor
-          </p>
-          <span style={{ fontSize: 12, color: TX_SECCION }}>— Health Score promedio de toda la cartera</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          {asesorStats.map(st => <GaugeCard key={st.asesor} st={st} />)}
-        </div>
-      </div>
-
-      {/* ══ §6 Análisis detallado por Asesor ══════════════════════════════ */}
-      <div className="px-6 pb-5">
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: TX_SECCION }}>
-            Análisis por Asesor
-          </p>
-          <span style={{ fontSize: 12, color: TX_SECCION }}>— sub-scores, adopción de producto, completitud de fichas</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {asesorStats.map(st => <AsesorDetailCard key={st.asesor} st={st} />)}
-        </div>
-      </div>
-
-      {/* ══ §7 Matriz adopción + completitud ══════════════════════════════ */}
-      <div className="px-6 pb-5">
-        <Panel>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <PanelTitle>Matriz de Adopción · Resumen comparativo</PanelTitle>
-            <div style={{ display: 'flex', gap: 12, fontSize: 12, color: TX_LOW }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} /> ≥60% Bueno</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EAB308', display: 'inline-block' }} /> ≥30% Parcial</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', display: 'inline-block' }} /> &lt;30% Alerta</span>
-            </div>
-          </div>
-          <AdopcionMatrix asesores={asesorStats} />
-        </Panel>
-      </div>
-
-      {/* ══ §10 Top Cuentas en Riesgo ═══════════════════════════════════════ */}
-      <div className="px-6 pb-5">
-        <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 16, overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: `1px solid ${BORDER2}` }}>
+      {/* ══ §10 Las diez de menor Health Score ═════════════════════════════
+          Panel oscuro SIN `cp-card`, a propósito: esa clase pinta de blanco
+          todo `<span>` sin fondo declarado y la tabla colorea días, fallas y
+          bandas así. El título ya no dice «en riesgo»: el riesgo lo decide el
+          motor de alertas (ver la salud de la cartera), y estas diez salen del
+          Health Score, que no es lo mismo. */}
+      <div className="px-6 pb-5" style={{ maxWidth: TEMA.ANCHO_MAX, margin: '0 auto' }}>
+        <div style={{ background: TEMA.NAVY[700], border: `1px solid ${TEMA.BORDE}`,
+                      borderRadius: TEMA.RADIO, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '16px 20px 12px', borderBottom: `1px solid ${TEMA.BORDE}` }}>
             <div>
-              <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', color: TX_MID }}>Top Cuentas en Riesgo</p>
-              <p style={{ fontSize: 11, color: TX_LOW, marginTop: 2 }}>Las 10 cuentas con menor Health Score · tickets desde Zoho Desk</p>
+              <h3 style={{ fontSize: TEMA.FUENTE.titulo, fontWeight: 800, color: TEMA.TX.hi, margin: 0 }}>
+                Las 10 cuentas de menor Health Score
+              </h3>
+              <p style={{ fontSize: TEMA.FUENTE.subtitulo, color: TEMA.TX.low, marginTop: 4 }}>
+                Con sus tickets de Zoho Desk · el riesgo lo marca el motor, arriba en la salud de la cartera
+              </p>
             </div>
-            <Link href="/cuentas" style={{ fontSize: 12, color: CYAN, fontWeight: 600, textDecoration: 'none' }} className="hover:underline flex items-center gap-1">
-              Ver todas <ArrowUpRight size={11} />
+            <Link href="/cuentas" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.ORANGE[400],
+                                           fontWeight: 700, textDecoration: 'none' }}
+              className="hover:underline flex items-center gap-1">
+              Ver todas <ArrowUpRight size={13} />
             </Link>
           </div>
           <TopRiesgoTable cuentas={topRiesgo} dark />
-          <div style={{ padding: '10px 20px', borderTop: `1px solid ${BORDER2}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, color: TX_LOW }}>Mostrando 10 cuentas de menor Health Score</span>
-            {topRiesgoTix > 0 && (
-              <span style={{ fontSize: 11, color: TX_LOW, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Ticket size={10} /> {topRiesgoTix} tickets {topRiesgoFallas > 0 && <span style={{ color: '#EF4444', fontWeight: 700 }}>· {topRiesgoFallas} fallas</span>}
-              </span>
-            )}
+          {topRiesgoTix > 0 && (
+            <div style={{ padding: '10px 20px', borderTop: `1px solid ${TEMA.BORDE}`,
+                          fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.low,
+                          display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Ticket size={13} /> Entre las diez: {topRiesgoTix} tickets
+              {topRiesgoFallas > 0 && (
+                <span style={{ color: TEMA.ORANGE[400], fontWeight: 700 }}>· {topRiesgoFallas} fallas</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══ §12 Tickets Zoho Desk — la franja de frescura ═════════════════
+          El análisis de tickets que iba debajo lo retiró dirección el 12 oct
+          2026; queda la franja, que dice de cuándo es el dato y lleva a
+          `/tickets`. Las fallas son las del ARCHIVO, internos incluidos: el
+          universo va escrito al lado de cada cifra. */}
+      <div className="px-6 mb-5" style={{ maxWidth: TEMA.ANCHO_MAX, margin: '0 auto 20px' }}>
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-2"
+          style={{ background: TEMA.NAVY[900], border: `1px solid ${TEMA.BORDE}`,
+                   borderRadius: 12, padding: '12px 20px' }}>
+          <div className="flex items-center gap-2">
+            <Ticket size={15} style={{ color: TEMA.ORANGE[400] }} />
+            <span style={{ fontSize: TEMA.FUENTE.cuerpo, fontWeight: 800, color: TEMA.TX.hi }}>Tickets Zoho Desk</span>
+            <span style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.low }}>
+              · último ticket abierto el {fmtSelloMx(globalTickets.ultima)} (hora de México)
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+            <span style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.low }}>
+              <span style={{ fontSize: TEMA.FUENTE.valor, fontWeight: 800, color: TEMA.TX.hi }}>
+                {globalTickets.total.toLocaleString('es-MX')}
+              </span>{' '}
+              en el archivo{globalTickets.internos > 0 && `, ${globalTickets.internos} de ellos internos`}
+            </span>
+            <span style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.low }}>
+              <span style={{ fontSize: TEMA.FUENTE.valor, fontWeight: 800, color: TEMA.ORANGE[400] }}>
+                {globalTickets.fallas.toLocaleString('es-MX')}
+              </span>{' '}
+              fallas en el archivo
+            </span>
+            <Link href="/tickets" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.ORANGE[400],
+                                           fontWeight: 700, textDecoration: 'none' }}
+              className="hover:underline flex items-center gap-1">
+              Ver todos <ArrowUpRight size={13} />
+            </Link>
+            <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg"
+              style={{ padding: '6px 12px', fontSize: TEMA.FUENTE.etiqueta, fontWeight: 800,
+                       background: TEMA.ORANGE[500], color: TEMA.NAVY[900], textDecoration: 'none' }}>
+              <LifeBuoy size={14} /> Centro de Ayuda
+            </a>
           </div>
         </div>
-      </div>
-
-      {/* ══ §11 Métricas ════════════════════════════════════════════════════ */}
-      <DashMetricasSection
-        kpis={{ totalCuentas: activas.length }}
-        top10={top10Fac}
-        churnRows={churnRows}
-        updatedAt={nowISO}
-      />
-
-      {/* ══ §12 Análisis de Tickets · Zoho Desk ══════════════════ */}
-      <div className="mx-6 mb-5 px-5 py-3 rounded-xl flex flex-wrap items-center gap-x-8 gap-y-2"
-        style={{ background: PANEL2, border: `1px solid ${BORDER2}` }}>
-        <div className="flex items-center gap-2">
-          <Ticket size={13} style={{ color: CYAN }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: TX_MID }}>Tickets Zoho Desk</span>
-          <span style={{ fontSize: 12, color: TX_LOW }}>
-            · último ticket abierto el {fmtSelloMx(globalTickets.ultima)} (hora de México)
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-x-6 gap-y-1">
-          <span style={{ fontSize: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: TX_HI }}>{globalTickets.total.toLocaleString()}</span>
-            <span style={{ color: TX_LOW, marginLeft: 4 }}>
-                en el archivo{globalTickets.internos > 0 && `, ${globalTickets.internos} de ellos internos`}
-              </span>
-          </span>
-          <span style={{ fontSize: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 800, color: '#EF4444' }}>{globalTickets.fallas}</span>
-            {/* Las fallas del ARCHIVO, igual que el total de al lado. El panel de
-                abajo dice 279 porque cuenta solo las de clientes; la diferencia son
-                las 7 de los CID internos. Dos cifras distintas pegadas, cada una
-                con su universo escrito, en vez de una sola que no sea de nadie. */}
-            <span style={{ color: TX_LOW, marginLeft: 4 }}>fallas en el archivo</span>
-          </span>
-          {topRiesgoTix > 0 && (
-            <span style={{ fontSize: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 800, color: '#F97316' }}>{topRiesgoTix}</span>
-              <span style={{ color: TX_LOW, marginLeft: 4 }}>en top 10 riesgo</span>
-              {topRiesgoFallas > 0 && (
-                <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 99, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', color: '#EF4444', fontSize: 12, fontWeight: 700 }}>
-                  {topRiesgoFallas} fallas
-                </span>
-              )}
-            </span>
-          )}
-          <Link href="/tickets" style={{ fontSize: 12, color: CYAN, fontWeight: 600, textDecoration: 'none' }} className="hover:underline flex items-center gap-1">
-            Ver todos <ArrowUpRight size={11} />
-          </Link>
-          <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0F766E] hover:bg-[#0D9488] text-white shadow-sm transition-all duration-150">
-            <LifeBuoy size={13} /> Centro de Ayuda
-          </a>
-        </div>
-      </div>
-
-      {/* ══ §12b Tickets Analytics ══════════════════════════════════════════ */}
-      <div className="px-6 mb-5">
-        <TicketsAnalyticsChart data={ticketsAnalytics} />
       </div>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}

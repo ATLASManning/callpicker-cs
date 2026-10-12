@@ -5,19 +5,29 @@ import type { Cuenta } from '@/lib/types'
 import { getSemaforoCuenta, ASESOR_CONFIG, formatMXN } from '@/lib/types'
 import SemaforoBadge from './SemaforoBadge'
 import HealthScoreRing from './HealthScoreRing'
+import * as TEMA from '@/lib/chart-theme'
 
-// ── Dark palette (match DashMetricasSection) ─────────────────────────────────
+/* ── Modo oscuro = el tema del Dashboard (12 oct 2026) ─────────────────────
+   Era la paleta propia de `DashMetricasSection` —cian, rojo, verde—, que
+   dirección retiró de la portada. Ahora sale de `lib/chart-theme.ts`: el
+   riesgo va de plata a naranja en las MISMAS tres bandas que la salud de la
+   cartera, y el asesor lleva su color del tema. El modo claro no cambia. */
 const D = {
-  panel:    '#0F2040',
-  border:   'rgba(255,255,255,0.10)',
-  borderH:  'rgba(255,255,255,0.18)',
-  txHi:     '#FFFFFF',
-  txMid:    'rgba(255,255,255,0.70)',
-  txLow:    'rgba(255,255,255,0.45)',
+  border:   TEMA.BORDE,
+  txHi:     TEMA.TX.hi,
+  txMid:    TEMA.TX.mid,
+  txLow:    TEMA.TX.low,
   rowAlt:   'rgba(255,255,255,0.03)',
   rowHover: 'rgba(255,255,255,0.06)',
-  cyan:     '#00B4FF',
+  enlace:   TEMA.ORANGE[400],
   th:       'rgba(255,255,255,0.04)',
+}
+
+/** La banda del semáforo con el color del tema, para el modo oscuro. */
+function bandaOscura(semaforo: string): { color: string; etiqueta: string } {
+  if (semaforo === 'inactivo') return { color: TEMA.SILVER[500], etiqueta: 'Inactiva' }
+  const b = (TEMA.BANDA_DE_SEMAFORO as Record<string, TEMA.Banda>)[semaforo] ?? 'medio'
+  return { color: TEMA.BANDA[b], etiqueta: TEMA.BANDA_SEMAFORO_ETIQUETA[b].split(' · ')[0] }
 }
 
 interface Props { cuentas: Cuenta[]; dark?: boolean }
@@ -34,7 +44,9 @@ function fmtFecha(iso: string | null | undefined) {
    es donde debe ir—, pero escribirlo como «1694d» se leería como un contacto de
    hace cuatro años. Son 42 de las 192 cuentas vivas. */
 function DiasCell({ dias, nunca, dark }: { dias: number; nunca?: boolean; dark: boolean }) {
-  const color = nunca || dias > 30 ? '#EF4444' : dias > 14 ? '#F97316' : dark ? D.txMid : '#64748B'
+  const color = dark
+    ? (nunca || dias > 30 ? TEMA.ORANGE[400] : dias > 14 ? TEMA.BANDA.medio : D.txMid)
+    : (nunca || dias > 30 ? '#EF4444' : dias > 14 ? '#F97316' : '#64748B')
   const weight = nunca || dias > 14 ? 700 : 500
   return (
     <span style={{ fontSize: 12, fontWeight: weight, color }}
@@ -54,7 +66,7 @@ function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         <span style={{
           fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-          color: zt.total > 10 ? '#F97316' : dark ? D.txHi : '#0F172A',
+          color: zt.total > 10 ? (dark ? TEMA.ORANGE[400] : '#F97316') : dark ? D.txHi : '#0F172A',
         }}>
           {zt.total}
         </span>
@@ -62,9 +74,9 @@ function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 3,
             padding: '2px 7px', borderRadius: 99,
-            background: 'rgba(239,68,68,0.12)',
-            color: '#EF4444', fontSize: 10, fontWeight: 700,
-            border: '1px solid rgba(239,68,68,0.25)',
+            background: dark ? 'rgba(255,122,26,0.12)' : 'rgba(239,68,68,0.12)',
+            color: dark ? TEMA.ORANGE[400] : '#EF4444', fontSize: 11, fontWeight: 700,
+            border: dark ? '1px solid rgba(255,122,26,0.35)' : '1px solid rgba(239,68,68,0.25)',
             whiteSpace: 'nowrap',
           }}>
             <AlertTriangle size={8} /> {zt.fallas} falla{zt.fallas > 1 ? 's' : ''}
@@ -91,7 +103,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
 
   const thStyle: React.CSSProperties = {
     padding: '10px 14px', textAlign: 'left',
-    fontSize: 10, fontWeight: 700,
+    fontSize: dark ? 12 : 10, fontWeight: 700,
     textTransform: 'uppercase', letterSpacing: '0.07em',
     color: dark ? D.txLow : '#64748B',
     background: dark ? D.th : '#F0F7FF',
@@ -136,9 +148,12 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
             // 'inactivo' se contempla explícitamente: sin este caso caía en el
             // `else` y una cuenta cancelada mostraba su Health Score en ROJO,
             // es decir "riesgo alto" — cuando ya no hay riesgo, hay baja.
-            const hsColor = semaforo === 'inactivo' ? '#64748B'
+            const banda = bandaOscura(semaforo)
+            const hsColor = dark ? banda.color
+              : semaforo === 'inactivo' ? '#64748B'
               : ['verde','azul'].includes(semaforo) ? '#22C55E'
               : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'
+            const colorAsesor = dark ? (TEMA.ASESOR[c.asesor] ?? TEMA.SILVER[500]) : ac.color
             const rowBg = dark
               ? (idx % 2 === 0 ? 'transparent' : D.rowAlt)
               : 'transparent'
@@ -152,7 +167,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                 <td style={tdStyle}>
                   <span style={{
                     fontFamily: 'monospace', fontSize: 11, fontWeight: 700,
-                    color: dark ? D.cyan : '#0057FF',
+                    color: dark ? D.enlace : '#0057FF',
                   }}>
                     {c.consecutivo}
                   </span>
@@ -186,7 +201,8 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                       width: 20, height: 20, borderRadius: '50%',
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 10, fontWeight: 700, flexShrink: 0,
-                      background: `${ac.color}25`, color: ac.color,
+                      background: dark ? colorAsesor : `${ac.color}25`,
+                      color: dark ? TEMA.NAVY[900] : ac.color,
                     }}>
                       {ac.initial}
                     </span>
@@ -207,10 +223,14 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
 
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <HealthScoreRing score={c.health_score} size={34} strokeWidth={4} showLabel={false} estado={c.estado} />
+                    {/* El anillo trae su propio arcoíris; en oscuro basta la cifra
+                        en el color de su banda. */}
+                    {!dark && (
+                      <HealthScoreRing score={c.health_score} size={34} strokeWidth={4} showLabel={false} estado={c.estado} />
+                    )}
                     <span style={{
-                      fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                      color: hsColor, textShadow: dark ? `0 0 8px ${hsColor}50` : 'none',
+                      fontSize: dark ? 15 : 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                      color: hsColor, background: 'transparent',
                     }}>
                       {c.health_score}
                     </span>
@@ -218,7 +238,14 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                 </td>
 
                 <td style={tdStyle}>
-                  <SemaforoBadge semaforo={semaforo} size="sm" />
+                  {dark ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+                                   background: 'transparent', color: D.txMid, fontSize: 12 }}>
+                      <i aria-hidden style={{ width: 9, height: 9, borderRadius: 2,
+                                              background: banda.color, display: 'inline-block' }} />
+                      {banda.etiqueta}
+                    </span>
+                  ) : <SemaforoBadge semaforo={semaforo} size="sm" />}
                 </td>
 
                 <td style={tdStyle}>
@@ -234,7 +261,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 2,
                       fontSize: 12, fontWeight: 600, textDecoration: 'none',
-                      color: dark ? D.cyan : '#0057FF',
+                      color: dark ? D.enlace : '#0057FF',
                     }}
                     className="hover:underline"
                   >

@@ -32,10 +32,10 @@ export default function BarraFiltros() {
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
                        background: 'transparent', color: TX.low,
                        fontSize: FUENTE.etiqueta }}>
-          {/* Dice QUÉ se filtra, no «todo»: los KPI y los tickets no saben de
-              asesores, y prometer lo contrario es la clase de rótulo que
-              enseña a desconfiar. */}
-          <Filter size={14} /> Análisis de alertas, salud de la cartera y ranking filtrados por
+          {/* Dice QUÉ se filtra, no «todo»: la tabla de menor Health Score y
+              la franja de tickets no se filtran por asesor, y prometer lo
+              contrario es la clase de rótulo que enseña a desconfiar. */}
+          <Filter size={14} /> Alertas, salud de la cartera, ranking y candidatos filtrados por
         </span>
         <ChipsFiltro filtros={filtros} onQuitar={(d, v) => quitar(d as never, v)}
           onLimpiar={limpiar} />

@@ -1,8 +1,10 @@
 'use client'
 import { useState, useMemo } from 'react'
 import CustomSelect from '@/components/CustomSelect'
+import { useAsesorCompartido } from '@/lib/dash-filtros'
 import { TIPO_CFG, type ResultadoCandidato, type TipoCandidatura } from '@/lib/candidato-a'
 import { formatMXN } from '@/lib/types'
+import * as TEMA from '@/lib/chart-theme'
 
 /**
  * Módulo "Candidato a:" del Dashboard.
@@ -16,14 +18,33 @@ import { formatMXN } from '@/lib/types'
  * después lo que se puede crecer. Blindar la cuenta va antes que venderle.
  */
 
+/* ── COLOR POR GRUPO, NO POR TIPO (12 oct 2026) ──────────────────────────
+   Eran seis colores —verde, cian, morado, azul, ámbar, rojo— para seis tipos.
+   La paleta cerrada del Dashboard no da seis tonos distinguibles (es el
+   trilema medido en `mide-paleta-dashboard.py`), y el módulo ya dice cómo se
+   agrupan: «primero blindar, después crecer». Blindar va en naranja, crecer
+   en plata, y el NOMBRE del tipo va siempre escrito en el chip. `TIPO_CFG`
+   conserva sus colores en `lib/candidato-a.ts`; aquí no se leen. */
+const BLINDAR: ReadonlySet<TipoCandidatura> = new Set<TipoCandidatura>(['estabilizar', 'reactivacion', 'blindaje'])
+const colorTipo = (t: TipoCandidatura) => BLINDAR.has(t) ? TEMA.ORANGE[400] : TEMA.SILVER[300]
+
 const CERTEZA_CFG: Record<string, { label: string; color: string }> = {
-  alta:  { label: 'Evidencia alta',  color: '#22C55E' },
-  media: { label: 'Evidencia media', color: '#F59E0B' },
-  baja:  { label: 'Evidencia baja',  color: '#94A3B8' },
+  alta:  { label: 'Evidencia alta',  color: TEMA.TX.hi },
+  media: { label: 'Evidencia media', color: TEMA.BANDA.medio },
+  baja:  { label: 'Evidencia baja',  color: TEMA.TX.low },
 }
 
+/** Todo texto de color lleva `background`: dentro de `.cp-card`, globals.css
+ *  pinta de blanco cualquier `<span>` que no lo declare. */
+const C = (color: string): React.CSSProperties => ({ color, background: 'transparent' })
+
 export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
-  const [asesor, setAsesor] = useState('Todos')
+  /* El asesor es el del Dashboard entero (`useAsesorCompartido`): elegirlo
+     aquí filtra también alertas, salud y ranking, y al revés. Este combo usa
+     «Todos» como valor vacío; el compartido usa ''. */
+  const [asesorComp, setAsesorComp] = useAsesorCompartido()
+  const asesor = asesorComp || 'Todos'
+  const setAsesor = (v: string) => setAsesorComp(v === 'Todos' ? '' : v)
   const [tipo,   setTipo]   = useState('Todos')
   const [busca,  setBusca]  = useState('')
   const [abierta, setAbierta] = useState<string | null>(null)
@@ -63,15 +84,17 @@ export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
   const sinDatos = data.filter(d => d.candidaturas.length === 0 && d.motivoSinRecomendacion?.startsWith('No hay evidencia'))
 
   return (
-    <div className="cp-card space-y-4">
+    <div className="px-6 pb-5" style={{ maxWidth: TEMA.ANCHO_MAX, margin: '0 auto' }}>
+    <div className="cp-card space-y-4" style={{ background: TEMA.NAVY[700],
+         border: `1px solid ${TEMA.BORDE}`, borderRadius: TEMA.RADIO, padding: 20 }}>
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <div>
-          <h3 className="text-sm font-bold text-textHi">Candidato a:</h3>
-          <p className="text-[11px] text-textLow">
+          <h3 style={{ fontSize: TEMA.FUENTE.titulo, fontWeight: 800, margin: 0 }}>Candidato a:</h3>
+          <p className="text-[13px] text-textLow">
             A qué es candidata cada cuenta, con la evidencia que lo sostiene. Primero blindar, después crecer.
           </p>
         </div>
-        <span className="text-[10px] text-textLow">
+        <span className="text-xs" style={C(TEMA.TX.low)}>
           {conRec.length} cuentas con candidatura · {sinDatos.length} requieren más datos
         </span>
       </div>
@@ -82,19 +105,22 @@ export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
           const r = resumen[t]
           if (!r) return null
           const cfg = TIPO_CFG[t]
+          const col = colorTipo(t)
           const activo = tipo === t
           return (
             <button key={t} onClick={() => setTipo(activo ? 'Todos' : t)}
-              className="rounded-lg px-3 py-2 text-left transition-colors"
+              aria-pressed={activo}
+              className="rounded-lg px-3 py-2 text-left transition-colors dash-foco"
               style={{
-                background: activo ? `${cfg.color}25` : `${cfg.color}10`,
-                border: `1px solid ${cfg.color}${activo ? '80' : '35'}`,
+                background: activo ? `${col}30` : `${col}10`,
+                border: `1px solid ${col}${activo ? 'CC' : '40'}`,
+                cursor: 'pointer',
               }}>
-              <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: cfg.color }}>
+              <span className="block text-xs font-bold uppercase tracking-wide" style={C(col)}>
                 {cfg.label}
-              </p>
-              <p className="text-sm font-bold text-textHi">{r.n} cuentas</p>
-              <p className="text-[10px] text-textLow">{formatMXN(r.mrr)}/mes</p>
+              </span>
+              <span className="block text-base font-bold" style={C(TEMA.TX.hi)}>{r.n} cuentas</span>
+              <span className="block text-xs" style={C(TEMA.TX.low)}>{formatMXN(r.mrr)}/mes</span>
             </button>
           )
         })}
@@ -128,38 +154,39 @@ export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
       <div className="space-y-1.5">
         {filtradas.slice(0, 40).map(d => {
           const principal = d.candidaturas[0]
-          const cfg = TIPO_CFG[principal.tipo]
+          const col = colorTipo(principal.tipo)
           const cert = CERTEZA_CFG[d.certeza]
           const abierto = abierta === d.id
           return (
             <div key={d.id} className="rounded-lg overflow-hidden"
-                 style={{ background: 'rgba(148,163,184,0.06)', border: `1px solid ${cfg.color}30` }}>
+                 style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${TEMA.BORDE}`,
+                          borderLeft: `3px solid ${col}` }}>
               <button onClick={() => setAbierta(abierto ? null : d.id)}
                       className="w-full text-left px-3 py-2.5 hover:bg-surface/40 transition-colors">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[10px] font-bold text-cp">{d.consecutivo}</span>
-                  <span className="text-xs font-semibold text-textHi">{d.empresa}</span>
-                  <span className="text-[10px] text-textLow">{d.asesor}</span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded font-bold"
-                        style={{ background: `${cfg.color}20`, color: cfg.color }}>
+                  <span className="font-mono text-xs font-bold" style={C(TEMA.ORANGE[400])}>{d.consecutivo}</span>
+                  <span className="text-sm font-semibold" style={C(TEMA.TX.hi)}>{d.empresa}</span>
+                  <span className="text-xs" style={C(TEMA.TX.low)}>{d.asesor}</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded font-bold"
+                        style={{ background: `${col}22`, color: col }}>
                     {principal.producto}
                   </span>
-                  <span className="text-[10px] ml-auto font-semibold" style={{ color: cert.color }}>
+                  <span className="text-xs ml-auto font-semibold" style={C(cert.color)}>
                     {cert.label} · {d.senales}/{d.senalesTotales} señales
                   </span>
-                  <span className="text-[10px] text-textMid font-bold w-20 text-right">
+                  <span className="text-sm font-bold w-24 text-right" style={C(TEMA.TX.hi)}>
                     {formatMXN(d.facturacion)}
                   </span>
                 </div>
                 {!abierto && (
-                  <p className="text-[11px] text-textMid mt-1 leading-snug line-clamp-1">{principal.razon}</p>
+                  <p className="text-[13px] text-textMid mt-1 leading-snug line-clamp-1">{principal.razon}</p>
                 )}
               </button>
 
               {abierto && (
                 <div className="px-3 pb-3 space-y-2.5">
                   {d.antiguedadMeses !== null && (
-                    <p className="text-[10px] text-textLow">
+                    <p className="text-xs text-textLow">
                       Cliente desde hace {d.antiguedadMeses >= 12
                         ? `${Math.floor(d.antiguedadMeses / 12)} año(s)`
                         : `${d.antiguedadMeses} mes(es)`}
@@ -167,28 +194,31 @@ export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
                   )}
                   {d.candidaturas.map((c, i) => {
                     const cc = TIPO_CFG[c.tipo]
+                    const ccol = colorTipo(c.tipo)
                     return (
                       <div key={i} className="rounded-md p-2.5"
-                           style={{ background: `${cc.color}0D`, borderLeft: `2px solid ${cc.color}` }}>
+                           style={{ background: `${ccol}0D`, borderLeft: `2px solid ${ccol}` }}>
                         <div className="flex flex-wrap items-baseline gap-2 mb-1">
-                          <span className="text-xs font-bold" style={{ color: cc.color }}>{c.producto}</span>
-                          <span className="text-[9px] uppercase tracking-wide text-textLow">{cc.label}</span>
+                          <span className="text-sm font-bold" style={C(ccol)}>{c.producto}</span>
+                          <span className="text-[11px] uppercase tracking-wide" style={C(TEMA.TX.low)}>{cc.label}</span>
                           {c.requiereVoBo && (
-                            <span className="text-[9px] px-1.5 rounded" style={{ background: 'rgba(239,68,68,0.15)', color: '#F87171' }}>
+                            <span className="text-[11px] px-1.5 rounded font-bold"
+                                  style={{ background: 'rgba(255,122,26,0.15)', color: TEMA.ORANGE[400] }}>
                               requiere VoBo de Dirección
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] text-textMid leading-relaxed mb-1.5">{c.razon}</p>
+                        <p className="text-[13px] text-textMid leading-relaxed mb-1.5">{c.razon}</p>
                         <ul className="space-y-0.5 mb-1.5">
                           {c.ventajas.map((v, j) => (
-                            <li key={j} className="text-[11px] text-textMid leading-snug flex gap-1.5">
-                              <span style={{ color: cc.color }}>+</span><span>{v}</span>
+                            <li key={j} className="text-[13px] text-textMid leading-snug flex gap-1.5">
+                              <span style={C(ccol)}>+</span><span>{v}</span>
                             </li>
                           ))}
                         </ul>
-                        <p className="text-[11px] leading-relaxed" style={{ color: cc.color }}>
-                          <span className="opacity-70">Siguiente paso: </span>{c.siguientePaso}
+                        <p className="text-[13px] leading-relaxed">
+                          <span style={C(TEMA.TX.low)}>Siguiente paso: </span>
+                          <span style={C(ccol)}>{c.siguientePaso}</span>
                         </p>
                       </div>
                     )
@@ -199,20 +229,21 @@ export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
           )
         })}
         {filtradas.length === 0 && (
-          <p className="text-xs text-textMid text-center py-6">Ninguna cuenta con estos filtros.</p>
+          <p className="text-sm text-textMid text-center py-6">Ninguna cuenta con estos filtros.</p>
         )}
         {filtradas.length > 40 && (
-          <p className="text-[10px] text-textLow text-center pt-1">
+          <p className="text-xs text-textLow text-center pt-1">
             Mostrando 40 de {filtradas.length}. Usa los filtros para acotar.
           </p>
         )}
       </div>
 
-      <p className="text-[10px] text-textLow leading-relaxed pt-1"
-         style={{ borderTop: '1px solid rgba(148,163,184,0.2)' }}>
+      <p className="text-xs text-textLow leading-relaxed pt-2"
+         style={{ borderTop: `1px solid ${TEMA.BORDE}` }}>
         Ninguna condición comercial —precio, descuento, plazo o servicio incluido— se presenta al cliente
         como aprobada. Se evalúa internamente y requiere VoBo previo de Dirección General.
       </p>
+    </div>
     </div>
   )
 }

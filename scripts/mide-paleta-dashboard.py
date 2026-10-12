@@ -511,10 +511,11 @@ VIGILADOS = [
     os.path.join(RAIZ, 'components', 'charts', 'primitivos.tsx'),
     os.path.join(RAIZ, 'components', 'DashAlertasGraficas.tsx'),
     os.path.join(RAIZ, 'components', 'TopCuentasVersatil.tsx'),
-    # 12 oct 2026: la salud de la cartera, tickets y la franja de filtros.
+    # 12 oct 2026: la salud de la cartera y la franja de filtros. (Tickets
+    # entró y salió el mismo día: dirección retiró el análisis de la portada.)
     os.path.join(RAIZ, 'components', 'charts', 'SaludCarteraChart.tsx'),
-    os.path.join(RAIZ, 'components', 'charts', 'TicketsAnalyticsChart.tsx'),
     os.path.join(RAIZ, 'components', 'charts', 'BarraFiltros.tsx'),
+    os.path.join(RAIZ, 'components', 'CandidatoA.tsx'),
 ]
 _tema_txt = io.open(TEMA, encoding='utf-8').read() if os.path.exists(TEMA) else u''
 PERMITIDOS = {h.upper() for h in re.findall(r'#[0-9a-fA-F]{6}\b', _tema_txt)}
