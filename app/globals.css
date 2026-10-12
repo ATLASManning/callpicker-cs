@@ -530,3 +530,11 @@ body {
     transition: none !important;
   }
 }
+
+/* El icono que gira mientras «Actualizar» trabaja. Respeta
+   `prefers-reduced-motion`: quien lo activa suele hacerlo por mareo, no por
+   gusto, y un icono girando sin parar es justo lo que molesta. */
+@keyframes cp-girar { to { transform: rotate(360deg) } }
+@media (prefers-reduced-motion: reduce) {
+  [style*="cp-girar"] { animation: none !important }
+}

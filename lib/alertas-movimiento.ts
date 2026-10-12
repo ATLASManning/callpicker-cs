@@ -122,6 +122,7 @@ function diasEntre(desde: string, hasta: string): number {
 }
 
 interface FilaEpisodio {
+  cuenta_id: string
   condicion: Condicion
   tipo: string
   evidencia_actual: string | null
@@ -143,8 +144,23 @@ interface FilaEpisodio {
  * como «sin fecha» aguas arriba. Inventarles una las haría parecer recientes
  * siempre, que es peor que decir que no se sabe.
  */
-async function capturasDe(cuentaId: string, desde: string): Promise<Captura[]> {
-  const fuera: Captura[] = []
+async function capturasDe(
+  cuentaId: string | null, desde: string,
+): Promise<Map<string, Captura[]>> {
+  /* `cuentaId: null` trae la CARTERA ENTERA en dos consultas.
+   *
+   * Es lo que hace que `/alertas` sea viable: esa pantalla pinta 193 cuentas
+   * y pedir sus capturas una por una serían 386 consultas. El coste de traer
+   * todo de golpe es el mismo que el de traer una, porque `seguimientos` y
+   * `reuniones` son tablas de cientos de filas, no de millones — y si algún
+   * día dejan de serlo, el corte por `desde` ya está puesto. */
+  const porCuenta = new Map<string, Captura[]>()
+  const mete = (id: string | null | undefined, c: Captura) => {
+    if (!id) return
+    const l = porCuenta.get(id)
+    if (l) l.push(c)
+    else porCuenta.set(id, [c])
+  }
 
   /* El `select` va SIEMPRE como literal, nunca como variable: `supabase-js`
      parsea esa cadena a nivel de tipos y con una variable el genérico colapsa
@@ -157,18 +173,20 @@ async function capturasDe(cuentaId: string, desde: string): Promise<Captura[]> {
     throw e
   }
 
-  let reuniones: Array<{ fecha: string | null; tipo: string | null
-                         titulo: string | null }> = []
+  let reuniones: Array<{ cuenta_id: string | null; fecha: string | null
+                         tipo: string | null; titulo: string | null }> = []
   try {
-    reuniones = await traerPorPaginas<{ fecha: string | null; tipo: string | null
-                                        titulo: string | null }>(
-      (d, h) => supabaseAdmin.from('reuniones')
-        .select('fecha, tipo, titulo').eq('cuenta_id', cuentaId).range(d, h))
+    reuniones = await traerPorPaginas<{ cuenta_id: string | null; fecha: string | null
+                                        tipo: string | null; titulo: string | null }>(
+      (d, h) => {
+        const q = supabaseAdmin.from('reuniones').select('cuenta_id, fecha, tipo, titulo')
+        return (cuentaId ? q.eq('cuenta_id', cuentaId) : q).range(d, h)
+      })
   } catch (e) { sinTabla(e) }
   for (const r of reuniones) {
     const f = String(r.fecha ?? '').slice(0, 10)
     if (!f || f < desde) continue
-    fuera.push({
+    mete(r.cuenta_id, {
       tipo: 'reunion',
       fecha: f,
       /* El TIPO va en el texto porque decide si cuenta: una de estrategia es
@@ -179,19 +197,22 @@ async function capturasDe(cuentaId: string, desde: string): Promise<Captura[]> {
     })
   }
 
-  let segs: Array<{ fecha: string | null; tipo: string | null
-                    descripcion: string | null }> = []
+  let segs: Array<{ cuenta_id: string | null; fecha: string | null
+                    tipo: string | null; descripcion: string | null }> = []
   try {
-    segs = await traerPorPaginas<{ fecha: string | null; tipo: string | null
-                                   descripcion: string | null }>(
-      (d, h) => supabaseAdmin.from('seguimientos')
-        .select('fecha, tipo, descripcion').eq('cuenta_id', cuentaId).range(d, h))
+    segs = await traerPorPaginas<{ cuenta_id: string | null; fecha: string | null
+                                   tipo: string | null; descripcion: string | null }>(
+      (d, h) => {
+        const q = supabaseAdmin.from('seguimientos')
+          .select('cuenta_id, fecha, tipo, descripcion')
+        return (cuentaId ? q.eq('cuenta_id', cuentaId) : q).range(d, h)
+      })
   } catch (e) { sinTabla(e) }
   for (const s of segs) {
     const f = String(s.fecha ?? '').slice(0, 10)
     if (!f || f < desde) continue
     const canal = CANALES_CONTACTO.has(String(s.tipo ?? '').toLowerCase())
-    fuera.push({
+    mete(s.cuenta_id, {
       tipo: 'seguimiento',
       fecha: f,
       /* 40 letras, no 90. Estos textos son pegados de WhatsApp y de correo
@@ -204,8 +225,13 @@ async function capturasDe(cuentaId: string, desde: string): Promise<Captura[]> {
     })
   }
 
-  fuera.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0))
-  return fuera
+  /* `Array.from` y no `for...of` sobre el iterador: el `target` de este repo
+     no lleva `downlevelIteration` y recorrer un `MapIterator` directamente es
+     un TS2802. */
+  Array.from(porCuenta.values()).forEach((l: Captura[]) => {
+    l.sort((a, b) => (a.fecha < b.fecha ? 1 : a.fecha > b.fecha ? -1 : 0))
+  })
+  return porCuenta
 }
 
 /**
@@ -216,6 +242,23 @@ async function capturasDe(cuentaId: string, desde: string): Promise<Captura[]> {
 export async function movimientoDeAlertas(
   cuentaId: string,
 ): Promise<Movimiento[] | null> {
+  const mapa = await movimientoDeCartera(cuentaId)
+  if (mapa === null) return null
+  return mapa.get(cuentaId) ?? []
+}
+
+/**
+ * Lo mismo para TODA la cartera, en tres consultas en vez de 3×N.
+ *
+ * Lo necesita `/alertas`, que pinta las 193 cuentas: la versión por cuenta
+ * eran 579 consultas por carga de pantalla. Las tablas implicadas son de
+ * cientos de filas, así que traerlas enteras cuesta lo mismo que traer una.
+ *
+ * `cuentaId` acota a una sola — es lo que usa la ficha.
+ */
+export async function movimientoDeCartera(
+  cuentaId?: string,
+): Promise<Map<string, Movimiento[]> | null> {
   const hoy = hoyEnMexico()
 
   /* TODO sale de la memoria del episodio y nada del detector. La primera
@@ -227,34 +270,38 @@ export async function movimientoDeAlertas(
      falta. */
   let filas: FilaEpisodio[]
   try {
-    filas = await traerPorPaginas<FilaEpisodio>((d, h) => supabaseAdmin
-      .from('alertas_episodios')
-      /* UNA SOLA CADENA, sin partirla con `+`: concatenar también destruye el
-         tipo literal que `supabase-js` necesita. Es la misma razón por la que
-         arriba no hay un helper con el `select` por parámetro. */
-      .select('condicion, tipo, evidencia_actual, condicion_desde, abierto_en, severidad_actual, severidad_peor, escalo_en, desescalo_en, recurrencia')
-      .eq('cuenta_id', cuentaId).eq('estado', 'abierta').range(d, h))
+    filas = await traerPorPaginas<FilaEpisodio>((d, h) => {
+      const q = supabaseAdmin
+        .from('alertas_episodios')
+        /* UNA SOLA CADENA, sin partirla con `+`: concatenar también destruye
+           el tipo literal que `supabase-js` necesita. Es la misma razón por la
+           que arriba no hay un helper con el `select` por parámetro. */
+        .select('cuenta_id, condicion, tipo, evidencia_actual, condicion_desde, abierto_en, severidad_actual, severidad_peor, escalo_en, desescalo_en, recurrencia')
+        .eq('estado', 'abierta')
+      return (cuentaId ? q.eq('cuenta_id', cuentaId) : q).range(d, h)
+    })
   } catch {
-    /* Sin memoria no hay movimiento que contar. Se dice con `null`, no con una
-       lista vacía: «no hubo cambios» y «no se está midiendo» son distintos. */
+    /* Sin memoria no hay movimiento que contar. Se dice con `null`, no con un
+       mapa vacío: «no hubo cambios» y «no se está midiendo» son distintos. */
     return null
   }
 
-  if (filas.length === 0) return []
+  if (filas.length === 0) return new Map()
 
-  /* Las capturas se piden UNA vez para toda la cuenta, desde la fecha de
-     apertura más antigua: pedirlas por alerta serían N consultas iguales. */
+  /* Las capturas se piden UNA vez, desde la fecha de apertura más antigua de
+     todo el lote: pedirlas por alerta serían N consultas iguales. */
   const aperturas = filas
     .map(f => f.condicion_desde ?? f.abierto_en)
     .filter(Boolean) as string[]
   const masViejo = aperturas.length
     ? aperturas.reduce((a, b) => (a < b ? a : b))
     : hoy
-  const capturas = await capturasDe(cuentaId, masViejo)
+  const porCuenta = await capturasDe(cuentaId ?? null, masViejo)
 
-  const fuera: Movimiento[] = []
+  const fuera = new Map<string, Movimiento[]>()
   for (const ep of filas) {
     const cond = ep.condicion
+    const capturas = porCuenta.get(ep.cuenta_id) ?? []
     const laApaga = LO_QUE_LA_APAGA[cond] ?? 'que cambie la situación del cliente'
     const mueven = LA_MUEVEN[cond] ?? new Set<TipoCaptura>()
 
@@ -317,15 +364,28 @@ export async function movimientoDeAlertas(
       frase += ` Ha vuelto ${veces} ${veces === 1 ? 'vez' : 'veces'} en esta cuenta.`
     }
 
-    fuera.push({
+    const mov: Movimiento = {
       condicion: cond,
       /* La evidencia que el episodio guardó, que es la frase CON NÚMEROS con
          la que saltó. Si falta —episodios viejos— se cae al tipo, que al
          menos nombra de qué va. */
       titulo: ep.evidencia_actual?.trim() || ep.tipo,
       sentido, frase, cuentan, noCuentan, laApaga,
-    })
+    }
+    const l = fuera.get(ep.cuenta_id)
+    if (l) l.push(mov)
+    else fuera.set(ep.cuenta_id, [mov])
   }
+
+  /* Lo que MÁS se movió va primero: una alerta que agravó ayer pesa más que
+     una que lleva tres meses igual, y en una lista de seis el orden es lo
+     único que decide qué se lee. */
+  const PESO_SENTIDO: Record<Sentido, number> = {
+    agrava: 0, nace: 1, disminuye: 2, continua: 3,
+  }
+  Array.from(fuera.values()).forEach((l: Movimiento[]) => {
+    l.sort((a, b) => PESO_SENTIDO[a.sentido] - PESO_SENTIDO[b.sentido])
+  })
 
   return fuera
 }

@@ -23,6 +23,7 @@ import { veredictosDeCartera } from '@/lib/alertas-estado'
 import { tonoSobreClaro, tonoSobrePagina, pastillaClara } from '@/lib/contraste'
 import { guionDe } from '@/lib/alertas-guion'
 import { movimientoDeAlertas } from '@/lib/alertas-movimiento'
+import CuentaActualizarButton from '@/components/CuentaActualizarButton'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
@@ -326,6 +327,11 @@ export default async function CuentaDetailPage({ params }: Props) {
                 <ClipboardCheck size={13} /> Auditoría
               </Link>
             )}
+            {/* «Actualizar» va junto a Auditoría por instrucción de dirección
+                (12 oct 2026). No es un recargar: vuelve a leer las fuentes de
+                esta cuenta Y sella su memoria de alertas, que es lo que una
+                recarga NO hace. Ver la ruta para por qué no cierra nada. */}
+            <CuentaActualizarButton cuentaId={cuentaUUID} />
             <CuentaReunionButton cuentaId={cuentaUUID} />
             {cuenta.zoho_link && (
               <a href={cuenta.zoho_link} target="_blank" rel="noopener noreferrer"

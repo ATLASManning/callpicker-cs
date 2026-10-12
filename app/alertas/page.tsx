@@ -5,6 +5,7 @@ import PageHeader from '@/components/PageHeader'
 import { veredictosDeCartera, type CuentaConVeredicto } from '@/lib/alertas-estado'
 import { SITUACION, LUZ, type Situacion, type ClaseHallazgo } from '@/lib/alertas-veredicto'
 import { hoyEnPalabras } from '@/lib/fecha-local'
+import { movimientoDeCartera, type Movimiento } from '@/lib/alertas-movimiento'
 
 /**
  * /alertas — EL OBJETIVO DE TRABAJO DE SAC
@@ -108,6 +109,15 @@ export default async function AlertasPage({
 
   const { cuentas, falla } = await veredictosDeCartera(
     asesorFiltro ? { asesor: asesorFiltro } : undefined)
+
+  /* ── QUÉ SE HA MOVIDO EN CADA ALERTA ─────────────────────────────────────
+     La misma lectura que la ficha, pero para TODA la cartera en tres
+     consultas en vez de 3×193. Por eso existe `movimientoDeCartera` y esta
+     pantalla NO llama a `movimientoDeAlertas` en un bucle.
+     `null` = la memoria de episodios no está disponible. En ese caso no se
+     dibuja el renglón, que no es lo mismo que dibujar «sin cambios». */
+  const movs = await movimientoDeCartera()
+    .catch(e => { console.warn('[alertas] movimiento:', e); return null })
 
   /* El reparto se calcula sobre TODO lo que se leyó, no sobre lo filtrado: un
      total que encoge al filtrar diría que hay menos trabajo del que hay. */
@@ -222,7 +232,7 @@ export default async function AlertasPage({
 
       {/* ── LA COLA DE TRABAJO ──────────────────────────────────────────── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {lista.map(c => <Ficha key={c.cuentaId} c={c} />)}
+        {lista.map(c => <Ficha key={c.cuentaId} c={c} movs={movs?.get(c.cuentaId) ?? []} />)}
       </div>
 
       {lista.length === 0 && (
@@ -241,7 +251,18 @@ export default async function AlertasPage({
   )
 }
 
-function Ficha({ c }: { c: CuentaConVeredicto }) {
+/* Los tonos del movimiento en ESTA pantalla, que es oscura. No son los de la
+   ficha —allá el panel es blanco y los tonos van oscurecidos— ni los de la
+   paleta cerrada del Dashboard. Tres juegos, tres pantallas, y mezclarlos es
+   como vuelve el bug de contraste. */
+const MOV_TONO: Record<string, { etq: string; col: string }> = {
+  agrava:    { etq: 'Agravó',      col: '#FCA5A5' },
+  nace:      { etq: 'Nueva',       col: '#FDE68A' },
+  disminuye: { etq: 'Va a menos',  col: '#86EFAC' },
+  continua:  { etq: 'Sigue igual', col: 'rgba(255,255,255,0.55)' },
+}
+
+function Ficha({ c, movs }: { c: CuentaConVeredicto; movs: Movimiento[] }) {
   const v = c.veredicto
   const col = LUZ[v.luz].color
   const d = c.datos
@@ -309,6 +330,36 @@ function Ficha({ c }: { c: CuentaConVeredicto }) {
           </div>
         )
       })}
+
+      {/* ── QUÉ CAMBIÓ CON LO QUE CAPTURAMOS ───────────────────────────────
+          Lo mismo que en la ficha de la cuenta, resumido: aquí se recorren
+          193 tarjetas de un vistazo y el detalle de cada captura no cabe. Lo
+          que SÍ cabe —y es lo que hace falta aquí— es si cada alerta se
+          movió, y la advertencia cuando se capturó algo que no la toca. */}
+      {movs.length > 0 && (
+        <div style={{ marginTop: 10, paddingTop: 8,
+                      borderTop: `1px solid ${BORDER}` }}>
+          <span style={C(TX_LOW, { fontSize: 10, fontWeight: 700, letterSpacing: 0.4 })}>
+            QUÉ CAMBIÓ CON LO QUE CAPTURAMOS
+          </span>
+          {movs.map(m => {
+            const t = MOV_TONO[m.sentido] ?? MOV_TONO.continua
+            return (
+              <div key={m.condicion} style={{ marginTop: 3 }}>
+                <span style={C(t.col, { fontSize: 11, fontWeight: 700 })}>{t.etq}</span>
+                <span style={C(TX_LOW, { fontSize: 11 })}> · {m.frase}</span>
+                {m.noCuentan.length > 0 && (
+                  <span style={C(TX_LOW, { fontSize: 10.5 })}>
+                    {' '}Se capturaron {m.noCuentan.length} cosa
+                    {m.noCuentan.length === 1 ? '' : 's'} que NO la mueven;
+                    ésta se apaga con {m.laApaga}.
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
