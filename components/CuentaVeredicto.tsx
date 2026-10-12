@@ -1,8 +1,9 @@
 import Link from 'next/link'
-import { AlertTriangle, Gift, Search, ArrowUpRight, Phone, ClipboardList, Ear } from 'lucide-react'
+import { AlertTriangle, Gift, Search, ArrowUpRight, Phone, ClipboardList, Ear, History } from 'lucide-react'
 import { SITUACION, LUZ, type Veredicto, type ClaseHallazgo } from '@/lib/alertas-veredicto'
 import { tonoSobreClaro, tonoSobreFondo, pastillaClara } from '@/lib/contraste'
 import type { Guion } from '@/lib/alertas-guion'
+import type { Movimiento, Sentido } from '@/lib/alertas-movimiento'
 
 /**
  * components/CuentaVeredicto.tsx — EL VEREDICTO DE LA CUENTA, EN SU PROPIA FICHA
@@ -92,12 +93,89 @@ function Lista({ items, tono }: { items: string[]; tono: string }) {
   )
 }
 
+/* ── EL MOVIMIENTO ────────────────────────────────────────────────────────
+ *
+ * Dirección, 12 oct 2026: que la ficha diga, cada vez que alguien captura
+ * algo, si la alerta CONTINÚA, GENERA RIESGO o DISMINUYE.
+ *
+ * Los tonos son los de ESTA pantalla —la ficha es clara y ya usa este juego—
+ * y no los de la paleta cerrada del Dashboard. Mezclar los dos juegos de
+ * tokens es exactamente como vuelve el bug de contraste.
+ */
+const MOV: Record<Sentido, { etiqueta: string; tono: string }> = {
+  nace:      { etiqueta: 'Nueva',      tono: '#D97706' },
+  agrava:    { etiqueta: 'Agravó',     tono: '#DC2626' },
+  disminuye: { etiqueta: 'Va a menos', tono: '#059669' },
+  continua:  { etiqueta: 'Sigue igual', tono: '#475569' },
+}
+
+function BloqueMovimiento({ movs }: { movs: Movimiento[] }) {
+  return (
+    <div className="mt-3.5 pt-3" style={{ borderTop: `1px solid ${BORDE}` }}>
+      <div className="flex items-center gap-1.5 mb-2">
+        <History size={12} style={{ color: tonoSobreClaro('#475569', 0), flexShrink: 0 }} />
+        <span style={{ color: tonoSobreClaro('#475569', 0), fontSize: 10,
+                       fontWeight: 800, letterSpacing: 0.4 }}>
+          QUÉ CAMBIÓ CON LO QUE CAPTURAMOS
+        </span>
+      </div>
+
+      <ul className="space-y-2 pl-0" style={{ listStyle: 'none' }}>
+        {movs.map(m => {
+          const cfg = MOV[m.sentido]
+          const c = tonoSobreClaro(cfg.tono, 0)
+          return (
+            <li key={m.condicion} style={{ borderLeft: `2px solid ${c}`, paddingLeft: 8 }}>
+              <p className="text-[11.5px] leading-snug" style={{ color: TX_CUERPO }}>
+                <span style={{ color: c, fontWeight: 800 }}>{cfg.etiqueta}. </span>
+                {m.frase}
+              </p>
+              {/* La evidencia con la que saltó, en pequeño: sin ella la frase
+                  de arriba dice que algo lleva 74 días abierto sin decir qué. */}
+              <p className="text-[11px] leading-snug mt-0.5" style={{ color: TX_SUAVE }}>
+                {m.titulo}
+              </p>
+
+              {m.cuentan.length > 0 && (
+                <p className="text-[11px] leading-snug mt-1" style={{ color: TX_SUAVE }}>
+                  Cuenta para esta alerta:{' '}
+                  {m.cuentan.slice(0, 3).map(c2 => `${c2.fecha} ${c2.que}`).join(' · ')}
+                  {m.cuentan.length > 3 && ` · y ${m.cuentan.length - 3} más`}
+                </p>
+              )}
+
+              {/* Lo que NO la toca va CON el porqué. Sin esa frase, un «no
+                  cuenta» se lee como que el sistema no registró el trabajo —
+                  y eso es lo que hace que la gente deje de capturar. */}
+              {m.noCuentan.length > 0 && (
+                <p className="text-[11px] leading-snug mt-0.5" style={{ color: TX_SUAVE }}>
+                  No la mueve:{' '}
+                  {m.noCuentan.slice(0, 2).map(c2 => `${c2.fecha} ${c2.que}`).join(' · ')}
+                  {m.noCuentan.length > 2 && ` · y ${m.noCuentan.length - 2} más`}
+                  {'. '}
+                  <span style={{ fontWeight: 700 }}>Esta se apaga con {m.laApaga}.</span>
+                </p>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
 export default function CuentaVeredicto({
-  veredicto, guion, fuentes, verTodas = '/alertas',
+  veredicto, guion, movimiento, fuentes, verTodas = '/alertas',
 }: {
   veredicto: Veredicto
   /** `null` cuando la situación no tiene guion escrito. No se inventa uno. */
   guion: Guion | null
+  /**
+   * Qué le pasó a cada alerta desde que se abrió, y qué de lo capturado la
+   * toca. `null` = la memoria de episodios no está disponible, que NO es lo
+   * mismo que «no hubo cambios»: en ese caso el bloque no se dibuja.
+   */
+  movimiento?: Movimiento[] | null
   /** De cuántas de las ocho fuentes hay dato. Es la confianza, en números. */
   fuentes: number
   verTodas?: string
@@ -152,6 +230,12 @@ export default function CuentaVeredicto({
           </p>
         </div>
       )}
+
+      {/* ── Qué cambió ─────────────────────────────────────────────────────
+          Va ANTES del guion a propósito: el guion dice qué hacer hoy, y esto
+          dice si lo que ya se hizo movió algo. Leerlos al revés hace que el
+          ejecutivo prepare otra llamada sin saber que la anterior ya contó. */}
+      {movimiento && movimiento.length > 0 && <BloqueMovimiento movs={movimiento} />}
 
       {/* ── El guion ───────────────────────────────────────────────────── */}
       {guion && (

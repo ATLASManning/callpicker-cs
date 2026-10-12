@@ -22,6 +22,7 @@ import CuentaVeredicto from '@/components/CuentaVeredicto'
 import { veredictosDeCartera } from '@/lib/alertas-estado'
 import { tonoSobreClaro, tonoSobrePagina, pastillaClara } from '@/lib/contraste'
 import { guionDe } from '@/lib/alertas-guion'
+import { movimientoDeAlertas } from '@/lib/alertas-movimiento'
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import AsesorBadge from '@/components/AsesorBadge'
@@ -137,6 +138,18 @@ export default async function CuentaDetailPage({ params }: Props) {
      índice fijo mostraría el veredicto de OTRA cuenta en esta ficha, que es la
      peor forma de equivocarse aquí. */
   const veredictoCuenta = veredictoRes?.cuentas.find(c => c.cuentaId === cuentaUUID) ?? null
+
+  /* ── QUÉ LE HIZO A ESTAS ALERTAS LO QUE EL EQUIPO CAPTURÓ ────────────────
+     Va DESPUÉS y no dentro del `Promise.all` porque necesita las alertas que
+     ese cálculo devuelve. Es una consulta acotada a esta cuenta, no a la
+     cartera.
+     Mismo trato que el veredicto: si falla, el bloque no se dibuja y la ficha
+     sigue en pie. `null` significa «no se está midiendo», que NO es lo mismo
+     que «no hubo cambios» — ver la cabecera del módulo. */
+  const movimiento = veredictoCuenta
+    ? await movimientoDeAlertas(cuentaUUID)
+        .catch(e => { console.warn('[CuentaVeredicto] movimiento:', e); return null })
+    : null
 
   // Números (DIDs) que Callpicker le entrega a esta cuenta. Se cruzan SOLO por
   // CID: la columna «CUENTA» del export es la etiqueta de cada número, no la
@@ -371,6 +384,7 @@ export default async function CuentaDetailPage({ params }: Props) {
           <CuentaVeredicto
             veredicto={veredictoCuenta.veredicto}
             guion={guionDe(veredictoCuenta)}
+            movimiento={movimiento}
             fuentes={veredictoCuenta.datos.fuentes}
             verTodas={`/alertas${cuenta.asesor ? `?asesor=${encodeURIComponent(cuenta.asesor)}` : ''}`}
           />
