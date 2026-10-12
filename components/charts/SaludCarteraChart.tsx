@@ -137,8 +137,15 @@ export default function SaludCarteraChart({ filas }: { filas: FilaSalud[] }) {
     const alto = xs[0], bajo = xs[xs.length - 1]
     if (alto.p - bajo.p < 0.10) return null
     const que = medida === 'mrr' ? 'de su dinero' : 'de sus cuentas'
-    return `${alto.k} tiene el ${Math.round(alto.p * 100)}% ${que} en riesgo; `
-      + `${bajo.k}, el ${Math.round(bajo.p * 100)}%.`
+    /* Empates por el REDONDEO que se publica, no por el valor exacto: si dos
+       salen «32%», nombrar sólo a una deja creer que la otra está mejor. */
+    const pct = (p: number) => Math.round(p * 100)
+    const nombres = (ks: string[]) => ks.length === 1 ? ks[0]
+      : `${ks.slice(0, -1).join(', ')} y ${ks[ks.length - 1]}`
+    const arriba = xs.filter(x => pct(x.p) === pct(alto.p)).map(x => x.k)
+    const abajo = xs.filter(x => pct(x.p) === pct(bajo.p)).map(x => x.k)
+    return `${nombres(arriba)} ${arriba.length > 1 ? 'tienen' : 'tiene'} el ${pct(alto.p)}% `
+      + `${que} en riesgo; ${nombres(abajo)}, el ${pct(bajo.p)}%.`
   }, [grupos, medida])
 
   const hsMin = useMemo(() => {

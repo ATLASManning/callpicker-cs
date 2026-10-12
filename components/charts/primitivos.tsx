@@ -268,7 +268,7 @@ export function FilaApilada({
               onFocus={() => onResaltar(s.k)}
               onBlur={() => onResaltar(null)}
               onClick={() => onClicSegmento(s.k)}
-              aria-label={`${s.etiqueta} en ${titulo}: ${formato(s.valor)}. Clic para filtrar.`}
+              aria-label={`${s.etiqueta} en ${titulo}: ${formato(s.valor)}. Clic para ver sus cuentas.`}
               style={{
                 /* El ancho PINTADO nunca baja de `anchoSegmento`: con 1 cuenta
                    de 193 el porcentaje real es medio píxel y el segmento

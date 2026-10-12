@@ -657,12 +657,15 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
           </p>
         )}
 
-        <ResponsiveContainer width="100%" height={Math.max(150, datosG1.length * 30)}>
+        {/* 40px por fila y ejes a 12px: el encargo fija 12 como mínimo en ejes
+            y esta gráfica se había quedado en 10, con barras de 30px que se
+            leían como rayas. */}
+        <ResponsiveContainer width="100%" height={Math.max(180, datosG1.length * 40)}>
           <BarChart data={datosG1} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
-            <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.52)', fontSize: 10 }}
+            <XAxis type="number" tick={{ fill: TX_LOW, fontSize: TEMA.FUENTE.eje }}
               axisLine={false} tickLine={false} tickFormatter={fmt} />
-            <YAxis type="category" dataKey="name" width={165}
-              tick={{ fill: TX_MID, fontSize: 10 }} axisLine={false} tickLine={false}
+            <YAxis type="category" dataKey="name" width={180}
+              tick={{ fill: TX_MID, fontSize: TEMA.FUENTE.eje }} axisLine={false} tickLine={false}
               tickFormatter={(v: string) => v.length > 24 ? v.slice(0, 24) + '…' : v} />
             <Tooltip {...tooltip} formatter={(v: number, n: string) => [fmtLargo(v), n]} />
             {/* La trama de la banda alta. Va en `<defs>` DENTRO del SVG de la
