@@ -59,6 +59,6 @@ ALTER TABLE alertas_episodios ADD CONSTRAINT alertas_episodios_condicion_check
 --   DELETE FROM alertas_episodios
 --    WHERE cuenta_id = '00000000-0000-0000-0000-000000000000';
 --
--- `python scripts/verifica-check-condicion.py` hace justo eso desde fuera y
+-- `python scripts/revisa-check-condicion-vivo.py` hace justo eso desde fuera y
 -- distingue el 23514 del CHECK de un 23502 de columna obligatoria, que diría
 -- que la fila de prueba está mal armada y no que la base rechace el valor.

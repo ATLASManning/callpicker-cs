@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS public.alertas_episodios (
   -- condición, `escrito`, que es la de la capa cualitativa. Leer sólo esta
   -- lista lleva a concluir que los tres tipos escritos no pueden abrir
   -- episodio, y es falso: comprobado contra la base con
-  -- `python scripts/verifica-check-condicion.py`, que intenta la escritura y
+  -- `python scripts/revisa-check-condicion-vivo.py`, que intenta la escritura y
   -- mira el código de error —23514 es el CHECK; cualquier otro dice que la
   -- fila de prueba está mal armada, no que la base rechace el valor.
   condicion          TEXT NOT NULL CHECK (condicion IN (

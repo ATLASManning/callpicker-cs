@@ -12,6 +12,14 @@ u"""¿Admite el CHECK de `alertas_episodios` TODAS las condiciones que el
    condicion del tipo `Condicion` y mira cual rechaza la base. Despues la
    borra. Es la unica forma de leer un CHECK desde PostgREST.
 
+   SUSTITUYE A `verifica-check-condicion.py`, que hacia lo mismo con la MISMA
+   tecnica pero clavado a UNA condicion —`escrito`, la del incidente del 7
+   oct—. Ese guion habria pasado en verde el 12 oct mientras `mesa` e
+   `importe` se rechazaban, porque no las miraba: estaba escrito contra el
+   caso reportado y no contra la clase de bug. Las condiciones de aqui se LEEN
+   de `lib/alertas.ts`, asi que la numero once se comprueba sola el dia que
+   alguien la añada.
+
    Credenciales de `.env.local`, y NO se imprimen.
 """
 import io
