@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import CustomSelect from '@/components/CustomSelect'
 import type { PayloadTablero, FilaTablero } from '@/lib/alertas-tablero'
+import * as TEMA from '@/lib/chart-theme'
 
 /**
  * EL DASHBOARD DEJA DE REPETIR LA LISTA Y PASA A ANALIZARLA.
@@ -84,32 +85,66 @@ const C = (color: string, extra: React.CSSProperties = {}): React.CSSProperties 
  * `#F97316`, que resultó ser EXACTAMENTE el de Claudia; `#B5651D` es el que
  * pasa las seis restricciones sin romper la escala rojo→ámbar→amarillo.
  */
-const COLOR_SITUACION: Record<string, string> = {
-  se_va:             '#EF4444',   /* 4.29:1 */
-  apagandose:        '#B5651D',   /* 3.72:1 */
-  no_la_vemos:       '#EAB308',   /* 8.42:1 */
-  sin_auditar:       '#C084FC',   /* 6.11:1 */
-  hay_que_mostrarle: '#2DD4BF',   /* 8.67:1 */
-  oportunidad:       '#22C55E',   /* 7.08:1 */
-  en_orden:          '#15803D',   /* 3.22:1 */
-}
-const COLOR_ASESOR: Record<string, string> = {
-  'Fátima': '#A855F7',   /* 4.08:1 */
-  'Dan':    '#0EA5E9',   /* 5.82:1 */
-  'Claudia': '#F97316',  /* 5.76:1 */
-}
-const COLOR_CLASE: Record<string, string> = {
-  riesgo: '#F87171',    /* 5.84:1 */
-  entrega: '#60A5FA',   /* 6.35:1 */
-  analisis: '#FBBF24',  /* 9.67:1 */
-}
-const GRIS  = '#64748B'   /* 3.39:1 — el más justo de la tarjeta */
-const VERDE = '#22C55E'   /* 7.08:1 */
+/* ══════════════════════════════════════════════════════════════════════════
+   LA PALETA SALE DEL TEMA, Y EL NÚMERO DE SERIES TAMBIÉN (oct 2026)
+   ══════════════════════════════════════════════════════════════════════════
 
-const pesos = (n: number) => '$' + Math.round(n).toLocaleString('es-MX')
-const miles = (n: number) =>
-  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(2)}M`
-  : n >= 1_000 ? `$${Math.round(n / 1000)}K` : pesos(n)
+   Dirección cerró la paleta a marino, plata, naranja y blanco. Medido con
+   `scripts/mide-paleta-dashboard.py`, eso da un trilema:
+
+     paleta cerrada + 7 categorías  ->  separación 3.7 en OKLab. ILEGIBLE.
+     paleta cerrada + legibilidad   ->  máximo 3 categorías.
+     7 categorías + legibilidad     ->  22.6, pero es un arcoíris (prohibido).
+
+   Esta gráfica apila de dos maneras según el corte:
+
+     · por ASESOR  (cuando el corte es «situación») -> 3 series. La paleta lo
+       da holgado: 21.2 de separación medida. Se restyla y ya.
+     · por SITUACIÓN (los otros cinco cortes)       -> 7 series. Ése es el
+       caso ilegible, y además los datos lo agravan: hoy `en_orden` tiene CERO
+       cuentas y `oportunidad` UNA, mientras `no_la_vemos` y `sin_auditar` se
+       llevan 152 de 193.
+
+   Así que al apilar por situación se agrupa en TRES BANDAS DE RIESGO, que no
+   son un invento: agrupan la `luz` que ya trae `SITUACION` en
+   `lib/alertas-veredicto.ts`. Las siete situaciones NO se pierden — siguen en
+   el tooltip, con su cuenta. Lo que se quita es pretender que siete colores se
+   distinguen cuando se separan 3.7.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** Las tres bandas, de menor a mayor riesgo. Separación medida: 11.1. */
+const BANDA_COLOR: Record<string, string> = {
+  bajo:  TEMA.SILVER[300],   /* 7.65:1 sobre la tarjeta */
+  medio: '#E5A585',          /* 6.30:1 — interpolación OKLab plata→naranja */
+  alto:  TEMA.ORANGE[500],   /* 5.04:1 */
+}
+const BANDA_TITULO: Record<string, string> = {
+  bajo:  'En orden o con oportunidad',
+  medio: 'Falta información',
+  alto:  'Hay que actuar',
+}
+/** De qué banda es cada situación. Agrupa la `luz` del catálogo. */
+const BANDA_DE: Record<string, string> = {
+  en_orden: 'bajo', oportunidad: 'bajo', hay_que_mostrarle: 'bajo',
+  sin_auditar: 'medio', no_la_vemos: 'medio',
+  apagandose: 'alto', se_va: 'alto',
+}
+const ORDEN_BANDA = ['bajo', 'medio', 'alto']
+/** Sólo la banda alta lleva trama: es la que hay que reconocer a dos metros,
+ *  y la que tiene que sobrevivir a una impresión en gris. */
+const BANDA_TRAMA: Record<string, boolean> = { bajo: false, medio: false, alto: true }
+
+const COLOR_ASESOR: Record<string, string> = TEMA.ASESOR
+const COLOR_CLASE: Record<string, string> = {
+  riesgo:   TEMA.ORANGE[500],
+  entrega:  TEMA.WHITE.soft,
+  analisis: TEMA.SILVER[500],
+}
+const GRIS  = TEMA.SILVER[500]
+const VERDE = TEMA.ORANGE[400]   /* lo que antes era «bien» ahora es acento */
+
+const pesos = (n: number) => TEMA.mxn(n)
+const miles = (n: number) => TEMA.mxnCompacto(n)
 
 type Medida = 'cuentas' | 'mrr'
 type Corte = 'situacion' | 'hallazgo' | 'asesor' | 'relacion' | 'candidatura' | 'tamano'
@@ -198,14 +233,31 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
   const apilaPor: 'situacion' | 'asesor' = corte === 'situacion' ? 'asesor' : 'situacion'
   const series = useMemo(() => {
     if (apilaPor === 'asesor') {
-      return asesoresVista.map(a => ({ k: a, label: a, color: COLOR_ASESOR[a] ?? GRIS }))
+      /* Misma FORMA que la otra rama aunque `trama` y `dentro` vayan vacíos:
+         si las dos ramas devuelven tipos distintos, TypeScript infiere una
+         unión y tocar `.dentro` revienta en la rama equivocada. */
+      return asesoresVista.map(a => ({
+        k: a, label: a, color: COLOR_ASESOR[a] ?? GRIS,
+        trama: false, dentro: [] as string[],
+      }))
     }
-    /* Sólo las situaciones PRESENTES. El catálogo tiene siete y hoy «En orden»
-       no la tiene ninguna cuenta: pintarla daría una serie de altura cero y
-       una pastilla prometiendo algo que no está. */
-    const presentes = new Set(filas.map(f => f.situacion))
-    return datos.situaciones.filter(s => presentes.has(s.k))
-      .map(s => ({ k: s.k as string, label: s.titulo, color: COLOR_SITUACION[s.k] ?? GRIS }))
+    /* TRES BANDAS, no siete situaciones. Siete colores se separan 3.7 en
+       OKLab y nadie los distingue; tres se separan 11.1. Y sólo las bandas
+       PRESENTES: pintar una vacía daría una serie de altura cero y una
+       pastilla prometiendo algo que no está. */
+    const presentes = new Set(filas.map(f => BANDA_DE[f.situacion] ?? 'medio'))
+    return ORDEN_BANDA.filter(b => presentes.has(b)).map(b => ({
+      k: b,
+      label: BANDA_TITULO[b],
+      color: BANDA_COLOR[b],
+      trama: BANDA_TRAMA[b],
+      /* Qué situaciones hay dentro, para que el tooltip y la leyenda lo digan.
+         La información de las siete no se pierde: cambia de sitio. */
+      dentro: datos.situaciones
+        .filter(s => (BANDA_DE[s.k] ?? 'medio') === b
+                  && filas.some(f => f.situacion === s.k))
+        .map(s => s.titulo),
+    }))
   }, [apilaPor, asesoresVista, filas, datos.situaciones])
 
   const g1 = useMemo(() => {
@@ -213,7 +265,12 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
     const mete = (clave: string, label: string, color: string, f: FilaTablero) => {
       let e = cubo.get(clave)
       if (!e) { e = { label, color, total: 0, cuentas: 0, por: {} }; cubo.set(clave, e) }
-      const serie = apilaPor === 'asesor' ? (f.asesor ?? 'sin asesor') : f.situacion
+      /* Al apilar por situación, la SERIE es la BANDA. El dato de la fila no
+         cambia —`f.situacion` sigue siendo la situación exacta— sólo cambia
+         en qué cubo de color cae. */
+      const serie = apilaPor === 'asesor'
+        ? (f.asesor ?? 'sin asesor')
+        : (BANDA_DE[f.situacion] ?? 'medio')
       e.total += vale(f)
       e.cuentas += 1
       e.por[serie] = (e.por[serie] ?? 0) + vale(f)
@@ -222,7 +279,12 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
     for (const f of filas) {
       if (corte === 'situacion') {
         const s = datos.situaciones.find(x => x.k === f.situacion)
-        mete(f.situacion, s?.titulo ?? f.situacion, COLOR_SITUACION[f.situacion] ?? GRIS, f)
+        /* Cuando el corte ES la situación, cada FILA es una situación (las
+           siete siguen ahí, con su nombre) y lo que se apila dentro son los
+           tres asesores. El color de la fila es su acento de riesgo: una tira
+           ordenada plata→naranja, no una serie que compita con otras. */
+        mete(f.situacion, s?.titulo ?? f.situacion,
+             TEMA.acentoDeSituacion(f.situacion), f)
       } else if (corte === 'asesor') {
         const a = f.asesor ?? 'sin asesor'
         mete(a, a, COLOR_ASESOR[a] ?? GRIS, f)
@@ -502,13 +564,25 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
               tick={{ fill: TX_MID, fontSize: 10 }} axisLine={false} tickLine={false}
               tickFormatter={(v: string) => v.length > 24 ? v.slice(0, 24) + '…' : v} />
             <Tooltip {...tooltip} formatter={(v: number, n: string) => [fmtLargo(v), n]} />
+            {/* La trama de la banda alta. Va en `<defs>` DENTRO del SVG de la
+                gráfica: un `<pattern>` declarado en otro SVG del documento no
+                es alcanzable por `url(#id)` desde éste. */}
+            <defs>
+              <pattern id={TEMA.TRAMAS.alto} width="6" height="6"
+                patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <rect width="6" height="6" fill={BANDA_COLOR.alto} />
+                <line x1="0" y1="0" x2="0" y2="6" stroke={TEMA.NAVY[900]}
+                  strokeWidth="2" opacity="0.42" />
+              </pattern>
+            </defs>
             {/* `stroke` del color del panel: en una apilada, dos segmentos
                 contiguos de tonos parecidos se funden sin una frontera. Y NADA
                 de `radius`: en un apilado se lo lleva la última SERIE de la
                 lista, que casi nunca es el último segmento con valor de esa
                 fila — redondeaba un borde que está en medio de la barra. */}
             {series.map(s => (
-              <Bar key={s.k} dataKey={s.k} name={s.label} stackId="a" fill={s.color}
+              <Bar key={s.k} dataKey={s.k} name={s.label} stackId="a"
+                fill={s.trama ? `url(#${TEMA.TRAMAS.alto})` : s.color}
                 stroke={PANEL} strokeWidth={1} maxBarSize={22} />
             ))}
           </BarChart>
@@ -701,19 +775,48 @@ function Separador() {
   return <div style={{ height: 1, background: BORDER, margin: '20px 0 14px' }} />
 }
 
-function Leyenda({ items }: { items: { k: string; label: string; color: string }[] }) {
+/**
+ * La leyenda dice QUÉ HAY DENTRO de cada banda.
+ *
+ * Es lo que impide que agrupar siete situaciones en tres bandas sea una
+ * pérdida: la banda se llama «Hay que actuar» y debajo, en pequeño, están las
+ * situaciones concretas que la componen y que hoy tienen cuentas. Sin esto, el
+ * lector ve tres cubos y no sabe de qué están hechos.
+ */
+function Leyenda({ items }: {
+  items: { k: string; label: string; color: string; trama?: boolean; dentro?: string[] }[]
+}) {
   return (
-    <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8 }}>
-      {items.map(i => <Pastilla key={i.k} color={i.color} texto={i.label} />)}
+    <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginTop: 10 }}>
+      {items.map(i => (
+        <div key={i.k} style={{ maxWidth: 230 }}>
+          <Pastilla color={i.color} texto={i.label} trama={i.trama} />
+          {i.dentro && i.dentro.length > 0 && (
+            <p style={{
+              fontSize: 11.5, color: TEMA.TX.low, marginTop: 3, marginLeft: 16,
+              lineHeight: 1.45,
+            }}>{i.dentro.join(' · ')}</p>
+          )}
+        </div>
+      ))}
     </div>
   )
 }
 
-function Pastilla({ color, texto }: { color: string; texto: string }) {
+function Pastilla({ color, texto, trama }: {
+  color: string; texto: string; trama?: boolean
+}) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-      <span style={{ width: 9, height: 9, borderRadius: 2, background: color, flexShrink: 0 }} />
-      <span style={C(TX_MID, { fontSize: 10.5 })}>{texto}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      {/* La muestra lleva la MISMA trama que la barra. Si la leyenda pinta un
+          cuadro liso y la barra va rayada, el lector no empareja las dos. */}
+      <span style={{
+        width: 11, height: 11, borderRadius: 2, flexShrink: 0,
+        background: trama
+          ? `repeating-linear-gradient(45deg, ${color} 0 3px, rgba(11,31,58,0.42) 3px 5px)`
+          : color,
+      }} />
+      <span style={C(TX_MID, { fontSize: TEMA.FUENTE.etiqueta })}>{texto}</span>
     </span>
   )
 }
