@@ -77,14 +77,18 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
           <span style={bdg(l.color)}>{l.etiqueta}</span>
         </div>
         <span style={{ fontSize: 10, color: GRY, whiteSpace: 'nowrap' }}>
-          {fechaCorta(meta.meses[0] + '-01')} – {fechaCorta(meta.corte)}
+          {/* La ventana de ESTA cuenta. Desde el 12 oct 2026 conviven dos
+              añadas —la entrega nueva mira al 12 oct, la anterior al 14 sep— y
+              el corte global ya no describe a todas. Rotular una cuenta con
+              una fecha a la que no se miró es prometer un dato que no existe. */}
+          {fechaCorta(meta.meses[0] + '-01')} – {fechaCorta(d.hasta ?? meta.corte)}
         </span>
       </div>
 
       {l.archivoViejo && (
         <p style={{ fontSize: 10, color: GRY, marginBottom: 8 }}>
-          Datos al {fechaCorta(meta.corte)}. El archivo no se ha vuelto a extraer: este módulo
-          sigue hablando de {mesLargo(meta.mesCerrado)}.
+          Datos al {fechaCorta(d.hasta ?? meta.corte)}. El archivo no se ha vuelto a extraer: este módulo
+          sigue hablando de {mesLargo(d.mesCerrado ?? meta.mesCerrado)}.
         </p>
       )}
 
@@ -140,8 +144,8 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
             : l.pctCerrado === null ? '—'
             : `${l.pctCerrado.toFixed(1)}%`}
           sub={sinVol ? 'muy pocas para medir atención'
-            : d.cerrado ? `${nf(d.cerrado.l)} de ${nf(d.cerrado.t)} · ${mesLargo(meta.mesCerrado)}`
-            : `sin entrantes en ${mesLargo(meta.mesCerrado)}`} />
+            : d.cerrado ? `${nf(d.cerrado.l)} de ${nf(d.cerrado.t)} · ${mesLargo(d.mesCerrado ?? meta.mesCerrado)}`
+            : `sin entrantes en ${mesLargo(d.mesCerrado ?? meta.mesCerrado)}`} />
         <Kpi icon={TrendingUp} label="Contra sí misma" color={kcol}
           value={l.delta === null ? '—' : `${l.delta >= 0 ? '+' : ''}${l.delta.toFixed(1)} pts`}
           sub={l.delta === null ? 'base insuficiente' : `su base previa: ${l.pctBase!.toFixed(1)}%`} />
@@ -298,12 +302,21 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
 
       {/* Pie de método */}
       <p style={{ fontSize: 9, color: GRY, lineHeight: 1.6, margin: '11px 0 0', paddingTop: 9, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {meta.fuente} · {nf(meta.entTotal + meta.salTotal)} llamadas del {fechaCorta(meta.meses[0] + '-01')} al {fechaCorta(meta.corte)} · {meta.cuentas} de 220 cuentas con asesor.
-        Esta cuenta viene de la entrega de{' '}
+        {/* LOS NÚMEROS SALEN DE `meta`, NO ESCRITOS A MANO. Aquí decía «148 de
+            las 219» y «dos extracciones distintas»: dejó de ser verdad en
+            cuanto entró la tercera entrega, y un pie de método que miente es
+            peor que no tenerlo, porque es justo lo que alguien lee cuando
+            duda de la cifra de arriba. */}
+        {meta.fuente} · {nf(meta.entTotal + meta.salTotal)} llamadas del {fechaCorta(meta.meses[0] + '-01')} al {fechaCorta(meta.corte)} · {meta.cuentas} cuentas con lectura.
+        Esta cuenta viene de la entrega{' '}
         <strong style={{ color: 'rgba(255,255,255,0.6)' }}>
-          {d.corte === '0-40' ? 'clientes con consumo de 0 a 40% de su plan' : 'clientes con consumo mayor al 40% de su plan'}
-        </strong>. Son dos extracciones distintas que juntas cubren 148 de las 219 cuentas con asesor
-        y CID: las otras 71 no tienen lectura.
+          {d.corte === '0-40' ? 'de clientes con consumo de 0 a 40% de su plan'
+            : d.corte === '40+' ? 'de clientes con consumo mayor al 40% de su plan'
+            : d.corte === 'oct-2026' ? 'de octubre de 2026'
+            : `«${d.corte}»`}
+        </strong>, mirada hasta el {fechaCorta(d.hasta ?? meta.corte)}. Las entregas tienen
+        ventanas distintas: por eso el silencio y el mes cerrado de esta cuenta se miden
+        contra SU corte y no contra el del tablero.
         «Sin contestar» = entró la llamada y ninguna extensión la tomó; las resueltas por el menú NO
         cuentan como falla. Los porcentajes son de entrantes y nunca se suman con los de marcación saliente.
         El {meta.baseEnt}% general es la <strong style={{ color: 'rgba(255,255,255,0.6)' }}>línea base de lo medido</strong>, no

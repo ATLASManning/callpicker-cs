@@ -37,13 +37,27 @@ from _fuentes import ruta
 ARCH = r"D:\Archivos"
 SALIDA = r"D:\Windows\Projects\callpicker-cs\data\analisis-llamadas.json"
 
+# ── FUSIONA, NO REEMPLAZA ─────────────────────────────────────────────────
+#
+# Lo mismo que en `gen-llamadas-data.py`, y por el mismo motivo: los archivos
+# de las entregas anteriores ya no estan en disco, asi que reescribir la
+# salida borraria la lectura de 144 cuentas sin forma de recuperarla.
+#
+# Y aqui importa MAS que en el otro generador: este archivo lo lee
+# `lib/llamadas-resumen.ts`, de donde sale `tieneLlamadas` — el campo que
+# decide si el motor de alertas le pide al cliente su Excel de llamadas.
+# Perderlo mandaria a 144 cuentas a pedir un archivo que ya tenemos, que es
+# exactamente el defecto que direccion señalo en GRUPO FRISA el 12 oct 2026.
+FUSIONA = True
+
 FUENTES = [
-    ('Llamadas_entrantes_Clientes_AAA_Poco_Consumo_Actualizado.xlsx', 'ent', '0-40'),
-    ('Llamadas Salientes Clientes AAA Poco Consumo.xlsx',             'sal', '0-40'),
-    ('Entrantes Mayor consumo 40 Parte 1.xlsx',                       'ent', '40+'),
-    ('Entrantes Mayor consumo 40 Parte 2.xlsx',                       'ent', '40+'),
-    ('Entrantes Mayor consumo 40 Parte 3.xlsx',                       'ent', '40+'),
-    ('Salientes Mayor consumo 40 Parte 1.xlsx',                       'sal', '40+'),
+    # Entrega de octubre 2026. La «3ra Parte (1)» NO entra: mismo sha1 que la
+    # «3ra Parte». Ver la cabecera de `sonda-llamadas-nuevas.py`.
+    ('Llamadas Entrantes CIDs particulares.xlsx', 'ent', 'oct-2026'),
+    ('Llamadas Salientes 1ra Parte.xlsx',         'sal', 'oct-2026'),
+    ('Llamadas Salientes 2da Parte.xlsx',         'sal', 'oct-2026'),
+    ('Llamadas Salientes 3ra Parte.xlsx',         'sal', 'oct-2026'),
+    ('Llamadas Salientes 4ta Parte.xlsx',         'sal', 'oct-2026'),
 ]
 
 SIN_DESTINO = '(sin destino registrado)'
@@ -292,6 +306,27 @@ for cid, v in D.items():
             'desde': s['desde'], 'hasta': s['hasta'],
         } if s['tipos'] else None,
     }
+
+# ── LA FUSION ─────────────────────────────────────────────────────────────
+#
+# Lo que esta corrida no vio se conserva tal cual. Sus ventanas ya van por
+# cuenta en `ent.hasta` / `sal.hasta`, asi que no hace falta sellarlas: cada
+# registro conservado ya dice hasta cuando se le miro, y `META['corte']` se
+# deriva del maximo, que a partir de hoy es el de la entrega nueva.
+conservados = 0
+if FUSIONA and os.path.exists(SALIDA):
+    try:
+        anterior = json.load(io.open(SALIDA, encoding='utf-8'))
+    except ValueError:
+        raise SystemExit('%s existe pero no es JSON valido. No se fusiona a '
+                         'ciegas: revisalo o borralo a proposito.' % SALIDA)
+    for cid, reg in (anterior.get('cuentas') or {}).items():
+        if cid in cuentas:
+            continue       # la entrega nueva manda: su ventana es mas ancha
+        cuentas[cid] = reg
+        conservados += 1
+    print('\nfusion: %d cuenta(s) conservadas de la entrega anterior '
+          '(corte %s)' % (conservados, (anterior.get('meta') or {}).get('corte')))
 
 todas = [x for c in cuentas.values() for d in (c['ent'], c['sal']) if d for x in (d['desde'], d['hasta']) if x]
 meses = sorted({m for c in cuentas.values() for d in (c['ent'], c['sal']) if d for m in d['meses']})

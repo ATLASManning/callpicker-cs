@@ -80,8 +80,35 @@ export interface LlamadasCuenta {
   cid: string
   empresa: string
   norm: string
-  /** De qué entrega vino: '0-40' (consumo de 0 a 40% del plan) o '40+'. */
+  /** De qué entrega vino: '0-40', '40+' o 'oct-2026'. */
   corte: string
+  /**
+   * HASTA CUÁNDO SE MIRÓ ESTA CUENTA. «YYYY-MM-DD».
+   *
+   * No es su última llamada —eso es `ultima`— sino el fin de la ventana del
+   * archivo que la alimentó. La diferencia es justo el silencio.
+   *
+   * Existe porque desde el 12 oct 2026 el tablero convive con DOS añadas: la
+   * entrega vieja corta el 14 sep y la nueva el 12 oct. Con un corte global
+   * único, las 143 cuentas de la entrega vieja habrían aparecido con hasta 28
+   * días de silencio inventado, y varias habrían cruzado el umbral de 30 que
+   * las declara «en silencio». Medir contra una fecha a la que no se miró es
+   * exactamente colapsar «no medido» a «no pasó».
+   *
+   * `undefined` en registros anteriores a este campo: ahí se cae a
+   * `LlamadasMeta.corte`, que es lo que había.
+   */
+  hasta?: string
+  /**
+   * El último mes COMPLETO de esta cuenta. «YYYY-MM».
+   *
+   * Mismo motivo: una cuenta mirada hasta el 12 oct tiene septiembre cerrado;
+   * una mirada hasta el 14 sep, no. Publicar «en septiembre quedaron sin
+   * contestar N» sobre una cuenta cuyo septiembre está a medias es inventar
+   * un mes. `cerrado` y `base` se calculan contra ESTE mes, no contra el
+   * global.
+   */
+  mesCerrado?: string
   ent: {
     total: number; lost: number
     meses: Record<string, MesEntrantes>
@@ -443,7 +470,22 @@ export function leerLlamadas(
   const delta = comparable && pctCerrado !== null && pctBase !== null ? pctCerrado - pctBase : null
 
   const confirmar = destinoPorConfirmar(d)
-  const diasSinLlamada = d.ultima ? diasEntre(d.ultima, meta.corte) : null
+  /* ── EL SILENCIO SE MIDE CONTRA EL CORTE DE *ESTA* CUENTA ───────────────
+   *
+   * `meta.corte` es el corte GLOBAL, y desde el 12 oct 2026 ya no describe a
+   * todas: la entrega nueva mira hasta el 12 oct y las 143 cuentas que vienen
+   * de la entrega anterior, hasta el 14 sep. Midiendo todo contra el global,
+   * esas 143 habrían aparecido con hasta 28 días de silencio que nadie
+   * observó, y las que ya llevaban 3 o más habrían cruzado el umbral de 30
+   * que las declara «EN SILENCIO» — la primera de las precedencias, la que
+   * pesa más que cualquier porcentaje.
+   *
+   * Inventar silencio es peor que no medirlo: manda a llamar a un cliente
+   * diciéndole que lleva un mes sin usar el servicio cuando lo usó ayer.
+   *
+   * `?? meta.corte` para los registros anteriores al campo. */
+  const corteSuyo = d.hasta ?? meta.corte
+  const diasSinLlamada = d.ultima ? diasEntre(d.ultima, corteSuyo) : null
 
   // Precedencia. Un teléfono que dejó de sonar pesa más que cualquier porcentaje.
   let veredicto: VeredictoLlamadas
@@ -473,7 +515,10 @@ function portada(
   pct: number | null, base: number | null, delta: number | null,
   conf: DestinoLlamadas | null, dias: number | null,
 ): string {
-  const mes = mesLargo(meta.mesCerrado)
+  /* El mes cerrado de ESTA cuenta, no el global: una mirada hasta el 14 sep
+     no tiene septiembre cerrado y publicar «en septiembre quedaron sin
+     contestar N» sobre un mes a medias es inventar el mes. */
+  const mes = mesLargo(d.mesCerrado ?? meta.mesCerrado)
   const c = d.cerrado
   if (v === 'en_silencio' && d.ultima) {
     return `Esta cuenta dejó de registrar llamadas el ${fechaCorta(d.ultima)}: ${dias} días sin una sola, ` +
@@ -522,7 +567,7 @@ function queDecir(
              `qué esperaban del servicio y qué están usando en realidad.`)
   } else if (c && pct !== null && (v === 'llama' || v === 'vigilar')) {
     const ex = excesoDelMes(d)
-    out.push(`En ${mesLargo(meta.mesCerrado)} quedaron sin contestar ${n(c.l)} de ${n(c.t)} llamadas ` +
+    out.push(`En ${mesLargo(d.mesCerrado ?? meta.mesCerrado)} quedaron sin contestar ${n(c.l)} de ${n(c.t)} llamadas ` +
              `entrantes: ${Math.round(pct)} de cada 100.` +
              (ex !== null && ex > 0
                ? ` Son ${n(ex)} llamadas más de las que esta cuenta normalmente pierde.`
@@ -547,14 +592,30 @@ function queDecir(
   return out.slice(0, 3)
 }
 
-/** Serie mensual lista para la gráfica, con el mes parcial marcado. */
+/**
+ * Serie mensual lista para la gráfica, con el mes parcial marcado.
+ *
+ * ── LOS MESES SON LOS DE *ESTA* CUENTA ────────────────────────────────────
+ *
+ * `meta.meses` es la unión de todas las ventanas, y desde que conviven dos
+ * añadas (12 oct 2026) esa unión le sobra a casi todas. Una cuenta mirada
+ * hasta el 14 sep no tiene octubre, y dibujarle una barra de octubre en cero
+ * diría que ese mes no recibió llamadas — cuando lo que pasa es que nadie
+ * miró. Ver [[feedback-cero-sin-medicion]].
+ *
+ * Así que la serie se recorta al corte de la cuenta, y el mes parcial y su
+ * rótulo «Sep 1–14» salen de SU fecha, no de la global.
+ */
 export function serieMensual(d: LlamadasCuenta, meta: LlamadasMeta) {
-  return meta.meses.map(m => {
+  const corte = d.hasta ?? meta.corte
+  const cerrado = d.mesCerrado ?? meta.mesCerrado
+  const hastaMes = corte.slice(0, 7)
+  return meta.meses.filter(m => m <= hastaMes).map(m => {
     const v = d.ent?.meses[m]
-    const parcial = m > meta.mesCerrado
+    const parcial = m > cerrado
     return {
       mes: m,
-      label: parcial ? `${mesCorto(m)} 1–${parseInt(meta.corte.slice(8), 10)}` : mesCorto(m),
+      label: parcial ? `${mesCorto(m)} 1–${parseInt(corte.slice(8), 10)}` : mesCorto(m),
       parcial,
       t: v?.t ?? 0, l: v?.l ?? 0, r: v?.r ?? 0, s: v?.s ?? 0, v: v?.v ?? 0,
       pct: v && v.t > 0 ? (100 * v.l) / v.t : null,

@@ -42,15 +42,49 @@ from _fuentes import ruta
 ARCH = r"D:\Archivos"
 SALIDA = r"D:\Windows\Projects\callpicker-cs\app\cuentas\llamadas-data.ts"
 
+# ── FUSIONA, NO REEMPLAZA ─────────────────────────────────────────────────
+#
+# Con `FUSIONA`, los CID que YA estan en `llamadas-data.ts` y que esta corrida
+# no vuelve a ver se CONSERVAN tal cual.
+#
+# No es una comodidad: es lo unico correcto aqui. Medido el 12 oct 2026 con
+# `scripts/mide-cobertura-llamadas-nueva.py`, la entrega nueva trae 67 CIDs y
+# la base tiene 162. Correr el generador como siempre —reescribiendo todo—
+# dejaria la cobertura en 42 cuentas y **143 cuentas perderian su lectura,
+# $1,202,271 al mes**. Fusionando sube de 147 a 185.
+#
+# Y los archivos viejos YA NO ESTAN en disco, asi que no hay forma de
+# recalcularlos: conservarlos es la unica via.
+#
+# Instruccion de direccion, 12 oct 2026: «si hay alguna que ya existe solo
+# omite y continua».
+#
+# Se cumple en lo que esa frase protege —no duplicar, no romper lo que ya
+# funciona— pero con UNA desviacion, dicha en voz alta: los 4 CID que vienen
+# en las dos entregas se reescriben con la NUEVA, no se omiten. La razon es
+# que la ventana nueva es un superconjunto estricto de la vieja: las dos
+# arrancan el 1 ene 2026 y la nueva llega al 12 oct en vez de al 14 sep.
+# Omitirlos dejaria a esas cuatro cuentas un mes atrasadas teniendo el dato
+# en la mano, que es la unica forma de que esta carga empeore algo.
+FUSIONA = True
+
 # (archivo, direccion, corte)
+#
+# Entrega de octubre 2026. Las anteriores —«Clientes AAA Poco Consumo» y
+# «Mayor consumo 40»— ya no estan en disco; sus cuentas sobreviven por
+# `FUSIONA`.
+#
+# «Llamadas Salientes 3ra Parte (1).xlsx» NO entra: es copia byte a byte de
+# la «3ra Parte» —mismo sha1 `02d03a625c0b2bef`, mismas 840,939 filas, mismos
+# 5 CIDs—. El «(1)» es el sufijo que pone Windows al descargar dos veces.
+# Sumarla habria duplicado cada llamada saliente de esos 5 CIDs, que es
+# exactamente lo que ya paso con la «Parte 2» de la entrega anterior.
 FUENTES = [
-    ('Llamadas_entrantes_Clientes_AAA_Poco_Consumo_Actualizado.xlsx', 'ent', '0-40'),
-    ('Llamadas Salientes Clientes AAA Poco Consumo.xlsx',             'sal', '0-40'),
-    ('Entrantes Mayor consumo 40 Parte 1.xlsx',                       'ent', '40+'),
-    ('Entrantes Mayor consumo 40 Parte 2.xlsx',                       'ent', '40+'),
-    ('Entrantes Mayor consumo 40 Parte 3.xlsx',                       'ent', '40+'),
-    ('Salientes Mayor consumo 40 Parte 1.xlsx',                       'sal', '40+'),
-    # 'Salientes Mayor consumo 40 Parte 2.xlsx' — copia exacta de la Parte 1.
+    ('Llamadas Entrantes CIDs particulares.xlsx', 'ent', 'oct-2026'),
+    ('Llamadas Salientes 1ra Parte.xlsx',         'sal', 'oct-2026'),
+    ('Llamadas Salientes 2da Parte.xlsx',         'sal', 'oct-2026'),
+    ('Llamadas Salientes 3ra Parte.xlsx',         'sal', 'oct-2026'),
+    ('Llamadas Salientes 4ta Parte.xlsx',         'sal', 'oct-2026'),
 ]
 
 SIN_DESTINO = '(sin destino registrado)'
@@ -332,6 +366,13 @@ for cid in sorted(DATOS):
     salida[cid] = {
         'cid': cid, 'empresa': emp, 'norm': norma(emp),
         'corte': sorted(v['cortes'])[0] if v['cortes'] else '',
+        # HASTA CUANDO SE MIRO ESTA CUENTA, y cual es su ultimo mes COMPLETO.
+        # Van por cuenta y no solo en `meta` porque desde el 12 oct 2026
+        # conviven dos añadas: la vieja corta el 14 sep y esta el 12 oct. Con
+        # un corte global unico, las 143 cuentas conservadas aparecerian con
+        # hasta 28 dias de silencio inventado y varias cruzarian el umbral de
+        # 30 que las declara «en silencio». Ver `LlamadasCuenta.hasta`.
+        'hasta': CORTE, 'mesCerrado': MES_CERRADO,
         'ent': ({'total': e['total'], 'lost': e['lost'], 'meses': me,
                  'dow':  [e['dow'].get(i, 0) for i in range(7)],
                  'dowL': [e['dowL'].get(i, 0) for i in range(7)],
@@ -346,10 +387,63 @@ for cid in sorted(DATOS):
         'ultima': max([x for x in (e['hasta'], s['hasta']) if x], default=None),
     }
 
+# ── LA FUSION ─────────────────────────────────────────────────────────────
+#
+# Lo que esta corrida NO vio se conserva. Ver `FUSIONA` arriba para por que es
+# lo unico correcto: los archivos de las entregas anteriores ya no estan en
+# disco, asi que reescribir la salida borraria 143 cuentas sin forma de
+# recuperarlas.
+#
+# A los registros conservados se les PONE `hasta` y `mesCerrado` con los
+# valores de la meta vieja. Dejarlos sin el campo los haria caer al corte
+# global —que ahora es octubre— y eso es justo el silencio inventado que este
+# campo existe para evitar.
+conservados = 0
+if FUSIONA and os.path.exists(SALIDA):
+    viejo = io.open(SALIDA, encoding='utf-8').read()
+    mm = re.search(r'export const LLAMADAS_META: LlamadasMeta = (\{.*?\})\n', viejo)
+    metaVieja = json.loads(mm.group(1)) if mm else {}
+    corteViejo = metaVieja.get('corte')
+    mesViejo = metaVieja.get('mesCerrado')
+    # El objeto va con UNA CUENTA POR LINEA, asi que se lee linea a linea en
+    # vez de parsear 300 KB de TypeScript.
+    for linea in viejo.split('\n'):
+        m = re.match(r'\s*"([^"]+)":\s*(\{.*\}),\s*$', linea)
+        if not m:
+            continue
+        cid, cuerpo = m.group(1), m.group(2)
+        if cid in salida:
+            continue           # la entrega nueva manda: ventana superconjunto
+        try:
+            reg = json.loads(cuerpo)
+        except ValueError:
+            print('  !! no pude leer el registro conservado %s' % cid)
+            continue
+        reg.setdefault('hasta', corteViejo)
+        reg.setdefault('mesCerrado', mesViejo)
+        salida[cid] = reg
+        conservados += 1
+    print('\nfusion: %d registro(s) conservados de la entrega anterior '
+          '(corte %s)' % (conservados, corteViejo))
+
+    # Y los que vienen en las DOS: direccion dijo «si hay alguna que ya existe
+    # solo omite y continua», asi que se queda la lectura vieja. Se nombran
+    # para que la decision se vea, en vez de desaparecer dentro del conteo.
+    repetidos = sorted(set(re.findall(r'\s*"([^"]+)":\s*\{', viejo)) & set(DATOS))
+    if repetidos:
+        print('       %d CID(s) venian en las dos entregas y se '
+              'REESCRIBIERON con la nueva: %s' % (len(repetidos), ', '.join(repetidos)))
+
 META = {
     'corte': CORTE, 'mesCerrado': MES_CERRADO, 'baseFin': BASE_FIN, 'meses': MESES,
     'cuentas': len(salida),
-    'fuente': 'Llamadas entrantes y salientes de Callpicker — dos entregas: clientes con consumo de 0 a 40% de su plan y el resto de la cartera medida',
+    # El rótulo se DERIVA de los cortes que de verdad hay. Estaba escrito a
+    # mano —«dos entregas: clientes con consumo de 0 a 40%…»— y dejó de ser
+    # verdad en cuanto entró la tercera. Un pie de método que miente es peor
+    # que ninguno: es lo que alguien lee justo cuando duda de la cifra.
+    'fuente': 'Llamadas entrantes y salientes de Callpicker · %d entrega(s): %s'
+              % (len(set(v['corte'] for v in salida.values())),
+                 ', '.join(sorted(set(v['corte'] for v in salida.values() if v['corte'])))),
     'entTotal': sum(v['ent']['total'] for v in salida.values() if v['ent']),
     'entLost':  sum(v['ent']['lost']  for v in salida.values() if v['ent']),
     'salTotal': sum(v['sal']['total'] for v in salida.values() if v['sal']),

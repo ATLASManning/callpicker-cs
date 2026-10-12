@@ -25,7 +25,12 @@ ARCHIVOS = r'D:\Archivos'
 
 #: Subcarpetas donde buscar, en orden. La cadena vacía es `ARCHIVOS` mismo.
 #: Añadir aquí cuando dirección reorganice, en vez de editar los generadores.
-SUBCARPETAS = ['', 'Análisis de Llamadas Dashboard', 'GRC', 'Callpicker']
+#: `llamadas-oct2026` entra el 12 oct 2026 con la entrega de llamadas de ese
+#: mes. Va en su propia carpeta y no suelta en `D:\Archivos` porque son cinco
+#: archivos de ~40 MB que conviven con los de entregas anteriores y sus
+#: nombres —«1ra Parte», «3ra Parte»— no dicen de qué entrega son.
+SUBCARPETAS = ['', 'llamadas-oct2026', 'Análisis de Llamadas Dashboard',
+               'GRC', 'Callpicker']
 
 
 def ruta(nombre, base=ARCHIVOS, subcarpetas=None):
