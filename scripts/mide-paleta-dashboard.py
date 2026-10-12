@@ -506,6 +506,9 @@ TEMA = os.path.join(RAIZ, 'lib', 'chart-theme.ts')
 # Los del rediseño. Se amplía conforme se migran los demás componentes.
 VIGILADOS = [
     os.path.join(RAIZ, 'lib', 'chart-theme.ts'),
+    os.path.join(RAIZ, 'lib', 'dash-filtros.tsx'),
+    os.path.join(RAIZ, 'components', 'charts', 'ChartCard.tsx'),
+    os.path.join(RAIZ, 'components', 'charts', 'primitivos.tsx'),
 ]
 _tema_txt = io.open(TEMA, encoding='utf-8').read() if os.path.exists(TEMA) else u''
 PERMITIDOS = {h.upper() for h in re.findall(r'#[0-9a-fA-F]{6}\b', _tema_txt)}

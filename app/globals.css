@@ -480,3 +480,47 @@ body {
 
 /* El contenido de la aplicación va por encima del fondo. */
 .cp-sobre-fondo { position: relative; z-index: 1; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DASHBOARD REDISEÑADO (oct 2026)
+   Lo mínimo que no se puede hacer con estilos en línea: keyframes, `:focus-
+   visible` y la consulta de movimiento reducido. Todo lo demás vive en
+   `lib/chart-theme.ts`.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Esqueletos de carga. Se eligieron sobre una rueda giratoria porque la rueda
+   no dice cuánto falta ni qué forma tendrá lo que llega: la pantalla «salta»
+   al terminar y el ojo pierde el sitio. */
+@keyframes dash-brillo {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* Entrada de las barras. El `stagger` lo pone cada barra con su `delay`. */
+@keyframes dash-entra-x {
+  from { transform: scaleX(0); opacity: 0.4; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+/* EL FOCO SE VE, Y SE VE EN NARANJA.
+   `:focus-visible` y no `:focus`: con `:focus` el anillo aparece también al
+   hacer clic con el ratón, la gente lo percibe como un defecto y acaba
+   pidiendo quitarlo — y entonces quien navega con teclado se queda sin él. */
+.dash-foco:focus-visible,
+.cp-card [tabindex]:focus-visible,
+.cp-card button:focus-visible {
+  outline: 2px solid #FF7A1A;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Quien activa «menos movimiento» suele hacerlo por mareo o vértigo, no por
+   gusto. Se quita la animación, NO el contenido: las barras aparecen ya
+   puestas, con su tamaño final. */
+@media (prefers-reduced-motion: reduce) {
+  .dash-anima,
+  .dash-anima * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
