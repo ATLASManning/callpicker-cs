@@ -33,7 +33,7 @@ function AnilloHealth({ valor }: { valor: number }) {
           strokeDasharray={`${(v / 100) * C} ${C}`} strokeLinecap="round"
           transform="rotate(-90 12 12)" />
       </svg>
-      <span style={{ fontWeight: 700, color: TEMA.TX.hi, ...TEMA.TABULAR,
+      <span style={{ fontWeight: 700, ...TEMA.TABULAR,
                      background: 'transparent' }}>{v}</span>
     </span>
   )
@@ -45,12 +45,11 @@ function AnilloHealth({ valor }: { valor: number }) {
    declarando letra clara sin superficie propia. */
 
 /* ── Paleta — igual que DashMetricasSection (sección contigua) ──────────── */
-const PANEL   = '#0F2040'
-const BORDER  = 'rgba(255,255,255,0.10)'
-const TX_HI   = '#FFFFFF'
-const TX_MID  = 'rgba(255,255,255,0.70)'
-const TX_LOW  = 'rgba(255,255,255,0.45)'
-const CYAN    = '#00B4FF'
+const PANEL   = TEMA.NAVY[700]
+const BORDER  = TEMA.BORDE
+const TX_HI   = TEMA.TX.hi
+const TX_MID  = TEMA.TX.mid
+const TX_LOW  = TEMA.TX.low
 
 export interface CuentaRank {
   id: string
@@ -79,7 +78,6 @@ type Dim =
 
 interface DimDef {
   label: string
-  color: string
   dir: 'asc' | 'desc'
   money?: boolean
   value: (r: CuentaRank) => number | null
@@ -93,55 +91,55 @@ const fmtDias = (v: number) => v >= 365 ? `${(v / 365).toFixed(1)} años` : `${v
 
 const DIMS: Record<Dim, DimDef> = {
   antiguas: {
-    label: 'Cuentas más antiguas', color: CYAN, dir: 'desc',
+    label: 'Cuentas más antiguas', dir: 'desc',
     value: r => diasDesde(r.activoDesde), fmt: fmtDias,
   },
   recientes: {
-    label: 'Cuentas más recientes', color: '#22C55E', dir: 'asc',
+    label: 'Cuentas más recientes', dir: 'asc',
     value: r => diasDesde(r.activoDesde), fmt: fmtDias,
   },
   facMayor: {
-    label: 'Mayor facturación', color: CYAN, dir: 'desc', money: true,
+    label: 'Mayor facturación', dir: 'desc', money: true,
     value: r => r.facturacion, fmt: formatMXN,
   },
   facMenor: {
-    label: 'Menor facturación', color: '#F97316', dir: 'asc', money: true,
+    label: 'Menor facturación', dir: 'asc', money: true,
     value: r => r.facturacion, fmt: formatMXN,
   },
   upsell: {
-    label: 'Mayor oportunidad upsell/cross-sell', color: '#A855F7', dir: 'desc', money: true,
+    label: 'Mayor oportunidad upsell/cross-sell', dir: 'desc', money: true,
     value: r => r.upsellValor, fmt: formatMXN,
   },
   sinMovimiento: {
-    label: 'Más días sin contacto', color: '#EF4444', dir: 'desc',
+    label: 'Más días sin contacto', dir: 'desc',
     value: r => r.diasSinContacto ?? NUNCA, fmt: v => v >= NUNCA ? 'nunca contactada' : `${v} días`,
   },
   masTickets: {
-    label: 'Más tickets', color: CYAN, dir: 'desc',
+    label: 'Más tickets', dir: 'desc',
     value: r => r.ticketsTotal, fmt: v => `${v} tickets`,
   },
   masFallas: {
-    label: 'Más fallas reportadas', color: '#EF4444', dir: 'desc',
+    label: 'Más fallas reportadas', dir: 'desc',
     value: r => r.ticketsFallas, fmt: v => `${v} fallas`,
   },
   menosTickets: {
-    label: 'Menos tickets (bajo compromiso)', color: '#94A3B8', dir: 'asc',
+    label: 'Menos tickets (bajo compromiso)', dir: 'asc',
     value: r => r.ticketsTotal, fmt: v => `${v} tickets`,
   },
   healthBajo: {
-    label: 'Menor Health Score (mayor riesgo)', color: '#EF4444', dir: 'asc',
+    label: 'Menor Health Score (mayor riesgo)', dir: 'asc',
     value: r => r.healthScore, fmt: v => `${Math.round(v)} pts`,
   },
   healthAlto: {
-    label: 'Mayor Health Score (casos de éxito)', color: '#22C55E', dir: 'desc',
+    label: 'Mayor Health Score (casos de éxito)', dir: 'desc',
     value: r => r.healthScore, fmt: v => `${Math.round(v)} pts`,
   },
   adopcionBaja: {
-    label: 'Menor adopción de producto', color: '#F97316', dir: 'asc',
+    label: 'Menor adopción de producto', dir: 'asc',
     value: r => r.adopcionPct, fmt: v => `${Math.round(v)}%`,
   },
   perfilIncompleto: {
-    label: 'Perfil más incompleto', color: '#EAB308', dir: 'desc',
+    label: 'Perfil más incompleto', dir: 'desc',
     value: r => r.faltantesCount, fmt: v => `${v} datos faltantes`,
   },
 }
@@ -426,7 +424,7 @@ export default function TopCuentasVersatil({ data }: Props) {
                       <td style={{ padding: '7px 10px', color: TX_LOW }}>{i + 1}</td>
                       <td style={{ padding: '7px 10px' }}>
                         <Link href={`/cuentas/${r.id}`} style={{ textDecoration: 'none' }}>
-                          <span style={{ fontFamily: 'monospace', fontSize: 10, color: '#60A5FA', marginRight: 6 }}>
+                          <span style={{ fontFamily: 'monospace', fontSize: 10, marginRight: 6 }}>
                             {r.consecutivo}
                           </span>
                           <span style={{ color: TX_HI, fontWeight: 600 }}>{r.empresa}</span>

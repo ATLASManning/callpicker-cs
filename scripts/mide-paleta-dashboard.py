@@ -509,6 +509,8 @@ VIGILADOS = [
     os.path.join(RAIZ, 'lib', 'dash-filtros.tsx'),
     os.path.join(RAIZ, 'components', 'charts', 'ChartCard.tsx'),
     os.path.join(RAIZ, 'components', 'charts', 'primitivos.tsx'),
+    os.path.join(RAIZ, 'components', 'DashAlertasGraficas.tsx'),
+    os.path.join(RAIZ, 'components', 'TopCuentasVersatil.tsx'),
 ]
 _tema_txt = io.open(TEMA, encoding='utf-8').read() if os.path.exists(TEMA) else u''
 PERMITIDOS = {h.upper() for h in re.findall(r'#[0-9a-fA-F]{6}\b', _tema_txt)}
@@ -523,6 +525,15 @@ for ruta in VIGILADOS:
     if os.path.abspath(ruta) == os.path.abspath(TEMA):
         continue          # el tema ES donde se declaran
     txt = io.open(ruta, encoding='utf-8').read()
+    # UN HEX DENTRO DE UN COMENTARIO NO ES UN COLOR EN USO.
+    # Estos archivos documentan en prosa por qué la paleta ANTERIOR era como
+    # era —«`#F97316` resultó ser exactamente el de Claudia»— y esa historia
+    # es justo lo que evita que alguien repita el error. Acusarla obligaría a
+    # borrarla, o a inventar una excepción; y una excepción en un detector
+    # acaba siendo la que alguien usa para callarlo de verdad. Se quitan los
+    # comentarios CONSERVANDO los saltos de línea, para no mover los números.
+    txt = re.sub(r'/\*[\s\S]*?\*/|//[^\n]*',
+                 lambda m: re.sub(r'[^\n]', ' ', m.group(0)), txt)
     for m in RX_HEX.finditer(txt):
         h = ('#' + m.group(1)).upper()
         if h not in PERMITIDOS:
