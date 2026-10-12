@@ -45,8 +45,13 @@
  * las 192 cuentas vivas, y pintarlas como `0d` las manda al final de cualquier
  * orden por urgencia — justo las que más falta hacen.
  */
-import { supabaseAdmin, traerPorPaginas } from './supabase'
+import { supabaseAdmin, traerPorPaginas, esTablaInexistente } from './supabase'
 import { ahoraEnMexico, fechaLocal } from './fecha-local'
+/* La regla de qué reunión es CON el cliente vive en un solo sitio y la
+   importan el formulario, la API y —desde el 12 oct— este reloj. Copiar
+   `tipo === 'cliente'` aquí sería volver a sembrar el bug que ese archivo
+   documenta. */
+import { esConElCliente } from './reuniones-tipo'
 
 /** «YYYY-MM-DD» de un valor que puede ser `date` o `timestamptz`.
  *
@@ -224,6 +229,66 @@ export async function ultimoContactoEfectivoPorCuenta(): Promise<Map<string, str
        declarar «nunca» sobre una llamada que existió. Se intenta primero la
        buena por si algún día empieza a llenarse. */
     anotar(a.cuenta_id, diaDe(a.completada_en) ?? diaDe(a.fecha_programada))
+  }
+
+  /* ── `reuniones` ENTRA COMO CUARTA FUENTE (12 oct 2026) ─────────────────
+   *
+   * Es exactamente el mismo defecto que arregló la entrada de `actividades`,
+   * repetido una vez más: hay DOS caminos para el hecho «hablamos con el
+   * cliente» —un seguimiento de tipo `reunion` y el módulo Reuniones— y sólo
+   * el primero contaba. El módulo Reuniones escribe en su propia tabla, que
+   * este reloj nunca abría.
+   *
+   * MEDIDO el 12 oct 2026 con `scripts/mide-reunion-vs-silencio.py`:
+   * 15 reuniones de tipo `cliente` sobre 11 cuentas, $597,111 al mes, con
+   * fecha POSTERIOR al último contacto que este reloj reconocía. Siete de
+   * esas cuentas traían una alerta de silencio que mentía:
+   *
+   *   GRUPO TORRES CORZO        «nunca contactada»  · Dan se sentó con ellos
+   *                                                   hace 38 días
+   *   ETICKET                   «nunca contactada»  · reunión hace 77
+   *   REJAMEX, Cintas Cove,     «nunca contactada»  · reunión hace 27
+   *     Supreme Resources
+   *   Polak Grupo               «72 días»           · reunión hace 10
+   *   KIVA                      «49 días»           · reunión hace 13
+   *
+   * Decirle a un ejecutivo que no ha contactado una cuenta con la que se
+   * reunió, y que además capturó la reunión, es la forma más rápida de que
+   * deje de creerle al tablero.
+   *
+   * ── SÓLO LAS DE TIPO `cliente` ─────────────────────────────────────────
+   *
+   * `esConElCliente` es la regla, y no es un tecnicismo: una junta de
+   * estrategia SOBRE una cuenta es contexto real —vive en la ficha— pero el
+   * cliente no estuvo en la sala, así que no es contacto. La primera medición
+   * de esto no los separaba y contaba 18 reuniones sobre 12 cuentas; tres
+   * eran internas, y una de ellas —Renault, que el tablero da por 84 días en
+   * silencio— habría quedado marcada como contactada por una sesión nuestra.
+   *
+   * Y la cuenta tiene que estar vinculada: 54 de las 89 reuniones no lo
+   * están, y ésas no alimentan nada aquí ni en ningún otro sitio.
+   */
+  let reuniones: Array<{ cuenta_id: string | null; fecha: string | null
+                         tipo: string | null }> = []
+  try {
+    reuniones = await traerPorPaginas<{ cuenta_id: string | null
+                                        fecha: string | null; tipo: string | null }>(
+      (desde, hasta) => supabaseAdmin
+        .from('reuniones')
+        .select('cuenta_id, fecha, tipo')
+        .range(desde, hasta),
+    )
+  } catch (e) {
+    /* La tabla puede no existir todavía en un entorno recién migrado. Que
+       falte NO puede tumbar el reloj entero: se sigue con las otras tres
+       fuentes, que es exactamente lo que había hasta hoy. */
+    if (!esTablaInexistente(e)) throw e
+  }
+
+  for (const r of reuniones) {
+    if (!r.cuenta_id) continue
+    if (!esConElCliente(r.tipo)) continue
+    anotar(r.cuenta_id, diaDe(r.fecha))
   }
 
   return mapa
