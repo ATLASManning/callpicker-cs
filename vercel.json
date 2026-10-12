@@ -5,6 +5,10 @@
   "installCommand": "npm install",
   "crons": [
     {
+      "path": "/api/cron/sellar-alertas",
+      "schedule": "0 12 * * *"
+    },
+    {
       "path": "/api/cron/snapshot-prediccion",
       "schedule": "0 13 * * 1"
     },
