@@ -306,18 +306,48 @@ export default async function DashboardPage() {
       {/* ── Banners fichas pendientes ────────────────────────────────────── */}
       {(kpis.faltaTC > 0 || kpis.faltaHS > 0) && (
         <div className="mx-6 mb-4 flex flex-wrap gap-3">
-          {kpis.faltaTC > 0 && (
-            <Link href="/cuentas?warning=FALTA_TC" className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold"
-              style={{ border: '1px solid rgba(249,115,22,0.45)', background: 'rgba(249,115,22,0.12)', color: '#C2410C' }}>
-              <AlertCircle size={14} /> {kpis.faltaTC} cuentas sin ficha Top Customer
+          {/* ESTOS DOS CHIPS NO LLEGABAN A AA, Y NO ERA COSA DEL REDISEÑO:
+              venían así. Medido el 12 oct 2026, cada uno contra su fondo
+              COMPUESTO —el chip semitransparente mezclado sobre el #EFF6FF de
+              la página, que es lo que de verdad se ve—:
+
+                naranja #C2410C sobre el chip al 12%  ->  4.22:1   ✗
+                ámbar   #B45309 sobre el chip al 14%  ->  4.25:1   ✗
+
+              Y teñirlos con el naranja del tema lo empeora: el naranja-700
+              sobre esos mismos chips da 3.52 y 3.46. El problema no es el
+              tono, es pintar TEXTO de color sobre un fondo de color.
+
+              Así que el chip deja de teñir el texto. La página es clara, el
+              chip es blanco, y el aviso lo llevan el BORDE y el ICONO, que son
+              objetos gráficos y les basta 3:1. Medido:
+
+                navy-900 sobre blanco                -> 16.52:1   ✓ (texto)
+                naranja-700 sobre blanco             ->  4.27:1   ✓ (objeto)
+
+              El naranja-500 NO vale aquí: sobre blanco mide 2.61:1. Es un
+              acento de fondo oscuro. Ver `ACENTO` vs `ACENTO_CLARO` en el
+              tema.
+
+              Los dos chips quedan del mismo color a propósito: los dos dicen
+              «falta un dato», y pintarlos distinto insinuaba una diferencia
+              de gravedad que no existe. */}
+          {([
+            [kpis.faltaTC, 'FALTA_TC', `${kpis.faltaTC} cuentas sin ficha Top Customer`],
+            [kpis.faltaHS, 'FALTA_HS', `${kpis.faltaHS} cuentas sin Health Score Callpicker`],
+          ] as const).filter(([n]) => n > 0).map(([, clave, texto]) => (
+            <Link key={clave} href={`/cuentas?warning=${clave}`}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold dash-foco"
+              style={{
+                border: `1px solid ${TEMA.ACENTO_CLARO}`,
+                background: TEMA.TARJETA_CLARA,
+                color: TEMA.TX_PAGINA.hi,
+                minHeight: TEMA.MINIMOS.areaClic,
+              }}>
+              <AlertCircle size={14} style={{ color: TEMA.ACENTO_CLARO, flexShrink: 0 }} />
+              {texto}
             </Link>
-          )}
-          {kpis.faltaHS > 0 && (
-            <Link href="/cuentas?warning=FALTA_HS" className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold"
-              style={{ border: '1px solid rgba(234,179,8,0.45)', background: 'rgba(234,179,8,0.14)', color: '#B45309' }}>
-              <AlertCircle size={14} /> {kpis.faltaHS} cuentas sin Health Score Callpicker
-            </Link>
-          )}
+          ))}
         </div>
       )}
 

@@ -516,6 +516,14 @@ VIGILADOS = [
     os.path.join(RAIZ, 'components', 'charts', 'SaludCarteraChart.tsx'),
     os.path.join(RAIZ, 'components', 'charts', 'BarraFiltros.tsx'),
     os.path.join(RAIZ, 'components', 'CandidatoA.tsx'),
+    # La PORTADA. Entra ahora porque ya no le queda ni un color suelto: cero
+    # hex y cero rgba fuera del tema. Los últimos eran los dos chips de «falta
+    # ficha», que no llegaban a AA y venían así de antes del rediseño.
+    os.path.join(RAIZ, 'app', 'page.tsx'),
+    # `TopRiesgoTable` NO entra aquí, y es a propósito: lo comparten el
+    # Dashboard oscuro y las pantallas claras, así que sus 23 literales son su
+    # paleta CLARA y son legítimos. Su rama oscura la vigila
+    # `revisa-rama-oscura.py`, que mira sólo esa mitad.
 ]
 _tema_txt = io.open(TEMA, encoding='utf-8').read() if os.path.exists(TEMA) else u''
 PERMITIDOS = {h.upper() for h in re.findall(r'#[0-9a-fA-F]{6}\b', _tema_txt)}
