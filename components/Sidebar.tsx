@@ -34,19 +34,33 @@ function isGroup(e: NavEntry): e is NavGroup { return 'group' in e }
 
 const NAV_ENTRADAS: NavEntry[] = [
   // ── Grupo: Asesores ──────────────────────────────────────────────────────
+  // «Perfil del Rol» entra aquí por instrucción de dirección (12 oct 2026):
+  // «intégralo al apartado de Asesores, que quede dentro de su apartado».
+  //
+  // Va de TERCERO, por la misma razón que la auditoría dentro de Cuentas:
+  // «Panel Asesores» y «Seguimiento» son las dos pantallas de TRABAJO y se
+  // leen como un par —cómo va cada uno y qué está haciendo—; el perfil no es
+  // una tercera pantalla de trabajo, es la referencia que define en qué
+  // consiste el puesto. Se consulta, no se opera.
+  //
+  // La RUTA no se mueve. `/perfil-rol` la cita `lib/actividades/cierre.ts` en
+  // su bloque 4.7 y la registra `components/PageTracker.tsx` para el conteo de
+  // Uso Dashboard; cambiarla a `/asesores/perfil-rol` rompería ese registro y
+  // partiría la serie histórica de visitas en dos. Lo que pidió dirección es
+  // dónde VIVE en el menú.
   {
     group: 'Asesores',
     icon: Activity,
     children: [
       { href: '/asesores',    label: 'Panel Asesores',   icon: Activity },
       { href: '/seguimiento', label: 'Seguimiento',      icon: BookOpenCheck },
+      { href: '/perfil-rol',  label: 'Perfil del Rol',   icon: Target },
     ],
   },
 
   { href: '/activaciones',    label: 'Activaciones 2.0',     icon: Zap },
   { href: '/alertas',         label: 'Alertas de Cliente',   icon: BellRing },
   { href: '/analisis-llamadas', label: 'Análisis de Llamadas', icon: PhoneCall },
-  { href: '/perfil-rol',      label: 'Perfil del Rol',       icon: Target },
   // ── Grupo: Atlas IA ──────────────────────────────────────────────────────
   // Instrucción de dirección, 9 oct 2026: «Base de Conocimiento debe vivir
   // dentro de ATLAS IA». Tienen sentido juntas: la base es exactamente el
