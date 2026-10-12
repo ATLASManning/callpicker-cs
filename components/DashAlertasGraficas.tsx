@@ -7,6 +7,7 @@ import {
 import CustomSelect from '@/components/CustomSelect'
 import type { PayloadTablero, FilaTablero } from '@/lib/alertas-tablero'
 import * as TEMA from '@/lib/chart-theme'
+import ChartCard from '@/components/charts/ChartCard'
 
 /**
  * EL DASHBOARD DEJA DE REPETIR LA LISTA Y PASA A ANALIZARLA.
@@ -433,11 +434,63 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
   [filas, medida, datos.fuentes])
 
   const tooltip = {
-    contentStyle: { background: '#0A1628', border: `1px solid ${BORDER}`, borderRadius: 8, fontSize: 12 },
+    contentStyle: {
+      background: TEMA.NAVY[900], border: `1px solid ${BORDER}`,
+      borderRadius: 10, fontSize: TEMA.FUENTE.cuerpo,
+    },
     labelStyle: { color: TX_HI, fontWeight: 700 },
     itemStyle: { color: TX_HI },
     cursor: { fill: 'rgba(255,255,255,0.05)' },
   }
+
+  /** Devuelve los combos a su estado inicial. Lo llama el botón «restablecer»
+   *  de cada tarjeta y la tecla R. */
+  const reestablecer = () => {
+    setMedida('mrr'); setCorte('situacion'); setQuien(''); setClase('')
+  }
+
+  /* ── LOS INSIGHTS ─────────────────────────────────────────────────────
+     Una frase en lenguaje natural encima de cada gráfica, como pidió
+     dirección. Se CALCULAN de los datos a la vista, y cuando no hay nada que
+     destacar devuelven `null` y la tarjeta no pinta la banda: una frase
+     inventada para rellenar el hueco entrena a no leerla. */
+
+  const insightG1 = useMemo(() => {
+    if (datosG1.length === 0) return null
+    const tot = datosG1.reduce((s, d) => s + d.total, 0)
+    if (tot <= 0) return null
+    const orden = [...datosG1].sort((a, b) => b.total - a.total)
+    /* Cuántas barras hacen falta para pasar del 60%: es la frase que de verdad
+       cambia una decisión —«tres concentran el 62%»— y no un máximo suelto. */
+    let acum = 0, n = 0
+    for (const d of orden) { acum += d.total; n += 1; if (acum / tot >= 0.6) break }
+    const pct = Math.round((acum / tot) * 100)
+    if (n >= orden.length) return null   // repartido: no hay concentración que contar
+    const cuales = orden.slice(0, n).map(d => d.name).join(', ')
+    return medida === 'mrr'
+      ? `${n === 1 ? 'Una sola categoría concentra' : `${n} categorías concentran`} `
+        + `el ${pct}% del dinero: ${cuales}.`
+      : `${n === 1 ? 'Una sola categoría concentra' : `${n} categorías concentran`} `
+        + `el ${pct}% de las cuentas: ${cuales}.`
+  }, [datosG1, medida])
+
+  const insightG2 = useMemo(() => {
+    if (filas.length === 0) return null
+    const ciegas = filas.filter(f => f.nFuentes <= 3)
+    if (ciegas.length === 0) return null
+    const dinero = ciegas.reduce((s, f) => s + (f.mrr ?? 0), 0)
+    const pct = Math.round((ciegas.length / filas.length) * 100)
+    return `${ciegas.length} cuentas (${pct}%) se ven con 3 fuentes o menos de 8`
+      + (dinero > 0 ? `, y ahí hay ${miles(dinero)} al mes.` : '.')
+  }, [filas])
+
+  const insightG3 = useMemo(() => {
+    const peor = g3[0]
+    if (!peor || peor.nSin === 0) return null
+    const pct = Math.round((peor.nSin / Math.max(filas.length, 1)) * 100)
+    return `La fuente que más tapa es ${peor.etiqueta.toLowerCase()}: le falta al ${pct}% `
+      + `de la cartera` + (peor.dineroSin > 0 ? `, ${miles(peor.dineroSin)} al mes.` : '.')
+  }, [g3, filas.length])
 
   const Cabecera = (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
@@ -533,15 +586,33 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
   }
 
   return (
-    <div className="px-6 pb-5">
+    /* ANCHO MÁXIMO Y CENTRADO. En 4K el tablero se estiraba hasta que una
+       barra cruzaba metro y medio de pantalla y el ojo perdía la fila. */
+    <div className="px-6 pb-5" style={{ maxWidth: TEMA.ANCHO_MAX, margin: '0 auto' }}>
       <div className="rounded-2xl p-5" style={{ background: PANEL, border: `1px solid ${BORDER}` }}>
         {Cabecera}
         {Aviso}
+      </div>
 
-        {/* ══ 1 · EL CORTE ELEGIDO ════════════════════════════════════════ */}
-        <Titulo texto={def.label} nota={
-          apilaPor === 'asesor' ? 'cada barra, repartida entre los asesores de esta vista'
-                                : 'cada barra, repartida por la situación de sus cuentas'} />
+      {/* Grid de tarjetas con separación de base 8. */}
+      <div style={{ display: 'grid', gap: TEMA.BASE * 2, marginTop: TEMA.BASE * 2 }}>
+
+      {/* ══ 1 · EL CORTE ELEGIDO ════════════════════════════════════════ */}
+      <ChartCard
+        titulo={def.label}
+        subtitulo={apilaPor === 'asesor'
+          ? 'cada barra, repartida entre los asesores de esta vista'
+          : 'cada barra, repartida por la banda de riesgo de sus cuentas'}
+        ayuda={def.pregunta + '. ' + (apilaPor === 'asesor'
+          ? 'Dentro de cada barra conviven los tres asesores.'
+          : 'Las siete situaciones del catálogo se agrupan en tres bandas de riesgo: '
+            + 'siete colores se separan 3.7 en OKLab y nadie los distingue, tres se separan 11.1. '
+            + 'La leyenda dice qué situaciones hay dentro de cada banda.')}
+        insight={insightG1}
+        descripcion={`Gráfica de barras horizontales de ${def.label.toLowerCase()}. `
+          + datosG1.map(d => `${d.name}: ${fmtLargo(d.total)}`).join('. ')}
+        onReestablecer={reestablecer}
+      >
 
         {!def.particion && (
           <p style={C('#FBBF24', { fontSize: 10.5, marginBottom: 8, lineHeight: 1.5 })}>
@@ -616,11 +687,21 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
           </p>
         )}
 
-        {/* ══ 2 · DE CUÁNTAS FUENTES SABEMOS ══════════════════════════════ */}
-        <Separador />
-        <Titulo texto="De cuántas fuentes sabemos de cada cuenta"
-          nota="facturación · consumo · llamadas · tickets · reuniones · contacto · auditoría · ficha" />
-        <p style={C(TX_LOW, { fontSize: 11, marginBottom: 10, lineHeight: 1.6 })}>
+      </ChartCard>
+
+      {/* ══ 2 · DE CUÁNTAS FUENTES SABEMOS ══════════════════════════════ */}
+      <ChartCard
+        titulo="De cuántas fuentes sabemos de cada cuenta"
+        subtitulo="facturación · consumo · llamadas · tickets · reuniones · contacto · auditoría · ficha"
+        ayuda="Cada columna es un número de fuentes con dato, de 0 a 8, y su altura es la
+          cartera que está en ese nivel de ceguera. Con tres fuentes de ocho no se emite
+          juicio: se pide lo que falta."
+        insight={insightG2}
+        descripcion={`Columnas por número de fuentes con dato. `
+          + datosG2.map(d => `${d.name}: ${fmtLargo(d.total)}`).join('. ')}
+        onReestablecer={reestablecer}
+      >
+        <p style={C(TX_LOW, { fontSize: TEMA.FUENTE.cuerpo, marginBottom: 10, lineHeight: 1.6 })}>
           Con tres fuentes de ocho no se emite juicio, se pide lo que falta.
           {medianaFuentes !== null && (
             <> La mediana de esta cartera está en <span style={C(TX_HI, { fontWeight: 700 })}>
@@ -672,12 +753,22 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
           </p>
         )}
 
-        {/* ══ 3 · QUÉ FUENTE FALTA, Y CUÁNTO DINERO TAPA ══════════════════ */}
-        <Separador />
-        <Titulo texto="Qué fuente falta, y cuánto dinero tapa"
-          nota={medida === 'mrr'
-            ? 'ordenadas por el dinero que hay detrás del hueco, no por el alfabeto'
-            : 'ordenadas por cuántas cuentas se quedan sin ese dato'} />
+      </ChartCard>
+
+      {/* ══ 3 · QUÉ FUENTE FALTA, Y CUÁNTO DINERO TAPA ══════════════════ */}
+      <ChartCard
+        titulo="Qué fuente falta, y cuánto dinero tapa"
+        subtitulo={medida === 'mrr'
+          ? 'ordenadas por el dinero que hay detrás del hueco, no por el alfabeto'
+          : 'ordenadas por cuántas cuentas se quedan sin ese dato'}
+        ayuda="Cada fila es una de las ocho fuentes. La parte clara es la cartera que SÍ
+          tiene ese dato; la plata, la que no. Y cuando parte de lo que falta tampoco tiene
+          importe, la cifra lleva «≥»: el dinero tapado es al menos ése."
+        insight={insightG3}
+        descripcion={`Cobertura de las ocho fuentes. `
+          + g3.map(f => `${f.etiqueta}: ${f.nSin} sin dato`).join('. ')}
+        onReestablecer={reestablecer}
+      >
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
           {g3.map(f => {
@@ -755,6 +846,8 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
             para verlas hay que cambiar el combo a «Medir en cuentas».</>
           )}
         </p>
+      </ChartCard>
+
       </div>
     </div>
   )
@@ -762,18 +855,10 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
 
 /* ── Piezas ──────────────────────────────────────────────────────────────── */
 
-function Titulo({ texto, nota }: { texto: string; nota: string }) {
-  return (
-    <div style={{ marginBottom: 6 }}>
-      <h4 style={C(TX_HI, { fontSize: 12.5, fontWeight: 700 })}>{texto}</h4>
-      <p style={C(TX_LOW, { fontSize: 10.5, marginTop: 1 })}>{nota}</p>
-    </div>
-  )
-}
-
-function Separador() {
-  return <div style={{ height: 1, background: BORDER, margin: '20px 0 14px' }} />
-}
+/* `Titulo` y `Separador` se retiran: cada gráfica tiene ahora su propia
+   tarjeta y el encabezado lo pone `ChartCard`. Dejarlos aquí sin usar sería
+   dos formas de titular conviviendo, y la siguiente persona elegiría la
+   equivocada. */
 
 /**
  * La leyenda dice QUÉ HAY DENTRO de cada banda.
