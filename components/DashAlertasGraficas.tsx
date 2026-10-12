@@ -55,14 +55,18 @@ import ChartCard from '@/components/charts/ChartCard'
  * Ver [[atlas-dashboard-contrast-architecture]].
  */
 
-const PANEL  = '#0F2040'
-const BORDER = 'rgba(255,255,255,0.10)'
-const TX_HI  = '#FFFFFF'                      /* 16.14:1 */
-const TX_MID = 'rgba(255,255,255,0.70)'       /*  8.48:1 */
-/* 0.52 y no el 0.45 de los paneles vecinos: sobre este `#0F2040` el 45% mide
-   4.31:1, por debajo del 4.5 de AA. El mínimo que pasa es 0.47; 0.52 da 5.4.
-   Medido el 9 oct 2026. */
-const TX_LOW = 'rgba(255,255,255,0.52)'       /*  4.99:1 */
+/* Todo sale del tema. Antes eran literales de este archivo y por eso el
+   validador no los veía. */
+const PANEL  = TEMA.NAVY[700]
+const BORDER = TEMA.BORDE
+const TX_HI  = TEMA.TX.hi
+const TX_MID = TEMA.TX.mid
+const TX_LOW = TEMA.TX.low   /* plata-300: 7.65:1 sobre la tarjeta */
+
+/** AVISO: lo que antes iba en ámbar o rojo. La paleta cerrada no tiene ni uno
+ *  ni otro, y el naranja es precisamente el color de alerta que fijó
+ *  dirección. 6.25:1 sobre la tarjeta. */
+const AVISO = TEMA.ORANGE[400]
 
 /** Todo texto de color va en un `<span>` que declara su propio `background`:
  *  `globals.css` fuerza a blanco cualquiera que no lo haga, y esto es una
@@ -183,6 +187,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
   const [corte,  setCorte]  = useState<Corte>('situacion')
   const [quien,  setQuien]  = useState('')
   const [clase,  setClase]  = useState<Clase>('')
+  const [modoG2, setModoG2] = useState<'apilado' | 'agrupado' | 'pct'>('apilado')
 
   /* Los asesores que existen en los DATOS: pueblan el combo. */
   const asesores = useMemo(() => {
@@ -301,10 +306,10 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
         const k = f.candidatura
           ?? (f.candidaturasTotal > 0 ? 'Primero hay que resolverle algo'
                                       : 'Hoy no es candidata a nada')
-        mete(k, k, f.candidatura ? VERDE : f.candidaturasTotal > 0 ? '#FBBF24' : GRIS, f)
+        mete(k, k, f.candidatura ? VERDE : f.candidaturasTotal > 0 ? AVISO : GRIS, f)
       } else if (corte === 'tamano') {
         mete(f.esTop ? 'top' : 'resto', f.esTop ? 'top' : 'resto',
-             f.esTop ? '#EAB308' : GRIS, f)
+             f.esTop ? AVISO : GRIS, f)
       } else {
         for (const i of new Set(hallazgosDe(f))) {
           const h = datos.catalogo[i]
@@ -447,7 +452,25 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
    *  de cada tarjeta y la tecla R. */
   const reestablecer = () => {
     setMedida('mrr'); setCorte('situacion'); setQuien(''); setClase('')
+    setModoG2('apilado')
   }
+
+  /* En modo 100% cada columna se normaliza a su PROPIO total. La columna
+     deja de decir cuánta cartera hay en ese nivel y pasa a decir sólo la
+     MEZCLA — que es justo el punto del modo, y por eso el eje cambia a
+     porcentaje y el tooltip también. Una columna sin cuentas se queda en
+     cero en vez de dividir entre cero. */
+  const datosG2pct = useMemo(() => {
+    if (modoG2 !== 'pct') return datosG2
+    return datosG2.map(d => {
+      const tot = asesoresVista.reduce((s, a) => s + (Number(d[a]) || 0), 0)
+      const o: Record<string, string | number> = { name: d.name, total: d.total }
+      for (const a of asesoresVista) {
+        o[a] = tot > 0 ? ((Number(d[a]) || 0) / tot) * 100 : 0
+      }
+      return o
+    })
+  }, [datosG2, modoG2, asesoresVista])
 
   /* ── LOS INSIGHTS ─────────────────────────────────────────────────────
      Una frase en lenguaje natural encima de cada gráfica, como pidió
@@ -497,7 +520,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                   gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
       <div>
         <div className="flex items-center gap-2">
-          <BellRing size={13} style={{ color: '#F87171' }} />
+          <BellRing size={13} style={{ color: AVISO }} />
           <h3 className="text-xs font-bold uppercase tracking-[0.10em]" style={C(TX_HI)}>
             Alertas de Cliente · análisis de la cartera
           </h3>
@@ -508,7 +531,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
             {filas.length} {filas.length === 1 ? 'cuenta' : 'cuentas'} · {pesos(totalMrr)} al mes
           </span>
           {sinImporte > 0 && (
-            <span style={C('#FBBF24')}>
+            <span style={C(AVISO)}>
               {' '}· ese importe es el de {conImporte}; de las otras {sinImporte} no
               hay cifra en ninguna fuente
             </span>
@@ -550,7 +573,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
   const Aviso = datos.falla ? (
     <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)',
                   borderRadius: 10, padding: '9px 13px', marginBottom: 14 }}>
-      <span style={C('#FCA5A5', { fontSize: 11.5 })}>
+      <span style={C(AVISO, { fontSize: 11.5 })}>
         Una fuente no cargó, y eso cambia lo que se puede afirmar: {datos.falla}
       </span>
     </div>
@@ -570,8 +593,8 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
         <div className="rounded-2xl p-5" style={{ background: PANEL, border: `1px solid ${BORDER}` }}>
           {Cabecera}
           {Aviso}
-          <p style={C('#FBBF24', { fontSize: 12.5, lineHeight: 1.7 })}>
-            No hay ni una cuenta que medir en esta vista. <strong style={C('#FBBF24')}>
+          <p style={C(AVISO, { fontSize: 12.5, lineHeight: 1.7 })}>
+            No hay ni una cuenta que medir en esta vista. <strong style={C(AVISO)}>
             Esto no es una cartera sana: es una lectura que no ocurrió.</strong>{' '}
             {datos.falla
               ? 'El motivo está en el aviso de arriba.'
@@ -615,14 +638,14 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
       >
 
         {!def.particion && (
-          <p style={C('#FBBF24', { fontSize: 10.5, marginBottom: 8, lineHeight: 1.5 })}>
+          <p style={C(AVISO, { fontSize: 10.5, marginBottom: 8, lineHeight: 1.5 })}>
             Una cuenta tiene {(g1.apariciones / Math.max(filas.length, 1)).toFixed(1)} de estos
             hallazgos de media, así que aparece en varias barras. Esta columna NO suma la
             cartera: no es un reparto, es un recuento por tipo.
           </p>
         )}
         {descuadre && (
-          <p style={C('#FCA5A5', { fontSize: 10.5, marginBottom: 8 })}>
+          <p style={C(AVISO, { fontSize: 10.5, marginBottom: 8 })}>
             Los cubos no cierran — {descuadre}. No te fíes de esta gráfica hasta que cuadre.
           </p>
         )}
@@ -712,15 +735,48 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
           )}
         </p>
 
-        <ResponsiveContainer width="100%" height={190}>
-          <BarChart data={datosG2} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <XAxis dataKey="name" tick={{ fill: TX_MID, fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: 'rgba(255,255,255,0.52)', fontSize: 10 }}
-              axisLine={false} tickLine={false} tickFormatter={fmt} width={48} />
-            <Tooltip {...tooltip} formatter={(v: number, n: string) => [fmtLargo(v), n]}
+        {/* ── Apilado / Agrupado / 100% ──────────────────────────────────
+            Cada modo responde una pregunta distinta y por eso están los tres:
+            apilado dice CUÁNTA cartera hay en cada nivel de ceguera, agrupado
+            compara a los asesores entre sí dentro del nivel, y 100% enseña la
+            MEZCLA sin que el tamaño de la columna la tape.
+            No hay brush ni minimapa: son NUEVE columnas como mucho, de 0/8 a
+            8/8. Un control de desplazamiento sobre nueve categorías es teatro. */}
+        <div role="group" aria-label="Forma de la columna"
+             style={{ display: 'flex', gap: 2, marginBottom: 10,
+                      background: 'rgba(255,255,255,0.05)', borderRadius: 8,
+                      padding: 2, width: 'fit-content' }}>
+          {([['apilado', 'Apilado'], ['agrupado', 'Agrupado'], ['pct', '100%']] as const)
+            .map(([k, etq]) => (
+            <button key={k} type="button" className="dash-foco"
+              onClick={() => setModoG2(k)} aria-pressed={modoG2 === k}
+              style={{
+                padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                fontSize: TEMA.FUENTE.etiqueta, fontWeight: 650,
+                minHeight: TEMA.MINIMOS.areaClic,
+                background: modoG2 === k ? TEMA.ORANGE[500] : 'transparent',
+                color: modoG2 === k ? TEMA.NAVY[900] : TX_MID,
+                transition: `background ${TEMA.MOTION.rapido}ms`,
+              }}>{etq}</button>
+          ))}
+        </div>
+
+        <ResponsiveContainer width="100%" height={210}>
+          <BarChart data={datosG2pct} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <XAxis dataKey="name" tick={{ fill: TX_MID, fontSize: TEMA.FUENTE.eje }}
+              axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: TEMA.TX.low, fontSize: TEMA.FUENTE.eje }}
+              axisLine={false} tickLine={false}
+              tickFormatter={modoG2 === 'pct' ? (v: number) => `${v}%` : fmt} width={52}
+              domain={modoG2 === 'pct' ? [0, 100] : undefined} />
+            <Tooltip {...tooltip}
+              formatter={(v: number, n: string) =>
+                [modoG2 === 'pct' ? `${v.toFixed(1)}%` : fmtLargo(v), n]}
               labelFormatter={(l: string) => `${l} fuentes con dato`} />
             {asesoresVista.map(a => (
-              <Bar key={a} dataKey={a} name={a} stackId="f" fill={COLOR_ASESOR[a] ?? GRIS}
+              <Bar key={a} dataKey={a} name={a}
+                stackId={modoG2 === 'agrupado' ? undefined : 'f'}
+                fill={COLOR_ASESOR[a] ?? GRIS}
                 stroke={PANEL} strokeWidth={1} maxBarSize={54} />
             ))}
             {/* Dos líneas superpuestas: la de abajo hace de funda del color del
@@ -745,7 +801,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
         <Leyenda items={asesoresVista.map(a => ({ k: a, label: a, color: COLOR_ASESOR[a] ?? GRIS }))} />
 
         {mudos.length > 0 && (
-          <p style={C('#FBBF24', { fontSize: 10.5, marginTop: 6, lineHeight: 1.5 })}>
+          <p style={C(AVISO, { fontSize: 10.5, marginTop: 6, lineHeight: 1.5 })}>
             Medido en dinero, {mudos.map(c => `${c.n}/8`).join(' y ')} se dibuja{mudos.length > 1 ? 'n' : ''} a
             cero y ahí hay {mudos.reduce((s, c) => s + c.cuentas, 0)} cuenta
             {mudos.reduce((s, c) => s + c.cuentas, 0) === 1 ? '' : 's'}: son las más ciegas y
@@ -775,19 +831,36 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
             const pct = (f.nSin / filas.length) * 100
             const medible = f.nSin > f.nSinImporte
             return (
-              <div key={f.k} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={C(TX_MID, { fontSize: 11, width: 92, flexShrink: 0 })}>{f.etiqueta}</span>
-                <div style={{ flex: 1, height: 16, borderRadius: 4, overflow: 'hidden', display: 'flex',
+              <div key={f.k} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                minHeight: TEMA.MINIMOS.altoFila,
+              }}>
+                <span style={C(TX_MID, { fontSize: TEMA.FUENTE.etiqueta, width: 104, flexShrink: 0 })}>
+                  {f.etiqueta}
+                </span>
+                {/* BULLET CHART, no barra de progreso.
+                    Lo cubierto va en BLANCO —es el logro y es lo que se lee
+                    primero—, lo que falta en plata, y cuando el hueco pasa de
+                    la mitad de la cartera el tramo pendiente se tiñe de
+                    naranja: ahí deja de ser un pendiente y es un problema.
+                    La marca vertical es la META implícita, el 100%. */}
+                <div style={{ flex: 1, height: 14, borderRadius: 4, overflow: 'hidden',
+                              display: 'flex', position: 'relative',
                               background: 'rgba(255,255,255,0.05)' }}>
-                  {/* Dos tramos opacos y un hueco de 2px entre ellos: el ojo
-                      separa mejor por el hueco que por el borde. */}
-                  <div style={{ width: `${100 - pct}%`, background: VERDE }} />
-                  <div style={{ width: 2, background: PANEL }} />
-                  <div style={{ width: `${pct}%`, background: GRIS }} />
+                  <div style={{ width: `${100 - pct}%`, background: TEMA.WHITE.soft }} />
+                  {/* Hueco de 2px: el ojo separa mejor por el hueco que por
+                      el borde. */}
+                  <div style={{ width: 2, background: PANEL, flexShrink: 0 }} />
+                  <div style={{
+                    width: `${pct}%`,
+                    background: pct > 50
+                      ? `repeating-linear-gradient(45deg, ${TEMA.ORANGE[500]} 0 3px, rgba(11,31,58,0.42) 3px 5px)`
+                      : GRIS,
+                  }} />
                 </div>
-                <span style={C(pct > 50 ? '#FBBF24' : TX_MID,
-                               { fontSize: 11, width: 108, textAlign: 'right', flexShrink: 0,
-                                 fontVariantNumeric: 'tabular-nums' })}>
+                <span style={C(pct > 50 ? TEMA.ORANGE[400] : TX_MID,
+                               { fontSize: TEMA.FUENTE.cuerpo, width: 112, textAlign: 'right',
+                                 flexShrink: 0, fontVariantNumeric: 'tabular-nums' })}>
                   {f.nSin} sin dato
                 </span>
                 {/* El «≥» NO es adorno. Si algunas de las cuentas sin este
@@ -796,9 +869,10 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                     sabe. La primera versión ponía «$1.78M +9», y un «+9»
                     pegado a una cifra en millones se lee como nueve millones.
                     Un símbolo que ya significa «al menos» no se malinterpreta. */}
-                <span style={C(medible ? TX_HI : '#FBBF24',
-                               { fontSize: 11, fontWeight: 700, width: 86, textAlign: 'right',
-                                 flexShrink: 0, fontVariantNumeric: 'tabular-nums' })}
+                <span style={C(medible ? TX_HI : TEMA.ORANGE[400],
+                               { fontSize: TEMA.FUENTE.valor, fontWeight: 750, width: 98,
+                                 textAlign: 'right', flexShrink: 0,
+                                 fontVariantNumeric: 'tabular-nums' })}
                       title={f.nSinImporte > 0
                         ? `${f.nSinImporte} de las ${f.nSin} cuentas sin este dato tampoco tienen `
                           + `importe en ninguna fuente, así que el dinero tapado es al menos éste`
@@ -814,8 +888,13 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
 
         <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap',
                       alignItems: 'baseline' }}>
-          <Pastilla color={VERDE} texto="con dato" />
+          <Pastilla color={TEMA.WHITE.soft} texto="con dato" />
           <Pastilla color={GRIS} texto="sin dato" />
+          <Pastilla color={TEMA.ORANGE[500]} trama texto="le falta a más de la mitad" />
+          {/* NO hay sparkline de tendencia, y es a propósito: el payload trae
+              UN corte, no seis periodos. Dibujar una línea de tendencia con un
+              solo punto sería inventarse el dato. Cuando la fuente traiga
+              historia, aquí va. */}
           {g3.some(f => f.nSinImporte > 0) && (
             <span style={C(TX_LOW, { fontSize: 10.5 })}>
               «≥» quiere decir que parte de las cuentas sin ese dato tampoco tienen importe:
