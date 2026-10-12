@@ -81,10 +81,28 @@ const EMAILS_AUTORIZADOS_DEFAULT = [
    * desplegar, la escotilla es la variable EMAILS_AUTORIZADOS en Vercel: si
    * está definida SUSTITUYE a esta lista entera, así que hay que poner en ella
    * TODOS los correos, no sólo los tres.
+   *
+   * ── ACCESO DEVUELTO EL 12 OCT 2026 ──────────────────────────────────────
+   *
+   * Dirección: «Ya les di acceso desde la mañana y les compartí a cada uno su
+   * password, así que ya debieron ingresar». La condición de la suspensión
+   * —concluir el Dashboard— se cumplió ese mismo día: el rediseño entró a
+   * producción por la mañana.
+   *
+   * NO HABÍAN PODIDO ENTRAR, y no por su contraseña. `verify/route.ts:36`
+   * comprueba esta lista ANTES que la contraseña y antes que `activo`, así
+   * que los tres recibían «usuario_invalido» — que se lee como correo mal
+   * escrito, no como suspensión. Y `ultimo_acceso` sólo se escribe al pasar
+   * ese filtro: por eso Gestión de Usuarios seguía mostrando el 7 de
+   * septiembre mientras los tres ya tenían contraseña nueva y estado Activo.
+   *
+   * Es la demostración simétrica de lo que dice el bloque de arriba: marcar
+   * a alguien ACTIVO aquí tampoco le da acceso, igual que marcarlo inactivo
+   * no se lo quita. Las dos listas hay que mirarlas juntas, siempre.
    */
-  // 'fatima@callpicker.com',
-  // 'claudia@callpicker.com',
-  // 'dominguez.dan@callpicker.com',
+  'fatima@callpicker.com',
+  'claudia@callpicker.com',
+  'dominguez.dan@callpicker.com',
   /* Aurora — alta el 10 sep 2026 por instrucción de dirección, rol `viewer`.
    *
    * ── BAJA EL 6 OCT 2026 ──────────────────────────────────────────────────
