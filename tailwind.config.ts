@@ -33,6 +33,34 @@ const config: Config = {
         amarillo: '#CA8A04',
         naranja:  '#EA580C',
         rojo:     '#DC2626',
+
+        /* ── DASHBOARD REDISEÑADO (oct 2026) ───────────────────────────────
+           Paleta cerrada por dirección: azul marino, gris plata, naranja y
+           blanco. Va en su propio espacio de nombres `dash-*` porque el RESTO
+           del tablero sigue siendo claro (`page: #EFF6FF`) y mezclar los dos
+           juegos de tokens es como vuelve el bug de contraste.
+
+           La fuente de verdad es `lib/chart-theme.ts`, que lleva las
+           mediciones. Esto es el espejo para las utilidades de Tailwind: si
+           cambia uno hay que cambiar el otro, y
+           `scripts/mide-paleta-dashboard.py` lo comprueba. */
+        'dash-navy-900':   '#0B1F3A',
+        'dash-navy-700':   '#12305A',
+        'dash-navy-500':   '#1B4580',
+        'dash-silver-300': '#C0C6CE',
+        'dash-silver-500': '#8E96A3',
+        'dash-silver-700': '#5B6573',
+        'dash-orange-500': '#FF7A1A',
+        'dash-orange-400': '#FF9A4D',
+        'dash-orange-700': '#C85A00',
+        'dash-white':      '#FFFFFF',
+        'dash-white-soft': '#F4F6F9',
+        /* Las tres bandas de riesgo. El paso medio NO está en la paleta base:
+           es la interpolación en OKLab entre plata-300 y naranja-500, que es
+           lo que hace que los tres pasos se separen 11.1 entre sí. */
+        'dash-riesgo-bajo':  '#C0C6CE',
+        'dash-riesgo-medio': '#E5A585',
+        'dash-riesgo-alto':  '#FF7A1A',
       },
       boxShadow: {
         'glow-cp':   '0 0 24px rgba(0,87,255,0.18)',
