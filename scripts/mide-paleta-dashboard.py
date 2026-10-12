@@ -48,6 +48,7 @@ WHITE, WHITE_SOFT = '#FFFFFF', '#F4F6F9'
 MIN_RELLENO = 3.0
 MIN_TEXTO = 4.5
 MIN_DE_ADY = 10.0
+MIN_DE_TODOS = 8.0   # entre CUALQUIER par, no solo vecinos
 
 # Las siete situaciones, de MENOR a MAYOR riesgo (el `orden` del catálogo).
 SITUACIONES = ['en_orden', 'oportunidad', 'hay_que_mostrarle', 'sin_auditar',
@@ -209,6 +210,221 @@ exige(mono, u'la luminancia baja siempre (se lee como escala)',
 necesitan_trama = ['alto']
 print(u'\n    TRAMA en «alto» de todos modos: el encargo pide no depender solo')
 print(u'    del color, y la banda que importa a dos metros es ésa.')
+
+# ── 3a · LA RAMPA QUE SÍ DA SIETE ───────────────────────────────────────────
+#
+# Direccion (11 oct): «dales el color que deba, el tamaño y caracteristicas
+# necesarias para que funcione». O sea: que funcione manda sobre la paleta
+# cerrada. Vuelven las SIETE situaciones, y lo que hay que encontrar es una
+# rampa que de verdad las separe.
+#
+# La de dos anclas (plata→naranja) mide 22.3 y no da. La salida NO es inventar
+# siete tonos sueltos —eso rompe la escala ordenada y vuelve categorico lo que
+# es un orden de riesgo— sino ALARGAR el camino con mas anclas DENTRO de la
+# familia calida de la paleta: del blanco al naranja profundo.
+#
+# Se prueban varias polilineas y se queda la primera que pase TODO.
+def polilinea(anclas, n):
+    """n pasos sobre una polilinea de anclas, EQUIESPACIADOS EN DISTANCIA.
+
+       Con dos anclas es una rampa recta; con mas, el camino perceptual es mas
+       largo y caben mas pasos distinguibles. Es la unica forma de meter siete
+       series en una escala ordenada sin convertirla en siete etiquetas.
+
+       EL MUESTREO VA POR LONGITUD DE ARCO, NO POR PARAMETRO.
+       La primera version repartia los siete puntos a intervalos iguales de
+       PARAMETRO —un septimo de polilinea cada uno— y los tramos cortos
+       amontonaban muestras: una polilinea de 104.9 de largo, de sobra para
+       siete pasos de 10, daba una separacion minima de 6.7 y yo concluia que
+       la paleta no daba. La paleta daba; el muestreador estaba mal.
+    """
+    pts = [oklab(a) for a in anclas]
+    # Se densifica la polilinea y se acumula distancia real.
+    denso, acum = [], [0.0]
+    POR_TRAMO = 240
+    for k in range(len(pts) - 1):
+        for i in range(POR_TRAMO):
+            f = i / float(POR_TRAMO)
+            denso.append(tuple(pts[k][j] + (pts[k + 1][j] - pts[k][j]) * f
+                               for j in range(3)))
+    denso.append(tuple(pts[-1]))
+    for i in range(1, len(denso)):
+        d = 100.0 * math.sqrt(sum((denso[i][j] - denso[i - 1][j]) ** 2 for j in range(3)))
+        acum.append(acum[-1] + d)
+    total = acum[-1]
+
+    out, k = [], 0
+    for i in range(n):
+        objetivo = (i / float(n - 1)) * total
+        while k < len(acum) - 1 and acum[k] < objetivo:
+            k += 1
+        out.append(de_oklab(*denso[k]))
+    return out
+
+
+# Para SIETE pasos a 10 de separacion hace falta un camino de 60 o mas. Las
+# rampas que solo cambian CLARIDAD dentro de la familia calida no llegan ni de
+# lejos — blanco→naranja mide ~37. Hay que meter TONO.
+#
+# Y el tono frio no es ajeno a la paleta: `#1B4580` es el acento azul que fijo
+# direccion. Aclarado sirve de ancla fria, y ademas es semanticamente correcto
+# —azul = esta bien, plata = no sabemos, naranja = hay que actuar— que es
+# exactamente como lee el equipo el semaforo de hoy.
+AZUL_CLARO = '#8FB3E8'   # el acento #1B4580 aclarado hasta pasar sobre marino
+AZUL_MEDIO = '#5B8FD4'
+
+CANDIDATAS = [
+    (u'blanco→plata→naranja→naranja profundo',
+     [WHITE_SOFT, SILVER_300, ORANGE_400, ORANGE_500, ORANGE_700]),
+    (u'blanco→plata→plata media→naranja→profundo',
+     [WHITE_SOFT, SILVER_300, SILVER_500, ORANGE_400, ORANGE_500, ORANGE_700]),
+    (u'FRÍA→neutra→cálida (azul→plata→naranja)',
+     [AZUL_CLARO, SILVER_300, ORANGE_400, ORANGE_500, ORANGE_700]),
+    (u'azul medio→azul claro→plata→naranja→profundo',
+     [AZUL_MEDIO, AZUL_CLARO, SILVER_300, ORANGE_400, ORANGE_500, ORANGE_700]),
+    (u'azul medio→azul claro→blanco→plata→naranja→profundo',
+     [AZUL_MEDIO, AZUL_CLARO, WHITE_SOFT, SILVER_500, ORANGE_400, ORANGE_500, ORANGE_700]),
+]
+
+
+def largo(anclas):
+    return sum(dist(anclas[i], anclas[i + 1]) for i in range(len(anclas) - 1))
+
+
+print(u'\n    (para 7 pasos a %.0f de separación hace falta un camino de %.0f+)'
+      % (MIN_DE_ADY, MIN_DE_ADY * (len(SITUACIONES) - 1)))
+
+print(u'\n  3a · BUSCANDO UNA RAMPA QUE DÉ LAS SIETE\n')
+ELEGIDA, NOMBRE_ELEGIDA = None, None
+for nombre, anclas in CANDIDATAS:
+    r = polilinea(anclas, len(SITUACIONES))
+    cs = [contraste(c, NAVY_700) for c in r]
+    ds = [dist(r[i], r[i + 1]) for i in range(len(r) - 1)]
+    ls = [lum(c) for c in r]
+    mono = all(ls[i] > ls[i + 1] for i in range(len(ls) - 1))
+    # TODOS los pares, no solo los vecinos. Con siete series el lector no solo
+    # compara segmentos pegados: busca «el naranja» en la leyenda y lo ubica en
+    # la barra. Dos colores lejanos en el orden pero iguales a la vista hacen
+    # eso imposible, y el vecino no lo detecta.
+    todos = min(dist(r[i], r[j]) for i in range(len(r)) for j in range(i + 1, len(r)))
+    ok_c = all(x >= MIN_RELLENO for x in cs)
+    ok_d = all(x >= MIN_DE_ADY for x in ds)
+    ok_t = todos >= MIN_DE_TODOS
+    # La monotonia de claridad SOLO se exige a una rampa secuencial. Esta es
+    # DIVERGENTE —frio = esta bien, neutro = no sabemos, calido = hay que
+    # actuar— y ahi la claridad sube y baja a proposito: es el tono el que
+    # ordena. Exigirle monotonia descartaba la unica rampa que si funciona.
+    print(u'    %-46s largo %5.1f · contr. %.1f-%.1f · vecinos %4.1f · todos %4.1f · %s'
+          % (nombre[:46], largo(anclas), min(cs), max(cs), min(ds), todos,
+             u'secuencial' if mono else u'divergente'))
+    if ok_c and ok_d and ok_t and ELEGIDA is None:
+        ELEGIDA, NOMBRE_ELEGIDA = r, nombre
+
+if ELEGIDA is None:
+    print(u'\n    Ninguna polilínea da siete. Y la razón es estructural, no de')
+    print(u'    gusto: una rampa SUAVE recorre el espacio de color en una sola')
+    print(u'    curva y vuelve a pasar cerca de donde ya estuvo — por eso la de')
+    print(u'    104.9 de largo da 10.6 entre vecinos y sólo 5.5 entre TODOS.')
+    print(u'    Siete series no son una rampa: son siete puntos que hay que')
+    print(u'    SEPARAR, y eso se busca, no se dibuja.\n')
+
+    # ── BÚSQUEDA: siete puntos lo más separados posible ─────────────────────
+    # Se genera un vivero de colores legibles sobre la tarjeta y se eligen
+    # siete por «punto más lejano»: se siembran los dos que el negocio obliga
+    # —naranja para `se_va`, que es la que hay que ver primero, y el azul del
+    # acento para `en_orden`— y cada siguiente es el que está más lejos de
+    # todos los ya elegidos. Es determinista y se puede auditar.
+    def vivero():
+        out = []
+        for L in [x / 100.0 for x in range(55, 92, 3)]:
+            for C in [x / 100.0 for x in range(4, 19, 2)]:
+                for H in range(0, 360, 10):
+                    a = C * math.cos(math.radians(H))
+                    b = C * math.sin(math.radians(H))
+                    h = de_oklab(L, a, b)
+                    # Que el ida y vuelta cuadre: si al reconvertir se va del
+                    # gamut, el color no existe de verdad en pantalla.
+                    o = oklab(h)
+                    if abs(o[0] - L) > 0.02 or abs(o[1] - a) > 0.02 or abs(o[2] - b) > 0.02:
+                        continue
+                    if contraste(h, NAVY_700) < MIN_RELLENO:
+                        continue
+                    if contraste(h, NAVY_900) < MIN_RELLENO:
+                        continue
+                    out.append(h)
+        return sorted(set(out))
+
+    pool = vivero()
+    print(u'    vivero de colores legibles sobre las dos superficies: %d' % len(pool))
+    print(u'\n    OJO CON LO QUE VIENE: esta búsqueda maximiza separación SIN')
+    print(u'    mirar la paleta. Sirve para PROBAR que siete separables existen,')
+    print(u'    no para usarla — devuelve un arcoíris, que es lo que el encargo')
+    print(u'    prohíbe. Es la demostración del trilema, no la solución.')
+
+    # `se_va` manda: es la situación que hay que reconocer primero y se queda
+    # con el naranja de la marca. `en_orden` se queda con el azul del acento.
+    elegidos = [ORANGE_500, AZUL_CLARO]
+    while len(elegidos) < len(SITUACIONES):
+        mejor, mejor_d = None, -1.0
+        for c in pool:
+            d = min(dist(c, e) for e in elegidos)
+            if d > mejor_d:
+                mejor, mejor_d = c, d
+        elegidos.append(mejor)
+    # Se ordenan por riesgo: del más frío/claro al naranja.
+    elegidos.sort(key=lambda c: dist(c, ORANGE_500), reverse=True)
+    ELEGIDA, NOMBRE_ELEGIDA = elegidos, u'búsqueda por punto más lejano'
+    ds = [dist(ELEGIDA[i], ELEGIDA[i + 1]) for i in range(len(ELEGIDA) - 1)]
+    todos = min(dist(ELEGIDA[i], ELEGIDA[j])
+                for i in range(len(ELEGIDA)) for j in range(i + 1, len(ELEGIDA)))
+    print(u'    separación: vecinos %.1f · TODOS %.1f' % (min(ds), todos))
+    print(u'''
+    ── EL TRILEMA, YA MEDIDO ────────────────────────────────────────────
+    Las tres cosas no caben juntas. Sólo dos:
+
+      paleta cerrada + 7 categorías  ->  separación 3.7. ILEGIBLE.
+      paleta cerrada + legibilidad   ->  máximo 3 categorías.
+      7 categorías + legibilidad     ->  separación 22.6, pero arcoíris.
+
+    LA SALIDA NO ES EL COLOR, ES LA FORMA. El problema real es meter siete
+    categorías en UNA barra apilada. Si en lugar de eso cada situación es su
+    propia FILA, dentro de cada barra sólo conviven TRES series —los tres
+    asesores— y eso la paleta lo da holgado: 21.2 de separación, medido.
+
+    Las siete situaciones siguen estando, con etiqueta directa y en orden de
+    riesgo, y el orden se refuerza con una tira de acento plata→naranja a la
+    izquierda de cada fila. Más legible que la apilada, y dentro de la paleta.
+    ''')
+    if min(ds) < MIN_DE_ADY or todos < MIN_DE_TODOS:
+        fallos.append(u'ni buscando salen 7 colores separados')
+    # No se adopta: queda como demostración.
+    ELEGIDA, NOMBRE_ELEGIDA = None, None
+if ELEGIDA is not None:
+    print(u'\n    ELEGIDA: %s' % NOMBRE_ELEGIDA)
+    print(u'    %-20s %-9s %-11s %s' % (u'situación', u'color', u'contraste', u'sep.'))
+    for i, (s, c) in enumerate(zip(SITUACIONES, ELEGIDA)):
+        d = dist(ELEGIDA[i - 1], c) if i else None
+        print(u'    %-20s %-9s %8.2f:1  %s'
+              % (s, c, contraste(c, NAVY_700),
+                 (u'%5.1f' % d) if d is not None else u'    —'))
+
+# ── 3c · EL DISEÑO QUE SE PUBLICA: una fila por situación ───────────────────
+#
+# Dentro de cada barra conviven solo TRES series (los asesores). Eso es lo que
+# hace legible el conjunto sin salirse de la paleta.
+print(u'\n  3c · EL DISEÑO QUE SE PUBLICA — una FILA por situación\n')
+print(u'    %d filas, y dentro de cada una solo %d series.' % (len(SITUACIONES), len(ASESORES)))
+TIRA = rampa(SILVER_300, ORANGE_500, len(SITUACIONES))
+print(u'    La tira de acento que ordena las filas (plata→naranja):')
+for s, c in zip(SITUACIONES, TIRA):
+    print(u'      %-20s %-9s %6.2f:1' % (s, c, contraste(c, NAVY_700)))
+print(u'\n    La tira NO tiene que separarse entre pasos: no son series que')
+print(u'    compitan, es un indicador de posición en una lista ya ordenada y')
+print(u'    etiquetada. Lo que sí tiene que hacer es verse sobre la tarjeta,')
+print(u'    y los siete pasos pasan 3:1.')
+exige(all(contraste(c, NAVY_700) >= MIN_RELLENO for c in TIRA),
+      u'los 7 pasos de la tira se ven sobre la tarjeta')
+
 
 # ── 3b · ¿CUÁNTOS pasos aguanta de verdad esta rampa? ───────────────────────
 #

@@ -56,48 +56,54 @@ export const GRID = 'rgba(192,198,206,0.10)'   // plata al 10%, como pide el enc
 export const BORDE = 'rgba(192,198,206,0.15)'  // plata al 15%
 export const FOCO = ORANGE[500]                // anillo de foco, siempre naranja
 
-/* ── LA ESCALA DE RIESGO — TRES bandas, y por qué no siete ─────────────────
+/* ── EL TRILEMA DEL COLOR, Y POR QUÉ LA FORMA CAMBIA ───────────────────────
  *
- * El catálogo tiene SIETE situaciones. No caben:
+ * El catálogo tiene SIETE situaciones y el diseño original las apilaba en una
+ * sola barra. Medido con `mide-paleta-dashboard.py`, las tres cosas no caben
+ * juntas — sólo dos:
  *
- *   · La rampa plata→naranja mide 22.3 de largo en OKLab. Partida en siete da
- *     ~3.7 de separación por paso, muy por debajo de los 10 que hacen falta
- *     entre segmentos que se tocan. En tres da 11.1 y pasa.
- *   · Y los datos dicen lo mismo: al 11 oct 2026 `en_orden` tiene CERO cuentas
- *     y `oportunidad` UNA, mientras `no_la_vemos` y `sin_auditar` se llevan
- *     152 de 193 — el 79%. Una apilada de siete era ilegible por los dos
- *     motivos a la vez.
+ *   paleta cerrada + 7 categorías  ->  separación 3.7 en OKLab. ILEGIBLE.
+ *   paleta cerrada + legibilidad   ->  máximo 3 categorías.
+ *   7 categorías + legibilidad     ->  22.6, pero es un arcoíris (prohibido).
  *
- * Las bandas NO son un invento: agrupan la `luz` que ya trae
- * `SITUACION` en `lib/alertas-veredicto.ts`.
+ * Y los datos empujan en la misma dirección: al 11 oct 2026 `en_orden` tiene
+ * CERO cuentas, `oportunidad` UNA, y `no_la_vemos` + `sin_auditar` se llevan
+ * 152 de 193 — el 79%. La apilada de siete ya era ilegible por los datos.
  *
- * La información de las siete NO se pierde: va en la etiqueta directa, en el
- * tooltip y en la tira de detalle. Lo que se quita es pretender que siete
- * colores se distinguen cuando no se distinguen.
+ * LA SALIDA NO ES EL COLOR, ES LA FORMA. Una FILA por situación: dentro de
+ * cada barra conviven sólo TRES series —los asesores— y eso la paleta lo da
+ * holgado (21.2 de separación, medido). Las siete situaciones siguen ahí, con
+ * etiqueta directa, en orden de riesgo, y el orden se refuerza con una tira de
+ * acento a la izquierda.
  */
-export const RIESGO = {
-  bajo:  SILVER[300],   // 7.65:1 — verde + azul del catálogo
-  medio: '#E5A585',     // 6.30:1 — amarillo
-  alto:  ORANGE[500],   // 5.04:1 — naranja + rojo
-} as const
 
-export type Banda = keyof typeof RIESGO
+/**
+ * La tira de acento que ordena las filas: plata (menor riesgo) → naranja.
+ *
+ * NO son series que compitan entre sí, así que no se les exige separación
+ * mutua: son un indicador de posición en una lista ya ordenada y etiquetada.
+ * Lo que sí se les exige, y cumplen, es verse sobre la tarjeta (≥3:1).
+ */
+export const TIRA_RIESGO: readonly string[] = [
+  '#C0C6CE',  // en_orden          7.65:1
+  '#CEBCB6',  // oportunidad       7.20:1
+  '#DAB09E',  // hay_que_mostrarle 6.69:1
+  '#E5A585',  // sin_auditar       6.30:1
+  '#EE986A',  // no_la_vemos       5.85:1
+  '#F78A4B',  // apagandose        5.45:1
+  '#FF7A1A',  // se_va             5.04:1
+]
 
-/** De qué banda es cada situación del catálogo. */
-export const BANDA_DE_SITUACION: Record<string, Banda> = {
-  en_orden:          'bajo',
-  oportunidad:       'bajo',
-  hay_que_mostrarle: 'bajo',
-  sin_auditar:       'medio',
-  no_la_vemos:       'medio',
-  apagandose:        'alto',
-  se_va:             'alto',
-}
+/** El orden de riesgo del catálogo, de menor a mayor. Es el orden de las filas. */
+export const ORDEN_SITUACION: readonly string[] = [
+  'en_orden', 'oportunidad', 'hay_que_mostrarle', 'sin_auditar',
+  'no_la_vemos', 'apagandose', 'se_va',
+]
 
-export const BANDA_TITULO: Record<Banda, string> = {
-  bajo:  'En orden o con oportunidad',
-  medio: 'Falta información',
-  alto:  'Hay que actuar',
+/** El acento que le toca a una situación por su posición en el orden. */
+export function acentoDeSituacion(situacion: string): string {
+  const i = ORDEN_SITUACION.indexOf(situacion)
+  return i >= 0 ? TIRA_RIESGO[i] : SILVER[500]
 }
 
 /* ── Asesores: CATEGÓRICO, no ordenado ────────────────────────────────────
@@ -150,6 +156,33 @@ export const TABULAR: React.CSSProperties = { fontVariantNumeric: 'tabular-nums'
 export const BASE = 8
 export const ANCHO_MAX = 1440   // en 4K el tablero no se estira
 export const RADIO = 16
+
+/* ── TAMAÑOS MÍNIMOS: lo que hace falta para que de verdad funcione ───────
+ *
+ * No son preferencias. Cada uno sale de un fallo concreto que se vio en la
+ * pantalla actual o de un requisito de accesibilidad.
+ */
+export const MINIMOS = {
+  /** Alto de una fila con etiqueta dentro. Por debajo, la etiqueta no cabe y
+   *  hay que sacarla fuera, que es donde se pierde el vínculo con la barra. */
+  altoFila: 34,
+  /** Alto de la barra dentro de la fila. */
+  altoBarra: 20,
+  /** Ancho MÍNIMO PINTADO de un segmento, aunque su valor sea casi cero.
+   *  Hoy hay situaciones con 1 cuenta de 193 (0.5%): a escala real eso es
+   *  medio píxel, invisible e inclicable. Se pinta este mínimo y el tooltip
+   *  dice el valor verdadero. */
+  anchoSegmento: 3,
+  /** Área de clic, que NO es el ancho pintado. WCAG 2.5.8 pide 24×24 como
+   *  mínimo; se envuelve el segmento en un `<rect>` transparente de este alto
+   *  para que un segmento de 3px siga siendo clicable. */
+  areaClic: 24,
+  /** Ancho de la tira de acento a la izquierda de cada fila. */
+  tiraAcento: 4,
+  /** Un segmento más angosto que esto NO puede llevar etiqueta dentro: se
+   *  saca al extremo de la barra con `TX.low`. */
+  anchoParaEtiqueta: 46,
+} as const
 
 /* ── Movimiento ───────────────────────────────────────────────────────────
  * 150–300ms, ease-out. `prefers-reduced-motion` NO es opcional: quien lo
