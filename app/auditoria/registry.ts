@@ -57,6 +57,11 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'travelling',      nombre: 'Travelling / Grupo Mundo Joven',   consecutivos: ['C16'] },
   { id: 'dental-district', nombre: 'Dental District',                  consecutivos: ['Z54'] },
   { id: 'grupo-2711',      nombre: 'GRUPO 2711',                       consecutivos: ['C26'] },
+  /* La cuenta de MAYOR volumen de la cartera: 289,238 llamadas con 0.07% sin
+     contestar. Pero no es una línea de atención — es una CHECADORA: 32.3% del
+     día a las 08:00, 1.02 min por llamada y 177 números que repiten. Es una
+     dependencia operativa con cero reuniones en 24 meses. */
+  { id: 'ecodeli',         nombre: 'ECODELI (Grupo Ecodeli)',          consecutivos: ['C2']  },
   { id: 'mint-cargo',      nombre: 'MINT CARGO',                       consecutivos: ['Z58'] },
   /* 9.6 años de cliente y cero contactos por canal real. Su MRR real es
      $88,783 (GRC, dos líneas con este consecutivo), no los $59,423 de la
