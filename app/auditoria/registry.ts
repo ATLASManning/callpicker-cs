@@ -39,6 +39,10 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'dental-district', nombre: 'Dental District',                  consecutivos: ['Z54'] },
   { id: 'grupo-2711',      nombre: 'GRUPO 2711',                       consecutivos: ['C26'] },
   { id: 'mint-cargo',      nombre: 'MINT CARGO',                       consecutivos: ['Z58'] },
+  /* 9.6 años de cliente y cero contactos por canal real. Su MRR real es
+     $88,783 (GRC, dos líneas con este consecutivo), no los $59,423 de la
+     ficha: con el correcto es la #2 de la cartera. */
+  { id: 'tech-people',     nombre: 'Tech People (Servicios y Reparaciones TP)', consecutivos: ['C1'] },
   // ── Dan ───────────────────────────────────────────────────────────────────
   { id: 'salud-y-hogar',   nombre: 'Salud y Hogar',                    consecutivos: ['D3']  },
   { id: 'cintascove',      nombre: 'Cintas Cove S.A. de C.V.',         consecutivos: ['D14'] },
