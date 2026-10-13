@@ -35,6 +35,7 @@ import { VIAJES_MACULL }        from './viajes-macull-data'
 import { TORRES_CORZO }         from './torres-corzo-data'
 import { TECH_PEOPLE }          from './tech-people-data'
 import { SYSTEM_OOAPAS }        from './system-ooapas-data'
+import { SECCION_AMARILLA }     from './seccion-amarilla-data'
 import type { AuditoriaCase } from './types'
 
 export const STATIC_CASES: AuditoriaCase[] = [
@@ -45,6 +46,7 @@ export const STATIC_CASES: AuditoriaCase[] = [
   DENTAL_DISTRICT, MEDICALL_EXPERT, VAEO_BUSINESS_CLUB, KOMBITEC,
   NERUC_SEDE_CENTRAL, JASON_DE_MEXICO, GWEP, MINT_CARGO, CARGO_LIFT, GRUPO_2711, LI_FINANCIERA, SOFIA, RDS_INVEST_VACAY,
   UNIVERSITY_4_PEOPLE, VIAJES_MACULL, TORRES_CORZO, TECH_PEOPLE, SYSTEM_OOAPAS,
+  SECCION_AMARILLA,
 ]
 
 export const STATIC_CASE_IDS: ReadonlySet<string> = new Set(STATIC_CASES.map(c => c.id))

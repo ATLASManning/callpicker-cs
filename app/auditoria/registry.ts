@@ -34,6 +34,12 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'pubsa',           nombre: 'Publicidad en Buscadores (AdCentral)', consecutivos: ['F17'] },
   { id: 'li-financiera',   nombre: 'LI FINANCIERA',                    consecutivos: ['F61'] },
   { id: 'sofia',           nombre: 'Sofia',                            consecutivos: ['F66'] },
+  /* En Gross Revenue Facturación se llama «ADSA» —Anuncios en Directorios, su
+     razón social— sin CID y con `enCartera: false`, así que ningún cruce
+     automático la ataba a esta ficha. Su factura real son $32,375 al mes, no
+     los $84,254 de la ficha (que son su promedio de 93 meses), y el GRC la da
+     por «Churn confirmado» sin verificar MIENTRAS emite facturas. */
+  { id: 'seccion-amarilla', nombre: 'Sección Amarilla · ADSA',         consecutivos: ['F3']  },
   // ── Claudia ───────────────────────────────────────────────────────────────
   { id: 'agua-inmaculada', nombre: 'Agua Inmaculada',                  consecutivos: ['C17'] },
   { id: 'labsus',          nombre: 'LABSUS Centro Diagnóstico',        consecutivos: ['C37'] },
