@@ -17,7 +17,14 @@ export interface AuditoriaRef {
 
 export const AUDITORIA_REFS: AuditoriaRef[] = [
   // ── Fátima ────────────────────────────────────────────────────────────────
-  { id: 'ancona-autopartes', nombre: 'Ancona Autopartes',               consecutivos: ['F24'] },
+  /* ESTABA EN F24, QUE ES CBS COMPRESORES. Corregido el 13 oct 2026: el
+     expediente declara «VIP · CID 24924» y ese CID es F4, Ancona Autopartes.
+     Una transposición F4 → F24 con dos efectos, y el feo es el primero: la
+     ficha de CBS enseñaba un botón que abría el expediente CONFIDENCIAL de
+     otro cliente, y Ancona —de quien habla— no tenía botón, así que parecía
+     no tener auditoría y se habría vuelto a escribir.
+     Lo caza `scripts/revisa-registro-auditorias.py`, que cruza por CID. */
+  { id: 'ancona-autopartes', nombre: 'Ancona Autopartes',               consecutivos: ['F4']  },
   { id: 'arkansas',        nombre: 'Arkansas State University (ASUQ)', consecutivos: ['F45'] },
   { id: 'finsus',          nombre: 'FINSUS – Economía Móvil',          consecutivos: ['F1']  },
   { id: 'grupofrisa',      nombre: 'Grupo FRISA / ACISA',              consecutivos: ['F16'] },
