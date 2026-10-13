@@ -131,12 +131,21 @@ type Fila = {
   consecutivo: string | null; asesor: string | null; cid: string | null
   estadoBase: string | null; enCartera: boolean; firma: boolean
   verificacion: 'baja' | 'sigue_viva' | 'sin_verificar' | 'na'
+  /** CÓMO se llegó al veredicto. 'cartera' = se cotejó contra `cuentas`.
+   *  'facturacion' = su importe acumulado creció entre dos cortes, o sea que
+   *  facturó. Opcional porque los cortes anteriores al 13 oct 2026 no lo
+   *  traen: ahí la tabla dice «—» en vez de inventar una vía. */
+  verificadoPor?: 'cartera' | 'facturacion' | null
 }
 type Datos = {
   meta: {
     origen: string; mesVivo: string; filas: number; clientes: number; enCartera: number
     descuadre: number; churnBaja: number; churnViva: number; churnSinVerificar: number
     cuentasBaja: number; cuentasViva: number; cuentasSinVerificar: number
+    /** CÓMO se desmintió cada una: cotejada contra la cartera, o desmentida
+     *  por su propia facturación (su acumulado creció entre dos cortes). Las
+     *  dos no dicen lo mismo y el recuadro no puede juntarlas. */
+    cuentasVivaCartera: number; cuentasVivaFactura: number; churnVivaFactura: number
     reactivacionesHasta: string; mesesConDetalle: string[]
     sinFuente: string[]; advertencia: string; notaCambio?: string
   }
@@ -242,12 +251,19 @@ export default function GrossRevenueChurnPage() {
             {m.mesVivo} está en curso — la pérdida va en tres canastas y no se suma en una
           </p>
           <p className="text-[12px] leading-relaxed" style={{ color: MARINO }}>
-            El corte marca «Churn confirmado» a todo contrato que aún no se factura. De esas cuentas solo
-            <strong> {m.cuentasBaja + m.cuentasViva}</strong> están en la cartera y se pueden cotejar contra la base:
-            <strong> {m.cuentasViva} siguen activas o en riesgo</strong> ({f$(m.churnViva)}). Las otras
-            <strong> {nf(m.cuentasSinVerificar)}</strong> ({f$(m.churnSinVerificar)}) no se pueden verificar, y traen
-            la misma firma —MRR fin en cero y pérdida exactamente igual al MRR inicio— que las que sí se desmintieron.
-            {' '}El GRC publicado de {m.mesVivo} es <strong>{fp(vivo.grcMensual)}</strong>; quitando solo las
+            El corte marca «Churn confirmado» a todo contrato que aún no se factura. De esas cuentas,
+            <strong> {m.cuentasBaja + m.cuentasVivaCartera}</strong> están en la cartera y se cotejan contra la base
+            {m.cuentasVivaCartera > 0 && <>: <strong>{m.cuentasVivaCartera} siguen activas o en riesgo</strong></>}.
+            {m.cuentasVivaFactura > 0 && (
+              <> Otras <strong>{nf(m.cuentasVivaFactura)}</strong> ({f$(m.churnVivaFactura)}) quedan desmentidas sin
+                necesidad de la cartera: su <strong>importe acumulado creció</strong> entre dos cortes, o sea que
+                facturaron — y una cuenta dada de baja no factura.</>
+            )}
+            {' '}Las <strong>{nf(m.cuentasSinVerificar)}</strong> restantes ({f$(m.churnSinVerificar)}) siguen sin poder
+            verificarse: ni están en la cartera ni se movió su acumulado. Que no se moviera NO prueba que estén muertas
+            —dos cortes de pocos días no cubren un ciclo de facturación—, así que se quedan aparte en vez de contarse
+            como pérdida.
+            {' '}El GRC publicado de {m.mesVivo} es <strong>{fp(vivo.grcMensual)}</strong>; quitando las
             desmentidas, <strong>{fp(vivo.grcSinDesmentidas)}</strong>; contando nada más lo cotejado,
             {' '}<strong>{fp(vivo.grcVerificado)}</strong>.
             {promHist !== null && <> Los meses cerrados promedian <strong>{fp(promHist)}</strong>.</>}
@@ -264,9 +280,12 @@ export default function GrossRevenueChurnPage() {
         <Kpi icon={TrendingDown} color={ROJO} label="GRC publicado"
           valor={fp(a?.grcMensual)}
           nota={a ? (a.hayFiltro ? 'No se calcula sobre una selección' : `${f$(a.perdida)} de pérdida`) : undefined} />
+        {/* «que la base contradice» dejó de ser cierto el 13 oct 2026: de las
+            desmentidas, la mayoría no las contradice la base sino su propia
+            facturación. La nota dice «desmentido», que cubre las dos vías. */}
         <Kpi icon={AlertTriangle} color={AMBAR} label="GRC sin las desmentidas"
           valor={fp(a?.grcSinDesmentidas)}
-          nota={a ? `Quitando ${f$(a.churnViva)} que la base contradice` : undefined} />
+          nota={a ? `Quitando ${f$(a.churnViva)} desmentidos` : undefined} />
         <Kpi icon={ShieldCheck} color={VERDE} label="GRC cotejado"
           valor={fp(a?.grcVerificado)}
           nota={a ? `${f$(a.churnBaja)} de baja + ${f$(a.downgrade)} de downgrade` : undefined} />
@@ -410,9 +429,17 @@ export default function GrossRevenueChurnPage() {
         </Tarjeta>
       )}
 
+      {/* EL RÓTULO SE CORRIGIÓ EL 13 OCT 2026, Y NO ERA COSMÉTICO.
+          Decía «y la base dice que siguen vivas», que era cierto cuando las
+          desmentidas eran 90 y todas salían de cotejar contra `cuentas`. Desde
+          que una baja también se desmiente con su propia facturación —si el
+          importe acumulado creció entre dos cortes, la cuenta facturó— son
+          1,023, y de ésas 933 NO están en la cartera: nadie puede decir que
+          «la base dice que siguen vivas». El rótulo habría seguido afirmando
+          algo falso sobre el 91% de la tabla. */}
       {d && tab === 'desmentidas' && (
-        <Tarjeta titulo="Marcadas como baja, y la base dice que siguen vivas"
-          sub={`${d.desmentidas.length} cuentas que el corte clasifica «Churn confirmado» y que siguen activas o en riesgo. Antes de reportar cualquiera como baja hay que confirmarla: el mes todavía corre.`}>
+        <Tarjeta titulo="Marcadas como baja, y desmentidas"
+          sub={`${d.desmentidas.length} cuentas que el corte clasifica «Churn confirmado» y que están desmentidas por una de dos vías: o siguen activas en nuestra cartera, o su importe acumulado creció entre dos cortes —o sea que facturaron, y una cuenta dada de baja no factura—. La columna «Desmentida por» dice cuál. Antes de reportar cualquiera como baja hay que confirmarla: el mes todavía corre.`}>
           <TablaDesmentidas filas={d.desmentidas} />
         </Tarjeta>
       )}
@@ -1130,8 +1157,8 @@ function TablaDesmentidas({ filas }: { filas: Fila[] }) {
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead><tr>
-          {['#', 'Cliente', 'Asesor', 'Estado en base', 'Meses activo', 'Lo que declararía perdido'].map((h, i) => (
-            <th key={h} style={{ ...th, textAlign: i > 3 ? 'right' : 'left' }}>{h}</th>
+          {['#', 'Cliente', 'Asesor', 'Estado en base', 'Desmentida por', 'Meses activo', 'Lo que declararía perdido'].map((h, i) => (
+            <th key={h} style={{ ...th, textAlign: i > 4 ? 'right' : 'left' }}>{h}</th>
           ))}
         </tr></thead>
         <tbody>
@@ -1150,12 +1177,28 @@ function TablaDesmentidas({ filas }: { filas: Fila[] }) {
                   color: f.estadoBase === 'activo' ? '#86EFAC' : '#FCD34D',
                 }}>{estadoTxt(f.estadoBase)}</span>
               </td>
+              {/* La vía del desmentido, con palabras y no con un código. Una
+                  cuenta desmentida «por facturación» no está en la cartera:
+                  su columna «Estado en base» no dice nada, y sin esta columna
+                  el lector creería que la base la respalda. */}
+              <td style={td}>
+                <span style={{
+                  fontSize: 10.5, padding: '2px 8px', borderRadius: 6, fontWeight: 700,
+                  background: f.verificadoPor === 'facturacion'
+                    ? 'rgba(96,165,250,0.18)' : 'rgba(167,139,250,0.18)',
+                  color: f.verificadoPor === 'facturacion' ? '#93C5FD' : '#C4B5FD',
+                }}>
+                  {f.verificadoPor === 'facturacion' ? 'facturó después'
+                    : f.verificadoPor === 'cartera' ? 'sigue en cartera'
+                    : '—'}
+                </span>
+              </td>
               <td style={{ ...tdNum, fontWeight: f.meses >= 60 ? 700 : 400 }}><C c={f.meses >= 60 ? AMBAR : TXT_MID}>{f.meses}</C></td>
               <td style={{ ...tdNum, fontWeight: 700 }}><C c={AMBAR}>{f$(f.perdida)}</C></td>
             </tr>
           ))}
           <tr style={filaTotal}>
-            <td style={{ ...td, fontWeight: 800 }} colSpan={5}><C c={TXT_HI}>Total desmentido</C></td>
+            <td style={{ ...td, fontWeight: 800 }} colSpan={6}><C c={TXT_HI}>Total desmentido</C></td>
             <td style={{ ...tdNum, fontWeight: 800 }}><C c={AMBAR}>
               {f$(filas.reduce((s, f) => s + f.perdida, 0))}
             </C></td>

@@ -54,6 +54,11 @@ export interface FilaGRC {
   agrupada?: boolean
   /** 'baja' verificada · 'sigue_viva' desmentida · 'sin_verificar' · 'na' */
   verificacion: 'baja' | 'sigue_viva' | 'sin_verificar' | 'na'
+  /** CÓMO se verificó. 'cartera' = cotejada contra `cuentas`. 'facturacion' =
+   *  su importe acumulado creció entre dos cortes, o sea que facturó — y una
+   *  cuenta dada de baja no factura. Opcional: los cortes anteriores al 13 oct
+   *  2026 no traen el campo, y ahí la pantalla dice «—» en vez de suponer. */
+  verificadoPor?: 'cartera' | 'facturacion' | null
 }
 
 interface MesGRC {
@@ -250,6 +255,17 @@ export async function GET(req: NextRequest) {
         perdida,
         cuentasBaja: dePila('baja').length,
         cuentasViva: dePila('sigue_viva').length,
+        /* El desglose de CÓMO se desmintió cada una. Hace falta en la pantalla
+           porque las dos vías no dicen lo mismo: «sigue en la cartera» es un
+           cotejo contra nuestra base, y «facturó después» es dinero que se
+           movió en una cuenta que NO está en la cartera. Sin separarlas, el
+           recuadro afirmaba que las 1,023 estaban en la cartera cuando sólo
+           lo están 91. */
+        cuentasVivaCartera: dePila('sigue_viva').filter(f => f.verificadoPor === 'cartera').length,
+        cuentasVivaFactura: dePila('sigue_viva').filter(f => f.verificadoPor === 'facturacion').length,
+        churnVivaFactura: dePila('sigue_viva')
+          .filter(f => f.verificadoPor === 'facturacion')
+          .reduce((s, f) => s + (f.perdida ?? 0), 0),
         cuentasSinVerificar: dePila('sin_verificar').length,
         grcMensual: grc(perdida),
         grcSinDesmentidas: grc(perdida - churnViva),

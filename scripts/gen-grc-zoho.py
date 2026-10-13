@@ -253,6 +253,68 @@ rq = urllib.request.Request(
     headers={'apikey': K, 'Authorization': 'Bearer ' + K})
 CART = {norm(c['empresa']): c for c in json.loads(urllib.request.urlopen(rq, timeout=60).read().decode())}
 
+# ── EL CORTE ANTERIOR: desmentir una baja con la PROPIA FACTURACION ──────────
+#
+# Hasta el 13 oct 2026 una baja solo se podia desmentir cotejandola contra la
+# cartera, asi que las 1,396 lineas que no estan en ella quedaban
+# `sin_verificar` para siempre: $1.8M declarados como perdida sin que nadie
+# pudiera decir nada. Eran el 92% de todo el churn del mes.
+#
+# Hay una prueba mucho mas barata y mas fuerte, y estaba dentro del propio
+# archivo: **si el importe ACUMULADO de una linea crecio entre dos cortes, esa
+# linea facturo. Una cuenta dada de baja no factura.** No hace falta saber
+# quien es ni cruzarla con nada — la fuente se desmiente sola, y lo hace con
+# dinero en vez de con nuestra base.
+#
+# Salio de Seccion Amarilla (ADSA): marcada «Churn confirmado» en los dos
+# cortes, con el acumulado subiendo $32,375 —su mensualidad al centavo— y las
+# facturas pasando de 8 a 9. Aplicado a los 1,396: **933 desmentidos,
+# $1,036,294 de perdida declarada que no era perdida.**
+#
+# LO QUE NO HACE, y por eso no se toca la canasta `sin_verificar`: que el
+# acumulado NO crezca no prueba que la cuenta este muerta. Dos cortes separados
+# por nueve dias no cubren un ciclo de facturacion, asi que una cuenta viva que
+# factura el dia 20 no aparece. Esto solo produce DESMENTIDOS, nunca
+# confirmaciones de baja. Las 13 lineas de GTC caen aqui: no facturaron en la
+# ventana, y eso las deja donde estaban, no las condena.
+#
+# El corte anterior se pasa por argumento o se toma del respaldo mas reciente.
+# NUNCA se compara el archivo contra si mismo: daria cero desmentidos y seria
+# una perdida silenciosa de verificacion, que es peor que no tenerla.
+ANTERIOR = {}
+_ruta_ant = None
+_args_json = [a for a in sys.argv[2:] if a.lower().endswith('.json')]
+_cand = _args_json or sorted(
+    os.path.join(RAIZ, 'data', x) for x in os.listdir(os.path.join(RAIZ, 'data'))
+    if x.startswith('grc-zoho.') and x.endswith('.bak.json'))
+if _cand:
+    _ruta_ant = _cand[-1]
+    _prev = json.load(io.open(_ruta_ant, encoding='utf-8'))
+    for _f in _prev.get('filas', []):
+        _k = str(_f.get('cliente') or '').strip()
+        if _k:
+            ANTERIOR[_k] = ANTERIOR.get(_k, 0.0) + num(_f.get('acumulado'))
+    print('  corte anterior para desmentidos: %s  (%d cliente(s))'
+          % (os.path.basename(_ruta_ant), len(ANTERIOR)))
+else:
+    print('  *** SIN CORTE ANTERIOR: no se puede desmentir ninguna baja por')
+    print('      facturacion. Todas las que no esten en cartera quedaran')
+    print('      `sin_verificar`. Pasar un .json de respaldo como 2o argumento.')
+
+_acum_nuevo = collections.defaultdict(float)
+for r in crudas:
+    _n = str(g(r, 'cliente') or '').strip()
+    if _n:
+        _acum_nuevo[_n] += num(g(r, 'acumulado'))
+
+
+def facturo_despues(nombre):
+    """True si el acumulado de este cliente CRECIO contra el corte anterior."""
+    if nombre not in ANTERIOR:
+        return False
+    return _acum_nuevo.get(nombre, 0.0) - ANTERIOR[nombre] > 0.005
+
+
 filas = []
 for r in crudas:
     nom = str(g(r, 'cliente') or '').strip()
@@ -277,14 +339,36 @@ for r in crudas:
     # pero es lo que comparten las 61 que SI se pudieron desmentir.
     firma = es_churn(m) and fin == 0 and abs(per - ini) < 0.01
 
+    # LA ESCALERA, Y SU ORDEN ES EL HALLAZGO
+    # --------------------------------------
+    # Mi primera version ponia la prueba de facturacion ARRIBA del todo,
+    # razonando que el dinero movido es mas fuerte que nuestra base. La
+    # conciliacion lo desmintio en una linea: la canasta `baja` paso de 1 a 0,
+    # o sea que la UNICA baja real y verificada del corte —$3,500— se
+    # reclasifico como viva.
+    #
+    # Y es obvio en cuanto se ve: **una cancelacion produce una ultima
+    # factura.** Facturar no prueba estar vivo; prueba haber facturado. Donde
+    # la cartera SI sabe quien es la cuenta, manda la cartera. La prueba de
+    # facturacion es un RESCATE para las que no se pueden cotejar contra nada,
+    # no un veredicto superior.
+    #
+    # `verificadoPor` deja escrito COMO se llego a cada veredicto, para que
+    # «desmentida» no sea una palabra sin origen.
+    verif_por = None
     if not es_churn(m) or per <= 0:
         verif = 'na'                       # no es una baja: no hay nada que verificar
-    elif not c:
-        verif = 'sin_verificar'            # no esta en la cartera: no hay contra que cotejar
-    elif c['estado'] in VIVO and firma:
-        verif = 'sigue_viva'               # marcada de baja y la base dice que vive
+    elif c:                                # esta en la cartera: ella decide
+        if c['estado'] in VIVO and firma:
+            verif = 'sigue_viva'           # marcada de baja y la base dice que vive
+        else:
+            verif = 'baja'                 # la base la da de baja: perdida real
+        verif_por = 'cartera'
+    elif facturo_despues(nom):
+        verif = 'sigue_viva'               # no esta en cartera, pero FACTURO despues
+        verif_por = 'facturacion'
     else:
-        verif = 'baja'                     # la base la da de baja: perdida real
+        verif = 'sin_verificar'            # nada contra que cotejar: ausencia de medicion
 
     filas.append({
         'cliente': nom,
@@ -306,6 +390,10 @@ for r in crudas:
         'agrupada': agrupada,
         'firma': firma,
         'verificacion': verif,
+        # 'facturacion' = su acumulado crecio contra el corte anterior.
+        # 'cartera'     = se cotejo contra `cuentas`.
+        # None          = no se pudo verificar (o no habia nada que verificar).
+        'verificadoPor': verif_por,
     })
 
 nombres = {f['cliente'] for f in filas}
@@ -545,6 +633,17 @@ META = {
     'churnSinVerificar': round(churnSinVer, 2),
     'cuentasBaja': len(por('baja')), 'cuentasViva': len(por('sigue_viva')),
     'cuentasSinVerificar': len(por('sin_verificar')),
+    # El desglose de COMO se desmintio cada una. La pantalla lo necesita porque
+    # las dos vias no dicen lo mismo: «sigue en la cartera» es un cotejo contra
+    # nuestra base, y «facturo despues» es dinero movido en una cuenta que NO
+    # esta en la cartera. Sin separarlas, el recuadro del modulo afirmaba que
+    # las 1,023 desmentidas estaban en la cartera cuando solo lo estan 91.
+    'cuentasVivaCartera': sum(1 for f in por('sigue_viva')
+                              if f.get('verificadoPor') == 'cartera'),
+    'cuentasVivaFactura': sum(1 for f in por('sigue_viva')
+                              if f.get('verificadoPor') == 'facturacion'),
+    'churnVivaFactura': round(sum(f['perdida'] for f in por('sigue_viva')
+                                  if f.get('verificadoPor') == 'facturacion'), 2),
     'mesesCerrados': [m for m, _, _, _, _ in HISTORIA],
     'reactivacionesHasta': REACTIVACIONES[-1][0],
     'mesesConDetalle': sorted(detalle.keys(), key=lambda x: MESES.index(x)),
@@ -573,13 +672,25 @@ META = {
         'Reactivaciones: no hay columna en el export; se publica hasta %s, que es lo que Zoho alcanzó a publicar.' % REACTIVACIONES[-1][0],
         'Pagos recuperados y CSAT: son otros datasets, no salen de este export.',
     ],
+    # OJO AL REDACTAR ESTO: el texto viaja en el JSON y la pantalla lo pinta
+    # tal cual. El 13 oct 2026 decia «solo N estan en la cartera y se pueden
+    # cotejar», contando ahi las desmentidas por facturacion — que NO estan en
+    # la cartera. Afirmaba de 933 cuentas justo lo contrario de lo que pasa.
+    # Un rotulo guardado en el dato envejece peor que uno escrito en la
+    # pantalla, porque nadie lo ve al revisar el componente.
     'advertencia': (
-        'El corte se tomó con el mes en curso. De las cuentas que el corte marca como baja, solo '
-        '%d están en la cartera y se pueden cotejar contra la base: %d de ellas siguen activas o en '
-        'riesgo. Las otras %d no se pueden verificar y %d de ellas traen exactamente la misma firma '
-        '—MRR fin en cero y pérdida igual al MRR inicio— que las que sí se desmintieron. Por eso la '
-        'pérdida se publica en tres canastas y nunca junta.'
-        % (len(por('baja')) + len(por('sigue_viva')), len(por('sigue_viva')),
+        'El corte se tomó con el mes en curso. De las cuentas que marca como baja, %d están en la '
+        'cartera y se cotejan contra la base: %d siguen activas o en riesgo. Otras %d quedan '
+        'desmentidas sin necesidad de la cartera, porque su importe acumulado creció entre dos '
+        'cortes: facturaron, y una cuenta dada de baja no factura. Las %d restantes no se pueden '
+        'verificar —ni están en la cartera ni se movió su acumulado— y %d traen la misma firma '
+        '(MRR fin en cero y pérdida igual al MRR inicio) que las que sí se desmintieron. Que su '
+        'acumulado no se moviera NO prueba que estén muertas: dos cortes de pocos días no cubren '
+        'un ciclo de facturación. Por eso la pérdida se publica en canastas y nunca junta.'
+        % (len(por('baja')) + sum(1 for f in por('sigue_viva')
+                                  if f.get('verificadoPor') == 'cartera'),
+           sum(1 for f in por('sigue_viva') if f.get('verificadoPor') == 'cartera'),
+           sum(1 for f in por('sigue_viva') if f.get('verificadoPor') == 'facturacion'),
            len(por('sin_verificar')), sum(1 for f in por('sin_verificar') if f['firma']))
     ),
 }
@@ -602,7 +713,11 @@ print('  MRR inicio            %14s' % f_(mrrIni))
 print('  Downgrade             %14s   (perdida parcial sobre cuenta viva: siempre real)' % f_(downg))
 print('  Churn marcado         %14s   en %d filas' % (f_(churn), len(por('baja')) + len(por('sigue_viva')) + len(por('sin_verificar'))))
 print('    · baja verificada   %14s   %4d cuentas — la base las da de baja' % (f_(churnBaja), META['cuentasBaja']))
-print('    · DESMENTIDA        %14s   %4d cuentas — la base dice que siguen vivas' % (f_(churnViva), META['cuentasViva']))
+print('    · DESMENTIDA        %14s   %4d cuentas' % (f_(churnViva), META['cuentasViva']))
+print('        por cartera                       %4d — la base dice que siguen vivas'
+      % META['cuentasVivaCartera'])
+print('        por facturacion   %14s   %4d — su acumulado crecio: facturaron'
+      % (f_(META['churnVivaFactura']), META['cuentasVivaFactura']))
 print('    · sin verificar     %14s   %4d filas  — fuera de la cartera, nada contra que cotejar' % (f_(churnSinVer), META['cuentasSinVerificar']))
 print()
 print('  GRC publicado (todo)      %6.1f%%' % vivo['grcMensual'])
