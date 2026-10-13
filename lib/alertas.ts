@@ -63,6 +63,7 @@ export type TipoAlerta =
   | 'sin_radar'
   | 'sin_contactos'
   | 'sin_ficha'
+  | 'sin_datos_auditables'
   | 'caida_consumo'
   | 'desplome_consumo'
   | 'consumo_cero'
@@ -205,6 +206,32 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     titulo: 'Ficha sin observaciones del KAM',
     accion: 'Escribir qué sabemos de esta cuenta: para qué la usan, quién decide, qué les duele.',
     enlaceEtiqueta: 'Completar la ficha', ancla: 'ficha',
+  },
+  /* Pedida por dirección el 12 oct 2026, con estas palabras: «si en alguna no
+     se te facilita por falta de datos indicanos en ALERTAS para requisitar los
+     campos faltantes».
+
+     POR QUE ES SU PROPIA ALERTA Y NO UNA MAS DE `sin_ficha`
+     ------------------------------------------------------
+     `sin_ficha` mira UN campo —`observaciones_kam`— y pide prosa. Esta mira los
+     datos DUROS sin los cuales una auditoría no se puede escribir: el giro, el
+     servicio contratado y desde cuándo es cliente. Sin ellos no hay forma de
+     decir si 2,000 llamadas al mes son muchas o pocas, si el consumo cuadra con
+     lo contratado, ni si un deterioro es nuevo o de siempre. Y la diferencia
+     que importa: un campo vacío NO es un valor neutro. Sin `giro`, la auditoría
+     no puede decir «sector genérico» — tiene que decir «no se capturó», y eso
+     es tarea de alguien. [[feedback-cero-sin-medicion]]
+
+     NO SE SOLAPA con las otras tres de ceguera a propósito: `sin_radar` cubre
+     el Radar, `sin_contactos` los contactos y `sin_ficha` las observaciones. Si
+     esta también los contara, una cuenta recién dada de alta encendería cuatro
+     alertas que dicen lo mismo y nadie leería ninguna. */
+  sin_datos_auditables: {
+    tipo: 'sin_datos_auditables', familia: 'ceguera', severidad: 'alta', dueno: 'asesor',
+    titulo: 'Faltan datos para poder auditarla',
+    accion: 'Capturar los campos que la evidencia nombra. Mientras falten, cualquier '
+          + 'análisis de esta cuenta es opinión: no hay contra qué comparar sus números.',
+    enlaceEtiqueta: 'Requisitar los campos', ancla: 'ficha',
   },
 
   // ── RIESGO ─────────────────────────────────────────────────────────────
@@ -433,6 +460,7 @@ export const CONDICION: Record<TipoAlerta, Condicion> = {
   sin_radar: 'radar',
   sin_contactos: 'contactos',
   sin_ficha: 'ficha',
+  sin_datos_auditables: 'ficha',
   baja_declarada: 'escrito', riesgo_escrito: 'escrito', reduccion_declarada: 'escrito',
   sac_atraso_cronico: 'mesa', sac_fuera_sla: 'mesa', sac_fallas_recurrentes: 'mesa',
   sin_importe: 'importe',

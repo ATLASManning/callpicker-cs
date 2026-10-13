@@ -84,11 +84,18 @@ interface CuentaAlerta {
   observaciones_kam: string | null
   notas: string | null
   contactos_json: unknown
+  /* Los datos duros de la ficha. Entran para `sin_datos_auditables`: son los
+     campos sin los cuales una auditoría no se puede escribir. */
+  giro: string | null
+  tamano_empresa: string | null
+  servicio: string | null
+  activo_desde: string | null
 }
 
 const CAMPOS =
   'id, cid, consecutivo, empresa, asesor, estado, facturacion, ultimo_contacto, ' +
-  'observaciones_kam, notas, contactos_json'
+  'observaciones_kam, notas, contactos_json, ' +
+  'giro, tamano_empresa, servicio, activo_desde'
 
 function diasDesde(fecha: string | null | undefined, hoy: string): number | null {
   if (!fecha) return null
@@ -98,6 +105,42 @@ function diasDesde(fecha: string | null | undefined, hoy: string): number | null
   const b = Date.UTC(+hoy.slice(0, 4), +hoy.slice(5, 7) - 1, +hoy.slice(8, 10))
   return Math.max(0, Math.round((b - a) / 86400000))
 }
+
+/* ── LOS CAMPOS SIN LOS QUE UNA AUDITORIA ES OPINION ──────────────────────
+ *
+ * La lista no es un gusto: es lo que hizo falta de verdad al escribir las
+ * primeras auditorías del TOP 50. Sin `giro` no se puede decir si 2,000
+ * llamadas al mes son muchas o pocas —una concesionaria y un laboratorio no se
+ * parecen—; sin `servicio` no se sabe contra qué plan comparar el consumo; sin
+ * `activo_desde` no se distingue un deterioro nuevo de uno de siempre.
+ *
+ * `critico` separa los que impiden escribir del que sólo empobrece. `tamano_
+ * empresa` y las `notas` se piden en la misma visita porque ya se está ahí,
+ * pero su ausencia no dispara nada por sí sola: una alerta que salta por un
+ * campo opcional es una alerta que se aprende a cerrar sin leer.
+ *
+ * Cada campo lleva QUIEN lo requisita, porque dirección lo pidió así y porque
+ * un pendiente sin dueño no es un pendiente. [[feedback-tablas-deben-cerrar]]
+ */
+const REQUISITOS_FICHA: ReadonlyArray<{
+  campo: string
+  etiqueta: string
+  critico: boolean
+  dueno: string
+  hay: (c: CuentaAlerta) => boolean
+}> = [
+  { campo: 'giro', etiqueta: 'giro o sector', critico: true, dueno: 'el asesor',
+    hay: c => !!(c.giro ?? '').trim() },
+  { campo: 'servicio', etiqueta: 'servicio contratado', critico: true, dueno: 'el asesor',
+    hay: c => !!(c.servicio ?? '').trim() },
+  { campo: 'activo_desde', etiqueta: 'fecha de alta (antigüedad)', critico: true,
+    dueno: 'facturación',
+    hay: c => !!(c.activo_desde ?? '').trim() },
+  { campo: 'tamano_empresa', etiqueta: 'tamaño de empresa', critico: false, dueno: 'el asesor',
+    hay: c => !!(c.tamano_empresa ?? '').trim() },
+  { campo: 'notas', etiqueta: 'notas de contexto', critico: false, dueno: 'el asesor',
+    hay: c => !!(c.notas ?? '').trim() },
+]
 
 function cuantosContactos(v: unknown): number {
   try {
@@ -478,6 +521,49 @@ export async function detectarAlertas(
       add('sin_ficha', c,
           `Cero observaciones del KAM en una cuenta de ${cuantoPaga(c)}, `
           + `con ${ns} ${ns === 1 ? 'seguimiento' : 'seguimientos'} en el historial.`)
+    }
+
+    /* ── Lo que falta para poder AUDITARLA ────────────────────────────────
+     * Dispara sólo si falta un campo CRITICO. Los opcionales que falten se
+     * nombran en la misma evidencia para que una sola visita cierre todo —
+     * pero no encienden la alerta por su cuenta.
+     *
+     * La evidencia dice LOS NOMBRES y SUS DUEÑOS, no un conteo. «Faltan 3
+     * campos» obliga a entrar a averiguar cuáles, y lo que no se lee de un
+     * golpe no se atiende. [[feedback-contexto-ia-sin-huecos]] */
+    const faltan = REQUISITOS_FICHA.filter(r => !r.hay(c))
+    if (faltan.some(r => r.critico)) {
+      const criticos = faltan.filter(r => r.critico)
+      const opcionales = faltan.filter(r => !r.critico)
+
+      /* «giro o sector, servicio contratado y tamaño» — con «y» antes del
+         último, que es como se escribe una enumeración en español. Una lista
+         separada sólo por comas se lee como un formulario. */
+      const nombres = (rs: typeof faltan) => {
+        const e = rs.map(r => r.etiqueta)
+        return e.length <= 1
+          ? (e[0] ?? '')
+          : `${e.slice(0, -1).join(', ')} y ${e[e.length - 1]}`
+      }
+
+      /* Los dueños van UNA VEZ al final, no detrás de cada campo. La primera
+         versión los repetía —«giro o sector, servicio contratado (el asesor)
+         … tamaño de empresa (el asesor)»— y leerla en pantalla fue lo que lo
+         destapó: ninguna prueba de datos iba a cazarlo. */
+      const duenos = Array.from(new Set(faltan.map(r => r.dueno)))
+      const uno = criticos.length === 1
+
+      /* La evidencia NO repite el título. Abría con «No se puede auditar:» y
+         el título ya dice «Faltan datos para poder auditarla» — leído en la
+         pantalla, una línea decía dos veces lo mismo antes de llegar al dato.
+         La evidencia empieza donde el título termina. */
+      add('sin_datos_auditables', c,
+          `La ficha no tiene ${nombres(criticos)}. `
+          + `Factura ${cuantoPaga(c)}.`
+          + (opcionales.length ? ` De paso falta ${nombres(opcionales)}.` : '')
+          + ` Sin ${uno ? 'ese dato' : 'esos datos'} no hay contra qué comparar `
+          + `sus llamadas, su consumo ni su deterioro: el análisis sería `
+          + `opinión. Lo requisita ${duenos.join(' y ')}.`)
     }
 
     /* ── Lo que el equipo YA ESCRIBIÓ ─────────────────────────────────────
