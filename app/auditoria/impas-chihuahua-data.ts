@@ -22,6 +22,28 @@ import type { AuditoriaCase } from './types'
  * **el contacto que el asesor no encontraba lleva meses publicado en un sitio
  * .gob.mx**, con correo institucional y extensión.
  *
+ * v1.1 — LA INVESTIGACIÓN YA ESTÁ EN LA FICHA, NO SÓLO AQUÍ
+ * ----------------------------------------------------------
+ * La v1.0 cometió un error de alcance: escribió el expediente y dejó la ficha
+ * de la cuenta igual que estaba, con el director equivocado, el teléfono en
+ * ceros y la facturación en $0. **Una auditoría que vive sólo en su módulo no
+ * le sirve al asesor que abre la cuenta** — el dato tiene que estar donde se
+ * trabaja. Lo señaló dirección.
+ *
+ * El 13 oct 2026 se escribió en `cuentas` (Z63) con
+ * `scripts/enriquece-impas.py`, que corre en simulacro por omisión y comprueba
+ * leyendo de vuelta: importe $0 → $65,640 · director corregido · los 14
+ * funcionarios del directorio público capturados como contactos · 8
+ * ubicaciones · giro precisado · notas reescritas con el contexto del
+ * organismo · y un addendum fechado en las observaciones del KAM que NO borra
+ * lo que el asesor escribió, sino que desmiente sus tres afirmaciones caducas
+ * al lado.
+ *
+ * Lo que NO se escribió, a propósito: `total_empleados` y `tamano_empresa`
+ * siguen vacíos porque el personal no está validado públicamente, y los
+ * correos de los 12 funcionarios sin correo publicado no se construyeron por
+ * patrón aunque el patrón se vea.
+ *
  * LAS CIFRAS, VERIFICADAS UNA POR UNA
  * -----------------------------------
  *   · importe   → GRC por CID: $65,640 «MRR estable», y CUADRA AL CENTAVO con
@@ -55,7 +77,7 @@ export const IMPAS_CHIHUAHUA: AuditoriaCase = {
   descripcion_contexto: '$65,640 al mes y la ficha decía $0 — por eso nunca se auditó · El 96.7% del contrato es UN producto: la Marcación Corta (el 072) · 352 llamadas medidas en enero, ninguna llegó a una persona, y desde el 21 de enero no hay ni una más',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',
-  version: '1.0',
+  version: '1.1',
 
   kpis: [
     { label: 'MRR real · la ficha decía $0',      value: '$65,640',    color: '#ef4444' },
@@ -83,7 +105,7 @@ export const IMPAS_CHIHUAHUA: AuditoriaCase = {
     'RIESGO — SI LA LÍNEA DE CRISIS PASA POR AQUÍ, ESTO DEJA DE SER UN TEMA DE SLA. El organismo opera una línea de atención a crisis 24/7 («Hablar Salva Vidas», *800). NO está confirmado que ese canal viaje sobre nuestro servicio, y no se debe suponer — pero confirmarlo o descartarlo es lo primero del plan, porque si viaja, una llamada que no llega a una persona no es una métrica: es una emergencia sin atender.',
     'RELACIÓN — EL CONTACTO QUE NADIE ENCONTRABA ESTÁ PUBLICADO EN UN SITIO .GOB.MX. Las observaciones KAM dicen que el único dato disponible es el del contratante, Luis Álvarez, y que no responde correos. El Municipio de Chihuahua publica el directorio completo del organismo con catorce funcionarios, cada uno con cargo, correo institucional y extensión. No era un dato difícil: era un dato que nadie fue a buscar.',
     'RELACIÓN — EL DECISOR ÚTIL TIENE NOMBRE, CORREO Y EXTENSIÓN: C.P. Miguel de los Santos Arévalo, subdirector administrativo (miguel.delossantos@mpiochih.gob.mx, 614 200-4800 ext. 2255). En un organismo público, contratación, renovación y presupuesto pasan por la subdirección administrativa, no por la dirección general. Es el contacto que esta cuenta necesitaba desde diciembre.',
-    'FICHA — EL DIRECTOR REGISTRADO NO ES EL DIRECTOR. La ficha guarda «Lic. Erick Lucero — Director IMPAS» con teléfono «0000000000». El directorio municipal nombra como director general al Dr. Luis Antonio Arrieta Trevizo (antonio.arrieta@mpiochih.gob.mx, ext. 2264). Un contacto equivocado es peor que ninguno: hace creer que la cuenta está mapeada.',
+    'FICHA — EL DIRECTOR REGISTRADO NO ERA EL DIRECTOR. La ficha guardaba «Lic. Erick Lucero — Director IMPAS» con teléfono «0000000000», cuando el directorio municipal nombra al Dr. Luis Antonio Arrieta Trevizo (ext. 2264). Un contacto equivocado es peor que ninguno: hace creer que la cuenta está mapeada. CORREGIDO el 13 oct 2026, junto con la captura del directorio completo — la ficha pasó de 2 contactos, uno de ellos falso, a 15.',
     'OPERACIÓN — EL CLIENTE PUBLICÓ UNA EXTENSIÓN NUEVA EN SEPTIEMBRE. El Municipio difundió el 072 extensión 5495 para agendar consultas dentales, de lunes a viernes de 8:00 a 18:00. Dos cosas se siguen de ahí: que el servicio está vivo y creciendo en usos, y que **hay flujos de atención diferenciados por servicio** — algo que nuestra medición no refleja en ninguna parte.',
     'OPERACIÓN — OCHO UBICACIONES DE REFERENCIA, Y NO SABEMOS CÓMO TELEFONEAN. Cuatro sedes principales, tres Unidades Básicas de Rehabilitación y un Centro de Equinoterapia. Las tres UBR tienen teléfonos propios publicados (614 434 4065, 614 424 5194, 614 446 0586) en un comunicado municipal de octubre de 2024. Si esas sedes marcan por fuera, hay tráfico del cliente que no pasa por nosotros — y es la conversación de crecimiento más concreta que tiene esta cuenta. (La cifra de ocho es de referencia, no un inventario certificado, y los teléfonos hay que confirmar que sigan operativos.)',
     'CONTRADICCIÓN — LA FICHA DICE QUE LA CUENTA NO TIENE NADA CONFIGURADO, Y EL CLIENTE PUBLICA EXTENSIONES. Las observaciones afirman que «no cuenta con un número Callpicker asignado ni con extensiones configuradas». Pero paga $63,450 al mes por un número de marcación corta, y el Municipio publica catorce extensiones en el rango 2251–2389 más la 5495 nueva. Lo que la ficha describe y lo que el cliente hace no se parecen: hay que ir a ver cuál de las dos cosas es verdad.',
@@ -183,12 +205,12 @@ export const IMPAS_CHIHUAHUA: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'CORREGIR el importe de la ficha: $0 → $65,640, el del GRC, que cuadra al centavo con los servicios contratados. Es lo que devuelve la cuenta a todas las listas de las que lleva diez meses fuera', responsable: 'Facturación', criterio: '`cuentas.facturacion` en $65,640 y la cuenta apareciendo en el TOP por dinero' },
+    { accion: '✓ HECHO el 13 oct 2026 — Corregido el importe de la ficha: $0 → $65,640, el del GRC, que cuadra al centavo con los servicios contratados. La cuenta vuelve a todas las listas ordenadas por dinero de las que llevaba diez meses fuera', responsable: 'Facturación', criterio: 'Aplicado y comprobado leyendo de vuelta con `scripts/enriquece-impas.py`' },
     { accion: 'CONFIRMAR si la línea de atención a crisis 24/7 («Hablar Salva Vidas», *800) viaja sobre nuestro servicio. No suponerlo en ninguna dirección', responsable: 'Dan / Ingeniería', criterio: 'Respuesta escrita del cliente. Si es que sí, la cuenta se reprioriza entera ese mismo día.' },
-    { accion: 'Escribir al C.P. Miguel de los Santos Arévalo, subdirector administrativo (miguel.delossantos@mpiochih.gob.mx, ext. 2255), y al Dr. Luis Antonio Arrieta Trevizo, director general (ext. 2264). Los dos están publicados en el directorio municipal', responsable: 'Dan', criterio: 'Respuesta de al menos uno, y los dos capturados en la ficha con cargo, correo y extensión' },
+    { accion: 'Escribir al C.P. Miguel de los Santos Arévalo, subdirector administrativo (miguel.delossantos@mpiochih.gob.mx, ext. 2255), y al Dr. Luis Antonio Arrieta Trevizo, director general (ext. 2264). Los dos ya están capturados en la ficha — lo que falta es la llamada', responsable: 'Dan', criterio: 'Respuesta de al menos uno, registrada en seguimiento' },
     { accion: 'Averiguar con Ingeniería por qué no hay una sola llamada desde el 21 de enero ni un mes de consumo, en una cuenta que factura $65,640', responsable: 'Ingeniería', criterio: 'O entra la lectura, o queda escrito por qué esta cuenta no se puede medir' },
     { accion: 'Averiguar por qué ninguna de las 352 llamadas llegó a una persona: revisar el enrutamiento del menú y a dónde transfiere', responsable: 'Ingeniería / Dan', criterio: 'Se explica el flujo completo de una llamada, desde el 072 hasta la extensión que la toma' },
-    { accion: 'CORREGIR el director en la ficha: registra «Lic. Erick Lucero» con teléfono 0000000000; el directorio municipal nombra al Dr. Luis Antonio Arrieta Trevizo', responsable: 'Dan', criterio: 'Contacto correcto en la ficha. Un contacto equivocado hace creer que la cuenta está mapeada.' },
+    { accion: '✓ HECHO el 13 oct 2026 — Corregido el director de la ficha (registraba «Lic. Erick Lucero» con teléfono 0000000000) y capturado el DIRECTORIO COMPLETO: los 14 funcionarios publicados por el Municipio, con cargo y extensión, más el contratante histórico. Quince contactos donde había dos, y uno de los dos estaba mal', responsable: 'Dan', criterio: 'Aplicado y comprobado. Los correos de los 12 sin correo publicado NO se construyeron por patrón: sólo van los 2 verificados.' },
   ],
 
   plan_mediano: [
