@@ -49,6 +49,12 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   // ── Claudia ───────────────────────────────────────────────────────────────
   { id: 'agua-inmaculada', nombre: 'Agua Inmaculada',                  consecutivos: ['C17'] },
   { id: 'labsus',          nombre: 'LABSUS Centro Diagnóstico',        consecutivos: ['C37'] },
+  /* La voz MEJORA sola (5.0% → 1.9% de pérdida mientras el volumen crece), y
+     eso tapó dos cosas: que la mitad de las pérdidas caben en TRES destinos
+     que son el 1.92% del tráfico, y que el cliente nos avisó el 22 jul de que
+     su único interlocutor ya no está en la operación. Su importe real son
+     $23,325 —DOS líneas del mismo CID—, no los $10,901 que decía la ficha. */
+  { id: 'odontoprev',      nombre: 'ODONTOPREV México (Odontored)',    consecutivos: ['C13'] },
   { id: 'brandgroup',      nombre: 'Brand-Kern-Liebers México (Brandgroup)', consecutivos: ['C15'] },
   { id: 'clickbalance',    nombre: 'ClickBalance ERP',                 consecutivos: ['C43'] },
   { id: 'elerybrands',     nombre: 'Elery Brands · Clínicas del Hombre', consecutivos: ['C22'] },
