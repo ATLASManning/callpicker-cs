@@ -40,6 +40,12 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
      los $84,254 de la ficha (que son su promedio de 93 meses), y el GRC la da
      por «Churn confirmado» sin verificar MIENTRAS emite facturas. */
   { id: 'seccion-amarilla', nombre: 'Sección Amarilla · ADSA',         consecutivos: ['F3']  },
+  /* La ficha la tenía en $0 y factura $65,640 al mes: diez meses fuera de toda
+     lista ordenada por dinero, porque un cero no baja un puesto — saca de la
+     lista. El 96.7% del contrato es UN producto, la Marcación Corta (el 072
+     del Municipio). Y el directorio de decisores que el asesor no encontraba
+     lleva meses publicado en impas.mpiochih.gob.mx. */
+  { id: 'impas-chihuahua',  nombre: 'IMPAS Municipio Chihuahua',       consecutivos: ['Z63'] },
   // ── Claudia ───────────────────────────────────────────────────────────────
   { id: 'agua-inmaculada', nombre: 'Agua Inmaculada',                  consecutivos: ['C17'] },
   { id: 'labsus',          nombre: 'LABSUS Centro Diagnóstico',        consecutivos: ['C37'] },
