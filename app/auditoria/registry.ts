@@ -55,9 +55,12 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'gwep',              nombre: 'GWEP (Grupo Gwep)',             consecutivos: ['D54'] },
   { id: 'cargo-lift',        nombre: 'Cargo Lift',                    consecutivos: ['D5']  },
   { id: 'university-4-people', nombre: 'University 4 People (Tec de Monterrey)', consecutivos: ['D58'] },
-  /* La MAYOR de la cartera: $316,541 al mes, el 14.8%. Su auditoría se pudo
-     escribir el 12 oct 2026 porque ese día entró su lectura de llamadas —
-     hasta entonces la ficha le pedía el Excel al cliente. */
+  /* La MAYOR de la cartera: $272,436 al mes (GRC `mrrFin`), el 23.3% de las 132
+     cuentas activas. El cliente pidió DESCENTRALIZAR y hoy cada agencia responde
+     por su propia comunicación: son 19 líneas de facturación, ninguna con CID.
+     v1.2 corrigió tres cifras que la v1.1 daba por buenas — el MRR venía de un
+     promedio de vida, el peso en cartera de un denominador que ya no existe, y
+     el giro decía «Nissan» cuando el dinero dice Nissan+BMW+MG+INFINITI. */
   { id: 'torres-corzo',      nombre: 'Grupo Torres Corzo Automotriz (GTC)', consecutivos: ['D1']  },
   /* No opera: el cliente la describe como respaldo de información. Su 99.70%
      de llamadas sin contestar NO es una falla —van todas a un agente

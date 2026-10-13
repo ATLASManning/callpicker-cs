@@ -7,7 +7,7 @@ import { esConElCliente } from '@/lib/reuniones-tipo'
 /**
  * lib/alertas-movimiento.ts — QUÉ LE HIZO A ESTA ALERTA LO QUE ACABAS DE CAPTURAR
  *
- * â”€â”€ EL ENCARGO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * ── EL ENCARGO ────────────────────────────────────────────────────────────
  *
  * Dirección, 12 oct 2026: «si alguno de nosotros ingresa información en
  * Reuniones, Observaciones, seguimientos etc, en alguna cuenta debes tener la
@@ -21,7 +21,7 @@ import { esConElCliente } from '@/lib/reuniones-tipo'
  * captura una reunión, la alerta sigue ahí, y el ejecutivo concluye que
  * capturar no sirve de nada.
  *
- * â”€â”€ «SEGÚN CORRESPONDA» ES LA PARTE DIFÃCIL, Y ES UNA TABLA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * ── «SEGÚN CORRESPONDA» ES LA PARTE DIFÍCIL, Y ES UNA TABLA ───────────────
  *
  * La tentación es dejar que cualquier captura calme cualquier alerta. Eso
  * reconstruiría justo lo que dirección retiró el 8 oct con el generador SAC:
@@ -34,7 +34,7 @@ import { esConElCliente } from '@/lib/reuniones-tipo'
  * decirlo en voz alta es la mitad del valor: «esta reunión apaga el silencio
  * de 74 días; NO toca la caída de consumo del 62%, que sigue abierta».
  *
- * â”€â”€ DE DÓNDE SALE EL MOVIMIENTO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ * ── DE DÓNDE SALE EL MOVIMIENTO ───────────────────────────────────────────
  *
  * De `alertas_episodios`, que ya lleva la memoria: desde cuándo está abierta,
  * cuál ha sido su peor severidad, cuántas veces ha vuelto. Nada de esto se
@@ -103,7 +103,7 @@ export interface Movimiento {
   sentido: Sentido
   /** La frase de pantalla. Lleva los números dentro: sin ellos no se defiende. */
   frase: string
-  /** Lo capturado desde que esta alerta se movió por última vez, y que SÃ la toca. */
+  /** Lo capturado desde que esta alerta se movió por última vez, y que SÍ la toca. */
   cuentan: Captura[]
   /**
    * Lo capturado que NO la toca. Va acompañado de qué sí la apagaría, porque

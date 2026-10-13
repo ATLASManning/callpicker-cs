@@ -328,7 +328,7 @@ RX_GENERICO = re.compile(r'<\s*([A-Z][\w$]*)\s*(?:extends|,|>)')
 RX_USO_LLAMADA = re.compile(r'(?<![.\w$?])([a-z_$][\w$]*)\s*\(')
 RX_USO_JSX = re.compile(r'<([A-Z][\w$]*)[\s/>]')
 
-# â”€â”€ Prosa del JSX: la trampa que hace inservible a este detector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Prosa del JSX: la trampa que hace inservible a este detector ───────────
 #
 # `sin_comentarios` quita cadenas y comentarios, pero el texto de un JSX no va
 # entre comillas: `<p>Hay que ver la raíz (del problema)</p>` deja un `raíz (`

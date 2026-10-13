@@ -13,7 +13,7 @@
    recortar el subárbol del módulo tal cual viene, con sus estilos en línea.
    Lo que se ve es lo que hay.
 
-   LO QUE SÃ FALTA, Y HAY QUE SABERLO
+   LO QUE SÍ FALTA, Y HAY QUE SABERLO
    Las clases de Tailwind viven en la hoja compilada del build, que no se
    recorta. Se carga Tailwind por CDN para cubrirlas, pero no es byte a byte:
    un ancho o un `truncate` pueden no coincidir. Para juzgar colores, tabla,
@@ -85,7 +85,7 @@ with urllib.request.urlopen(r, timeout=300) as x:
 html = b.decode('utf-8', 'replace')
 print(u'  %s%s · %d KB' % (args.base, args.ruta, len(html) / 1024))
 
-# â”€â”€ FUERA LOS <script>, Y NO ES COSMÉTICO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── FUERA LOS <script>, Y NO ES COSMÉTICO ───────────────────────────────────
 # Next sirve el payload RSC dentro de etiquetas <script>, con el MISMO marcado
 # escapado. Dos consecuencias, y las dos rompieron el primer intento:
 #   1. El ancla aparece ANTES en el payload que en el DOM, así que la búsqueda
@@ -103,7 +103,7 @@ if i < 0:
     print(u'  *** el ancla «%s» no aparece en la página servida.' % args.ancla)
     sys.exit(1)
 
-# â”€â”€ Hacia atrás hasta el <div> que ABRE el módulo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Hacia atrás hasta el <div> que ABRE el módulo ───────────────────────────
 # Se sube etiqueta por etiqueta contando el balance: el <div> que abre es el
 # primero que queda sin cerrar por encima del ancla. Buscar «el <div> anterior»
 # a secas cae dentro del encabezado y recorta media tarjeta.
@@ -149,7 +149,7 @@ inicio = candidatos[0][1]          # el más externo de los cercanos
 print(u'  contenedor: <div en %d, a %d bytes del ancla (de %d candidatos)'
       % (inicio, i - inicio, len(candidatos)))
 
-# â”€â”€ Hacia delante hasta su cierre â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ── Hacia delante hasta su cierre ───────────────────────────────────────────
 prof, fin = 0, None
 for m in RX_TAG.finditer(html, inicio):
     cierra, nombre, auto = m.group(1), m.group(2).lower(), m.group(4)
@@ -171,7 +171,7 @@ trozo = html[inicio:fin]
 print(u'  recortado: %d bytes de marcado, %d filas de tabla'
       % (len(trozo), trozo.count('<tr')))
 if args.depurar or len(trozo) < 2000:
-    print(u'\n  â”€â”€ DEPURACIÓN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€')
+    print(u'\n  ── DEPURACIÓN ───────────────────────────────────────────')
     print(u'  ancla en %d · inicio %d · fin %d' % (i, inicio, fin))
     print(u'  las 6 etiquetas sin cerrar por encima del ancla, de dentro afuera:')
     for nombre, pos in list(reversed(abiertos))[:6]:

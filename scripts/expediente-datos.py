@@ -194,6 +194,142 @@ for x in ad:
     print(u'    %-28s %-7s %s · %s' % (x.get('producto'), x.get('nivel'),
                                        x.get('fecha'), (x.get('notas') or u'')[:120]))
 
+# ── 4b · GROSS REVENUE FACTURACION ─────────────────────────────────────────
+#
+# Direccion confirmo que el MRR bueno es el del GRC y no `cuentas.facturacion`.
+# Pero «el MRR del GRC» son CUATRO columnas distintas y solo una contesta
+# «cuanto paga este mes»:
+#
+#   mrrFin     el recurrente al CIERRE del periodo  <- ESTE
+#   mrrIni     el recurrente al inicio del contrato
+#   acumulado  todo lo recurrente facturado en la vida de la linea
+#   meses      sobre cuantos meses se acumulo
+#
+# `acumulado / meses` es un PROMEDIO DE VIDA. Es la cifra que un script viejo
+# metio en `cuentas.facturacion`, y por eso la ficha de Torres Corzo trae
+# $316,541 cuando el mes vigente es otro. Se imprimen las cuatro para que
+# quien escriba el expediente vea la diferencia en vez de confiar.
+#
+# Y el cruce: por CID cuando hay CID. Cuando no hay —GTC tiene 19 lineas sin
+# CID— hay que cruzar por nombre, que es justo lo que mezcla cuentas. Por eso
+# las dos listas salen SEPARADAS y rotuladas, nunca sumadas a ciegas.
+print(u'\n  ══ GROSS REVENUE FACTURACION ═══════════════════════════════')
+G = json.load(io.open(os.path.join(RAIZ, 'data', 'grc-zoho.json'), encoding='utf-8'))
+GF = G['filas']
+print(u'  corte: %s · %s lineas' % (G.get('meta', {}).get('corte') or u'?',
+                                    u'{:,}'.format(len(GF))))
+
+
+def _n(x):
+    try:
+        return float(x or 0)
+    except Exception:
+        return 0.0
+
+
+def imprime_grc(etiqueta, filas):
+    if not filas:
+        print(u'  %s: NINGUNA linea.' % etiqueta)
+        return 0.0
+    print(u'\n  %s — %d linea(s)' % (etiqueta, len(filas)))
+    tot_fin = tot_ini = tot_prom = 0.0
+    for x in sorted(filas, key=lambda y: -_n(y.get('mrrFin'))):
+        fin, ini = _n(x.get('mrrFin')), _n(x.get('mrrIni'))
+        ac, ms = _n(x.get('acumulado')), int(_n(x.get('meses')) or 0)
+        prom = ac / ms if ms else 0.0
+        tot_fin += fin; tot_ini += ini; tot_prom += prom
+        print(u'    %-38s fin %12s  ini %12s  prom %12s  %s'
+              % ((x.get('cliente') or u'?')[:38],
+                 u'{:,.0f}'.format(fin), u'{:,.0f}'.format(ini),
+                 u'{:,.0f}'.format(prom), x.get('movimiento') or u''))
+        if _n(x.get('perdida')):
+            print(u'        perdida %s · verificacion %s · clasif %s · CID %s'
+                  % (u'{:,.2f}'.format(_n(x.get('perdida'))),
+                     x.get('verificacion'), x.get('clasif'), x.get('cid')))
+    print(u'    %-38s fin %12s  ini %12s  prom %12s'
+          % (u'TOTAL', u'{:,.0f}'.format(tot_fin), u'{:,.0f}'.format(tot_ini),
+             u'{:,.0f}'.format(tot_prom)))
+    return tot_fin
+
+
+por_cid = [x for x in GF if str(x.get('cid') or '').strip() == CID and CID]
+fin_cid = imprime_grc(u'POR CID %s — el cruce bueno' % (CID or u'(sin CID)'), por_cid)
+
+# Por nombre, solo como PISTA y para encontrar lineas sin CID. Se normaliza
+# igual que el resto del repo: sin acentos, sin puntuacion, minusculas.
+import unicodedata
+
+
+def norm(s):
+    s = ''.join(ch for ch in unicodedata.normalize('NFD', str(s or '').lower())
+                if not (0x300 <= ord(ch) <= 0x36f))
+    return re.sub(r'[^a-z0-9]', '', s)
+
+
+# EL TOKEN «GRUPO» CASA CON TODO, Y ESO NO ES UNA ANECDOTA
+# -------------------------------------------------------
+# La primera version de esto cruzaba por cualquier token de 4+ letras del
+# nombre. Para «GRUPO TORRES CORZO» eso trajo 175 lineas —Grupo Almeida,
+# Grupo Volvix, GB Grupo— y un total de $328,624 que parecia confirmar la
+# cifra de la ficha. Confirmaba mi error, no el dato.
+#
+# Un token sirve para cruzar solo si es RARO. Asi que se mide: se cuenta en
+# cuantos nombres distintos del corte aparece cada token, y se cruza unicamente
+# con los que aparecen en menos del 2% — «corzo» si, «grupo» no. La lista de
+# palabras genericas no se escribe a mano: se deduce del propio corte, que es
+# lo que la mantiene al dia cuando entren clientes nuevos.
+NOMBRES = [norm(x.get('cliente')) for x in GF]
+TOTAL_N = max(len(NOMBRES), 1)
+
+
+def tokens(s):
+    return [t for t in re.split(r'[^a-z0-9]+',
+            re.sub(r'[^a-z0-9 ]', ' ', str(s or '').lower())) if len(t) >= 4]
+
+
+frec = {}
+for t in tokens(c.get('empresa')):
+    frec[t] = sum(1 for n in NOMBRES if t in n)
+
+raros = [t for t, n in frec.items() if n < TOTAL_N * 0.02]
+genericos = sorted(t for t in frec if t not in raros)
+print(u'\n  tokens del nombre: %s' % u', '.join(
+    u'%s(%d%s)' % (t, frec[t], u'' if t in raros else u' GENERICO') for t in sorted(frec)))
+if genericos:
+    print(u'  se ignoran por genericos: %s' % u', '.join(genericos))
+
+if not raros:
+    print(u'  *** el nombre no tiene NI UN token distintivo. No se cruza por')
+    print(u'      nombre: cualquier coincidencia seria ruido.')
+    cands = []
+else:
+    cands = [x for x in GF if x not in por_cid
+             and any(t in norm(x.get('cliente')) for t in raros)]
+fin_nom = imprime_grc(u'POR NOMBRE (tokens raros: %s) — PISTA, no evidencia'
+                      % u'+'.join(sorted(raros)), cands)
+
+sin_cid = [x for x in cands if not str(x.get('cid') or '').strip()]
+if sin_cid:
+    print(u'\n  *** %d de esas %d lineas NO TIENEN CID.' % (len(sin_cid), len(cands)))
+    print(u'      El tablero cruza por CID, asi que esas lineas son invisibles')
+    print(u'      para la ficha. No es que la cuenta no facture: es que no se')
+    print(u'      encuentra. HALLAZGO, y tarea de facturacion.')
+
+ficha_fact = _n(c.get('facturacion'))
+mejor = fin_cid or fin_nom
+if ficha_fact and mejor:
+    print(u'\n  CONTRASTE  ficha.facturacion %12s' % u'{:,.0f}'.format(ficha_fact))
+    print(u'             GRC mrrFin         %12s   delta %s (%+.1f%%)'
+          % (u'{:,.0f}'.format(mejor), u'{:+,.0f}'.format(mejor - ficha_fact),
+             100.0 * (mejor - ficha_fact) / ficha_fact))
+    if abs(mejor - ficha_fact) / ficha_fact > 0.05:
+        print(u'             *** se separan mas del 5%: la ficha NO sirve para')
+        print(u'                 rankear ni para decir «cuanto esta en juego».')
+elif not mejor:
+    print(u'\n  *** NO HAY NINGUNA linea de GRC para esta cuenta, ni por CID ni')
+    print(u'      por nombre. O no factura, o su nombre en Zoho no se parece al')
+    print(u'      de la ficha. Las dos cosas se comprueban antes de concluir.')
+
 # ── 5 · ALERTAS ────────────────────────────────────────────────────────────
 ep = trae('alertas_episodios?select=condicion,tipo,abierto_en,condicion_desde,'
           'severidad_actual,severidad_peor,recurrencia,evidencia_actual'
@@ -205,3 +341,64 @@ for x in ep:
              x.get('condicion_desde') or x.get('abierto_en'),
              x.get('severidad_actual'), x.get('severidad_peor')))
     print(u'      %s' % (x.get('evidencia_actual') or u'')[:220])
+
+# ── 6 · LO QUE FALTA PARA PODER AUDITAR ────────────────────────────────────
+#
+# Direccion lo pidio asi: «si en alguna no se te facilita por falta de datos
+# indicanos en ALERTAS para requisitar los campos faltantes». Este bloque es
+# la lista, y sale de comprobar PRESENCIA, no de mirar la pantalla.
+#
+# La diferencia que importa: un campo vacio NO es un cero. Si no hay sector,
+# la auditoria no puede decir «sector generico» — tiene que decir «no se
+# capturo el sector», y alguien tiene que capturarlo. Un hueco es tarea con
+# dueño, no un valor por omision. (Es la misma regla que ya rige los
+# promedios y los rangos del tablero.)
+print(u'\n  ══ LO QUE FALTA PARA AUDITAR ═══════════════════════════════')
+
+tiene_contactos = bool(c.get('contactos_json'))
+if isinstance(c.get('contactos_json'), (list, dict)):
+    tiene_contactos = len(c['contactos_json']) > 0
+
+REQUISITOS = [
+    # (rotulo,                 lo hay?,                                    quien lo requisita)
+    # Los nombres de columna son los de `cuentas`, comprobados: `giro` y
+    # `activo_desde`, NO `sector` ni `fecha_alta`. La primera version uso los
+    # que me parecian razonables y marco como faltantes dos campos que si
+    # estaban — un verificador que inventa huecos entrena a ignorarlo.
+    (u'Giro / sector',         bool((c.get('giro') or u'').strip()),        u'SAC — ficha'),
+    (u'Tamaño de empresa',     bool((c.get('tamano_empresa') or u'').strip()),
+                                                                            u'SAC — ficha'),
+    (u'Servicio contratado',   bool((c.get('servicio') or u'').strip()),    u'SAC — ficha'),
+    (u'Antigüedad (activo_desde)', bool(c.get('activo_desde')),             u'Facturacion'),
+    (u'Contactos capturados',  tiene_contactos,                             u'Asesor de la cuenta'),
+    (u'Observaciones KAM',     bool((c.get('observaciones_kam') or u'').strip()),
+                                                                            u'Asesor de la cuenta'),
+    (u'Notas / contexto',      bool((c.get('notas') or u'').strip()),       u'Asesor de la cuenta'),
+    (u'Lectura de llamadas',   d is not None,                               u'Operaciones — export'),
+    (u'Linea en el GRC',       bool(por_cid or cands),                      u'Facturacion'),
+    (u'CID cruzado en el GRC', bool(por_cid),                               u'Facturacion'),
+    (u'Tickets de la mesa',    bool(mios),                                  u'(puede ser legitimo: 0)'),
+    (u'Reuniones registradas', bool(reu),                                   u'Asesor de la cuenta'),
+    (u'Seguimientos',          bool(seg),                                   u'Asesor de la cuenta'),
+    (u'Radar (12 preguntas)',  len(rad) > 0,                                u'Asesor de la cuenta'),
+    (u'Adopcion de producto',  bool(ad),                                    u'SAC'),
+]
+
+faltan = [(r, q) for r, hay, q in REQUISITOS if not hay]
+for r, hay, q in REQUISITOS:
+    print(u'  %-26s %s' % (r, u'si' if hay else u'** FALTA — lo requisita: ' + q))
+
+print(u'\n  %d de %d requisitos presentes.' % (len(REQUISITOS) - len(faltan), len(REQUISITOS)))
+if faltan:
+    print(u'\n  PARA LA ALERTA DE DATOS INCOMPLETOS (cuenta %s · %s):' % (CONS, c.get('empresa')))
+    print(u'    falta: %s' % u'; '.join(r for r, _ in faltan))
+    # Hasta cinco requisitos sin los cuales la auditoria se vuelve opinion.
+    criticos = [r for r, _ in faltan if r in (u'Lectura de llamadas', u'Linea en el GRC',
+                                              u'Servicio contratado', u'Giro / sector',
+                                              u'Antigüedad (activo_desde)')]
+    if criticos:
+        print(u'    *** CRITICOS (sin estos la auditoria seria opinion): %s'
+              % u', '.join(criticos))
+    else:
+        print(u'    ninguno es critico: la auditoria SE PUEDE escribir, diciendo')
+        print(u'    por escrito que esos campos estan vacios.')

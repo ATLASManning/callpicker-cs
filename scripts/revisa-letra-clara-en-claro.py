@@ -243,7 +243,7 @@ def pares_medibles(txt):
     piezas = [(l, c) for l, c in objetos_style(limpio)]
     piezas += [(l, c) for l, c, _ in objetos_constantes(limpio)]
     for linea, cuerpo in piezas:
-        # â”€â”€ El fondo que CAMBIA de claro a oscuro con una condicion â”€â”€â”€â”€â”€â”€â”€
+        # ── El fondo que CAMBIA de claro a oscuro con una condicion ───────
         # El texto de dentro no puede ser correcto en los dos estados. Es el
         # bug del mosaico seleccionado de /alertas, 8 oct 2026.
         for m in RX_TERNARIO_FONDO.finditer(cuerpo):
@@ -344,7 +344,7 @@ def analiza(txt):
             return a_rgb(consts[nombre])
         return None
 
-    # â”€â”€ ¿Dibuja alguna superficie oscura? â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── ¿Dibuja alguna superficie oscura? ──────────────────────────────
     tiene_oscuro = 'cp-card' in limpio or padre_declarado(txt) is not None
     tiene_claro_fondo = False
 
@@ -381,7 +381,7 @@ def analiza(txt):
 
     tiene_oscuro, tiene_claro_fondo = banderas
 
-    # â”€â”€ Los colores de texto claros â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # ── Los colores de texto claros ────────────────────────────────────
     claros = []
     for lit, nom in RX_COLOR.findall(limpio):
         rgb = resuelve(lit, nom)
