@@ -59,6 +59,10 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
      escribir el 12 oct 2026 porque ese día entró su lectura de llamadas —
      hasta entonces la ficha le pedía el Excel al cliente. */
   { id: 'torres-corzo',      nombre: 'Grupo Torres Corzo Automotriz (GTC)', consecutivos: ['D1']  },
+  /* No opera: el cliente la describe como respaldo de información. Su 99.70%
+     de llamadas sin contestar NO es una falla —van todas a un agente
+     virtual— y su MRR real es $1,078, no los $38,123 de la ficha. */
+  { id: 'system-ooapas',     nombre: 'Grupo System OOAPAS (Estradata)',     consecutivos: ['D2']  },
   /* ── Sin cuenta en cartera ─────────────────────────────────────────────────
      `consecutivos: []` NO es un olvido. Son auditorias de cuentas que nunca
      entraron a `cuentas` y por tanto no tienen consecutivo ni KAM: se vendieron
