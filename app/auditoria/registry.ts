@@ -51,6 +51,10 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'gwep',              nombre: 'GWEP (Grupo Gwep)',             consecutivos: ['D54'] },
   { id: 'cargo-lift',        nombre: 'Cargo Lift',                    consecutivos: ['D5']  },
   { id: 'university-4-people', nombre: 'University 4 People (Tec de Monterrey)', consecutivos: ['D58'] },
+  /* La MAYOR de la cartera: $316,541 al mes, el 14.8%. Su auditoría se pudo
+     escribir el 12 oct 2026 porque ese día entró su lectura de llamadas —
+     hasta entonces la ficha le pedía el Excel al cliente. */
+  { id: 'torres-corzo',      nombre: 'Grupo Torres Corzo Automotriz (GTC)', consecutivos: ['D1']  },
   /* ── Sin cuenta en cartera ─────────────────────────────────────────────────
      `consecutivos: []` NO es un olvido. Son auditorias de cuentas que nunca
      entraron a `cuentas` y por tanto no tienen consecutivo ni KAM: se vendieron
