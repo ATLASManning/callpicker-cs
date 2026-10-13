@@ -32,6 +32,12 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'azyco',           nombre: 'Azyco Guadalajara',                consecutivos: ['F6']  },
   { id: 'polak-grupo',     nombre: 'Polak Grupo',                      consecutivos: ['F5']  },
   { id: 'pubsa',           nombre: 'Publicidad en Buscadores (AdCentral)', consecutivos: ['F17'] },
+  /* Pierde el 30.63% de sus llamadas desde enero y NO tiene una sola alerta:
+     el motor compara contra la base propia y la suya ya es mala, así que lo
+     crónico es invisible. El 93.4% de las pérdidas cabe en cuatro destinos.
+     Y no nos usa para sus farmacias: opera líneas de programa de pacientes
+     de AXA, AbbVie, Pint Farma, CIMESA y HOPE Medical Center. */
+  { id: 'probemedic',      nombre: 'PROBEMEDIC · Farmacias Especializadas', consecutivos: ['F7'] },
   { id: 'li-financiera',   nombre: 'LI FINANCIERA',                    consecutivos: ['F61'] },
   { id: 'sofia',           nombre: 'Sofia',                            consecutivos: ['F66'] },
   /* En Gross Revenue Facturación se llama «ADSA» —Anuncios en Directorios, su
