@@ -533,25 +533,37 @@ export async function detectarAlertas(
      * golpe no se atiende. [[feedback-contexto-ia-sin-huecos]] */
     const faltan = REQUISITOS_FICHA.filter(r => !r.hay(c))
     if (faltan.some(r => r.critico)) {
-      const lista = (rs: typeof faltan) => {
-        const porDueno = new Map<string, string[]>()
-        for (const r of rs) {
-          porDueno.set(r.dueno, [...(porDueno.get(r.dueno) ?? []), r.etiqueta])
-        }
-        return Array.from(porDueno.entries())
-          .map(([d, cs]) => `${cs.join(', ')} (${d})`)
-          .join('; ')
-      }
       const criticos = faltan.filter(r => r.critico)
       const opcionales = faltan.filter(r => !r.critico)
+
+      /* «giro o sector, servicio contratado y tamaño» — con «y» antes del
+         último, que es como se escribe una enumeración en español. Una lista
+         separada sólo por comas se lee como un formulario. */
+      const nombres = (rs: typeof faltan) => {
+        const e = rs.map(r => r.etiqueta)
+        return e.length <= 1
+          ? (e[0] ?? '')
+          : `${e.slice(0, -1).join(', ')} y ${e[e.length - 1]}`
+      }
+
+      /* Los dueños van UNA VEZ al final, no detrás de cada campo. La primera
+         versión los repetía —«giro o sector, servicio contratado (el asesor)
+         … tamaño de empresa (el asesor)»— y leerla en pantalla fue lo que lo
+         destapó: ninguna prueba de datos iba a cazarlo. */
+      const duenos = Array.from(new Set(faltan.map(r => r.dueno)))
+      const uno = criticos.length === 1
+
+      /* La evidencia NO repite el título. Abría con «No se puede auditar:» y
+         el título ya dice «Faltan datos para poder auditarla» — leído en la
+         pantalla, una línea decía dos veces lo mismo antes de llegar al dato.
+         La evidencia empieza donde el título termina. */
       add('sin_datos_auditables', c,
-          `No se puede auditar: la ficha no tiene ${lista(criticos)}. `
+          `La ficha no tiene ${nombres(criticos)}. `
           + `Factura ${cuantoPaga(c)}.`
-          + (opcionales.length
-              ? ` De paso falta también ${lista(opcionales)}.`
-              : '')
-          + ` Sin estos campos no hay contra qué comparar sus llamadas, su `
-          + `consumo ni su deterioro: el análisis sería opinión.`)
+          + (opcionales.length ? ` De paso falta ${nombres(opcionales)}.` : '')
+          + ` Sin ${uno ? 'ese dato' : 'esos datos'} no hay contra qué comparar `
+          + `sus llamadas, su consumo ni su deterioro: el análisis sería `
+          + `opinión. Lo requisita ${duenos.join(' y ')}.`)
     }
 
     /* ── Lo que el equipo YA ESCRIBIÓ ─────────────────────────────────────
