@@ -1,6 +1,7 @@
 import path from 'path'
 import ActivacionesCharts, { RegistroItem } from '@/components/charts/ActivacionesCharts'
 import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico'
+import SoloEnCliente, { ReservaGrafica } from '@/components/charts/SoloEnCliente'
 import ActivacionesGrandes from '@/components/charts/ActivacionesGrandes'
 
 export const dynamic = 'force-dynamic'
@@ -211,9 +212,13 @@ export default async function ActivacionesPage() {
 
       {/* Charts */}
       <div style={{ padding: '28px 32px 64px' }}>
-        <ActivacionesCharts registros={registros} anos={anos} />
+        <SoloEnCliente reserva={<ReservaGrafica alto={420} />}>
+            <ActivacionesCharts registros={registros} anos={anos} />
+          </SoloEnCliente>
         <ActivacionesGrandes registros={registros} />
-        <ActivacionesDiagnostico registros={registros} />
+        <SoloEnCliente reserva={<ReservaGrafica alto={320} />}>
+            <ActivacionesDiagnostico registros={registros} />
+          </SoloEnCliente>
       </div>
     </div>
   )

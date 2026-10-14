@@ -31,6 +31,7 @@ import HealthScoreDiagnostico from '@/components/HealthScoreDiagnostico'
 import SeguimientoForm from '@/components/SeguimientoForm'
 import SeguimientoStatusSelect from '@/components/SeguimientoStatusSelect'
 import HealthHistorialChart from '@/components/charts/HealthHistorialChart'
+import SoloEnCliente, { ReservaGrafica } from '@/components/charts/SoloEnCliente'
 import AdopcionProducto from '@/components/AdopcionProducto'
 import RadarCuenta from '@/components/RadarCuenta'
 import CuentaInfoEditor from '@/components/CuentaInfoEditor'
@@ -637,7 +638,9 @@ export default async function CuentaDetailPage({ params }: Props) {
           {historial.length > 0 && (
             <div className="cp-card">
               <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide mb-3">Evolución Health Score</h3>
-              <HealthHistorialChart data={historial} />
+              <SoloEnCliente reserva={<ReservaGrafica alto={180} />}>
+                  <HealthHistorialChart data={historial} />
+                </SoloEnCliente>
             </div>
           )}
 

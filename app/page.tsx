@@ -10,6 +10,7 @@ import * as TEMA from '@/lib/chart-theme'
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
 import DashAlertasGraficas, { GraficasCargando } from '@/components/DashAlertasGraficas'
+import SoloEnCliente from '@/components/charts/SoloEnCliente'
 import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVersatil'
 import CandidatoA from '@/components/CandidatoA'
 import { type ResultadoCandidato } from '@/lib/candidato-a'
@@ -183,7 +184,11 @@ export default async function DashboardPage() {
       ?? 'el motor de veredictos no respondió', alcance))
 
   async function Graficas() {
-    return <DashAlertasGraficas datos={await tablero} />
+    return (
+    <SoloEnCliente reserva={<GraficasCargando />}>
+      <DashAlertasGraficas datos={await tablero} />
+    </SoloEnCliente>
+  )
   }
 
   /* ── QUIÉN ESTÁ EN RIESGO ───────────────────────────────────────────────
