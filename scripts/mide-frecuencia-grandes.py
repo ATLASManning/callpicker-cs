@@ -46,15 +46,18 @@ MES_ES = ['', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
 
 
 def columna(cab, *nombres):
-    """Busca una columna por varios nombres posibles, sin distinguir mayusculas."""
+    """Busca una columna por su nombre EXACTO, sin distinguir mayusculas.
+
+    Nada de coincidencia parcial: la primera version buscaba «pago» por
+    subcadena y se llevaba «Fecha 1er Pago» en vez de «1er Pago», asi que
+    `float()` de un datetime fallaba y las 143 cuentas salian como CERO. Un
+    lector que se equivoca de columna no avisa — devuelve un universo correcto
+    (2,148) con una medicion vacia, que es la forma mas cara de fallar.
+    """
     bajo = {str(c).strip().lower(): i for i, c in enumerate(cab) if c is not None}
     for n in nombres:
-        if n.lower() in bajo:
-            return bajo[n.lower()]
-    for n in nombres:
-        for k, i in bajo.items():
-            if n.lower() in k:
-                return i
+        if n.strip().lower() in bajo:
+            return bajo[n.strip().lower()]
     return None
 
 
@@ -66,11 +69,12 @@ def main():
     cab = list(next(filas))
     print(u'  hoja «%s» · %d columnas' % (wb.sheetnames[0], len(cab)))
 
-    c_pago = columna(cab, 'Primer pago', 'primer_pago', 'primerpago', 'pago')
-    c_mes = columna(cab, 'Mes', 'mes')
-    c_ano = columna(cab, 'Año', 'Ano', 'year', 'anio')
-    c_tipo = columna(cab, 'Tipo', 'tipo')
-    c_cli = columna(cab, 'Cliente', 'cliente', 'empresa')
+    c_pago = columna(cab, '1er Pago')
+    c_mes = columna(cab, 'Mes 1er Pago')
+    c_ano = columna(cab, 'Año')
+    c_tipo = columna(cab, 'Tipo')
+    c_cli = columna(cab, 'Cliente')
+    c_fecha = columna(cab, 'Fecha 1er Pago')   # fecha REAL: permite dias, no solo meses
     for nom, i in (('pago', c_pago), ('mes', c_mes), ('año', c_ano), ('tipo', c_tipo)):
         if i is None:
             print(u'  *** no encuentro la columna %s. Cabeceras: %s'
@@ -96,8 +100,11 @@ def main():
             ano = int(f[c_ano] or 0)
         except (TypeError, ValueError):
             ano = 0
+        fecha = f[c_fecha] if c_fecha is not None else None
+        if not hasattr(fecha, 'toordinal'):
+            fecha = None
         reg = {'cliente': str(f[c_cli] or '') if c_cli is not None else '',
-               'pago': pago, 'mes': mes, 'ano': ano}
+               'pago': pago, 'mes': mes, 'ano': ano, 'fecha': fecha}
         if mes in MES_NUM and ano:
             reg['k'] = ano * 12 + MES_NUM[mes]
             grandes.append(reg)
@@ -152,6 +159,38 @@ def main():
               % (sum(saltos) / float(len(saltos)), ss[len(ss) // 2], max(saltos), min(saltos)))
     print(u'    ritmo global: una cada %.1f dias (%d meses / %d activaciones)'
           % (len(ventana) * 30.44 / len(grandes), len(ventana), len(grandes)))
+
+    # ── EL INTERVALO DE VERDAD: en DIAS, con la fecha real de 1er pago ───────
+    # `Mes 1er Pago` solo da granularidad mensual; `Fecha 1er Pago` es un
+    # datetime y permite medir cada cuanto cae una de verdad. Si faltan fechas
+    # se DICE cuantas, no se rellenan.
+    fechas = sorted(r['fecha'] for r in grandes if r['fecha'] is not None)
+    sin_fecha = len(grandes) - len(fechas)
+    print(u'\n  CON FECHA EXACTA: %d de %d · sin fecha: %d'
+          % (len(fechas), len(grandes), sin_fecha))
+    if len(fechas) >= 2:
+        d = [(fechas[i + 1] - fechas[i]).days for i in range(len(fechas) - 1)]
+        ds = sorted(d)
+        span = (fechas[-1] - fechas[0]).days
+        print(u'    ventana real: %s → %s · %d dias'
+              % (fechas[0].date(), fechas[-1].date(), span))
+        print(u'    una cada %.1f dias de media · mediana %d · p90 %d · maximo %d'
+              % (span / float(len(fechas) - 1), ds[len(ds) // 2],
+                 ds[int(len(ds) * 0.9)], max(d)))
+        mismo = sum(1 for x in d if x == 0)
+        print(u'    %d pares cayeron el MISMO dia (intervalo 0)' % mismo)
+        # Reparto del intervalo, que es lo que la grafica puede pintar.
+        TRAMOS = [(0, 0, 'mismo dia'), (1, 7, '1-7 dias'), (8, 15, '8-15'),
+                  (16, 30, '16-30'), (31, 60, '31-60'), (61, 10**6, 'mas de 60')]
+        print(u'    reparto de los %d intervalos:' % len(d))
+        suma = 0
+        for lo, hi, etiq in TRAMOS:
+            c = sum(1 for x in d if lo <= x <= hi)
+            suma += c
+            print(u'        %-12s %3d  (%4.1f%%)  %s'
+                  % (etiq, c, 100.0 * c / len(d), u'█' * int(round(24.0 * c / len(d)))))
+        print(u'        %-12s %3d  <- tiene que cuadrar con %d'
+              % ('TOTAL', suma, len(d)))
 
     # racha mas larga de ceros
     mejor = act = 0
