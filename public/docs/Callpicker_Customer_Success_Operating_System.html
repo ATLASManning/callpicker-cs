@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d3159"><meta name="description" content="Documento institucional de referencia de Customer Success de Callpicker: filosofía, segmentación, salud de clientes, prioridades, plays y operación.">
+<title>Customer Success Operating System | Callpicker</title>
+<style>
+:root{--navy:#10355d;--navy2:#082742;--blue:#1d6caa;--cyan:#39abd8;--ink:#202e3b;--muted:#6a7889;--line:#dfe8ef;--paper:#fff;--wash:#f5f8fb}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--wash);color:var(--ink);font:16px/1.72 'Segoe UI',Arial,sans-serif}a{color:inherit}button,input{font:inherit}
+.shell{display:grid;grid-template-columns:300px minmax(0,1fr);min-height:100vh}.side{position:sticky;top:0;height:100vh;overflow:auto;background:var(--navy2);color:#fff;padding:27px 18px 38px;scrollbar-color:#63829a transparent}.brand{padding:6px 13px 23px;border-bottom:1px solid #ffffff26}.brandname{font-weight:850;letter-spacing:.065em;font-size:22px}.brandname b{color:#7fd1ef}.brand small{display:block;margin-top:7px;color:#b6d0e0;font-size:11px;letter-spacing:.13em;text-transform:uppercase}.search{width:100%;margin:24px 0 15px;background:#fff;color:#1a2938;border:0;border-radius:9px;padding:11px 12px;outline:2px solid transparent}.search:focus{outline-color:#60c9f0}.side-caption{margin:12px 9px;color:#84bcd7;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.13em}.nav-link{display:block;text-decoration:none;padding:8px 11px;border-radius:7px;color:#dbe8f0;font-size:12px;line-height:1.48;margin:2px 0}.nav-link:hover,.nav-link.active{background:#ffffff1d;color:#fff}.depth-2{padding-left:16px;font-weight:650}.depth-3{padding-left:25px;color:#b8cad7}.main{min-width:0}.hero{background:linear-gradient(127deg,#0b2d4d,#15537f 72%,#247ba6);color:#fff;padding:80px clamp(26px,7vw,100px) 78px;position:relative;overflow:hidden}.hero:after{content:"";position:absolute;width:430px;height:430px;border:1px solid #ffffff21;border-radius:50%;right:-110px;top:-155px;box-shadow:0 0 0 70px #ffffff09,0 0 0 145px #ffffff06;pointer-events:none}.tag{font-size:12px;font-weight:760;letter-spacing:.17em;text-transform:uppercase;color:#b3e8ff}.hero h1{font-size:clamp(36px,5.2vw,68px);line-height:1.06;letter-spacing:-.04em;max-width:750px;margin:28px 0 22px}.hero h1 span{color:#8ad7f8}.hero p{color:#d7e7f2;font-size:18px;max-width:640px;line-height:1.55}.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:35px}.pill{border:1px solid #ffffff4d;border-radius:30px;padding:6px 13px;font-size:12px;color:#e5f1fa}.topbar{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:18px clamp(20px,6vw,85px);background:white;border-bottom:1px solid var(--line)}.topbar small{color:var(--muted)}.actions{display:flex;gap:8px}.action{cursor:pointer;padding:9px 13px;border:1px solid #cbdde9;color:var(--navy);background:white;border-radius:8px;font-size:13px;font-weight:650}.action:hover{background:#edf7fc}.document{max-width:1000px;margin:auto;padding:38px clamp(22px,6vw,80px) 100px;background:white;box-shadow:0 13px 32px #1c3f5810;min-height:85vh}.document h2,.document h3,.document h4{scroll-margin-top:28px;line-height:1.25;letter-spacing:-.025em}.document h2{font-size:31px;color:var(--navy);margin:45px 0 22px;border-bottom:3px solid var(--cyan);padding-bottom:15px}.document h3{font-size:24px;color:var(--navy);margin:43px 0 18px}.document h4{font-size:19px;color:var(--blue);margin:29px 0 13px}.document p{margin:0 0 15px;text-align:justify;hyphens:auto}.document p.item{padding-left:15px;border-left:3px solid #b1d9ec}.document .mission{padding:20px 23px;background:#eff7fc;border-left:5px solid var(--blue);color:var(--navy);font-weight:700;text-align:left}.table-scroll{width:100%;overflow-x:auto;margin:22px 0 33px;border-radius:9px;border:1px solid var(--line)}table{width:100%;border-collapse:collapse;min-width:560px;font-size:13px;line-height:1.45}th{background:var(--navy);color:white;text-align:left;font-weight:750}td,th{padding:12px 13px;border-bottom:1px solid #e5edf3;vertical-align:top}tbody tr:nth-child(even){background:#f4f8fb}tr:last-child td{border-bottom:0}.footer{max-width:1000px;margin:auto;padding:24px 30px 55px;font-size:12px;text-align:center;color:var(--muted)}.mobile-menu{display:none}.noresults{display:none;color:#c9dbe6;font-size:12px;padding:8px}.readprogress{position:fixed;height:3px;background:#3aa7d1;top:0;left:0;width:0;z-index:10}
+@media(max-width:950px){.shell{display:block}.side{position:fixed;z-index:11;left:0;transform:translateX(-105%);width:min(320px,90vw);transition:transform .2s;box-shadow:10px 0 30px #061b2a29}.side.open{transform:translateX(0)}.mobile-menu{display:inline-block}.hero{padding-top:65px}.topbar{position:sticky;top:0;z-index:5}}
+@media(max-width:600px){.hero{padding:58px 23px}.hero p{font-size:16px}.topbar{padding:10px 14px}.topbar small{display:none}.action{padding:8px 10px}.document{padding:15px 19px 60px}.document h2{font-size:25px}.document h3{font-size:21px}.document h4{font-size:18px}.document p{text-align:left;font-size:15px}}
+@media print{body{background:#fff;font:11pt/1.48 Arial,sans-serif}.shell{display:block}.side,.topbar,.readprogress,.footer{display:none!important}.hero{background:#123b60!important;print-color-adjust:exact;-webkit-print-color-adjust:exact;padding:75px 45px}.document{box-shadow:none;padding:25px 35px}.document h2,.document h3,.document h4{break-after:avoid}p,table{orphans:3;widows:3}tr{break-inside:avoid}a{text-decoration:none}}
+</style></head>
+<body><div class="readprogress" id="progress"></div><div class="shell"><aside class="side" id="sidebar" aria-label="Índice del documento"><div class="brand"><div class="brandname">CALL<b>PICKER</b></div><small>Customer Success · Documento institucional</small></div><input type="search" id="search" class="search" placeholder="Buscar secciones..." aria-label="Buscar secciones"><div class="side-caption">Contenido</div><nav id="nav"><a class="nav-link depth-1" href="#sec-1"><span>Carta del Director de Customer Success</span></a><a class="nav-link depth-1" href="#sec-2"><span>Customer Success Operating System</span></a><a class="nav-link depth-2" href="#sec-3"><span>Capítulo 1: Nuestra Filosofía</span></a><a class="nav-link depth-3" href="#sec-4"><span>1. ¿Por qué existe Customer Success?</span></a><a class="nav-link depth-3" href="#sec-5"><span>2. Nuestra misión</span></a><a class="nav-link depth-3" href="#sec-6"><span>3. Nuestra visión</span></a><a class="nav-link depth-3" href="#sec-7"><span>4. Nuestros valores</span></a><a class="nav-link depth-3" href="#sec-8"><span>1. El cliente primero</span></a><a class="nav-link depth-3" href="#sec-9"><span>2. Somos dueños del resultado</span></a><a class="nav-link depth-3" href="#sec-10"><span>3. Actuamos con anticipación</span></a><a class="nav-link depth-3" href="#sec-11"><span>4. Hablamos con la verdad</span></a><a class="nav-link depth-3" href="#sec-12"><span>5. Aprendemos y mejoramos</span></a><a class="nav-link depth-3" href="#sec-13"><span>5. Nuestros principios</span></a><a class="nav-link depth-3" href="#sec-14"><span>Principio 1 — El éxito del cliente empieza por entenderlo</span></a><a class="nav-link depth-3" href="#sec-15"><span>Principio 2 — La actividad no es el resultado</span></a><a class="nav-link depth-3" href="#sec-16"><span>Principio 3 — Los datos nos ayudan a decidir, pero no reemplazan el criterio</span></a><a class="nav-link depth-3" href="#sec-17"><span>Principio 4 — El riesgo se gestiona antes de que se convierta en churn</span></a><a class="nav-link depth-3" href="#sec-18"><span>Principio 5 — Cada cliente merece una estrategia, no solamente atención</span></a><a class="nav-link depth-3" href="#sec-19"><span>Principio 6 — La responsabilidad por el cliente es compartida</span></a><a class="nav-link depth-3" href="#sec-20"><span>Principio 7 — La expansión debe ser consecuencia del valor</span></a><a class="nav-link depth-3" href="#sec-21"><span>6. ¿Qué significa tener éxito para un cliente?</span></a><a class="nav-link depth-2" href="#sec-22"><span>7. ¿Qué significa tener éxito para un Customer Success Manager?</span></a><a class="nav-link depth-3" href="#sec-23"><span>Un CSM reactivo pregunta:</span></a><a class="nav-link depth-3" href="#sec-24"><span>Un CSM estratégico pregunta:</span></a><a class="nav-link depth-3" href="#sec-25"><span>8. El manifiesto de Customer Success</span></a><a class="nav-link depth-2" href="#sec-26"><span>Lo que se retomó</span></a><a class="nav-link depth-2" href="#sec-27"><span>1. Nuestra filosofía</span></a><a class="nav-link depth-2" href="#sec-28"><span>3. El Customer Success Lifecycle</span></a><a class="nav-link depth-2" href="#sec-29"><span>4. Customer Health</span></a><a class="nav-link depth-2" href="#sec-30"><span>5. Señales → Diagnóstico → Play → Resultado</span></a><a class="nav-link depth-2" href="#sec-31"><span>6. Segmentación</span></a><a class="nav-link depth-3" href="#sec-32"><span>Segmentación por valor</span></a><a class="nav-link depth-3" href="#sec-33"><span>Nivel de riesgo</span></a><a class="nav-link depth-2" href="#sec-34"><span>7. Customer Success Plays</span></a><a class="nav-link depth-2" href="#sec-35"><span>8. Operating Cadence</span></a><a class="nav-link depth-2" href="#sec-36"><span>9. Métricas</span></a><a class="nav-link depth-3" href="#sec-37"><span>Business Outcomes</span></a><a class="nav-link depth-3" href="#sec-38"><span>Customer Outcomes</span></a><a class="nav-link depth-3" href="#sec-39"><span>CS Efficiency</span></a><a class="nav-link depth-2" href="#sec-40"><span>10. La cultura que queremos construir</span></a><a class="nav-link depth-2" href="#sec-41"><span>Señal</span></a><a class="nav-link depth-2" href="#sec-42"><span>Diagnóstico</span></a><a class="nav-link depth-2" href="#sec-43"><span>Play</span></a><a class="nav-link depth-2" href="#sec-44"><span>Resultado</span></a><a class="nav-link depth-2" href="#sec-45"><span>Customer Success Model de Callpicker</span></a><a class="nav-link depth-3" href="#sec-46"><span>01</span></a><a class="nav-link depth-3" href="#sec-47"><span>02</span></a><a class="nav-link depth-3" href="#sec-48"><span>03</span></a><a class="nav-link depth-3" href="#sec-49"><span>04</span></a><a class="nav-link depth-3" href="#sec-50"><span>05</span></a><a class="nav-link depth-3" href="#sec-51"><span>06</span></a><a class="nav-link depth-3" href="#sec-52"><span>07</span></a><a class="nav-link depth-3" href="#sec-53"><span>08</span></a><a class="nav-link depth-3" href="#sec-54"><span>Métricas</span></a><a class="nav-link depth-2" href="#sec-55"><span>1. Segmentación: no todos los clientes necesitan el mismo modelo de atención</span></a><a class="nav-link depth-2" href="#sec-56"><span>2. Lifecycle: saber qué debería estar ocurriendo con cada cliente</span></a><a class="nav-link depth-2" href="#sec-57"><span>3. Health Score: convertir información dispersa en una evaluación consistente</span></a><a class="nav-link depth-3" href="#sec-58"><span>¿Qué datos podemos utilizar de nuestros clientes en Callpicker?</span></a><a class="nav-link depth-2" href="#sec-59"><span>4. Señales: detectar cambios antes de que se conviertan en problemas</span></a><a class="nav-link depth-3" href="#sec-60"><span>Ejemplo concreto: llamadas que terminan en buzón</span></a><a class="nav-link depth-2" href="#sec-61"><span>5. Priorización: decidir qué cliente atender primero</span></a><a class="nav-link depth-2" href="#sec-62"><span>6. Plays: transformar las prioridades en acciones concretas</span></a><a class="nav-link depth-2" href="#sec-63"><span>7. Cadencias: qué debe pasar cada semana</span></a><a class="nav-link depth-3" href="#sec-64"><span>La rutina semanal del equipo (Esto es un ejemplo no es regla)</span></a><a class="nav-link depth-3" href="#sec-65"><span>Detectar y priorizar</span></a><a class="nav-link depth-3" href="#sec-66"><span>Diagnosticar</span></a><a class="nav-link depth-3" href="#sec-67"><span>Intervenir</span></a><a class="nav-link depth-3" href="#sec-68"><span>Cerrar el ciclo</span></a><a class="nav-link depth-2" href="#sec-69"><span>8. Métricas: medir si el sistema realmente funciona</span></a><a class="nav-link depth-3" href="#sec-70"><span>A. Salud del portafolio</span></a><a class="nav-link depth-3" href="#sec-71"><span>B. Efectividad de Customer Success</span></a><a class="nav-link depth-3" href="#sec-72"><span>C. Impacto en el negocio</span></a><a class="nav-link depth-2" href="#sec-73"><span>9. Cómo aterrizarlo en la operación real de Callpicker</span></a><a class="nav-link depth-2" href="#sec-74"><span>10. Ejemplo completo: así debería funcionar con una cuenta AAA</span></a><a class="nav-link depth-2" href="#sec-75"><span>1. Señal detectada</span></a><a class="nav-link depth-2" href="#sec-76"><span>2. Diagnóstico</span></a><a class="nav-link depth-2" href="#sec-77"><span>3. Priorización</span></a><a class="nav-link depth-2" href="#sec-78"><span>4. Play de optimización</span></a><a class="nav-link depth-2" href="#sec-79"><span>5. Validación</span></a><a class="nav-link depth-2" href="#sec-80"><span>11. El siguiente paso: construir el modelo que podamos pilotear</span></a></nav><p class="noresults" id="noresults">No se encontraron secciones.</p></aside><main class="main"><header class="hero"><div class="tag">CALLPICKER / CUSTOMER SUCCESS</div><h1>Customer Success<br><span>Operating System</span></h1><p>Modelo institucional de filosofía, gestión y operación. Una referencia para orientar la estrategia, las decisiones y el trabajo cotidiano de Customer Success.</p><div class="meta"><span class="pill">Octubre de 2026</span><span class="pill">Documento interno de referencia</span><span class="pill">Lectura digital</span></div></header><div class="topbar"><button class="action mobile-menu" id="menu" aria-label="Abrir índice">☰ Índice</button><small>CALLPICKER · Customer Success Operating System</small><div class="actions"><button class="action" onclick="window.print()">Imprimir / PDF</button><button class="action" id="top">↑ Inicio</button></div></div><article class="document" id="document"><h2 id="sec-1">Carta del Director de Customer Success</h2>
+<p>Bienvenido al equipo de Customer Success de Callpicker.</p>
+<p>Si estás leyendo este documento, quiero comenzar aclarando algo importante.</p>
+<p>Tu trabajo no consiste en responder correos, organizar reuniones o evitar cancelaciones.</p>
+<p>Esas son actividades, no el propósito.</p>
+<p>Nuestro verdadero trabajo es ayudar a que nuestros clientes obtengan los resultados que esperaban cuando decidieron confiar en Callpicker.</p>
+<p>Cada cliente que compra nuestra plataforma lo hace porque quiere resolver un problema, crecer, mejorar la atención a sus clientes o hacer más eficiente su operación. Nuestra responsabilidad es acompañarlo para que ese objetivo se convierta en una realidad.</p>
+<p>Por eso, en Customer Success no esperamos a que existan problemas para actuar. Observamos señales, analizamos datos y trabajamos de forma preventiva. Entendemos que una cancelación rara vez ocurre de un día para otro; normalmente es la consecuencia de oportunidades que no fueron identificadas o atendidas a tiempo.</p>
+<p>También creemos que el éxito del cliente nunca depende de una sola persona. Depende de la colaboración entre Ventas, Implementación, Producto, Soporte y Customer Success. Nuestro papel es conectar esas piezas para que el cliente viva una experiencia consistente y obtenga el mayor valor posible de nuestra plataforma.</p>
+<p>Este documento no es un manual de tareas. Es la forma en que entendemos nuestro trabajo. Aquí encontrarás los principios, el modelo de operación y las herramientas que nos ayudan a tomar decisiones todos los días.</p>
+<p>Nuestro objetivo no es que todos hagan exactamente lo mismo. Nuestro objetivo es que todos comprendamos por qué hacemos las cosas y podamos tomar decisiones consistentes, incluso en situaciones nuevas.</p>
+<p>Si al terminar este documento tienes más claridad para ayudar a un cliente a tener éxito, entonces habrá cumplido su propósito.</p>
+<p>Bienvenido a Customer Success.</p>
+<p>Construyamos juntos relaciones duraderas y resultados que generen valor para nuestros clientes y para Callpicker.</p>
+<h2 id="sec-2">Customer Success Operating System</h2>
+<h3 id="sec-3">Capítulo 1: Nuestra Filosofía</h3>
+<p class="item">Carta del Director de Customer Success.</p>
+<p class="item">¿Por qué existe Customer Success?</p>
+<p class="item">¿Por qué existe Customer Success en Callpicker?</p>
+<p class="item">Nuestra misión.</p>
+<p class="item">Nuestra visión.</p>
+<p class="item">Nuestros valores.</p>
+<p class="item">Nuestros principios.</p>
+<p class="item">¿Qué significa tener éxito para un cliente?</p>
+<p class="item">¿Qué significa tener éxito para un Customer Success Manager?</p>
+<p class="item">El manifiesto de Customer Success.</p>
+<h4 id="sec-4">1. ¿Por qué existe Customer Success?</h4>
+<p>Customer Success existe porque vender un producto no significa que el cliente haya obtenido valor de él.</p>
+<p>Cuando un cliente contrata Callpicker, está depositando en nosotros una parte de su operación. Espera que nuestra plataforma le ayude a comunicarse mejor, atender mejor a sus clientes, hacer más eficiente su operación, automatizar procesos o crecer.</p>
+<p>La venta es solamente el comienzo de esa relación.</p>
+<p>Nuestro trabajo comienza realmente cuando el cliente empieza a utilizar Callpicker.</p>
+<p>Customer Success existe para asegurarnos de que exista una conexión entre tres cosas:</p>
+<p>Lo que el cliente esperaba obtener → lo que hace con Callpicker → el resultado que realmente obtiene.</p>
+<p>Si esa conexión existe, el cliente encuentra valor, permanece con nosotros y tiene razones para crecer junto con Callpicker.</p>
+<p>Si esa conexión se rompe, eventualmente aparecerán señales: baja adopción, menor uso, frustración, falta de interacción, problemas operativos o finalmente una cancelación.</p>
+<p>Por eso Customer Success no existe para evitar cancelaciones.</p>
+<p>Existe para generar las condiciones que hacen que un cliente quiera continuar.</p>
+<p>La retención es una consecuencia de entregar valor, no el propósito por sí mismo.</p>
+<h4 id="sec-5">2. Nuestra misión</h4>
+<p class="mission">Ayudar a nuestros clientes a obtener el máximo valor de Callpicker para alcanzar los resultados que esperan de nuestra plataforma.</p>
+<p>Nuestra misión se basa en acompañar al cliente durante todo su ciclo de vida.</p>
+<p>Entendemos sus objetivos, identificamos qué necesita para alcanzarlos, facilitamos la adopción de nuestra plataforma y actuamos cuando detectamos obstáculos o nuevas oportunidades.</p>
+<p>No esperamos a que el cliente nos diga que tiene un problema.</p>
+<p>Buscamos entenderlo antes.</p>
+<p>No medimos nuestro trabajo únicamente por la cantidad de contactos que tenemos con nuestros clientes.</p>
+<p>Lo medimos por nuestra capacidad de generar resultados.</p>
+<h4 id="sec-6">3. Nuestra visión</h4>
+<p class="mission">Debemos construir relaciones con nuestros clientes en las que Callpicker sea una parte indispensable de su crecimiento y operación.</p>
+<p>Queremos que nuestros clientes no nos vean simplemente como un proveedor de telefonía, comunicación o software.</p>
+<p>Queremos convertirnos en un partner tecnológico que entiende su operación y contribuye activamente a mejorarla.</p>
+<p>Nuestra visión es que un cliente pueda decir:</p>
+<p>“Callpicker entiende mi negocio, me ayuda a aprovechar mejor la tecnología y me ayuda a conseguir mejores resultados.”</p>
+<p>Cuando logramos eso, la relación deja de estar basada únicamente en precio, características o contratos.</p>
+<p>Está basada en valor y confianza.</p>
+<h4 id="sec-7">4. Nuestros valores</h4>
+<h4 id="sec-8">1. El cliente primero</h4>
+<p>Tomamos decisiones pensando en el impacto que tendrán en nuestros clientes.</p>
+<p>Esto no significa decir siempre que sí.</p>
+<p>Significa entender qué necesita realmente el cliente y buscar la mejor solución, incluso cuando la respuesta no sea la que inicialmente esperaba.</p>
+<h4 id="sec-9">2. Somos dueños del resultado</h4>
+<p>No nos limitamos a decir:</p>
+<p>“Eso no me corresponde.” &quot;No somos el área de cancelaciones.”</p>
+<p>Si identificamos algo que afecta el éxito del cliente, buscamos quién puede resolverlo y damos seguimiento hasta que exista una solución o una respuesta clara. Por eso es importante poder saber quiénes son las personas indicadas dentro de Callpicker para poder sacar adelante las requerimientos del cliente.</p>
+<p>Ser responsables no significa hacerlo todo. Significa asegurarnos de que las cosas sucedan.</p>
+<h4 id="sec-10">3. Actuamos con anticipación</h4>
+<p>Preferimos prevenir un problema que resolver una crisis.</p>
+<p>Observamos datos, comportamiento y señales para identificar riesgos y oportunidades antes de que sean evidentes para el cliente.</p>
+<h4 id="sec-11">4. Hablamos con la verdad</h4>
+<p>Construimos relaciones basadas en confianza.</p>
+<p>Si algo salió mal, lo reconocemos.</p>
+<p>Si una solución no es posible, lo comunicamos.</p>
+<p>Si el cliente está tomando una decisión equivocada, tenemos la responsabilidad de decírselo.</p>
+<p>La confianza vale más que una promesa que no podemos cumplir.</p>
+<h4 id="sec-12">5. Aprendemos y mejoramos</h4>
+<p>Cada interacción con un cliente debe dejarnos información.</p>
+<p>Los problemas recurrentes, las solicitudes, las cancelaciones y los éxitos de nuestros clientes deben ayudarnos a mejorar nuestro producto y nuestra forma de trabajar.</p>
+<p>Customer Success no solamente ayuda a los clientes a mejorar. También ayuda a Callpicker a mejorar. Somos los repsonsbles de acercar la retroalimentación a Callpicker sobre las cosas que han salido bien y las que no han salido bien para buscar mejorar no solo producto sino procesos.</p>
+<h4 id="sec-13">5. Nuestros principios</h4>
+<p>Los valores representan lo que somos.</p>
+<p>Los principios representan cómo actuamos.</p>
+<h4 id="sec-14">Principio 1 — El éxito del cliente empieza por entenderlo</h4>
+<p>No podemos ayudar a un cliente a conseguir un resultado que no conocemos.</p>
+<p>Antes de recomendar, capacitar o vender algo adicional, debemos entender:</p>
+<p class="item">qué quiere conseguir;</p>
+<p class="item">cómo funciona actualmente;</p>
+<p class="item">qué problemas enfrenta;</p>
+<p class="item">cómo utiliza Callpicker;</p>
+<p class="item">qué significa éxito para él.</p>
+<h4 id="sec-15">Principio 2 — La actividad no es el resultado</h4>
+<p>Una llamada no es éxito.</p>
+<p>Una reunión no es éxito.</p>
+<p>Un correo no es éxito.</p>
+<p>Un QBR no es éxito.</p>
+<p>Son herramientas.</p>
+<p>El éxito ocurre cuando esas acciones generan un cambio positivo para el cliente.</p>
+<h4 id="sec-16">Principio 3 — Los datos nos ayudan a decidir, pero no reemplazan el criterio</h4>
+<p>Los datos nos permiten detectar señales.</p>
+<p>Pero una métrica nunca cuenta toda la historia.</p>
+<p>Un cliente puede utilizar mucho Callpicker y estar insatisfecho.</p>
+<p>Otro puede utilizar poco la plataforma porque su operación así lo requiere y estar completamente satisfecho.</p>
+<p>Por eso combinamos datos + contexto + conversación.</p>
+<p>Por eso es muy importante poder tener una cercanía con el cliente para conocer su sentir y buscar en conjunto aprovechar mejor los recursos que ponemos a su disposición con Callpicker.</p>
+<h4 id="sec-17">Principio 4 — El riesgo se gestiona antes de que se convierta en churn</h4>
+<p>Una cancelación normalmente es el último capítulo de una historia que comenzó mucho antes.</p>
+<p>Nuestro trabajo consiste en identificar esas señales tempranas y actuar mientras todavía existe la posibilidad de cambiar el resultado.</p>
+<h4 id="sec-18">Principio 5 — Cada cliente merece una estrategia, no solamente atención</h4>
+<p>Atender a todos los clientes de la misma manera no significa tratarlos justamente ni de manera correcta.</p>
+<p>Los clientes tienen diferentes:</p>
+<p class="item">necesidades;</p>
+<p class="item">tamaños;</p>
+<p class="item">niveles de complejidad;</p>
+<p class="item">potencial;</p>
+<p class="item">riesgos;</p>
+<p class="item">expectativas.</p>
+<p>Por eso nuestra atención debe ser segmentada y proporcional al valor y a las necesidades de cada cliente. Por tal motivo es indispensable la documentación de cada caso para lograr tener la trazabilidad correcta de cada situación.</p>
+<h4 id="sec-19">Principio 6 — La responsabilidad por el cliente es compartida</h4>
+<p>Customer Success es responsable de liderar la relación, pero el éxito del cliente no pertenece exclusivamente a Customer Success.</p>
+<p>Ventas, Implementación, Soporte, Producto, Desarrollo, Operaciones y Customer Success forman parte de la experiencia del cliente.</p>
+<p>Nuestro papel es conectar esas áreas cuando sea necesario.</p>
+<h4 id="sec-20">Principio 7 — La expansión debe ser consecuencia del valor</h4>
+<p>No buscamos vender más productos simplemente porque podemos hacerlo.</p>
+<p>Buscamos identificar cuándo una nueva funcionalidad, producto o servicio puede ayudar al cliente a conseguir un resultado adicional.</p>
+<p>Primero valor. Después expansión.</p>
+<h4 id="sec-21">6. ¿Qué significa tener éxito para un cliente?</h4>
+<p>Un cliente tiene éxito cuando Callpicker contribuye de manera tangible a conseguir el resultado por el cual decidió contratarlo.</p>
+<p>Esto es importante porque significa que:</p>
+<p>Éxito ≠ usar mucho Callpicker.</p>
+<p>Éxito ≠ estar satisfecho.</p>
+<p>Éxito ≠ no cancelar.</p>
+<p>Esas cosas pueden ser indicadores, pero no son el resultado final.</p>
+<p>Un cliente puede tener éxito cuando:</p>
+<p class="item">reduce tiempos de atención;</p>
+<p class="item">aumenta su capacidad operativa;</p>
+<p class="item">mejora la atención de sus clientes;</p>
+<p class="item">consigue mayor productividad;</p>
+<p class="item">automatiza tareas;</p>
+<p class="item">mejora el control de sus comunicaciones;</p>
+<p class="item">reduce costos;</p>
+<p class="item">incrementa ventas;</p>
+<p class="item">puede crecer sin incrementar proporcionalmente su estructura.</p>
+<p>Por eso, para Customer Success, una pregunta debe estar siempre presente:</p>
+<p>“¿Qué resultado está buscando este cliente y qué estamos haciendo para ayudarlo a conseguirlo?”</p>
+<h3 id="sec-22">7. ¿Qué significa tener éxito para un Customer Success Manager?</h3>
+<p>Un CSM exitoso no es el que tiene más reuniones, responde más rápido o tiene más actividades registradas en CRM.</p>
+<p>Es el profesional que consigue que sus clientes:</p>
+<p>adopten → utilicen → obtengan valor → permanezcan → crezcan.</p>
+<p>Un CSM exitoso:</p>
+<p class="item">conoce profundamente a sus clientes;</p>
+<p class="item">entiende sus objetivos;</p>
+<p class="item">identifica señales de riesgo;</p>
+<p class="item">actúa antes de que los problemas escalen;</p>
+<p class="item">convierte datos en acciones;</p>
+<p class="item">coordina internamente a Callpicker;</p>
+<p class="item">mide resultados;</p>
+<p class="item">identifica oportunidades;</p>
+<p class="item">genera confianza;</p>
+<p class="item">sabe cuándo intervenir y cuándo no;</p>
+<p class="item">aprende de cada experiencia.</p>
+<p>Y existe una diferencia fundamental:</p>
+<h4 id="sec-23">Un CSM reactivo pregunta:</h4>
+<p>“¿Qué necesita el cliente de mí?”</p>
+<h4 id="sec-24">Un CSM estratégico pregunta:</h4>
+<p>“¿Qué necesita este cliente para alcanzar su siguiente resultado?”</p>
+<p>Ese cambio de mentalidad es una de las bases de nuestro Operating System.</p>
+<h4 id="sec-25">8. El manifiesto de Customer Success</h4>
+<p>Creemos que vender no es el final.
+Es el comienzo.</p>
+<p>Creemos que nuestros clientes no compran funcionalidades.
+Compran resultados.</p>
+<p>Creemos que nuestro trabajo no consiste en mantenernos ocupados.
+Consiste en generar valor.</p>
+<p>Creemos que una cancelación rara vez ocurre de repente.
+Las señales aparecen mucho antes.</p>
+<p>Creemos que esperar a que el cliente tenga un problema no es Customer Success.
+Anticiparnos sí lo es.</p>
+<p>Creemos que los datos nos permiten ver lo que está sucediendo, pero que escuchar al cliente nos permite entender por qué.</p>
+<p>Creemos que no todos los clientes necesitan lo mismo.
+Por eso priorizamos, segmentamos y personalizamos nuestra atención.</p>
+<p>Creemos que cuando algo afecta al cliente, no preguntamos primero de quién es la responsabilidad.
+Preguntamos qué podemos hacer para resolverlo.</p>
+<p>Creemos que la confianza se construye diciendo la verdad, incluso cuando la respuesta no es sencilla.</p>
+<p>Creemos que Customer Success no pertenece solamente a Customer Success.
+El éxito del cliente es responsabilidad de toda Callpicker.</p>
+<p>Y sobre todo:</p>
+<p>Creemos que cuando nuestros clientes tienen éxito, Callpicker tiene éxito.</p>
+<p>Por eso estamos aquí.</p>
+<p>Para convertir clientes en clientes exitosos.
+Para convertir valor en relaciones duraderas.
+Y para construir, junto con nuestros clientes, un Callpicker mejor.</p>
+<h3 id="sec-26">Lo que se retomó</h3>
+<p>Customer Success Strategy — qué significa éxito para Callpicker.</p>
+<p>Segmentation &amp; Health Score — cómo clasificar y priorizar las cuentas.</p>
+<p>Customer Journey — onboarding → adopción → expansión → renovación.</p>
+<p>Proactive Management — señales que deben disparar acciones.</p>
+<p>CS Plays — qué hacer ante cada situación.</p>
+<p>Operating Cadence — qué revisa el equipo diario/semanal/mensual.</p>
+<p>Metrics &amp; Dashboard — adopción, churn, NRR, expansión, engagement, etc.</p>
+<p>Roles &amp; Accountability — qué hacen KAM/CSM, líderes y otras áreas.</p>
+<p>Automation — qué puede hacer Zoho/Chatwoot y qué debería automatizarse.</p>
+<p>Continuous Improvement — cómo convertir los resultados en mejoras del sistema.</p>
+<h3 id="sec-27">1. Nuestra filosofía</h3>
+<p>Customer Success no es una lista de tareas. Es un sistema para asegurar que el cliente obtenga valor.</p>
+<p>Aquí entra exactamente el texto que acabas de compartir.</p>
+<p>2. Qué significa “éxito” para un cliente de Callpicker
+Tenemos que definir algo fundamental:</p>
+<p>¿Por qué compra un cliente Callpicker?</p>
+<p>No compran extensiones, números, WhatsApp, Callcenter o Agentes Virtuales por sí mismos. Los compran para conseguir determinados resultados.</p>
+<p>Podríamos construir una matriz:</p>
+<div class="table-scroll"><table><tr><th>Lo que compra</th><th>Problema que quiere resolver</th><th>Resultado esperado</th></tr><tr><td>Telefonía</td><td>Comunicación desorganizada</td><td>Mayor control y disponibilidad</td></tr><tr><td>Callcenter</td><td>Operación difícil de administrar</td><td>Mayor productividad</td></tr><tr><td>Callpicker Chat</td><td>Atención dispersa</td><td>Mejor atención y seguimiento</td></tr><tr><td>Agentes Virtuales</td><td>Saturación / falta de personal</td><td>Automatización y disponibilidad</td></tr><tr><td>Integraciones</td><td>Información aislada</td><td>Flujo operativo más eficiente</td></tr></table></div>
+<p>Esto nos lleva a un concepto central del sistema:</p>
+<p>Producto → Adopción → Valor → Resultado → Retención → Expansión</p>
+<h3 id="sec-28">3. El Customer Success Lifecycle</h3>
+<p>Aquí definiríamos las etapas por las que pasa un cliente:</p>
+<p>Venta → Implementación → Activación → Adopción → Valor → Expansión → Renovación</p>
+<p>Y algo muy importante para Callpicker: definir qué tiene que ser cierto en cada etapa para considerar que el cliente avanzó correctamente.</p>
+<h3 id="sec-29">4. Customer Health</h3>
+<p>Aquí entraríamos en una de las piezas más importantes del Operating System.</p>
+<p>No queremos que el ejecutivo diga:</p>
+<p>“Creo que este cliente está bien.”</p>
+<p>Queremos que pueda decir:</p>
+<p>“El cliente está saludable porque utiliza X, tiene Y usuarios activos, su consumo está creciendo, tiene contacto con nosotros y está alcanzando los resultados definidos.”</p>
+<p>Podríamos construir un Customer Health Score de Callpicker, utilizando señales como:</p>
+<p class="item">Uso de la plataforma</p>
+<p class="item">Adopción de funcionalidades</p>
+<p class="item">Tendencia de consumo</p>
+<p class="item">Usuarios activos</p>
+<p class="item">Tickets / incidencias</p>
+<p class="item">NPS o satisfacción</p>
+<p class="item">Interacción con CS</p>
+<p class="item">Antigüedad</p>
+<p class="item">Cambios en consumo</p>
+<p class="item">Facturación</p>
+<p class="item">Potencial de expansión</p>
+<p class="item">Señales de riesgo</p>
+<h3 id="sec-30">5. Señales → Diagnóstico → Play → Resultado</h3>
+<p>Esta creo que debe ser una de las ideas centrales del sistema.</p>
+<p>Por ejemplo:</p>
+<p>Señal:
+El cliente dejó de utilizar Callpicker Chat.</p>
+<p>↓</p>
+<p>Diagnóstico:
+¿Dejó de necesitarlo? ¿No sabe utilizarlo? ¿Cambió su operación? ¿Tiene un problema?</p>
+<p>↓</p>
+<p>Play:
+Contactar → entender causa → resolver → capacitar → establecer siguiente acción.</p>
+<p>↓</p>
+<p>Resultado:
+Recuperación de adopción.</p>
+<p>Así dejamos de operar como:</p>
+<p>“Tengo que contactar a mis 65 clientes.”</p>
+<p>Y pasamos a:</p>
+<p>“Tengo que intervenir en los clientes que presentan señales que requieren intervención.”</p>
+<h3 id="sec-31">6. Segmentación</h3>
+<p>Aquí podemos conectar directamente con lo que hemos hablado de tus cuentas AAA.</p>
+<p>No todos los clientes requieren el mismo nivel de atención.</p>
+<p>Podríamos definir:</p>
+<h4 id="sec-32">Segmentación por valor</h4>
+<p class="item">AAA</p>
+<p class="item">A</p>
+<p class="item">B</p>
+<p class="item">C</p>
+<p>Y cruzarla con:</p>
+<h4 id="sec-33">Nivel de riesgo</h4>
+<p class="item">Saludable</p>
+<p class="item">Atención</p>
+<p class="item">Riesgo</p>
+<p class="item">Crítico</p>
+<p>Esto nos da algo mucho más útil:</p>
+<div class="table-scroll"><table><tr><th></th><th>Saludable</th><th>Atención</th><th>Riesgo</th><th>Crítico</th></tr><tr><td>AAA</td><td>🟢</td><td>🟡</td><td>🔴</td><td>🔴</td></tr><tr><td>A</td><td>🟢</td><td>🟡</td><td>🔴</td><td>🔴</td></tr><tr><td>B</td><td>🟢</td><td>🟡</td><td>🟡</td><td>🔴</td></tr><tr><td>C</td><td>🟢</td><td>🟢</td><td>🟡</td><td>🟡</td></tr></table></div>
+<p>Y eso determina cuánto tiempo del ejecutivo debemos invertir en cada cuenta.</p>
+<h3 id="sec-34">7. Customer Success Plays</h3>
+<p>Aquí convertiríamos las situaciones recurrentes en playbooks, no en tareas.</p>
+<p>Por ejemplo:</p>
+<p class="item">Cliente no adopta el producto.</p>
+<p class="item">Caída significativa de consumo.</p>
+<p class="item">Cliente abre muchos tickets.</p>
+<p class="item">Cliente expresa insatisfacción.</p>
+<p class="item">Cliente no responde.</p>
+<p class="item">Cliente tiene oportunidad de expansión.</p>
+<p class="item">Cliente lleva X meses sin utilizar determinada funcionalidad.</p>
+<p class="item">Cliente solicita cancelar.</p>
+<p class="item">Cliente cambia de responsable.</p>
+<p class="item">Cliente presenta reducción de personal/operación.</p>
+<p class="item">Cliente tiene una oportunidad de automatización.</p>
+<h3 id="sec-35">8. Operating Cadence</h3>
+<p>Aquí finalmente aterrizamos cómo funciona el equipo:</p>
+<p>Diario</p>
+<p class="item">Alertas</p>
+<p class="item">Riesgos críticos</p>
+<p class="item">Casos que requieren intervención</p>
+<p>Semanal</p>
+<p class="item">Revisión de cartera</p>
+<p class="item">Riesgos</p>
+<p class="item">Oportunidades</p>
+<p class="item">Plays activos</p>
+<p>Mensual</p>
+<p class="item">Churn</p>
+<p class="item">Retención</p>
+<p class="item">Adopción</p>
+<p class="item">Expansión</p>
+<p class="item">Salud de cartera</p>
+<p>Trimestral</p>
+<p class="item">Revisión de estrategia</p>
+<p class="item">Segmentación</p>
+<p class="item">Customer Success plan</p>
+<p class="item">QBRs para clientes relevantes</p>
+<h3 id="sec-36">9. Métricas</h3>
+<p>Y aquí debemos evitar caer en medir únicamente actividad.</p>
+<p>No:</p>
+<p>“Hicimos 120 llamadas.”</p>
+<p>Sino:</p>
+<p>“Recuperamos la adopción de 18 cuentas.”</p>
+<p>Podríamos separar:</p>
+<h4 id="sec-37">Business Outcomes</h4>
+<p class="item">Gross Revenue Churn</p>
+<p class="item">Net Revenue Churn</p>
+<p class="item">Retención</p>
+<p class="item">Expansión</p>
+<p class="item">NRR</p>
+<h4 id="sec-38">Customer Outcomes</h4>
+<p class="item">Adopción</p>
+<p class="item">Activación</p>
+<p class="item">Uso</p>
+<p class="item">Tiempo hasta valor</p>
+<p class="item">Satisfacción</p>
+<h4 id="sec-39">CS Efficiency</h4>
+<p class="item">Clientes por ejecutivo</p>
+<p class="item">Clientes gestionados proactivamente</p>
+<p class="item">Plays ejecutados</p>
+<p class="item">Riesgos recuperados</p>
+<p class="item">Tiempo invertido por segmento</p>
+<h3 id="sec-40">10. La cultura que queremos construir</h3>
+<p>Regreso a la idea de tu introducción:</p>
+<p>No queremos ejecutivos que completen tareas. Queremos profesionales capaces de identificar qué necesita un cliente y decidir qué hacer al respecto.</p>
+<p>¿Cómo convertimos esta filosofía en un sistema que nos permita saber qué hacer con cada cliente, cada semana?</p>
+<p class="item">¿En qué etapa está y qué debería estar logrando?</p>
+<p class="item">¿Está sano, en riesgo o tiene una oportunidad de crecimiento?</p>
+<p class="item">¿Qué señales justifican nuestra evaluación?</p>
+<p class="item">¿Qué debemos hacer ahora, por qué y con qué urgencia?</p>
+<p class="item">¿Cómo sabremos si nuestra intervención funcionó?</p>
+<p>La lógica central que ya habíamos definido se mantiene:</p>
+<h3 id="sec-41">Señal</h3>
+<p>Algo cambia en el comportamiento, la experiencia o los resultados del cliente.</p>
+<h3 id="sec-42">Diagnóstico</h3>
+<p>Interpretamos los datos y el contexto para entender qué sucede.</p>
+<h3 id="sec-43">Play</h3>
+<p>Definimos una intervención concreta, un responsable y un plazo.</p>
+<h3 id="sec-44">Resultado</h3>
+<p>Verificamos si mejoró la situación, se materializó el valor o disminuyó el riesgo.</p>
+<h3 id="sec-45">Customer Success Model de Callpicker</h3>
+<h4 id="sec-46">01</h4>
+<p>Segmentación</p>
+<p>Qué tipo de atención necesita cada cliente.</p>
+<h4 id="sec-47">02</h4>
+<p>Lifecycle</p>
+<p>Qué debería estar ocurriendo en su relación con Callpicker.</p>
+<h4 id="sec-48">03</h4>
+<p>Health Score</p>
+<p>Qué tan saludable está y qué tan confiable es esa evaluación.</p>
+<h4 id="sec-49">04</h4>
+<p>Señales</p>
+<p>Qué cambios requieren atención.</p>
+<h4 id="sec-50">05</h4>
+<p>Priorización</p>
+<p>Qué atender primero y por qué.</p>
+<h4 id="sec-51">06</h4>
+<p>Plays</p>
+<p>Qué hacer ante cada situación.</p>
+<h4 id="sec-52">07</h4>
+<p>Cadencias</p>
+<p>Con qué frecuencia revisar, intervenir y dar seguimiento.</p>
+<h4 id="sec-53">08</h4>
+<h4 id="sec-54">Métricas</h4>
+<p>Cómo medir el impacto del sistema.</p>
+<h3 id="sec-55">1. Segmentación: no todos los clientes necesitan el mismo modelo de atención</h3>
+<p>La segmentación debe determinar cómo invertimos nuestro tiempo y qué nivel de servicio ofrecemos. No debe confundirse con la salud del cliente: una cuenta AAA puede estar en riesgo, y una cuenta C puede estar perfectamente sana.</p>
+<p>Partiría de la clasificación que ya habíamos contemplado para Callpicker: AAA, A, B y C.</p>
+<div class="table-scroll"><table><tr><th>Segmento</th><th>Modelo de atención</th><th>Objetivo principal</th></tr><tr><td>AAA</td><td>Estratégico y personalizado</td><td>Proteger ingresos, consolidar valor y desarrollar crecimiento.</td></tr><tr><td>A</td><td>Proactivo y consultivo</td><td>Asegurar adopción, resultados y permanencia.</td></tr><tr><td>B</td><td>Estandarizado con intervención por señales</td><td>Mantener adopción y detectar problemas oportunamente.</td></tr><tr><td>C</td><td>Escalable, principalmente digital y automatizado</td><td>Facilitar activación, autoservicio y continuidad.</td></tr></table></div>
+<p>Regla fundamental: el segmento define el nivel de atención; la salud define la necesidad de intervenir; el lifecycle define qué resultado buscamos alcanzar.</p>
+<h3 id="sec-56">2. Lifecycle: saber qué debería estar ocurriendo con cada cliente</h3>
+<p>El ciclo de vida:</p>
+<p>1</p>
+<p>Venta y handoff</p>
+<p>Recibir contexto, expectativas, caso de uso y compromisos comerciales.</p>
+<p>2</p>
+<p>Implementación</p>
+<p>Configurar correctamente la solución y eliminar bloqueos técnicos.</p>
+<p>3</p>
+<p>Activación</p>
+<p>Conseguir que el cliente empiece a utilizar la solución para su caso de uso real.</p>
+<p>4</p>
+<p>Adopción</p>
+<p>Integrar la plataforma en sus procesos operativos.</p>
+<p>5</p>
+<p>Generación de valor</p>
+<p>Demostrar mejoras en los resultados que el cliente busca.</p>
+<p>6</p>
+<p>Expansión</p>
+<p>Identificar nuevas necesidades cuando existe valor demostrado.</p>
+<p>7</p>
+<p>Renovación y continuidad</p>
+<p>Asegurar que el valor percibido justifique continuar.</p>
+<p>Cada etapa necesita cuatro definiciones operativas:</p>
+<p class="item">Resultado esperado: qué debe conseguir el cliente.</p>
+<p class="item">Criterio de salida: qué evidencia demuestra que puede avanzar.</p>
+<p class="item">Señales de bloqueo: qué indica que no está progresando.</p>
+<p class="item">Play correspondiente: qué debe hacer Callpicker para ayudarlo.</p>
+<p>Por ejemplo, una cuenta no debería considerarse activada simplemente porque se configuró su número telefónico. Debe existir evidencia de que el cliente ya puede resolver su caso de uso real.</p>
+<p>En adopción, tampoco basta con observar que entran llamadas: necesitamos entender si la solución se utiliza de forma adecuada y si cumple su propósito.</p>
+<p>Esto nos permitirá diferenciar entre un cliente que paga, uno que usa la plataforma y uno que realmente obtiene valor.</p>
+<h3 id="sec-57">3. Health Score: convertir información dispersa en una evaluación consistente</h3>
+<p>Aquí necesitamos ser especialmente cuidadosos. Un Health Score no debe convertirse en una fórmula que produzca un número aparentemente preciso sin explicar qué está pasando.</p>
+<h4 id="sec-58">¿Qué datos podemos utilizar de nuestros clientes en Callpicker?</h4>
+<div class="table-scroll"><table><tr><th>Dimensión</th><th>Señales que podemos buscar</th></tr><tr><td>Uso</td><td>Tendencia del volumen, funciones utilizadas, actividad por horarios, cambios respecto a su línea base.</td></tr><tr><td>Valor</td><td>Caso de uso operativo, objetivos acordados, percepción del cliente y mejoras documentadas.</td></tr><tr><td>Relación</td><td>Reuniones, respuestas, cambios de contacto, acceso al decisor y compromisos pendientes.</td></tr><tr><td>Experiencia</td><td>Llamadas que terminan en buzón, fallas, incidencias recurrentes, transferencias problemáticas y tickets repetidos.</td></tr><tr><td>Comercial</td><td>Solicitudes de baja, reducción de servicios, inconformidad con el precio y conversaciones de renovación.</td></tr></table></div>
+<p>No todos estos datos necesariamente están disponibles hoy en un reporte. Precisamente por eso debemos identificar qué podemos medir con las fuentes existentes, qué debemos registrar manualmente y qué requeriría desarrollo de producto o analítica.</p>
+<p>Importante: el Health Score debe incluir la calidad y antigüedad de los datos. Un cliente sin información suficiente no es automáticamente un cliente sano; debe marcarse como salud desconocida hasta contar con evidencia.</p>
+<h3 id="sec-59">4. Señales: detectar cambios antes de que se conviertan en problemas</h3>
+<p>Las señales son los eventos o patrones que hacen que CS deba prestar atención.</p>
+<p>Para Callpicker las organizaría en seis familias:</p>
+<p>A. Señales de uso</p>
+<p>Caída inusual de llamadas, reducción persistente de actividad, desaparición de patrones habituales o funciones importantes que dejaron de utilizarse.</p>
+<p>B. Señales de experiencia</p>
+<p>Incremento de llamadas enviadas a buzón, problemas de enrutamiento, llamadas sin respuesta y quejas recurrentes.</p>
+<p>C. Señales de soporte</p>
+<p>Incidentes repetidos, escalaciones, tiempos de resolución anormales y problemas que vuelven a aparecer.</p>
+<p>D. Señales de relación</p>
+<p>Pérdida de contacto, cambio del responsable, falta de respuesta o compromisos que no se cumplen.</p>
+<p>E. Señales comerciales</p>
+<p>Objeciones de precio, solicitudes de reducción, intención de baja o nuevas necesidades que podrían representar expansión.</p>
+<p>F. Señales de oportunidad</p>
+<p>Nuevas sucursales, más usuarios, nuevos casos de uso, necesidades de automatización o posibilidades de ampliar la solución.</p>
+<h4 id="sec-60">Ejemplo concreto: llamadas que terminan en buzón</h4>
+<p>No establecería que un porcentaje fijo de llamadas a buzón representa automáticamente riesgo. Primero necesitamos conocer el patrón habitual del cliente.</p>
+<p>Una señal útil podría ser:</p>
+<p class="item">La proporción de llamadas enviadas a buzón aumenta significativamente frente a su promedio histórico.</p>
+<p class="item">El cambio persiste durante varios períodos comparables.</p>
+<p class="item">El patrón no se explica por horarios, estacionalidad, cambios de operación o una decisión deliberada del cliente.</p>
+<p>Entonces se genera una alerta, se valida el contexto y se decide si procede una intervención.</p>
+<p>Esto importa porque una señal no es un diagnóstico: que aumenten las llamadas a buzón no demuestra, por sí solo, que el cliente esté insatisfecho.</p>
+<h3 id="sec-61">5. Priorización: decidir qué cliente atender primero</h3>
+<p>Este es uno de los componentes más importantes para un equipo que administra decenas de cuentas por persona.</p>
+<p>La prioridad debe combinar cuatro elementos:</p>
+<p class="item">Impacto: cuánto ingreso, valor estratégico o resultado está en juego.</p>
+<p class="item">Urgencia: cuánto tiempo tenemos para actuar.</p>
+<p class="item">Evidencia: qué tan sólida es la señal.</p>
+<p class="item">Accionabilidad: si existe algo concreto que Callpicker pueda hacer.</p>
+<p>Propongo cuatro niveles operativos.</p>
+<div class="table-scroll"><table><tr><th>Prioridad</th><th>Cuándo aplica</th><th>Respuesta esperada</th></tr><tr><td>P0 — Crítica</td><td>Baja explícita, incidente grave o riesgo inmediato de interrupción.</td><td>Atención inmediata y coordinación con las áreas responsables.</td></tr><tr><td>P1 — Alta</td><td>Cuenta estratégica con deterioro relevante, bloqueo crítico o señal fuerte de abandono.</td><td>Plan de acción con responsable y seguimiento prioritario.</td></tr><tr><td>P2 — Preventiva</td><td>Deterioro incipiente, baja adopción o riesgo todavía reversible.</td><td>Diagnóstico y acción programada.</td></tr><tr><td>P3 — Desarrollo</td><td>Cuenta estable con oportunidad de mejorar resultados o expandirse.</td><td>Play de optimización o crecimiento.</td></tr></table></div>
+<p>La prioridad y la salud no son equivalentes. Un cliente puede estar sano y tener una oportunidad importante de expansión, o estar en riesgo sin que exista todavía una acción urgente.</p>
+<p>Tampoco pondría una cuenta en P0 únicamente por su facturación. La gravedad y el tiempo de respuesta deben estar definidos por el tipo de problema; el valor comercial ayuda a ordenar recursos cuando varias situaciones compiten.</p>
+<h3 id="sec-62">6. Plays: transformar las prioridades en acciones concretas</h3>
+<p>Un play es una intervención estandarizada que el equipo puede ejecutar ante una situación recurrente. No es una plantilla de correo: es un plan de acción con un objetivo y un criterio de éxito.</p>
+<p>Estos serían los primeros plays que diseñaría para Callpicker.</p>
+<div class="table-scroll"><table><tr><th>Play</th><th>Disparador</th><th>Acción principal</th><th>Criterio de éxito</th></tr><tr><td>Recuperación de uso</td><td>Caída anormal de actividad.</td><td>Investigar causa, validar operación y acordar recuperación.</td><td>El uso relevante vuelve a un patrón adecuado.</td></tr><tr><td>Optimización de llamadas</td><td>Aumento de llamadas a buzón o problemas de enrutamiento.</td><td>Analizar patrones y coordinar ajustes con el área técnica.</td><td>Mejora el indicador acordado sin afectar otros resultados.</td></tr><tr><td>Desbloqueo de adopción</td><td>Cliente implementado, pero sin uso efectivo.</td><td>Identificar barrera y acompañar un caso de uso real.</td><td>El cliente ejecuta correctamente ese caso de uso.</td></tr><tr><td>Recuperación de experiencia</td><td>Incidentes recurrentes o insatisfacción.</td><td>Coordinar diagnóstico, resolución y comunicación de avances.</td><td>Se resuelve la causa y se confirma la recuperación.</td></tr><tr><td>Prevención de churn</td><td>Intención de baja o riesgo comercial alto.</td><td>Entender motivo, cuantificar impacto y construir un plan de recuperación.</td><td>El cliente confirma una solución viable o se documenta el desenlace.</td></tr><tr><td>Captura de valor</td><td>Uso estable, pero resultados no demostrados.</td><td>Revisar objetivos y documentar resultados con el cliente.</td><td>Existe evidencia del valor conseguido.</td></tr><tr><td>Expansión</td><td>Nuevo caso de uso o capacidad adicional identificada.</td><td>Validar necesidad, impacto y viabilidad junto con Comercial.</td><td>Oportunidad calificada con siguiente paso acordado.</td></tr></table></div>
+<p>Cada play debería tener una ficha operativa con:</p>
+<p class="item">Condiciones de entrada y exclusiones.</p>
+<p class="item">Diagnóstico mínimo requerido.</p>
+<p class="item">Responsable y áreas colaboradoras.</p>
+<p class="item">Acciones y plazo.</p>
+<p class="item">Mensaje o conversación sugerida, cuando corresponda.</p>
+<p class="item">Criterio de cierre.</p>
+<p class="item">Resultado que se registra en el sistema.</p>
+<p>Así evitaremos que en el equipo de Callpicker  improvisemos una respuesta distinta cada vez y, al mismo tiempo, permitimos que el CSM/KAM aplique su criterio.</p>
+<h3 id="sec-63">7. Cadencias: qué debe pasar cada semana</h3>
+<p>La cadencia debe equilibrar dos cosas: supervisar las cuentas de manera consistente y evitar que los CSM terminen llenando reportes en lugar de generar valor.</p>
+<p>No propondría contactar semanalmente a todos los clientes. Propondría revisar señales con una frecuencia definida y contactar cuando la situación lo justifique.</p>
+<div class="table-scroll"><table><tr><th>Segmento</th><th>Revisión de señales</th><th>Contacto proactivo de referencia</th></tr><tr><td>AAA</td><td>Semanal, con monitoreo de alertas críticas cuando exista capacidad técnica.</td><td>Mensual como referencia, además de intervenciones por eventos y planes estratégicos.</td></tr><tr><td>A</td><td>Semanal o quincenal, preferentemente automatizada.</td><td>Mensual o según etapa y riesgo.</td></tr><tr><td>B</td><td>Mensual y por eventos relevantes.</td><td>Trimestral o mediante campañas de adopción pertinentes.</td></tr><tr><td>C</td><td>Principalmente automatizada, por eventos del lifecycle.</td><td>Onboarding, educación y contacto cuando una señal lo amerite.</td></tr></table></div>
+<p>Son cadencias iniciales para validar con capacidad, complejidad y resultados; no reglas inamovibles.</p>
+<h4 id="sec-64">La rutina semanal del equipo (Esto es un ejemplo no es regla)</h4>
+<p>Lunes</p>
+<h4 id="sec-65">Detectar y priorizar</h4>
+<p>Revisar cambios de Health Score, alertas, bajas, bloqueos, cuentas sin datos y compromisos vencidos.</p>
+<p>Martes</p>
+<h4 id="sec-66">Diagnosticar</h4>
+<p>Validar las señales prioritarias, distinguir síntomas de causas y definir el play adecuado.</p>
+<p>Miércoles–jueves</p>
+<h4 id="sec-67">Intervenir</h4>
+<p>Ejecutar los plays, coordinar con Soporte, Activaciones, Producto o Comercial y dar seguimiento.</p>
+<p>Viernes</p>
+<h4 id="sec-68">Cerrar el ciclo</h4>
+<p>Registrar resultados, actualizar riesgos, revisar compromisos pendientes y detectar aprendizajes repetibles.</p>
+<p>El objetivo es que, al iniciar la semana, cada CSM sepa cuáles son sus prioridades; al terminarla, podamos explicar qué hicimos, por qué lo hicimos y qué cambió.</p>
+<h3 id="sec-69">8. Métricas: medir si el sistema realmente funciona</h3>
+<p>Separaría las métricas en tres niveles.</p>
+<h4 id="sec-70">A. Salud del portafolio</h4>
+<p>¿Cómo están nuestros clientes?</p>
+<p class="item">Porcentaje de cuentas sanas, preventivas, en riesgo y con salud desconocida.</p>
+<p class="item">Ingreso recurrente y proporción de ingresos expuestos al riesgo.</p>
+<p class="item">Churn de clientes y churn de ingresos.</p>
+<p class="item">Activación y adopción por segmento y cohorte.</p>
+<p class="item">Porcentaje de clientes que alcanzan sus resultados esperados.</p>
+<h4 id="sec-71">B. Efectividad de Customer Success</h4>
+<p>¿Estamos actuando sobre lo que importa?</p>
+<p class="item">Tiempo desde la detección de una señal hasta el diagnóstico.</p>
+<p class="item">Tiempo hasta la primera acción y hasta la resolución.</p>
+<p class="item">Porcentaje de plays con resultado documentado.</p>
+<p class="item">Porcentaje de riesgos recuperados y recurrencia de los mismos.</p>
+<p class="item">Porcentaje de cuentas con objetivos y resultados de valor documentados.</p>
+<h4 id="sec-72">C. Impacto en el negocio</h4>
+<p>¿Estamos mejorando los resultados de Callpicker?</p>
+<p class="item">Reducción del churn de ingresos frente a la línea base y la meta.</p>
+<p class="item">Retención bruta de ingresos (GRR).</p>
+<p class="item">Retención neta de ingresos (NRR).</p>
+<p class="item">Expansión atribuible o influida por CS, con criterios definidos.</p>
+<p class="item">Reducción de tiempo hasta el valor y mejora de adopción.</p>
+<p>Esto conecta el trabajo diario con el objetivo estratégico del área. No basta con medir llamadas realizadas, correos enviados, reuniones o cuentas revisadas. Esas actividades pueden servir para gestionar capacidad, pero no demuestran por sí mismas el éxito del cliente.</p>
+<p>Además, dado que Callpicker ya mide churn por segmentos de ingreso, mantendría esas métricas y sus metas actuales como referencia. No establecería nuevos objetivos numéricos hasta validar la línea base y el alcance de las intervenciones.</p>
+<h3 id="sec-73">9. Cómo aterrizarlo en la operación real de Callpicker</h3>
+<p>La metodología necesita una fuente de información que permita convertir las ocho piezas en decisiones cotidianas.</p>
+<p>Con el contexto que ya trabajamos, comenzaría por aprovechar Zoho CRM y el panel de salud, evitando comprar una herramienta nueva antes de demostrar qué necesitamos automatizar.</p>
+<p>El registro mínimo de cada cuenta debería incluir:</p>
+<div class="table-scroll"><table><tr><th>Campo</th><th>Para qué sirve</th></tr><tr><td>Segmento y CSM responsable</td><td>Determinar cobertura y ownership.</td></tr><tr><td>Etapa del lifecycle</td><td>Identificar el resultado esperado.</td></tr><tr><td>Health Score, estado y fecha</td><td>Conocer salud, tendencia y actualidad de la evaluación.</td></tr><tr><td>Señales activas y evidencia</td><td>Explicar por qué requiere atención.</td></tr><tr><td>Prioridad</td><td>Ordenar el trabajo.</td></tr><tr><td>Play y siguiente acción</td><td>Convertir la evaluación en intervención.</td></tr><tr><td>Responsable y fecha compromiso</td><td>Asegurar seguimiento.</td></tr><tr><td>Resultado y aprendizaje</td><td>Saber si funcionó y mejorar el modelo.</td></tr></table></div>
+<p>No es necesario que todo se capture manualmente. Las señales cuantificables deberían automatizarse cuando sea viable; el contexto cualitativo, el diagnóstico y los resultados deben documentarse con suficiente estructura para que sean útiles y comparables.</p>
+<p>También distinguiría entre un indicador de plataforma y un resultado de negocio. Por ejemplo, saber cuántas llamadas terminaron en buzón puede ser una señal valiosa; saber si eso perjudicó la atención de sus clientes requiere contexto adicional.</p>
+<h3 id="sec-74">10. Ejemplo completo: así debería funcionar con una cuenta AAA</h3>
+<p>Imaginemos una cuenta AAA que históricamente recibe un volumen estable de llamadas, pero cuya proporción de llamadas enviadas a buzón aumenta durante dos semanas.</p>
+<h3 id="sec-75">1. Señal detectada</h3>
+<p>El patrón de llamadas a buzón se desvía de su línea base.</p>
+<h3 id="sec-76">2. Diagnóstico</h3>
+<p>El CSM revisa horarios, configuración, historial de incidencias y contexto del cliente. Se descartan explicaciones operativas antes de concluir que existe un problema.</p>
+<h3 id="sec-77">3. Priorización</h3>
+<p>Se evalúan impacto, urgencia y evidencia. Si existe afectación relevante, se asigna P1; de lo contrario, se programa una intervención preventiva.</p>
+<h3 id="sec-78">4. Play de optimización</h3>
+<p>CS coordina con el área técnica y con el cliente los ajustes necesarios, con responsable, fecha y resultado esperado.</p>
+<h3 id="sec-79">5. Validación</h3>
+<p>Se compara el indicador antes y después de la intervención, verificando que la mejora sea real y sostenible.</p>
+<p>El sistema no termina cuando se envía un correo o se resuelve un ticket. Termina cuando comprobamos el resultado o documentamos por qué no se logró.</p>
+<h3 id="sec-80">11. El siguiente paso: construir el modelo que podamos pilotear</h3>
+<p class="item">Definir los criterios de segmentación AAA/A/B/C. Acordar qué determina cada segmento y cuándo se revisa.</p>
+<p class="item">Diseñar el lifecycle por etapa. Establecer resultados esperados y criterios de salida.</p>
+<p class="item">Validar el Health Score. Identificar datos disponibles, construir la primera fórmula y contrastarla con cuentas conocidas.</p>
+<p class="item">Definir las señales y sus umbrales. Separar reglas medibles de señales que requieren diagnóstico humano.</p>
+<p class="item">Construir el catálogo inicial de plays. Empezar por recuperación de uso, problemas operativos y prevención de churn.</p>
+<p class="item">Diseñar la rutina semanal y el panel operativo. Determinar cómo se asignan prioridades y se da seguimiento.</p>
+<p class="item">Pilotear con una muestra de cuentas. Evaluar si las alertas identifican problemas reales y si las intervenciones producen resultados.</p>
+<p class="item">Ajustar y escalar. Automatizar gradualmente lo que haya demostrado utilidad.</p>
+<p>Siguiente paso en el CS Operating System: diseño de la matriz de segmentación y cobertura de Callpicker.</p></article><footer class="footer">CALLPICKER · Customer Success Operating System · Documento interno de referencia</footer></main></div>
+<script>
+const side=document.getElementById('sidebar'),links=[...document.querySelectorAll('.nav-link')];
+document.getElementById('menu').addEventListener('click',()=>side.classList.toggle('open'));
+document.getElementById('top').addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+links.forEach(a=>a.addEventListener('click',()=>side.classList.remove('open')));
+document.getElementById('search').addEventListener('input',e=>{let term=e.target.value.trim().toLocaleLowerCase('es');let hits=0;links.forEach(a=>{let ok=a.textContent.toLocaleLowerCase('es').includes(term);a.style.display=ok?'':'none';if(ok)hits++});document.getElementById('noresults').style.display=hits?'none':'block'});
+const update=()=>{let h=document.documentElement;document.getElementById('progress').style.width=(100*window.scrollY/Math.max(1,h.scrollHeight-innerHeight))+'%';let current='';for(let a of links){let e=document.getElementById(a.hash.slice(1));if(e&&e.getBoundingClientRect().top<180)current=a.hash}links.forEach(a=>a.classList.toggle('active',a.hash===current))};window.addEventListener('scroll',update,{passive:true});update();
+</script></body></html>

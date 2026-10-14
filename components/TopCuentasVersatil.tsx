@@ -317,7 +317,7 @@ export default function TopCuentasVersatil({ data }: Props) {
           <>
             {apinado && (
               <p style={{
-                fontSize: TEMA.FUENTE.cuerpo, color: TEMA.ORANGE[400],
+                fontSize: TEMA.FUENTE.cuerpo, color: TEMA.CIAN[400],
                 marginBottom: 10, lineHeight: 1.55, fontWeight: 600,
               }}>
                 Los valores están apiñados —el rango es menos del 15% de la mediana— así que
@@ -420,7 +420,7 @@ export default function TopCuentasVersatil({ data }: Props) {
                       onMouseLeave={() => setSobre(null)}
                       style={{
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
-                        background: sobre === r.id ? 'rgba(255,122,26,0.10)' : 'transparent',
+                        background: sobre === r.id ? 'rgba(57,171,216,0.10)' : 'transparent',
                         transition: `background ${TEMA.MOTION.rapido}ms`,
                       }}>
                       <td style={{ padding: '7px 10px', color: TX_LOW }}>{i + 1}</td>

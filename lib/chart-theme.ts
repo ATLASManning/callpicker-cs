@@ -13,26 +13,36 @@
 
 /* ── La paleta cerrada, tal como la fijó dirección ────────────────────────── */
 export const NAVY = {
-  900: '#0B1F3A',   // fondo del apartado
-  700: '#12305A',   // superficie de tarjeta
-  500: '#1B4580',   // acento azul, bordes activos
+  900: '#082742',   // fondo del apartado      — `--navy2` del documento
+  700: '#10355D',   // superficie de tarjeta   — `--navy`
+  500: '#1D6CAA',   // bordes activos y acento sobre CLARO — `--blue`
 } as const
 
+/* La familia plata se reencuadra sobre los grises AZULADOS del documento:
+   un gris neutro al lado de este marino se ve verdoso. */
 export const SILVER = {
-  300: '#C0C6CE',   // 9.60:1 sobre navy-900 · 7.65:1 sobre navy-700 — texto ok
-  500: '#8E96A3',   // 5.54:1 / 4.41:1 — SOLO objeto gráfico sobre navy-700
-  700: '#5B6573',   // 2.80:1 / 2.23:1 — NI para objeto. Solo bordes y rejilla.
+  300: '#DFE8EF',   // 12.27:1 sobre navy-900 · 10.02:1 sobre navy-700 — texto ok
+  500: '#A8BACB',   // 7.65:1 / 6.25:1 — texto ok, y relleno holgado
+  700: '#6A7889',   // 3.38:1 / 2.76:1 — NI para objeto. Solo bordes y rejilla.
 } as const
 
-export const ORANGE = {
-  500: '#FF7A1A',   // 6.33:1 / 5.04:1 — acento principal, texto ok
-  400: '#FF9A4D',   // 7.85:1 / 6.25:1 — hover
-  700: '#C85A00',   // presionado
+/**
+ * EL ACENTO ES CIAN, NO NARANJA — y la constante se llama como lo que vale.
+ *
+ * El documento que fijó esta paleta no tiene naranja en ninguna parte: su
+ * acento es el cian del filete y del titular. Un `ORANGE` que valiera cian
+ * sería la trampa de las paletas gemelas otra vez — alguien lo lee, asume
+ * naranja y escribe un `rgba(255,122,26,…)` al lado sin que falle nada.
+ */
+export const CIAN = {
+  500: '#39ABD8',   // 5.79:1 / 4.73:1 — acento principal, texto ok
+  400: '#8AD7F8',   // 9.54:1 / 7.79:1 — hover. Es el titular del hero.
+  700: '#1D6CAA',   // 5.56:1 sobre BLANCO — el acento de las islas claras
 } as const
 
 export const WHITE = {
-  pure: '#FFFFFF',  // 16.52:1 / 13.16:1
-  soft: '#F4F6F9',  // 15.26:1 / 12.15:1
+  pure: '#FFFFFF',  // 15.23:1 / 12.43:1
+  soft: '#F5F8FB',  // 14.29:1 / 11.66:1
 } as const
 
 /* ── Texto: qué token vale para qué ───────────────────────────────────────── */
@@ -52,10 +62,10 @@ export const TX = {
  */
 
 /* ── Rejilla y bordes ─────────────────────────────────────────────────────── */
-export const GRID = 'rgba(192,198,206,0.10)'   // plata al 10%, como pide el encargo
-export const BORDE = 'rgba(192,198,206,0.15)'  // plata al 15%
-export const BORDE_SUAVE = 'rgba(192,198,206,0.08)'  // separadores internos
-export const FOCO = ORANGE[500]                // anillo de foco, siempre naranja
+export const GRID = 'rgba(223,232,239,0.10)'   // plata al 10%, como pide el encargo
+export const BORDE = 'rgba(223,232,239,0.15)'  // plata al 15%
+export const BORDE_SUAVE = 'rgba(223,232,239,0.08)'  // separadores internos
+export const FOCO = CIAN[500]                  // anillo de foco, siempre el acento
 
 /* ── LA PÁGINA ES CLARA Y LAS TARJETAS SON ISLAS OSCURAS ──────────────────
  * Esto no es una decisión del rediseño: es la arquitectura del tablero, y
@@ -65,31 +75,37 @@ export const FOCO = ORANGE[500]                // anillo de foco, siempre naranj
  * contra SU fondo real. Medir contra un fondo supuesto es exactamente lo
  * que costó nueve rondas del mismo bug.
  */
-export const PAGINA = '#EFF6FF'          // el claro del tablero
+export const PAGINA = '#F5F8FB'          // el claro del tablero — `--wash`
 export const TARJETA_CLARA = WHITE.pure  // un chip o una isla clara
 export const TX_PAGINA = {
-  /** Títulos y cuerpo sobre la página clara: 16.5:1 sobre blanco. */
-  hi:  NAVY[900],
-  /** Rótulos de sección: 6.96:1 sobre la página. */
-  mid: '#475569',
+  /** Títulos sobre la página clara. El marino del documento: 11.63:1. */
+  hi:  NAVY[700],
+  /** Cuerpo: `--ink`, 13.86:1 sobre blanco. */
+  mid: '#202E3B',
+  /** Rótulos y texto apagado: `--muted`, 4.56:1 sobre blanco. Es el MÁS
+   *  bajo que pasa AA ahí, así que por debajo no hay nada. */
+  low: '#6A7889',
 } as const
 
+/** La línea del documento (`--line`). Bordes y separadores sobre claro. */
+export const LINEA_CLARA = '#DFE8EF'
+
 /**
- * EL NARANJA NO ES UNO, SON DOS, Y SE ELIGEN POR EL FONDO.
+ * EL ACENTO NO ES UNO, SON DOS, Y SE ELIGEN POR EL FONDO.
  *
  * Medido, y es una asimetría fuerte que se olvida enseguida:
  *
- *   naranja-500 (#FF7A1A) sobre la tarjeta navy-700 →  5.04:1  ✓
- *   naranja-500 (#FF7A1A) sobre blanco              →  2.61:1  ✗
- *   naranja-700 (#C85A00) sobre blanco              →  4.27:1  ✓
+ *   cian-500 (#39ABD8) sobre la tarjeta navy-700 →  4.73:1  ✓
+ *   cian-500 (#39ABD8) sobre blanco              →  2.63:1  ✗
+ *   cian-700 (#1D6CAA) sobre blanco              →  5.56:1  ✓
  *
- * O sea que el naranja vivo es un acento de fondo OSCURO y no vale ni como
- * borde en la página clara. Ahí el naranja es el 700. Escribirlo aquí es
+ * O sea que el cian vivo es un acento de fondo OSCURO y no vale ni como
+ * borde en la página clara. Ahí el acento es el 700, que es `--blue`. Escribirlo aquí es
  * más barato que volver a medirlo: la primera versión de los chips de aviso
  * de la portada usaba el 500 de borde y se quedaba en 2.61.
  */
-export const ACENTO = ORANGE[500]        // sobre tarjeta oscura
-export const ACENTO_CLARO = ORANGE[700]  // sobre página o chip claro
+export const ACENTO = CIAN[500]        // sobre tarjeta oscura
+export const ACENTO_CLARO = CIAN[700]  // sobre página o chip claro
 
 /* ── EL TRILEMA DEL COLOR, Y POR QUÉ LA FORMA CAMBIA ───────────────────────
  *
@@ -113,20 +129,20 @@ export const ACENTO_CLARO = ORANGE[700]  // sobre página o chip claro
  */
 
 /**
- * La tira de acento que ordena las filas: plata (menor riesgo) → naranja.
+ * La tira de acento que ordena las filas: plata (menor riesgo) → cian.
  *
  * NO son series que compitan entre sí, así que no se les exige separación
  * mutua: son un indicador de posición en una lista ya ordenada y etiquetada.
  * Lo que sí se les exige, y cumplen, es verse sobre la tarjeta (≥3:1).
  */
 export const TIRA_RIESGO: readonly string[] = [
-  '#C0C6CE',  // en_orden          7.65:1
-  '#CEBCB6',  // oportunidad       7.20:1
-  '#DAB09E',  // hay_que_mostrarle 6.69:1
-  '#E5A585',  // sin_auditar       6.30:1
-  '#EE986A',  // no_la_vemos       5.85:1
-  '#F78A4B',  // apagandose        5.45:1
-  '#FF7A1A',  // se_va             5.04:1
+  '#DFE8EF',  // en_orden         10.02:1
+  '#C7DEEC',  // oportunidad       8.93:1
+  '#AFD4E8',  // hay_que_mostrarle 7.94:1
+  '#95CAE4',  // sin_auditar       7.01:1
+  '#7BC0E0',  // no_la_vemos       6.19:1
+  '#5EB6DC',  // apagandose        5.45:1
+  '#39ABD8',  // se_va             4.73:1
 ]
 
 /** El orden de riesgo del catálogo, de menor a mayor. Es el orden de las filas. */
@@ -147,10 +163,10 @@ export function acentoDeSituacion(situacion: string): string {
  * contiguos de una misma barra— el ojo los compara borde con borde y hace
  * falta separación real. Y ahí la paleta tiene un techo que se midió:
  *
- *   la polilínea plata→naranja mide 22.3 ΔE DE LARGO. Repartida:
- *     3 escalones → 11.1 cada uno   ✓  (umbral 10)
- *     4 escalones →  7.4            ✗
- *     5 escalones →  5.5            ✗  (ni la mitad del umbral)
+ *   la polilínea plata→cian mide 25.2 ΔE DE LARGO. Repartida:
+ *     3 escalones → 12.6 cada uno   ✓  (umbral 10)
+ *     4 escalones →  8.4            ✗
+ *     5 escalones →  6.2            ✗
  *
  * Buscando sobre los DIECISÉIS colores del tema, no sólo sobre la tira, y
  * exigiendo que el tono avance de verdad (en OKLab, que `a` y `b` no bajen
@@ -170,9 +186,9 @@ export function acentoDeSituacion(situacion: string): string {
  * a aprenderse dos códigos.
  */
 export const BANDA = {
-  bajo:  SILVER[300],   // 7.65:1 sobre la tarjeta
-  medio: '#E5A585',     // 6.30:1 — el centro de la tira
-  alto:  ORANGE[500],   // 5.04:1
+  bajo:  SILVER[300],   // 10.02:1 sobre la tarjeta
+  medio: '#95CAE4',     //  7.01:1 — el centro de la tira
+  alto:  CIAN[500],     //  4.73:1
 } as const
 
 export type Banda = keyof typeof BANDA
@@ -211,12 +227,12 @@ export const BANDA_SEMAFORO_ETIQUETA: Record<Banda, string> = {
 }
 
 /* ── Asesores: CATEGÓRICO, no ordenado ────────────────────────────────────
- * El par más apretado se separa 21.2 en OKLab — holgado.
- * Fátima usa `SILVER[500]`, que vale como relleno (4.41:1 ≥ 3) pero NO como
- * texto: su nombre se escribe en `TX.low`, no en su color.
+ * El par más apretado se separa 12.2 en OKLab — holgado.
+ * `SILVER[500]` ahora SÍ pasa como texto (6.25:1), al revés que en la paleta
+ * anterior, donde se quedaba en 4.41:1.
  */
 export const ASESOR: Record<string, string> = {
-  Claudia: ORANGE[500],
+  Claudia: CIAN[500],
   Dan:     WHITE.soft,
   'Fátima': SILVER[500],
 }
@@ -338,7 +354,7 @@ export const EJE_COMUN = {
   stroke: SILVER[700],
   tick: { fill: TX.low, fontSize: FUENTE.eje },
   tickLine: false,
-  axisLine: { stroke: 'rgba(192,198,206,0.18)' },
+  axisLine: { stroke: 'rgba(223,232,239,0.18)' },
 } as const
 
 /**

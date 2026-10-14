@@ -8,17 +8,17 @@
 
 html,
 body {
-  background: #EFF6FF !important;
-  color: #0F172A !important;
+  background: #F5F8FB !important;
+  color: #202E3B !important;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ── Custom scrollbar ─────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #BFDBFE; }
-::-webkit-scrollbar-thumb { background: #93C5FD; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+::-webkit-scrollbar-track { background: #DFE8EF; }
+::-webkit-scrollbar-thumb { background: #A8BACB; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #1D6CAA; }
 
 /* ── Semáforo pulse animation ─────────────────────── */
 @keyframes pulse-rojo {
@@ -30,15 +30,15 @@ body {
 /* ── Table — page level (fondo claro) ─────────────── */
 .cp-table { width: 100%; border-collapse: collapse; }
 .cp-table th {
-  background: #F0F7FF;
-  color: #64748B;
+  background: #EAF1F7;
+  color: #6A7889;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 10px 14px;
   text-align: left;
-  border-bottom: 1px solid #BFDBFE;
+  border-bottom: 1px solid #DFE8EF;
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
@@ -51,7 +51,7 @@ body {
   vertical-align: middle;
   color: #334155;
 }
-.cp-table tbody tr:hover { background: #F0F7FF; }
+.cp-table tbody tr:hover { background: #EAF1F7; }
 
 /* Tabla dentro de card oscura */
 .cp-card .cp-table th {
@@ -86,7 +86,7 @@ body {
 
 /* ── Card — dark navy ─────────────────────────────── */
 .cp-card {
-  background: #0D1829 !important;
+  background: #082742 !important;
   border: 1px solid rgba(255,255,255,0.08) !important;
   border-radius: 16px;
   padding: 20px;
@@ -150,9 +150,9 @@ body {
 .cp-card .cp-light.cp-light .text-textMid { color: #334155 !important; }
 .cp-card .cp-light.cp-light .text-textLow { color: #64748B !important; }
 .cp-card .cp-light.cp-light .bg-surface    { background-color: #FFFFFF !important; }
-.cp-card .cp-light.cp-light .bg-surfaceAlt { background-color: #F0F7FF !important; }
-.cp-card .cp-light.cp-light .hover\:bg-surface:hover { background-color: #F0F7FF !important; }
-.cp-card .cp-light.cp-light .border-border { border-color: #BFDBFE !important; }
+.cp-card .cp-light.cp-light .bg-surfaceAlt { background-color: #EAF1F7 !important; }
+.cp-card .cp-light.cp-light .hover\:bg-surface:hover { background-color: #EAF1F7 !important; }
+.cp-card .cp-light.cp-light .border-border { border-color: #DFE8EF !important; }
 /* .cp-section-title es una clase (no un tag), así que el escape genérico
    de h1-h5 de arriba no la cubre — necesita su propia regla. */
 .cp-card .cp-light.cp-light .cp-section-title { color: #0F172A !important; }
@@ -160,19 +160,19 @@ body {
    sus reglas ".cp-card .cp-table th/td" y ".cp-card table tr" de arriba
    asumen fondo oscuro y no deben aplicar dentro de una sección cp-light. */
 .cp-card .cp-light.cp-light .cp-table th {
-  background: #F0F7FF !important;
+  background: #EAF1F7 !important;
   color: #64748B !important;
-  border-bottom: 1px solid #BFDBFE !important;
+  border-bottom: 1px solid #DFE8EF !important;
 }
 .cp-card .cp-light.cp-light .cp-table th:hover { color: #0F172A !important; }
 .cp-card .cp-light.cp-light .cp-table td {
   color: #334155 !important;
   border-bottom: 1px solid #E0EDFF !important;
 }
-.cp-card .cp-light.cp-light .cp-table tbody tr:hover { background: #F0F7FF !important; }
+.cp-card .cp-light.cp-light .cp-table tbody tr:hover { background: #EAF1F7 !important; }
 .cp-card .cp-light.cp-light table tr             { background: transparent !important; }
-.cp-card .cp-light.cp-light table thead tr       { background: #F0F7FF !important; }
-.cp-card .cp-light.cp-light table tbody tr:hover { background: #F0F7FF !important; }
+.cp-card .cp-light.cp-light table thead tr       { background: #EAF1F7 !important; }
+.cp-card .cp-light.cp-light table tbody tr:hover { background: #EAF1F7 !important; }
 
 /* ── Título de sección ────────────────────────────── */
 .cp-section-title {
@@ -194,7 +194,7 @@ body {
 /* ── Input / Select — page level (fondo claro) ────── */
 .cp-input {
   background: #FFFFFF;
-  border: 1px solid #BFDBFE;
+  border: 1px solid #DFE8EF;
   border-radius: 10px;
   color: #0F172A;
   padding: 8px 12px;
@@ -211,7 +211,7 @@ body {
 
 .cp-select {
   background: #FFFFFF;
-  border: 1px solid #BFDBFE;
+  border: 1px solid #DFE8EF;
   border-radius: 10px;
   color: #0F172A;
   padding: 8px 12px;
@@ -248,7 +248,7 @@ body {
 .cp-card .cp-light.cp-light .cp-input,
 .cp-card .cp-light.cp-light .cp-select {
   background: #FFFFFF !important;
-  border-color: #BFDBFE !important;
+  border-color: #DFE8EF !important;
   color: #0F172A !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04) inset !important;
 }
@@ -319,15 +319,15 @@ body {
 .cp-btn-ghost {
   background: linear-gradient(180deg, #ffffff 0%, #f0f6ff 100%);
   color: #1E3A5F;
-  border: 1px solid #BFDBFE;
+  border: 1px solid #DFE8EF;
   box-shadow:
     0 1px 0 rgba(255,255,255,0.9) inset,
     0 3px 8px rgba(0,87,255,0.08),
     0 1px 2px rgba(0,0,0,0.06);
 }
 .cp-btn-ghost:hover {
-  background: linear-gradient(180deg, #f0f7ff 0%, #e0eeff 100%);
-  border-color: #93C5FD;
+  background: linear-gradient(180deg, #f5f8fb 0%, #e6eef6 100%);
+  border-color: #A8BACB;
   color: #0057FF;
   transform: translateY(-1px);
   box-shadow:
@@ -367,7 +367,7 @@ body {
   cursor: pointer;
   transition: all 0.12s ease;
   background: linear-gradient(160deg, #ffffff 0%, #e8f2ff 100%);
-  border: 1px solid #BFDBFE;
+  border: 1px solid #DFE8EF;
   color: #0057FF;
   box-shadow:
     0 1px 0 rgba(255,255,255,0.95) inset,
@@ -421,7 +421,7 @@ body {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: #EFF6FF;
+  background: #F5F8FB;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 200px);
   mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 200px);
 }
@@ -515,7 +515,10 @@ body {
 .dash-foco:focus-visible,
 .cp-card [tabindex]:focus-visible,
 .cp-card button:focus-visible {
-  outline: 2px solid #FF7A1A;
+  /* El anillo de foco es el acento, y el acento ahora es el cian del
+     documento: 5.79:1 sobre la tarjeta `#082742`, muy por encima del 3:1
+     que pide WCAG 1.4.11 para un objeto gráfico. */
+  outline: 2px solid #39ABD8;
   outline-offset: 2px;
   border-radius: 6px;
 }

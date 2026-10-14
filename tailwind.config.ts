@@ -11,21 +11,21 @@ const config: Config = {
       fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
       colors: {
         // Main content — light blue-white theme
-        page:       '#EFF6FF',      // page background — azul pastel suave
-        bgAlt:      '#1E3A5F',      // sidebar (stays dark navy)
+        page:       '#F5F8FB',      // page background — azul pastel suave
+        bgAlt:      '#10355D',      // sidebar (stays dark navy)
         surface:    '#FFFFFF',      // card background
-        surfaceAlt: '#F0F7FF',      // subtle card variant
-        border:     '#BFDBFE',      // light blue border
+        surfaceAlt: '#EAF1F7',      // subtle card variant
+        border:     '#DFE8EF',      // light blue border
 
         // Callpicker brand
         cp:       '#0057FF',
-        cpLight:  '#3B82F6',
-        cpTeal:   '#0EA5E9',
+        cpLight:  '#1D6CAA',
+        cpTeal:   '#39ABD8',
 
         // Text hierarchy (optimised for white bg)
-        textHi:   '#0F172A',        // near-black
-        textMid:  '#334155',        // medium slate
-        textLow:  '#64748B',        // muted slate
+        textHi:   '#202E3B',        // near-black
+        textMid:  '#3D4B5C',        // medium slate
+        textLow:  '#6A7889',        // muted slate
 
         // Semáforo — legibles sobre fondo claro
         verde:    '#16A34A',
@@ -44,23 +44,23 @@ const config: Config = {
            mediciones. Esto es el espejo para las utilidades de Tailwind: si
            cambia uno hay que cambiar el otro, y
            `scripts/mide-paleta-dashboard.py` lo comprueba. */
-        'dash-navy-900':   '#0B1F3A',
-        'dash-navy-700':   '#12305A',
-        'dash-navy-500':   '#1B4580',
-        'dash-silver-300': '#C0C6CE',
-        'dash-silver-500': '#8E96A3',
-        'dash-silver-700': '#5B6573',
-        'dash-orange-500': '#FF7A1A',
-        'dash-orange-400': '#FF9A4D',
-        'dash-orange-700': '#C85A00',
+        'dash-navy-900':   '#082742',
+        'dash-navy-700':   '#10355D',
+        'dash-navy-500':   '#1D6CAA',
+        'dash-silver-300': '#DFE8EF',
+        'dash-silver-500': '#A8BACB',
+        'dash-silver-700': '#6A7889',
+        'dash-orange-500': '#39ABD8',
+        'dash-orange-400': '#8AD7F8',
+        'dash-orange-700': '#1D6CAA',
         'dash-white':      '#FFFFFF',
-        'dash-white-soft': '#F4F6F9',
+        'dash-white-soft': '#F5F8FB',
         /* Las tres bandas de riesgo. El paso medio NO está en la paleta base:
            es la interpolación en OKLab entre plata-300 y naranja-500, que es
            lo que hace que los tres pasos se separen 11.1 entre sí. */
-        'dash-riesgo-bajo':  '#C0C6CE',
-        'dash-riesgo-medio': '#E5A585',
-        'dash-riesgo-alto':  '#FF7A1A',
+        'dash-riesgo-bajo':  '#DFE8EF',
+        'dash-riesgo-medio': '#95CAE4',
+        'dash-riesgo-alto':  '#39ABD8',
       },
       boxShadow: {
         'glow-cp':   '0 0 24px rgba(0,87,255,0.18)',

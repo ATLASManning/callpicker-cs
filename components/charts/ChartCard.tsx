@@ -15,7 +15,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { HelpCircle, Maximize2, X, RotateCcw, Download } from 'lucide-react'
 import {
-  NAVY, BORDE, TX, FOCO, FUENTE, RADIO, MOTION, ORANGE,
+  NAVY, BORDE, TX, FOCO, FUENTE, RADIO, MOTION, CIAN,
 } from '@/lib/chart-theme'
 
 interface Props {
@@ -123,7 +123,7 @@ export default function ChartCard({
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 24, height: 24, borderRadius: 999, flexShrink: 0,
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                color: verAyuda ? ORANGE[500] : TX.low,
+                color: verAyuda ? CIAN[500] : TX.low,
               }}
             >
               <HelpCircle size={15} />
@@ -179,7 +179,7 @@ export default function ChartCard({
           margin: 0, padding: '10px 20px', lineHeight: 1.55,
           borderBottom: `1px solid ${BORDE}`,
         }}>
-          <span style={{ background: 'transparent', color: ORANGE[400],
+          <span style={{ background: 'transparent', color: CIAN[400],
                          fontSize: FUENTE.cuerpo, fontWeight: 650 }}>{insight}</span>
         </p>
       )}
@@ -213,7 +213,7 @@ function BotonAccion({ etiqueta, onClick, children }: {
         color: TX.low, cursor: 'pointer',
         transition: `color ${MOTION.rapido}ms, background ${MOTION.rapido}ms`,
       }}
-      onMouseEnter={e => { e.currentTarget.style.color = ORANGE[400] }}
+      onMouseEnter={e => { e.currentTarget.style.color = CIAN[400] }}
       onMouseLeave={e => { e.currentTarget.style.color = TX.low }}
     >{children}</button>
   )
@@ -253,7 +253,7 @@ function Error({ texto, onReintentar }: { texto: string; onReintentar?: () => vo
   return (
     <div role="alert" style={{ padding: '20px 0', textAlign: 'center' }}>
       <p style={{ lineHeight: 1.6 }}>
-        <span style={{ background: 'transparent', color: ORANGE[400],
+        <span style={{ background: 'transparent', color: CIAN[400],
                        fontSize: FUENTE.cuerpo }}>{texto}</span>
       </p>
       {onReintentar && (
@@ -264,7 +264,7 @@ function Error({ texto, onReintentar }: { texto: string; onReintentar?: () => vo
           style={{
             marginTop: 12, padding: '7px 16px', borderRadius: 8,
             fontSize: FUENTE.cuerpo, fontWeight: 700,
-            background: ORANGE[500], color: NAVY[900],
+            background: CIAN[500], color: NAVY[900],
             border: 'none', cursor: 'pointer',
           }}
         >Reintentar</button>

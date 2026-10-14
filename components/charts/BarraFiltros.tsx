@@ -27,7 +27,7 @@ export default function BarraFiltros() {
         display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         padding: '10px 16px', borderRadius: 12,
         background: NAVY[900], border: `1px solid ${BORDE}`,
-        boxShadow: '0 8px 24px rgba(11,31,58,0.35)',
+        boxShadow: '0 8px 24px rgba(8,39,66,0.35)',
       }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
                        background: 'transparent', color: TX.low,

@@ -12,7 +12,7 @@
  */
 import { useId, useState } from 'react'
 import {
-  NAVY, BORDE, TX, SILVER, ORANGE, FUENTE, MOTION, MINIMOS, TABULAR,
+  NAVY, BORDE, TX, SILVER, CIAN, FUENTE, MOTION, MINIMOS, TABULAR,
 } from '@/lib/chart-theme'
 
 /* ── Tramas ───────────────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ export function TramaRayas({ id, color }: { id: string; color: string }) {
 /** La misma trama, como fondo CSS — para los divs de las filas. */
 export function fondoConTrama(color: string, trama: boolean): string {
   if (!trama) return color
-  return `repeating-linear-gradient(45deg, ${color} 0 3px, rgba(11,31,58,0.42) 3px 5px)`
+  return `repeating-linear-gradient(45deg, ${color} 0 3px, rgba(8,39,66,0.42) 3px 5px)`
 }
 
 /* ── Tooltip ──────────────────────────────────────────────────────────── */
@@ -158,8 +158,8 @@ export function ChipsFiltro({ filtros, onQuitar, onLimpiar }: {
         <span key={`${f.dim}-${f.valor}`} style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '4px 6px 4px 10px', borderRadius: 999,
-          background: 'rgba(255,122,26,0.16)', border: `1px solid ${ORANGE[500]}`,
-          fontSize: FUENTE.etiqueta, color: ORANGE[400], fontWeight: 650,
+          background: 'rgba(57,171,216,0.16)', border: `1px solid ${CIAN[500]}`,
+          fontSize: FUENTE.etiqueta, color: CIAN[400], fontWeight: 650,
         }}>
           {f.etiqueta}
           <button
@@ -170,7 +170,7 @@ export function ChipsFiltro({ filtros, onQuitar, onLimpiar }: {
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: 18, height: 18, borderRadius: 999, border: 'none',
-              background: 'rgba(255,122,26,0.22)', color: ORANGE[400],
+              background: 'rgba(57,171,216,0.22)', color: CIAN[400],
               cursor: 'pointer', fontSize: 12, lineHeight: 1,
             }}
           >×</button>
@@ -329,7 +329,7 @@ export function Segmentado({ etiqueta, opciones, valor, onCambio }: {
               style={{
                 padding: '5px 12px', borderRadius: 7, border: 'none', cursor: 'pointer',
                 minHeight: MINIMOS.areaClic, fontSize: FUENTE.etiqueta, fontWeight: 700,
-                background: on ? ORANGE[500] : 'transparent',
+                background: on ? CIAN[500] : 'transparent',
                 color: on ? NAVY[900] : TX.mid,
                 transition: `background ${MOTION.rapido}ms, color ${MOTION.rapido}ms`,
               }}>{l}</button>

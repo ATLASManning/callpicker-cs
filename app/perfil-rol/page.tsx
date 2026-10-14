@@ -34,6 +34,54 @@ export default function PerfilRolPage() {
       <PageHeader
         title="Perfil del rol — Customer Success Manager / KAM Senior"
         subtitle="El eje del trabajo del área. Cada actividad semanal debe poder rastrearse a una de estas responsabilidades."
+        actions={
+          /* El documento marco del área, al alcance desde el perfil del rol.
+             Va servido desde `public/docs` y NO con la ruta `file:///` del
+             equipo de dirección: un enlace a disco local no abre desde el
+             navegador para nadie más, y éste tiene que poder leerlo el asesor.
+
+             Isla CLARA sobre la página clara, así que letra OSCURA — la página
+             no tiene `.cp-card` alrededor del encabezado. El marino `#10355D`
+             sobre el lavado `#F5F8FB` mide 11.6:1. Los dos tonos y el cian del
+             filete salen del `:root` del propio documento, no de una captura.
+             Ver [[atlas-dashboard-contrast-architecture]]. */
+          <a
+            href="/docs/Callpicker_Customer_Success_Operating_System.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-2.5 rounded-xl px-4 py-2.5
+                       transition-colors hover:brightness-[0.98]"
+            style={{
+              background: '#F5F8FB',
+              border: '1px solid #DFE8EF',
+              boxShadow: '0 1px 2px rgba(16,53,93,0.06)',
+            }}
+          >
+            <span
+              aria-hidden
+              className="h-7 w-1 rounded-full flex-shrink-0"
+              style={{ background: '#39ABD8' }}
+            />
+            <span className="flex flex-col leading-tight">
+              <span
+                className="text-[10px] font-bold uppercase tracking-wider"
+                style={{ color: '#6A7889' }}
+              >
+                Documento marco
+              </span>
+              <span className="text-sm font-bold" style={{ color: '#10355D' }}>
+                Carta del Director de Customer Success
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className="text-base font-bold transition-transform group-hover:translate-x-0.5"
+              style={{ color: '#1D6CAA' }}
+            >
+              →
+            </span>
+          </a>
+        }
       />
 
       {/* ── Objetivo + Postura, lado a lado ─────────────────────────────── */}

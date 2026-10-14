@@ -67,7 +67,7 @@ const TX_LOW = TEMA.TX.low   /* plata-300: 7.65:1 sobre la tarjeta */
 /** AVISO: lo que antes iba en ámbar o rojo. La paleta cerrada no tiene ni uno
  *  ni otro, y el naranja es precisamente el color de alerta que fijó
  *  dirección. 6.25:1 sobre la tarjeta. */
-const AVISO = TEMA.ORANGE[400]
+const AVISO = TEMA.CIAN[400]
 
 /** Todo texto de color va en un `<span>` que declara su propio `background`:
  *  `globals.css` fuerza a blanco cualquiera que no lo haga, y esto es una
@@ -121,8 +121,8 @@ const C = (color: string, extra: React.CSSProperties = {}): React.CSSProperties 
 /** Las tres bandas, de menor a mayor riesgo. Separación medida: 11.1. */
 const BANDA_COLOR: Record<string, string> = {
   bajo:  TEMA.SILVER[300],   /* 7.65:1 sobre la tarjeta */
-  medio: '#E5A585',          /* 6.30:1 — interpolación OKLab plata→naranja */
-  alto:  TEMA.ORANGE[500],   /* 5.04:1 */
+  medio: '#95CAE4',          /* 7.01:1 — interpolación OKLab plata→cian */
+  alto:  TEMA.CIAN[500],   /* 4.73:1 */
 }
 const BANDA_TITULO: Record<string, string> = {
   bajo:  'En orden o con oportunidad',
@@ -142,12 +142,12 @@ const BANDA_TRAMA: Record<string, boolean> = { bajo: false, medio: false, alto: 
 
 const COLOR_ASESOR: Record<string, string> = TEMA.ASESOR
 const COLOR_CLASE: Record<string, string> = {
-  riesgo:   TEMA.ORANGE[500],
+  riesgo:   TEMA.CIAN[500],
   entrega:  TEMA.WHITE.soft,
   analisis: TEMA.SILVER[500],
 }
 const GRIS  = TEMA.SILVER[500]
-const VERDE = TEMA.ORANGE[400]   /* lo que antes era «bien» ahora es acento */
+const VERDE = TEMA.CIAN[400]   /* lo que antes era «bien» ahora es acento */
 
 const pesos = (n: number) => TEMA.mxn(n)
 const miles = (n: number) => TEMA.mxnCompacto(n)
@@ -764,7 +764,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                 padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
                 fontSize: TEMA.FUENTE.etiqueta, fontWeight: 650,
                 minHeight: TEMA.MINIMOS.areaClic,
-                background: modoG2 === k ? TEMA.ORANGE[500] : 'transparent',
+                background: modoG2 === k ? TEMA.CIAN[500] : 'transparent',
                 color: modoG2 === k ? TEMA.NAVY[900] : TX_MID,
                 transition: `background ${TEMA.MOTION.rapido}ms`,
               }}>{etq}</button>
@@ -864,11 +864,11 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                   <div style={{
                     width: `${pct}%`,
                     background: pct > 50
-                      ? `repeating-linear-gradient(45deg, ${TEMA.ORANGE[500]} 0 3px, rgba(11,31,58,0.42) 3px 5px)`
+                      ? `repeating-linear-gradient(45deg, ${TEMA.CIAN[500]} 0 3px, rgba(8,39,66,0.42) 3px 5px)`
                       : GRIS,
                   }} />
                 </div>
-                <span style={C(pct > 50 ? TEMA.ORANGE[400] : TX_MID,
+                <span style={C(pct > 50 ? TEMA.CIAN[400] : TX_MID,
                                { fontSize: TEMA.FUENTE.cuerpo, width: 112, textAlign: 'right',
                                  flexShrink: 0, fontVariantNumeric: 'tabular-nums' })}>
                   {f.nSin} sin dato
@@ -879,7 +879,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                     sabe. La primera versión ponía «$1.78M +9», y un «+9»
                     pegado a una cifra en millones se lee como nueve millones.
                     Un símbolo que ya significa «al menos» no se malinterpreta. */}
-                <span style={C(medible ? TX_HI : TEMA.ORANGE[400],
+                <span style={C(medible ? TX_HI : TEMA.CIAN[400],
                                { fontSize: TEMA.FUENTE.valor, fontWeight: 750, width: 98,
                                  textAlign: 'right', flexShrink: 0,
                                  fontVariantNumeric: 'tabular-nums' })}
@@ -900,7 +900,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                       alignItems: 'baseline' }}>
           <Pastilla color={TEMA.WHITE.soft} texto="con dato" />
           <Pastilla color={GRIS} texto="sin dato" />
-          <Pastilla color={TEMA.ORANGE[500]} trama texto="le falta a más de la mitad" />
+          <Pastilla color={TEMA.CIAN[500]} trama texto="le falta a más de la mitad" />
           {/* NO hay sparkline de tendencia, y es a propósito: el payload trae
               UN corte, no seis periodos. Dibujar una línea de tendencia con un
               solo punto sería inventarse el dato. Cuando la fuente traiga
@@ -987,7 +987,7 @@ function Pastilla({ color, texto, trama }: {
       <span style={{
         width: 11, height: 11, borderRadius: 2, flexShrink: 0,
         background: trama
-          ? `repeating-linear-gradient(45deg, ${color} 0 3px, rgba(11,31,58,0.42) 3px 5px)`
+          ? `repeating-linear-gradient(45deg, ${color} 0 3px, rgba(8,39,66,0.42) 3px 5px)`
           : color,
       }} />
       <span style={C(TX_MID, { fontSize: TEMA.FUENTE.etiqueta })}>{texto}</span>

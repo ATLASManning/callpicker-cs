@@ -19,7 +19,7 @@ const D = {
   txLow:    TEMA.TX.low,
   rowAlt:   'rgba(255,255,255,0.03)',
   rowHover: 'rgba(255,255,255,0.06)',
-  enlace:   TEMA.ORANGE[400],
+  enlace:   TEMA.CIAN[400],
   th:       'rgba(255,255,255,0.04)',
 }
 
@@ -45,7 +45,7 @@ function fmtFecha(iso: string | null | undefined) {
    hace cuatro años. Son 42 de las 192 cuentas vivas. */
 function DiasCell({ dias, nunca, dark }: { dias: number; nunca?: boolean; dark: boolean }) {
   const color = dark
-    ? (nunca || dias > 30 ? TEMA.ORANGE[400] : dias > 14 ? TEMA.BANDA.medio : D.txMid)
+    ? (nunca || dias > 30 ? TEMA.CIAN[400] : dias > 14 ? TEMA.BANDA.medio : D.txMid)
     : (nunca || dias > 30 ? '#EF4444' : dias > 14 ? '#F97316' : '#64748B')
   const weight = nunca || dias > 14 ? 700 : 500
   return (
@@ -66,7 +66,7 @@ function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         <span style={{
           fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-          color: zt.total > 10 ? (dark ? TEMA.ORANGE[400] : '#F97316') : dark ? D.txHi : '#0F172A',
+          color: zt.total > 10 ? (dark ? TEMA.CIAN[400] : '#F97316') : dark ? D.txHi : '#0F172A',
         }}>
           {zt.total}
         </span>
@@ -74,9 +74,9 @@ function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 3,
             padding: '2px 7px', borderRadius: 99,
-            background: dark ? 'rgba(255,122,26,0.12)' : 'rgba(239,68,68,0.12)',
-            color: dark ? TEMA.ORANGE[400] : '#EF4444', fontSize: 11, fontWeight: 700,
-            border: dark ? '1px solid rgba(255,122,26,0.35)' : '1px solid rgba(239,68,68,0.25)',
+            background: dark ? 'rgba(57,171,216,0.12)' : 'rgba(239,68,68,0.12)',
+            color: dark ? TEMA.CIAN[400] : '#EF4444', fontSize: 11, fontWeight: 700,
+            border: dark ? '1px solid rgba(57,171,216,0.35)' : '1px solid rgba(239,68,68,0.25)',
             whiteSpace: 'nowrap',
           }}>
             <AlertTriangle size={8} /> {zt.fallas} falla{zt.fallas > 1 ? 's' : ''}

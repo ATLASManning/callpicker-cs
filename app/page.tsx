@@ -409,7 +409,7 @@ export default async function DashboardPage() {
                 Con sus tickets de Zoho Desk · el riesgo lo marca el motor, arriba en la salud de la cartera
               </p>
             </div>
-            <Link href="/cuentas" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.ORANGE[400],
+            <Link href="/cuentas" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.CIAN[400],
                                            fontWeight: 700, textDecoration: 'none' }}
               className="hover:underline flex items-center gap-1">
               Ver todas <ArrowUpRight size={13} />
@@ -422,7 +422,7 @@ export default async function DashboardPage() {
                           display: 'flex', alignItems: 'center', gap: 6 }}>
               <Ticket size={13} /> Entre las diez: {topRiesgoTix} tickets
               {topRiesgoFallas > 0 && (
-                <span style={{ color: TEMA.ORANGE[400], fontWeight: 700 }}>· {topRiesgoFallas} fallas</span>
+                <span style={{ color: TEMA.CIAN[400], fontWeight: 700 }}>· {topRiesgoFallas} fallas</span>
               )}
             </div>
           )}
@@ -439,7 +439,7 @@ export default async function DashboardPage() {
           style={{ background: TEMA.NAVY[900], border: `1px solid ${TEMA.BORDE}`,
                    borderRadius: 12, padding: '12px 20px' }}>
           <div className="flex items-center gap-2">
-            <Ticket size={15} style={{ color: TEMA.ORANGE[400] }} />
+            <Ticket size={15} style={{ color: TEMA.CIAN[400] }} />
             <span style={{ fontSize: TEMA.FUENTE.cuerpo, fontWeight: 800, color: TEMA.TX.hi }}>Tickets Zoho Desk</span>
             <span style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.low }}>
               · último ticket abierto el {fmtSelloMx(globalTickets.ultima)} (hora de México)
@@ -453,12 +453,12 @@ export default async function DashboardPage() {
               en el archivo{globalTickets.internos > 0 && `, ${globalTickets.internos} de ellos internos`}
             </span>
             <span style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.low }}>
-              <span style={{ fontSize: TEMA.FUENTE.valor, fontWeight: 800, color: TEMA.ORANGE[400] }}>
+              <span style={{ fontSize: TEMA.FUENTE.valor, fontWeight: 800, color: TEMA.CIAN[400] }}>
                 {globalTickets.fallas.toLocaleString('es-MX')}
               </span>{' '}
               fallas en el archivo
             </span>
-            <Link href="/tickets" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.ORANGE[400],
+            <Link href="/tickets" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.CIAN[400],
                                            fontWeight: 700, textDecoration: 'none' }}
               className="hover:underline flex items-center gap-1">
               Ver todos <ArrowUpRight size={13} />
@@ -466,7 +466,7 @@ export default async function DashboardPage() {
             <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg"
               style={{ padding: '6px 12px', fontSize: TEMA.FUENTE.etiqueta, fontWeight: 800,
-                       background: TEMA.ORANGE[500], color: TEMA.NAVY[900], textDecoration: 'none' }}>
+                       background: TEMA.CIAN[500], color: TEMA.NAVY[900], textDecoration: 'none' }}>
               <LifeBuoy size={14} /> Centro de Ayuda
             </a>
           </div>

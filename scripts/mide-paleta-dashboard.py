@@ -40,10 +40,29 @@ import sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
 # ── LA PALETA, tal como la fijó dirección ───────────────────────────────────
-NAVY_900, NAVY_700, NAVY_500 = '#0B1F3A', '#12305A', '#1B4580'
-SILVER_300, SILVER_500, SILVER_700 = '#C0C6CE', '#8E96A3', '#5B6573'
-ORANGE_500, ORANGE_400, ORANGE_700 = '#FF7A1A', '#FF9A4D', '#C85A00'
-WHITE, WHITE_SOFT = '#FFFFFF', '#F4F6F9'
+#
+# 13 oct 2026 — dirección mandó la captura del «Customer Success Operating
+# System» y pidió ESE juego de colores para el Dashboard, con la regla de
+# siempre: fondo oscuro letra clara y viceversa.
+#
+# Los hex NO salen de la captura: salen del `:root` del propio documento
+# (`public/docs/Callpicker_Customer_Success_Operating_System.html`), que es la
+# fuente, y por eso están al peso:
+#
+#     --navy  #10355D   --navy2 #082742   --blue  #1D6CAA   --cyan #39ABD8
+#     --ink   #202E3B   --muted #6A7889   --line  #DFE8EF   --wash #F5F8FB
+#
+# Lo que cambia respecto de la paleta anterior, y por qué:
+#   · el acento deja de ser NARANJA y pasa a ser CIAN. El documento no tiene
+#     naranja en ninguna parte; su acento es el cian del filete y del titular.
+#   · la familia plata se reencuadra sobre los grises AZULADOS del documento,
+#     porque un gris neutro al lado de este marino se ve verdoso.
+#   · `#8AD7F8` es el titular del hero del documento, medido del pixel y
+#     confirmado contra su hoja: es el paso claro del cian.
+NAVY_900, NAVY_700, NAVY_500 = '#082742', '#10355D', '#1D6CAA'
+SILVER_300, SILVER_500, SILVER_700 = '#DFE8EF', '#A8BACB', '#6A7889'
+ORANGE_500, ORANGE_400, ORANGE_700 = '#39ABD8', '#8AD7F8', '#1D6CAA'
+WHITE, WHITE_SOFT = '#FFFFFF', '#F5F8FB'
 
 MIN_RELLENO = 3.0
 MIN_TEXTO = 4.5
