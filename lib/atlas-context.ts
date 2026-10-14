@@ -17,6 +17,7 @@ import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
 import { REPORTE_S23_T3_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
+import { MARCO_SUMMARY } from './marco-atlas'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 
 // ── Pre-cómputo en carga de módulo (estático) ─────────────────────────────────
@@ -303,8 +304,15 @@ ${enriq.senales.map(s => `    [${s.tipo.toUpperCase()}] ${s.titulo}: ${s.detalle
 
 // ── Builder principal ─────────────────────────────────────────────────────────
 export async function buildAtlasContext(pregunta = ''): Promise<{ text: string; modulos: string[] }> {
-  const sections: string[] = [AUDITORIA_SUMMARY, TICKET_SUMMARY]
-  const modulos: string[]  = ['base-conocimiento', 'auditoria', 'tickets']
+  /* EL MARCO VA PRIMERO, Y NO ES DECORACIÓN. Es la doctrina del área —los
+     siete principios, el encargo del rol, las reglas duras y lo que no se
+     acepta como respuesta de un asesor—. Iba antes sin estar: dirección
+     preguntó por el mensaje del Director y Atlas contestó con generalidades
+     porque el documento, publicado y enlazado desde Perfil del Rol, no entraba
+     aquí. Va en primer lugar porque ordena cómo se lee todo lo que sigue.
+     Ver `lib/marco-atlas.ts`. */
+  const sections: string[] = [MARCO_SUMMARY, AUDITORIA_SUMMARY, TICKET_SUMMARY]
+  const modulos: string[]  = ['marco-del-area', 'base-conocimiento', 'auditoria', 'tickets']
   const asesorPorNombre: Record<string, string> = {}
 
   try {

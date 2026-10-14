@@ -37,8 +37,18 @@ const FORCE_THEME = `
 `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  /* El fondo va también en el <html>: es lo que se ve durante el primer
+     pintado, antes de que el <body> tenga estilos. Se había quedado en el
+     #EFF6FF de la paleta anterior cuando se cambiaron `body`, `main` y
+     `FORCE_THEME` — es el TERCER sitio del mismo color. Los tres dicen lo
+     mismo.
+
+     Y va AQUÍ, antes del `return`, no dentro de él: un comentario JSX puesto
+     delante del elemento raíz deja DOS hijos en el return y el JSX no lo
+     admite. (Tampoco puede citarse ese comentario literalmente dentro de un
+     bloque como éste: su cierre terminaría el bloque a media frase.) */
   return (
-    <html lang="es" suppressHydrationWarning style={{ background: '#EFF6FF', colorScheme: 'only light' }}>
+    <html lang="es" suppressHydrationWarning style={{ background: '#F5F8FB', colorScheme: 'only light' }}>
       <head>
         <meta name="color-scheme" content="only light" />
         <meta name="theme-color" content="#1B3FCC" />
