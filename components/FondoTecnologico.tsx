@@ -1,80 +1,95 @@
 /**
- * Fondo tecnológico del Dashboard — malla de líneas, nodos y destellos.
+ * Fondo del tablero — LA SECUENCIA, la misma que Atlas lleva en su señal.
  *
- * Sustituye a la aurora de manchas difusas. Aquí el movimiento sí se percibe:
- * los destellos recorren las líneas en 7 a 13 segundos y los nodos laten entre
- * 3 y 5, no los 44 a 68 de la versión anterior.
+ * Dirección señaló la tira de barras de `/chat` y pidió exactamente eso para
+ * el fondo, «pero dale vida». Así que es la misma figura —una secuencia de voz
+ * centrada, barras verticales de puntas redondas sobre un eje tenue— y lo que
+ * cambia es que aquí NUNCA se detiene.
  *
- * Es SVG estático con animación CSS: cero JavaScript, cero canvas y cero bucle
- * de repintado por cuadro. La malla se dibuja una vez; lo único que cambia es
- * el `stroke-dashoffset` de seis destellos y la opacidad de los nodos.
+ * ── POR QUÉ NO SE COPIÓ EL CANVAS DE `AtlasSignal` ────────────────────────
+ * Aquel es un `requestAnimationFrame` que repinta 60 veces por segundo, y está
+ * bien PORQUE vive en una sola pantalla y porque sus barras significan algo:
+ * suben cuando escribes, se aceleran cuando hay una consulta corriendo. Esto
+ * es el fondo de TODAS las pantallas y se queda abierto toda la jornada. Un
+ * bucle de repintado permanente detrás de cada vista es batería gastada en un
+ * adorno.
  *
- * La franja del encabezado va enmascarada, igual que antes: ahí vive el único
- * texto apoyado sobre el fondo claro y no debe cruzarlo ninguna línea.
+ * Aquí la vida la dan animaciones CSS sobre `transform`, que el compositor
+ * resuelve sin tocar el layout ni repintar: cero JavaScript y cero canvas,
+ * igual que la malla a la que esto sustituye.
+ *
+ * ── CÓMO SE CONSIGUE QUE LA ONDA VIAJE ────────────────────────────────────
+ * Todas las barras comparten UNA animación; lo que las desfasa es su
+ * `animation-delay`, proporcional a su posición. Eso es lo que convierte N
+ * latidos independientes en una onda que recorre la pantalla. Sin el desfase
+ * la tira entera subiría y bajaría a coro, que se lee como un parpadeo.
+ *
+ * ── LAS TRES COSAS QUE SE HEREDAN DE LA SEÑAL DE ATLAS ────────────────────
+ *   1. ENVOLVENTE: las barras nacen y mueren bajas en los bordes. Sin ella
+ *      parece un trozo recortado de algo más grande.
+ *   2. TRES ARMÓNICOS y no uno: una sinusoide pura se lee como máquina. El
+ *      tercero es rápido y de poca altura — es el titileo.
+ *   3. SUELO: ninguna barra llega a cero. Un hueco en mitad de la secuencia
+ *      parece un fallo, no reposo.
  */
 
-/* Malla irregular a propósito. Una retícula perfecta se lee como papel
- * cuadriculado; con los nodos desalineados parece un diagrama de red. */
-const N: Array<[number, number]> = [
-  [90, 150], [300, 80], [520, 195], [760, 110], [980, 205], [1180, 95], [1365, 215],
-  [150, 425], [390, 360], [640, 470], [880, 385], [1120, 480], [1335, 400],
-  [80, 700], [330, 780], [580, 690], [820, 790], [1060, 700], [1290, 780],
-]
+/** Cuántas barras. 96 sobre un lienzo de 1440 da un paso de 15 — el mismo aire
+ *  que la señal de Atlas (3 de barra y 4 de hueco) escalado al fondo. Más
+ *  barras es más nodos animados sin que el ojo gane nada. */
+const N = 96
+const ANCHO = 1440
+const ALTO = 900
+const CENTRO = ALTO / 2
+const PASO = ANCHO / N
+const GROSOR = 4.5
+const MAX = 150            // altura máxima de media barra, hacia cada lado
 
-/* Aristas entre vecinos. Se listan a mano para que ninguna cruce media
- * pantalla: la malla debe sugerir estructura, no telaraña. */
-const E: Array<[number, number]> = [
-  [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6],
-  [0, 7], [1, 8], [2, 8], [2, 9], [3, 10], [4, 10], [4, 11], [5, 11], [6, 12],
-  [7, 8], [8, 9], [9, 10], [10, 11], [11, 12],
-  [7, 13], [8, 14], [9, 15], [9, 16], [10, 16], [11, 17], [11, 18], [12, 18],
-  [13, 14], [14, 15], [15, 16], [16, 17], [17, 18],
-]
-
-/* Las aristas que llevan destello. Solo seis: son lo único que repinta por
- * cuadro, y con más la malla se vuelve ruidosa. */
-const DESTELLOS = [
-  { e: 3,  dur: 9,   delay: 0 },
-  { e: 12, dur: 11,  delay: 1.6 },
-  { e: 17, dur: 7.5, delay: 3.1 },
-  { e: 24, dur: 12,  delay: 0.8 },
-  { e: 29, dur: 8.5, delay: 4.2 },
-  { e: 31, dur: 10,  delay: 2.4 },
-]
+/** La altura de reposo de cada barra. Determinista a propósito: con `Math.random`
+ *  el servidor y el navegador dibujarían tiras distintas y React tiraría el HTML
+ *  del servidor entero. Ver [[recharts-nunca-en-servidor]]. */
+function alturaDe(i: number): number {
+  const u = N > 1 ? i / (N - 1) : 0.5
+  const env = Math.pow(Math.sin(Math.PI * u), 0.82)
+  const onda =
+    0.58 * Math.sin(u * 22.0) +
+    0.28 * Math.sin(u * 41.0 + 1.3) +
+    0.14 * Math.sin(u * 73.0 + 2.6)
+  return Math.max(10, Math.abs(onda) * env * MAX)
+}
 
 export default function FondoTecnologico() {
   return (
-    <div className="cp-malla" aria-hidden="true">
-      <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
-        {/* Líneas base */}
-        <g className="cp-malla-lineas">
-          {E.map(([a, b], i) => (
-            <line key={i} x1={N[a][0]} y1={N[a][1]} x2={N[b][0]} y2={N[b][1]} />
-          ))}
-        </g>
+    <div className="cp-sig" aria-hidden="true">
+      <svg viewBox={`0 0 ${ANCHO} ${ALTO}`} preserveAspectRatio="xMidYMid slice">
+        {/* El eje. Sostiene la secuencia cuando las barras están bajas, para
+            que el reposo no se lea como pantalla apagada. */}
+        <line className="cp-sig-eje" x1="0" y1={CENTRO} x2={ANCHO} y2={CENTRO} />
 
-        {/* Destellos: un segmento corto que viaja por la arista */}
-        <g className="cp-malla-destellos">
-          {DESTELLOS.map(({ e, dur, delay }) => {
-            const [a, b] = E[e]
+        <g className="cp-sig-barras">
+          {Array.from({ length: N }, (_, i) => {
+            const h = alturaDe(i)
+            const u = i / (N - 1)
             return (
-              <line
-                key={e}
-                x1={N[a][0]} y1={N[a][1]} x2={N[b][0]} y2={N[b][1]}
-                style={{ animationDuration: `${dur}s`, animationDelay: `${delay}s` }}
+              <rect
+                key={i}
+                x={i * PASO + (PASO - GROSOR) / 2}
+                y={CENTRO - h}
+                width={GROSOR}
+                height={h * 2}
+                rx={GROSOR / 2}
+                style={{
+                  /* EL DESFASE ES LO QUE HACE QUE LA ONDA VIAJE. Se reparte
+                     1.8s a lo ancho sobre un ciclo de 2.6s, así que en pantalla
+                     conviven algo menos de dos crestas: suficientes para que se
+                     vea avanzar, pocas para que no vibre. */
+                  animationDelay: `${(u * 1.8).toFixed(3)}s`,
+                  /* El centro brilla más que los extremos: la secuencia tiene
+                     foco, igual que en la señal de Atlas. */
+                  opacity: 0.10 + 0.16 * Math.pow(Math.sin(Math.PI * u), 0.82),
+                }}
               />
             )
           })}
-        </g>
-
-        {/* Nodos */}
-        <g className="cp-malla-nodos">
-          {N.map(([x, y], i) => (
-            <circle
-              key={i} cx={x} cy={y} r={i % 4 === 0 ? 3.2 : 2.2}
-              style={{ animationDuration: `${3 + (i % 5) * 0.5}s`, animationDelay: `${(i % 7) * 0.4}s` }}
-            />
-          ))}
         </g>
       </svg>
     </div>
