@@ -60,12 +60,15 @@ async function getRegistros(): Promise<{
 
     if (!fs.existsSync(filePath)) {
       console.warn('[activaciones] Excel no encontrado en', filePath)
-      return []
+      return { registros: [], descartadas: [] }
     }
 
     const wb   = xlsx.readFile(filePath)
     const ws   = wb.Sheets['Hoja1']
-    if (!ws) { console.warn('[activaciones] Hoja Hoja1 no encontrada'); return [] }
+    if (!ws) {
+      console.warn('[activaciones] Hoja Hoja1 no encontrada')
+      return { registros: [], descartadas: [] }
+    }
 
     const raw: Record<string, any>[] = xlsx.utils.sheet_to_json(ws, { defval: '' })
 

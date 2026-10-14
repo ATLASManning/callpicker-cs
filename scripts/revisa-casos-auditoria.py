@@ -41,6 +41,37 @@ def lee(nombre):
         return f.read()
 
 
+def sin_literales(s):
+    """Blanquea strings y template literals, dejando los saltos de linea.
+
+       Hace falta para la comprobacion de campos QUE SOBRAN: varios casos
+       guardan texto largo en un template literal, y dentro de esa prosa hay
+       renglones como «  CID Zoho: 24924» que al margen izquierdo se leen
+       igual que un campo del objeto. Sin esto, el texto del reporte generaba
+       campos inventados.
+    """
+    out = list(s)
+    i, n = 0, len(s)
+    while i < n:
+        c = s[i]
+        if c in '"\'`':
+            q = c
+            i += 1
+            while i < n:
+                if s[i] == '\\':
+                    i += 2
+                    continue
+                if s[i] == q:
+                    i += 1
+                    break
+                if out[i] != '\n':
+                    out[i] = ' '
+                i += 1
+            continue
+        i += 1
+    return ''.join(out)
+
+
 def campos_de_types():
     """Saca los campos de `AuditoriaCase`: los opcionales llevan `?:`."""
     t = lee('types.ts')
@@ -94,6 +125,18 @@ def main():
             # Vacio evidente: '' o [] justo despues del campo
             if re.search(r'^\s{2}' + campo + r"\s*:\s*(''|\"\"|\[\s*\]),?\s*$", s, re.M):
                 problemas.append(f'`{campo}` vacio')
+
+        # Campos que SOBRAN: una llave que `AuditoriaCase` no declara no da
+        # error de build —`ignoreBuildErrors`— y ninguna seccion la lee, asi
+        # que el contenido se queda en el repo y NO en la pantalla. ANCONA
+        # llevaba asi `contenido_auditoria`, con el reporte entero dentro.
+        # Es el mismo bug que `<PageHeader titulo=...>` en /alertas, del lado
+        # de los datos.
+        conocidos = set(obligatorios) | set(opcionales)
+        sobran = {m2.group(1) for m2 in
+                  re.finditer(r'^  (\w+)\s*:', sin_literales(s), re.M)} - conocidos
+        for campo in sorted(sobran):
+            problemas.append(f'`{campo}` NO existe en AuditoriaCase (se descarta)')
 
         if f'import {{ {const} }}' not in cases and f'{{ {const} }}' not in cases:
             problemas.append('no esta importado en cases.ts')

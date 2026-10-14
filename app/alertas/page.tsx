@@ -93,7 +93,7 @@ export default async function AlertasPage({
   if (rolAsesor && !suyo) {
     return (
       <div style={{ padding: 24 }}>
-        <PageHeader titulo="Alertas de Cliente" />
+        <PageHeader title="Alertas de Cliente" />
         <div style={{ background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
           <p style={C(TX_HI)}>
             <Lock size={14} style={{ display: 'inline', marginRight: 6 }} />
@@ -148,7 +148,7 @@ export default async function AlertasPage({
 
   return (
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <PageHeader titulo="Alertas de Cliente" />
+      <PageHeader title="Alertas de Cliente" />
 
       <p style={C(PAG_MID, { fontSize: 12, margin: 0 })}>
         Las {cuentas.length} cuentas vivas{asesorFiltro ? ` de ${asesorFiltro}` : ''}, cada una con

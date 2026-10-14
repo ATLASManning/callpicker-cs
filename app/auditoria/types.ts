@@ -106,6 +106,15 @@ export interface AuditoriaCase {
     hallazgos:   string[]
   }
 
+  /* ── Texto íntegro del reporte ───────────────────────────────────
+   * El reporte tal como se entregó, en crudo. ANCONA lo traía como
+   * `contenido_auditoria` SIN estar declarado aquí: `ignoreBuildErrors`
+   * dejaba pasar la llave y ninguna sección la leía, así que el texto
+   * estaba en el repo y no en la pantalla. Se declara para que el
+   * compilador deje de aceptar llaves inventadas; que esto se RENDERICE
+   * —y en qué sección— lo decide dirección, hoy no se pinta. */
+  contenido_auditoria?: string
+
   /* ── Documentos adjuntos ─────────────────────────────────────── */
   documentos?: { nombre: string; ruta: string; descripcion?: string }[]
 }
