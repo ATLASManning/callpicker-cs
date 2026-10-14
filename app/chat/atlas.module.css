@@ -71,24 +71,30 @@
   padding: 30px 24px 24px;
 }
 
+/* EL BUSCADOR, BLANCO Y CON EL MISMO RELIEVE QUE LAS TECLAS. Era una caja
+   translúcida sobre el marino; dirección lo pidió blanco «incluyendo el
+   buscador», así que comparte canto y sombra con las sugerencias — es el mismo
+   material. */
 .caja {
   display: flex;
   gap: 8px;
   align-items: flex-end;
-  background: rgba(255,255,255,0.045);
-  border: 1px solid rgba(255,255,255,0.34);   /* 3.05:1 — el control se ve */
+  background: #FFFFFF;
+  border: 1px solid #DFE8EF;
   border-radius: 18px;
   /* Más alto y con más aire: el campo era una ranura y la pantalla se veía
      escueta. Aquí se escribe la pregunta con un cliente esperando — merece
      sitio. */
   padding: 12px 12px 12px 16px;
-  transition: border-color 180ms, box-shadow 180ms;
+  box-shadow: 0 5px 0 #06203A, 0 12px 22px rgba(2,12,24,0.40);
+  transition: box-shadow 180ms;
 }
 /* El realce responde al FOCO, no a «hay texto»: quien llega con Tab tiene que
-   ver dónde quedó el cursor antes de escribir nada. */
+   ver dónde quedó el cursor antes de escribir nada. El anillo va POR FUERA del
+   canto para no comérselo. */
 .caja:focus-within {
-  border-color: rgba(125,211,252,0.55);
-  box-shadow: 0 0 0 3px rgba(56,132,255,0.18);
+  box-shadow: 0 5px 0 #06203A, 0 12px 22px rgba(2,12,24,0.40),
+              0 0 0 3px rgba(29,108,170,0.55);
 }
 
 .campo {
@@ -104,11 +110,14 @@
      hace zoom al enfocar un campo. */
   font-size: 16px;
   line-height: 1.6;
-  color: #FFFFFF;
+  /* Azul marino sobre el blanco de la caja: 12.43:1. Era blanco, que con la
+     caja ya blanca sería texto invisible. */
+  color: #10355D;
   font-family: inherit;
 }
-/* Sin esto lo pinta el navegador con su gris —negro sobre negro aquí—. */
-.campo::placeholder { color: #8A9DBC; opacity: 1; font-size: 15px; }
+/* Sin esto lo pinta el navegador con su gris. `#6A7889` es `--muted` del
+   documento y mide 4.51:1 sobre blanco — el más bajo que pasa AA ahí. */
+.campo::placeholder { color: #6A7889; opacity: 1; font-size: 15px; }
 
 .enviar {
   width: 44px; height: 44px;
@@ -117,11 +126,30 @@
   display: flex; align-items: center; justify-content: center;
   border: none;
   color: #fff;
-  background: linear-gradient(135deg, #1B4FC9, #2563EB);
+  /* El azul del documento. El blanco encima mide 5.56:1. */
+  background: #1D6CAA;
   cursor: pointer;
-  transition: opacity 180ms, background 180ms;
+  /* Tecla también, con el canto más corto porque es un control pequeño. */
+  box-shadow: 0 3px 0 #0B2D4D;
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
 }
-.enviar:disabled { background: rgba(255,255,255,0.08); cursor: default; }
+.enviar:hover:not(:disabled) {
+  background: #15537F;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 #0B2D4D;
+}
+.enviar:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #0B2D4D;
+}
+/* Apagado: era `rgba(255,255,255,0.08)`, que sobre la caja ya blanca sería un
+   botón invisible. Va un gris sólido con el icono en `--muted`. */
+.enviar:disabled {
+  background: #EAF1F7;
+  color: #6A7889;
+  box-shadow: 0 3px 0 #DFE8EF;
+  cursor: default;
+}
 
 /* ── Mensajes ──────────────────────────────────────────────────────────── */
 
@@ -175,25 +203,61 @@
 }
 
 /* ── Sugerencias ───────────────────────────────────────────────────────── */
-/* Eran seis frases pequeñas y grises: parecían texto de relleno, no seis
-   cosas que se pueden pulsar. Ahora tienen cuerpo de botón y se leen. */
+/* BOTONES DE TECLA, BLANCOS SOBRE EL MARINO. Eran translúcidos y se leían como
+   parte del fondo; dirección los quiso blancos, con la letra en azul marino y
+   con cuerpo: «hazlos 3D».
+
+   EL RELIEVE ES UNA SOMBRA SÓLIDA, NO UN DEGRADADO NI UN BISEL. Un `box-shadow`
+   sin desenfoque dibuja el CANTO de la tecla: el botón se ve como un objeto con
+   espesor, y al pulsarlo basta con bajarlo y acortar ese canto para que el dedo
+   sienta que se hundió. Un bisel con degradados costaría tres capas y envejece
+   peor.
+
+   La sombra NO puede ser del color del lienzo (#0b2d4d) o no se vería: va más
+   oscura que él. La segunda sombra, difusa, es la que separa la tecla del fondo
+   y le da el aire de altura.
+
+   Letra `#10355D` sobre blanco: 12.43:1. */
 .sugerencia {
   text-align: left;
   padding: 16px 18px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.34);
-  background: rgba(255,255,255,0.045);
-  color: #DCE6F7;
+  border: 1px solid #DFE8EF;
+  background: #FFFFFF;
+  color: #10355D;
   font-size: 14.5px;
+  font-weight: 600;
   line-height: 1.55;
   cursor: pointer;
-  transition: border-color 160ms, background 160ms, color 160ms, transform 160ms;
+  box-shadow: 0 5px 0 #06203A, 0 10px 18px rgba(2,12,24,0.38);
+  /* `transform` y `box-shadow` son las dos que el compositor anima sin
+     recalcular layout. Mover `margin-top` para simular la pulsación empujaría
+     a las seis teclas de la rejilla. */
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
 }
 .sugerencia:hover {
-  border-color: rgba(125,211,252,0.55);
-  background: rgba(56,132,255,0.13);
-  color: #FFFFFF;
-  transform: translateY(-1px);
+  background: #F5F8FB;
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 #06203A, 0 14px 24px rgba(2,12,24,0.45);
+}
+/* La pulsación: baja 5px —justo el alto del canto— y el canto desaparece. Es
+   la tecla tocando fondo. */
+.sugerencia:active {
+  transform: translateY(5px);
+  box-shadow: 0 0 0 #06203A, 0 2px 6px rgba(2,12,24,0.35);
+}
+/* Quien llega con Tab tiene que ver dónde está, y el `outline` del navegador
+   sobre blanco aquí se pierde: va un anillo del azul del documento. */
+.sugerencia:focus-visible {
+  outline: none;
+  box-shadow: 0 5px 0 #06203A, 0 10px 18px rgba(2,12,24,0.38),
+              0 0 0 3px rgba(29,108,170,0.55);
+}
+/* Sin movimiento: la tecla conserva su relieve —es lo que la hace legible como
+   botón— pero no se levanta ni se hunde. */
+@media (prefers-reduced-motion: reduce) {
+  .sugerencia { transition: none; }
+  .sugerencia:hover, .sugerencia:active { transform: none; }
 }
 
 /* La nota de honestidad. No es letra chica: es lo más importante que puedo
