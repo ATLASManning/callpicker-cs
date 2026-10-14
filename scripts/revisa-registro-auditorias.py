@@ -61,8 +61,22 @@ def cids_declarados(texto):
 
 # Los campos donde un expediente dice DE QUIEN habla. Un CID aqui es el sujeto;
 # un CID en mitad de la prosa puede ser el de un vecino.
+#
+# `resumen_ejecutivo` SE CAYO DE ESTA LISTA EL 14 OCT 2026, y es la correccion
+# que mas importa de este archivo. No es un campo de identidad: es PROSA, y en
+# este repo son miles de caracteres que comparan la cuenta con sus vecinas.
+# `torres-corzo` acuso en falso justamente por eso. Su resumen dice «El CID
+# central, 130723» —que el regex NO recoge, porque lleva «central,» en medio— y
+# nombra «el CID 164410 con 2.75x» para decir que ese OTRO es el que dobló. El
+# unico CID que el regex encontraba en el resumen era el del vecino, asi que la
+# rama (a) devolvia 164410 = C18 Gigacable y el detector pedia mover el
+# expediente de GTC a la ficha de otro cliente. Aplicar ese «arreglo» habria
+# roto un registro correcto y ensenado un expediente CONFIDENCIAL a quien no es.
+#
+# Los tres que quedan son autopresentaciones de una linea; el resumen es un
+# ensayo. La diferencia no es de grado: en una linea no caben los vecinos.
 RE_IDENTIDAD = re.compile(
-    r"(?:tipo_cliente|descripcion_contexto|nombre|resumen_ejecutivo)\s*:\s*'((?:[^'\\]|\\.)*)'")
+    r"(?:tipo_cliente|descripcion_contexto|nombre)\s*:\s*'((?:[^'\\]|\\.)*)'")
 
 
 def cid_sujeto(texto):
@@ -91,10 +105,12 @@ def cid_sujeto(texto):
     todos = cids_declarados(texto)
     if not todos:
         return None
-    # (a) identidad declarada
+    # (a) identidad declarada. Un campo que nombra DOS CIDs distintos no
+    #     resuelve nada —esta comparando, no presentandose—, asi que se salta y
+    #     se sigue buscando. Afirmar con el primero seria elegir a cara o cruz.
     for m in RE_IDENTIDAD.finditer(texto):
         enc = cids_declarados(m.group(1))
-        if enc:
+        if len(set(enc)) == 1:
             return enc[0]
     # (b) dominio claro
     frec = {}
@@ -140,15 +156,48 @@ if '--autoprueba' in sys.argv:
               u"  resumen_ejecutivo: 'Ancona Autopartes (CID 24924), cadena…',")
     vecino3 = (u"  nota: 'el CID 164410 doblo su volumen; el CID 164410 mantuvo "
                u"su tasa; comparado con el CID 164410 otra vez',")
+    # EL CASO QUE ACUSO EN FALSO (14 oct 2026). El resumen ejecutivo nombra al
+    # VECINO para contrastarlo —«doblaron dos: el 164410 y Torres Corzo»— y el
+    # CID propio aparece ahi como «El CID central, 130723», que el regex no
+    # recoge. Mientras `resumen_ejecutivo` conto como campo de identidad, esto
+    # devolvia 164410 y el detector pedia mover el expediente a otra ficha.
+    gtc = (u"/** GRUPO TORRES CORZO (D1 · CID 130723) — la cuenta mayor */\n"
+           u"  nombre: 'Grupo Torres Corzo',\n"
+           u"  resumen_ejecutivo: 'Doblaron DOS: el CID 164410 con 2.75x y "
+           u"Torres Corzo con 2.21x. El CID central, 130723, desaparecio.',\n"
+           u"  hallazgos: ['los 386 DIDs del CID 130723 traen plazas', "
+           u"'el 17.2% del CID 164410 es otra cosa', "
+           u"'llamadas del CID 130723 en la entrega oct-2026', "
+           u"'fuente: CID 130723'],")
+    # Un campo de identidad que nombra DOS CIDs no resuelve: compara.
+    ambiguo = (u"  tipo_cliente: 'Enterprise · CID 24924, antes CID 164410',\n"
+               u"  nombre: 'Caso ambiguo',")
     for etq, txt, esp in (
             (u'una sola mencion, y es de OTRO  -> no se afirma', rds, None),
             (u'declarado en tipo_cliente       -> si se afirma', ancona, u'24924'),
-            (u'repetido 3 veces sin rival      -> si se afirma', vecino3, u'164410')):
+            (u'repetido 3 veces sin rival      -> si se afirma', vecino3, u'164410'),
+            (u'el resumen nombra al VECINO     -> gana el propio', gtc, u'130723'),
+            (u'identidad con DOS cids          -> no se afirma', ambiguo, None)):
         got = cid_sujeto(txt)
         ok = got == esp
         if not ok:
             fallos.append(u'%s -> %r, esperaba %r' % (etq, got, esp))
         print(u'    %-50s %s' % (etq, u'OK' if ok else u'** devolvio %r' % got))
+
+    # Y el archivo REAL, que es de donde salio el fallo. Una cadena fabricada
+    # se puede escribir para que pase; el expediente de verdad, no.
+    print(u'\n  EL EXPEDIENTE REAL QUE ACUSO EN FALSO:')
+    freal = os.path.join(AUD, 'torres-corzo-data.ts')
+    if os.path.exists(freal):
+        got = cid_sujeto(io.open(freal, encoding='utf-8').read())
+        ok = got == u'130723'
+        if not ok:
+            fallos.append(u'torres-corzo-data.ts -> %r, esperaba 130723' % got)
+        print(u'    %-50s %s' % (u'torres-corzo-data.ts -> D1 (CID 130723)',
+                                 u'OK' if ok else u'** devolvio %r' % got))
+    else:
+        fallos.append(u'no esta torres-corzo-data.ts: el caso no se comprobo')
+        print(u'    ** no esta el archivo — el caso NO se comprobo')
 
     print(u'\n  %s' % (u'la autoprueba pasa entera' if not fallos
                        else u'*** FALLA:\n    - ' + u'\n    - '.join(fallos)))
