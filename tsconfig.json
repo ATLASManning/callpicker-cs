@@ -1,5 +1,14 @@
 {
   "compilerOptions": {
+    /* SIN `target`, TypeScript asume ES5 y entonces recorrer un `Set` o un
+       `Map` con `for…of` o con spread es un error —los 12 `TS2802` de
+       «downlevelIteration»—, aunque el código funcione perfectamente en
+       producción. No cambia NADA de lo que se despliega: `noEmit` está puesto,
+       tsc no emite un solo fichero, y quien compila es SWC. Lo único que
+       cambia es que la comprobación de tipos deja de quejarse de algo que no
+       es un problema, y así los errores que SÍ importan dejan de esconderse
+       entre el ruido. `lib` ya estaba fijado a mano, así que no lo arrastra. */
+    "target": "es2017",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,

@@ -422,7 +422,12 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
   const medianaEnColumna = medianaFuentes !== null && Number.isInteger(medianaFuentes)
     ? medianaFuentes : null
 
-  const datosG2 = g2.map(c => ({ name: `${c.n}/8`, ...c.por, total: c.valor }))
+  /* Anotado, porque la forma REAL de cada fila es `name` + `total` + UNA CLAVE
+     POR ASESOR, y esas claves se saben en tiempo de ejecución. Sin la anotación
+     TypeScript infería sólo `{name, total}` y leer `d[asesor]` más abajo era un
+     error — el modo «100%» se calcula justamente indexando por asesor. */
+  const datosG2: (Record<string, string | number> & { name: string; total: number })[] =
+    g2.map(c => ({ name: `${c.n}/8`, ...c.por, total: c.valor }))
   /* Los cubos que tienen cuentas pero valen 0 en dinero. Son las más ciegas
      —sin importe medible— y en modo dinero su columna se dibuja a altura
      cero, idéntica a «aquí no hay nadie». Se nombran debajo. */

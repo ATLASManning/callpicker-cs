@@ -512,7 +512,13 @@ export default async function CuentaDetailPage({ params }: Props) {
                   {planVigente.base !== null && ` · ${planVigente.base.toLocaleString('es-MX')} min incluidos`}
                   {planVigente.origenBase === 'extensiones' && planVigente.extensiones
                     && ` (${planVigente.extensiones} ext × 1,500)`}
-                  {planVigente.pct > 0 && ` · ${planVigente.pct.toFixed(0)}% consumido`}
+                  {/* El `!== null` es explícito a propósito. `null > 0` ya daba
+                      `false` y no se pintaba nada, así que el comportamiento no
+                      cambia — pero dependía de una coerción, no de una decisión,
+                      y «sin medir» y «cero» tienen que distinguirse a la vista
+                      del que lee el código. Ver [[feedback-cero-sin-medicion]]. */}
+                  {planVigente.pct !== null && planVigente.pct > 0
+                    && ` · ${planVigente.pct.toFixed(0)}% consumido`}
                   {planVigente.uso && ` · uso ${planVigente.uso}`}
                 </p>
               </div>

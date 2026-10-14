@@ -39,6 +39,7 @@ import {
   Phone, PhoneOff, PhoneCall, PhoneMissed, Ticket, AlertTriangle,
   ClipboardCheck, ClipboardX, FileSearch, Users, UserX, Gauge, Info, X,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { EstadoCuenta, LineaEstado, TonoLinea } from '@/lib/estado-cuenta'
 
 /** Cuánto se queda en pantalla. Instrucción: diez segundos. */
@@ -65,7 +66,13 @@ const PRIORIDAD: Record<TonoLinea, number> = {
   grave: 0, hueco: 1, aviso: 2, neutro: 3, bien: 4,
 }
 
-const ICONOS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
+/* `LucideIcon` es el tipo que la propia librería exporta. Estaba escrito a mano
+   como `ComponentType<{size, color}>` y NO encaja: los iconos de lucide aceptan
+   `size` como `string | number`, así que cada uno de los doce daba un error de
+   tipo que `ignoreBuildErrors` se tragaba. Un tipo escrito a mano para describir
+   algo que la librería ya describe se desincroniza el día que la librería
+   cambia; éste nació ya desincronizado. */
+const ICONOS: Record<string, LucideIcon> = {
   Phone, PhoneOff, PhoneCall, PhoneMissed, Ticket, AlertTriangle,
   ClipboardCheck, ClipboardX, FileSearch, Users, UserX, Gauge,
 }

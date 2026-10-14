@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import type { Cuenta, Seguimiento, Oportunidad, Ticket, SemaforoAsesor } from './types'
+import type { Cuenta, Seguimiento, Oportunidad, Ticket, SemaforoAsesor, Asesor } from './types'
 import { getSemaforo, getSemaforoCuenta } from './types'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
@@ -333,7 +333,13 @@ export async function getSemaforoByAsesor(): Promise<SemaforoAsesor[]> {
   for (const c of rows) {
     if (!map[c.asesor]) {
       map[c.asesor] = {
-        asesor: c.asesor,
+        /* `cuentas.asesor` es texto libre en la base y `Asesor` es una unión
+           cerrada de tres. Medido el 14 oct 2026 sobre las 223 cuentas: 76
+           'Fátima', 76 'Dan', 71 'Claudia' y NI UN valor fuera de la unión ni
+           nulo. La afirmación se apoya en esa medición, no en una suposición —
+           y si algún día entra un cuarto asesor, el conteo lo sigue incluyendo
+           igual: lo que miente entonces es el tipo, no el semáforo. */
+        asesor: c.asesor as Asesor,
         verde: 0, azul: 0, amarillo: 0, naranja: 0, rojo: 0,
         total: 0, facturacion_total: 0, facturacion_en_riesgo: 0,
       }

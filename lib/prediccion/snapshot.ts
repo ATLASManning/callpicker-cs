@@ -171,9 +171,9 @@ export async function tomarSnapshot(
        SI tienen importe salian como `sin_dato`. En la primera corrida real eso
        dio 28 `sin_importe` donde la Fase 1 habia medido 10, y habria abierto
        dieciocho tareas pidiendo un dato que ya estaba. */
-    .select('id, cid, empresa, asesor, estado, giro, facturacion, contacto_email, '
-          + 'contactos_json, nps_score, observaciones_kam, health_score, '
-          + 'score_actividad, score_adopcion, score_pago, score_relacional')
+    /* En UNA línea: concatenada con `+` deja de ser un literal y supabase-js no
+       puede parsear el select en tiempo de tipos. Ver `lib/alertas-estado.ts`. */
+    .select('id, cid, empresa, asesor, estado, giro, facturacion, contacto_email, contactos_json, nps_score, observaciones_kam, health_score, score_actividad, score_adopcion, score_pago, score_relacional')
     .in('estado', ['activo', 'en_riesgo'])
 
   if (errCuentas || !cuentas) {

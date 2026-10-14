@@ -132,8 +132,8 @@ export async function sincronizarEpisodios(
   try {
     abiertos = await traerPorPaginas<Episodio>((d, h) =>
       supabaseAdmin.from('alertas_episodios')
-        .select('id, cuenta_id, condicion, tipo, estado, abierto_en, condicion_desde, '
-              + 'confirmada_el, ausente_desde, severidad_actual, severidad_peor, recurrencia')
+        /* En UNA línea: ver `lib/alertas-estado.ts`. */
+        .select('id, cuenta_id, condicion, tipo, estado, abierto_en, condicion_desde, confirmada_el, ausente_desde, severidad_actual, severidad_peor, recurrencia')
         .eq('estado', 'abierta').range(d, h))
   } catch (e) {
     if (esTablaInexistente(e)) {

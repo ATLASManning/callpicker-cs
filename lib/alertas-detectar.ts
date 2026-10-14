@@ -207,8 +207,8 @@ export async function detectarAlertas(
                       fecha_programada: string | null; resultado: string | null
                       descripcion: string | null }>((d, h) =>
       supabaseAdmin.from('actividades')
-        .select('cuenta_id, completada, tipo, '
-              + 'completada_en, fecha_programada, resultado, descripcion')
+        /* En UNA línea: ver `lib/alertas-estado.ts`. */
+        .select('cuenta_id, completada, tipo, completada_en, fecha_programada, resultado, descripcion')
         .in('cuenta_id', ids).range(d, h)),
     todosLosCortes(),
   ])

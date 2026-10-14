@@ -291,14 +291,22 @@ export function hallazgos(d: LlamadasCuenta, confirmado: boolean): Hallazgos | n
   if (!d.ent || d.ent.total <= 0) return null
   const pctCuenta = (100 * d.ent.lost) / d.ent.total
 
+  /* Bucle `for` y no `forEach`: el análisis de flujo de TypeScript no mira
+     dentro de una función, así que daba `peorDia` por `null` para siempre, lo
+     estrechaba a `never` y las cuatro lecturas de abajo —`peorDia.pct`,
+     `.nombre`, `.total`— eran errores que `ignoreBuildErrors` se tragaba. Con
+     el bucle plano sí ve las asignaciones, y de paso sobran los `d.ent!`, que
+     sólo hacían falta por estar dentro del callback. Mismo recorrido y mismo
+     resultado: el `return` del callback es este `continue`. */
   let peorDia: Hallazgos['peorDia'] = null
-  d.ent.dow.forEach((t, i) => {
-    if (t < U.N_MINIMO_DIA) return
-    const pct = (100 * d.ent!.dowL[i]) / t
+  for (let i = 0; i < d.ent.dow.length; i++) {
+    const t = d.ent.dow[i]
+    if (t < U.N_MINIMO_DIA) continue
+    const pct = (100 * d.ent.dowL[i]) / t
     if (!peorDia || pct > peorDia.pct) {
-      peorDia = { i, nombre: DIAS[i], pct, total: t, lost: d.ent!.dowL[i] }
+      peorDia = { i, nombre: DIAS[i], pct, total: t, lost: d.ent.dowL[i] }
     }
-  })
+  }
   if (peorDia && peorDia.pct - pctCuenta < U.PTS_HALLAZGO) peorDia = null
 
   const horas: Hallazgos['horas'] = []

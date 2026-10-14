@@ -93,7 +93,12 @@ export async function POST(req: NextRequest) {
 
     const { data: antes } = await supabaseAdmin
       .from('cuentas').select(`id, ${cand.campo}`).eq('id', cand.cuenta_id).single()
-    const previo = antes ? String((antes as Record<string, unknown>)[cand.campo] ?? '') : ''
+    /* La columna se elige en tiempo de EJECUCIÓN, así que supabase-js no puede
+       parsear este select en tiempo de tipos y devuelve un `ParserError`. Aquí
+       la conversión es legítima y no tapa nada: `cand.campo` acaba de pasar por
+       la lista blanca `CAMPOS_OPERATIVOS` doce líneas más arriba. Se pasa por
+       `unknown`, que es lo que pide TypeScript cuando los tipos no se solapan. */
+    const previo = antes ? String((antes as unknown as Record<string, unknown>)[cand.campo] ?? '') : ''
 
     const { error: errAplica } = await supabaseAdmin
       .from('cuentas').update({ [cand.campo]: cand.valor_candidato }).eq('id', cand.cuenta_id)

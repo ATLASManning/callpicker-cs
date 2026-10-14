@@ -285,7 +285,7 @@ export function senalesEscritas(
         || (PESO[cand.tipo] === PESO[prev.tipo]
             && ((cand.fecha ?? '') > (prev.fecha ?? '')
                 || ((cand.fecha ?? '') === (prev.fecha ?? '')
-                    && cand.largo > (prev.largo ?? 0))))
+                    && (cand.largo ?? 0) > (prev.largo ?? 0))))
       anota(mejor ? 'gana' : 'pierde')
       if (mejor) fuera.set(t.cuentaId, cand)
     }

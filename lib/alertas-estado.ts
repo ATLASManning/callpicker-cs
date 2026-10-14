@@ -154,10 +154,14 @@ export async function veredictosDeCartera(
      él la pantalla entera. Aquí ya se resuelve abajo con `efectivo`, que es la
      misma definición única de `lib/contacto-cuenta.ts`. */
   let q = supabaseAdmin.from('cuentas')
-    .select('id, cid, empresa, asesor, estado, facturacion, consecutivo, giro, '
-          + 'nps_score, observaciones_kam, notas, contactos_json, ultimo_contacto, '
-          + 'activo_desde, num_oficinas, health_score, '
-          + 'contacto_nombre, contacto_tel, contacto_email')
+    /* EN UNA SOLA LÍNEA A PROPÓSITO, aunque sea larga. Iba concatenada con `+`
+       y eso le costaba al repo 36 errores de tipo en este archivo: supabase-js
+       PARSEA el select en tiempo de tipos para saber qué columnas devuelve, y
+       una concatenación no es un literal — TypeScript la reduce a `string`, el
+       parser se rinde y devuelve `GenericStringError`, con lo que cada `c.id`,
+       `c.empresa`… de abajo pasa a ser un error. `ignoreBuildErrors` se los
+       tragaba todos. Partirla otra vez los devuelve. */
+    .select('id, cid, empresa, asesor, estado, facturacion, consecutivo, giro, nps_score, observaciones_kam, notas, contactos_json, ultimo_contacto, activo_desde, num_oficinas, health_score, contacto_nombre, contacto_tel, contacto_email')
     .in('estado', ['activo', 'en_riesgo'])
   if (filtro?.asesor) q = q.eq('asesor', filtro.asesor)
   /* El filtro de UNA cuenta, para la ficha. Se pasa también al detector, que

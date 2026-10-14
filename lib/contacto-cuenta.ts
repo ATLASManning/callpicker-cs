@@ -194,8 +194,8 @@ export async function ultimoContactoEfectivoPorCuenta(): Promise<Map<string, str
                       descripcion: string | null }>(
       (desde, hasta) => supabaseAdmin
         .from('actividades')
-        .select('cuenta_id, tipo, completada, completada_en, fecha_programada, '
-              + 'resultado, descripcion')
+        /* En UNA línea: ver `lib/alertas-estado.ts`. */
+        .select('cuenta_id, tipo, completada, completada_en, fecha_programada, resultado, descripcion')
         .range(desde, hasta),
     ),
   ])

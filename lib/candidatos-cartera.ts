@@ -166,7 +166,16 @@ export async function candidatosDeCartera(
        —un Agente CP Chat— traía `pct` 0 y hundía la media como si el cliente
        hubiera dejado de consumir; ahora trae null y se queda fuera del
        cálculo en vez de falsearlo. Ver [[feedback-cero-sin-medicion]]. */
-    const medible = (x: { pct: number | null }): x is { pct: number } => x.pct !== null
+    /* GENÉRICO a propósito. Escrito como `(x: {pct:number|null}): x is {pct:number}`
+       el filtro NO estrechaba nada: `Array.filter` sólo usa el predicado para
+       estrechar si el tipo afirmado EXTIENDE al del elemento, y `{pct:number}`
+       no extiende a `CorteCuenta`, que trae más campos. Así que TypeScript caía
+       en la sobrecarga sin estrechamiento, `pct` seguía siendo `number | null`
+       y los tres promedios de abajo quedaban marcados — tapados por
+       `ignoreBuildErrors`. Con `<T extends …>` se conserva el tipo del elemento
+       y el estrechamiento sí ocurre. El filtrado en sí SIEMPRE estuvo bien. */
+    const medible = <T extends { pct: number | null }>(x: T): x is T & { pct: number } =>
+      x.pct !== null
     const ult3 = cortes.slice(-3).filter(medible)
     const consumoPct = ult3.length ? prom(ult3.map(x => x.pct)) : null
     const mediaPrev = prom(cortes.slice(0, -2).filter(medible).map(x => x.pct))

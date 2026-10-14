@@ -73,8 +73,16 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
     return PREGUNTAS_RADAR.filter(q => actual[q.id]?.valor).length
   }, [form, guardado])
 
+  /* Los vacíos van en una constante y entran por spread, no escritos a mano en
+     el literal. Escritos, TypeScript avisa —con razón formal— de que las dos
+     propiedades se pisan con lo que viene detrás; que se pisen es justo la
+     intención, porque son los valores por omisión. Expresarlo como spread dice
+     lo mismo sin pedirle al compilador que se calle. El orden es la regla: lo
+     vacío, lo guardado, lo escrito en el formulario, y al final el campo que se
+     acaba de teclear. */
+  const VACIO = { valor: '', texto: '' }
   const setCampo = (id: string, campo: 'valor' | 'texto', v: string) =>
-    setForm(f => ({ ...f, [id]: { valor: '', texto: '', ...(guardado?.[id] ?? {}), ...f[id], [campo]: v } }))
+    setForm(f => ({ ...f, [id]: { ...VACIO, ...(guardado?.[id] ?? {}), ...f[id], [campo]: v } }))
 
   const valorDe = (id: string, campo: 'valor' | 'texto') =>
     form[id]?.[campo] ?? guardado?.[id]?.[campo] ?? ''

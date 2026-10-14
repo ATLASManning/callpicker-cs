@@ -102,7 +102,29 @@ const TRAZADO = {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: { ignoreBuildErrors: true },
+  /* `typescript: { ignoreBuildErrors: true }` SE RETIRÓ EL 14 OCT 2026.
+   *
+   * Llevaba puesto de siempre y es lo que dejó pasar el bug que destapó todo
+   * esto: `<PageHeader titulo="Alertas de Cliente" />` con la interfaz
+   * declarando `title`, y el encabezado de `/alertas` vacío en producción sin
+   * que nada fallara. Y no era el único: tapaba un `return []` donde la firma
+   * promete dos listas —que tumbaba `/activaciones` entera— y un corte no
+   * medible entrando como 0% en la media de adopción.
+   *
+   * Se pudo quitar porque `tsc --noEmit` pasó de 106 errores a CERO. El grueso
+   * no era deuda real: 63 venían de `select()` escritos con `+`, que TypeScript
+   * no puede reducir a un literal, así que supabase-js no parseaba el select y
+   * devolvía `GenericStringError` — juntarlos en una línea los eliminó todos.
+   *
+   * Si vuelve a aparecer la tentación de ponerlo: lo que estaba tapando no era
+   * ruido. `scripts/revisa-props-jsx.py` cubre una parte, pero el compilador
+   * cubre el resto, y ahora sí corre en el build.
+   *
+   * EL DE ESLINT SE QUEDA, y por una razón distinta: en este repo **ESLint no
+   * está configurado**. `npm run lint` abre el asistente de instalación de
+   * Next en vez de revisar nada. Quitar la bandera no activaría el linter:
+   * rompería el build pidiendo una configuración que no existe. Configurarlo es
+   * un trabajo aparte y propio. */
   eslint: { ignoreDuringBuilds: true },
   experimental: {
     serverComponentsExternalPackages: ['xlsx'],

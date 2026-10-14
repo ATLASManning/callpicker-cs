@@ -59,7 +59,24 @@ export async function POST(req: NextRequest) {
     const cortes = await cortesDeCuenta(c.cid, 6)
     if (!cortes.length) { sinCortes++; continue }
 
-    const evaluaciones = evaluarAdopcion(cortes)
+    /* SÓLO LOS CORTES MEDIBLES ENTRAN A LA EVALUACIÓN, y esto NO era un detalle
+       de tipos: era un cero inventado publicándose.
+
+       `cortesDeCuenta` devuelve `pct: null` cuando el plan no tiene base contra
+       la que medir —un Agente CP Chat, por ejemplo—. `evaluarAdopcion` promedia
+       con `xs.reduce((a, b) => a + b, 0)`, y en JavaScript `a + null` vale `a`:
+       cada corte no medible entraba como 0% consumido y HUNDÍA la media, como
+       si el cliente hubiera dejado de usar el servicio. El veredicto de
+       adopción que esto escribe en `adopcion_producto` salía falseado.
+
+       `lib/candidatos-cartera.ts` ya filtraba por esto mismo y lo deja escrito;
+       esta ruta se quedó sin el filtro y el error de tipo que lo señalaba lo
+       tapaba `ignoreBuildErrors`. Ver [[feedback-cero-sin-medicion]].
+
+       Si no queda ninguno medible, `evaluarAdopcion` devuelve lista vacía y la
+       cuenta entra en `sinEvidencia`, que es justo lo que es. */
+    const medibles = cortes.filter((x): x is typeof x & { pct: number } => x.pct !== null)
+    const evaluaciones = evaluarAdopcion(medibles)
     if (!evaluaciones.length) { sinEvidencia++; continue }
 
     const nuevas = evaluaciones.filter(e => !yaEvaluado.has(`${c.id}|${e.producto}`))
