@@ -7,7 +7,7 @@ export const FINSUS: AuditoriaCase = {
   sector: 'Fintech – Sector Financiero / Economía Móvil',
   fecha_periodo: 'Junio 2023 – Septiembre 2026',
   fecha_auditoria: 'Sep 2026',
-  tipo_cliente: 'Cuenta AAA – Auditoría Forense Integral',
+  tipo_cliente: 'Cuenta AAA – Auditoría Forense Integral · CID 139590',
   descripcion_contexto: '39 meses documentados · Auditoría comercial + FODA + Escenarios + Resolución parcial + AUDITORÍA DE SERVICIO (91 tickets) · RFC: EMI180423NV8',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',

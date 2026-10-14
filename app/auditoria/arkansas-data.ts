@@ -29,7 +29,7 @@ export const ARKANSAS: AuditoriaCase = {
   sector: 'Educación Superior – Universidad Privada',
   fecha_periodo: 'Marzo – 7 Septiembre 2026 · Fase 1: mar–abr · Fase 2: may–7 sep',
   fecha_auditoria: 'Sep 2026',
-  tipo_cliente: 'Enterprise AAA · Rescatable',
+  tipo_cliente: 'Enterprise AAA · Rescatable · CID 179822',
   descripcion_contexto: 'Callpicker Chat + Genjo vía WhatsApp API · v2.0 incorpora la Fase 2: cuatro frentes abiertos simultáneamente tras la estabilización',
   estado: 'rescatable',
   clasificacion: 'CONFIDENCIAL',

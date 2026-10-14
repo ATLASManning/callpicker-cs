@@ -78,7 +78,7 @@ export const PROBEMEDIC: AuditoriaCase = {
   sector: 'Farmacéutica — distribución de medicamentos de alta especialidad · Monterrey, N.L.',
   fecha_periodo: 'Marzo 2021 – Octubre 2026',
   fecha_auditoria: 'Oct 2026',
-  tipo_cliente: 'Cuenta AAA · 67 meses · 51–200 empleados · 7 sucursales en 6 estados',
+  tipo_cliente: 'Cuenta AAA · 67 meses · 51–200 empleados · 7 sucursales en 6 estados · CID 112478',
   descripcion_contexto: '35,224 de sus 92,572 llamadas —el 38.05%— nunca llegaron a una persona, y lleva NUEVE MESES así · CERO alertas abiertas, porque el motor no evalúa atención telefónica en absoluto · El 93.4% de las pérdidas cabe en cuatro destinos, y en el resto sí se atiende al 96.0% · Y no nos usa para sus farmacias: opera líneas de programa de pacientes de AXA, AbbVie, Pint Farma y CIMESA',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',

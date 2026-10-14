@@ -7,7 +7,7 @@ export const BRANDGROUP: AuditoriaCase = {
   sector: 'Manufactura – Automotriz / Metalmecánica',
   fecha_periodo: 'Enero – Julio 2026',
   fecha_auditoria: 'Jul 2026',
-  tipo_cliente: 'Grande · Auditoría Forense de Tráfico de Llamadas',
+  tipo_cliente: 'Grande · Auditoría Forense de Tráfico de Llamadas · CID 166742',
   descripcion_contexto: '185 registros · 79 entrantes · 106 salientes · 7 meses historial completo',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',

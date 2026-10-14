@@ -112,7 +112,7 @@ export const ECODELI: AuditoriaCase = {
   sector: 'Limpieza profesional y servicios de facility — León, Guanajuato',
   fecha_periodo: 'Septiembre 2024 – Octubre 2026',
   fecha_auditoria: 'Oct 2026',
-  tipo_cliente: 'Corporativo · 24 meses · 5,001–10,000 empleados',
+  tipo_cliente: 'Corporativo · 24 meses · 5,001–10,000 empleados · CID 164581',
   descripcion_contexto: 'La cuenta que mejor funciona de la cartera: 289,238 llamadas entrantes y 0.07% sin contestar, la mejor de las 191 donde una persona contesta · Pero no es una línea de clientes, es una CHECADORA — 32.3% del día a las 08:00, 1.02 min por llamada y 4,909 horas humanas · Y en 24 meses no ha habido una sola reunión, ni un contacto capturado, ni una pregunta del Radar',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',

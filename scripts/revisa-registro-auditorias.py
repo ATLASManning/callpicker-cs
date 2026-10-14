@@ -48,11 +48,23 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_bufferin
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AUD = os.path.join(RAIZ, 'app', 'auditoria')
 
-# Un CID del repo son 4-6 digitos. Se exige la palabra «CID» delante para no
-# recoger cualquier numero suelto de la prosa —hay miles— y se toman TODOS los
-# que aparezcan: un expediente puede nombrar el CID de un vecino al explicar
-# por que no es el suyo.
-RE_CID = re.compile(r'\bCID\s*:?\s*(\d{4,6})\b')
+# EL RANGO SALE DE MEDIR LA CARTERA, NO DE SUPONERLO (14 oct 2026).
+#
+# Decia `\d{4,6}` «porque un CID del repo son 4-6 digitos». Es falso: medidas
+# las 223 cuentas con CID, van de **1 a 6 digitos** — hay 15 de tres (C47=552,
+# Z25=410, Z26=924…) y una de uno (F20=7). O sea que el detector no podia
+# verificar 16 cuentas, el 7% de la cartera, y nunca lo decia: esas auditorias
+# caian al cubo de «no declaran CID» como si el expediente tuviera la culpa.
+# Salio al poner el CID a `agua-inmaculada` (333), `cargo-lift` (439) y
+# `salud-y-hogar` (946) y ver que las tres seguian sin cruzar.
+#
+# Lo que impide recoger cualquier numero de la prosa —hay miles— es la palabra
+# «CID» delante, NO la cantidad de digitos. Por eso bajarlo a 1 no afloja nada:
+# los tres casos negativos de la autoprueba no traen la palabra.
+#
+# Se toman TODOS los que aparezcan: un expediente puede nombrar el CID de un
+# vecino al explicar por que no es el suyo.
+RE_CID = re.compile(r'\bCID\s*:?\s*(\d{1,6})\b')
 
 
 def cids_declarados(texto):
@@ -130,7 +142,14 @@ if '--autoprueba' in sys.argv:
              (u'Ancona Autopartes (CID 24924), cadena de refaccionarias', [u'24924']),
              (u'GRUPO TORRES CORZO (D1 · CID 130723) — la cuenta MAYOR', [u'130723']),
              (u'el CID: 164410 doblo su volumen', [u'164410']),
-             (u'su CID 146201 no aparece en el archivo de cortes', [u'146201'])]
+             (u'su CID 146201 no aparece en el archivo de cortes', [u'146201']),
+             # Los cortos, que el rango viejo `\d{4,6}` no veia. Son reales:
+             # Agua Inmaculada (C17), Cargo Lift (D5), Salud y Hogar (D3) y la
+             # de un solo digito, F20.
+             (u'Mid-Market – Red de Franquicias · CID 333', [u'333']),
+             (u'Enterprise – 9 anios de relacion comercial · CID 946', [u'946']),
+             (u'ecosistema Callpicker avanzado · CID 439', [u'439']),
+             (u'la cuenta mas pequenia por identificador, CID 7', [u'7'])]
     fallos = []
     for txt, esp in casos:
         got = cids_declarados(txt)

@@ -6,7 +6,7 @@ export const KOMBITEC: AuditoriaCase = {
   sector:               'Distribución Industrial',
   fecha_periodo:        'Enero – Julio 2026',
   fecha_auditoria:      'Jul 2026',
-  tipo_cliente:         'Enterprise',
+  tipo_cliente:         'Enterprise · CID 42184',
   descripcion_contexto: 'Distribuidor de equipo de control y automatización industrial · San Luis Potosí · 6 años como cliente Callpicker',
   estado:               'en_riesgo',
   clasificacion:        'CONFIDENCIAL',

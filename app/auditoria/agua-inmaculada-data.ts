@@ -7,7 +7,7 @@ export const AGUA_INMACULADA: AuditoriaCase = {
   sector: 'Franquicias – Distribución de Agua / Red Nacional',
   fecha_periodo: 'Enero – Mayo 2026',
   fecha_auditoria: 'Jun 2026',
-  tipo_cliente: 'Mid-Market – Red de Franquicias',
+  tipo_cliente: 'Mid-Market – Red de Franquicias · CID 333',
   descripcion_contexto: 'Análisis de consumo y atención telefónica · 10 líneas activas',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',

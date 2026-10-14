@@ -7,7 +7,7 @@ export const LABSUS: AuditoriaCase = {
   sector: 'Salud – Laboratorio Clínico / Imagenología Regional',
   fecha_periodo: '15 Feb – Jun 2026',
   fecha_auditoria: 'Jun 2026',
-  tipo_cliente: 'Mid-Market – 3 sucursales · Monclova, Coahuila',
+  tipo_cliente: 'Mid-Market – 3 sucursales · Monclova, Coahuila · CID 58545',
   descripcion_contexto: 'Grupo Huisu · 110 días activo · 4,044 llamadas analizadas · Competidores a la puerta',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',
