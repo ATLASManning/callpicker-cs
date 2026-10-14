@@ -209,20 +209,34 @@ body {
 }
 .cp-input::placeholder { color: #94A3B8; }
 
+/* El combo es un botón y se comporta como tal: lleva el mismo canto sólido que
+   `.cp-btn-ghost` y las teclas de Atlas. Letra en marino, 12.43:1 sobre el
+   blanco. */
 .cp-select {
   background: #FFFFFF;
   border: 1px solid #DFE8EF;
   border-radius: 10px;
-  color: #0F172A;
+  color: #10355D;
   padding: 8px 12px;
   font-size: 13px;
   outline: none;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04) inset;
+  box-shadow: 0 3px 0 #BBC9D8, 0 6px 12px rgba(16,53,93,0.14);
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
 }
-.cp-select:focus {
-  border-color: #0057FF;
-  box-shadow: 0 0 0 3px rgba(0,87,255,0.12);
+.cp-select:hover {
+  background: #F5F8FB;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 #BBC9D8, 0 9px 16px rgba(16,53,93,0.20);
+}
+.cp-select:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #BBC9D8, 0 2px 4px rgba(16,53,93,0.16);
+}
+/* El anillo de foco va POR FUERA del canto para no comérselo. */
+.cp-select:focus-visible {
+  box-shadow: 0 3px 0 #BBC9D8, 0 6px 12px rgba(16,53,93,0.14),
+              0 0 0 3px rgba(29,108,170,0.55);
 }
 
 /* Input/Select dentro de card oscura */
@@ -233,11 +247,23 @@ body {
   box-shadow: none;
 }
 .cp-card .cp-input::placeholder { color: rgba(255,255,255,0.35); }
+/* Dentro de la tarjeta OSCURA la tecla se invierte: el canto no puede ser el
+   gris claro de fuera —se vería como un borde encendido— sino más oscuro que
+   la propia tarjeta. Misma forma, dirección contraria. */
 .cp-card .cp-select {
   background: rgba(255,255,255,0.07);
   border-color: rgba(255,255,255,0.15);
   color: #fff;
-  box-shadow: none;
+  box-shadow: 0 3px 0 rgba(3,16,30,0.55);
+}
+.cp-card .cp-select:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 rgba(3,16,30,0.55);
+}
+.cp-card .cp-select:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 rgba(3,16,30,0.55);
 }
 /* .cp-input/.cp-select DENTRO de .cp-light — la regla de arriba
    (.cp-card .cp-input) tiene más especificidad que .cp-input sola y gana
@@ -282,78 +308,71 @@ body {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.12s ease;
+  /* `transform` y `box-shadow` y nada más: son las dos que el compositor
+     resuelve sin recalcular layout. `transition: all` arrastraba también
+     el color y el fondo, más caro y sin que nadie lo pidiera. */
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
   border: none;
   position: relative;
   letter-spacing: 0.01em;
 }
 
-/* Azul primario */
+/* Azul primario. El tono de marca no se toca; lo que cambia es el
+   relieve: canto sólido en vez de degradado y halo. */
 .cp-btn-primary {
-  background: linear-gradient(180deg, #2979ff 0%, #0046cc 100%);
-  color: #ffffff;
-  border: 1px solid #003db3;
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.28) inset,
-    0 5px 14px rgba(0,70,204,0.38),
-    0 1px 3px rgba(0,0,0,0.18);
-  text-shadow: 0 1px 1px rgba(0,0,0,0.18);
+  background: #0046CC;
+  color: #ffffff;              /* 7.64:1 sobre ese azul · 5.52:1 en el hover */
+  border: none;
+  box-shadow: 0 4px 0 #002C80, 0 8px 16px rgba(0,44,128,0.32);
 }
 .cp-btn-primary:hover {
-  background: linear-gradient(180deg, #3d8bff 0%, #0057ff 100%);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.28) inset,
-    0 7px 18px rgba(0,70,204,0.45),
-    0 1px 3px rgba(0,0,0,0.18);
-  transform: translateY(-1px);
+  background: #0057FF;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #002C80, 0 12px 22px rgba(0,44,128,0.38);
 }
+/* Baja los 4px del canto y se queda sin él: la tecla toca fondo. */
 .cp-btn-primary:active {
-  background: linear-gradient(180deg, #0046cc 0%, #003db3 100%);
-  transform: translateY(0px);
-  box-shadow:
-    0 1px 0 rgba(0,0,0,0.1) inset,
-    0 2px 6px rgba(0,70,204,0.3);
+  background: #002C80;
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #002C80, 0 2px 5px rgba(0,44,128,0.30);
 }
 
-/* Ghost / outline */
+/* Ghost. Es exactamente la tecla blanca de Atlas: fondo blanco, letra en
+   azul marino (12.43:1) y canto oscuro. */
 .cp-btn-ghost {
-  background: linear-gradient(180deg, #ffffff 0%, #f0f6ff 100%);
-  color: #1E3A5F;
+  background: #FFFFFF;
+  color: #10355D;
   border: 1px solid #DFE8EF;
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.9) inset,
-    0 3px 8px rgba(0,87,255,0.08),
-    0 1px 2px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 0 #BBC9D8, 0 8px 16px rgba(16,53,93,0.16);
 }
 .cp-btn-ghost:hover {
-  background: linear-gradient(180deg, #f5f8fb 0%, #e6eef6 100%);
-  border-color: #A8BACB;
-  color: #0057FF;
-  transform: translateY(-1px);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.9) inset,
-    0 5px 12px rgba(0,87,255,0.14);
+  background: #F5F8FB;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #BBC9D8, 0 12px 22px rgba(16,53,93,0.22);
 }
-.cp-btn-ghost:active { transform: translateY(0px); }
+.cp-btn-ghost:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #BBC9D8, 0 2px 5px rgba(16,53,93,0.18);
+}
 
-/* Danger */
+/* Peligro. Sigue siendo ROJO: una alarma pintada del color del resto deja
+   de serlo. Sólo cambia el relieve. */
 .cp-btn-danger {
-  background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
-  color: #ffffff;
-  border: 1px solid #b91c1c;
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.22) inset,
-    0 4px 12px rgba(220,38,38,0.35),
-    0 1px 3px rgba(0,0,0,0.18);
+  background: #DC2626;
+  color: #ffffff;              /* 4.83:1 */
+  border: none;
+  box-shadow: 0 4px 0 #7F1212, 0 8px 16px rgba(127,18,18,0.32);
 }
 .cp-btn-danger:hover {
-  background: linear-gradient(180deg, #fca5a5 0%, #ef4444 100%);
-  transform: translateY(-1px);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.22) inset,
-    0 6px 16px rgba(220,38,38,0.4);
+  background: #EF4444;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 #7F1212, 0 12px 22px rgba(127,18,18,0.38);
 }
-.cp-btn-danger:active { transform: translateY(0px); }
+.cp-btn-danger:active {
+  background: #B91C1C;
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #7F1212, 0 2px 5px rgba(127,18,18,0.30);
+}
 
 /* Ícono solo */
 .cp-icon-btn {
@@ -365,22 +384,23 @@ body {
   border-radius: 10px;
   border: none;
   cursor: pointer;
-  transition: all 0.12s ease;
-  background: linear-gradient(160deg, #ffffff 0%, #e8f2ff 100%);
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  background: #FFFFFF;
   border: 1px solid #DFE8EF;
-  color: #0057FF;
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.95) inset,
-    0 3px 8px rgba(0,87,255,0.12),
-    0 1px 2px rgba(0,0,0,0.06);
+  color: #1D6CAA;              /* 5.56:1 sobre blanco */
+  /* Canto de 3px y no de 4: es un control pequeño y con el canto largo
+     parece despegado del plano. */
+  box-shadow: 0 3px 0 #BBC9D8, 0 6px 12px rgba(16,53,93,0.16);
 }
 .cp-icon-btn:hover {
-  transform: translateY(-1px) scale(1.05);
-  box-shadow:
-    0 1px 0 rgba(255,255,255,0.95) inset,
-    0 6px 14px rgba(0,87,255,0.2);
+  background: #F5F8FB;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 #BBC9D8, 0 10px 18px rgba(16,53,93,0.22);
 }
-.cp-icon-btn:active { transform: translateY(0px) scale(0.97); }
+.cp-icon-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #BBC9D8, 0 2px 4px rgba(16,53,93,0.18);
+}
 
 /* ── Print / Exportar PDF ─────────────────────────────────────────────────── */
 @media print {
