@@ -68,8 +68,15 @@ export async function GET() {
      * existían, mientras callaba `snapshot-prediccion`, que sí corre los lunes
      * y sí puede fallar. El diagnóstico mentía en las dos direcciones a la vez
      * — justo la clase de ceguera que esta ruta se construyó para evitar. */
+    /* 14 oct 2026 — y volvió a pasar lo mismo, en las dos direcciones otra vez.
+     * El 12 oct el snapshot se FUSIONÓ dentro de `/api/cron/diario` «para no
+     * pedir una tercera entrada de cron», y esta lista se quedó anunciando
+     * `/api/cron/snapshot-prediccion` —ruta que ya no existe y cron que no está
+     * en `vercel.json`— mientras callaba `/api/cron/diario`, que es el que
+     * corre TODOS los días y el que puede fallar. Ya no se revisa a mano: lo
+     * compara `scripts/revisa-crons.py` contra `vercel.json`. */
     tareas: [
-      { ruta: '/api/cron/snapshot-prediccion', horario: '0 13 * * 1', descripcion: 'Snapshot semanal de predicción, lunes 07:00 de México' },
+      { ruta: '/api/cron/diario', horario: '0 12 * * *', descripcion: 'Sellado de alertas todos los días y, los LUNES, el snapshot semanal de predicción. 06:00 de México' },
       { ruta: '/api/cron/refresh-tenure', horario: '0 12 1 * *', descripcion: 'Refresco de antigüedad, día 1 de cada mes' },
     ],
     ahoraEnMexico: `${fechaLocal(hoy)} (${selloMexico()})`,

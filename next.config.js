@@ -28,13 +28,26 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   },
 })
 
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
-  experimental: {
-    serverComponentsExternalPackages: ['xlsx'],
-  },
+/* EL TRAZADO VIVE DENTRO DE `experimental` EN NEXT 14 — y estaba en la raíz.
+ *
+ * Comprobado en `node_modules/next/dist/server/config-shared.d.ts`:
+ * `outputFileTracingIncludes` está declarado en `ExperimentalConfig` (línea
+ * 215) y NO en `NextConfig`. Pasa a la raíz en Next 15; aquí vamos por 14.2.3.
+ *
+ * Mientras estuvo arriba, `next build` lo rechazaba en CADA corrida:
+ *
+ *     ⚠ Invalid next.config.js options detected:
+ *     ⚠     Unrecognized key(s) in object: 'outputFileTracingIncludes'
+ *
+ * O sea que las seis declaraciones de abajo NO se aplicaban y todo dependía de
+ * que el trazador adivinara — justo lo que los comentarios que siguen explican
+ * que NO se puede dar por supuesto. Y el modo de fallo es el peor de todos: la
+ * mesa de ayuda devuelve el estado VACÍO, las alarmas no se emiten, y la
+ * ausencia de una alarma es indistinguible de que todo esté bien.
+ *
+ * Se extrae a una constante para moverlo de sitio SIN tocar ni una línea de los
+ * comentarios de abajo, que son los que justifican cada ruta. */
+const TRAZADO = {
   /* QUE EL .XLSX VIAJE CON LA LAMBDA QUE LO LEE.
    *
    * `lib/cortes-cuenta.ts` abre el archivo con
@@ -58,7 +71,11 @@ const nextConfig = {
    * cuentas. Con la regla de dirección del 7 oct —un hueco es una tarea— eso
    * abriría una avalancha de tareas por un hueco que no existe. */
   outputFileTracingIncludes: {
-    '/api/cron/snapshot-prediccion': ['./data/**'],
+    /* La ruta era `/api/cron/snapshot-prediccion` y DEJÓ DE EXISTIR el 12 oct
+     * 2026, cuando el snapshot se fusionó dentro del cron diario. La
+     * declaración se quedó apuntando al vacío — invisible, porque la llave
+     * entera estaba mal puesta y Next no leía ninguna. */
+    '/api/cron/diario': ['./data/**'],
 
     /* LA MESA DE AYUDA, declarada para las seis rutas que la necesitan desde
      * el 9 oct 2026, cuando el detector de alertas empezó a leerla.
@@ -80,6 +97,16 @@ const nextConfig = {
     '/alertas': ['./data/mesa-ayuda/**'],
     '/asesores': ['./data/mesa-ayuda/**'],
     '/cuentas/[id]': ['./data/mesa-ayuda/**'],
+  },
+}
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  typescript: { ignoreBuildErrors: true },
+  eslint: { ignoreDuringBuilds: true },
+  experimental: {
+    serverComponentsExternalPackages: ['xlsx'],
+    ...TRAZADO,
   },
   async headers() {
     return [
