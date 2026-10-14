@@ -38,6 +38,42 @@ import type { Cuenta } from '@/lib/types'
  * `origen: 'sin_dato'` y quien las pinte tiene que escribir que no se sabe, NO
  * un cero: un cero se lee como «no vale nada» y son cuentas que facturan.
  * Ver [[feedback-cero-sin-medicion]].
+ *
+ * ── EL MRR INSTITUCIONAL NO ES LO QUE DEVUELVE ESTA FUNCIÓN ──────────────
+ *
+ * Instrucción de dirección, 13 oct 2026: «lo que debes tomar como institucional
+ * financiero es el MRR de facturación Gross Revenue Facturación».
+ *
+ * `importeDeCuenta` devuelve una cifra MIXTA a propósito, porque eso es lo que
+ * pidió dirección el 6 de octubre para que ninguna ficha saliera en blanco:
+ * donde el GRC no tiene la cuenta, conserva `cuentas.facturacion`. Y
+ * `cuentas.facturacion` guarda `acumulado ÷ meses`, o sea un PROMEDIO DE VIDA.
+ * Sirve para que la pantalla diga algo; NO sirve como cifra financiera.
+ *
+ * Así que toda cifra que se publique como dato institucional —el peso de una
+ * cuenta en la cartera, un total de cartera, una pérdida, un churn, cualquier
+ * número que vaya a un reporte de dirección— se calcula con el MRR del GRC y
+ * sólo con él:
+ *
+ *     MRR institucional de una línea
+ *       = `mrrFin`                       si es > 0
+ *       = `mrrIni`                       si `mrrFin` es 0 pero su
+ *                                        `verificacion` dice `sigue_viva`
+ *                                        (churn marcado y DESMENTIDO: el
+ *                                        recurrente vigente es el de entrada)
+ *       = 0                              si la verificación dice `baja`
+ *
+ * Una cuenta sin línea en el GRC NO tiene MRR institucional: se dice que no se
+ * sabe, no se rellena con el promedio de la ficha. Son 12 de las 193 vivas, y
+ * dos de ellas son grandes —GTC (D1) y Sección Amarilla (F3)—, porque sus
+ * líneas no traen CID; a ésas se les suma el importe a mano y se deja dicho.
+ *
+ * `scripts/mide-peso-cartera.py` implementa esta regla y es la referencia:
+ * imprime el denominador institucional y, al lado, la mezcla que publica el
+ * tablero, para que nunca se confundan. Medido el 13 oct 2026: la cartera viva
+ * tiene $2,030,715 de MRR institucional sobre 172 de 193 cuentas, mientras la
+ * mezcla da $2,202,714. Son dos cosas distintas y la diferencia son $171,999
+ * de promedios de vida. Ver [[grc-fuente-zoho]].
  */
 
 export type OrigenImporte = 'cuentas' | 'grc' | 'sin_dato'
