@@ -9,14 +9,18 @@ import CustomSelect from '@/components/CustomSelect'
 import { tonoSobreClaro, tonoSobreFondo } from '@/lib/contraste'
 
 // ── Paleta clara ──────────────────────────────────────────────────────────────
-const BG      = '#EFF6FF'
-const PANEL   = '#FFFFFF'
-const PANEL2  = 'rgba(0,87,255,0.04)'
-const BORDER  = '#BFDBFE'
-const ACCENT  = '#0057FF'
-const TX      = '#0F172A'
-const TX_MID  = '#475569'
-const TX_LOW  = '#94A3B8'
+/* La paleta del Customer Success Operating System. Los hex salen del
+   `:root` de ese documento (`public/docs/…Operating_System.html`), no de
+   una captura, y por eso estan al peso. */
+const BG      = '#F5F8FB'   // --wash
+const PANEL   = '#FFFFFF'   // --paper
+const PANEL2  = 'rgba(29,108,170,0.05)'
+const BORDER  = '#DFE8EF'   // --line
+const ACCENT  = '#1D6CAA'   // --blue · 5.56:1 sobre blanco
+const DINERO  = '#10355D'   // --navy · 11.63:1 — la serie de importes
+const TX      = '#202E3B'   // --ink  · 13.86:1
+const TX_MID  = '#3D4B5C'   //          8.90:1
+const TX_LOW  = '#6A7889'   // --muted ·  4.56:1, el mas bajo que pasa AA
 
 const VENDEDOR_COLOR: Record<string, string> = {
   'Fátima':       '#A855F7',
@@ -42,14 +46,22 @@ const EJECUTIVO_COLOR: Record<string, string> = {
   'Otro':         '#64748B',
   'N/A':          '#475569',
 }
+/* RAMPA ORDENADA, no paleta categórica: «tamaño» va de micro a
+   corporativo, y un arcoíris afirmaría que no hay orden. Medida con
+   `mide-rampa.py` sobre el blanco de la tarjeta — los cinco pasan el 3:1
+   de objeto gráfico y se separan ≥9.3 en OKLab. */
 const TAMANO_COLOR: Record<string, string> = {
-  'micro':        '#3B82F6',
-  'pequeña':      '#22C55E',
-  'mediana':      '#F97316',
-  'grande':       '#A855F7',
-  'corporativo':  '#EC4899',
-  'N/A':          '#475569',
+  'micro':        '#5799C6',   //  3.10:1
+  'pequeña':      '#437CA5',   //  4.50:1
+  'mediana':      '#306084',   //  6.70:1
+  'grande':       '#1C4463',   // 10.21:1
+  'corporativo':  '#082742',   // 15.23:1 — el --navy2 del documento
+  'N/A':          '#6A7889',   //  4.51:1 — la ausencia, en gris
 }
+/* NOTA: este mapa ya NO pinta las barras de giro —van a un solo tono, porque
+   cada una lleva su nombre rotulado en el eje— y se conserva únicamente como
+   el catálogo de sectores que el archivo trae. Si alguien lo usa para colorear
+   algo, que mida antes: once tonos no se separan sobre blanco. */
 const GIRO_COLOR: Record<string, string> = {
   'Servicios':      '#3B82F6',
   'Bienes Raíces':  '#22C55E',
@@ -64,8 +76,10 @@ const GIRO_COLOR: Record<string, string> = {
   'Callcenter':     '#06B6D4',
   'N/A':            '#475569',
 }
+/* TRES categorías, que es justo el techo que `lib/chart-theme.ts` tiene
+   medido para una paleta cerrada. Se separan por luminancia. */
 const TIPO_COLOR: Record<string, string> = {
-  'pagada': '#22C55E', 'demo': '#F59E0B', 'convertida': '#3B82F6', 'N/A': '#475569',
+  'pagada': '#10355D', 'demo': '#6A7889', 'convertida': '#1D6CAA', 'N/A': '#3D4B5C',
 }
 
 const MES_NUM: Record<string, number> = {
@@ -88,16 +102,26 @@ const MES_ES: Record<string, string> = {
    viven en una CONSTANTE, y `revisa-letra-clara-en-claro.py` sólo miraba los
    `style={{…}}` en línea. Ya mira también los objetos en constantes.
 
-   Sobre blanco NINGÚN color de marca sirve a secas: el verde del dinero
-   (#22C55E) da 2.28:1. Todos pasan por `lib/contraste.ts` contra el blanco
-   REAL de la tarjeta. */
+   Sobre blanco NINGÚN color de marca sirve a secas: el verde que llevaba
+   antes el dinero (#22C55E) daba 2.28:1, y el propio cian del documento
+   (#39ABD8) da 2.63:1 — ni al 3:1 de objeto gráfico llega. Todos pasan por
+   `lib/contraste.ts` contra el blanco REAL de la tarjeta. */
 const TT_STYLE = {
   background:'#FFFFFF', border:`1px solid ${BORDER}`,
   borderRadius:10, fontSize:13, color:TX,
   boxShadow:'0 10px 30px rgba(15,23,42,0.16)', padding:'12px 16px',
 }
-/** El verde del dinero, oscurecido hasta que se lee sobre blanco. */
-const TT_VERDE = tonoSobreFondo('#22C55E', '#FFFFFF', 4.5)
+/** El tono del dinero. Ya no es verde: el documento no tiene verde y su
+ *  color de énfasis es el marino. Pasa igual por el cálculo, que con
+ *  #10355D no tiene que oscurecerlo —mide 11.63:1— pero así el día que
+ *  alguien cambie la constante sigue garantizado. */
+const TT_DINERO = tonoSobreFondo(DINERO, '#FFFFFF', 4.5)
+
+/** El cian del documento (#39ABD8) mide 2.63:1 sobre blanco: no llega ni al
+ *  3:1 de objeto gráfico, menos al 4.5:1 de texto. Se OSCURECE hasta que
+ *  pasa, que es lo que hace `tonoSobreFondo`, y así el tercer KPI tiene un
+ *  tono propio dentro de la paleta en vez de repetir el azul. */
+const CIAN_LEGIBLE = tonoSobreFondo('#39ABD8', '#FFFFFF', 4.5)
 
 export interface RegistroItem {
   id:string; cliente:string; primerPago:number; tamano:string
@@ -117,7 +141,7 @@ function agrupar(records: RegistroItem[], key: keyof RegistroItem, colorMap: Rec
     v.count++; v.fac += r.primerPago; m.set(k, v)
   }
   return Array.from(m.entries())
-    .map(([name, d]) => ({name, ...d, color: colorMap[name] ?? '#94A3B8'}))
+    .map(([name, d]) => ({name, ...d, color: colorMap[name] ?? '#6A7889'}))
     .sort((a,b) => b.count - a.count)
 }
 
@@ -205,7 +229,7 @@ function TTBar({active,payload,label,colorMap}:any) {
       </div>
       <div style={{display:'flex',justifyContent:'space-between',gap:28}}>
         <span style={{...SPAN,color:TX_MID}}>Facturación</span>
-        <span style={{...SPAN,fontWeight:700,color:TT_VERDE}}>{formatMXN(d?.fac??0)}</span>
+        <span style={{...SPAN,fontWeight:700,color:TT_DINERO}}>{formatMXN(d?.fac??0)}</span>
       </div>
     </div>
   )
@@ -231,7 +255,7 @@ function FilterSelect({
         searchable={searchable}
         style={{
           padding:'7px 10px', borderRadius:8, fontSize:12, fontWeight:600,
-          background: active ? `${ACCENT}18` : '#F0F7FF',
+          background: active ? `${ACCENT}18` : '#F5F8FB',
           color: active ? ACCENT : TX_MID,
           border: `1px solid ${active ? ACCENT : BORDER}`,
           outline:'none',
@@ -390,7 +414,10 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
   const porVendedor = useMemo(()=>agrupar(filtered,'vendedor',VENDEDOR_COLOR).slice(0,12),[filtered])
   const porEjec     = useMemo(()=>agrupar(filtered,'ejecutivo',EJECUTIVO_COLOR),[filtered])
   const porTamano   = useMemo(()=>agrupar(filtered,'tamano',TAMANO_COLOR).filter(d=>d.name!=='N/A'),[filtered])
-  const porGiro     = useMemo(()=>agrupar(filtered,'giro',GIRO_COLOR).filter(d=>d.name!=='N/A').slice(0,10),[filtered])
+  // Sin mapa de color: la barra de giro ya va rotulada y se pinta de un solo
+  // tono. Pasar un mapa que nadie pinta es la trampa de las paletas gemelas —
+  // alguien lo lee y asume que los sectores están codificados por color.
+  const porGiro     = useMemo(()=>agrupar(filtered,'giro',{}).filter(d=>d.name!=='N/A').slice(0,10),[filtered])
   const porTipo     = useMemo(()=>agrupar(filtered,'tipo',TIPO_COLOR).filter(d=>d.name!=='N/A'),[filtered])
   const recientes   = useMemo(()=>[...filtered].sort((a,b)=>{
     const ka=a.ano*100+(MES_NUM[a.mes]??0), kb=b.ano*100+(MES_NUM[b.mes]??0)
@@ -437,7 +464,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
             <button key={String(a)} onClick={()=>setSelAno(a)} style={{
               padding:'5px 14px',borderRadius:8,fontSize:12,fontWeight:700,
               cursor:'pointer',transition:'all 150ms',
-              background: selAno===a ? ACCENT : '#EFF6FF',
+              background: selAno===a ? ACCENT : '#F5F8FB',
               color:      selAno===a ? BG     : TX_MID,
               border:     selAno===a ? 'none' : `1px solid ${BORDER}`,
             }}>{a==='todos'?'Todos':a}</button>
@@ -459,7 +486,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         {activeFilters > 0 && (
           <p style={{fontSize:12,color:TX_MID,marginTop:14}}>
             Mostrando <strong style={{color:TX}}>{total.toLocaleString('es-MX')}</strong> activaciones
-            {' '}· <strong style={{color:'#22C55E'}}>{formatMXN(totalFac)}</strong> en facturación
+            {' '}· <strong style={{color:TT_DINERO}}>{formatMXN(totalFac)}</strong> en facturación
           </p>
         )}
       </div>
@@ -473,8 +500,8 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
       <div style={{display:'flex',gap:16}}>
         <KPI label="Total Activaciones"  value={total.toLocaleString('es-MX')} color={ACCENT}
           sub={demos > 0 ? `${demos.toLocaleString('es-MX')} demos aparte` : undefined} />
-        <KPI label="Facturación Total"   value={formatMXN(totalFac)} color="#22C55E" sub="Suma primer pago" />
-        <KPI label="Promedio 1er Pago"   value={formatMXN(promedio)} color="#F59E0B" sub="Sin contar demos" />
+        <KPI label="Facturación Total"   value={formatMXN(totalFac)} color={DINERO} sub="Suma primer pago" />
+        <KPI label="Promedio 1er Pago"   value={formatMXN(promedio)} color={CIAN_LEGIBLE} sub="Sin contar demos" />
         <KPI label="Sin Vendedor" value={`${pctSin.toFixed(1)}%`}
           color={pctSin>30?'#EF4444':TX_LOW} sub={`${sinVnd} de ${total}`} />
         {/* Tipos */}
@@ -509,7 +536,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         <p style={{fontSize:11,fontWeight:700,color:TX_MID,margin:'0 0 4px 2px'}}>Cuentas activadas</p>
         <ResponsiveContainer width="100%" height={150}>
           <BarChart data={porMes} margin={{top:4,right:20,left:-10,bottom:0}}>
-            <CartesianGrid vertical={false} stroke="#DBEAFE" />
+            <CartesianGrid vertical={false} stroke="#DFE8EF" />
             <XAxis dataKey="mes" tick={false} axisLine={false} tickLine={false} height={1} />
             <YAxis tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
             <Tooltip content={<TTMes />} cursor={{fill:'rgba(0,180,255,0.06)'}} />
@@ -519,12 +546,12 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         <p style={{fontSize:11,fontWeight:700,color:TX_MID,margin:'10px 0 4px 2px'}}>Facturación del primer pago</p>
         <ResponsiveContainer width="100%" height={150}>
           <BarChart data={porMes} margin={{top:4,right:20,left:-10,bottom:0}}>
-            <CartesianGrid vertical={false} stroke="#DBEAFE" />
+            <CartesianGrid vertical={false} stroke="#DFE8EF" />
             <XAxis dataKey="mes" tick={{fill:TX_MID,fontSize:11,fontWeight:600}} axisLine={false} tickLine={false} />
             <YAxis domain={[0,maxFacMes*1.1]} tickFormatter={v=>`$${(v/1000).toFixed(0)}k`}
               tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
             <Tooltip content={<TTMes />} cursor={{fill:'rgba(34,197,94,0.08)'}} />
-            <Bar dataKey="fac" name="Facturación" fill="#22C55E" fillOpacity={0.85} radius={[4,4,0,0]} maxBarSize={38} />
+            <Bar dataKey="fac" name="Facturación" fill={DINERO} fillOpacity={0.85} radius={[4,4,0,0]} maxBarSize={38} />
           </BarChart>
         </ResponsiveContainer>
       </Panel>
@@ -534,13 +561,14 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         <Panel title="Por Vendedor" sub="Comercial que cerró la venta">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={porVendedor} layout="vertical" margin={{top:0,right:60,left:10,bottom:0}}>
-              <CartesianGrid horizontal={false} stroke="#DBEAFE" />
+              <CartesianGrid horizontal={false} stroke="#DFE8EF" />
               <XAxis type="number" tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{fill:TX_MID,fontSize:12,fontWeight:600}} axisLine={false} tickLine={false} width={100} />
-              <Tooltip content={(p:any)=><TTBar {...p} label={p.label} colorMap={VENDEDOR_COLOR} />} cursor={{fill:'rgba(0,180,255,0.06)'}} />
-              <Bar dataKey="count" radius={[0,4,4,0]} maxBarSize={20}>
-                {porVendedor.map(d=><Cell key={d.name} fill={d.color} />)}
-              </Bar>
+              {/* Sin `colorMap`: la barra ya lleva su nombre rotulado en el eje, así
+                  que el color no informa de nada y once tonos sugieren una
+                  clasificación que no existe. `TTBar` cae a ACCENT solo. */}
+              <Tooltip content={(p:any)=><TTBar {...p} label={p.label} />} cursor={{fill:'rgba(29,108,170,0.07)'}} />
+              <Bar dataKey="count" radius={[0,4,4,0]} maxBarSize={20} fill={ACCENT} />
             </BarChart>
           </ResponsiveContainer>
         </Panel>
@@ -548,13 +576,11 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         <Panel title="Por Ejecutivo" sub="Responsable de la activación">
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={porEjec} layout="vertical" margin={{top:0,right:60,left:10,bottom:0}}>
-              <CartesianGrid horizontal={false} stroke="#DBEAFE" />
+              <CartesianGrid horizontal={false} stroke="#DFE8EF" />
               <XAxis type="number" tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{fill:TX_MID,fontSize:12,fontWeight:600}} axisLine={false} tickLine={false} width={100} />
-              <Tooltip content={(p:any)=><TTBar {...p} label={p.label} colorMap={EJECUTIVO_COLOR} />} cursor={{fill:'rgba(0,180,255,0.06)'}} />
-              <Bar dataKey="count" radius={[0,4,4,0]} maxBarSize={20}>
-                {porEjec.map(d=><Cell key={d.name} fill={d.color} />)}
-              </Bar>
+              <Tooltip content={(p:any)=><TTBar {...p} label={p.label} />} cursor={{fill:'rgba(29,108,170,0.07)'}} />
+              <Bar dataKey="count" radius={[0,4,4,0]} maxBarSize={20} fill={ACCENT} />
             </BarChart>
           </ResponsiveContainer>
         </Panel>
@@ -594,13 +620,11 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         <Panel title="Por Giro / Industria" sub="Top 10 sectores por número de activaciones">
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={porGiro} layout="vertical" margin={{top:0,right:50,left:10,bottom:0}}>
-              <CartesianGrid horizontal={false} stroke="#DBEAFE" />
+              <CartesianGrid horizontal={false} stroke="#DFE8EF" />
               <XAxis type="number" tick={{fill:TX_LOW,fontSize:10}} axisLine={false} tickLine={false} />
               <YAxis type="category" dataKey="name" tick={{fill:TX_MID,fontSize:12}} axisLine={false} tickLine={false} width={100} />
-              <Tooltip content={(p:any)=><TTBar {...p} label={p.label} colorMap={GIRO_COLOR} />} cursor={{fill:'rgba(0,180,255,0.06)'}} />
-              <Bar dataKey="count" radius={[0,4,4,0]} maxBarSize={18}>
-                {porGiro.map(d=><Cell key={d.name} fill={d.color} />)}
-              </Bar>
+              <Tooltip content={(p:any)=><TTBar {...p} label={p.label} />} cursor={{fill:'rgba(29,108,170,0.07)'}} />
+              <Bar dataKey="count" radius={[0,4,4,0]} maxBarSize={18} fill={ACCENT} />
             </BarChart>
           </ResponsiveContainer>
         </Panel>
@@ -624,7 +648,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
             </thead>
             <tbody>
               {recientes.map((r,i)=>(
-                <tr key={r.id} style={{background:i%2===0?'transparent':'#F0F7FF'}}>
+                <tr key={r.id} style={{background:i%2===0?'transparent':'#F5F8FB'}}>
                   <td style={{padding:'8px 12px',color:TX_LOW,fontSize:11,fontVariantNumeric:'tabular-nums'}}>{r.id}</td>
                   <td style={{padding:'8px 12px',color:TX,fontWeight:600}}>{r.cliente}</td>
                   <td style={{padding:'8px 12px',color:TX_MID,fontVariantNumeric:'tabular-nums'}}>{MES_ES[r.mes]??r.mes} {r.ano}</td>
@@ -632,7 +656,10 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
                   <td style={{padding:'8px 12px'}}><Chip label={r.ejecutivo} color={EJECUTIVO_COLOR[r.ejecutivo]??'#64748B'} /></td>
                   <td style={{padding:'8px 12px'}}><Chip label={r.tamano}    color={TAMANO_COLOR[r.tamano]??'#64748B'} capitalize /></td>
                   <td style={{padding:'8px 12px'}}><Chip label={r.tipo}      color={TIPO_COLOR[r.tipo]??'#64748B'} capitalize /></td>
-                  <td style={{padding:'8px 12px',color:r.primerPago>0?'#22C55E':TX_LOW,fontWeight:700,fontVariantNumeric:'tabular-nums'}}>
+                  {/* El importe en el marino del dinero, no en verde: el verde
+                      a pelo medía 2.28:1 sobre blanco, y el documento no tiene
+                      verde. Un primer pago en cero cae a `TX_LOW`. */}
+                  <td style={{padding:'8px 12px',color:r.primerPago>0?TT_DINERO:TX_LOW,fontWeight:700,fontVariantNumeric:'tabular-nums'}}>
                     {r.primerPago>0?formatMXN(r.primerPago):'—'}
                   </td>
                 </tr>

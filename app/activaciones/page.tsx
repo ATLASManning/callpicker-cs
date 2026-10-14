@@ -6,8 +6,10 @@ import ActivacionesGrandes from '@/components/charts/ActivacionesGrandes'
 
 export const dynamic = 'force-dynamic'
 
-const TX     = '#0F172A'
-const TX_MID = '#475569'
+/* Paleta del Customer Success Operating System — ver
+   `components/charts/ActivacionesCharts.tsx` para la tabla completa. */
+const TX     = '#202E3B'   // --ink
+const TX_MID = '#3D4B5C'
 
 // ── Normalización ─────────────────────────────────────────────────────────────
 function normVendedor(v: string): string {
@@ -131,7 +133,7 @@ export default async function ActivacionesPage() {
       <div style={{ minHeight: '100%', padding: '48px 32px' }}>
         <div style={{
           maxWidth: 500, margin: '0 auto', padding: '40px 32px', borderRadius: 16,
-          background: '#FFFFFF', border: '1px solid #BFDBFE',
+          background: '#FFFFFF', border: '1px solid #DFE8EF',
           textAlign: 'center',
         }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>📊</div>
@@ -139,9 +141,9 @@ export default async function ActivacionesPage() {
             Archivo no encontrado
           </h2>
           <p style={{ fontSize: 14, color: TX_MID, lineHeight: 1.7 }}>
-            Coloca el archivo <code style={{ background: '#f8fafc', padding: '2px 6px', borderRadius: 4 }}>
+            Coloca el archivo <code style={{ background: '#F5F8FB', padding: '2px 6px', borderRadius: 4 }}>
               activaciones.xlsx
-            </code> en la carpeta <code style={{ background: '#f8fafc', padding: '2px 6px', borderRadius: 4 }}>
+            </code> en la carpeta <code style={{ background: '#F5F8FB', padding: '2px 6px', borderRadius: 4 }}>
               /data
             </code> del proyecto y reinicia el servidor.
           </p>
@@ -159,7 +161,12 @@ export default async function ActivacionesPage() {
   const anos     = Array.from(new Set(registros.map(r => r.ano).filter(Boolean))).sort()
 
   return (
-    // Solo <div> — nunca <main> aquí: el CSS del layout tiene main{background:#DBEAFE !important}
+    // Va en <div> y no en <main>. OJO: el motivo que decía este comentario ya
+    // NO existe — citaba un `main{background:#DBEAFE !important}` de
+    // `globals.css`, y hoy esa regla sólo trae `width` y `padding`. Se deja en
+    // <div> porque el layout ya monta su propio <main> alrededor y anidar otro
+    // sería marcado inválido; pero que nadie lo cambie buscando un fondo que
+    // ya no está.
     <div style={{ minHeight: '100%' }}>
       {/* Lo que el archivo trae y la pantalla NO puede mostrar. Va arriba de
           todo y con nombre y apellido, porque el arreglo está en la hoja de
@@ -189,8 +196,8 @@ export default async function ActivacionesPage() {
       {/* Header */}
       <div style={{
         padding: '28px 32px 24px',
-        borderBottom: '1px solid #BFDBFE',
-        background: 'linear-gradient(180deg, rgba(0,87,255,0.05) 0%, #EFF6FF 100%)',
+        borderBottom: '1px solid #DFE8EF',
+        background: 'linear-gradient(180deg, rgba(29,108,170,0.06) 0%, #F5F8FB 100%)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>
@@ -199,12 +206,12 @@ export default async function ActivacionesPage() {
             </h1>
             <p style={{ fontSize: 13, color: TX_MID, marginTop: 8 }}>
               {activaciones.length.toLocaleString('es-MX')} activaciones{demos > 0 && <> &middot; {demos.toLocaleString('es-MX')} demos</>} &middot; {anos.join(' · ')} &middot; Facturación total{' '}
-              <strong style={{ color: '#16A34A' }}>
+              <strong style={{ color: '#1D6CAA' }}>
                 {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalFac)}
               </strong>
             </p>
           </div>
-          <p style={{ fontSize: 11, color: '#94A3B8' }}>
+          <p style={{ fontSize: 11, color: '#6A7889' }}>
             Fuente: Tablero de Activaciones 2.0 · Hoja Registros
           </p>
         </div>

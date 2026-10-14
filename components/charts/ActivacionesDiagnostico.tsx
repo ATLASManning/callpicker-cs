@@ -15,13 +15,13 @@ function avg(arr: number[]): number {
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
 const C = {
-  bg:       '#EFF6FF',
+  bg:       '#F5F8FB',
   card:     '#FFFFFF',
-  border:   '#BFDBFE',
-  tx:       '#0F172A',
-  muted:    '#64748B',
-  blue:     '#1D4ED8',
-  blueL:    '#DBEAFE',
+  border:   '#DFE8EF',
+  tx:       '#202E3B',
+  muted:    '#6A7889',
+  blue:     '#1D6CAA',
+  blueL:    '#DFE8EF',
   green:    '#16A34A',
   greenL:   '#DCFCE7',
   amber:    '#D97706',
@@ -84,7 +84,7 @@ function Table({ heads, rows }: { heads: string[]; rows: (string | number)[][] }
         </thead>
         <tbody>
           {rows.map((row, ri) => (
-            <tr key={ri} style={{ borderBottom: `1px solid ${C.border}`, background: ri % 2 ? '#F8FAFF' : C.card }}>
+            <tr key={ri} style={{ borderBottom: `1px solid ${C.border}`, background: ri % 2 ? '#F5F8FB' : C.card }}>
               {row.map((cell, ci) => (
                 <td key={ci} style={{
                   padding: '8px 12px', textAlign: ci === 0 ? 'left' : 'right', color: C.tx,
@@ -509,7 +509,7 @@ export default function ActivacionesDiagnostico({ registros }: Props) {
               </thead>
               <tbody>
                 {topCuentas.map((r, i) => (
-                  <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 ? '#F8FAFF' : C.card }}>
+                  <tr key={r.id} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 ? '#F5F8FB' : C.card }}>
                     <td style={{ padding: '8px 12px', color: C.muted, fontWeight: 700 }}>{i + 1}</td>
                     <td style={{ padding: '8px 12px', color: C.tx, fontWeight: 600, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.cliente}</td>
                     <td style={{ padding: '8px 12px', textAlign: 'right', color: C.purple, fontWeight: 700 }}>{fmt$(r.primerPago)}</td>
