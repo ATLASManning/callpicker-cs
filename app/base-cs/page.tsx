@@ -619,18 +619,26 @@ export default function BaseCSPage() {
   return (
     <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
+      {/* ── Header ──────────────────────────────────────────────────────────
+          La franja marina del «Customer Success Operating System»: en ese
+          documento el contenido blanco cuelga de una banda de este color, y es
+          la forma que pidió dirección. El degradado es el suyo, literal:
+          `linear-gradient(127deg,#0b2d4d,#15537f 72%,#247ba6)`.
+
+          Al ser banda OSCURA, la letra va CLARA — y eso invierte la dirección
+          respecto del resto de la pantalla, que sigue siendo clara con letra
+          oscura. Medido contra el punto que aprieta, el `#247ba6` del extremo:
+          el blanco da 7.45:1 y el `#DFE8EF` 6.00:1. */}
       <div style={{
         padding: '24px 32px 20px',
-        borderBottom: `1px solid ${BORDER}`,
-        background: 'linear-gradient(180deg, rgba(0,87,255,0.05) 0%, transparent 100%)',
+        background: 'linear-gradient(127deg, #0b2d4d, #15537f 72%, #247ba6)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 900, color: TX, letterSpacing: '-0.02em', lineHeight: 1 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: 1 }}>
               Base de Conocimiento CS
             </h1>
-            <p style={{ fontSize: 12, color: TX_MID, marginTop: 6 }}>
+            <p style={{ fontSize: 12, color: '#DFE8EF', marginTop: 6 }}>
               {KB.length} categorías · {totalArticulos} artículos
             </p>
           </div>

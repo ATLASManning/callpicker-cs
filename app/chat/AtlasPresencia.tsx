@@ -17,18 +17,23 @@ import s from './atlas.module.css'
    verdad está pasando en la aplicación.
 
    @contraste-padre: este chip no dibuja fondo — va en el `actions` de un
-   `PageHeader dark`, dentro del `.pantalla` de `atlas.module.css`, cuyo fondo
-   es `#070C16`. Contra ese negro azulado los cuatro tonos miden 6.05:1 el
-   `#7C90B2` de «Sin conexión» —que es el más apretado—, 7.70:1 el `#60A5FA`,
-   11.23:1 el `#4ADE80` y 11.74:1 el `#7DD3FC`. Medido el 8 oct 2026.
+   `PageHeader dark`, dentro del `.pantalla` de `atlas.module.css`.
+
+   REMEDIDO EL 14 OCT 2026, PORQUE EL FONDO CAMBIÓ. Era el casi-negro `#070C16`
+   y pasó al marino del «Customer Success Operating System». Y este chip cae
+   justo donde está el barrido claro del lienzo —esquina superior derecha—, así
+   que el píxel real debajo no es el marino base `#0B2D4D` sino el compuesto
+   `#19587E`. Medido contra ÉSE, que es el extremo que aprieta, los cuatro
+   tonos viejos se caían: `#7C90B2` a 2.37:1, `#60A5FA` a 3.02 y `#4ADE80` a
+   4.40. Un degradado se mide por su punto más claro, no por el cómodo.
    ══════════════════════════════════════════════════════════════════════════ */
 
 const TEXTO: Record<EstadoSenal, { label: string; color: string }> = {
-  // #5E7396 daba 4.07:1 sobre el #070C16, por debajo del 4.5 de AA. Este, 6.05.
-  dormida:    { label: 'Sin conexión',  color: '#7C90B2' },
-  disponible: { label: 'En línea',      color: '#4ADE80' },
-  escuchando: { label: 'Escuchando',    color: '#7DD3FC' },
-  pensando:   { label: 'Consultando',   color: '#60A5FA' },
+  // Las cifras son contra `#19587E`, el píxel compuesto bajo el chip.
+  dormida:    { label: 'Sin conexión',  color: '#C3D2E8' },  // 5.00:1 (era 2.37)
+  disponible: { label: 'En línea',      color: '#86EFAC' },  // 5.46:1 (era 4.40)
+  escuchando: { label: 'Escuchando',    color: '#A5E8FD' },  // 5.68:1 (era 4.60)
+  pensando:   { label: 'Consultando',   color: '#BFD8FF' },  // 5.29:1 (era 3.02)
 }
 
 export default function AtlasPresencia({ estado }: { estado: EstadoSenal }) {

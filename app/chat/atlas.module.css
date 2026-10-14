@@ -27,10 +27,22 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  /* EL MARINO DEL «Customer Success Operating System». Antes era un casi-negro
+     (#070C16) y dirección lo quiso como el documento.
+
+     El hero de ese documento es `linear-gradient(127deg,#0b2d4d,#15537f 72%,
+     #247ba6)`, pero ahí ocupa una BANDA y el claro queda en una esquina. Puesto
+     tal cual sobre una pantalla completa, el #247ba6 se come el cuadrante
+     inferior derecho y el texto base (#E8F0FF) cae a 4.11:1 — por debajo de AA.
+     Medido con el extremo que aprieta, que es como se mide un degradado.
+
+     Así que la MISMA receta con la geometría correcta: el marino #0b2d4d de
+     lienzo, y el barrido claro como radial en la esquina superior derecha,
+     igual que en el documento. Sobre #0b2d4d el texto base mide 11.89:1. */
   background:
-    radial-gradient(1100px 500px at 50% 104%, rgba(56,132,255,0.15), transparent 70%),
-    radial-gradient(820px 400px at 10% -8%, rgba(125,211,252,0.06), transparent 65%),
-    #070C16;
+    radial-gradient(1200px 700px at 88% -6%, rgba(36,123,166,0.55), transparent 62%),
+    radial-gradient(900px 520px at 50% 106%, rgba(21,83,127,0.55), transparent 70%),
+    #0b2d4d;
   color: #E8F0FF;
   /* Firefox ignora ::-webkit-scrollbar; esto es heredable y sí lo entiende. */
   scrollbar-color: rgba(125,211,252,0.30) transparent;
@@ -53,7 +65,9 @@
   z-index: 2;
   /* El degradado deja que los mensajes se desvanezcan al pasar por debajo, en
      vez de cortarse contra un borde duro. */
-  background: linear-gradient(to top, #070C16 62%, rgba(7,12,22,0.92) 82%, transparent);
+  /* Se desvanece hacia el marino del lienzo, no hacia el #070C16 de antes: un
+     sólido del color viejo dejaría una banda casi negra pegada al compositor. */
+  background: linear-gradient(to top, #0b2d4d 62%, rgba(11,45,77,0.92) 82%, transparent);
   padding: 30px 24px 24px;
 }
 
