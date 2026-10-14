@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Sidebar from '@/components/Sidebar'
-import FondoTecnologico from '@/components/FondoTecnologico'
 import PageTracker from '@/components/PageTracker'
 import AvisoPassword from '@/components/AvisoPassword'
 
@@ -32,9 +31,9 @@ export const metadata: Metadata = {
 
 const FORCE_THEME = `
   :root { color-scheme: only light !important; }
-  html, body { background: #EFF6FF !important; color: #0F172A !important; color-scheme: only light !important; }
-  main { background: #EFF6FF !important; }
-  .cp-card { background: #0D1829 !important; color: #ffffff !important; border: 1px solid rgba(255,255,255,0.08) !important; }
+  html, body { background: #F5F8FB !important; color: #202E3B !important; color-scheme: only light !important; }
+  main { background: #F5F8FB !important; }
+  .cp-card { background: #082742 !important; color: #ffffff !important; border: 1px solid rgba(255,255,255,0.08) !important; }
 `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -51,14 +50,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <style dangerouslySetInnerHTML={{ __html: FORCE_THEME }} />
       </head>
-      <body className="flex h-screen overflow-hidden" style={{ background: '#EFF6FF', color: '#0F172A' }}>
+      <body className="flex h-screen overflow-hidden" style={{ background: '#F5F8FB', color: '#202E3B' }}>
         <PageTracker />
         <Sidebar />
-        <main className="flex-1 overflow-y-auto" style={{ background: '#EFF6FF' }}>
-          {/* Fondo tecnológico de toda la aplicación. Va fijo detrás del
-              contenido y no captura el puntero; `.cp-sobre-fondo` levanta lo
-              que se pinta encima. Ver app/globals.css. */}
-          <FondoTecnologico />
+        <main className="flex-1 overflow-y-auto" style={{ background: '#F5F8FB' }}>
+          {/* SIN DIBUJO DE FONDO. Hubo una malla de líneas, luego un
+              electrocardiograma y luego la secuencia de barras de Atlas;
+              dirección las descartó todas: «déjalo limpio sin dibujo ni
+              movimiento de fondo». El fondo es el color y nada más.
+
+              `.cp-sobre-fondo` se queda —es sólo `position:relative` y un
+              `z-index:1`— porque hay pantallas que apilan encima contando
+              con ese contexto. Quitarlo no ahorra nada y puede mover algo. */}
           <div className="cp-sobre-fondo">
             {/* Va antes del contenido y en todas las pantallas: cuando la
                 contrasena vence, el modulo para renovarla queda del otro lado

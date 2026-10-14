@@ -400,82 +400,22 @@ body {
   @page { margin: 16mm; size: A4 portrait; }
 }
 
-/* ═══ Fondo del tablero — LA SECUENCIA ═════════════════════════════════════
-   La misma figura que Atlas lleva en su señal: una secuencia de voz centrada,
-   barras verticales de puntas redondas sobre un eje tenue. Dirección la señaló
-   y pidió eso mismo de fondo, «pero dale vida». Aquí no se detiene nunca.
+/* ═══ SIN FONDO DIBUJADO ═══════════════════════════════════════════════════
+   Aquí vivieron, por este orden, una aurora de manchas, una malla de líneas
+   con nodos, un electrocardiograma y la secuencia de barras de Atlas.
+   Dirección las descartó todas: «déjalo limpio sin dibujo ni movimiento de
+   fondo». El fondo del tablero es el color `#F5F8FB` y nada más.
 
-   SIGUE SIENDO SVG CON ANIMACIÓN CSS: cero JavaScript, cero canvas, cero bucle
-   de repintado. `AtlasSignal` sí usa canvas y está bien ahí —vive en UNA
-   pantalla y sus barras significan algo—, pero esto es el fondo de TODAS y se
-   queda abierto toda la jornada.
-
-   LO ÚNICO QUE SE ANIMA ES `transform`. El compositor lo resuelve sin tocar el
-   layout ni repintar; animar `height` o `y` obligaría a recalcular geometría
-   96 veces por cuadro.
-
-   La franja del encabezado va enmascarada, igual que antes: ahí vive el único
-   texto apoyado sobre el fondo claro y nada debe cruzarlo.
+   EL COLOR SE DECLARA EN DOS SITIOS Y TIENEN QUE DECIR LO MISMO: aquí y en
+   el `FORCE_THEME` que `app/layout.tsx` inyecta en el <head>. Ese bloque va
+   con `!important` y GANA. Se descubrió al quitar el dibujo: el div fijo lo
+   estaba tapando, y debajo el `body` seguía computando el `#EFF6FF` de la
+   paleta anterior. Si se cambia el fondo, se cambian los dos.
    ────────────────────────────────────────────────────────────────────────── */
-.cp-sig {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  background: #F5F8FB;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 200px);
-  mask-image: linear-gradient(to bottom, transparent 0, transparent 96px, #000 200px);
-}
 
-.cp-sig svg { width: 100%; height: 100%; display: block; }
-
-/* El eje. Sostiene la secuencia cuando las barras están bajas, para que el
-   reposo no se lea como pantalla apagada. */
-.cp-sig-eje {
-  stroke: #1D6CAA;
-  stroke-width: 1;
-  opacity: 0.10;
-}
-
-/* LAS BARRAS. El azul del documento; la opacidad la pone cada una en línea,
-   según su sitio en la envolvente.
-
-   `transform-box: fill-box` NO es opcional en SVG: sin él `transform-origin`
-   se mide contra el sistema de coordenadas del lienzo y no contra la propia
-   barra, así que `scaleY` la estiraría desde el borde del SVG en vez de desde
-   su centro — las barras saldrían disparadas hacia abajo. */
-.cp-sig-barras rect {
-  fill: #1D6CAA;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: cp-sig-latido 2.6s ease-in-out infinite;
-  /* `backwards` NO es un adorno. El desfase llega a 1.8s, y durante su espera
-     una barra sin `fill-mode` no tiene `transform` ninguno: se pinta a altura
-     COMPLETA y luego salta a 0.34 cuando por fin arranca. Al cargar la página
-     eso es la tira entera asentándose de golpe, de derecha a izquierda. Con
-     `backwards` cada barra mantiene el fotograma del 0% mientras espera. */
-  animation-fill-mode: backwards;
-  will-change: transform;
-}
-
-/* El latido. No baja de 0.34 porque una barra a cero se lee como hueco, y un
-   hueco en mitad de la secuencia parece un fallo y no reposo. */
-@keyframes cp-sig-latido {
-  0%, 100% { transform: scaleY(0.34); }
-  50%      { transform: scaleY(1); }
-}
-
-/* QUIEN PIDIÓ MENOS MOVIMIENTO RECIBE LA SECUENCIA QUIETA. No es opcional:
-   quien activa `prefers-reduced-motion` suele hacerlo por mareo o vértigo, y
-   una onda que recorre la pantalla sin parar es justo lo que le sienta mal.
-   El dibujo se queda —sigue leyéndose como una secuencia de voz— congelado a
-   media altura, que es su reposo. */
-@media (prefers-reduced-motion: reduce) {
-  .cp-sig-barras rect { animation: none; transform: scaleY(0.62); }
-}
-
-/* El contenido de la aplicación va por encima del fondo. */
+/* `.cp-sobre-fondo` se queda aunque ya no haya fondo que esquivar: es sólo un
+   contexto de apilamiento, y hay pantallas que montan cosas encima contando
+   con él. Quitarlo no ahorra nada y puede mover algo. */
 .cp-sobre-fondo { position: relative; z-index: 1; }
 
 /* ══════════════════════════════════════════════════════════════════════════
