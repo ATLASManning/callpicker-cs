@@ -151,6 +151,9 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 /* ─── Componente principal ───────────────────────────────────────────── */
 export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
   const [activeTab, setActiveTab] = useState<Tab>('resumen')
+  /* Plegado por omisión: el reporte íntegro son miles de caracteres y lo que se
+     consulta a diario es el expediente estructurado, no su fuente. */
+  const [verReporte, setVerReporte] = useState(false)
 
   const estadoColor = ESTADO_COLOR[caso.estado] ?? INDIGO
 
@@ -712,6 +715,46 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
         {/* ── DOCUMENTOS ─────────────────────────────────────────────── */}
         {activeTab === 'documentos' && (
           <>
+            {/* EL REPORTE TAL COMO SE ENTREGÓ.
+             *
+             * `contenido_auditoria` llevaba meses en el repo SIN estar declarado
+             * en `AuditoriaCase`: `ignoreBuildErrors` dejaba pasar la llave y
+             * ninguna sección la leía, así que el texto estaba versionado y no
+             * en la pantalla. Aquí es donde corresponde —esta pestaña es el
+             * material de origen— y va PLEGADO, porque el expediente
+             * estructurado de las otras pestañas es lo que se consulta; esto es
+             * de dónde salió. Ver [[feedback-verificar-antes-asegurar]]. */}
+            {caso.contenido_auditoria && (
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm mb-3">
+                <button
+                  onClick={() => setVerReporte(v => !v)}
+                  className="w-full flex items-center gap-3 text-left"
+                >
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: '#e0e7ff' }}>
+                    <FileText size={20} className="text-indigo-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 text-sm">Reporte íntegro</h3>
+                    <p className="text-xs text-gray-600 mt-1">
+                      El documento entregado, tal cual. El expediente de las
+                      otras pestañas sale de aquí.
+                    </p>
+                  </div>
+                  {verReporte
+                    ? <ChevronUp size={18} className="text-gray-500 flex-shrink-0" />
+                    : <ChevronDown size={18} className="text-gray-500 flex-shrink-0" />}
+                </button>
+                {verReporte && (
+                  <pre className="mt-4 pt-4 border-t border-gray-200 text-xs leading-relaxed
+                                  text-gray-800 whitespace-pre-wrap break-words font-sans
+                                  max-h-[70vh] overflow-y-auto">
+                    {caso.contenido_auditoria}
+                  </pre>
+                )}
+              </div>
+            )}
+
             {caso.documentos && caso.documentos.length > 0 ? (
               <div className="space-y-3">
                 {caso.documentos.map((doc, i) => (
@@ -739,12 +782,15 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : !caso.contenido_auditoria ? (
+              /* El vacío sólo se declara cuando NO hay nada: con el reporte
+                 íntegro arriba, un «no hay documentos» debajo se lee como que
+                 la pestaña está vacía, y no lo está. */
               <div className="bg-gray-50 rounded-xl border border-gray-200 p-8 text-center">
                 <FileText size={32} className="mx-auto text-gray-400 mb-3" />
                 <p className="text-sm text-gray-600">No hay documentos adjuntos para esta auditoría</p>
               </div>
-            )}
+            ) : null}
           </>
         )}
 
