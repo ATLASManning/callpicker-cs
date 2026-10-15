@@ -63,7 +63,7 @@ const TX_LOW = 'rgba(255,255,255,0.48)'
 /** A nivel de PÁGINA: fondo claro, letra oscura. */
 const PAG_HI  = '#122E5E'
 const PAG_MID = '#334155'
-const PAG_LOW = '#64748B'
+const PAG_LOW = '#3D4B5C'
 const PAG_BORDE = '#CBD5E1'
 
 /** Todo texto de color va en un `<span>` que declara su propio `background`:

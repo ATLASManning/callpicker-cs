@@ -14,15 +14,15 @@ const LS_KEY = 'auditoria_casos'
 
 /** El fondo REAL de esta página: `bg-gray-50`, no blanco. Todo tono que caiga
  *  aquí se calcula contra esto — ver `tonoSobreTinte` en `lib/contraste.ts`. */
-const FONDO_PAGINA_AUDITORIA = '#F9FAFB'
+const FONDO_PAGINA_AUDITORIA = '#F5F8FB'
 
 const ESTADO_COLOR: Record<string, string> = {
   en_riesgo:      '#ef4444',
   en_recuperacion:'#f59e0b',
   rescatable:     '#22c55e',
-  activo:         '#6366f1',
-  recuperado:     '#3b82f6',
-  perdido:        '#6b7280',
+  activo:         '#082742',
+  recuperado:     '#1D6CAA',
+  perdido:        '#667384',
 }
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -97,7 +97,7 @@ export default function AuditoriaPage() {
     ? openFolder
     : grouped[0]?.estado ?? null
   const casosVisibles = grouped.find(g => g.estado === estadoActivo)?.cases ?? []
-  const colorActivo = ESTADO_COLOR[estadoActivo ?? ''] ?? '#6366f1'
+  const colorActivo = ESTADO_COLOR[estadoActivo ?? ''] ?? '#082742'
 
   const handleSave = (newCase: AuditoriaCase) => {
     const id = userCases.some(c => c.id === newCase.id)
@@ -120,7 +120,7 @@ export default function AuditoriaPage() {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+    <div className="cp-doc flex flex-col h-full overflow-hidden bg-gray-50">
       {/* ── LOS ESTADOS, EN HORIZONTAL Y FRENTE AL TÍTULO ───────────────
        *
        * Instrucción de dirección, 9 oct 2026: «colócalas de manera horizontal
@@ -143,7 +143,7 @@ export default function AuditoriaPage() {
         actions={
           <div className="flex flex-wrap items-center gap-1.5 justify-end">
             {grouped.map(({ estado, cases }) => {
-              const color  = ESTADO_COLOR[estado] ?? '#6366f1'
+              const color  = ESTADO_COLOR[estado] ?? '#082742'
               const activo = openFolder === estado
               return (
                 <button
@@ -164,7 +164,7 @@ export default function AuditoriaPage() {
                   <span style={{
                     width: 8, height: 8, borderRadius: 999, flexShrink: 0,
                     /* El punto NO va con el color crudo: medido el 9 oct, el
-                       ámbar daba 2.06:1 contra el `#F9FAFB` de la página y el
+                       ámbar daba 2.06:1 contra el `#F5F8FB` de la página y el
                        verde 2.18:1, cuando un objeto gráfico pide 3:1. Se
                        oscurece lo justo; el relleno de la pastilla conserva el
                        tono original, que es lo que comunica. */
@@ -230,7 +230,7 @@ export default function AuditoriaPage() {
                     onClick={() => setSelectedId(c.id)}
                     className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors rounded-r-lg"
                     style={active
-                      ? { background: '#1B3FCC12', borderLeft: '3px solid #1B3FCC' }
+                      ? { background: '#10355D12', borderLeft: '3px solid #10355D' }
                       : { borderLeft: '3px solid transparent' }
                     }
                   >
@@ -245,7 +245,7 @@ export default function AuditoriaPage() {
                     <div className="flex flex-col min-w-0 flex-1">
                       <p
                         className="text-xs font-medium truncate"
-                        style={{ color: active ? '#1B3FCC' : '#374151' }}
+                        style={{ color: active ? '#10355D' : '#202E3B' }}
                       >
                         {c.nombre}
                       </p>
@@ -277,7 +277,7 @@ export default function AuditoriaPage() {
             <button
               onClick={() => setShowForm(true)}
               className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: '#1B3FCC' }}
+              style={{ background: '#10355D' }}
             >
               <Plus size={12} />
               Nueva Auditoría

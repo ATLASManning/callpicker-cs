@@ -146,13 +146,13 @@ export default async function AsesoresPage() {
       <ColaDeTrabajoAsesor
         asesor={quien}
         alertas={alertasDe(v, quien)}
-        acento={ASESOR_CONFIG[quien]?.color ?? '#3B82F6'}
+        acento={ASESOR_CONFIG[quien]?.color ?? '#1D6CAA'}
       />
     )
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="cp-doc min-h-screen">
       <AutoRefresh intervalMs={300_000} showIndicator={false} />
 
       <PageHeader

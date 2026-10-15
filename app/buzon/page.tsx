@@ -35,7 +35,7 @@ import { hoyLocal } from '@/lib/fecha-local'
 type CuentaOpcion = { id: string; consecutivo: string | null; cid: string | null; empresa: string; asesor: string | null }
 type Pestana = 'registrar' | 'solicitudes' | 'temas'
 
-const AZUL = '#1B3FCC'
+const AZUL = '#10355D'
 /* Antes usaba toISOString(), que da la fecha en UTC: después de las 18:00
    locales sellaba con el día siguiente. Ver lib/fecha-local.ts. */
 const hoyISO = () => hoyLocal()
@@ -157,9 +157,9 @@ export default function BuzonPage() {
       <div style={{ textAlign: 'center', marginBottom: 26 }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <Inbox size={26} style={{ color: AZUL }} />
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0F172A', margin: 0 }}>Buzón del Cliente</h1>
+          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#082742', margin: 0 }}>Buzón del Cliente</h1>
         </div>
-        <p style={{ fontSize: 13, color: '#64748B', maxWidth: 700, margin: '0 auto', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: '#3D4B5C', maxWidth: 700, margin: '0 auto', lineHeight: 1.6 }}>
           Lo que los clientes piden sobre servicios y procesos. Se registra aunque no se pueda resolver:
           la solicitud que no se anota es la que nadie vuelve a ver, y el patrón solo aparece cuando están todas.
         </p>
@@ -181,14 +181,14 @@ export default function BuzonPage() {
            ['temas', `Qué piden (${temas.length})`, Layers]] as const).map(([k, lbl, Icon]) => (
           <button key={k} onClick={() => setTab(k)} style={{
             display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 10,
-            border: `1.5px solid ${tab === k ? AZUL : '#E2E8F0'}`,
-            background: tab === k ? AZUL : '#fff', color: tab === k ? '#fff' : '#475569',
+            border: `1.5px solid ${tab === k ? AZUL : '#DFE8EF'}`,
+            background: tab === k ? AZUL : '#fff', color: tab === k ? '#fff' : '#202E3B',
             cursor: 'pointer', fontSize: 13, fontWeight: 700,
           }}><Icon size={15} /> {lbl}</button>
         ))}
         <button onClick={cargar} title="Recargar" style={{
-          padding: '9px 12px', borderRadius: 10, border: '1.5px solid #E2E8F0',
-          background: '#fff', color: '#475569', cursor: 'pointer',
+          padding: '9px 12px', borderRadius: 10, border: '1.5px solid #DFE8EF',
+          background: '#fff', color: '#202E3B', cursor: 'pointer',
         }}><RefreshCw size={15} className={cargando ? 'animate-spin' : ''} /></button>
       </div>
 
@@ -286,12 +286,12 @@ export default function BuzonPage() {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 6 }}>
             <button onClick={guardar} disabled={guardando} style={{
               display: 'flex', alignItems: 'center', gap: 8, padding: '11px 28px', borderRadius: 10,
-              border: 'none', background: guardando ? '#94A3B8' : AZUL, color: '#fff',
+              border: 'none', background: guardando ? '#667384' : AZUL, color: '#fff',
               cursor: guardando ? 'default' : 'pointer', fontSize: 14, fontWeight: 700,
             }}><Send size={15} /> {guardando ? 'Guardando…' : 'Registrar solicitud'}</button>
             <button onClick={() => { setForm({ ...VACIO }); setAviso(null) }} style={{
-              padding: '11px 20px', borderRadius: 10, border: '1.5px solid #E2E8F0',
-              background: '#fff', color: '#475569', cursor: 'pointer', fontSize: 14, fontWeight: 600,
+              padding: '11px 20px', borderRadius: 10, border: '1.5px solid #DFE8EF',
+              background: '#fff', color: '#202E3B', cursor: 'pointer', fontSize: 14, fontWeight: 600,
             }}>Limpiar</button>
           </div>
         </Tarjeta>
@@ -304,12 +304,12 @@ export default function BuzonPage() {
             justifyContent: 'center', marginBottom: 16,
           }}>
             <div style={{ position: 'relative', minWidth: 240 }}>
-              <Search size={14} style={{ position: 'absolute', left: 11, top: 12, color: '#94A3B8' }} />
+              <Search size={14} style={{ position: 'absolute', left: 11, top: 12, color: '#667384' }} />
               <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
                 placeholder="Buscar cliente, CID, solicitud o tema…"
                 style={{
                   width: '100%', padding: '9px 12px 9px 32px', borderRadius: 9,
-                  border: '1.5px solid #E2E8F0', fontSize: 13, color: '#0F172A', background: '#fff',
+                  border: '1.5px solid #DFE8EF', fontSize: 13, color: '#082742', background: '#fff',
                 }} />
             </div>
             <CustomSelect value={fArea} onChange={setFArea} placeholder="Todas las áreas"
@@ -343,13 +343,13 @@ export default function BuzonPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {temas.map(t => (
                 <div key={t.tema} style={{
-                  border: '1px solid #E2E8F0', borderRadius: 11, padding: '13px 16px', background: '#fff',
+                  border: '1px solid #DFE8EF', borderRadius: 11, padding: '13px 16px', background: '#fff',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', flex: 1 }}>{t.tema}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: '#082742', flex: 1 }}>{t.tema}</span>
                     <Pastilla texto={`${t.clientes} cliente${t.clientes === 1 ? '' : 's'}`}
-                      color={t.clientes >= 3 ? '#B45309' : '#475569'} fuerte={t.clientes >= 3} />
-                    <Pastilla texto={`${t.solicitudes} solicitud${t.solicitudes === 1 ? '' : 'es'}`} color="#64748B" />
+                      color={t.clientes >= 3 ? '#B45309' : '#202E3B'} fuerte={t.clientes >= 3} />
+                    <Pastilla texto={`${t.solicitudes} solicitud${t.solicitudes === 1 ? '' : 'es'}`} color="#3D4B5C" />
                     {t.alta > 0 && <Pastilla texto={`${t.alta} de alta prioridad`} color="#DC2626" />}
                     {t.abiertas > 0 && <Pastilla texto={`${t.abiertas} abierta${t.abiertas === 1 ? '' : 's'}`} color="#D97706" />}
                   </div>
@@ -363,7 +363,7 @@ export default function BuzonPage() {
                   </div>
                   <ul style={{ margin: '9px 0 0', paddingLeft: 17 }}>
                     {t.ejemplos.map((x, i) => (
-                      <li key={i} style={{ fontSize: 11.5, color: '#64748B', lineHeight: 1.6 }}>{x}</li>
+                      <li key={i} style={{ fontSize: 11.5, color: '#3D4B5C', lineHeight: 1.6 }}>{x}</li>
                     ))}
                   </ul>
                   {t.clientes >= 3 && (
@@ -389,13 +389,13 @@ function Kpi({ icon: Icon, label, valor, color, nota }: {
 }) {
   return (
     <div style={{
-      background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12,
+      background: '#fff', border: '1px solid #DFE8EF', borderRadius: 12,
       padding: '13px 16px', textAlign: 'center',
     }}>
       <Icon size={16} style={{ color, marginBottom: 4 }} />
       <p style={{ fontSize: 24, fontWeight: 800, color, margin: '0 0 2px' }}>{valor}</p>
-      <p style={{ fontSize: 11, color: '#64748B', margin: 0, fontWeight: 600 }}>{label}</p>
-      {nota && <p style={{ fontSize: 9.5, color: '#94A3B8', margin: '3px 0 0', lineHeight: 1.4 }}>{nota}</p>}
+      <p style={{ fontSize: 11, color: '#3D4B5C', margin: 0, fontWeight: 600 }}>{label}</p>
+      {nota && <p style={{ fontSize: 9.5, color: '#667384', margin: '3px 0 0', lineHeight: 1.4 }}>{nota}</p>}
     </div>
   )
 }
@@ -403,13 +403,13 @@ function Kpi({ icon: Icon, label, valor, color, nota }: {
 function Tarjeta({ titulo, sub, children }: { titulo: string; sub?: string; children: React.ReactNode }) {
   return (
     <div style={{
-      background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14,
+      background: '#fff', border: '1px solid #DFE8EF', borderRadius: 14,
       padding: '22px 26px', maxWidth: 880, margin: '0 auto',
       display: 'flex', flexDirection: 'column', gap: 14,
     }}>
       <div style={{ textAlign: 'center', marginBottom: 2 }}>
-        <p style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>{titulo}</p>
-        {sub && <p style={{ fontSize: 11.5, color: '#64748B', margin: 0, lineHeight: 1.6 }}>{sub}</p>}
+        <p style={{ fontSize: 15, fontWeight: 700, color: '#082742', margin: '0 0 4px' }}>{titulo}</p>
+        {sub && <p style={{ fontSize: 11.5, color: '#3D4B5C', margin: 0, lineHeight: 1.6 }}>{sub}</p>}
       </div>
       {children}
     </div>
@@ -423,14 +423,14 @@ function Campo({ etiqueta: et, ayuda, ancho, children }: {
     <div style={{ gridColumn: ancho === 'full' ? '1 / -1' : undefined }}>
       <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>{et}</label>
       {children}
-      {ayuda && <p style={{ fontSize: 10.5, color: '#94A3B8', margin: '4px 0 0', lineHeight: 1.5 }}>{ayuda}</p>}
+      {ayuda && <p style={{ fontSize: 10.5, color: '#667384', margin: '4px 0 0', lineHeight: 1.5 }}>{ayuda}</p>}
     </div>
   )
 }
 
 const ESTILO_ENTRADA: React.CSSProperties = {
-  width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #E2E8F0',
-  fontSize: 13, color: '#0F172A', background: '#fff', fontFamily: 'inherit',
+  width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #DFE8EF',
+  fontSize: 13, color: '#082742', background: '#fff', fontFamily: 'inherit',
 }
 
 function Entrada({ value, onChange, placeholder, tipo = 'text', lista }: {
@@ -468,7 +468,7 @@ function Pastilla({ texto, color, fuerte }: { texto: string; color: string; fuer
 function Vacio({ texto }: { texto: string }) {
   return (
     <p style={{
-      textAlign: 'center', fontSize: 12.5, color: '#94A3B8', lineHeight: 1.7,
+      textAlign: 'center', fontSize: 12.5, color: '#667384', lineHeight: 1.7,
       maxWidth: 560, margin: '26px auto', padding: '0 12px',
     }}>{texto}</p>
   )
@@ -482,17 +482,17 @@ function Renglon({ e, hoy, onParchar }: {
   const dias = diasEnCurso(e, hoy)
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ background: '#fff', border: '1px solid #DFE8EF', borderRadius: 12, overflow: 'hidden' }}>
       <div onClick={() => setAbierto(o => !o)} style={{ padding: '13px 16px', cursor: 'pointer' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 320px', minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>{e.cliente}</span>
-              {e.cid && <span style={{ fontSize: 10.5, color: '#64748B' }}>CID {e.cid}</span>}
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#082742' }}>{e.cliente}</span>
+              {e.cid && <span style={{ fontSize: 10.5, color: '#3D4B5C' }}>CID {e.cid}</span>}
             </div>
             <p style={{ fontSize: 12.5, color: '#334155', margin: 0, lineHeight: 1.55 }}>{e.solicitud}</p>
             {e.tema && (
-              <p style={{ fontSize: 10.5, color: '#64748B', margin: '4px 0 0' }}>
+              <p style={{ fontSize: 10.5, color: '#3D4B5C', margin: '4px 0 0' }}>
                 <Layers size={10} style={{ display: 'inline', marginRight: 4, verticalAlign: '-1px' }} />
                 {e.tema}
               </p>
@@ -503,7 +503,7 @@ function Renglon({ e, hoy, onParchar }: {
               fuerte={e.prioridad === 'alta'} />
             <Pastilla texto={etiqueta(AREAS, e.area)} color={colorDe(AREAS, e.area)} />
             <Pastilla texto={etiqueta(ESTADOS, e.estado)} color={colorDe(ESTADOS, e.estado)} />
-            <span style={{ fontSize: 10.5, color: '#94A3B8', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 10.5, color: '#667384', whiteSpace: 'nowrap' }}>
               {etiqueta(CANALES, e.canal)} · {dias}d
             </span>
           </div>
@@ -521,7 +521,7 @@ function Renglon({ e, hoy, onParchar }: {
       </div>
 
       {abierto && (
-        <div style={{ borderTop: '1px solid #F1F5F9', padding: '14px 16px', background: '#F8FAFC' }}>
+        <div style={{ borderTop: '1px solid #F5F8FB', padding: '14px 16px', background: '#F5F8FB' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 12 }}>
             <Dato label="Solicitada"    valor={e.fecha_solicitud} />
             <Dato label="Comprometida"  valor={e.fecha_compromiso ?? 'sin fecha comprometida'} />
@@ -532,7 +532,7 @@ function Renglon({ e, hoy, onParchar }: {
 
           {e.seguimiento && (
             <div style={{ marginBottom: 12 }}>
-              <p style={{ fontSize: 10.5, fontWeight: 700, color: '#64748B', margin: '0 0 3px' }}>SEGUIMIENTO</p>
+              <p style={{ fontSize: 10.5, fontWeight: 700, color: '#3D4B5C', margin: '0 0 3px' }}>SEGUIMIENTO</p>
               <p style={{ fontSize: 12, color: '#334155', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{e.seguimiento}</p>
             </div>
           )}
@@ -544,7 +544,7 @@ function Renglon({ e, hoy, onParchar }: {
           )}
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Mover a:</span>
+            <span style={{ fontSize: 11, color: '#3D4B5C', fontWeight: 600 }}>Mover a:</span>
             {ESTADOS.filter(s => s.v !== e.estado).map(s => (
               <button key={s.v}
                 onClick={() => {
@@ -588,7 +588,7 @@ function Renglon({ e, hoy, onParchar }: {
 function Dato({ label, valor }: { label: string; valor: string }) {
   return (
     <div>
-      <p style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', margin: '0 0 2px' }}>{label.toUpperCase()}</p>
+      <p style={{ fontSize: 10, fontWeight: 700, color: '#667384', margin: '0 0 2px' }}>{label.toUpperCase()}</p>
       <p style={{ fontSize: 12, color: '#334155', margin: 0 }}>{valor}</p>
     </div>
   )

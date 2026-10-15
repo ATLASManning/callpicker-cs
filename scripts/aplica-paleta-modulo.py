@@ -1,0 +1,193 @@
+# -*- coding: utf-8 -*-
+u"""Lleva un MODULO DE ISLA CLARA a la paleta del Customer Success Operating System.
+
+   Generaliza `aplica-paleta-tickets.py`, que estaba clavado a un archivo.
+   Encargo de direccion, 15 oct 2026: Churn y «todos los modulos».
+
+   HACE DOS COSAS
+   --------------
+   1. Pone `cp-doc` en el contenedor raiz, que es la llave de la capa de
+      globals.css: sin ella las clases Tailwind del archivo siguen con los
+      grises y azules de Tailwind, y compila igual — no falla nada, se ve mal.
+   2. Sustituye los hex sueltos del JSX, que ninguna capa CSS alcanza.
+
+   SOLO PARA MODULOS SIN `.cp-card`
+   --------------------------------
+   Un archivo con `.cp-card` pinta islas OSCURAS y ahi el texto va CLARO:
+   oscurecerlo lo vuelve ilegible. El guion lo comprueba y se niega.
+   `scripts/mide-paleta-modulos.py` dice cual es cual.
+
+   REEMPLAZO CONTADO: cada hex se cuenta antes y despues. Si un archivo no
+   queda limpio, se dice. Nada silencioso.
+
+   USO
+       python scripts/aplica-paleta-modulo.py churn --simulacro
+       python scripts/aplica-paleta-modulo.py churn
+       python scripts/aplica-paleta-modulo.py --todos
+"""
+import io
+import os
+import re
+import sys
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+#: Los modulos de ISLA CLARA pendientes al 15 oct 2026.
+#:
+#: `chat` y `base-cs` se quedan FUERA a proposito: son las pantallas de Atlas,
+#: que tienen su propio CSS con fondo oscuro aunque no usen la clase
+#: `.cp-card`. Aplicarles la capa clara les oscureceria el texto sobre un fondo
+#: ya oscuro. Van por su cuenta.
+CLAROS = ['churn', 'customer-tenure', 'admin/usuarios', 'buzon', 'auditoria',
+          'analisis-llamadas', 'alertas', 'asesores', 'seguimiento']
+
+#: (viejo, nuevo, por que). El mismo mapeo medido para Tickets con
+#: `scripts/mide-paleta-tickets.py`, contra las DOS superficies claras.
+REGLAS = [
+    ('#1B3FCC', '#10355D', u'azul electrico -> --navy'),
+    ('#2563EB', '#10355D', u'azul 600 -> --navy'),
+    ('#1E40AF', '#10355D', u'azul 800 -> --navy'),
+    ('#3b82f6', '#1D6CAA', u'azul de series -> --blue'),
+    ('#8b5cf6', '#10355D', u'morado: el documento no tiene morado'),
+    ('#6366f1', '#082742', u'indigo -> --navy2'),
+    ('#0f172a', '#082742', u'casi negro -> --navy2'),
+    ('#7dd3fc', '#8AD7F8', u'cian claro, para texto sobre marino'),
+    ('#E2E8F0', '#DFE8EF', u'lineas -> --line'),
+    ('#E5E7EB', '#DFE8EF', u'lineas -> --line'),
+    ('#D1D5DB', '#DFE8EF', u'lineas -> --line'),
+    ('#F8FAFC', '#F5F8FB', u'superficie -> --wash'),
+    ('#F1F5F9', '#F5F8FB', u'superficie -> --wash'),
+    ('#F3F4F6', '#F5F8FB', u'superficie -> --wash'),
+    ('#F9FAFB', '#F5F8FB', u'superficie -> --wash'),
+    ('#EFF6FF', '#F5F8FB', u'el lavado de la paleta anterior'),
+    ('#475569', '#202E3B', u'texto alto -> --ink'),
+    ('#374151', '#202E3B', u'texto alto -> --ink'),
+    ('#64748B', '#3D4B5C', u'texto medio'),
+    ('#6b7280', '#667384', u'texto bajo'),
+    ('#94a3b8', '#667384', u'texto bajo'),
+    ('#9ca3af', '#667384', u'texto bajo'),
+    ('#DBEAFE', '#DFE8EF', u'azul claro de Tailwind -> plata'),
+    ('#BFDBFE', '#A8BACB', u'azul claro de Tailwind -> plata'),
+]
+
+
+def ruta_de(mod):
+    return os.path.join(RAIZ, 'app', *mod.split('/'), 'page.tsx')
+
+
+def sin_comentarios(src):
+    hueco = lambda m: re.sub(r'[^\n]', ' ', m.group(0))
+    return re.sub(r'//[^\n]*', hueco, re.sub(r'/\*[\s\S]*?\*/', hueco, src))
+
+
+def pon_la_clase(src):
+    u"""Mete `cp-doc` en el contenedor raiz del COMPONENTE EXPORTADO.
+
+    ── EL ERROR QUE COSTO UNA RONDA ──────────────────────────────────────────
+    La primera version buscaba el PRIMER `return (` del archivo. En `churn`
+    —3,384 lineas con ocho componentes— ese primer return es el de un `<span>`
+    auxiliar de la linea 1824, no el de la pagina, que esta en la 2415. La
+    clase se puso en una pastilla y la pantalla entera siguio sin capa: el
+    guion decia «puesta» y en el DOM no habia ninguna `.cp-doc`.
+
+    Se ancla al `export default function`, que es el unico contenedor que
+    envuelve el modulo entero.
+    """
+    if re.search(r'className="[^"]*\bcp-doc\b', src):
+        return src, u'ya la tenia'
+    # `async` incluido: tres modulos exportan `export default async function`.
+    exp = re.search(r'export default (?:async )?function', src)
+    if not exp:
+        return src, u'*** sin export default'
+    m = re.search(r'return \(\s*\n\s*<(\w+)([^>]*?)className="', src[exp.start():])
+    if m:
+        # Las posiciones son relativas al trozo: se devuelven al archivo.
+        corte = exp.start() + m.end()
+        return src[:corte] + 'cp-doc ' + src[corte:], u'puesta'
+    m = None
+    if not m:
+        # No es un fallo si el modulo no usa NI UNA clase Tailwind de color:
+        # entonces la capa no tiene nada que remapear y sobra. Pasa en buzon,
+        # analisis-llamadas y alertas, que pintan todo con estilos en linea.
+        clases = re.search(
+            r'\b(bg|text|border)-(gray|slate|blue|indigo)-\d{2,3}\b',
+            sin_comentarios(src))
+        if not clases:
+            return src, u'no hace falta'
+        return src, u'*** no encuentro el contenedor raiz'
+    corte = m.end()
+    return src[:corte] + 'cp-doc ' + src[corte:], u'puesta'
+
+
+def aplica(mod, simulacro):
+    ruta = ruta_de(mod)
+    if not os.path.exists(ruta):
+        print(u'  %-20s *** no existe %s' % (mod, ruta))
+        return False
+    src = io.open(ruta, encoding='utf-8').read()
+
+    if 'cp-card' in sin_comentarios(src):
+        print(u'  %-20s *** TIENE `.cp-card`: es isla OSCURA, no se toca aqui' % mod)
+        return False
+
+    antes = src
+    src, nota = pon_la_clase(src)
+    cambios = []
+    for viejo, nuevo, porque in REGLAS:
+        # LOS TINTES CON ALFA TAMBIEN. `#1B3FCC10` es el mismo color con un
+        # `10` de opacidad pegado detras, y la frontera `(?![0-9a-fA-F])` lo
+        # dejaba fuera: en Churn sobrevivieron dos --el fondo y el borde de la
+        # semana seleccionada-- y se veian en pantalla en el azul de antes.
+        # Se captura el sufijo y se devuelve tal cual tras el color nuevo.
+        pat_alfa = re.escape(viejo) + r'([0-9a-fA-F]{2})\b'
+        n_alfa = len(re.findall(pat_alfa, sin_comentarios(src), re.I))
+        if n_alfa:
+            src = re.sub(pat_alfa, nuevo + r'\1', src, flags=re.I)
+            cambios.append((viejo + 'XX', nuevo + 'XX', n_alfa,
+                            porque + u' (tinte con alfa)'))
+        pat = re.escape(viejo) + r'(?![0-9a-fA-F])'
+        n = len(re.findall(pat, sin_comentarios(src), re.I))
+        if not n:
+            continue
+        src = re.sub(pat, nuevo, src, flags=re.I)
+        cambios.append((viejo, nuevo, n, porque))
+
+    total = sum(c[2] for c in cambios)
+    print(u'  %-20s clase: %-12s  %3d sustitucion(es)' % (mod, nota, total))
+    for viejo, nuevo, n, porque in cambios:
+        print(u'      %-9s -> %-9s x%-3d %s' % (viejo, nuevo, n, porque))
+
+    # Lo que QUEDA, que es el veredicto: un hex viejo superviviente se dice.
+    restos = {}
+    limpio = sin_comentarios(src)
+    for viejo, _n, _p in REGLAS:
+        q = len(re.findall(re.escape(viejo) + r'(?![0-9a-fA-F])', limpio, re.I))
+        if q:
+            restos[viejo] = q
+    if restos:
+        print(u'      *** QUEDAN: %s' % restos)
+
+    if simulacro or src == antes:
+        return True
+    io.open(ruta, 'w', encoding='utf-8', newline='').write(src)
+    return True
+
+
+def main():
+    simulacro = '--simulacro' in sys.argv
+    args = [a for a in sys.argv[1:] if not a.startswith('--')]
+    mods = CLAROS if ('--todos' in sys.argv or not args) else args
+
+    print(u'\n  PALETA DEL DOCUMENTO -> %d modulo(s) de isla clara' % len(mods))
+    print(u'  ' + u'=' * 72)
+    if simulacro:
+        print(u'  SIMULACRO: no se escribe nada\n')
+    ok = sum(1 for m in mods if aplica(m, simulacro))
+    print(u'  ' + u'-' * 72)
+    print(u'  %d de %d modulo(s) tratados%s\n'
+          % (ok, len(mods), u' (simulacro)' if simulacro else u''))
+
+
+if __name__ == '__main__':
+    main()

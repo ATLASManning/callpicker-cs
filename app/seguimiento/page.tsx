@@ -596,7 +596,7 @@ export default async function SeguimientoPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen pb-16">
+    <div className="cp-doc min-h-screen pb-16">
       <AutoRefresh intervalMs={300_000} showIndicator={false} />
 
       <PageHeader
@@ -652,7 +652,7 @@ export default async function SeguimientoPage() {
 
           const semPills = [
             { v: verde,    c: '#22C55E', l: 'Saludable'   },
-            { v: azul,     c: '#3B82F6', l: 'Estable'     },
+            { v: azul,     c: '#1D6CAA', l: 'Estable'     },
             { v: amarillo, c: '#EAB308', l: 'Observación' },
             { v: naranja,  c: '#F97316', l: 'En Riesgo'   },
             { v: rojo,     c: '#EF4444', l: 'Riesgo Alto' },

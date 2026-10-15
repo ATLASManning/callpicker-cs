@@ -51,7 +51,7 @@ interface Datos {
 }
 
 /* ── Paleta y formato ──────────────────────────────────────────────────── */
-const BLU = '#1B3FCC', IND = '#6366f1', GRY = '#94a3b8', RED = '#ef4444', AMB = '#f59e0b'
+const BLU = '#10355D', IND = '#082742', GRY = '#667384', RED = '#ef4444', AMB = '#f59e0b'
 /* El azul de marca tiene DOS trabajos en esta pantalla y no sirve para los
    dos. `BLU` cae bien sobre la página clara —el spinner, los botones de
    dirección— y se hunde dentro de la isla oscura `#0D1829`: 2.23:1, que es
@@ -107,20 +107,20 @@ export default function AnalisisLlamadas() {
   if (!filtros) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', flexDirection: 'column', gap: 12 }}>
       <RefreshCw size={26} style={{ color: BLU, animation: 'spin 1s linear infinite' }} />
-      <p style={{ color: '#64748B', fontSize: 13 }}>Cargando análisis de llamadas…</p>
+      <p style={{ color: '#3D4B5C', fontSize: 13 }}>Cargando análisis de llamadas…</p>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 
   const m = filtros.meta
   return (
-    <div style={{ padding: '26px 30px', background: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '26px 30px', background: '#F5F8FB', minHeight: '100vh' }}>
 
       {/* ── Encabezado ───────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 18, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', margin: 0 }}>Análisis de Llamadas</h1>
-          <p style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#082742', margin: 0 }}>Análisis de Llamadas</h1>
+          <p style={{ fontSize: 12, color: '#202E3B', marginTop: 4 }}>
             {nf(m.entTotal + m.salTotal)} llamadas de {m.cuentas} cuentas · {fechaCorta(m.desde)} al {fechaCorta(m.corte)}
           </p>
         </div>
@@ -133,11 +133,11 @@ export default function AnalisisLlamadas() {
                  2.15:1: los dos botones se ven iguales, pero uno era legible y
                  el otro no. Azul y ámbar no pesan lo mismo, y por eso el tono
                  se calcula contra el blanco del texto en vez de elegirse. */
-              border: `1.5px solid ${dir === k ? (k === 'ent' ? BLU : AMB) : '#e2e8f0'}`,
+              border: `1.5px solid ${dir === k ? (k === 'ent' ? BLU : AMB) : '#DFE8EF'}`,
               background: dir === k
                 ? (k === 'ent' ? BLU : tonoSobreFondo(AMB, '#FFFFFF', 4.5))
                 : '#fff',
-              color: dir === k ? '#fff' : '#475569', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+              color: dir === k ? '#fff' : '#202E3B', cursor: 'pointer', fontSize: 13, fontWeight: 700,
             }}>
               <Icon size={14} /> {lbl}
             </button>
@@ -176,20 +176,20 @@ export default function AnalisisLlamadas() {
         </Campo>
         {(cid || mes || ases) && (
           <button onClick={() => { setCid(''); setMes(''); setAses('') }} style={{
-            padding: '9px 14px', borderRadius: 10, border: '1.5px solid #e2e8f0', background: '#fff',
-            color: '#475569', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            padding: '9px 14px', borderRadius: 10, border: '1.5px solid #DFE8EF', background: '#fff',
+            color: '#202E3B', cursor: 'pointer', fontSize: 12, fontWeight: 600,
           }}>Limpiar</button>
         )}
       </div>
 
-      {cargando && <p style={{ fontSize: 12, color: '#64748B', marginBottom: 10 }}>Calculando…</p>}
+      {cargando && <p style={{ fontSize: 12, color: '#3D4B5C', marginBottom: 10 }}>Calculando…</p>}
 
       {d && (
         <>
           {/* ── KPIs ───────────────────────────────────────────────── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12, marginBottom: 16 }}>
             {/* El acento del KPI se pinta DENTRO de la isla oscura, así que
-                aquí el azul de marca no sirve: `BLU` (#1B3FCC) sobre #0D1829
+                aquí el azul de marca no sirve: `BLU` (#10355D) sobre #0D1829
                 daba 2.23:1 en el número grande, que es el dato principal de la
                 pantalla y además el estado por omisión. `#60A5FA` es el azul
                 que globals.css ya usa para los enlaces de tarjeta oscura. */}
@@ -207,7 +207,7 @@ export default function AnalisisLlamadas() {
           </div>
 
           {cuentaSel && (
-            <p style={{ fontSize: 11, color: '#475569', marginBottom: 14 }}>
+            <p style={{ fontSize: 11, color: '#202E3B', marginBottom: 14 }}>
               <strong>{cuentaSel.empresa}</strong> · CID {cuentaSel.cid}
               {cuentaSel.consecutivo && ` · ${cuentaSel.consecutivo}`} · asesor {cuentaSel.asesor} ·
               entrega de {cuentaSel.corte === '0-40' ? 'consumo 0 a 40% del plan' : 'consumo mayor al 40%'}
@@ -333,7 +333,7 @@ export default function AnalisisLlamadas() {
                            ese azul mide 7.08:1. Cambiar el fondo obliga a
                            mirar el texto — es la trampa que ya costó el
                            mosaico de /alertas. */
-                        color: orden === k ? '#0F172A' : 'rgba(255,255,255,0.6)',
+                        color: orden === k ? '#082742' : 'rgba(255,255,255,0.6)',
                       }}>{lbl}</button>
                     ))}
                   </div>
@@ -368,7 +368,7 @@ export default function AnalisisLlamadas() {
           </div>
 
           {/* ── Pie de método ──────────────────────────────────────── */}
-          <p style={{ fontSize: 10, color: '#64748B', lineHeight: 1.7, marginTop: 16 }}>
+          <p style={{ fontSize: 10, color: '#3D4B5C', lineHeight: 1.7, marginTop: 16 }}>
             Dos entregas con criterio distinto y cero CIDs en común: clientes con consumo de 0 a 40% de su plan
             y el resto de la cartera medida. Juntas cubren {m.cuentas} de las 219 cuentas con asesor y CID.
             «Sin contestar» = entró la llamada y ninguna extensión la tomó. «Atendidas» = la tomó una persona;
@@ -389,7 +389,7 @@ export default function AnalisisLlamadas() {
 function Campo({ label, ancho, children }: { label: string; ancho: number; children: React.ReactNode }) {
   return (
     <div style={{ width: ancho }}>
-      <p style={{ fontSize: 10, fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</p>
+      <p style={{ fontSize: 10, fontWeight: 700, color: '#3D4B5C', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</p>
       {children}
     </div>
   )
@@ -403,7 +403,7 @@ function Kpi({ label, valor, sub, color, icon: Icon }: {
       <Icon size={13} style={{ color, marginBottom: 6 }} />
       <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 3 }}>{label}</p>
       <p style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1 }}>{valor}</p>
-      <p style={{ fontSize: 9, color: '#94a3b8', marginTop: 4 }}>{sub}</p>
+      <p style={{ fontSize: 9, color: '#667384', marginTop: 4 }}>{sub}</p>
     </div>
   )
 }
@@ -473,7 +473,7 @@ function SerieMensual({ serie, esEnt, corte }: { serie: Serie[]; esEnt: boolean;
           )
         })}
       </svg>
-      <p style={{ fontSize: 9, color: '#94a3b8', marginTop: 4 }}>
+      <p style={{ fontSize: 9, color: '#667384', marginTop: 4 }}>
         «·p» marca el mes parcial: el archivo corta a media marcha y su volumen no es comparable con un mes completo.
       </p>
     </>
@@ -585,7 +585,7 @@ function SerieDiaria({ dia }: { dia: { f: string; t: number; l: number }[] }) {
 function Tabla({ cabeceras, filas, destacarUltima, fijarUltima }: {
   cabeceras: string[]; filas: (string | number)[][]; destacarUltima?: boolean; fijarUltima?: boolean
 }) {
-  if (!filas.length) return <p style={{ fontSize: 11, color: '#94a3b8' }}>Sin datos para este filtro.</p>
+  if (!filas.length) return <p style={{ fontSize: 11, color: '#667384' }}>Sin datos para este filtro.</p>
   return (
     <div style={{ overflowX: 'auto', maxHeight: 340, overflowY: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
@@ -594,7 +594,7 @@ function Tabla({ cabeceras, filas, destacarUltima, fijarUltima }: {
             {cabeceras.map((c, i) => (
               <th key={c} style={{
                 padding: '6px 8px', textAlign: i === 0 || i === 1 ? 'left' : 'right',
-                color: '#94a3b8', fontWeight: 700, fontSize: 10, whiteSpace: 'nowrap',
+                color: '#667384', fontWeight: 700, fontSize: 10, whiteSpace: 'nowrap',
                 borderBottom: '1px solid rgba(255,255,255,0.12)', position: 'sticky', top: 0, background: '#0D1829',
               }}>{c}</th>
             ))}

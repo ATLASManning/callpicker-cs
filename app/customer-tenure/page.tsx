@@ -50,7 +50,7 @@ const SEM_CFG: Record<SemaforoKey, {
   color: string; bg: string; border: string; text: string; muted: string
 }> = {
   nuevo:    { label: 'Nuevo', sublabel: 'Factura futura', Icon: Zap,
-    color: '#6366f1', bg: '#f5f3ff', border: '#c4b5fd', text: '#4338ca', muted: '#a5b4fc' },
+    color: '#082742', bg: '#f5f3ff', border: '#c4b5fd', text: '#4338ca', muted: '#a5b4fc' },
   activo:   { label: 'Activo', sublabel: 'Facturando regularmente', Icon: ShieldCheck,
     color: '#22c55e', bg: '#f0fdf4', border: '#86efac', text: '#15803d', muted: '#4ade80' },
   riesgo:   { label: 'En Riesgo', sublabel: 'Irregularidad detectada', Icon: AlertTriangle,
@@ -63,16 +63,16 @@ const SEM_CFG: Record<SemaforoKey, {
 
 const BUCKET_ORDER = ['Sin Actividad', 'Nuevos', 'Jóvenes', 'Activos', 'Maduros', 'Veteranos']
 const BUCKET_CFG: Record<string, { color: string; bg: string; range: string }> = {
-  'Sin Actividad': { color: '#94a3b8', bg: '#f8fafc', range: '0 meses' },
-  'Nuevos':        { color: '#8b5cf6', bg: '#f5f3ff', range: '1–3 meses' },
-  'Jóvenes':       { color: '#3b82f6', bg: '#eff6ff', range: '4–6 meses' },
+  'Sin Actividad': { color: '#667384', bg: '#F5F8FB', range: '0 meses' },
+  'Nuevos':        { color: '#10355D', bg: '#f5f3ff', range: '1–3 meses' },
+  'Jóvenes':       { color: '#1D6CAA', bg: '#F5F8FB', range: '4–6 meses' },
   'Activos':       { color: '#22c55e', bg: '#f0fdf4', range: '7–12 meses' },
   'Maduros':       { color: '#f59e0b', bg: '#fffbeb', range: '13–24 meses' },
   'Veteranos':     { color: '#f97316', bg: '#fff7ed', range: '25+ meses' },
 }
 const TAMANO_CFG: Record<string, string> = {
-  'Micro':      '#8b5cf6',
-  'SMB':        '#3b82f6',
+  'Micro':      '#10355D',
+  'SMB':        '#1D6CAA',
   'Mid-Market': '#22c55e',
   'Large':      '#f59e0b',
   'Enterprise': '#f97316',
@@ -118,7 +118,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: {
 
 function SemDot({ k }: { k: SemaforoKey }) {
   return <span className="inline-block w-2 h-2 rounded-full flex-shrink-0"
-    style={{ background: SEM_CFG[k]?.color ?? '#94a3b8' }} />
+    style={{ background: SEM_CFG[k]?.color ?? '#667384' }} />
 }
 
 function SemBadge({ k, label }: { k: SemaforoKey; label?: string }) {
@@ -239,9 +239,9 @@ export default function CustomerTenurePage() {
   /* ── KPIs ─────────────────────────────────────────────────────── */
   const kpis = stats ? [
     { icon: Users,      label: 'Clientes registrados', value: fmtN(stats.total),
-      sub: `${fmtN(stats.totalActivos)} activos hoy`,                 color: '#6366f1' },
+      sub: `${fmtN(stats.totalActivos)} activos hoy`,                 color: '#082742' },
     { icon: Clock,      label: 'Antigüedad promedio',  value: `${stats.avgMeses} meses`,
-      sub: `${(stats.avgMeses / 12).toFixed(1)} años por cliente`,    color: '#3b82f6' },
+      sub: `${(stats.avgMeses / 12).toFixed(1)} años por cliente`,    color: '#1D6CAA' },
     { icon: DollarSign, label: 'MRR activo',           value: fmtM(stats.totalMrr),
       sub: `avg ${fmtM(stats.totalActivos ? stats.totalMrr / stats.totalActivos : 0)}/cliente`, color: '#22c55e' },
     { icon: TrendingUp, label: 'LTV acumulado total',  value: fmtM(stats.totalLtv),
@@ -252,7 +252,7 @@ export default function CustomerTenurePage() {
      RENDER
   ════════════════════════════════════════════════════════════════ */
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+    <div className="cp-doc flex flex-col h-full overflow-hidden bg-gray-50">
       <PageHeader
         title="Customer Tenure"
         subtitle="Antigüedad, ciclo de vida y semáforo de actividad por cliente — datos Zoho Analytics"
@@ -289,8 +289,8 @@ export default function CustomerTenurePage() {
             <button key={t} onClick={() => setTab(t as TabT)}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px"
               style={tab === t
-                ? { color: '#1B3FCC', borderColor: '#1B3FCC' }
-                : { color: '#6b7280', borderColor: 'transparent' }}>
+                ? { color: '#10355D', borderColor: '#10355D' }
+                : { color: '#667384', borderColor: 'transparent' }}>
               <Icon size={14} />{lbl}
             </button>
           ))}
@@ -417,7 +417,7 @@ export default function CustomerTenurePage() {
                   </h2>
                   <div className="space-y-2">
                     {stats.byTamano.map(t => {
-                      const color = TAMANO_CFG[t.tamano] ?? '#6b7280'
+                      const color = TAMANO_CFG[t.tamano] ?? '#667384'
                       const max   = Math.max(...stats.byTamano.map(x => x.count), 1)
                       return (
                         <BarRow key={t.tamano}
@@ -438,7 +438,7 @@ export default function CustomerTenurePage() {
                          cuentas, todas las de abajo heredarían el color de la de
                          arriba y la misma clase se vería de dos colores según la
                          pantalla. Anclado al nombre, deja de importar. */
-                      const PALETA = ['#6366f1','#22c55e','#f59e0b','#f97316','#ef4444']
+                      const PALETA = ['#082742','#22c55e','#f59e0b','#f97316','#ef4444']
                       const orden = stats.byClasLtv.map(x => x.clas || 'N/A')
                         .sort((a, b) => a.localeCompare(b, 'es'))
                       const max = Math.max(...stats.byClasLtv.map(x => x.count), 1)
@@ -561,7 +561,7 @@ export default function CustomerTenurePage() {
                      van de peor a mejor, y esa correspondencia no se mueve: los bins son
                      fijos. No confundirlo con los colores por rango que se corrigieron el
                      30 sep 2026. */
-                  const colors = ['#ef4444','#f97316','#f59e0b','#22c55e','#6366f1']
+                  const colors = ['#ef4444','#f97316','#f59e0b','#22c55e','#082742']
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div className="w-full flex items-end justify-center" style={{ height: 64 }}>
@@ -619,7 +619,7 @@ export default function CustomerTenurePage() {
                               semáforo —que es lo que comunica— y se oscurece
                               hasta leerse sobre ESE fondo. */}
                           <span className="text-[10px] font-bold"
-                            style={{ color: tonoSobreFondo(retColor, '#E5E7EB', 4.5) }}>
+                            style={{ color: tonoSobreFondo(retColor, '#DFE8EF', 4.5) }}>
                             {c.pctRetention}%
                           </span>
                         </div>
@@ -822,8 +822,8 @@ export default function CustomerTenurePage() {
                         <button key={pg} onClick={() => setPage(pg)}
                           className="w-7 h-7 rounded-lg text-xs font-medium border transition-colors"
                           style={page === pg
-                            ? { background: '#1B3FCC', color: '#fff', borderColor: '#1B3FCC' }
-                            : { background: '#fff', color: '#374151', borderColor: '#e5e7eb' }}>
+                            ? { background: '#10355D', color: '#fff', borderColor: '#10355D' }
+                            : { background: '#fff', color: '#202E3B', borderColor: '#DFE8EF' }}>
                           {pg}
                         </button>
                       )

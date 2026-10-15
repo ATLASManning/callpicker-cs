@@ -55,8 +55,8 @@ type AAAData = {
 const RED    = '#ef4444'
 const ORANGE = '#f97316'
 const AMBER  = '#f59e0b'
-const BLUE   = '#3b82f6'
-const INDIGO = '#6366f1'
+const BLUE   = '#1D6CAA'
+const INDIGO = '#082742'
 const GREEN  = '#22c55e'
 
 const SEMAFORO_MAP: Record<SemaforoChurn, { color: string; label: string; dot: string }> = {
@@ -2113,9 +2113,9 @@ function ChurnForm({ onClose, onSave }: { onClose: () => void; onSave: (r: Churn
                 className="flex-1 text-center transition-all"
                 title={s}>
                 <div className="h-1.5 rounded-full mb-1"
-                  style={{ background: i <= step ? '#1B3FCC' : '#e5e7eb' }} />
+                  style={{ background: i <= step ? '#10355D' : '#DFE8EF' }} />
                 <span className="text-[9px] font-medium"
-                  style={{ color: i === step ? '#1B3FCC' : '#9ca3af' }}>
+                  style={{ color: i === step ? '#10355D' : '#667384' }}>
                   {s}
                 </span>
               </button>
@@ -2139,13 +2139,13 @@ function ChurnForm({ onClose, onSave }: { onClose: () => void; onSave: (r: Churn
           {step < FORM_STEPS.length - 1 ? (
             <button type="button" onClick={() => setStep(s => s + 1)}
               className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors"
-              style={{ background: '#1B3FCC' }}>
+              style={{ background: '#10355D' }}>
               Siguiente <ChevronRight size={16} />
             </button>
           ) : (
             <button type="button" onClick={handleSave} disabled={!canSave}
               className="flex items-center gap-1.5 px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: canSave ? '#22c55e' : '#9ca3af' }}>
+              style={{ background: canSave ? '#22c55e' : '#667384' }}>
               <Check size={16} /> Guardar Análisis
             </button>
           )}
@@ -2413,7 +2413,7 @@ export default function ChurnPage() {
   const selectReporte = (id: string) => { setSelectedId(id); setTab('resumen') }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+    <div className="cp-doc flex flex-col h-full overflow-hidden bg-gray-50">
       <PageHeader
         title="Churn"
         subtitle="Análisis de pérdida de clientes · DATA → Dirección de Satisfacción al Cliente"
@@ -2428,7 +2428,7 @@ export default function ChurnPage() {
               onClick={() => setTab('resumen')}
               icon={<FileBarChart2 size={14} />}
               label="Análisis DATA"
-              bg="#1B3FCC"
+              bg="#10355D"
               badge={allReportes.length}
             />
             <AccesoBtn
@@ -2478,7 +2478,7 @@ export default function ChurnPage() {
               <button
                 onClick={() => setShowForm(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:opacity-90 transition-opacity"
-                style={{ background: '#1B3FCC' }}
+                style={{ background: '#10355D' }}
               >
                 <Plus size={13} /> Nuevo Análisis DATA
               </button>
@@ -2509,12 +2509,12 @@ export default function ChurnPage() {
                     onClick={() => selectReporte(r.id)}
                     className="flex flex-col items-start px-4 py-2.5 rounded-lg transition-all min-w-[160px] max-w-[220px] text-left"
                     style={active
-                      ? { background: '#1B3FCC10', border: '1px solid #1B3FCC40' }
+                      ? { background: '#10355D10', border: '1px solid #10355D40' }
                       : { border: '1px solid transparent' }
                     }
                   >
                     <p className="text-xs font-semibold text-gray-800 truncate w-full"
-                      style={{ color: active ? '#1B3FCC' : undefined }}>
+                      style={{ color: active ? '#10355D' : undefined }}>
                       {r.periodo}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
@@ -2597,7 +2597,7 @@ export default function ChurnPage() {
           {(isAcumulado ? ACUM_TABS : TABS).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
-              style={tab === t.id ? { background: t.color, color: '#fff' } : { color: '#6b7280' }}>
+              style={tab === t.id ? { background: t.color, color: '#fff' } : { color: '#667384' }}>
               {t.label}
             </button>
           ))}

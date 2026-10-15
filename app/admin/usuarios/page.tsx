@@ -14,7 +14,7 @@ type Usuario = {
 }
 
 const ROL_CONFIG: Record<Rol, { label: string; color: string; icon: React.ElementType }> = {
-  admin:         { label: 'Admin',         color: '#1B3FCC', icon: ShieldCheck },
+  admin:         { label: 'Admin',         color: '#10355D', icon: ShieldCheck },
   asesor:        { label: 'Asesor',        color: '#059669', icon: UserCheck  },
   viewer:        { label: 'Viewer',        color: '#D97706', icon: Eye        },
   perfilamiento: { label: 'Perfilamiento', color: '#7E22CE', icon: Target     },
@@ -149,7 +149,7 @@ export default function AdminUsuariosPage() {
   })
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+    <div className="cp-doc flex flex-col h-full overflow-hidden bg-gray-50">
       <PageHeader title="Gestión de Usuarios" subtitle="Accesos, roles y contraseñas del dashboard" />
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -342,7 +342,7 @@ export default function AdminUsuariosPage() {
                       <span className="font-mono text-2xl font-black tracking-widest text-blue-700 flex-1">{passGen}</span>
                       <button onClick={() => copyText(passGen, 'pass')}
                         className="flex items-center gap-1 text-[11px] font-semibold px-2 py-1.5 rounded-lg transition-colors"
-                        style={{ background: copied === 'pass' ? '#D1FAE5' : '#EFF6FF', color: copied === 'pass' ? '#059669' : '#1B3FCC' }}>
+                        style={{ background: copied === 'pass' ? '#D1FAE5' : '#F5F8FB', color: copied === 'pass' ? '#059669' : '#10355D' }}>
                         {copied === 'pass' ? <Check size={11} /> : <Copy size={11} />}
                         {copied === 'pass' ? 'Copiada' : 'Copiar'}
                       </button>
@@ -380,7 +380,7 @@ export default function AdminUsuariosPage() {
                     <p className="font-mono text-lg font-black tracking-widest text-green-700">{passGen}</p>
                     <button onClick={() => copyText(passGen, 'done')}
                       className="mt-2 flex items-center gap-1 text-[11px] font-semibold px-3 py-1 rounded-lg mx-auto transition-colors"
-                      style={{ background: copied === 'done' ? '#D1FAE5' : '#EFF6FF', color: copied === 'done' ? '#059669' : '#1B3FCC' }}>
+                      style={{ background: copied === 'done' ? '#D1FAE5' : '#F5F8FB', color: copied === 'done' ? '#059669' : '#10355D' }}>
                       {copied === 'done' ? <Check size={11} /> : <Copy size={11} />}
                       {copied === 'done' ? 'Copiada' : 'Copiar contraseña'}
                     </button>
