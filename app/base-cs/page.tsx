@@ -19,10 +19,10 @@ import { tonoSobreClaro, tonoSobreFondo, tonoSobrePagina, pastillaClara } from '
 
 // ── Paleta ────────────────────────────────────────────────────────────────────
 const PANEL  = '#FFFFFF'
-const BORDER = '#BFDBFE'
-const TX     = '#0F172A'
-const TX_MID = '#475569'
-const TX_LOW = '#94A3B8'
+const BORDER = '#A8BACB'
+const TX     = '#082742'
+const TX_MID = '#202E3B'
+const TX_LOW = '#A8BACB'
 const GREEN  = '#16A34A'
 const AMBER  = '#D97706'
 const RED    = '#DC2626'
@@ -200,7 +200,7 @@ function Badge({ type }: { type: 'roto' | 'pronto' | 'avanzado' | 'nuevo' }) {
      tarjeta blanca no se veía ni el fondo, con la letra en 2.56:1. */
   const map = {
     roto:     { label: 'Roto',     ...pastillaClara(RED, 0.125)   },
-    pronto:   { label: 'Pronto',   background: '#F1F5F9', color: '#475569' },
+    pronto:   { label: 'Pronto',   background: '#F5F8FB', color: '#202E3B' },
     avanzado: { label: 'Avanzado', ...pastillaClara(AMBER, 0.125) },
     nuevo:    { label: 'Nuevo',    ...pastillaClara(GREEN, 0.125) },
   }
@@ -533,7 +533,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
                   </div>
                 )
                 if (b.tipo === 'parrafo') return (
-                  <p key={i} style={{ fontSize: 15, color: '#374151', lineHeight: 1.85, textAlign: 'justify', marginBottom: 16 }}>
+                  <p key={i} style={{ fontSize: 15, color: '#202E3B', lineHeight: 1.85, textAlign: 'justify', marginBottom: 16 }}>
                     {b.texto}
                   </p>
                 )
@@ -554,7 +554,7 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
                     {b.items?.map((item, ii) => (
                       <li key={ii} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
                         <span style={{ width: 7, height: 7, borderRadius: '50%', background: catColor, flexShrink: 0, marginTop: 8 }} />
-                        <span style={{ fontSize: 15, color: '#374151', lineHeight: 1.75, textAlign: 'justify', flex: 1 }}>{item}</span>
+                        <span style={{ fontSize: 15, color: '#202E3B', lineHeight: 1.75, textAlign: 'justify', flex: 1 }}>{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -566,8 +566,8 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
                 )
                 if (b.tipo === 'codigo') return (
                   <div key={i} style={{ borderRadius: 8, overflow: 'hidden', margin: '12px 0', border: `1px solid ${BORDER}` }}>
-                    <div style={{ padding: '10px 16px', background: '#0f172a' }}>
-                      <code style={{ fontSize: 14, fontFamily: 'monospace', color: '#7dd3fc' }}>{b.texto}</code>
+                    <div style={{ padding: '10px 16px', background: '#082742' }}>
+                      <code style={{ fontSize: 14, fontFamily: 'monospace', color: '#8AD7F8' }}>{b.texto}</code>
                     </div>
                   </div>
                 )

@@ -180,13 +180,13 @@ export default function AnexosPage() {
     <div className="min-h-screen">
       <div className="px-6 pt-5 pb-0">
         <Link href="/reuniones" className="inline-flex items-center gap-1.5 text-xs mb-4"
-          style={{ color: '#64748b' }}>
+          style={{ color: '#3D4B5C' }}>
           <ArrowLeft size={13} /> Volver a Reuniones
         </Link>
         <div className="flex items-center justify-between pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-extrabold" style={{ color: '#0F172A', letterSpacing: '-0.02em' }}>
+              <h1 className="text-2xl font-extrabold" style={{ color: '#082742', letterSpacing: '-0.02em' }}>
                 Anexos
               </h1>
               <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
@@ -194,7 +194,7 @@ export default function AnexosPage() {
                 <Paperclip size={9} /> {anexos.length}
               </span>
             </div>
-            <p className="text-sm mt-0.5" style={{ color: '#475569' }}>
+            <p className="text-sm mt-0.5" style={{ color: '#202E3B' }}>
               Documentos de cliente — Word, Excel, PDF e informes HTML. Cada uno queda asociado a su cuenta
               y aparece en su ficha.
             </p>
@@ -251,7 +251,7 @@ export default function AnexosPage() {
             <button onClick={() => setFiltroTema('')} className="cp-btn text-xs"
               style={!filtroTema
                 ? { background: '#0057FF', color: '#fff', border: '1px solid #003db3' }
-                : { background: '#fff', color: '#374151', border: '1px solid #BFDBFE' }}>
+                : { background: '#fff', color: '#202E3B', border: '1px solid #A8BACB' }}>
               Todos · {anexos.length}
             </button>
             {TEMAS.map(t => (
@@ -259,13 +259,13 @@ export default function AnexosPage() {
                 className="cp-btn text-xs"
                 style={filtroTema === t
                   ? { background: COLOR_TEMA[t].fg, color: '#fff', border: `1px solid ${COLOR_TEMA[t].fg}` }
-                  : { background: '#fff', color: '#374151', border: '1px solid #BFDBFE' }}>
+                  : { background: '#fff', color: '#202E3B', border: '1px solid #A8BACB' }}>
                 {ETIQUETA_TEMA[t]} · {porTema.get(t) ?? 0}
               </button>
             ))}
             <div className="relative ml-auto">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2"
-                style={{ color: '#94a3b8' }} />
+                style={{ color: '#A8BACB' }} />
               <input type="text" placeholder="Buscar documento o cliente…"
                 value={busca} onChange={e => setBusca(e.target.value)}
                 className="cp-input text-xs" style={{ paddingLeft: 28, minWidth: 230 }} />
@@ -275,15 +275,15 @@ export default function AnexosPage() {
 
         {loading && (
           <div className="flex items-center justify-center py-16">
-            <RefreshCw size={20} className="animate-spin" style={{ color: '#1B3FCC' }} />
+            <RefreshCw size={20} className="animate-spin" style={{ color: '#10355D' }} />
           </div>
         )}
 
         {!loading && anexos.length === 0 && tablaExiste !== false && (
           <div className="cp-card text-center" style={{ padding: '40px 20px' }}>
-            <Paperclip size={28} style={{ color: '#64748B', margin: '0 auto 10px' }} />
+            <Paperclip size={28} style={{ color: '#3D4B5C', margin: '0 auto 10px' }} />
             <p className="text-sm font-semibold" style={{ color: '#fff' }}>Todavía no hay anexos</p>
-            <p className="text-xs mt-1" style={{ color: '#94a3b8' }}>
+            <p className="text-xs mt-1" style={{ color: '#A8BACB' }}>
               Sube el primer documento con «Nuevo Anexo».
             </p>
           </div>
@@ -291,7 +291,7 @@ export default function AnexosPage() {
 
         {!loading && anexos.length > 0 && visibles.length === 0 && (
           <div className="cp-card text-center" style={{ padding: '30px 20px' }}>
-            <p className="text-sm" style={{ color: '#94a3b8' }}>
+            <p className="text-sm" style={{ color: '#A8BACB' }}>
               Ninguno de los {anexos.length} anexos coincide con el filtro.
             </p>
           </div>
@@ -326,7 +326,7 @@ export default function AnexosPage() {
                       <p className="text-sm font-semibold truncate" style={{ color: '#fff' }}>
                         {a.nombre_documento}
                       </p>
-                      <p className="text-[11px] mt-0.5" style={{ color: '#94a3b8' }}>
+                      <p className="text-[11px] mt-0.5" style={{ color: '#A8BACB' }}>
                         {etiquetaFormato(a.archivo_tipo)} · {pesoLegible(a.archivo_bytes)} ·{' '}
                         {textoFecha(a.creado_en) ?? '—'}
                         {a.subido_por ? ` · ${a.subido_por}` : ''}
@@ -363,7 +363,7 @@ export default function AnexosPage() {
           style={{ background: 'rgba(15,23,42,0.6)', padding: '40px 16px' }}>
           <div className="w-full max-w-2xl rounded-2xl" style={{ background: '#fff', padding: 24 }}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-extrabold" style={{ color: '#0F172A' }}>Nuevo Anexo</h2>
+              <h2 className="text-xl font-extrabold" style={{ color: '#082742' }}>Nuevo Anexo</h2>
               <button onClick={() => setShowForm(false)} className="cp-btn cp-btn-ghost"><X size={16} /></button>
             </div>
 
@@ -391,7 +391,7 @@ export default function AnexosPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>
                     Nombre del documento <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input type="text" placeholder="ej. Análisis de caso · octubre"
@@ -400,7 +400,7 @@ export default function AnexosPage() {
                     className="cp-input w-full" />
                 </div>
                 <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>
                     Tema <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <CustomSelect
@@ -420,9 +420,9 @@ export default function AnexosPage() {
                     el bucket. Se dice el numero real: prometer 25 MB hacia que
                     un PDF de 10 fallara con un 413 crudo, antes de que la ruta
                     pudiera explicar nada. */}
-                <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
+                <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>
                   Archivo <span style={{ color: '#ef4444' }}>*</span>
-                  <span style={{ color: '#64748B', fontWeight: 400 }}>
+                  <span style={{ color: '#3D4B5C', fontWeight: 400 }}>
                     {' '}· Word, Excel, PDF o HTML · máximo {MAX_BYTES / 1024 / 1024} MB
                   </span>
                 </label>
@@ -449,8 +449,8 @@ export default function AnexosPage() {
               </div>
 
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
-                  Notas <span style={{ color: '#64748B', fontWeight: 400 }}>· opcional</span>
+                <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>
+                  Notas <span style={{ color: '#3D4B5C', fontWeight: 400 }}>· opcional</span>
                 </label>
                 <textarea placeholder="¿Qué contiene? ¿Para qué sirve?"
                   value={form.notas} rows={3}

@@ -202,30 +202,30 @@ function BitacoraPanel({ open, onClose, vistaInicial, onCambio }: {
       >
         {/* Header */}
         <div style={{
-          padding: '20px 24px', borderBottom: '1px solid #E2E8F0',
+          padding: '20px 24px', borderBottom: '1px solid #DFE8EF',
           background: '#F8FAFF', display: 'flex', alignItems: 'center', gap: 10,
         }}>
           <BookOpen size={18} style={{ color: '#1D4ED8', flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 800, color: '#0F172A', fontSize: 15 }}>
+            <div style={{ fontWeight: 800, color: '#082742', fontSize: 15 }}>
               Book de preguntas
             </div>
-            <div style={{ fontSize: 11, color: '#64748b' }}>
+            <div style={{ fontSize: 11, color: '#3D4B5C' }}>
               {VISTAS_PANEL.find(v => v.id === vista)?.sub ??
                 new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94A3B8', fontSize: 20 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A8BACB', fontSize: 20 }}>✕</button>
         </div>
 
         {/* Pestañas */}
-        <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0', borderBottom: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', gap: 6, padding: '10px 20px 0', borderBottom: '1px solid #DFE8EF' }}>
           {VISTAS_PANEL.map(v => {
             const activa = vista === v.id
             return (
               <button key={v.id} onClick={() => setVista(v.id)} style={{
                 padding: '7px 13px', fontSize: 12.5, fontWeight: activa ? 800 : 600,
-                color: activa ? '#1D4ED8' : '#64748b', background: 'none',
+                color: activa ? '#1D4ED8' : '#3D4B5C', background: 'none',
                 border: 'none', borderBottom: `2px solid ${activa ? '#1D4ED8' : 'transparent'}`,
                 cursor: 'pointer', marginBottom: -1,
               }}>
@@ -241,18 +241,18 @@ function BitacoraPanel({ open, onClose, vistaInicial, onCambio }: {
           {vista === 'mensual'    && <VistaReporteMensual />}
 
           {vista === 'dia' && loading && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 13 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#3D4B5C', fontSize: 13 }}>
               <Loader2 size={14} className="animate-spin" /> Cargando bitácora…
             </div>
           )}
           {vista === 'dia' && !loading && entries.length === 0 && (
-            <div style={{ textAlign: 'center', color: '#94A3B8', fontSize: 13, marginTop: 40 }}>
+            <div style={{ textAlign: 'center', color: '#A8BACB', fontSize: 13, marginTop: 40 }}>
               Sin consultas registradas hoy
             </div>
           )}
           {vista === 'dia' && !loading && entries.map((e, i) => (
             <div key={e.id} style={{
-              border: '1px solid #E2E8F0', borderRadius: 10, marginBottom: 10,
+              border: '1px solid #DFE8EF', borderRadius: 10, marginBottom: 10,
               background: i % 2 === 0 ? '#F8FAFF' : '#FFFFFF',
             }}>
               <div
@@ -269,23 +269,23 @@ function BitacoraPanel({ open, onClose, vistaInicial, onCambio }: {
                       borderRadius: 20, background: tipoColor(e.tipo) + '18',
                       color: tipoColor(e.tipo),
                     }}>{tipoLabel(e.tipo)}</span>
-                    <span style={{ fontSize: 11, color: '#94A3B8' }}>
+                    <span style={{ fontSize: 11, color: '#A8BACB' }}>
                       {new Date(e.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {e.usuario_nombre && (
-                      <span style={{ fontSize: 11, color: '#64748b' }}>— {e.usuario_nombre}</span>
+                      <span style={{ fontSize: 11, color: '#3D4B5C' }}>— {e.usuario_nombre}</span>
                     )}
                   </div>
                   <div style={{ fontSize: 13, color: '#1E3A5F', fontWeight: 600, lineHeight: 1.4 }}>
                     {e.pregunta.slice(0, 120)}{e.pregunta.length > 120 ? '…' : ''}
                   </div>
                 </div>
-                {expanded === e.id ? <ChevronUp size={14} style={{ color: '#94A3B8', flexShrink: 0, marginTop: 2 }} /> : <ChevronDown size={14} style={{ color: '#94A3B8', flexShrink: 0, marginTop: 2 }} />}
+                {expanded === e.id ? <ChevronUp size={14} style={{ color: '#A8BACB', flexShrink: 0, marginTop: 2 }} /> : <ChevronDown size={14} style={{ color: '#A8BACB', flexShrink: 0, marginTop: 2 }} />}
               </div>
 
               {expanded === e.id && (
-                <div style={{ padding: '0 14px 12px', borderTop: '1px solid #F1F5F9' }}>
-                  <div style={{ fontSize: 12, color: '#475569', marginTop: 10, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                <div style={{ padding: '0 14px 12px', borderTop: '1px solid #F5F8FB' }}>
+                  <div style={{ fontSize: 12, color: '#202E3B', marginTop: 10, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                     {e.respuesta}
                   </div>
                   {e.modulos_contexto?.length > 0 && (
@@ -293,7 +293,7 @@ function BitacoraPanel({ open, onClose, vistaInicial, onCambio }: {
                       {e.modulos_contexto.map(m => (
                         <span key={m} style={{
                           fontSize: 10, padding: '1px 6px', borderRadius: 20,
-                          background: '#DBEAFE', color: '#1D4ED8',
+                          background: '#DFE8EF', color: '#1D4ED8',
                         }}>{m}</span>
                       ))}
                     </div>
@@ -553,7 +553,7 @@ export default function ChatPage() {
               borderLeft: '2px solid rgba(125,211,252,0.45)',
               display: 'flex', alignItems: 'center', gap: 9,
             }}>
-              <Loader2 size={15} className="animate-spin" style={{ color: '#7DD3FC' }} />
+              <Loader2 size={15} className="animate-spin" style={{ color: '#8AD7F8' }} />
               <span style={{ fontSize: 14.5, color: '#C3D2E8' }}>
                 Consultando los módulos del tablero…
               </span>

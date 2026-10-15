@@ -182,7 +182,7 @@ export default function PerfilRolPage() {
         {/* Las tres fases, en secuencia horizontal */}
         <div className="grid gap-3 lg:grid-cols-3 items-start">
           {PROTOCOLO_BAJA.map(f => {
-            const col = COLOR_FASE[f.fase] ?? '#94A3B8'
+            const col = COLOR_FASE[f.fase] ?? '#A8BACB'
             return (
               <div key={f.fase} className="rounded-lg p-3.5 h-full" style={{ background: `${col}12`, border: `1px solid ${col}40` }}>
                 <div className="flex flex-wrap items-baseline gap-2 mb-1">
@@ -285,7 +285,7 @@ export default function PerfilRolPage() {
             <div className="flex flex-wrap gap-1.5">
               {INDICADORES_DISCIPLINA.map((d, i) => (
                 <span key={i} className="text-[10px] px-2 py-0.5 rounded-full"
-                      style={{ background: 'rgba(148,163,184,0.12)', color: '#94A3B8' }}>{d}</span>
+                      style={{ background: 'rgba(148,163,184,0.12)', color: '#A8BACB' }}>{d}</span>
               ))}
             </div>
           </div>

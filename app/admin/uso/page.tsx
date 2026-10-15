@@ -89,9 +89,9 @@ function fmtFecha(iso: string): string {
 }
 
 function heatColor(val: number, max: number): string {
-  if (max === 0 || val === 0) return '#F1F5F9'
+  if (max === 0 || val === 0) return '#F5F8FB'
   const pct = val / max
-  if (pct >= 0.75) return '#1B3FCC'
+  if (pct >= 0.75) return '#10355D'
   if (pct >= 0.5)  return '#3B5FDD'
   if (pct >= 0.25) return '#7B95EE'
   return '#C7D2F8'
@@ -451,14 +451,14 @@ export default function UsoDashboardPage() {
   }, [diaSel, rows])
 
   const asesorColor = selected?.asesor_nombre
-    ? ASESOR_CONFIG[selected.asesor_nombre as keyof typeof ASESOR_CONFIG]?.color ?? '#1B3FCC'
-    : '#1B3FCC'
+    ? ASESOR_CONFIG[selected.asesor_nombre as keyof typeof ASESOR_CONFIG]?.color ?? '#10355D'
+    : '#10355D'
 
   const firstDate = rows[0]?.created_at
   const lastDate  = rows[rows.length - 1]?.created_at
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="cp-doc p-6 space-y-6">
       <PageHeader
         title="Uso del Dashboard"
         subtitle="Analítica de navegación por asesor"
@@ -477,7 +477,7 @@ export default function UsoDashboardPage() {
               y sin la clase de escape globals.css pinta de blanco sus <span> y
               sus <p>/.text-textHi. El combo se veía vacío —solo el chevron— y
               la lista de asesores salía en blanco sobre blanco. */}
-          <div className="relative cp-light" style={{ color: '#0F172A' }}>
+          <div className="relative cp-light" style={{ color: '#082742' }}>
             <button
               type="button"
               onClick={() => setOpen(v => !v)}
@@ -503,7 +503,7 @@ export default function UsoDashboardPage() {
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left"
                   >
                     <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                      style={{ background: ASESOR_CONFIG[u.asesor_nombre as keyof typeof ASESOR_CONFIG]?.color ?? '#6B7280' }}>
+                      style={{ background: ASESOR_CONFIG[u.asesor_nombre as keyof typeof ASESOR_CONFIG]?.color ?? '#667384' }}>
                       {u.nombre.charAt(0)}
                     </div>
                     <div>
@@ -719,7 +719,7 @@ export default function UsoDashboardPage() {
                       onClick={() => setMesIdx(i)}
                       className="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-opacity hover:opacity-80"
                       style={i === mesIdx
-                        ? { background: '#1B3FCC', color: '#fff' }
+                        ? { background: '#10355D', color: '#fff' }
                         : { background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.65)' }}
                     >
                       {MESES[Number(c.mes.slice(5, 7)) - 1]} · {c.totalMes}
@@ -1078,7 +1078,7 @@ export default function UsoDashboardPage() {
             {/* Leyenda */}
             <div className="flex items-center gap-2 mt-3 justify-end">
               <span className="text-[10px] text-textMid">Menos</span>
-              {['#F1F5F9', '#C7D2F8', '#7B95EE', '#3B5FDD', '#1B3FCC'].map(c => (
+              {['#F5F8FB', '#C7D2F8', '#7B95EE', '#3B5FDD', '#10355D'].map(c => (
                 <div key={c} className="w-5 h-3 rounded" style={{ background: c }} />
               ))}
               <span className="text-[10px] text-textMid">Más</span>
@@ -1097,7 +1097,7 @@ export default function UsoDashboardPage() {
                     `.cp-card p` y los tokens `.text-textHi/.text-textMid` se
                     fuerzan a blanco y estos dos bloques salen en blanco sobre
                     azul/gris muy claro. */}
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl cp-light" style={{ color: '#0F172A' }}>
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl cp-light" style={{ color: '#082742' }}>
                   <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
                     <TrendingUp size={14} />
                   </div>
@@ -1107,7 +1107,7 @@ export default function UsoDashboardPage() {
                   </div>
                 </div>
                 {stats.lowDay && (
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cp-light" style={{ color: '#0F172A' }}>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cp-light" style={{ color: '#082742' }}>
                     <div className="w-8 h-8 rounded-lg bg-gray-300 flex items-center justify-center text-white">
                       <Calendar size={14} />
                     </div>

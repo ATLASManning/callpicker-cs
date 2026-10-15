@@ -52,7 +52,7 @@ import CuentaAnexosPanel from '@/components/CuentaAnexosPanel'
 import { getReunionesDeCuenta, getAnexosDeCuenta } from '@/lib/supabase'
 import { relacionamientoDeCuenta } from '@/lib/relacionamiento'
 import { headers } from 'next/headers'
-import { sesionDe, esSuya } from '@/lib/dueno'
+import { sesionDe, puedeConsultar } from '@/lib/dueno'
 import { hoyEnMexico, textoFecha } from '@/lib/fecha-local'
 import { estadoDeCuenta } from '@/lib/estado-cuenta'
 import { personasConNombre } from '@/lib/personas-cuenta'
@@ -101,20 +101,22 @@ export default async function CuentaDetailPage({ params }: Props) {
 
   /* ── DE QUIÉN ES ESTA CUENTA ──────────────────────────────────────────────
    *
-   * La página sólo decidía `canEdit` (más abajo), que esconde los botones de
-   * edición y nada más: un asesor abría la ficha completa de una cuenta de otra
-   * cartera —facturación, tickets, llamadas, el expediente de auditoría— en
-   * modo lectura. Esconder lo que se puede tocar no es acotar lo que se puede
-   * ver.
+   * CONSULTAR ES LIBRE (instrucción de dirección, 15 oct 2026): cualquier
+   * asesor abre la ficha de cualquier cuenta. Lo que la ficha SÍ sigue
+   * decidiendo por cartera es `canEdit`, más abajo — y eso ahora significa lo
+   * que dice, porque las rutas que escriben comprueban dueño de verdad. Antes
+   * `canEdit` escondía los botones y las APIs de atrás aceptaban igual.
    *
-   * Y es `notFound()`, no una ficha recortada: una versión reducida seguiría
-   * confirmando que la cuenta existe y quién es, que es precisamente el dato.
+   * La comprobación se queda escrita porque es la escotilla: `LECTURA_LIBRE =
+   * false` en lib/dueno.ts vuelve a cerrar la consulta, y entonces es
+   * `notFound()` y no una ficha recortada —una versión reducida seguiría
+   * confirmando que la cuenta existe y quién es, que es precisamente el dato—.
    *
-   * Va AQUÍ, antes de las consultas de abajo, y no junto a `canEdit`: desde
-   * este punto la página pide seguimientos, oportunidades, tickets, historial,
-   * llamadas y adopción de la cuenta. Comprobarlo al final sería traer todo eso
-   * de una cartera ajena para después no pintarlo. */
-  if (!esSuya(sesionDe(headers()), cuenta.asesor)) notFound()
+   * Va AQUÍ y no junto a `canEdit` porque desde este punto la página pide
+   * seguimientos, oportunidades, tickets, historial, llamadas y adopción: con
+   * la consulta cerrada, comprobarlo al final sería traer todo eso para después
+   * no pintarlo. */
+  if (!puedeConsultar(sesionDe(headers()), cuenta.asesor)) notFound()
 
   // Usar el UUID real para las demás queries
   const cuentaUUID = cuenta.id
@@ -288,7 +290,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                  «Saludable» 1.90:1, «En Riesgo» 2.28:1.
 
                  El tono se calcula contra la PÁGINA, no contra blanco: este
-                 encabezado no tiene fondo propio y debajo está el `#EFF6FF`.
+                 encabezado no tiene fondo propio y debajo está el `#F5F8FB`.
                  Con `tonoSobreClaro` los seis estados se quedaban en
                  4.17–4.33:1 — pasaban el cálculo y no la pantalla. */
               style={{ background: `${cfg.color}20`, color: tonoSobrePagina(cfg.color, 0.125), border: `1px solid ${cfg.color}40` }}>
@@ -308,7 +310,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                     quedaban claro sobre claro. Van con letra oscura. */}
                 {cuenta.cid ? (
                   <span className="font-mono text-xs px-2 py-0.5 rounded"
-                    style={{ background: '#E2E8F0', color: '#334155', border: '1px solid #CBD5E1' }}
+                    style={{ background: '#DFE8EF', color: '#334155', border: '1px solid #CBD5E1' }}
                     title="CID · Customer ID de Callpicker">
                     CID {cuenta.cid}
                   </span>
@@ -341,7 +343,7 @@ export default async function CuentaDetailPage({ params }: Props) {
             {auditoria && (
               <Link href={`/auditoria?caso=${auditoria.id}`}
                 className="cp-btn text-xs font-semibold text-white"
-                style={{ background: '#1B3FCC' }}
+                style={{ background: '#10355D' }}
                 title={`Ver auditoría: ${auditoria.nombre}`}>
                 <ClipboardCheck size={13} /> Auditoría
               </Link>
@@ -492,7 +494,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                     NO oculto: la cuenta de arriba ya dice cuántos son. */}
                 {dids.length > MAX_DIDS_VISIBLES && (
                   <details style={{ marginTop: 6 }}>
-                    <summary style={{ fontSize: 11, color: '#7DD3FC', cursor: 'pointer', listStyle: 'none', fontWeight: 600 }}>
+                    <summary style={{ fontSize: 11, color: '#8AD7F8', cursor: 'pointer', listStyle: 'none', fontWeight: 600 }}>
                       Ver los {(dids.length - MAX_DIDS_VISIBLES).toLocaleString('es-MX')} restantes
                     </summary>
                     <div className="flex flex-wrap gap-1.5" style={{ marginTop: 6 }}>
@@ -750,24 +752,24 @@ export default async function CuentaDetailPage({ params }: Props) {
           {auditoriaCase && (() => {
             const ACOLOR: Record<string, string> = {
               en_riesgo:'#ef4444', rescatable:'#22c55e',
-              activo:'#6366f1', recuperado:'#3b82f6', perdido:'#6b7280',
+              activo:'#1D6CAA', recuperado:'#1D6CAA', perdido:'#667384',
             }
             const ALABEL: Record<string, string> = {
               en_riesgo:'En Riesgo', rescatable:'Rescatable',
               activo:'Activo', recuperado:'Recuperado', perdido:'Perdido',
             }
-            const stColor  = ACOLOR[auditoriaCase.estado] ?? '#6366f1'
+            const stColor  = ACOLOR[auditoriaCase.estado] ?? '#1D6CAA'
             const stLabel  = ALABEL[auditoriaCase.estado] ?? auditoriaCase.estado
             const top3h    = auditoriaCase.hallazgos.slice(0, 3)
             const top2p    = auditoriaCase.plan_inmediato.slice(0, 2)
             const rec      = auditoriaCase.recomendacion_central
             const truncRec = rec.length > 220 ? rec.slice(0, 220) + '…' : rec
             return (
-              <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:12, padding:'14px 16px' }}>
+              <div style={{ background:'#fff', border:'1px solid #DFE8EF', borderRadius:12, padding:'14px 16px' }}>
                 {/* Header */}
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:11, fontWeight:700, color:'#0F172A', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                    <span style={{ fontSize:11, fontWeight:700, color:'#082742', textTransform:'uppercase', letterSpacing:'0.06em' }}>
                       Observaciones Auditoría
                     </span>
                     {/* Letra y fondo del mismo color: con «rescatable» el
@@ -779,13 +781,13 @@ export default async function CuentaDetailPage({ params }: Props) {
                     </span>
                   </div>
                   <Link href={`/auditoria?caso=${auditoriaCase.id}`}
-                    style={{ fontSize:11, fontWeight:700, color:'#1B3FCC', background:'#EFF6FF', border:'1px solid #BFDBFE', borderRadius:6, padding:'4px 12px', display:'flex', alignItems:'center', gap:4, textDecoration:'none' }}>
+                    style={{ fontSize:11, fontWeight:700, color:'#10355D', background:'#F5F8FB', border:'1px solid #A8BACB', borderRadius:6, padding:'4px 12px', display:'flex', alignItems:'center', gap:4, textDecoration:'none' }}>
                     <ClipboardCheck size={11} /> Ver auditoría completa →
                   </Link>
                 </div>
 
                 {/* Meta */}
-                <p style={{ fontSize:11, color:'#94A3B8', margin:'0 0 10px' }}>
+                <p style={{ fontSize:11, color:'#A8BACB', margin:'0 0 10px' }}>
                   {auditoriaCase.fecha_periodo} · v{auditoriaCase.version} · Auditado: {auditoriaCase.fecha_auditoria}
                 </p>
 
@@ -799,7 +801,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                             el error que ya costó dos etiquetas hoy. A 9px el
                             objetivo se queda en 4.5:1, no se baja. */}
                         <p style={{ fontSize:9, color:tonoSobreClaro(k.color, 0.0627), fontWeight:700, textTransform:'uppercase', margin:0 }}>{k.label}</p>
-                        <p style={{ fontSize:11, color:'#0F172A', fontWeight:600, margin:0 }}>{k.value}</p>
+                        <p style={{ fontSize:11, color:'#082742', fontWeight:600, margin:0 }}>{k.value}</p>
                       </div>
                     ))}
                   </div>
@@ -807,8 +809,8 @@ export default async function CuentaDetailPage({ params }: Props) {
 
                 {/* Problema raíz */}
                 <div style={{ marginBottom:10 }}>
-                  <p style={{ fontSize:10, fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 3px' }}>⚡ Problema Raíz</p>
-                  <p style={{ fontSize:12, color:'#0F172A', lineHeight:1.55, margin:0 }}>{auditoriaCase.problema_raiz}</p>
+                  <p style={{ fontSize:10, fontWeight:700, color:'#3D4B5C', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 3px' }}>⚡ Problema Raíz</p>
+                  <p style={{ fontSize:12, color:'#082742', lineHeight:1.55, margin:0 }}>{auditoriaCase.problema_raiz}</p>
                 </div>
 
                 {/* Señal de alarma */}
@@ -824,13 +826,13 @@ export default async function CuentaDetailPage({ params }: Props) {
                 {/* Hallazgos clave */}
                 {top3h.length > 0 && (
                   <div style={{ marginBottom:10 }}>
-                    <p style={{ fontSize:10, fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 5px' }}>
+                    <p style={{ fontSize:10, fontWeight:700, color:'#3D4B5C', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 5px' }}>
                       🔍 Hallazgos clave · {auditoriaCase.hallazgos.length} en total
                     </p>
                     <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
                       {top3h.map((h, i) => (
                         <div key={i} style={{ display:'flex', gap:6, alignItems:'flex-start' }}>
-                          <span style={{ color:'#94A3B8', fontSize:13, flexShrink:0, lineHeight:1.4 }}>·</span>
+                          <span style={{ color:'#A8BACB', fontSize:13, flexShrink:0, lineHeight:1.4 }}>·</span>
                           <p style={{ fontSize:11, color:'#334155', lineHeight:1.5, margin:0 }}>
                             {h.length > 140 ? h.slice(0, 140) + '…' : h}
                           </p>
@@ -843,13 +845,13 @@ export default async function CuentaDetailPage({ params }: Props) {
                 {/* Plan inmediato */}
                 {top2p.length > 0 && (
                   <div style={{ marginBottom:12 }}>
-                    <p style={{ fontSize:10, fontWeight:700, color:'#64748B', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 5px' }}>
+                    <p style={{ fontSize:10, fontWeight:700, color:'#3D4B5C', textTransform:'uppercase', letterSpacing:'0.05em', margin:'0 0 5px' }}>
                       📋 Próximos pasos
                     </p>
                     <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
                       {top2p.map((pl, i) => (
                         <div key={i} style={{ display:'flex', gap:6, alignItems:'flex-start' }}>
-                          <span style={{ color:'#1B3FCC', fontSize:11, flexShrink:0, fontWeight:700, lineHeight:1.5 }}>{i + 1}.</span>
+                          <span style={{ color:'#10355D', fontSize:11, flexShrink:0, fontWeight:700, lineHeight:1.5 }}>{i + 1}.</span>
                           <p style={{ fontSize:11, color:'#334155', lineHeight:1.5, margin:0 }}>
                             {pl.accion.length > 130 ? pl.accion.slice(0, 130) + '…' : pl.accion}
                           </p>
@@ -860,9 +862,9 @@ export default async function CuentaDetailPage({ params }: Props) {
                 )}
 
                 {/* Recomendación central */}
-                <div style={{ background:'#F8FAFC', borderRadius:8, padding:'8px 12px', borderLeft:'3px solid #1B3FCC' }}>
-                  <p style={{ fontSize:10, fontWeight:700, color:'#1B3FCC', margin:'0 0 3px', textTransform:'uppercase' }}>💡 Recomendación central</p>
-                  <p style={{ fontSize:11, color:'#0F172A', lineHeight:1.6, margin:0 }}>{truncRec}</p>
+                <div style={{ background:'#F5F8FB', borderRadius:8, padding:'8px 12px', borderLeft:'3px solid #10355D' }}>
+                  <p style={{ fontSize:10, fontWeight:700, color:'#10355D', margin:'0 0 3px', textTransform:'uppercase' }}>💡 Recomendación central</p>
+                  <p style={{ fontSize:11, color:'#082742', lineHeight:1.6, margin:0 }}>{truncRec}</p>
                 </div>
               </div>
             )
@@ -950,10 +952,10 @@ export default async function CuentaDetailPage({ params }: Props) {
             const obs = cuenta.observaciones_kam?.trim() || null
             const entradas = parseObservaciones(cuenta.observaciones_kam)
             return (
-              <div style={{ background:'#fff', border:'1px solid #E2E8F0', borderRadius:12, padding:'14px 16px' }}>
+              <div style={{ background:'#fff', border:'1px solid #DFE8EF', borderRadius:12, padding:'14px 16px' }}>
                 {/* Encabezado */}
                 <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
-                  <span style={{ fontSize:11, fontWeight:700, color:'#0F172A', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#082742', textTransform:'uppercase', letterSpacing:'0.06em' }}>
                     Observaciones KAM
                   </span>
                   {obs && canEdit && (
@@ -970,7 +972,7 @@ export default async function CuentaDetailPage({ params }: Props) {
 
                 {/* Bitácora: una entrada por resumen, con su separador de fecha */}
                 {entradas.length === 0 ? (
-                  <p style={{ fontSize:12, color:'#94A3B8', fontStyle:'italic', margin:'0 0 12px' }}>Sin observaciones registradas.</p>
+                  <p style={{ fontSize:12, color:'#A8BACB', fontStyle:'italic', margin:'0 0 12px' }}>Sin observaciones registradas.</p>
                 ) : (
                   <div style={{ margin:'0 0 12px' }}>
                     {entradas.map((e, i) => (
@@ -980,25 +982,25 @@ export default async function CuentaDetailPage({ params }: Props) {
                             se saltaron. */}
                         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:5 }}>
                           <span style={{
-                            background: e.fecha ? '#EFF6FF' : '#F1F5F9',
-                            color: e.fecha ? '#1B3FCC' : '#64748B',
-                            border: `1px solid ${e.fecha ? '#BFDBFE' : '#E2E8F0'}`,
+                            background: e.fecha ? '#F5F8FB' : '#F5F8FB',
+                            color: e.fecha ? '#10355D' : '#3D4B5C',
+                            border: `1px solid ${e.fecha ? '#A8BACB' : '#DFE8EF'}`,
                             fontSize:10.5, fontWeight:700, padding:'2px 8px', borderRadius:99, whiteSpace:'nowrap',
                           }}>
                             {e.fecha ? fmtFechaKam(e.fecha) : 'Sin fecha'}
                             {e.semana ? ` · Sem. ${e.semana}` : ''}
                           </span>
                           {e.autor && (
-                            <span style={{ background:'transparent', fontSize:10.5, color:'#64748B', fontWeight:600 }}>{e.autor}</span>
+                            <span style={{ background:'transparent', fontSize:10.5, color:'#3D4B5C', fontWeight:600 }}>{e.autor}</span>
                           )}
                           {e.automatica && (
                             <span style={{ background:'#FEF3C7', color:'#B45309', border:'1px solid #FDE68A', fontSize:9.5, fontWeight:700, padding:'1px 7px', borderRadius:99 }}>
                               automático
                             </span>
                           )}
-                          <span style={{ flex:1, height:1, background:'#E2E8F0' }} />
+                          <span style={{ flex:1, height:1, background:'#DFE8EF' }} />
                         </div>
-                        <p style={{ fontSize:13, color:'#0F172A', lineHeight:1.65, whiteSpace:'pre-wrap', margin:0, paddingLeft:2 }}>
+                        <p style={{ fontSize:13, color:'#082742', lineHeight:1.65, whiteSpace:'pre-wrap', margin:0, paddingLeft:2 }}>
                           {e.cuerpo}
                         </p>
                       </div>
@@ -1020,7 +1022,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                       placeholder={'Resumen de la semana — breve.\n• Comportamiento de la cuenta\n• Tickets\n• Reuniones internas'}
                       style={{
                         width:'100%', padding:'10px 12px', borderRadius:8,
-                        border:'1px solid #CBD5E1', fontSize:13, color:'#0F172A',
+                        border:'1px solid #CBD5E1', fontSize:13, color:'#082742',
                         fontFamily:'inherit', resize:'vertical', boxSizing:'border-box',
                         lineHeight:1.6,
                       }}
@@ -1028,12 +1030,12 @@ export default async function CuentaDetailPage({ params }: Props) {
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8 }}>
                       <button type="submit" style={{
                         padding:'7px 18px', borderRadius:7, border:'none',
-                        background:'#1B3FCC', color:'#fff',
+                        background:'#10355D', color:'#fff',
                         fontSize:12, fontWeight:700, cursor:'pointer',
                       }}>
                         ＋ Agregar resumen
                       </button>
-                      <span style={{ fontSize:11, color:'#64748B' }}>
+                      <span style={{ fontSize:11, color:'#3D4B5C' }}>
                         Se guarda con la fecha de hoy y tu nombre. No reemplaza lo anterior.
                       </span>
                     </div>
@@ -1044,8 +1046,8 @@ export default async function CuentaDetailPage({ params }: Props) {
                 {canEdit && (
                   <details style={{ marginTop:4 }}>
                     <summary style={{
-                      fontSize:12, fontWeight:600, color:'#64748B',
-                      background:'#F8FAFC', border:'1px solid #E2E8F0',
+                      fontSize:12, fontWeight:600, color:'#3D4B5C',
+                      background:'#F5F8FB', border:'1px solid #DFE8EF',
                       borderRadius:6, padding:'6px 12px', cursor:'pointer',
                       listStyle:'none',
                     }}>
@@ -1065,14 +1067,14 @@ export default async function CuentaDetailPage({ params }: Props) {
                         placeholder="Estado de la relación, compromisos, riesgos, acuerdos..."
                         style={{
                           width:'100%', padding:'10px 12px', borderRadius:8,
-                          border:'1px solid #CBD5E1', fontSize:13, color:'#0F172A',
+                          border:'1px solid #CBD5E1', fontSize:13, color:'#082742',
                           fontFamily:'inherit', resize:'vertical', boxSizing:'border-box',
                           lineHeight:1.6,
                         }}
                       />
                       <button type="submit" style={{
                         marginTop:8, padding:'7px 18px', borderRadius:7, border:'none',
-                        background:'#1B3FCC', color:'#fff',
+                        background:'#10355D', color:'#fff',
                         fontSize:12, fontWeight:700, cursor:'pointer',
                       }}>
                         💾 Reemplazar historial

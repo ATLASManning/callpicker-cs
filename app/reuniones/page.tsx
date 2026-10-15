@@ -30,7 +30,7 @@ type CuentaOpcion = { id: string; consecutivo: string | null; cid: string | null
 
 /* Los tonos son para la TARJETA OSCURA, que es donde se pintan estas
    pastillas. Iban con la paleta de página y tres de los cinco no se leían:
-   Otro #475569 daba 2.24:1, One To One #7C3AED 2.96:1 y Junta Semanal #0057FF
+   Otro #202E3B daba 2.24:1, One To One #7C3AED 2.96:1 y Junta Semanal #0057FF
    3.04:1. Se aclaran los tres; «Con Cliente» y «Estrategia» ya cumplían y se
    quedan igual para no mover el código de color que el equipo ya reconoce.
    `TIPOS` es local de este archivo, así que el cambio no sale de aquí. */
@@ -39,7 +39,7 @@ const TIPOS: Record<TipoReunion, { label: string; color: string; bg: string }> =
   one_on_one:    { label: 'One To One',     color: '#A78BFA', bg: 'rgba(124,58,237,0.08)' },
   cliente:       { label: 'Con Cliente',    color: '#059669', bg: 'rgba(5,150,105,0.08)' },
   estrategia:    { label: 'Estrategia',     color: '#D97706', bg: 'rgba(217,119,6,0.08)' },
-  otro:          { label: 'Otro',           color: '#94A3B8', bg: 'rgba(71,85,105,0.08)' },
+  otro:          { label: 'Otro',           color: '#A8BACB', bg: 'rgba(71,85,105,0.08)' },
 }
 
 /* `llevaCuenta` y `exigeCuenta` viven en lib/reuniones-tipo.ts porque el
@@ -345,7 +345,7 @@ export default function ReunionesPage() {
     <div className="min-h-screen">
       <div className="px-6 pt-5 pb-0">
         <Link href="/" className="inline-flex items-center gap-1.5 text-xs mb-4"
-          style={{ color: '#64748b' }}>
+          style={{ color: '#3D4B5C' }}>
           <ArrowLeft size={13} /> Volver al Dashboard
         </Link>
         <div className="flex items-center justify-between pb-4">
@@ -353,8 +353,8 @@ export default function ReunionesPage() {
             <div className="flex items-center gap-2">
               {/* Marino, no blanco: este encabezado va sobre el fondo claro de
                   la página —el enlace «Volver al Dashboard» de arriba ya usa
-                  #64748b—, así que en blanco el título no se veía. */}
-              <h1 className="text-2xl font-extrabold" style={{ color: '#0F172A', letterSpacing: '-0.02em' }}>
+                  #3D4B5C—, así que en blanco el título no se veía. */}
+              <h1 className="text-2xl font-extrabold" style={{ color: '#082742', letterSpacing: '-0.02em' }}>
                 Reuniones
               </h1>
               {tableExists === true && (
@@ -364,7 +364,7 @@ export default function ReunionesPage() {
                 </span>
               )}
             </div>
-            <p className="text-sm mt-0.5" style={{ color: '#475569' }}>
+            <p className="text-sm mt-0.5" style={{ color: '#202E3B' }}>
               Resúmenes, acuerdos y próximos pasos de cada meeting
             </p>
           </div>
@@ -415,9 +415,9 @@ export default function ReunionesPage() {
       {/* Estado cargando */}
       {loading && (
         <div className="flex items-center justify-center py-16">
-          {/* Azul de marca: #BFDBFE sobre la página clara era casi invisible,
+          {/* Azul de marca: #A8BACB sobre la página clara era casi invisible,
               y esto es lo ÚNICO que se ve mientras carga. */}
-          <RefreshCw size={20} className="animate-spin" style={{ color: '#1B3FCC' }} />
+          <RefreshCw size={20} className="animate-spin" style={{ color: '#10355D' }} />
         </div>
       )}
 
@@ -426,10 +426,10 @@ export default function ReunionesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-2xl rounded-2xl p-6 space-y-4"
-            style={{ background: '#ffffff', border: '1px solid #BFDBFE', boxShadow: '0 20px 60px rgba(0,87,255,0.15)' }}>
+            style={{ background: '#ffffff', border: '1px solid #A8BACB', boxShadow: '0 20px 60px rgba(0,87,255,0.15)' }}>
 
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold" style={{ color: '#0F172A' }}>Nueva Reunión</h2>
+              <h2 className="text-base font-bold" style={{ color: '#082742' }}>Nueva Reunión</h2>
               <button onClick={() => setShowForm(false)} className="cp-icon-btn">
                 <X size={16} />
               </button>
@@ -437,13 +437,13 @@ export default function ReunionesPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Fecha</label>
+                <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>Fecha</label>
                 <input type="date" value={form.fecha}
                   onChange={e => setForm(p => ({ ...p, fecha: e.target.value }))}
                   className="cp-input w-full" />
               </div>
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Tipo</label>
+                <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>Tipo</label>
                 {/* Al cambiar a un tipo que NO lleva cuenta se limpia la que
                     hubiera. Sin esto, elegir la cuenta en una Junta Semanal y
                     luego cambiar a One To One guardaba un One To One vinculado a
@@ -462,7 +462,7 @@ export default function ReunionesPage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Título / Tema</label>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>Título / Tema</label>
               <input type="text" placeholder="ej. Revisión semanal KAM · Mayo"
                 value={form.titulo}
                 onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
@@ -506,7 +506,7 @@ export default function ReunionesPage() {
                     })),
                   ]} />
                 <p className="text-[10px] mt-1"
-                   style={{ color: form.cuenta_id ? '#94a3b8' : '#ef4444' }}>
+                   style={{ color: form.cuenta_id ? '#A8BACB' : '#ef4444' }}>
                   {form.cuenta_id
                     ? `Vinculada a ${form.empresa}${form.cid ? ` · CID ${form.cid}` : ''}. ${
                         form.tipo === 'cliente'
@@ -518,7 +518,7 @@ export default function ReunionesPage() {
             )}
 
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>
                 <Users size={12} className="inline mr-1" />Participantes
               </label>
               <input type="text" placeholder="Fátima, Dan, Claudia, ..."
@@ -528,7 +528,7 @@ export default function ReunionesPage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>
                 <FileText size={12} className="inline mr-1" />Resumen de la reunión
               </label>
               <textarea rows={3} placeholder="¿De qué se habló? Principales temas discutidos..."
@@ -538,7 +538,7 @@ export default function ReunionesPage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Acuerdos / Decisiones</label>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>Acuerdos / Decisiones</label>
               <textarea rows={2} placeholder="¿Qué se acordó? ¿Qué decisiones se tomaron?"
                 value={form.acuerdos}
                 onChange={e => setForm(p => ({ ...p, acuerdos: e.target.value }))}
@@ -546,7 +546,7 @@ export default function ReunionesPage() {
             </div>
 
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: '#475569' }}>Próximos pasos</label>
+              <label className="text-xs font-medium mb-1 block" style={{ color: '#202E3B' }}>Próximos pasos</label>
               <textarea rows={2} placeholder="Tareas y responsables para la próxima semana..."
                 value={form.proximos_pasos}
                 onChange={e => setForm(p => ({ ...p, proximos_pasos: e.target.value }))}
@@ -588,7 +588,7 @@ export default function ReunionesPage() {
                   className="cp-btn text-xs"
                   style={mesVisible === m
                     ? { background: '#0057FF', color: '#fff', border: '1px solid #003db3', boxShadow: '0 2px 8px rgba(0,87,255,0.3)' }
-                    : { background: '#fff', color: '#374151', border: '1px solid #BFDBFE' }}>
+                    : { background: '#fff', color: '#202E3B', border: '1px solid #A8BACB' }}>
                   {formatMes(m)}
                 </button>
               ))}
@@ -598,9 +598,9 @@ export default function ReunionesPage() {
           {/* Estado vacío */}
           {tableExists !== false && reuniones.length === 0 && (
             <div className="cp-card text-center py-16">
-              <Calendar size={40} className="mx-auto mb-3" style={{ color: '#BFDBFE' }} />
+              <Calendar size={40} className="mx-auto mb-3" style={{ color: '#A8BACB' }} />
               <p className="font-semibold mb-1" style={{ color: '#fff' }}>Sin reuniones registradas</p>
-              <p className="text-sm mb-4" style={{ color: '#64748b' }}>
+              <p className="text-sm mb-4" style={{ color: '#3D4B5C' }}>
                 Documenta el resumen de cada meeting del equipo
               </p>
               <button onClick={() => { setShowForm(true); setForm(emptyForm()); setSaveError(null) }}
@@ -614,7 +614,7 @@ export default function ReunionesPage() {
           {reunionesMes.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-3">
-                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#64748b' }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#3D4B5C' }}>
                   {formatMes(mesVisible)} · {reunionesMes.length} reunión{reunionesMes.length !== 1 ? 'es' : ''}
                 </p>
                 {tableExists && (
@@ -660,7 +660,7 @@ export default function ReunionesPage() {
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
                               style={r.tipo === 'cliente'
                                 ? { background: 'rgba(5,150,105,0.1)', color: '#059669', border: '1px solid rgba(5,150,105,0.2)' }
-                                /* `#475569` sobre el marino de la tarjeta era
+                                /* `#202E3B` sobre el marino de la tarjeta era
                                    el peor de los ocho archivos: 2.08:1. Solo
                                    cambia la LETRA; el fondo y el borde grises
                                    se quedan, porque son los que dicen
@@ -673,14 +673,14 @@ export default function ReunionesPage() {
                         </div>
                         <p className="text-sm font-semibold truncate" style={{ color: '#fff' }}>{r.titulo}</p>
                         {r.participantes && (
-                          <p className="text-xs truncate mt-0.5" style={{ color: '#64748b' }}>
+                          <p className="text-xs truncate mt-0.5" style={{ color: '#3D4B5C' }}>
                             <Users size={10} className="inline mr-1" />{r.participantes}
                           </p>
                         )}
                       </div>
 
                       <ChevronDown size={16} style={{
-                        color: '#94A3B8',
+                        color: '#A8BACB',
                         transform: open ? 'rotate(180deg)' : 'none',
                         transition: 'transform 0.2s',
                         flexShrink: 0,
@@ -688,15 +688,15 @@ export default function ReunionesPage() {
                     </button>
 
                     {open && (
-                      <div style={{ borderTop: '1px solid #EFF6FF', padding: '0 20px 20px' }}>
-                        <p className="text-[11px] mt-3 mb-3" style={{ color: '#94A3B8' }}>
+                      <div style={{ borderTop: '1px solid #F5F8FB', padding: '0 20px 20px' }}>
+                        <p className="text-[11px] mt-3 mb-3" style={{ color: '#A8BACB' }}>
                           {formatFecha(r.fecha)}
                         </p>
 
                         {r.resumen && (
                           <div className="mb-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#64748b' }}>Resumen</p>
-                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#374151' }}>{r.resumen}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#3D4B5C' }}>Resumen</p>
+                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#202E3B' }}>{r.resumen}</p>
                           </div>
                         )}
 
@@ -704,7 +704,7 @@ export default function ReunionesPage() {
                           <div className="mb-3 p-3 rounded-xl"
                             style={{ background: 'rgba(0,87,255,0.04)', border: '1px solid rgba(0,87,255,0.1)' }}>
                             <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#0057FF' }}>Acuerdos</p>
-                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#374151' }}>{r.acuerdos}</p>
+                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#202E3B' }}>{r.acuerdos}</p>
                           </div>
                         )}
 
@@ -712,7 +712,7 @@ export default function ReunionesPage() {
                           <div className="mb-3 p-3 rounded-xl"
                             style={{ background: 'rgba(5,150,105,0.04)', border: '1px solid rgba(5,150,105,0.12)' }}>
                             <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#059669' }}>Próximos Pasos</p>
-                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#374151' }}>{r.proximos_pasos}</p>
+                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#202E3B' }}>{r.proximos_pasos}</p>
                           </div>
                         )}
 

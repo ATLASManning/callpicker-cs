@@ -68,11 +68,11 @@ function getDataWarning(c: Cuenta): DataWarning {
 
 // ── Estado clasificación (0–4) ────────────────────────────────────────────────
 const ESTADO_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  '0': { label: '0 - Factura Futura', color: '#6366F1', bg: '#6366F110' },
+  '0': { label: '0 - Factura Futura', color: '#1D6CAA', bg: '#1D6CAA10' },
   '1': { label: '1 - Activo',         color: '#22C55E', bg: '#22C55E10' },
   '2': { label: '2 - Riesgo',         color: '#F59E0B', bg: '#F59E0B10' },
   '3': { label: '3 - Alerta',         color: '#F97316', bg: '#F9731610' },
-  '4': { label: '4 - Dormido',        color: '#94A3B8', bg: '#94A3B810' },
+  '4': { label: '4 - Dormido',        color: '#A8BACB', bg: '#A8BACB10' },
 }
 
 /**
@@ -384,7 +384,7 @@ function CuentasPageInner() {
       {/* Banner acceso rápido a Dormidas */}
       {!loading && totalDormidas > 0 && (
         <div className="mx-6 mb-3 flex items-center justify-between px-4 py-2.5 rounded-xl border"
-          style={{ background: '#94A3B808', borderColor: '#94A3B830' }}>
+          style={{ background: '#A8BACB08', borderColor: '#A8BACB30' }}>
           <div className="flex items-center gap-2 text-sm text-textLow">
             <Archive size={14} className="text-textLow" />
             <span>
@@ -394,8 +394,8 @@ function CuentasPageInner() {
           </div>
           <Link href="/cuentas/dormidas"
             className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
-            style={{ color: '#94A3B8', borderColor: '#94A3B830' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#94A3B815' }}
+            style={{ color: '#A8BACB', borderColor: '#A8BACB30' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#A8BACB15' }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
             Ver Dormidas →
           </Link>

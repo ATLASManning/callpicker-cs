@@ -260,7 +260,7 @@ export default function NuevaCuentaPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   const hsColor = form.health_score >= 80 ? '#22C55E'
-    : form.health_score >= 60 ? '#3B82F6'
+    : form.health_score >= 60 ? '#1D6CAA'
     : form.health_score >= 40 ? '#EAB308'
     : form.health_score >= 20 ? '#F97316' : '#EF4444'
 
@@ -556,7 +556,7 @@ export default function NuevaCuentaPage() {
               <span className="text-[10px] text-textLow mt-1">HS Global</span>
             </div>
             <div className="flex-1 space-y-2.5">
-              <ScoreSlider label="Actividad (35%)" color="#3B82F6"
+              <ScoreSlider label="Actividad (35%)" color="#1D6CAA"
                 value={form.score_actividad}
                 onChange={v => setScore('score_actividad', v)} />
               <ScoreSlider label="Adopción (30%)" color="#A855F7"

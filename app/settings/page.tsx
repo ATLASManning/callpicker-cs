@@ -52,7 +52,7 @@ export default function SettingsPage() {
           <div className="space-y-2">
             {[
               { label: 'Verde',    rango: '80 – 100', color: '#22C55E', accion: 'Cuenta saludable. Candidata a upsell.' },
-              { label: 'Azul',     rango: '60 – 79',  color: '#3B82F6', accion: 'En buen estado. Mantener engagement.' },
+              { label: 'Azul',     rango: '60 – 79',  color: '#1D6CAA', accion: 'En buen estado. Mantener engagement.' },
               { label: 'Amarillo', rango: '40 – 59',  color: '#EAB308', accion: 'Alerta temprana. Agendar llamada.' },
               { label: 'Naranja',  rango: '20 – 39',  color: '#F97316', accion: 'En riesgo. Intervención en < 48 h.' },
               { label: 'Rojo',     rango: '0 – 19',   color: '#EF4444', accion: 'Crítico. Escalada inmediata.' },

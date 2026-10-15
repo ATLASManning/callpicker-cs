@@ -107,7 +107,7 @@ function coloresPorPlan(planes: string[]): Record<string, string> {
    tener las dos versiones lado a lado hacía que se tomara la equivocada sin
    que nada fallara. Si algún día hace falta una isla clara, se declara ahí. */
 const CLAS_COLOR_D: Record<string, string> = {
-  'AAA':'#60A5FA','Grande':'#818CF8','Mediana':'#FBBF24','Pequeña':'#4ADE80','Micro':'#94A3B8',
+  'AAA':'#60A5FA','Grande':'#818CF8','Mediana':'#FBBF24','Pequeña':'#4ADE80','Micro':'#A8BACB',
 }
 const USO_COLOR_D: Record<string, string> = {
   'entrantes':'#60A5FA','salientes':'#FBBF24','mixtas':'#A78BFA','equilibrado':'#34D399',
@@ -116,11 +116,11 @@ const ZONA_COLORS: Record<string, string> = {
   '0%':'#F87171','1-20%':'#FB923C','21-40%':'#FBBF24',
   '41-60%':'#A3E635','61-80%':'#4ADE80','81-100%':'#60A5FA','>100%':'#818CF8',
   // Gris a propósito: no es un nivel de consumo, es la ausencia de la medición.
-  'Sin medición':'#94A3B8',
+  'Sin medición':'#A8BACB',
 }
 
 function getBadgeSt(val: string, map: Record<string, string>) {
-  const color = map[val] ?? '#94a3b8'
+  const color = map[val] ?? '#A8BACB'
   return { background: color + '18', color, fontWeight: 700 as const, fontSize: 10, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap' as const }
 }
 function pctColor(p: number) {
@@ -128,7 +128,7 @@ function pctColor(p: number) {
   if (p <= 20)  return '#f97316'
   if (p <= 60)  return '#f59e0b'
   if (p <= 100) return '#22c55e'
-  return '#6366f1'
+  return '#1D6CAA'
 }
 function pctColorD(p: number) {
   if (p === 0)  return '#F87171'
@@ -199,7 +199,7 @@ function FiltroSelect({ label, value, options, onChange, placeholder }: {
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: '0.07em' }}>{label}</span>
+      <span style={{ fontSize: 10, fontWeight: 700, color: '#A8BACB', textTransform: 'uppercase' as const, letterSpacing: '0.07em' }}>{label}</span>
       <CustomSelect
         value={value}
         onChange={onChange}
@@ -209,9 +209,9 @@ function FiltroSelect({ label, value, options, onChange, placeholder }: {
         ]}
         style={{
           padding: '7px 28px 7px 10px', borderRadius: 8,
-          border: value ? '1.5px solid #1B3FCC' : '1.5px solid #e2e8f0',
+          border: value ? '1.5px solid #10355D' : '1.5px solid #DFE8EF',
           fontSize: 12, background: '#fff',
-          color: value ? '#1B3FCC' : '#374151',
+          color: value ? '#10355D' : '#202E3B',
           fontWeight: value ? 700 : 400, outline: 'none',
           minWidth: 160, maxWidth: 240,
         }}
@@ -346,10 +346,10 @@ export default function InformeCortesPage() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', flexDirection: 'column', gap: 12 }}>
-      <RefreshCw size={28} style={{ color: '#1B3FCC', animation: 'spin 1s linear infinite' }} />
+      <RefreshCw size={28} style={{ color: '#10355D', animation: 'spin 1s linear infinite' }} />
       {/* Este return temprano NO está dentro de una .cp-card: se pinta sobre el
           fondo claro de la página. Blanco al 45% aquí es invisible. */}
-      <p style={{ color: '#64748B', fontSize: 14 }}>Cargando cortes de facturación…</p>
+      <p style={{ color: '#3D4B5C', fontSize: 14 }}>Cargando cortes de facturación…</p>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
@@ -360,19 +360,19 @@ export default function InformeCortesPage() {
   const DS = { fontSize: 11, color: 'rgba(255,255,255,0.45)',                   marginBottom: 16 }
 
   return (
-    <div style={{ padding: '28px 32px', background: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ padding: '28px 32px', background: '#F5F8FB', minHeight: '100vh' }}>
 
       {/* ── Header */}
       <div style={{ marginBottom: 18, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', margin: 0 }}>Informe de Cortes</h1>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Análisis de consumo y comportamiento por periodo de corte</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#082742', margin: 0 }}>Informe de Cortes</h1>
+          <p style={{ fontSize: 13, color: '#3D4B5C', marginTop: 4 }}>Análisis de consumo y comportamiento por periodo de corte</p>
         </div>
         {/* El header vive sobre el fondo claro de la página, no dentro de una
             tarjeta: paleta clara. Con los blancos translúcidos de antes el
             botón quedaba a ~1.05:1 — un recuadro vacío. */}
         <button onClick={() => { setStats(null); setLoading(true); setTimeout(() => window.location.reload(), 100) }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid #E2E8F0', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#475569', fontWeight: 600 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid #DFE8EF', background: '#fff', cursor: 'pointer', fontSize: 13, color: '#202E3B', fontWeight: 600 }}>
           <RefreshCw size={13} /> Actualizar
         </button>
       </div>
@@ -397,7 +397,7 @@ export default function InformeCortesPage() {
         </div>
         {filtFecha && (
           <p style={{ marginTop: 10, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-            Mostrando: <strong style={{ color: '#1B3FCC' }}>{fmtMes(filtFecha)}</strong>
+            Mostrando: <strong style={{ color: '#10355D' }}>{fmtMes(filtFecha)}</strong>
             {filtClas && <> · <strong>{filtClas}</strong></>}
             {filtPlan && <> · <strong>{filtPlan.length > 35 ? filtPlan.slice(0, 35) + '…' : filtPlan}</strong></>}
             {filtUso  && <> · <strong>{filtUso}</strong></>}
@@ -420,7 +420,7 @@ export default function InformeCortesPage() {
               no hay nada que medir. Se muestran para que las cuentas cierren
               y para que nadie los busque dentro de «sin consumo». */}
           {stats.sinMedicion > 0 && (
-            <KpiCard icon={HelpCircle} label="Sin medición" value={stats.sinMedicion.toLocaleString('es-MX')} sub="planes sin minutos de voz" color="#94A3B8" />
+            <KpiCard icon={HelpCircle} label="Sin medición" value={stats.sinMedicion.toLocaleString('es-MX')} sub="planes sin minutos de voz" color="#A8BACB" />
           )}
         </div>
       )}
@@ -435,8 +435,8 @@ export default function InformeCortesPage() {
         ] as { key: typeof tab; label: string }[]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-            background: tab === t.key ? '#1B3FCC' : '#fff',
-            color:      tab === t.key ? '#fff'    : '#374151',
+            background: tab === t.key ? '#10355D' : '#fff',
+            color:      tab === t.key ? '#fff'    : '#202E3B',
             boxShadow:  tab === t.key ? '0 2px 8px rgba(27,63,204,0.25)' : '0 1px 3px rgba(0,0,0,0.08)',
           }}>{t.label}</button>
         ))}
@@ -449,27 +449,27 @@ export default function InformeCortesPage() {
         <div className="cp-card" style={{ borderRadius: 14, overflow: 'hidden' }}>
           <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: 10, alignItems: 'center', background: 'rgba(255,255,255,0.04)' }}>
             <div style={{ position: 'relative', flex: 1 }}>
-              <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+              <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#A8BACB' }} />
               <input value={q} onChange={e => { setQ(e.target.value); setPage(1) }}
                 onKeyDown={e => e.key === 'Enter' && fetchList()}
                 placeholder="Buscar cliente o CID…"
-                style={{ width: '100%', padding: '8px 10px 8px 30px', borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 10px 8px 30px', borderRadius: 8, border: '1.5px solid #DFE8EF', fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
             <button onClick={() => { setPage(1); fetchList() }}
-              style={{ padding: '8px 14px', borderRadius: 8, background: '#1B3FCC', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+              style={{ padding: '8px 14px', borderRadius: 8, background: '#10355D', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
               Buscar
             </button>
             <div ref={colMenuRef} style={{ position: 'relative' }}>
               <button onClick={() => setShowColMenu(v => !v)} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 12px', borderRadius: 8, border: '1.5px solid #e2e8f0',
-                background: showColMenu ? '#1B3FCC' : '#fff',
-                color: showColMenu ? '#fff' : '#374151',
+                padding: '8px 12px', borderRadius: 8, border: '1.5px solid #DFE8EF',
+                background: showColMenu ? '#10355D' : '#fff',
+                color: showColMenu ? '#fff' : '#202E3B',
                 cursor: 'pointer', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
               }}>
                 <Columns size={13} /> Columnas
-                <span style={{ fontSize: 10, fontWeight: 700, background: showColMenu ? 'rgba(255,255,255,0.25)' : '#1B3FCC18', color: showColMenu ? '#fff' : '#1B3FCC', padding: '1px 5px', borderRadius: 99 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, background: showColMenu ? 'rgba(255,255,255,0.25)' : '#10355D18', color: showColMenu ? '#fff' : '#10355D', padding: '1px 5px', borderRadius: 99 }}>
                   {visibleCols.size}/{ALL_COLS.length}
                 </span>
               </button>
@@ -478,18 +478,18 @@ export default function InformeCortesPage() {
                   de un .cp-card y queda blanco sobre blanco. El color va en el
                   contenedor y los hijos lo heredan. */}
               {showColMenu && (
-                <div className="cp-light" style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50, background: '#fff', color: '#0f172a', border: '1.5px solid #e2e8f0', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 4px', minWidth: 220 }}>
+                <div className="cp-light" style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50, background: '#fff', color: '#082742', border: '1.5px solid #DFE8EF', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 4px', minWidth: 220 }}>
                   <div style={{ padding: '4px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ color: '#475569' }}>
+                    <div style={{ color: '#202E3B' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Columnas</span>
                       <p style={{ fontSize: 10, margin: '1px 0 0' }}>Arrastra para reordenar</p>
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => setVisibleCols(new Set(ALL_COLS.map(c => c.key)))} style={{ fontSize: 10, color: '#1B3FCC', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Todas</button>
-                      <button onClick={() => setColOrder(ALL_COLS.map(c => c.key))} style={{ fontSize: 10, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Reset orden</button>
+                      <button onClick={() => setVisibleCols(new Set(ALL_COLS.map(c => c.key)))} style={{ fontSize: 10, color: '#10355D', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Todas</button>
+                      <button onClick={() => setColOrder(ALL_COLS.map(c => c.key))} style={{ fontSize: 10, color: '#A8BACB', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Reset orden</button>
                     </div>
                   </div>
-                  <div style={{ height: 1, background: '#E2E8F0', margin: '4px 8px 6px' }} />
+                  <div style={{ height: 1, background: '#DFE8EF', margin: '4px 8px 6px' }} />
                   {colOrder.map((key, idx) => {
                     const col      = ALL_COLS.find(c => c.key === key)!
                     const checked  = visibleCols.has(key)
@@ -500,12 +500,12 @@ export default function InformeCortesPage() {
                       <div key={key} draggable
                         onDragStart={() => handleDragStart(idx)} onDragOver={e => handleDragOver(e, idx)}
                         onDragLeave={() => setDragOverIdx(null)} onDrop={e => handleDrop(e, idx)} onDragEnd={handleDragEnd}
-                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, margin: '1px 4px', color: checked ? '#0f172a' : '#94a3b8', background: isTarget ? '#EFF6FF' : 'transparent', borderTop: fromAbove ? '2px solid #1B3FCC' : '2px solid transparent', borderBottom: fromBelow ? '2px solid #1B3FCC' : '2px solid transparent', opacity: dragItemIdx.current === idx ? 0.35 : 1, cursor: 'grab', transition: 'background 0.1s', userSelect: 'none' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, margin: '1px 4px', color: checked ? '#082742' : '#A8BACB', background: isTarget ? '#F5F8FB' : 'transparent', borderTop: fromAbove ? '2px solid #10355D' : '2px solid transparent', borderBottom: fromBelow ? '2px solid #10355D' : '2px solid transparent', opacity: dragItemIdx.current === idx ? 0.35 : 1, cursor: 'grab', transition: 'background 0.1s', userSelect: 'none' }}>
                         <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0, opacity: 0.35 }}>⠿</span>
                         <input type="checkbox" checked={checked}
                           onChange={e => { e.stopPropagation(); setVisibleCols(prev => { const next = new Set(prev); if (next.has(key)) { if (next.size > 1) next.delete(key) } else next.add(key); return next }) }}
                           onClick={e => e.stopPropagation()}
-                          style={{ accentColor: '#1B3FCC', width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }}
+                          style={{ accentColor: '#10355D', width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }}
                         />
                         <span style={{ fontSize: 13, fontWeight: checked ? 600 : 400, flex: 1 }}>{col.label}</span>
                         <span style={{ fontSize: 10, fontWeight: 700, minWidth: 16, textAlign: 'right', opacity: 0.4 }}>{idx + 1}</span>
@@ -519,7 +519,7 @@ export default function InformeCortesPage() {
           </div>
 
           {loadingList ? (
-            <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Cargando…</div>
+            <div style={{ padding: 40, textAlign: 'center', color: '#A8BACB' }}>Cargando…</div>
           ) : list && list.rows.length > 0 ? (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -555,26 +555,26 @@ export default function InformeCortesPage() {
                       onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                       {colOrder.filter(k => visibleCols.has(k)).map(k => {
-                        if (k === 'cid')          return <td key={k} style={{ padding: '8px 10px', color: '#94a3b8', fontWeight: 600, fontSize: 11 }}>{r.cid}</td>
+                        if (k === 'cid')          return <td key={k} style={{ padding: '8px 10px', color: '#A8BACB', fontWeight: 600, fontSize: 11 }}>{r.cid}</td>
                         if (k === 'cliente')       return <td key={k} style={{ padding: '8px 10px', fontWeight: 600, color: '#fff', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.cliente}</td>
                         if (k === 'periodo')       return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', fontSize: 11 }}>{r.periodo}</td>
                         if (k === 'plan')          return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
                         if (k === 'minutosIncl')   return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', textAlign: 'right' }}>{r.minutosIncl.toLocaleString()}</td>
-                        if (k === 'minutosConsum') return <td key={k} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#0f172a' }}>{r.minutosConsum.toLocaleString()}</td>
+                        if (k === 'minutosConsum') return <td key={k} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#082742' }}>{r.minutosConsum.toLocaleString()}</td>
                         /* Un plan sin minutos de voz no consumió 0%: no tiene
                            qué consumir. Rojo ahí acusaría un desuso inventado. */
                         if (k === 'pctConsumo')    return <td key={k} style={{ padding: '8px 10px', textAlign: 'right' }}
                           title={r.medible ? undefined : 'El plan no incluye minutos de voz: no hay base contra la cual medir'}>
-                          <span style={{ fontWeight: 700, color: r.medible ? pctColor(r.pctConsumo) : '#94A3B8' }}>
+                          <span style={{ fontWeight: 700, color: r.medible ? pctColor(r.pctConsumo) : '#A8BACB' }}>
                             {r.medible ? `${r.pctConsumo.toFixed(1)}%` : 'sin medición'}</span></td>
-                        if (k === 'monto')         return <td key={k} style={{ padding: '8px 10px', fontWeight: 700, color: '#1B3FCC', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>
+                        if (k === 'monto')         return <td key={k} style={{ padding: '8px 10px', fontWeight: 700, color: '#10355D', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>
                         /* Paletas `_D`: la tabla está en una tarjeta oscura y
-                           las claras (#1B3FCC, #f59e0b) daban azul marino
+                           las claras (#10355D, #f59e0b) daban azul marino
                            sobre azul marino. Las gráficas de más abajo ya
                            usaban las `_D` — estas dos se habían quedado. */
                         if (k === 'clasificacion') return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR_D)}>{r.clasificacion || '—'}</span></td>
                         if (k === 'uso')           return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR_D)}>{r.usoPrincipal || '—'}</span></td>
-                        if (k === 'eventos')       return <td key={k} style={{ padding: '8px 10px', textAlign: 'center' }}>{r.eventosAnal === 'Si' ? <CheckCircle size={13} style={{ color: '#22c55e' }} /> : <span style={{ color: '#94a3b8', fontSize: 11 }}>—</span>}</td>
+                        if (k === 'eventos')       return <td key={k} style={{ padding: '8px 10px', textAlign: 'center' }}>{r.eventosAnal === 'Si' ? <CheckCircle size={13} style={{ color: '#22c55e' }} /> : <span style={{ color: '#A8BACB', fontSize: 11 }}>—</span>}</td>
                         return null
                       })}
                     </tr>
@@ -583,7 +583,7 @@ export default function InformeCortesPage() {
               </table>
             </div>
           ) : (
-            <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Sin resultados</div>
+            <div style={{ padding: 40, textAlign: 'center', color: '#A8BACB', fontSize: 13 }}>Sin resultados</div>
           )}
 
           {list && totalPages > 1 && (
@@ -593,7 +593,7 @@ export default function InformeCortesPage() {
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}><ChevronLeft size={13} /></button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
                   const p = Math.max(1, Math.min(page - 2, totalPages - 4)) + idx
-                  return <button key={p} onClick={() => setPage(p)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: p === page ? '#1B3FCC' : 'rgba(255,255,255,0.08)', color: p === page ? '#fff' : 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 12, fontWeight: p === page ? 700 : 400 }}>{p}</button>
+                  return <button key={p} onClick={() => setPage(p)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: p === page ? '#10355D' : 'rgba(255,255,255,0.08)', color: p === page ? '#fff' : 'rgba(255,255,255,0.7)', cursor: 'pointer', fontSize: 12, fontWeight: p === page ? 700 : 400 }}>{p}</button>
                 })}
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: page === totalPages ? 'not-allowed' : 'pointer', opacity: page === totalPages ? 0.4 : 1 }}><ChevronRight size={13} /></button>
               </div>
@@ -621,7 +621,7 @@ export default function InformeCortesPage() {
                   {Object.entries(stats.zonas).map(([zona, n]) => {
                     const h     = Math.max(6, Math.round((n / maxZ) * H))
                     const pct   = ((n / total) * 100).toFixed(1)
-                    const color = ZONA_COLORS[zona] ?? '#94a3b8'
+                    const color = ZONA_COLORS[zona] ?? '#A8BACB'
                     return (
                       <div key={zona} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
                         <span style={{ fontSize: 12, color: '#fff', fontWeight: 800 }}>{n.toLocaleString()}</span>
@@ -669,11 +669,11 @@ export default function InformeCortesPage() {
             <div style={{ display: 'flex', gap: 14, marginBottom: 20 }}>
               {[
                 { label: 'Con eventos', n: stats.conEventos,                color: '#4ADE80', icon: CheckCircle },
-                /* `#475569` es el gris de PÁGINA y esta tarjeta es una isla
-                   oscura: 2.24:1 en el número de 22px. `#94A3B8` da 6.4:1 ahí
+                /* `#202E3B` es el gris de PÁGINA y esta tarjeta es una isla
+                   oscura: 2.24:1 en el número de 22px. `#A8BACB` da 6.4:1 ahí
                    y sigue leyéndose como «neutro / ausencia», que es lo que
                    tiene que decir. Es la dirección contraria del bug. */
-                { label: 'Sin eventos', n: stats.total - stats.conEventos,  color: '#94A3B8', icon: AlertTriangle },
+                { label: 'Sin eventos', n: stats.total - stats.conEventos,  color: '#A8BACB', icon: AlertTriangle },
               ].map(({ label, n, color, icon: Icon }) => (
                 <div key={label} style={{ flex: 1, padding: '16px', borderRadius: 10, background: color + '14', border: `1px solid ${color}25`, textAlign: 'center' }}>
                   <Icon size={20} style={{ color, margin: '0 auto 8px' }} />
@@ -871,7 +871,7 @@ export default function InformeCortesPage() {
               height={170}
               entries={Object.entries(stats.byClas)
                 .sort((a, b) => b[1].count - a[1].count)
-                .map(([clas, v]) => ({ label: clas || '—', value: v.count, color: CLAS_COLOR_D[clas] ?? '#94A3B8', sub: fmtK(v.monto) }))}
+                .map(([clas, v]) => ({ label: clas || '—', value: v.count, color: CLAS_COLOR_D[clas] ?? '#A8BACB', sub: fmtK(v.monto) }))}
             />
           </div>
 
@@ -889,7 +889,7 @@ export default function InformeCortesPage() {
                     .map(([uso, n]) => ({
                       label: uso ? uso.charAt(0).toUpperCase() + uso.slice(1) : '—',
                       value: n,
-                      color: USO_COLOR_D[uso] ?? '#94A3B8',
+                      color: USO_COLOR_D[uso] ?? '#A8BACB',
                       sub:   `${((n / total) * 100).toFixed(1)}%`,
                     }))}
                 />

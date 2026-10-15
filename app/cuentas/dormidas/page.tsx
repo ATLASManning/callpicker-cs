@@ -17,15 +17,15 @@ const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
 
 // ── Segmento badge ────────────────────────────────────────────────────────────
 const SEG_COLOR: Record<string, string> = {
-  Enterprise: '#1B3FCC',
-  Large:      '#6366f1',
+  Enterprise: '#10355D',
+  Large:      '#1D6CAA',
   'Mid-Market': '#f59e0b',
   SMB:        '#f97316',
   Micro:      '#ef4444',
 }
 function SegmentoBadge({ seg }: { seg: string | null | undefined }) {
   if (!seg) return <span className="text-[10px] text-textLow">—</span>
-  const color = SEG_COLOR[seg] ?? '#94a3b8'
+  const color = SEG_COLOR[seg] ?? '#A8BACB'
   return (
     <span style={{
       background: `${color}15`, color, padding: '2px 8px', borderRadius: 99,
@@ -38,7 +38,7 @@ function SegmentoBadge({ seg }: { seg: string | null | undefined }) {
 function ZohoSemaforoBadge({ val }: { val: string | null | undefined }) {
   if (!val) return <span className="text-[10px] text-textLow">Sin datos</span>
   const n = parseInt(val)
-  const c = n === 1 ? '#22c55e' : n === 2 ? '#f97316' : n === 3 ? '#f59e0b' : '#64748b'
+  const c = n === 1 ? '#22c55e' : n === 2 ? '#f97316' : n === 3 ? '#f59e0b' : '#3D4B5C'
   return (
     <span style={{
       background: `${c}18`, color: c, padding: '2px 8px', borderRadius: 99,
@@ -56,11 +56,11 @@ function getMotivo(c: Cuenta): { label: string; color: string } {
   if (c.churn_confirmado)                       return { label: 'Churn confirmado', color: '#DC2626' }
   if (c.estado === 'cancelado')                 return { label: 'Cancelado',       color: '#EF4444' }
   if (c.cancelacion_reportada)                  return { label: 'Cancelación reportada', color: '#F43F5E' }
-  if (c.estado === 'hibernacion')               return { label: 'Hibernación',     color: '#8B5CF6' }
-  if (c.semaforo_zoho === '4 - Dormido')        return { label: 'Dormido Zoho',    color: '#64748b' }
-  if (!c.facturacion || c.facturacion === 0)    return { label: 'Sin facturación', color: '#6366F1' }
+  if (c.estado === 'hibernacion')               return { label: 'Hibernación',     color: '#1D6CAA' }
+  if (c.semaforo_zoho === '4 - Dormido')        return { label: 'Dormido Zoho',    color: '#3D4B5C' }
+  if (!c.facturacion || c.facturacion === 0)    return { label: 'Sin facturación', color: '#1D6CAA' }
   if (c.health_score < 20)                      return { label: 'HS Crítico',      color: '#F97316' }
-  return                                               { label: 'Dormido',         color: '#94A3B8' }
+  return                                               { label: 'Dormido',         color: '#A8BACB' }
 }
 
 function getEstadoKey(c: Cuenta): string {
@@ -278,7 +278,7 @@ function DormidasPageInner() {
       {/* Tabla */}
       <div className="px-6 pb-6">
         <div className="cp-card p-0 overflow-hidden"
-          style={{ borderColor: '#94A3B830' }}>
+          style={{ borderColor: '#A8BACB30' }}>
           <div className="overflow-x-auto">
             {loading ? (
               <div className="flex items-center justify-center h-40 text-textLow text-sm gap-2">
@@ -413,7 +413,7 @@ function DormidasPageInner() {
           {/* Footer */}
           {!loading && sorted.length > 0 && (
             <div className="border-t px-5 py-3 flex items-center justify-between text-xs text-textLow"
-              style={{ borderColor: '#94A3B820', background: '#94A3B805' }}>
+              style={{ borderColor: '#A8BACB20', background: '#A8BACB05' }}>
               <span className="flex items-center gap-1.5">
                 <Archive size={11} />
                 {sorted.length} cuentas dormidas
@@ -435,12 +435,12 @@ function DormidasPageInner() {
           </h2>
           {!zohoLoading && (
             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-              style={{ background: '#1B3FCC15', color: '#1B3FCC' }}>
+              style={{ background: '#10355D15', color: '#10355D' }}>
               {zohoRows.length} cuentas
             </span>
           )}
         </div>
-        <div className="cp-card p-0 overflow-hidden" style={{ borderColor: '#1B3FCC20' }}>
+        <div className="cp-card p-0 overflow-hidden" style={{ borderColor: '#10355D20' }}>
           {zohoLoading ? (
             <div className="flex items-center justify-center h-24 gap-2 text-textLow text-sm">
               <RefreshCw size={14} className="animate-spin" /> Cargando Zoho…
@@ -493,7 +493,7 @@ function DormidasPageInner() {
                       </td>
                       <td><SegmentoBadge seg={r.segmento} /></td>
                       <td>
-                        <span className="text-sm font-bold tabular-nums" style={{ color: '#1B3FCC' }}>
+                        <span className="text-sm font-bold tabular-nums" style={{ color: '#10355D' }}>
                           {r.mrr > 0 ? formatMXN(r.mrr) : '—'}
                         </span>
                       </td>
@@ -509,7 +509,7 @@ function DormidasPageInner() {
           )}
           {!zohoLoading && zohoRows.length > 0 && (
             <div className="border-t px-5 py-2.5 text-xs text-textLow flex items-center gap-1.5"
-              style={{ borderColor: '#1B3FCC15', background: '#1B3FCC05' }}>
+              style={{ borderColor: '#10355D15', background: '#10355D05' }}>
               <Archive size={11} />
               {zohoRows.length} cuentas con semáforo 4 - Dormido en Zoho Analytics
             </div>

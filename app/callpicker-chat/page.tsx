@@ -17,16 +17,16 @@ import { tonoSobreFondo } from '@/lib/contraste'
    el color responde "¿esta cuenta le está sacando valor al chat?".            */
 const SEMAFORO: Record<SemaforoChat, { label: string; color: string; desc: string }> = {
   saludable:    { label: 'Saludable',    color: '#22C55E', desc: 'Actividad sostenida, sin señales de caída' },
-  intenso:      { label: 'Uso intenso',  color: '#3B82F6', desc: 'Volumen alto o rebasa la bolsa contratada — revisar plan' },
+  intenso:      { label: 'Uso intenso',  color: '#1D6CAA', desc: 'Volumen alto o rebasa la bolsa contratada — revisar plan' },
   bajo:         { label: 'Uso bajo',     color: '#F97316', desc: 'Poca actividad, inboxes contratados muertos o tendencia a la baja' },
   sin_uso:      { label: 'Sin uso',      color: '#EF4444', desc: 'Cero mensajes en el periodo completo' },
   /* Los dos neutros van en tono CLARO porque esta pantalla entera es una
-     tarjeta oscura. Iban en `#64748B` y `#334155` —los grises de página— y la
+     tarjeta oscura. Iban en `#3D4B5C` y `#334155` —los grises de página— y la
      pastilla los pinta sobre un tinte de sí mismos: «Suspendida» medía 1.63:1,
      o sea que solo se leía seleccionándola. Los cuatro de color vivo ya
      contrastan sobre el navy y se quedan igual. */
   sin_medicion: { label: 'Sin medición', color: '#CBD5E1', desc: 'La recolección del corte falló — la cifra no es confiable' },
-  suspendida:   { label: 'Suspendida',   color: '#94A3B8', desc: 'Cuenta suspendida en el periodo' },
+  suspendida:   { label: 'Suspendida',   color: '#A8BACB', desc: 'Cuenta suspendida en el periodo' },
 }
 
 const ORDEN: SemaforoChat[] = ['sin_uso', 'bajo', 'intenso', 'saludable', 'sin_medicion', 'suspendida']
@@ -36,13 +36,13 @@ const ORDEN: SemaforoChat[] = ['sin_uso', 'bajo', 'intenso', 'saludable', 'sin_m
 const COLOR_TIPO: Record<string, string> = {
   'WhatsApp API':            '#22C55E',
   'WhatsApp QR':             '#84CC16',
-  'Facebook':                '#3B82F6',
+  'Facebook':                '#1D6CAA',
   'Comentarios de Facebook': '#60A5FA',
   'Marketplace':             '#F59E0B',
   'Correo':                  '#A855F7',
   'Web':                     '#06B6D4',
-  'API (otro)':              '#94A3B8',
-  'Otro':                    '#94A3B8',
+  'API (otro)':              '#A8BACB',
+  'Otro':                    '#A8BACB',
 }
 
 const RECONCILIACION: Record<string, { label: string; color: string }> = {
@@ -51,7 +51,7 @@ const RECONCILIACION: Record<string, { label: string; color: string }> = {
   /* Mismo motivo que en SEMAFORO: tonos claros, porque su pastilla también se
      pinta sobre la tarjeta oscura. */
   LIM:  { label: 'Límite de inboxes', color: '#CBD5E1' },
-  SUSP: { label: 'Suspendido',        color: '#94A3B8' },
+  SUSP: { label: 'Suspendido',        color: '#A8BACB' },
 }
 
 /** Estado operativo de una bandeja, para agruparlas en la ficha. */
@@ -112,7 +112,7 @@ export default function CallpickerChatPage() {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg font-medium transition-colors"
-            style={{ background: 'rgba(13,24,41,0.06)', color: '#1B3FCC' }}
+            style={{ background: 'rgba(13,24,41,0.06)', color: '#10355D' }}
           >
             <ExternalLink size={14} /> Hoja de origen
           </a>
@@ -143,8 +143,8 @@ export default function CallpickerChatPage() {
             <button key={k} onClick={() => setVista(k)} title={d}
               className="px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
               style={{
-                background: vista === k ? '#1B3FCC' : 'transparent',
-                color: vista === k ? '#fff' : '#475569',
+                background: vista === k ? '#10355D' : 'transparent',
+                color: vista === k ? '#fff' : '#202E3B',
               }}>
               {l}
             </button>
@@ -237,20 +237,20 @@ export default function CallpickerChatPage() {
         {/* ── Buscador y orden ──────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[240px]">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#64748B' }} />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#3D4B5C' }} />
             <input
               value={busca}
               onChange={e => setBusca(e.target.value)}
               placeholder="Buscar por CID, cliente, cuenta Chatwoot o inbox…"
               className="w-full pl-9 pr-3 py-2.5 rounded-xl text-sm outline-none"
-              style={{ background: '#fff', border: '1px solid #CBD5E1', color: '#0F172A' }}
+              style={{ background: '#fff', border: '1px solid #CBD5E1', color: '#082742' }}
             />
           </div>
           <div className="flex items-center gap-1 rounded-xl p-1" style={{ background: '#fff', border: '1px solid #CBD5E1' }}>
             {([['mensajes', 'Mensajes'], ['cid', 'CID'], ['nombre', 'Cliente'], ['semaforo', 'Semáforo']] as [Orden, string][]).map(([k, l]) => (
               <button key={k} onClick={() => setOrden(k)}
                 className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
-                style={{ background: orden === k ? '#1B3FCC' : 'transparent', color: orden === k ? '#fff' : '#475569' }}>
+                style={{ background: orden === k ? '#10355D' : 'transparent', color: orden === k ? '#fff' : '#202E3B' }}>
                 {l}
               </button>
             ))}
@@ -308,7 +308,7 @@ export default function CallpickerChatPage() {
 
         </>}
 
-        <p className="text-[11px] leading-relaxed px-1" style={{ color: '#64748B' }}>
+        <p className="text-[11px] leading-relaxed px-1" style={{ color: '#3D4B5C' }}>
           Fuente: hojas <span className="font-semibold">Chat Usage Monthly</span> (resumen) y{' '}
           <span className="font-semibold">Chat Inbox Usage Monthly</span> (granularidad) del archivo
           «CallPickerChat Usage — Customer Health». Cada cliente tiene su propio día de corte, por eso los
@@ -387,7 +387,7 @@ function FilaCliente({ c, abierto, onToggle }: { c: ChatCliente; abierto: boolea
         <td className="px-3 py-3 text-center">
           {tend === 'sube' ? <TrendingUp size={16} className="inline" style={{ color: '#22C55E' }} />
             : tend === 'baja' ? <TrendingDown size={16} className="inline" style={{ color: '#EF4444' }} />
-            : tend === 'plana' ? <Minus size={16} className="inline" style={{ color: '#94A3B8' }} />
+            : tend === 'plana' ? <Minus size={16} className="inline" style={{ color: '#A8BACB' }} />
             : <span style={{ color: 'rgba(255,255,255,0.25)' }}>—</span>}
         </td>
         <td className="px-3 py-3 text-center text-xs whitespace-nowrap" style={{ color: 'rgba(255,255,255,0.55)' }}>
@@ -548,7 +548,7 @@ function TablaInboxes({ inboxes }: { inboxes: ChatInbox[] }) {
         </p>
         <span className="text-[10px]" style={{ color: '#22C55E' }}>{activas.length} con actividad</span>
         {ociosas.length > 0 && <span className="text-[10px]" style={{ color: '#F97316' }}>{ociosas.length} contratadas sin uso</span>}
-        {resto.length   > 0 && <span className="text-[10px]" style={{ color: '#64748B' }}>{resto.length} observadas sin tráfico</span>}
+        {resto.length   > 0 && <span className="text-[10px]" style={{ color: '#3D4B5C' }}>{resto.length} observadas sin tráfico</span>}
         {conError > 0 && <span className="text-[10px]" style={{ color: '#EF4444' }}>{conError} con error de medición</span>}
       </div>
 
@@ -566,7 +566,7 @@ function TablaInboxes({ inboxes }: { inboxes: ChatInbox[] }) {
           <tbody>
             {visibles.map((i, k) => {
               const est = estadoInbox(i)
-              const col = i.tipo ? (COLOR_TIPO[i.tipo] ?? '#94A3B8') : null
+              const col = i.tipo ? (COLOR_TIPO[i.tipo] ?? '#A8BACB') : null
               return (
                 <tr key={`${i.id}-${k}`} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                   <td className="px-3 py-2 text-center" style={{ color: i.mensajes > 0 ? '#fff' : 'rgba(255,255,255,0.6)' }}>

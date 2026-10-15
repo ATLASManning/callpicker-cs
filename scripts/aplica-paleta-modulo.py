@@ -42,6 +42,83 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CLAROS = ['churn', 'customer-tenure', 'admin/usuarios', 'buzon', 'auditoria',
           'analisis-llamadas', 'alertas', 'asesores', 'seguimiento']
 
+#: Los 14 modulos que usan `.cp-card`: pagina CLARA con islas OSCURAS dentro.
+OSCUROS = ['facturacion/cortes', 'cuentas/[id]', 'admin/uso', 'reuniones',
+           'reuniones/anexos', 'facturacion', 'callpicker-chat',
+           'cuentas/dormidas', 'cuentas', 'cuentas/nueva', 'perfil-rol',
+           'settings', 'chat', 'base-cs']
+
+#: ── LOS INEQUIVOCOS ───────────────────────────────────────────────────────
+#:
+#: Un modulo con `.cp-card` NO es enteramente oscuro: es una pagina clara con
+#: islas oscuras, y el mismo archivo mezcla las dos superficies. Por eso no se
+#: le puede aplicar el mapeo claro a ciegas.
+#:
+#: Pero no todos los hex son ambiguos. Estos tienen el MISMO destino caiga
+#: donde caiga, o solo pueden estar en una de las dos superficies:
+#:
+#:   · `#0f172a` -> `#082742`   marino profundo: fondo oscuro o texto casi
+#:                              negro sobre claro. Sirve igual en los dos.
+#:   · `#E2E8F0` -> `#DFE8EF`   la linea del documento, practicamente el mismo
+#:                              color.
+#:   · superficies claras -> `#F5F8FB`. Si estan, es que ahi hay zona clara.
+#:   · `#7dd3fc` -> `#8AD7F8`   un cian claro SOLO tiene sentido sobre oscuro.
+#:   · `#DBEAFE`/`#BFDBFE` -> plata: azules clarisimos, lo mismo.
+#:   · `#475569`/`#374151` -> `#202E3B`. Sobre marino ya serian ilegibles
+#:                              (bajo 3:1), asi que donde estan es zona clara.
+#:
+#: Los AMBIGUOS --`#94a3b8` x57, `#1B3FCC` x42, `#64748B` x28 y los acentos--
+#: dependen del fondo REAL y se resuelven mirando la pantalla, no el archivo.
+INEQUIVOCOS = [
+    ('#0f172a', '#082742', u'marino profundo, vale en las dos superficies'),
+    ('#E2E8F0', '#DFE8EF', u'linea -> --line'),
+    ('#E5E7EB', '#DFE8EF', u'linea -> --line'),
+    ('#D1D5DB', '#DFE8EF', u'linea -> --line'),
+    ('#F8FAFC', '#F5F8FB', u'superficie clara -> --wash'),
+    ('#F1F5F9', '#F5F8FB', u'superficie clara -> --wash'),
+    ('#F3F4F6', '#F5F8FB', u'superficie clara -> --wash'),
+    ('#F9FAFB', '#F5F8FB', u'superficie clara -> --wash'),
+    ('#EFF6FF', '#F5F8FB', u'el lavado de la paleta anterior'),
+    ('#7dd3fc', '#8AD7F8', u'cian claro: solo sobre oscuro'),
+    ('#DBEAFE', '#DFE8EF', u'azul clarisimo -> plata'),
+    ('#BFDBFE', '#A8BACB', u'azul clarisimo -> plata'),
+    ('#475569', '#202E3B', u'texto alto: sobre marino ya seria ilegible'),
+    ('#374151', '#202E3B', u'texto alto: idem'),
+    ('#6b7280', '#667384', u'texto bajo'),
+]
+
+#: ── LOS AMBIGUOS, RESUELTOS POR LUMINOSIDAD ───────────────────────────────
+#:
+#: No hace falta abrir cada pantalla para saber sobre que fondo vive un tono:
+#: lo dice el propio tono, porque solo cabe donde PASA contraste.
+#:
+#:   `#94a3b8` sobre blanco da 2.80:1 — no llega ni a objeto grafico. Donde
+#:             este, esta sobre OSCURO. Va a la plata `#A8BACB` (6.25:1 sobre
+#:             navy-700), que es su equivalente en el documento.
+#:   `#64748B` sobre blanco da 4.76:1 y sobre marino ~2.5. Al reves: esta
+#:             sobre CLARO. Va al medio `#3D4B5C`.
+#:   `#1B3FCC` es el unico que vale en los dos sitios, y por eso no cambia de
+#:             destino: como texto sobre claro da 8.6:1 y `#10355D` da 12.4;
+#:             como fondo solido con blanco encima, 12.4 tambien.
+#:   los acentos `#6366f1`, `#3b82f6`, `#8b5cf6` van al azul `#1D6CAA`, que es
+#:             el acento de las islas CLARAS — el cian no vale ahi (2.63:1
+#:             sobre blanco, ni objeto grafico).
+#:
+#: Si alguno estuviera sobre la superficie contraria seria un defecto que YA
+#: existia --`#94a3b8` sobre blanco ya fallaba-- y lo caza
+#: `revisa-contraste-cpcard.py`, que se corre despues.
+AMBIGUOS = [
+    ('#94a3b8', '#A8BACB', u'gris claro: solo cabe sobre oscuro -> plata'),
+    ('#9ca3af', '#A8BACB', u'idem'),
+    ('#64748B', '#3D4B5C', u'medio: solo cabe sobre claro -> texto medio'),
+    ('#1B3FCC', '#10355D', u'vale en los dos: texto sobre claro y fondo solido'),
+    ('#2563EB', '#10355D', u'idem'),
+    ('#1E40AF', '#10355D', u'idem'),
+    ('#6366f1', '#1D6CAA', u'acento -> --blue'),
+    ('#3b82f6', '#1D6CAA', u'acento -> --blue'),
+    ('#8b5cf6', '#1D6CAA', u'el documento no tiene morado'),
+]
+
 #: (viejo, nuevo, por que). El mismo mapeo medido para Tickets con
 #: `scripts/mide-paleta-tickets.py`, contra las DOS superficies claras.
 REGLAS = [
@@ -120,21 +197,27 @@ def pon_la_clase(src):
     return src[:corte] + 'cp-doc ' + src[corte:], u'puesta'
 
 
-def aplica(mod, simulacro):
+def aplica(mod, simulacro, solo_inequivocos=False):
     ruta = ruta_de(mod)
     if not os.path.exists(ruta):
         print(u'  %-20s *** no existe %s' % (mod, ruta))
         return False
     src = io.open(ruta, encoding='utf-8').read()
 
-    if 'cp-card' in sin_comentarios(src):
+    oscuro = 'cp-card' in sin_comentarios(src)
+    if oscuro and not solo_inequivocos:
         print(u'  %-20s *** TIENE `.cp-card`: es isla OSCURA, no se toca aqui' % mod)
         return False
 
     antes = src
-    src, nota = pon_la_clase(src)
+    # En un modulo oscuro NO se pone la capa clara: oscureceria el texto que
+    # vive sobre marino. Solo se sustituyen los hex inequivocos.
+    nota = u'(oscuro: sin capa)' if oscuro else None
+    if not oscuro:
+        src, nota = pon_la_clase(src)
     cambios = []
-    for viejo, nuevo, porque in REGLAS:
+    lote = (INEQUIVOCOS + AMBIGUOS) if solo_inequivocos else REGLAS
+    for viejo, nuevo, porque in lote:
         # LOS TINTES CON ALFA TAMBIEN. `#1B3FCC10` es el mismo color con un
         # `10` de opacidad pegado detras, y la frontera `(?![0-9a-fA-F])` lo
         # dejaba fuera: en Churn sobrevivieron dos --el fondo y el borde de la
@@ -159,9 +242,11 @@ def aplica(mod, simulacro):
         print(u'      %-9s -> %-9s x%-3d %s' % (viejo, nuevo, n, porque))
 
     # Lo que QUEDA, que es el veredicto: un hex viejo superviviente se dice.
+    # En modo inequivocos lo normal es que queden los AMBIGUOS, y eso no es un
+    # fallo: es la lista de lo que hay que resolver mirando el fondo real.
     restos = {}
     limpio = sin_comentarios(src)
-    for viejo, _n, _p in REGLAS:
+    for viejo, _n, _p in lote:
         q = len(re.findall(re.escape(viejo) + r'(?![0-9a-fA-F])', limpio, re.I))
         if q:
             restos[viejo] = q
@@ -176,14 +261,20 @@ def aplica(mod, simulacro):
 
 def main():
     simulacro = '--simulacro' in sys.argv
+    oscuros = '--oscuros' in sys.argv
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
-    mods = CLAROS if ('--todos' in sys.argv or not args) else args
+    if oscuros:
+        mods = OSCUROS
+    else:
+        mods = CLAROS if ('--todos' in sys.argv or not args) else args
 
-    print(u'\n  PALETA DEL DOCUMENTO -> %d modulo(s) de isla clara' % len(mods))
+    print(u'\n  PALETA DEL DOCUMENTO -> %d modulo(s) de isla %s'
+          % (len(mods), u'OSCURA (solo los hex inequivocos)' if oscuros
+             else u'clara'))
     print(u'  ' + u'=' * 72)
     if simulacro:
         print(u'  SIMULACRO: no se escribe nada\n')
-    ok = sum(1 for m in mods if aplica(m, simulacro))
+    ok = sum(1 for m in mods if aplica(m, simulacro, solo_inequivocos=oscuros))
     print(u'  ' + u'-' * 72)
     print(u'  %d de %d modulo(s) tratados%s\n'
           % (ok, len(mods), u' (simulacro)' if simulacro else u''))

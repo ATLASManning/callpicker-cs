@@ -55,11 +55,11 @@ import CustomSelect from '@/components/CustomSelect'
 const AZUL = '#60A5FA', VERDE = '#4ADE80', ROJO = '#F87171', AMBAR = '#FBBF24'
 /* Para pintar SOBRE blanco: los botones y las pestanas son islas claras
  * dentro del fondo oscuro, y ahi el texto tiene que ir oscuro. */
-const AZUL_SOLIDO = '#1B3FCC', ROJO_OSCURO = '#B91C1C'
+const AZUL_SOLIDO = '#10355D', ROJO_OSCURO = '#B91C1C'
 /* Neutro para el KPI de «sin cotejar»: va en hexadecimal y no en rgba porque
  * la tarjeta arma el fondo del icono concatenando `color + '22'`, y un rgba
  * concatenado no es un color válido. */
-const NEUTRO = '#94A3B8'
+const NEUTRO = '#A8BACB'
 /* Texto sobre superficie CLARA o transparente: todo lo que vive FUERA de
  * una .cp-card —el encabezado, los avisos, las notas al pie de los
  * filtros—. Ahi el fondo de la pagina es claro y la letra va azul marino;
@@ -301,10 +301,10 @@ export default function GrossRevenueChurnPage() {
              contra la fila entera y se comen el renglón. ─────────────────── */}
       <div className="flex gap-2 flex-wrap items-center mb-4">
         <div className="relative" style={{ minWidth: 230 }}>
-          <Search size={14} className="absolute left-3 top-2.5" style={{ color: '#94A3B8' }} />
+          <Search size={14} className="absolute left-3 top-2.5" style={{ color: '#A8BACB' }} />
           <input value={q} onChange={e => setQ(e.target.value)}
             placeholder="Cliente, CID o consecutivo…" className="w-full text-sm"
-            style={{ padding: '7px 12px 7px 32px', borderRadius: 9, border: '1.5px solid #E2E8F0', color: '#0F172A', background: '#fff' }} />
+            style={{ padding: '7px 12px 7px 32px', borderRadius: 9, border: '1.5px solid #DFE8EF', color: '#082742', background: '#fff' }} />
         </div>
         <CustomSelect className={selCls} wrapperClassName="w-56 flex-shrink-0"
           value={verif} onChange={setVerif} placeholder="Toda verificación"
@@ -341,7 +341,7 @@ export default function GrossRevenueChurnPage() {
           ]} />
         {hayFiltro && (
           <button onClick={() => { setClasif(''); setMov(''); setRango(''); setAsesor(''); setVerif(''); setCartera(false); setQ('') }}
-            style={{ padding: '7px 12px', borderRadius: 9, fontSize: 12.5, border: '1.5px solid #E2E8F0', background: '#fff', color: ROJO_OSCURO, cursor: 'pointer' }}>
+            style={{ padding: '7px 12px', borderRadius: 9, fontSize: 12.5, border: '1.5px solid #DFE8EF', background: '#fff', color: ROJO_OSCURO, cursor: 'pointer' }}>
             Limpiar
           </button>
         )}
@@ -369,8 +369,8 @@ export default function GrossRevenueChurnPage() {
         ] as const).map(([k, lbl, Icon]) => (
           <button key={k} onClick={() => setTab(k)} style={{
             display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 10,
-            border: `1.5px solid ${tab === k ? AZUL_SOLIDO : '#E2E8F0'}`,
-            background: tab === k ? AZUL_SOLIDO : '#fff', color: tab === k ? '#fff' : '#475569',
+            border: `1.5px solid ${tab === k ? AZUL_SOLIDO : '#DFE8EF'}`,
+            background: tab === k ? AZUL_SOLIDO : '#fff', color: tab === k ? '#fff' : '#202E3B',
             boxShadow: tab === k ? '0 2px 8px rgba(27,63,204,0.30)' : '0 1px 3px rgba(0,0,0,0.20)',
             cursor: 'pointer', fontSize: 12.5, fontWeight: 700,
           }}><Icon size={14} /> {lbl}</button>
@@ -509,7 +509,7 @@ const filaTotal: React.CSSProperties = {
 /** Para el menu de columnas, que es una isla clara dentro de la tarjeta. */
 const botonClaro: React.CSSProperties = {
   padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-  border: '1px solid #E2E8F0', background: '#fff', color: '#1B3FCC',
+  border: '1px solid #DFE8EF', background: '#fff', color: '#10355D',
 }
 const botonChico: React.CSSProperties = {
   padding: '5px 12px', borderRadius: 8, fontSize: 11.5, fontWeight: 700, cursor: 'pointer',
@@ -1010,8 +1010,8 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
             <button onClick={() => setAbrePicker(v => !v)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '6px 13px', borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-              border: `1.5px solid ${ocultas.length ? AZUL_SOLIDO : '#E2E8F0'}`,
-              background: '#fff', color: ocultas.length ? AZUL_SOLIDO : '#475569',
+              border: `1.5px solid ${ocultas.length ? AZUL_SOLIDO : '#DFE8EF'}`,
+              background: '#fff', color: ocultas.length ? AZUL_SOLIDO : '#202E3B',
             }}>
               <Columns3 size={14} />
               Columnas ({cols.length} de {COLUMNAS.length})
@@ -1027,8 +1027,8 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
                     va en el contenedor y los hijos lo heredan. */}
                 <div className="cp-light" style={{
                   position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 41,
-                  color: '#0F172A',
-                  background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12,
+                  color: '#082742',
+                  background: '#fff', border: '1px solid #DFE8EF', borderRadius: 12,
                   boxShadow: '0 12px 28px rgba(15,23,42,.14)', padding: '12px 14px',
                   minWidth: 330, maxHeight: 420, overflowY: 'auto',
                 }}>
@@ -1045,7 +1045,7 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
                             : ocultas.filter(x => x !== c.h))}
                           style={{ marginTop: 2, accentColor: AZUL_SOLIDO }} />
                         <span className="text-[11.5px] leading-snug"
-                          style={{ color: visible ? '#334155' : '#94A3B8' }}>
+                          style={{ color: visible ? '#334155' : '#A8BACB' }}>
                           {c.h}
                           {c.cruce && (
                             <span style={{ color: AZUL_SOLIDO, fontSize: 10, marginLeft: 5 }}>· del cruce</span>
@@ -1054,12 +1054,12 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
                       </label>
                     )
                   })}
-                  <div className="flex gap-2 mt-2 pt-2" style={{ borderTop: '1px solid #E2E8F0' }}>
+                  <div className="flex gap-2 mt-2 pt-2" style={{ borderTop: '1px solid #DFE8EF' }}>
                     <button onClick={() => guardarOcultas([])} style={botonClaro}>Ver todas</button>
                     <button onClick={() => guardarOcultas(COLUMNAS.filter(c => c.cruce).map(c => c.h))}
                       style={botonClaro}>Solo las del export</button>
                   </div>
-                  <p className="text-[10.5px] mt-2 leading-relaxed" style={{ color: '#64748B' }}>
+                  <p className="text-[10.5px] mt-2 leading-relaxed" style={{ color: '#3D4B5C' }}>
                     Esconder una columna no la quita del dato: la descarga sale siempre completa.
                   </p>
                 </div>
@@ -1087,7 +1087,7 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
                     ...thSticky, cursor: 'pointer', userSelect: 'none',
                     textAlign: c.num ? 'right' : 'left',
                     color: activa ? AZUL : (c.cruce ? TXT_MID : TENUE),
-                    borderLeft: primeraDelCruce ? '2px solid #E2E8F0' : undefined,
+                    borderLeft: primeraDelCruce ? '2px solid #DFE8EF' : undefined,
                   }}>
                   {c.h}
                   <span style={{ marginLeft: 4, opacity: activa ? 1 : 0.25 }}>
@@ -1105,7 +1105,7 @@ function TablaDetalle({ filas, mes }: { filas: Fila[]; mes: string }) {
                   return (
                     <td key={c.h} style={{
                       ...(c.num ? tdNum : td),
-                      borderLeft: primeraDelCruce ? '2px solid #F1F5F9' : undefined,
+                      borderLeft: primeraDelCruce ? '2px solid #F5F8FB' : undefined,
                       maxWidth: c.k === 'cliente' ? 260 : undefined,
                       overflow: c.k === 'cliente' ? 'hidden' : undefined,
                       textOverflow: c.k === 'cliente' ? 'ellipsis' : undefined,
