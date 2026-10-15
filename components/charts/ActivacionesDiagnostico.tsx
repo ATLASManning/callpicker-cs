@@ -28,7 +28,7 @@ const C = {
   amberL:   '#FEF3C7',
   red:      '#DC2626',
   redL:     '#FEE2E2',
-  purple:   '#7C3AED',
+  purple:   '#10355D',
   purpleL:  '#EDE9FE',
 }
 

@@ -15,12 +15,12 @@ import { ASESOR_CONFIG, SEMAFORO_CONFIG, getSemaforoCuenta, formatMXN } from '@/
 const TIPO_SEG: Record<TipoSeguimiento, { label: string; color: string; Icon: React.ElementType }> = {
   llamada:  { label: 'Llamada',  color: '#0057FF', Icon: Phone },
   whatsapp: { label: 'WhatsApp', color: '#22C55E', Icon: MessageCircle },
-  email:    { label: 'Email',    color: '#6366F1', Icon: Mail },
+  email:    { label: 'Email',    color: '#1D6CAA', Icon: Mail },
   reunion:  { label: 'Reunión',  color: '#F97316', Icon: Users },
   ticket:   { label: 'Ticket',   color: '#EF4444', Icon: AlertCircle },
   nota:     { label: 'Nota',     color: 'rgba(255,255,255,0.45)', Icon: FileText },
   demo:     { label: 'Demo',     color: '#0EA5E9', Icon: Monitor },
-  upsell:   { label: 'Upsell',   color: '#A855F7', Icon: TrendingUp },
+  upsell:   { label: 'Upsell',   color: '#1D6CAA', Icon: TrendingUp },
 }
 
 const PRIORIDAD: Record<string, { label: string; color: string }> = {
@@ -127,7 +127,7 @@ export default function JuntaAsesorPanel({
           <div className="flex gap-1 mr-3">
             {[
               { k:'verde',    c:'#22C55E', v: semaforo.verde    },
-              { k:'azul',     c:'#3B82F6', v: semaforo.azul     },
+              { k:'azul',     c:'#1D6CAA', v: semaforo.azul     },
               { k:'amarillo', c:'#EAB308', v: semaforo.amarillo },
               { k:'naranja',  c:'#F97316', v: semaforo.naranja  },
               { k:'rojo',     c:'#EF4444', v: semaforo.rojo     },
@@ -178,9 +178,9 @@ export default function JuntaAsesorPanel({
                       <div key={tipo}
                         className="flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium"
                         style={{
-                          background: c > 0 ? `${cfg.color}10` : '#F8FAFC',
-                          borderColor: c > 0 ? `${cfg.color}30` : '#E2E8F0',
-                          color: c > 0 ? cfg.color : '#94A3B8',
+                          background: c > 0 ? `${cfg.color}10` : '#F5F8FB',
+                          borderColor: c > 0 ? `${cfg.color}30` : '#DFE8EF',
+                          color: c > 0 ? cfg.color : '#A8BACB',
                         }}>
                         <cfg.Icon size={13} />
                         {cfg.label}
@@ -190,7 +190,7 @@ export default function JuntaAsesorPanel({
                   })}
                   {seguimientos.length > 0 && (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium"
-                      style={{ background: '#0A0F1C', borderColor: '#BFDBFE', color: '#0057FF' }}>
+                      style={{ background: '#0A0F1C', borderColor: '#A8BACB', color: '#0057FF' }}>
                       <Clock size={13} />
                       {seguimientos.reduce((s, x) => s + (x.duracion_min ?? 0), 0)} min totales
                     </div>
@@ -346,7 +346,7 @@ export default function JuntaAsesorPanel({
                             </td>
                             <td>
                               <span className="inline-flex items-center gap-1 text-xs font-semibold"
-                                style={{ color: o.tipo === 'upsell' ? '#A855F7' : '#0EA5E9' }}>
+                                style={{ color: o.tipo === 'upsell' ? '#1D6CAA' : '#0EA5E9' }}>
                                 <TrendingUp size={12} />
                                 {o.tipo === 'upsell' ? 'Upsell' : 'Cross-sell'}
                               </span>

@@ -42,8 +42,8 @@ import type { Movimiento, Sentido } from '@/lib/alertas-movimiento'
 /** Azul marino de la casa para el texto a nivel de página. */
 const MARINO   = '#122E5E'
 const TX_CUERPO = '#334155'
-const TX_SUAVE  = '#64748B'
-const BORDE     = '#E2E8F0'
+const TX_SUAVE  = '#3D4B5C'
+const BORDE     = '#DFE8EF'
 
 /* Los fondos tintados de las tres cajas, declarados aparte PORQUE el tono del
    texto se calcula contra ellos. `tonoSobreClaro` asume blanco, y usarlo aquí
@@ -58,7 +58,7 @@ const BG_PREGUNTAS = '#F0FDF4'
 
 const CLASES: Array<{ k: ClaseHallazgo; etiqueta: string; tono: string; Icono: typeof AlertTriangle }> = [
   { k: 'riesgo',   etiqueta: 'Riesgo',              tono: '#DC2626', Icono: AlertTriangle },
-  { k: 'entrega',  etiqueta: 'Para enseñarle',      tono: '#2563EB', Icono: Gift },
+  { k: 'entrega',  etiqueta: 'Para enseñarle',      tono: '#10355D', Icono: Gift },
   { k: 'analisis', etiqueta: 'Nos falta a nosotros', tono: '#D97706', Icono: Search },
 ]
 
@@ -106,15 +106,15 @@ const MOV: Record<Sentido, { etiqueta: string; tono: string }> = {
   nace:      { etiqueta: 'Nueva',      tono: '#D97706' },
   agrava:    { etiqueta: 'Agravó',     tono: '#DC2626' },
   disminuye: { etiqueta: 'Va a menos', tono: '#059669' },
-  continua:  { etiqueta: 'Sigue igual', tono: '#475569' },
+  continua:  { etiqueta: 'Sigue igual', tono: '#202E3B' },
 }
 
 function BloqueMovimiento({ movs }: { movs: Movimiento[] }) {
   return (
     <div className="mt-3.5 pt-3" style={{ borderTop: `1px solid ${BORDE}` }}>
       <div className="flex items-center gap-1.5 mb-2">
-        <History size={12} style={{ color: tonoSobreClaro('#475569', 0), flexShrink: 0 }} />
-        <span style={{ color: tonoSobreClaro('#475569', 0), fontSize: 10,
+        <History size={12} style={{ color: tonoSobreClaro('#202E3B', 0), flexShrink: 0 }} />
+        <span style={{ color: tonoSobreClaro('#202E3B', 0), fontSize: 10,
                        fontWeight: 800, letterSpacing: 0.4 }}>
           QUÉ CAMBIÓ CON LO QUE CAPTURAMOS
         </span>
@@ -247,8 +247,8 @@ export default function CuentaVeredicto({
           </p>
 
           {guion.antes.length > 0 && (
-            <Bloque icono={ClipboardList} titulo="Antes de marcar" tono="#2563EB">
-              <Lista items={guion.antes} tono="#2563EB" />
+            <Bloque icono={ClipboardList} titulo="Antes de marcar" tono="#10355D">
+              <Lista items={guion.antes} tono="#10355D" />
             </Bloque>
           )}
 
@@ -267,8 +267,8 @@ export default function CuentaVeredicto({
           )}
 
           {guion.registrar.length > 0 && (
-            <Bloque icono={Ear} titulo="Qué dejar registrado" tono="#7C3AED">
-              <Lista items={guion.registrar} tono="#7C3AED" />
+            <Bloque icono={Ear} titulo="Qué dejar registrado" tono="#10355D">
+              <Lista items={guion.registrar} tono="#10355D" />
             </Bloque>
           )}
 

@@ -27,7 +27,7 @@ const COLOR = {
   'Sólido':                  { fg: '#4ADE80', bg: 'rgba(74,222,128,0.16)' },
   'En construcción':         { fg: '#FBBF24', bg: 'rgba(251,191,36,0.16)' },
   'Débil':                   { fg: '#F87171', bg: 'rgba(248,113,113,0.16)' },
-  'Sin relación registrada': { fg: '#94A3B8', bg: 'rgba(148,163,184,0.16)' },
+  'Sin relación registrada': { fg: '#A8BACB', bg: 'rgba(148,163,184,0.16)' },
 } as const
 
 const VERDE = '#4ADE80'

@@ -46,7 +46,7 @@ function fmtFecha(iso: string | null | undefined) {
 function DiasCell({ dias, nunca, dark }: { dias: number; nunca?: boolean; dark: boolean }) {
   const color = dark
     ? (nunca || dias > 30 ? TEMA.CIAN[400] : dias > 14 ? TEMA.BANDA.medio : D.txMid)
-    : (nunca || dias > 30 ? '#EF4444' : dias > 14 ? '#F97316' : '#64748B')
+    : (nunca || dias > 30 ? '#EF4444' : dias > 14 ? '#F97316' : '#3D4B5C')
   const weight = nunca || dias > 14 ? 700 : 500
   return (
     <span style={{ fontSize: 12, fontWeight: weight, color }}
@@ -59,14 +59,14 @@ function DiasCell({ dias, nunca, dark }: { dias: number; nunca?: boolean; dark: 
 function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
   const zt = cuenta.zoho_tickets
   if (!zt || zt.total === 0) {
-    return <span style={{ fontSize: 12, color: dark ? D.txLow : '#94A3B8' }}>—</span>
+    return <span style={{ fontSize: 12, color: dark ? D.txLow : '#A8BACB' }}>—</span>
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         <span style={{
           fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-          color: zt.total > 10 ? (dark ? TEMA.CIAN[400] : '#F97316') : dark ? D.txHi : '#0F172A',
+          color: zt.total > 10 ? (dark ? TEMA.CIAN[400] : '#F97316') : dark ? D.txHi : '#082742',
         }}>
           {zt.total}
         </span>
@@ -84,7 +84,7 @@ function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
         )}
       </div>
       {zt.ultima && (
-        <span style={{ fontSize: 10, color: dark ? D.txLow : '#94A3B8', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 10, color: dark ? D.txLow : '#A8BACB', whiteSpace: 'nowrap' }}>
           Últ: {fmtFecha(zt.ultima)}
         </span>
       )}
@@ -95,7 +95,7 @@ function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
 export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
   if (cuentas.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '32px 0', color: dark ? D.txLow : '#94A3B8', fontSize: 14 }}>
+      <div style={{ textAlign: 'center', padding: '32px 0', color: dark ? D.txLow : '#A8BACB', fontSize: 14 }}>
         No hay cuentas en riesgo — ¡excelente estado de cartera!
       </div>
     )
@@ -105,9 +105,9 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
     padding: '10px 14px', textAlign: 'left',
     fontSize: dark ? 12 : 10, fontWeight: 700,
     textTransform: 'uppercase', letterSpacing: '0.07em',
-    color: dark ? D.txLow : '#64748B',
+    color: dark ? D.txLow : '#3D4B5C',
     background: dark ? D.th : '#F0F7FF',
-    borderBottom: dark ? `1px solid ${D.border}` : '1px solid #BFDBFE',
+    borderBottom: dark ? `1px solid ${D.border}` : '1px solid #A8BACB',
     whiteSpace: 'nowrap',
   }
 
@@ -150,7 +150,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
             // es decir "riesgo alto" — cuando ya no hay riesgo, hay baja.
             const banda = bandaOscura(semaforo)
             const hsColor = dark ? banda.color
-              : semaforo === 'inactivo' ? '#64748B'
+              : semaforo === 'inactivo' ? '#3D4B5C'
               : ['verde','azul'].includes(semaforo) ? '#22C55E'
               : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'
             const colorAsesor = dark ? (TEMA.ASESOR[c.asesor] ?? TEMA.SILVER[500]) : ac.color
@@ -178,7 +178,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                     style={{
                       fontSize: 13, fontWeight: 600, display: 'block',
                       lineHeight: 1.3, textDecoration: 'none',
-                      color: dark ? D.txHi : '#0F172A',
+                      color: dark ? D.txHi : '#082742',
                     }}
                     className="hover:underline"
                   >
@@ -188,7 +188,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                     <span style={{
                       fontSize: 11, display: 'block',
                       maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      color: dark ? D.txLow : '#94A3B8',
+                      color: dark ? D.txLow : '#A8BACB',
                     }}>
                       {c.giro}
                     </span>
@@ -206,7 +206,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                     }}>
                       {ac.initial}
                     </span>
-                    <span style={{ fontSize: 12, color: dark ? D.txMid : '#475569' }}>
+                    <span style={{ fontSize: 12, color: dark ? D.txMid : '#202E3B' }}>
                       {c.asesor}
                     </span>
                   </span>
@@ -215,7 +215,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                 <td style={tdStyle}>
                   <span style={{
                     fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                    color: dark ? D.txHi : '#0F172A',
+                    color: dark ? D.txHi : '#082742',
                   }}>
                     {formatMXN(c.facturacion)}
                   </span>

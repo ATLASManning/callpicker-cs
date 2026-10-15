@@ -18,7 +18,7 @@ const SEMAFORO: Record<string, { label: string; color: string }> = {
   bajo:         { label: 'Uso bajo',     color: '#F97316' },
   sin_uso:      { label: 'Sin uso',      color: '#EF4444' },
   suspendida:   { label: 'Suspendida',   color: '#EF4444' },
-  sin_medicion: { label: 'Sin medición', color: '#64748B' },
+  sin_medicion: { label: 'Sin medición', color: '#3D4B5C' },
 }
 
 const num = (n: number) => n.toLocaleString('es-MX')

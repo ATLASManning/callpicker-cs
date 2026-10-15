@@ -7,7 +7,7 @@ const PRIOR_COLOR: Record<string, string> = {
 }
 
 function PriorBadge({ p }: { p: string }) {
-  const color = PRIOR_COLOR[p] ?? '#6b7280'
+  const color = PRIOR_COLOR[p] ?? '#667384'
   // Un campo vacío pintaba una pastilla muda. 242 tickets del archivo no traen
   // prioridad, y eso es un dato, no un hueco que haya que disimular.
   const etiqueta = (p ?? '').trim() || 'Sin prioridad'

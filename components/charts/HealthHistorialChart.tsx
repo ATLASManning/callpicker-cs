@@ -17,8 +17,8 @@ export default function HealthHistorialChart({ data }: Props) {
   return (
     <ResponsiveContainer width="100%" height={100}>
       <LineChart data={chartData} margin={{ top: 5, right: 5, left: -30, bottom: 0 }}>
-        <XAxis dataKey="fecha" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
-        <YAxis domain={[0, 100]} tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} />
+        <XAxis dataKey="fecha" tick={{ fill: '#A8BACB', fontSize: 10 }} axisLine={false} tickLine={false} />
+        <YAxis domain={[0, 100]} tick={{ fill: '#A8BACB', fontSize: 10 }} axisLine={false} tickLine={false} />
         {/* Tooltip OSCURO, como los de DashAlertasCriticas y MetricasCharts.
             Recharts arma su contenido con un <p> y unos <span> sin background
             propio; esta gráfica vive dentro de una `.cp-card`, así que
@@ -30,7 +30,7 @@ export default function HealthHistorialChart({ data }: Props) {
           labelStyle={{ color: 'rgba(255,255,255,0.7)' }}
           itemStyle={{ color: '#FFFFFF' }}
         />
-        <ReferenceLine y={60} stroke="#BFDBFE" strokeDasharray="3 3" />
+        <ReferenceLine y={60} stroke="#A8BACB" strokeDasharray="3 3" />
         <ReferenceLine y={40} stroke="#FCA5A5" strokeDasharray="3 3" />
         <Line type="monotone" dataKey="score" stroke="#0057FF" strokeWidth={2}
           dot={{ fill: '#0057FF', r: 3 }} activeDot={{ r: 5 }} />

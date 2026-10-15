@@ -29,7 +29,7 @@ const NIVEL_CFG: Record<NivelRadar, { color: string; bg: string; border: string 
   prevent:   { color: '#FBBF24', bg: 'rgba(251,191,36,.13)',  border: 'rgba(251,191,36,.42)' },
   optimize:  { color: '#5B8DEF', bg: 'rgba(91,141,239,.13)',  border: 'rgba(91,141,239,.42)' },
   grow:      { color: '#3DD68C', bg: 'rgba(61,214,140,.13)',  border: 'rgba(61,214,140,.42)' },
-  sin_datos: { color: '#94A3B8', bg: 'rgba(148,163,184,.12)', border: 'rgba(148,163,184,.35)' },
+  sin_datos: { color: '#A8BACB', bg: 'rgba(148,163,184,.12)', border: 'rgba(148,163,184,.35)' },
 }
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -298,7 +298,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
       {abierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,.6)' }}>
           <div className="cp-light bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden"
-            style={{ color: '#0F172A' }}>
+            style={{ color: '#082742' }}>
 
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
@@ -336,8 +336,8 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
                             style={sel
                               ? (o.riesgo
                                   ? { background: '#FEE2E2', borderColor: '#DC2626', color: '#B91C1C', fontWeight: 600 }
-                                  : { background: '#EFF6FF', borderColor: '#1B3FCC', color: '#1B3FCC', fontWeight: 600 })
-                              : { background: '#F8FAFC', borderColor: '#E2E8F0', color: '#475569' }}>
+                                  : { background: '#F5F8FB', borderColor: '#10355D', color: '#10355D', fontWeight: 600 })
+                              : { background: '#F5F8FB', borderColor: '#DFE8EF', color: '#202E3B' }}>
                             {o.label}
                           </button>
                         )

@@ -23,7 +23,7 @@ const TX_MID  = '#3D4B5C'   //          8.90:1
 const TX_LOW  = '#6A7889'   // --muted ·  4.56:1, el mas bajo que pasa AA
 
 const VENDEDOR_COLOR: Record<string, string> = {
-  'Fátima':       '#A855F7',
+  'Fátima':       '#1D6CAA',
   'Dan':          '#0EA5E9',
   'Claudia':      '#F97316',
   'Monse':        '#22C55E',
@@ -31,20 +31,20 @@ const VENDEDOR_COLOR: Record<string, string> = {
   'Ignacio':      '#14B8A6',
   'Jorge':        '#EC4899',
   'Marina':       '#84CC16',
-  'Brunno':       '#6366F1',
+  'Brunno':       '#1D6CAA',
   'Diego':        '#F43F5E',
-  'M. Mandujano': '#8B5CF6',
-  'Sin vendedor': '#475569',
-  'Otro':         '#64748B',
+  'M. Mandujano': '#1D6CAA',
+  'Sin vendedor': '#202E3B',
+  'Otro':         '#3D4B5C',
 }
 const EJECUTIVO_COLOR: Record<string, string> = {
   'Pepe Toño':    '#F59E0B',
   'Cecilia':      '#EC4899',
   'Ricardo':      '#14B8A6',
-  'Enrique':      '#8B5CF6',
+  'Enrique':      '#1D6CAA',
   'Toño del Río': '#F97316',
-  'Otro':         '#64748B',
-  'N/A':          '#475569',
+  'Otro':         '#3D4B5C',
+  'N/A':          '#202E3B',
 }
 /* RAMPA ORDENADA, no paleta categórica: «tamaño» va de micro a
    corporativo, y un arcoíris afirmaría que no hay orden. Medida con
@@ -63,18 +63,18 @@ const TAMANO_COLOR: Record<string, string> = {
    el catálogo de sectores que el archivo trae. Si alguien lo usa para colorear
    algo, que mida antes: once tonos no se separan sobre blanco. */
 const GIRO_COLOR: Record<string, string> = {
-  'Servicios':      '#3B82F6',
+  'Servicios':      '#1D6CAA',
   'Bienes Raíces':  '#22C55E',
   'Producto':       '#14B8A6',
   'Salud':          '#EC4899',
   'Automotriz':     '#F59E0B',
-  'Turismo':        '#A855F7',
+  'Turismo':        '#1D6CAA',
   'Educación':      '#F97316',
   'Constructora':   '#EF4444',
   'Gobierno':       '#0EA5E9',
   'Restaurantes':   '#84CC16',
   'Callcenter':     '#06B6D4',
-  'N/A':            '#475569',
+  'N/A':            '#202E3B',
 }
 /* TRES categorías, que es justo el techo que `lib/chart-theme.ts` tiene
    medido para una paleta cerrada. Se separan por luminancia. */
@@ -319,7 +319,7 @@ function FichaCliente({ cid, cliente }: { cid: string; cliente: string }) {
             ))}
           </div>
           {r.campos.filter(c => LARGOS.has(c.campo)).map(c => (
-            <div key={c.campo} style={{ marginTop:12, padding:'10px 13px', background:'#F8FAFC',
+            <div key={c.campo} style={{ marginTop:12, padding:'10px 13px', background:'#F5F8FB',
               border:`1px solid ${BORDER}`, borderRadius:9 }}>
               <p style={{ fontSize:9.5, fontWeight:700, color:TX_LOW, textTransform:'uppercase',
                 letterSpacing:'0.06em', marginBottom:4 }}>{c.campo}</p>
@@ -652,10 +652,10 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
                   <td style={{padding:'8px 12px',color:TX_LOW,fontSize:11,fontVariantNumeric:'tabular-nums'}}>{r.id}</td>
                   <td style={{padding:'8px 12px',color:TX,fontWeight:600}}>{r.cliente}</td>
                   <td style={{padding:'8px 12px',color:TX_MID,fontVariantNumeric:'tabular-nums'}}>{MES_ES[r.mes]??r.mes} {r.ano}</td>
-                  <td style={{padding:'8px 12px'}}><Chip label={r.vendedor}  color={VENDEDOR_COLOR[r.vendedor]??'#64748B'} /></td>
-                  <td style={{padding:'8px 12px'}}><Chip label={r.ejecutivo} color={EJECUTIVO_COLOR[r.ejecutivo]??'#64748B'} /></td>
-                  <td style={{padding:'8px 12px'}}><Chip label={r.tamano}    color={TAMANO_COLOR[r.tamano]??'#64748B'} capitalize /></td>
-                  <td style={{padding:'8px 12px'}}><Chip label={r.tipo}      color={TIPO_COLOR[r.tipo]??'#64748B'} capitalize /></td>
+                  <td style={{padding:'8px 12px'}}><Chip label={r.vendedor}  color={VENDEDOR_COLOR[r.vendedor]??'#3D4B5C'} /></td>
+                  <td style={{padding:'8px 12px'}}><Chip label={r.ejecutivo} color={EJECUTIVO_COLOR[r.ejecutivo]??'#3D4B5C'} /></td>
+                  <td style={{padding:'8px 12px'}}><Chip label={r.tamano}    color={TAMANO_COLOR[r.tamano]??'#3D4B5C'} capitalize /></td>
+                  <td style={{padding:'8px 12px'}}><Chip label={r.tipo}      color={TIPO_COLOR[r.tipo]??'#3D4B5C'} capitalize /></td>
                   {/* El importe en el marino del dinero, no en verde: el verde
                       a pelo medía 2.28:1 sobre blanco, y el documento no tiene
                       verde. Un primer pago en cero cae a `TX_LOW`. */}

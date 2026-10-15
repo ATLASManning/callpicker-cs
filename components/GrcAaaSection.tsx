@@ -36,8 +36,8 @@ const METRICAS: Record<Metrica, { label: string; color: string; money: boolean }
   perdido:      { label: 'Ingreso perdido real',        color: '#DC2626', money: true },
   perdido2:     { label: 'Perdido por fraude',          color: '#EA580C', money: true },
   perdidoTotal: { label: 'Pérdida total',               color: '#B91C1C', money: true },
-  clientes:     { label: 'Número de clientes',          color: '#7C3AED', money: false },
-  mrrInicio:    { label: 'MRR inicio de contrato',      color: '#2563EB', money: true },
+  clientes:     { label: 'Número de clientes',          color: '#10355D', money: false },
+  mrrInicio:    { label: 'MRR inicio de contrato',      color: '#10355D', money: true },
   mrrFin:       { label: 'MRR fin de contrato',         color: '#0891B2', money: true },
   mesesProm:    { label: 'Antigüedad promedio (meses)', color: '#059669', money: false },
 }
@@ -281,8 +281,8 @@ export default function GrcAaaSection() {
 
       {/* Header */}
       <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 shadow-sm flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#7c3aed15' }}>
-          <BarChart3 size={16} style={{ color: '#7c3aed' }} />
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#10355D15' }}>
+          <BarChart3 size={16} style={{ color: '#10355D' }} />
         </div>
         <div className="flex-1">
           <h3 className="font-bold text-gray-900 text-sm">GRC · Clientes {fClas || 'todas las clasificaciones'} — {PERIODO}</h3>
@@ -324,7 +324,7 @@ export default function GrcAaaSection() {
                 <th className="text-right font-bold px-3 py-2.5">Downgrade</th>
                 {/* Columna destacada: es la cifra que se reporta a dirección. */}
                 <th className="text-right font-extrabold px-3 py-2.5"
-                  style={{ background: '#1E40AF', whiteSpace: 'normal', minWidth: 108 }}>
+                  style={{ background: '#10355D', whiteSpace: 'normal', minWidth: 108 }}>
                   Pérdida:<br />Downgrade + Churn
                 </th>
                 <th className="text-right font-bold px-3 py-2.5" style={{ whiteSpace: 'normal' }}>
@@ -338,7 +338,7 @@ export default function GrcAaaSection() {
             <tbody>
               {grc.filas.map((f, i) => (
                 <tr key={f.mes} className="border-b border-gray-100"
-                  style={{ background: f.enCurso ? '#FFFBEB' : (i % 2 ? '#F8FAFC' : '#fff') }}>
+                  style={{ background: f.enCurso ? '#FFFBEB' : (i % 2 ? '#F5F8FB' : '#fff') }}>
                   <td className="px-3 py-2 font-semibold text-gray-700 whitespace-nowrap">
                     {f.mes}
                     {f.enCurso && (
@@ -372,7 +372,7 @@ export default function GrcAaaSection() {
               {/* La cifra comparable contra el histórico: el mismo resumen sin
                   el mes en curso, que es el único que trae churn inflado. */}
               {GRC_MES_EN_CURSO && (
-                <tr style={{ background: '#F1F5F9' }} className="border-t-2">
+                <tr style={{ background: '#F5F8FB' }} className="border-t-2">
                   <td className="px-3 py-2.5 font-bold text-gray-700 whitespace-nowrap">
                     Meses cerrados <span className="font-normal text-gray-500">(Ene–{GRC_RESUMEN_CERRADOS.hasta}):</span>
                   </td>
@@ -385,7 +385,7 @@ export default function GrcAaaSection() {
                   <td className="px-3 py-2.5" />
                 </tr>
               )}
-              <tr style={{ background: '#EFF6FF' }} className="border-t-2" >
+              <tr style={{ background: '#F5F8FB' }} className="border-t-2" >
                 <td className="px-3 py-2.5 font-bold text-gray-900 whitespace-nowrap">Resumen amplio:</td>
                 <td className="px-3 py-2.5 text-right tabular-nums font-bold text-gray-900 whitespace-nowrap">{fmtF(grc.tot.base)}</td>
                 <td className="px-3 py-2.5 text-right tabular-nums font-bold whitespace-nowrap" style={{ color: '#DC2626' }}>{fmtF(grc.tot.churn)}</td>
@@ -423,7 +423,7 @@ export default function GrcAaaSection() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <KpiMini icon={CalendarDays}  label="Meses"            value={String(ORDEN_MES.length)} sub={PERIODO_CORTO}     color="#7c3aed" />
+        <KpiMini icon={CalendarDays}  label="Meses"            value={String(ORDEN_MES.length)} sub={PERIODO_CORTO}     color="#10355D" />
         <KpiMini icon={XCircle}       label="Registros"        value={String(kpi.registros)}    sub={fClas ? `clasificación ${fClas}` : 'todas'} color="#DC2626" />
         <KpiMini icon={DollarSign}    label="Ingreso perdido"  value={fmt(kpi.perdido)}         sub="downgrade + churn" color="#EA580C" />
         <KpiMini icon={AlertTriangle} label="Churns"           value={String(kpi.churns)}       sub="bajas confirmadas" color="#DC2626" />
@@ -456,9 +456,9 @@ export default function GrcAaaSection() {
         <ResponsiveContainer width="100%" height={Math.max(260, chartData.length * 34)}>
           <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 70, left: 10, bottom: 0 }}>
             <CartesianGrid horizontal={false} stroke="#EEF2F7" />
-            <XAxis type="number" tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false}
+            <XAxis type="number" tick={{ fill: '#A8BACB', fontSize: 10 }} axisLine={false} tickLine={false}
               tickFormatter={v => esDinero ? fmt(v) : String(v)} />
-            <YAxis type="category" dataKey="name" tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }}
+            <YAxis type="category" dataKey="name" tick={{ fill: '#202E3B', fontSize: 11, fontWeight: 600 }}
               axisLine={false} tickLine={false} width={dimension === 'movimiento' ? 190 : 130} />
             <Tooltip
               formatter={(v: number) => [esDinero ? fmtF(v) : String(v), cfgM.label]}
@@ -482,11 +482,11 @@ export default function GrcAaaSection() {
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={serieMrr} margin={{ top: 5, right: 20, left: 5, bottom: 0 }}>
             <CartesianGrid stroke="#EEF2F7" />
-            <XAxis dataKey="mes" tick={{ fill: '#94A3B8', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#94A3B8', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => fmt(v)} />
+            <XAxis dataKey="mes" tick={{ fill: '#A8BACB', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#A8BACB', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => fmt(v)} />
             <Tooltip formatter={(v: number) => fmtF(v)} />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="inicio" name="MRR inicio" stroke="#2563EB" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="inicio" name="MRR inicio" stroke="#10355D" strokeWidth={2} dot={{ r: 3 }} />
             <Line type="monotone" dataKey="fin"    name="MRR fin"    stroke="#DC2626" strokeWidth={2} dot={{ r: 3 }} />
           </LineChart>
         </ResponsiveContainer>
@@ -522,7 +522,7 @@ export default function GrcAaaSection() {
             <button className="w-full flex items-center gap-4 px-5 py-4 hover:bg-gray-50/60 transition-colors text-left"
               onClick={() => setOpenMes(p => ({ ...p, [mesData.mes]: !open }))}>
               <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-[11px] font-bold"
-                style={{ background: '#7c3aed' }}>
+                style={{ background: '#10355D' }}>
                 {mesData.mes.slice(0, 3).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -532,7 +532,7 @@ export default function GrcAaaSection() {
                   <Pill bg="#FEE2E2" fg="#B91C1C">Ing. perdido real {fmt(perdReal)}</Pill>
                   {fraude > 0 && <Pill bg="#FFEDD5" fg="#C2410C">+ fraude {fmt(fraude)}</Pill>}
                   {churns > 0 && <Pill bg="#FEF2F2" fg="#DC2626" border>{churns} churn{churns !== 1 ? 's' : ''}</Pill>}
-                  {filtrado && <Pill bg="#EFF6FF" fg="#1D4ED8">GRC del mes {fmt(grcMes)}</Pill>}
+                  {filtrado && <Pill bg="#F5F8FB" fg="#1D4ED8">GRC del mes {fmt(grcMes)}</Pill>}
                 </div>
                 {/* EL ALCANCE, DICHO. Estas tarjetas y la tabla de GRC de arriba
                     miden cosas distintas y las dos son correctas — enero sale
@@ -601,7 +601,7 @@ export default function GrcAaaSection() {
                           <td className="py-2.5 px-3 font-semibold text-gray-900">{c.cliente}</td>
                           <td className="py-2.5 px-3">
                             <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold"
-                              style={{ background: c.clas === 'AAA' ? '#F3E8FF' : '#F1F5F9', color: c.clas === 'AAA' ? '#6B21A8' : '#475569' }}>
+                              style={{ background: c.clas === 'AAA' ? '#F3E8FF' : '#F5F8FB', color: c.clas === 'AAA' ? '#6B21A8' : '#202E3B' }}>
                               {c.clas}
                             </span>
                           </td>
@@ -621,15 +621,15 @@ export default function GrcAaaSection() {
                           {/* Ingreso Perdido Contrato (BCY) Real — el campo que alimenta el GRC */}
                           <td className="py-2.5 px-3 text-right font-bold tabular-nums"
                             title="Ingreso Perdido Contrato (BCY) Real"
-                            style={{ color: c.perdido > 0 ? '#B91C1C' : '#64748B', background: '#FEF2F2' }}>
+                            style={{ color: c.perdido > 0 ? '#B91C1C' : '#3D4B5C', background: '#FEF2F2' }}>
                             {c.perdido > 0 ? fmtF(c.perdido) : '—'}
                           </td>
                           <td className="py-2.5 px-3 text-right tabular-nums"
                             title="Ingreso Perdido Contrato (BCY) Fraude-Reestructura"
-                            style={{ color: c.perdido2 > 0 ? '#C2410C' : '#64748B' }}>
+                            style={{ color: c.perdido2 > 0 ? '#C2410C' : '#3D4B5C' }}>
                             {c.perdido2 > 0 ? fmtF(c.perdido2) : '—'}
                           </td>
-                          <td className="py-2.5 px-3 text-right font-semibold tabular-nums" style={{ color: perdTotal > 0 ? '#EA580C' : '#64748B' }}>
+                          <td className="py-2.5 px-3 text-right font-semibold tabular-nums" style={{ color: perdTotal > 0 ? '#EA580C' : '#3D4B5C' }}>
                             {perdTotal > 0 ? fmtF(perdTotal) : '—'}
                           </td>
                           <td className="py-2.5 px-3 text-right text-gray-500 tabular-nums">{fmt(c.acumulado)}</td>
@@ -832,7 +832,7 @@ function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos, sugerencias }
             Concentración por asesor — Churn confirmado y Downgrade
           </h3>
           <Pill bg="#F3E8FF" fg="#6B21A8">solo AAA y AA</Pill>
-          <Pill bg="#EFF6FF" fg="#1D4ED8">{PERIODO_CORTO}</Pill>
+          <Pill bg="#F5F8FB" fg="#1D4ED8">{PERIODO_CORTO}</Pill>
         </div>
         <p className="text-[11px] text-gray-500 mt-1">
           Recorte fijo: no lo cambian los combos de arriba. {eventos.length} evento
@@ -892,11 +892,11 @@ function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos, sugerencias }
                     {f.asesor}
                   </td>
                   <td className="py-2.5 px-3 text-right tabular-nums text-gray-700">{f.churn || '—'}</td>
-                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realChurn > 0 ? '#B91C1C' : '#64748B' }}>
+                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realChurn > 0 ? '#B91C1C' : '#3D4B5C' }}>
                     {f.realChurn > 0 ? fmtF(f.realChurn) : '—'}
                   </td>
                   <td className="py-2.5 px-3 text-right tabular-nums text-gray-700">{f.dgs || '—'}</td>
-                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realDg > 0 ? '#D97706' : '#64748B' }}>
+                  <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: f.realDg > 0 ? '#D97706' : '#3D4B5C' }}>
                     {f.realDg > 0 ? fmtF(f.realDg) : '—'}
                   </td>
                   <td className="py-2.5 px-3 text-right tabular-nums font-bold text-gray-900">
@@ -905,7 +905,7 @@ function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos, sugerencias }
                 </tr>
               )
             })}
-            <tr className="border-t-2 border-gray-200" style={{ background: '#F8FAFC' }}>
+            <tr className="border-t-2 border-gray-200" style={{ background: '#F5F8FB' }}>
               <td className="py-3 px-3 font-bold text-gray-900">TOTAL AAA + AA</td>
               <td className="py-3 px-3 text-right tabular-nums font-bold text-gray-900">{tot.churn}</td>
               <td className="py-3 px-3 text-right tabular-nums font-bold" style={{ color: '#B91C1C' }}>{fmtF(tot.realChurn)}</td>
@@ -961,7 +961,7 @@ function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos, sugerencias }
                       </td>
                       <td className="py-2.5 px-3 text-gray-700">{s.asesor}</td>
                       <td className="py-2.5 px-3 text-right tabular-nums"
-                        style={{ color: s.parecido >= 0.85 ? '#B45309' : '#94A3B8' }}>
+                        style={{ color: s.parecido >= 0.85 ? '#B45309' : '#A8BACB' }}>
                         {(s.parecido * 100).toFixed(0)}%
                       </td>
                       <td className="py-2.5 px-3 text-right tabular-nums font-semibold" style={{ color: '#B91C1C' }}>
@@ -1023,10 +1023,10 @@ function ConcentracionAaaAa({ asesorDe, cargando, error, ambiguos, sugerencias }
                             {cargando ? 'cargando…' : 'sin asesor en la cartera'}
                           </span>}
                     </td>
-                    <td className="py-2.5 px-3 text-right tabular-nums font-bold" style={{ color: e.real > 0 ? '#B91C1C' : '#64748B' }}>
+                    <td className="py-2.5 px-3 text-right tabular-nums font-bold" style={{ color: e.real > 0 ? '#B91C1C' : '#3D4B5C' }}>
                       {e.real > 0 ? fmtF(e.real) : '—'}
                     </td>
-                    <td className="py-2.5 px-3 text-right tabular-nums" style={{ color: e.fraude > 0 ? '#C2410C' : '#64748B' }}>
+                    <td className="py-2.5 px-3 text-right tabular-nums" style={{ color: e.fraude > 0 ? '#C2410C' : '#3D4B5C' }}>
                       {e.fraude > 0 ? fmtF(e.fraude) : '—'}
                     </td>
                   </tr>

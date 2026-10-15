@@ -47,11 +47,11 @@ const NIVEL_CFG: Record<Nivel, {
   alto:      { label: 'Alto',      dot: '#22c55e', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
   medio:     { label: 'Medio',     dot: '#f59e0b', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
   bajo:      { label: 'Bajo',      dot: '#ef4444', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
-  no_aplica: { label: 'No Aplica', dot: '#9ca3af', color: '#4b5563', bg: '#f9fafb', border: '#e5e7eb' },
+  no_aplica: { label: 'No Aplica', dot: '#A8BACB', color: '#4b5563', bg: '#F5F8FB', border: '#DFE8EF' },
 }
 
 const SIN_EVALUAR_CFG = {
-  label: 'Sin evaluar', dot: '#d1d5db', color: '#6b7280', bg: '#ffffff', border: '#e5e7eb',
+  label: 'Sin evaluar', dot: '#DFE8EF', color: '#667384', bg: '#ffffff', border: '#DFE8EF',
 }
 
 const MIGRATION_SQL = `CREATE TABLE IF NOT EXISTS adopcion_producto (
@@ -136,9 +136,9 @@ function NivelSelect({ value, onChange }: {
             className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full border transition-all"
             style={sel
               ? { background: c.bg, color: c.color, border: `1.5px solid ${c.dot}`, boxShadow: `0 0 0 1px ${c.dot}44` }
-              : { background: '#f9fafb', color: '#6b7280', border: '1px solid #e5e7eb' }
+              : { background: '#F5F8FB', color: '#667384', border: '1px solid #DFE8EF' }
             }>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: sel ? c.dot : '#d1d5db' }} />
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: sel ? c.dot : '#DFE8EF' }} />
             {c.label}
           </button>
         )
@@ -343,7 +343,7 @@ export default function AdopcionProducto({
             onClick={runMigration}
             disabled={migrating}
             className="w-full flex items-center justify-center gap-2 py-2 px-4 text-xs font-semibold text-white rounded-lg transition-colors disabled:opacity-60"
-            style={{ background: '#1B3FCC' }}>
+            style={{ background: '#10355D' }}>
             {migrating
               ? <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Creando tabla…</>
               : '⚡ Crear tabla automáticamente'
@@ -507,7 +507,7 @@ export default function AdopcionProducto({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: 'rgba(0,0,0,0.55)' }}>
           <div className="cp-light bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
-            style={{ color: '#0F172A' }}>
+            style={{ color: '#082742' }}>
 
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
@@ -590,7 +590,7 @@ export default function AdopcionProducto({
                   onClick={save}
                   disabled={saving}
                   className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white rounded-lg transition-colors disabled:opacity-60"
-                  style={{ background: '#1B3FCC' }}>
+                  style={{ background: '#10355D' }}>
                   {saving
                     ? <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Guardando…</>
                     : <><Save size={12} /> Guardar revisión</>

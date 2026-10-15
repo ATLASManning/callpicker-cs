@@ -15,10 +15,10 @@ import { Loader2, AlertCircle, CheckCircle2, BarChart3 } from 'lucide-react'
  * dice dónde cargar datos o construir módulo.
  */
 
-const BORDER = '#E2E8F0'
-const TX     = '#0F172A'
-const TX_MID = '#475569'
-const TX_LOW = '#94A3B8'
+const BORDER = '#DFE8EF'
+const TX     = '#082742'
+const TX_MID = '#202E3B'
+const TX_LOW = '#A8BACB'
 const AMBAR  = '#D97706'
 
 export interface Pendiente {
@@ -231,7 +231,7 @@ export function VistaReporteMensual() {
               <span style={{ color: TX_MID }}>{k}</span>
               <span style={{ color: TX, fontWeight: 700 }}>{n}</span>
             </div>
-            <div style={{ height: 6, borderRadius: 4, background: '#F1F5F9', overflow: 'hidden' }}>
+            <div style={{ height: 6, borderRadius: 4, background: '#F5F8FB', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${(n / tope) * 100}%`, background: color, borderRadius: 4 }} />
             </div>
           </div>
@@ -284,7 +284,7 @@ export function VistaReporteMensual() {
 
           {barra('Quién pregunta', rep.porUsuario, '#1D4ED8')}
           {barra('Sobre qué se pregunta', rep.temas, '#0EA5E9', 12)}
-          {barra('Módulos que sostienen la respuesta', rep.porModulo, '#8B5CF6', 10)}
+          {barra('Módulos que sostienen la respuesta', rep.porModulo, '#1D6CAA', 10)}
 
           <div style={{
             border: `1px solid ${rep.pendientesAbiertos.length ? '#FDE68A' : BORDER}`,

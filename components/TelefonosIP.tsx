@@ -15,11 +15,11 @@ import {
  * Las listas completas van debajo, para cuando alguien quiere ver el panorama.
  */
 
-const BORDER = '#BFDBFE'
+const BORDER = '#A8BACB'
 const PANEL  = '#FFFFFF'
-const TX     = '#0F172A'
-const TX_MID = '#475569'
-const TX_LOW = '#94A3B8'
+const TX     = '#082742'
+const TX_MID = '#202E3B'
+const TX_LOW = '#A8BACB'
 const VERDE  = '#15803D'
 const ROJO   = '#B91C1C'
 const AMBAR  = '#B45309'

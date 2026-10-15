@@ -26,7 +26,7 @@ export default function HealthScoreRing({ score, size = 80, strokeWidth = 8, sho
       <svg width={size} height={size} className="-rotate-90">
         {/* Track */}
         <circle cx={size/2} cy={size/2} r={r} fill="none"
-          stroke="#DBEAFE" strokeWidth={strokeWidth} />
+          stroke="#DFE8EF" strokeWidth={strokeWidth} />
         {/* Progress */}
         <circle cx={size/2} cy={size/2} r={r} fill="none"
           stroke={cfg.color} strokeWidth={strokeWidth}

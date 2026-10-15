@@ -127,14 +127,14 @@ export default function CustomSelect({ value, onChange, options, className = '',
             top: '100%',
             zIndex: 100,
             background: '#ffffff',
-            borderColor: '#E2E8F0',
+            borderColor: '#DFE8EF',
             boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             maxHeight: '260px',
             minWidth: searchable ? 240 : undefined,
           }}
         >
           {searchable && (
-            <div style={{ position: 'sticky', top: 0, background: '#ffffff', padding: 8, borderBottom: '1px solid #E2E8F0' }}>
+            <div style={{ position: 'sticky', top: 0, background: '#ffffff', padding: 8, borderBottom: '1px solid #DFE8EF' }}>
               <input
                 autoFocus
                 value={busqueda}
@@ -142,17 +142,17 @@ export default function CustomSelect({ value, onChange, options, className = '',
                 placeholder="Buscar…"
                 style={{
                   width: '100%', boxSizing: 'border-box', padding: '6px 10px',
-                  borderRadius: 6, border: '1px solid #E2E8F0', fontSize: 12.5,
-                  color: '#0F172A', background: '#F8FAFC', outline: 'none',
+                  borderRadius: 6, border: '1px solid #DFE8EF', fontSize: 12.5,
+                  color: '#082742', background: '#F5F8FB', outline: 'none',
                 }}
               />
               {visibles.length > LIMITE && (
-                <p style={{ margin: '5px 0 0', fontSize: 10.5, color: '#94A3B8' }}>
+                <p style={{ margin: '5px 0 0', fontSize: 10.5, color: '#A8BACB' }}>
                   {visibles.length.toLocaleString('es-MX')} coincidencias — escribe más para acotar
                 </p>
               )}
               {visibles.length === 0 && (
-                <p style={{ margin: '5px 0 0', fontSize: 10.5, color: '#94A3B8' }}>Sin coincidencias.</p>
+                <p style={{ margin: '5px 0 0', fontSize: 10.5, color: '#A8BACB' }}>Sin coincidencias.</p>
               )}
             </div>
           )}
@@ -170,7 +170,7 @@ export default function CustomSelect({ value, onChange, options, className = '',
                   padding: '8px 12px',
                   fontSize: '13px',
                   fontWeight: isSelected ? 600 : 400,
-                  color: isSelected ? '#fff' : '#0F172A',
+                  color: isSelected ? '#fff' : '#082742',
                   background: isSelected ? '#2979FF' : '#ffffff',
                   border: 'none',
                   cursor: 'pointer',

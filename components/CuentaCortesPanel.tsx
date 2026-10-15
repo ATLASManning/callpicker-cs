@@ -32,16 +32,16 @@ function pctColor(p: number) {
   if (p <= 20)  return '#f97316'
   if (p <= 60)  return '#f59e0b'
   if (p <= 100) return '#22c55e'
-  return '#6366f1'
+  return '#1D6CAA'
 }
 
 /* Variantes CLARAS de la paleta, porque estas pastillas se pintan dentro de la
-   tarjeta azul marino: el `#1B3FCC` de antes daba azul sobre azul (~2:1) y el
+   tarjeta azul marino: el `#10355D` de antes daba azul sobre azul (~2:1) y el
    fondo de la pastilla es el mismo color al 9%, así que no ayudaba. Mismos
    valores que usa app/facturacion/cortes/page.tsx en su tabla oscura. */
 const CLAS_COLOR: Record<string, string> = {
   'AAA': '#60A5FA', 'Grande': '#818CF8', 'Mediana': '#FBBF24',
-  'Pequeña': '#4ADE80', 'Micro': '#94A3B8',
+  'Pequeña': '#4ADE80', 'Micro': '#A8BACB',
 }
 const USO_COLOR: Record<string, string> = {
   'entrantes': '#60A5FA', 'salientes': '#FBBF24', 'mixtas': '#A78BFA',
@@ -94,7 +94,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
 
   if (loading) return (
     <div className="cp-card">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 0', justifyContent: 'center', color: '#94a3b8' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 0', justifyContent: 'center', color: '#A8BACB' }}>
         <Loader2 size={14} className="animate-spin" />
         <span style={{ fontSize: 11 }}>Consultando cortes…</span>
       </div>
@@ -124,7 +124,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
           <h3 style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
             Cortes de Facturación
           </h3>
-          {/* `#1B3FCC` es el azul de marca de la PÁGINA clara, y esta pastilla
+          {/* `#10355D` es el azul de marca de la PÁGINA clara, y esta pastilla
               vive en la tarjeta oscura: azul marino sobre azul casi negro,
               2.14:1. `#60A5FA` es el azul que el propio archivo ya eligió para
               `CLAS_COLOR['AAA']` y al que globals redirige los enlaces de
@@ -135,7 +135,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
             </span>
           )}
         </div>
-        <a href={informeHref} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#1B3FCC', textDecoration: 'none' }}>
+        <a href={informeHref} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#10355D', textDecoration: 'none' }}>
           Ver informe <ExternalLink size={10} />
         </a>
       </div>
@@ -147,7 +147,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
            importe se toma de Gross Revenue Facturación, que es donde está
            todo. Se enseña diciendo de dónde salió, porque no es lo mismo un
            importe medido contra su consumo que uno tomado de la facturación. */
-        <div style={{ textAlign: 'center', padding: '14px 0', color: '#94a3b8' }}>
+        <div style={{ textAlign: 'center', padding: '14px 0', color: '#A8BACB' }}>
           <AlertTriangle size={18} style={{ margin: '0 auto 6px' }} />
           <p style={{ fontSize: 12, marginBottom: grc === undefined ? 0 : 10 }}>
             Sin cortes de facturación registrados
@@ -165,7 +165,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                           border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
                           padding: '11px 14px', margin: '0 auto', maxWidth: 340 }}>
               <p style={{ marginBottom: 3 }}>
-                <span style={{ background: 'transparent', fontSize: 10, color: '#94A3B8',
+                <span style={{ background: 'transparent', fontSize: 10, color: '#A8BACB',
                                textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                   Importe · Gross Revenue Facturación
                 </span>
@@ -176,10 +176,10 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                   ${Math.round(grc.mrr).toLocaleString('es-MX')}
                 </span>
                 <span style={{ background: 'transparent', fontSize: 12, fontWeight: 600,
-                               color: '#94A3B8' }}> /mes</span>
+                               color: '#A8BACB' }}> /mes</span>
               </p>
               <p style={{ marginTop: 4, lineHeight: 1.45 }}>
-                <span style={{ background: 'transparent', fontSize: 10.5, color: '#94A3B8' }}>
+                <span style={{ background: 'transparent', fontSize: 10.5, color: '#A8BACB' }}>
                   No hay corte que medir contra su consumo, así que el importe sale de
                   facturación{grc.filas > 1
                     ? ` —suma de ${grc.filas} líneas del mismo cliente${
@@ -213,13 +213,13 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
               {
                 icon: Zap, label: 'Consumo',
                 value: promConsumo != null ? `${promConsumo.toFixed(0)}%` : '—',
-                color: promConsumo != null ? pctColor(promConsumo) : '#94a3b8',
+                color: promConsumo != null ? pctColor(promConsumo) : '#A8BACB',
                 sub: 'último corte',
               },
               {
                 icon: TrendingUp, label: 'Monto acum.',
                 value: fmt$(montoTotal),
-                /* El mismo `#1B3FCC` que ya se corrigió en la pastilla de
+                /* El mismo `#10355D` que ya se corrigió en la pastilla de
                    arriba: aquí pinta el icono del KPI sobre la tarjeta
                    oscura, 2.23:1. Un icono pide 3:1 y tampoco llegaba. */
                 color: '#60A5FA',
@@ -228,7 +228,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
               {
                 icon: BarChart2, label: 'Uso princ.',
                 value: usoPrincipal || '—',
-                color: usoPrincipal === 'entrantes' ? '#60A5FA' : usoPrincipal === 'salientes' ? '#f59e0b' : '#6366f1',
+                color: usoPrincipal === 'entrantes' ? '#60A5FA' : usoPrincipal === 'salientes' ? '#f59e0b' : '#1D6CAA',
                 sub: 'llamadas',
               },
             ].map(({ icon: Icon, label, value, color, sub }) => (
@@ -236,7 +236,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                 <Icon size={11} style={{ color, marginBottom: 4 }} />
                 <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>{label}</p>
                 <p style={{ fontSize: 14, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
-                <p style={{ fontSize: 9, color: '#94a3b8', marginTop: 2 }}>{sub}</p>
+                <p style={{ fontSize: 9, color: '#A8BACB', marginTop: 2 }}>{sub}</p>
               </div>
             ))}
           </div>
@@ -244,7 +244,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
           {/* Plan actual */}
           {planActual && (
             <div style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 10 }}>
-              <p style={{ fontSize: 9, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Plan vigente</p>
+              <p style={{ fontSize: 9, color: '#A8BACB', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Plan vigente</p>
               <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{planActual}</p>
             </div>
           )}
@@ -261,20 +261,20 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
                 <thead>
                   <tr style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '2px solid rgba(255,255,255,0.08)' }}>
-                    <th style={{ padding: '6px 8px', textAlign: 'left',   color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Periodo</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'left',   color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Plan</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Min. Inc.</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Min. Cons.</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>% Consumo</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Monto</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'center', color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Clasif.</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'center', color: '#94a3b8', fontWeight: 700, whiteSpace: 'nowrap' }}>Uso</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'left',   color: '#A8BACB', fontWeight: 700, whiteSpace: 'nowrap' }}>Periodo</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'left',   color: '#A8BACB', fontWeight: 700, whiteSpace: 'nowrap' }}>Plan</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#A8BACB', fontWeight: 700, whiteSpace: 'nowrap' }}>Min. Inc.</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#A8BACB', fontWeight: 700, whiteSpace: 'nowrap' }}>Min. Cons.</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#A8BACB', fontWeight: 700, whiteSpace: 'nowrap' }}>% Consumo</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right',  color: '#A8BACB', fontWeight: 700, whiteSpace: 'nowrap' }}>Monto</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'center', color: '#A8BACB', fontWeight: 700, whiteSpace: 'nowrap' }}>Clasif.</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'center', color: '#A8BACB', fontWeight: 700, whiteSpace: 'nowrap' }}>Uso</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filas.map((r, i) => {
-                    const clasColor = CLAS_COLOR[r.clasificacion] ?? '#94a3b8'
-                    const usoColor  = USO_COLOR[r.usoPrincipal]   ?? '#6366f1'
+                    const clasColor = CLAS_COLOR[r.clasificacion] ?? '#A8BACB'
+                    const usoColor  = USO_COLOR[r.usoPrincipal]   ?? '#1D6CAA'
                     return (
                       <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
@@ -289,7 +289,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                           title={r.medible ? undefined : 'El plan no incluye minutos de voz: no hay base contra la cual medir el consumo'}>
                           {r.medible ? `${r.pctConsumo.toFixed(1)}%` : 's/med.'}
                         </td>
-                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(r.monto)}</td>
+                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: '#10355D' }}>{fmt$(r.monto)}</td>
                         <td style={{ padding: '5px 8px', textAlign: 'center' }}>
                           <span style={{ background: clasColor + '18', color: clasColor, fontWeight: 700, padding: '2px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontSize: 9 }}>
                             {r.clasificacion || '—'}
@@ -320,10 +320,10 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                    <th style={{ padding: '6px 8px', textAlign: 'left',  color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Mes</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right', color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Cortes</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right', color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>Monto</th>
-                    <th style={{ padding: '6px 8px', textAlign: 'right', color: '#94a3b8', fontWeight: 600, fontSize: 10 }}>% Consumo</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'left',  color: '#A8BACB', fontWeight: 600, fontSize: 10 }}>Mes</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right', color: '#A8BACB', fontWeight: 600, fontSize: 10 }}>Cortes</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right', color: '#A8BACB', fontWeight: 600, fontSize: 10 }}>Monto</th>
+                    <th style={{ padding: '6px 8px', textAlign: 'right', color: '#A8BACB', fontWeight: 600, fontSize: 10 }}>% Consumo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -333,7 +333,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                       <tr key={mes} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                         <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtMes(mes)}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.45)' }}>{v.count}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#1B3FCC' }}>{fmt$(v.monto)}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#10355D' }}>{fmt$(v.monto)}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: avg === null ? 'rgba(255,255,255,0.35)' : pctColor(avg) }}>
                           {avg === null ? 's/med.' : `${avg.toFixed(1)}%`}
                         </td>

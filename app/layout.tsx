@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es" suppressHydrationWarning style={{ background: '#F5F8FB', colorScheme: 'only light' }}>
       <head>
         <meta name="color-scheme" content="only light" />
-        <meta name="theme-color" content="#1B3FCC" />
+        <meta name="theme-color" content="#10355D" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

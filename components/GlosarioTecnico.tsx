@@ -18,16 +18,16 @@ import {
  * volvería ilegibles.
  */
 
-const BORDER = '#BFDBFE'
+const BORDER = '#A8BACB'
 const PANEL  = '#FFFFFF'
-const TX     = '#0F172A'
-const TX_MID = '#475569'
-/* `#94A3B8` medía 2.56:1 sobre el panel blanco y 2.36:1 sobre la página: es el
+const TX     = '#082742'
+const TX_MID = '#202E3B'
+/* `#A8BACB` medía 2.56:1 sobre el panel blanco y 2.36:1 sobre la página: es el
    gris de TARJETA OSCURA, y aquí no hay ni una `.cp-card`. Afectaba a diez
    usos —la sigla del término, «Sirve para ·», «Ej.», las notas, el contador—.
-   `#64748B` es el `textLow` real de tailwind.config: 4.76:1 sobre el panel y
+   `#3D4B5C` es el `textLow` real de tailwind.config: 4.76:1 sobre el panel y
    4.39:1 sobre la página, y no hay que tocar ninguno de los diez. */
-const TX_LOW = '#64748B'
+const TX_LOW = '#3D4B5C'
 
 type Vista = 'terminos' | 'precisiones' | 'perfilamiento' | 'evolucion'
 
@@ -45,7 +45,7 @@ const ESENCIALES = new Set<string>(DOCE_ESENCIALES.map(norm))
 const SEGUNDA    = new Set<string>(SEGUNDA_OLA.map(norm))
 
 const colorDe = (catId: string) =>
-  CATEGORIAS_GLOSARIO.find(c => c.id === catId)?.color ?? '#64748B'
+  CATEGORIAS_GLOSARIO.find(c => c.id === catId)?.color ?? '#3D4B5C'
 const labelDe = (catId: string) =>
   CATEGORIAS_GLOSARIO.find(c => c.id === catId)?.label ?? catId
 
@@ -72,7 +72,7 @@ function FichaTermino({ t }: { t: TerminoGlosario }) {
           </span>
         )}
         {segunda && (
-          <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 20, ...pastillaClara('#A855F7', 0.082), letterSpacing: '0.04em' }}>
+          <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 20, ...pastillaClara('#1D6CAA', 0.082), letterSpacing: '0.04em' }}>
             2ª CAPA
           </span>
         )}
@@ -360,7 +360,7 @@ export default function GlosarioTecnico() {
               {DOCE_ESENCIALES.join(' · ')}
             </p>
             <p style={{ fontSize: 12.5, color: TX_MID, lineHeight: 1.6, marginTop: 6 }}>
-              <span style={{ fontWeight: 800, color: tonoSobreClaro('#A855F7', 0) }}>Y después: </span>
+              <span style={{ fontWeight: 800, color: tonoSobreClaro('#1D6CAA', 0) }}>Y después: </span>
               {SEGUNDA_OLA.join(' · ')}
             </p>
           </div>
@@ -376,7 +376,7 @@ export default function GlosarioTecnico() {
           )}
           <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4 items-start" style={{ marginBottom: 24 }}>
             {NIVELES_EVOLUCION.map(n => {
-              const tono = ['#94A3B8', '#64748B', '#0EA5E9', '#0057FF', '#8B5CF6', '#A855F7', '#22C55E'][n.n - 1]
+              const tono = ['#A8BACB', '#3D4B5C', '#0EA5E9', '#0057FF', '#1D6CAA', '#1D6CAA', '#22C55E'][n.n - 1]
               return (
                 <div key={n.n} style={{
                   background: PANEL, border: `1px solid ${BORDER}`, borderTop: `3px solid ${tono}`,

@@ -12,7 +12,7 @@ import { textoFecha } from '@/lib/fecha-local'
  */
 
 /** Color de Atlas — no se usa para ningún estado del dashboard. */
-const ATLAS = '#A855F7'
+const ATLAS = '#1D6CAA'
 
 const ETIQUETA: Record<string, string> = {
   contacto_nombre: 'Contacto principal', contacto_cargo: 'Cargo del contacto',

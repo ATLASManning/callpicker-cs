@@ -29,12 +29,12 @@ const TX_LOW    = 'rgba(255,255,255,0.45)'
 
 // ── Paleta clara (tabla expandida) ────────────────────────────────────────────
 const L_BG      = '#FFFFFF'
-const L_BG2     = '#F8FAFC'
-const L_BG3     = '#F1F5F9'
-const L_LINE    = '#E2E8F0'
-const L_TX      = '#0F172A'
-const L_TX_MID  = '#475569'
-const L_TX_LOW  = '#94A3B8'
+const L_BG2     = '#F5F8FB'
+const L_BG3     = '#F5F8FB'
+const L_LINE    = '#DFE8EF'
+const L_TX      = '#082742'
+const L_TX_MID  = '#202E3B'
+const L_TX_LOW  = '#A8BACB'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface ZohoStats { total: number; fallas: number; ultima: string | null }
@@ -98,7 +98,7 @@ function estadoCartera(c: { estado?: string | null }): {
   label: string; color: string; bg: string; borde: string
 } {
   if (esCuentaSinServicio(c.estado)) {
-    return { label: 'Dormida', color: '#475569', bg: '#F1F5F9', borde: '#CBD5E1' }
+    return { label: 'Dormida', color: '#202E3B', bg: '#F5F8FB', borde: '#CBD5E1' }
   }
   if (esCuentaViva(c.estado)) {
     return { label: 'Activa', color: '#047857', bg: '#ECFDF5', borde: '#A7F3D0' }
@@ -140,7 +140,7 @@ interface Props {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const SEMAFORO_META = [
   { key: 'verde',    label: 'Saludable',   color: '#22C55E' },
-  { key: 'azul',     label: 'Estable',     color: '#3B82F6' },
+  { key: 'azul',     label: 'Estable',     color: '#1D6CAA' },
   { key: 'amarillo', label: 'Observación', color: '#EAB308' },
   { key: 'naranja',  label: 'En Riesgo',   color: '#F97316' },
   { key: 'rojo',     label: 'Riesgo Alto', color: '#EF4444' },
@@ -244,7 +244,7 @@ export default function AsesorCard({
       : { col, dir: COLS_TEXTO.includes(col) ? 'asc' : 'desc' })
 
   const ac = ASESOR_CONFIG[asesor as keyof typeof ASESOR_CONFIG] ?? {
-    color: '#94A3B8', initial: '?', fullName: asesor, ext: '—', email: '—',
+    color: '#A8BACB', initial: '?', fullName: asesor, ext: '—', email: '—',
   }
 
   const totalTix    = cuentas.reduce((s, c) => s + c.zoho_tickets.total,  0)
@@ -375,13 +375,13 @@ export default function AsesorCard({
         {/* ── Fila KPIs ─────────────────────────────────────────────────── */}
         <div className="px-6 pb-5 flex gap-3 flex-wrap">
           <KpiCard icon={<DollarSign size={14} />} label="Facturación viva"
-            value={formatMXN(resumen.facturacion_total)} accent="#3B82F6"
+            value={formatMXN(resumen.facturacion_total)} accent="#1D6CAA"
             sub={`${activas} cuenta${activas !== 1 ? 's' : ''} facturando`} />
           <KpiCard icon={<Activity size={14} />} label="Activas"
             value={String(activas)} accent="#22C55E"
             sub={`${pctViva}% de su cartera`} />
           <KpiCard icon={<Moon size={14} />} label="Dormidas"
-            value={String(dormidas)} accent="#8B5CF6"
+            value={String(dormidas)} accent="#1D6CAA"
             sub={dormidas > 0 ? 'siguen siendo suyas' : 'ninguna de baja'} />
           <KpiCard icon={<TrendingDown size={14} />} label="Churn"
             value={String(churn.churns)} accent="#EF4444"
@@ -406,7 +406,7 @@ export default function AsesorCard({
           )}
           {auditorias.total > 0 && (
             <KpiCard icon={<ClipboardList size={14} />} label="Auditorías"
-              value={String(auditorias.total)} accent="#6366F1"
+              value={String(auditorias.total)} accent="#1D6CAA"
               sub={auditorias.abiertas > 0
                 ? `${auditorias.abiertas} sin cerrar`
                 : 'todas cerradas'} />
@@ -529,7 +529,7 @@ export default function AsesorCard({
           {fueraDeCartera > 0 && (
             <p style={{
               margin: '0 0 10px', padding: '7px 11px', borderRadius: 8,
-              background: '#F1F5F9', border: `1px solid ${L_LINE}`,
+              background: '#F5F8FB', border: `1px solid ${L_LINE}`,
               fontSize: 11, color: L_TX_MID, lineHeight: 1.5,
             }}>
               De estas cuentas, <strong style={{ color: L_TX }}>{fueraDeCartera}</strong>{' '}
@@ -567,17 +567,17 @@ export default function AsesorCard({
                           onClick={() => toggleOrden(col)}
                           style={{
                             width: '100%', display: 'flex', alignItems: 'center', gap: 4,
-                            padding: '10px 14px', background: activa ? '#EFF6FF' : 'transparent',
+                            padding: '10px 14px', background: activa ? '#F5F8FB' : 'transparent',
                             border: 0, cursor: 'pointer', textAlign: 'left',
                             fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
                             letterSpacing: '0.07em', whiteSpace: 'nowrap',
-                            color: activa ? '#1B3FCC' : L_TX_LOW,
+                            color: activa ? '#10355D' : L_TX_LOW,
                           }}>
                           {label}
                           {activa
                             ? (orden.dir === 'asc'
-                                ? <ChevronUp size={11} style={{ color: '#1B3FCC' }} />
-                                : <ChevronDown size={11} style={{ color: '#1B3FCC' }} />)
+                                ? <ChevronUp size={11} style={{ color: '#10355D' }} />
+                                : <ChevronDown size={11} style={{ color: '#10355D' }} />)
                             : <ArrowUpDown size={9} style={{ color: '#CBD5E1' }} />}
                         </button>
                       </th>
@@ -598,15 +598,15 @@ export default function AsesorCard({
                   const estadoDeFila = estadoCartera(c)
                   // 'inactivo' explícito: sin este caso caía en el `else` y
                   // pintaba de ROJO ("riesgo alto") una cuenta ya dada de baja.
-                  const hsColor = semaforo === 'inactivo' ? '#64748B'
+                  const hsColor = semaforo === 'inactivo' ? '#3D4B5C'
                     : ['verde', 'azul'].includes(semaforo) ? '#22C55E'
                     : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'
                   const rowBg = ri % 2 === 0 ? L_BG : L_BG2
                   const cell: React.CSSProperties = { padding: '11px 14px', borderBottom: `1px solid ${L_LINE}`, verticalAlign: 'middle' }
                   return (
-                    <tr key={c.id} style={{ background: rowBg }} onMouseEnter={e => (e.currentTarget.style.background = '#EFF6FF')} onMouseLeave={e => (e.currentTarget.style.background = rowBg)}>
+                    <tr key={c.id} style={{ background: rowBg }} onMouseEnter={e => (e.currentTarget.style.background = '#F5F8FB')} onMouseLeave={e => (e.currentTarget.style.background = rowBg)}>
                       <td style={cell}>
-                        <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#1B3FCC' }}>{c.consecutivo}</span>
+                        <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#10355D' }}>{c.consecutivo}</span>
                       </td>
                       <td style={cell}>
                         <Link href={`/cuentas/${c.id}`}

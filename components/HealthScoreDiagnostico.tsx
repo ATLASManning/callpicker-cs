@@ -13,7 +13,7 @@ import { pesoMedido, textoPesoMedido } from '@/lib/health-score'
 function scoreColor(s: number | null): string {
   if (s === null) return '#CC1414'   // rojo ferrari — sin datos
   if (s >= 80)   return '#22C55E'   // verde
-  if (s >= 60)   return '#3B82F6'   // azul
+  if (s >= 60)   return '#1D6CAA'   // azul
   if (s >= 50)   return '#F59E0B'   // ámbar
   if (s >= 40)   return '#F97316'   // naranja
   if (s >= 30)   return '#EA580C'   // naranja-rojo

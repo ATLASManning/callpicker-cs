@@ -117,7 +117,22 @@ AMBIGUOS = [
     ('#6366f1', '#1D6CAA', u'acento -> --blue'),
     ('#3b82f6', '#1D6CAA', u'acento -> --blue'),
     ('#8b5cf6', '#1D6CAA', u'el documento no tiene morado'),
+    ('#a855f7', '#1D6CAA', u'morado -> --blue: el documento no tiene morado'),
+    ('#7c3aed', '#10355D', u'morado oscuro -> --navy'),
 ]
+
+#: ── LOS COMPONENTES COMPARTIDOS ───────────────────────────────────────────
+#:
+#: El inventario por modulo mira `app/<modulo>/page.tsx` y NO VE esto: un
+#: tablero entero puede quedar «en cero hex viejos» mientras la cabecera de su
+#: tabla, pintada por un componente, sigue en el azul de antes. Fue justo lo
+#: que paso el 15 oct: Churn daba 0 y en pantalla seguian el encabezado azul
+#: electrico y un boton morado.
+#:
+#: Son 223 hex en `components/` mas el `theme-color` del layout, que es el que
+#: pinta la BARRA DE LA VENTANA cuando el tablero se abre como PWA — eso no
+#: esta en ninguna pantalla y se ve en todas.
+COMPONENTES = 'components'
 
 #: (viejo, nuevo, por que). El mismo mapeo medido para Tickets con
 #: `scripts/mide-paleta-tickets.py`, contra las DOS superficies claras.
@@ -259,9 +274,56 @@ def aplica(mod, simulacro, solo_inequivocos=False):
     return True
 
 
+def aplica_archivo(ruta, etiqueta, simulacro):
+    u"""El mismo mapeo sobre un archivo suelto: un componente o el layout.
+
+    Aqui NO se pone la capa: un componente no tiene contenedor raiz propio —
+    hereda el del modulo que lo monta.
+    """
+    src = io.open(ruta, encoding='utf-8').read()
+    antes, cambios = src, []
+    for viejo, nuevo, _porque in (INEQUIVOCOS + AMBIGUOS):
+        pat_alfa = re.escape(viejo) + r'([0-9a-fA-F]{2})\b'
+        n_a = len(re.findall(pat_alfa, sin_comentarios(src), re.I))
+        if n_a:
+            src = re.sub(pat_alfa, nuevo + r'\1', src, flags=re.I)
+            cambios.append(n_a)
+        pat = re.escape(viejo) + r'(?![0-9a-fA-F])'
+        n = len(re.findall(pat, sin_comentarios(src), re.I))
+        if n:
+            src = re.sub(pat, nuevo, src, flags=re.I)
+            cambios.append(n)
+    total = sum(cambios)
+    if total:
+        print(u'  %-38s %3d sustitucion(es)' % (etiqueta, total))
+    if not simulacro and src != antes:
+        io.open(ruta, 'w', encoding='utf-8', newline='').write(src)
+    return total
+
+
 def main():
     simulacro = '--simulacro' in sys.argv
     oscuros = '--oscuros' in sys.argv
+
+    if '--componentes' in sys.argv:
+        base = os.path.join(RAIZ, COMPONENTES)
+        print(u'\n  PALETA DEL DOCUMENTO -> components/ y el layout')
+        print(u'  ' + u'=' * 72)
+        tot = n = 0
+        for dirpath, _d, files in os.walk(base):
+            for f in sorted(files):
+                if f.endswith(('.tsx', '.ts')):
+                    r = os.path.join(dirpath, f)
+                    c = aplica_archivo(r, os.path.relpath(r, RAIZ), simulacro)
+                    tot += c
+                    n += 1 if c else 0
+        lay = os.path.join(RAIZ, 'app', 'layout.tsx')
+        tot += aplica_archivo(lay, 'app/layout.tsx', simulacro)
+        print(u'  ' + u'-' * 72)
+        print(u'  %d sustitucion(es) en %d archivo(s)%s\n'
+              % (tot, n + 1, u' (simulacro)' if simulacro else u''))
+        return
+
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     if oscuros:
         mods = OSCUROS

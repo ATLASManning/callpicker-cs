@@ -58,7 +58,7 @@ const TONO: Record<TonoLinea, { fondo: string; borde: string; texto: string; eti
   aviso:  { fondo: '#FFFBEB', borde: '#B45309', texto: '#78350F', etiqueta: 'Revisar' },
   hueco:  { fondo: '#F5F3FF', borde: '#6D28D9', texto: '#4C1D95', etiqueta: 'No medido' },
   bien:   { fondo: '#F0FDF4', borde: '#15803D', texto: '#14532D', etiqueta: 'En orden' },
-  neutro: { fondo: '#F8FAFC', borde: '#64748B', texto: '#334155', etiqueta: '' },
+  neutro: { fondo: '#F5F8FB', borde: '#3D4B5C', texto: '#334155', etiqueta: '' },
 }
 
 /** Primero lo que pide acción. Si solo ve una nota, que sea la que importa. */

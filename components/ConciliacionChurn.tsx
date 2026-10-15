@@ -164,9 +164,9 @@ export default function ConciliacionChurn() {
           {/* Bloque 1 — reclasificar */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3"
-                 style={{ background: '#3b82f608' }}>
+                 style={{ background: '#1D6CAA08' }}>
               <div className="flex items-start gap-3">
-                <CheckCircle2 size={18} style={{ color: '#3b82f6' }} className="mt-0.5 flex-shrink-0" />
+                <CheckCircle2 size={18} style={{ color: '#1D6CAA' }} className="mt-0.5 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-sm text-gray-900">
                     Pasan a Dormida — {data.reclasificar.length} cuentas
@@ -179,12 +179,12 @@ export default function ConciliacionChurn() {
               {data.reclasificar.length > 0 && (
                 <button onClick={aplicar} disabled={aplicando}
                         className="px-4 py-2 rounded-lg text-xs font-bold text-white disabled:opacity-50"
-                        style={{ background: '#3b82f6' }}>
+                        style={{ background: '#1D6CAA' }}>
                   {aplicando ? 'Aplicando…' : `Aplicar a ${data.reclasificar.length} cuentas`}
                 </button>
               )}
             </div>
-            {tabla(data.reclasificar, '#3b82f6')}
+            {tabla(data.reclasificar, '#1D6CAA')}
           </div>
 
           {data.aplicado && (

@@ -83,10 +83,10 @@ const EJEC_COLOR: Record<string, string> = {
   'Pepe Toño':    '#F59E0B',
   'Cecilia':      '#EC4899',
   'Ricardo':      '#14B8A6',
-  'Enrique':      '#8B5CF6',
+  'Enrique':      '#1D6CAA',
   'Toño del Río': '#F97316',
-  'Otro':         '#64748B',
-  'N/A':          '#475569',
+  'Otro':         '#3D4B5C',
+  'N/A':          '#202E3B',
 }
 
 const pesos = (n: number) =>
@@ -107,7 +107,7 @@ const sinDato = (v: string) =>
   (!v || v.trim() === '' || v.trim().toUpperCase() === 'N/A') ? AUSENTE : v
 
 function Pastilla({ texto }: { texto: string }) {
-  const color = EJEC_COLOR[texto] ?? '#64748B'
+  const color = EJEC_COLOR[texto] ?? '#3D4B5C'
   return (
     // El `background` del <span> no es decoración: globals.css tiene
     // `.cp-card span:not([style*="background"]){color:#fff!important}` y un

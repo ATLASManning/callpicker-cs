@@ -8,8 +8,8 @@
  * Todo el juicio vive en lib/llamadas-cuenta.ts. Aquí solo se pinta.
  *
  * Color — codifica el DESENLACE de la llamada, nunca la gravedad:
- *   #1B3FCC atendida por un agente · #6366f1 resuelta por el menú ·
- *   #94a3b8 buzón · #ef4444 sin contestar · #f59e0b salientes.
+ *   #1B3FCC atendida por un agente · #1D6CAA resuelta por el menú ·
+ *   #A8BACB buzón · #ef4444 sin contestar · #f59e0b salientes.
  * #f97316 queda prohibido en todo el módulo: en CuentaCortesPanel ya significa
  * «consumo ≤20%» y reusarlo aquí rompería la lectura de la ficha.
  */
@@ -25,7 +25,7 @@ import {
    sitios donde se usa —la pastilla, el cuadrito de la leyenda «Atendidas por
    un agente» (2.23:1) y la serie—, y `#60A5FA` es el azul que globals.css ya
    aplica a los enlaces dentro de una tarjeta oscura. */
-const RED = '#ef4444', BLU = '#60A5FA', IND = '#6366f1', GRY = '#94a3b8', AMB = '#f59e0b', GRN = '#22c55e'
+const RED = '#ef4444', BLU = '#60A5FA', IND = '#1D6CAA', GRY = '#A8BACB', AMB = '#f59e0b', GRN = '#22c55e'
 const DIA_INI = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const nf = (x: number) => x.toLocaleString('es-MX')
 

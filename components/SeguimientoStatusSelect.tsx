@@ -62,7 +62,7 @@ export default function SeguimientoStatusSelect({
   if (!canEdit) {
     /* Los fondos de `COLOR` son tintes al 10%: sobre la `.cp-card` azul marino
        en la que vive esto, siguen siendo OSCUROS. El texto va claro. (Antes
-       decía '#0F172A' y se veía bien solo por accidente: globals.css fuerza a
+       decía '#082742' y se veía bien solo por accidente: globals.css fuerza a
        blanco los span sin `background`. En cuanto alguien le añadiera un
        `background` al style, se habría roto en silencio.) */
     return (
@@ -82,7 +82,7 @@ export default function SeguimientoStatusSelect({
         style={{ color: '#FFFFFF' }}
       >
         {/* Este es el que de verdad estaba roto: los <button> NO los fuerza
-            globals.css, así que el '#0F172A' de antes sobrevivía — oscuro
+            globals.css, así que el '#082742' de antes sobrevivía — oscuro
             sobre el tinte oscuro de la tarjeta. Solo se leía al sombrearlo. */}
         {valor}
         <span style={{ background: 'transparent', color: 'inherit' }}>▼</span>
@@ -100,7 +100,7 @@ export default function SeguimientoStatusSelect({
               onClick={() => handleChange(r)}
               className={`w-full text-left px-2 py-1.5 text-[10px] font-semibold hover:bg-blue-100
                 ${r === valor ? 'bg-blue-600 text-white' : 'text-gray-900'}`}
-              style={{ color: r === valor ? '#fff' : '#0F172A' }}
+              style={{ color: r === valor ? '#fff' : '#082742' }}
             >
               {r}
             </button>

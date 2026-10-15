@@ -31,10 +31,10 @@ const fmt$ = (n: number | null | undefined) =>
   n == null ? '—' : '$' + Math.round(n).toLocaleString('es-MX')
 
 const LTV_COLOR: Record<string, string> = {
-  '1 - VIP':    '#1B3FCC',
-  '1 - Alto':   '#1B3FCC',
-  '2 - Bueno':  '#6366f1',
-  '2 - Alto':   '#6366f1',
+  '1 - VIP':    '#10355D',
+  '1 - Alto':   '#10355D',
+  '2 - Bueno':  '#1D6CAA',
+  '2 - Alto':   '#1D6CAA',
   '3 - Medio':  '#f59e0b',
   '4 - Bajo':   '#f97316',
   '5 - Minimo': '#ef4444',
@@ -46,13 +46,13 @@ const SEM_COLOR: Record<string, string> = {
   '2 - Riesgo':    '#f59e0b',
   '3 - Alerta':    '#f97316',
   '3 - Irregular': '#f97316',
-  '4 - Dormido':   '#94a3b8',
-  '0 - Factura Futura': '#a855f7',
+  '4 - Dormido':   '#A8BACB',
+  '0 - Factura Futura': '#1D6CAA',
 }
 
 function Badge({ val, map }: { val: string; map: Record<string, string> }) {
   const color = Object.entries(map).find(([k]) => val?.includes(k.split(' - ')[1] ?? '??'))?.[1]
-    ?? map[val] ?? '#94a3b8'
+    ?? map[val] ?? '#A8BACB'
   return (
     <span style={{ background: color + '18', color, fontWeight: 700, fontSize: 10, padding: '2px 7px', borderRadius: 99, whiteSpace: 'nowrap' }}>
       {val || '—'}
@@ -117,7 +117,7 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
           <ReceiptText size={13} className="text-textMid" />
           <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Facturación · LTV</h3>
           {data && (
-            <span className="flex items-center gap-1 text-[9px]" style={{ color: data.source === 'zoho' ? '#22c55e' : '#94a3b8' }}>
+            <span className="flex items-center gap-1 text-[9px]" style={{ color: data.source === 'zoho' ? '#22c55e' : '#A8BACB' }}>
               {data.source === 'zoho' ? <Wifi size={9} /> : <WifiOff size={9} />}
               {data.source === 'zoho' ? 'Zoho en vivo' : 'Sin datos'}
             </span>
@@ -150,13 +150,13 @@ export default function CuentaFacturacionPanel({ cid, empresa, onMrrCalculado }:
            * El conteo de sub-cuentas se queda —es un conteo, no dinero, y es
            * lo que este panel aporta— y el detalle por sub-cuenta sigue abajo,
            * que es donde sirve: para ver de dónde sale cada factura. */}
-          <div style={{ background: 'linear-gradient(135deg, #1B3FCC08, #6366f108)', border: '1px solid #1B3FCC20', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
+          <div style={{ background: 'linear-gradient(135deg, #10355D08, #1D6CAA08)', border: '1px solid #10355D20', borderRadius: 10, padding: '12px 14px', marginBottom: 12 }}>
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-[10px] text-textLow font-semibold uppercase tracking-wide mb-0.5">
                   MRR · Gross Revenue Facturación
                 </p>
-                <p style={{ fontSize: 22, fontWeight: 800, color: '#1B3FCC', lineHeight: 1 }}>
+                <p style={{ fontSize: 22, fontWeight: 800, color: '#10355D', lineHeight: 1 }}>
                   {fmt$(grcMrr ?? data!.mrrGrupo)}
                 </p>
                 <p className="text-[10px] text-textLow mt-1">
