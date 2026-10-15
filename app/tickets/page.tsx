@@ -119,7 +119,7 @@ interface ConcData extends Meta {
 /* ─── Paleta ─────────────────────────────────────────────────────── */
 const PRIORIDAD_COLOR: Record<string, string> = {
   urgent: '#ef4444', high: '#f97316', medium: '#f59e0b',
-  low: '#22c55e', normal: '#6b7280', 'sin prioridad': '#94a3b8',
+  low: '#22c55e', normal: '#667384', 'sin prioridad': '#667384',
 }
 
 /* Las SEIS prioridades que existen de verdad en el archivo. El desplegable
@@ -144,14 +144,14 @@ function prioLabel(p: string) {
   return PRIORIDAD_LABEL[p] ?? (p || 'Sin prioridad')
 }
 const PRODUCTO_COLOR: Record<string, string> = {
-  voz: '#3b82f6', chat: '#8b5cf6', 'sin producto': '#9ca3af',
+  voz: '#1D6CAA', chat: '#10355D', 'sin producto': '#667384',
 }
 
 function prioColor(p: string) {
-  return PRIORIDAD_COLOR[p?.toLowerCase()] ?? '#9ca3af'
+  return PRIORIDAD_COLOR[p?.toLowerCase()] ?? '#667384'
 }
 function prodColor(p: string) {
-  return PRODUCTO_COLOR[p?.toLowerCase()] ?? '#9ca3af'
+  return PRODUCTO_COLOR[p?.toLowerCase()] ?? '#667384'
 }
 // Etiquetas de mes derivadas del propio valor "YYYY-MM" — nunca de una lista
 // fija. Una lista fija fue la razón por la que agosto no aparecía en los
@@ -223,7 +223,7 @@ function SortableTh({ label, col, sortCol, sortDir, onSort }: {
   return (
     <th onClick={() => onSort(col)}
       className="text-left py-2.5 px-3 text-xs font-semibold uppercase tracking-wide whitespace-nowrap cursor-pointer select-none group"
-      style={{ color: active ? '#1B3FCC' : '#6b7280' }}>
+      style={{ color: active ? '#10355D' : '#667384' }}>
       <span className="flex items-center gap-1">
         {label}
         <span className="text-[9px] opacity-60 group-hover:opacity-100">
@@ -234,11 +234,11 @@ function SortableTh({ label, col, sortCol, sortDir, onSort }: {
   )
 }
 
-/* El carril es `bg-gray-100` (#F3F4F6) y la barra iba con el tono crudo: el
+/* El carril es `bg-gray-100` (#F5F8FB) y la barra iba con el tono crudo: el
    ámbar medía 1.95:1 contra el carril, el verde 2.07:1 y el naranja 2.55:1,
    bajo el 3:1 que WCAG pide a un objeto gráfico. Se CALCULA el tono que pasa,
    en vez de elegirlo a ojo — el tono se conserva, solo se oscurece lo justo. */
-const CARRIL = '#F3F4F6'
+const CARRIL = '#F5F8FB'
 
 function BarRow({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0
@@ -551,11 +551,15 @@ export default function TicketsPage() {
     fetchList(1)
   }
 
-  const BLUE = '#3b82f6', RED = '#ef4444', GREEN = '#22c55e', INDIGO = '#6366f1', AMBER = '#f59e0b'
+  const BLUE = '#1D6CAA', RED = '#ef4444', GREEN = '#22c55e', INDIGO = '#082742', AMBER = '#f59e0b'
 
   /* ─────────────────────────────────────── RENDER ─── */
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gray-50">
+    /* `cp-tickets` es la llave de la paleta: la capa de globals.css que remapea
+       las 243 clases de color de este archivo tiene ámbito en esta clase. Sin
+       ella el módulo vuelve a los grises y azules de Tailwind, y compila igual
+       — no falla nada, sólo se ve mal. */
+    <div className="cp-tickets flex flex-col h-full overflow-hidden bg-gray-50">
       {/* El subtítulo usaba `stats.total`, que se recalcula con el filtro de mes
           del Overview. Al filtrar a Febrero el encabezado pasaba a «147 tickets»
           y SE QUEDABA ASÍ al cambiar de pestaña, donde ya no hay ningún filtro
@@ -582,8 +586,8 @@ export default function TicketsPage() {
       {mesa && (
         <div className="px-6 pt-4">
           <div className="rounded-xl border p-4 flex flex-wrap items-start gap-x-6 gap-y-3"
-            style={{ background: mesa.hay ? '#FFF7ED' : '#F8FAFC',
-                     borderColor: mesa.hay ? '#FED7AA' : '#E2E8F0' }}>
+            style={{ background: mesa.hay ? '#FFF7ED' : '#F5F8FB',
+                     borderColor: mesa.hay ? '#FED7AA' : '#DFE8EF' }}>
             <div className="flex items-start gap-2.5 flex-1 min-w-[280px]">
               <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" style={{ color: '#C2410C' }} />
               <div className="text-xs leading-relaxed" style={{ color: '#7C2D12' }}>
@@ -615,7 +619,7 @@ export default function TicketsPage() {
               </div>
             )}
             {!mesa.hay && (
-              <p className="text-xs" style={{ color: '#64748B' }}>
+              <p className="text-xs" style={{ color: '#3D4B5C' }}>
                 Sin cortes de la mesa de ayuda. Correr <code>scripts/gen-mesa-ayuda.py</code>.
               </p>
             )}
@@ -629,7 +633,7 @@ export default function TicketsPage() {
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className="px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
-              style={tab === t.id ? { background: '#1B3FCC', color: '#fff' } : { color: '#6b7280' }}>
+              style={tab === t.id ? { background: '#10355D', color: '#fff' } : { color: '#667384' }}>
               {t.label}
             </button>
           ))}
@@ -698,14 +702,20 @@ export default function TicketsPage() {
                     <button onClick={() => setOverviewMes('')}
                       className="rounded-lg p-3 border text-center transition-all hover:shadow-sm"
                       style={overviewMes === ''
-                        ? { background: '#1B3FCC', borderColor: '#1B3FCC' }
-                        : { background: '#F9FAFB', borderColor: '#E5E7EB' }}>
-                      <p className="text-xs" style={{ color: overviewMes === '' ? '#DBEAFE' : '#6b7280' }}>Todos</p>
+                        ? { background: '#10355D', borderColor: '#10355D' }
+                        : { background: '#F5F8FB', borderColor: '#DFE8EF' }}>
+                      {/* Sobre el marino va la PLATA del documento, no los
+                          azules claros de Tailwind: `#DFE8EF` da 10.02:1 y
+                          `#A8BACB` 6.25:1 contra `#10355D`. Los que había
+                          —`#DBEAFE` y `#BFDBFE`— contrastaban de sobra, pero
+                          son de otra paleta y aquí se nota: es la única
+                          tarjeta oscura de la rejilla. */}
+                      <p className="text-xs" style={{ color: overviewMes === '' ? '#DFE8EF' : '#667384' }}>Todos</p>
                       <p className="text-2xl font-bold mt-1"
-                        style={{ color: overviewMes === '' ? '#fff' : '#374151' }}>
+                        style={{ color: overviewMes === '' ? '#fff' : '#202E3B' }}>
                         {(statsGlobal?.total ?? 0).toLocaleString()}
                       </p>
-                      <p className="text-[9px] mt-0.5" style={{ color: overviewMes === '' ? '#BFDBFE' : '#9CA3AF' }}>
+                      <p className="text-[9px] mt-0.5" style={{ color: overviewMes === '' ? '#A8BACB' : '#667384' }}>
                         {rangoMeses}
                       </p>
                     </button>
@@ -721,7 +731,7 @@ export default function TicketsPage() {
                          Estos botones sirven para ELEGIR un mes: lo que tiene
                          que distinguirse es el elegido, y eso ya lo hace el
                          relleno sólido de `activo`. */
-                      const c = '#3b82f6'
+                      const c = '#1D6CAA'
                       const activo = overviewMes === mes
                       // El ÚLTIMO mes del archivo es el mes EN CURSO, no un mes
                       // «incompleto»: nada falta ni se perdió, simplemente no ha
@@ -735,7 +745,7 @@ export default function TicketsPage() {
                           style={activo
                             ? { background: c, borderColor: c }
                             : { background: `${c}08`, borderColor: `${c}25` }}>
-                          <p className="text-xs" style={{ color: activo ? '#fff' : '#6b7280' }}>
+                          <p className="text-xs" style={{ color: activo ? '#fff' : '#667384' }}>
                             {mesLabel(mes)}
                           </p>
                           <p className="text-2xl font-bold mt-1"
@@ -855,7 +865,7 @@ export default function TicketsPage() {
                               <span className="text-xs text-gray-400 font-normal"> · CID {e.cid}</span>
                               {e.interno && (
                                 <span className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded"
-                                  style={{ background: '#E2E8F0', color: '#475569' }}>INTERNO</span>
+                                  style={{ background: '#DFE8EF', color: '#202E3B' }}>INTERNO</span>
                               )}
                             </td>
                             <td className="py-2.5 px-4 text-right font-semibold text-gray-700">{e.total}</td>
@@ -915,7 +925,7 @@ export default function TicketsPage() {
                 </div>
                 <button type="submit"
                   className="px-4 py-2 text-sm font-medium text-white rounded-lg"
-                  style={{ background: '#1B3FCC' }}>
+                  style={{ background: '#10355D' }}>
                   Buscar
                 </button>
               </form>
@@ -1139,7 +1149,7 @@ export default function TicketsPage() {
                       return (
                         <button key={p} onClick={() => fetchList(p)}
                           className="w-7 h-7 rounded text-xs font-medium"
-                          style={p === page ? { background: '#1B3FCC', color: '#fff' } : { color: '#374151' }}>
+                          style={p === page ? { background: '#10355D', color: '#fff' } : { color: '#202E3B' }}>
                           {p}
                         </button>
                       )
@@ -1195,7 +1205,7 @@ export default function TicketsPage() {
                   {(['matched','unmatched'] as const).map(t => (
                     <button key={t} onClick={() => setConcTab(t)}
                       className="px-4 py-2 rounded-lg text-xs font-medium transition-all"
-                      style={concTab === t ? { background: '#1B3FCC', color: '#fff' } : { color: '#6b7280' }}>
+                      style={concTab === t ? { background: '#10355D', color: '#fff' } : { color: '#667384' }}>
                       {t === 'matched'
                         ? `✅ Matched (${conc.matched.length})`
                         : `❌ Sin match (${conc.unmatched.length})`}
@@ -1241,7 +1251,7 @@ export default function TicketsPage() {
                                 <span className="text-xs text-gray-400 font-normal"> · CID {r.cid || '—'}</span>
                                 {r.interno && (
                                   <span className="ml-2 text-[9px] font-semibold px-1.5 py-0.5 rounded"
-                                    style={{ background: '#E2E8F0', color: '#475569' }}>INTERNO</span>
+                                    style={{ background: '#DFE8EF', color: '#202E3B' }}>INTERNO</span>
                                 )}
                                 {/* Los nombres alternos se avisan en vez de partir la fila en dos. */}
                                 {r.alias.length > 0 && (
@@ -1264,14 +1274,14 @@ export default function TicketsPage() {
                                   /* GREEN crudo sobre la tabla blanca da
                                      2.28:1 en 12px. La rama gris ya estaba
                                      bien (6.3:1). */
-                                  style={{ color: r.cuenta.sinServicio ? '#64748B'
+                                  style={{ color: r.cuenta.sinServicio ? '#3D4B5C'
                                                 : tonoSobreFondo(GREEN, '#FFFFFF', 4.5) }}>
                                   {r.cuenta.empresa}
                                   {r.cuenta.sinServicio && (
-                                    /* #475569 sobre #E2E8F0 mide 6.15:1. El slate-500
+                                    /* #202E3B sobre #DFE8EF mide 6.15:1. El slate-500
                                        que puse primero daba 3.86:1 y no pasa AA. */
                                     <span className="ml-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded"
-                                      style={{ background: '#E2E8F0', color: '#475569' }}>
+                                      style={{ background: '#DFE8EF', color: '#202E3B' }}>
                                       SIN SERVICIO · {r.cuenta.estado}
                                     </span>
                                   )}
@@ -1281,7 +1291,7 @@ export default function TicketsPage() {
                                   {/* El estatus manda sobre el Health Score: una cuenta
                                       sin servicio no se pinta en verde por tener 84. */}
                                   {/* El gris no puede ser tan claro que no se lea:
-                                      #94A3B8 sobre blanco mide 2.56:1. #475569 da
+                                      #667384 sobre blanco mide 2.56:1. #202E3B da
                                       8.49:1 y sigue leyéndose como «apagado»
                                       frente al verde/ámbar/rojo de al lado.
                                       Y el estado no se comunica SOLO con el color:
@@ -1290,7 +1300,7 @@ export default function TicketsPage() {
                                   <span className="text-xs font-bold"
                                     title={r.cuenta.sinServicio ? 'Cuenta sin servicio: el Health Score es histórico' : ''}
                                     style={{ color: r.cuenta.sinServicio
-                                      ? '#475569'
+                                      ? '#202E3B'
                                       : tonoSobreFondo(
                                           r.cuenta.health_score >= 70 ? GREEN : r.cuenta.health_score >= 40 ? AMBER : RED,
                                           '#FFFFFF', 4.5) }}>
@@ -1351,11 +1361,11 @@ export default function TicketsPage() {
                       <span className="font-semibold text-gray-900 flex-1 truncate">{c.cuenta}</span>
                       <span className="text-gray-500 w-20 text-right">{c.folios} folio{c.folios === 1 ? '' : 's'}</span>
                       <span className="w-24 text-right font-semibold"
-                        style={{ color: c.peorDias >= 30 ? RED : c.peorDias >= 7 ? '#C2410C' : '#64748B' }}>
+                        style={{ color: c.peorDias >= 30 ? RED : c.peorDias >= 7 ? '#C2410C' : '#3D4B5C' }}>
                         {c.peorDias} d fuera
                       </span>
                       <span className="w-24 text-right"
-                        style={{ color: c.rachas === mesa.cortes ? RED : '#64748B',
+                        style={{ color: c.rachas === mesa.cortes ? RED : '#3D4B5C',
                                  fontWeight: c.rachas === mesa.cortes ? 700 : 400 }}>
                         {c.rachas}/{mesa.cortes} cortes
                       </span>
@@ -1392,7 +1402,7 @@ export default function TicketsPage() {
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
                               style={v.estado === 'Escalado'
                                 ? { background: '#FEE2E2', color: '#B91C1C' }
-                                : { background: '#F1F5F9', color: '#475569' }}>
+                                : { background: '#F5F8FB', color: '#202E3B' }}>
                               {v.estado}
                             </span>
                           </td>
@@ -1691,11 +1701,11 @@ export default function TicketsPage() {
 
             {/* Banner explicativo */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm"
-              style={{ borderLeft: '4px solid #1B3FCC' }}>
+              style={{ borderLeft: '4px solid #10355D' }}>
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: '#1B3FCC15' }}>
-                  <PlusCircle size={18} style={{ color: '#1B3FCC' }} />
+                  style={{ background: '#10355D14' }}>
+                  <PlusCircle size={18} style={{ color: '#10355D' }} />
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-gray-900 mb-1">Levantar ticket a nombre del cliente</h2>
@@ -1716,7 +1726,7 @@ export default function TicketsPage() {
                   href="https://forms.zohopublic.com/jadelriogdig1/form/Nuevoticket/formperma/NujUVJ5Mw5WyeXRaoEgXuEHx0OfZNBhozp_D8WfGSXs"
                   target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-1 text-xs font-medium"
-                  style={{ color: '#1B3FCC' }}>
+                  style={{ color: '#10355D' }}>
                   Abrir en nueva pestaña <ExternalLink size={11} />
                 </a>
               </div>
@@ -1749,20 +1759,20 @@ export default function TicketsPage() {
 
               <div className="rounded-lg overflow-hidden border border-gray-200">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100"
-                  style={{ background: '#f8fafc' }}>
+                  style={{ background: '#F5F8FB' }}>
                   <span className="text-xs text-gray-500 font-mono">Agregar al inicio del cuerpo del correo</span>
                   <button
                     onClick={copySnippet}
                     className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md transition-all"
                     style={copied
                       ? { background: '#22c55e15', color: '#16a34a' }
-                      : { background: '#f8fafc', color: '#475569' }}>
+                      : { background: '#F5F8FB', color: '#202E3B' }}>
                     {copied ? <Check size={11} /> : <Copy size={11} />}
                     {copied ? 'Copiado' : 'Copiar'}
                   </button>
                 </div>
-                <div className="px-4 py-3" style={{ background: '#0f172a' }}>
-                  <code className="text-sm font-mono" style={{ color: '#7dd3fc' }}>
+                <div className="px-4 py-3" style={{ background: '#082742' }}>
+                  <code className="text-sm font-mono" style={{ color: '#8AD7F8' }}>
                     #original_sender &#123;correo@cliente.com&#125;
                   </code>
                 </div>

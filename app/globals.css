@@ -465,6 +465,101 @@ body {
   to   { transform: translateY(0);    opacity: 1; }
 }
 
+/* ══ TICKETS · LA PALETA DEL CUSTOMER SUCCESS OPERATING SYSTEM ═════════════
+ *
+ * Encargo de dirección, 14 oct 2026: que el apartado de Tickets tome los
+ * colores del documento, como ya los tomaron Activaciones 2.0, el Dashboard y
+ * Atlas.
+ *
+ * ── POR QUÉ UNA CAPA Y NO 243 EDICIONES ───────────────────────────────────
+ * `app/tickets/page.tsx` son 1,808 líneas con **243 clases Tailwind de color**
+ * —51 `text-gray-500`, 48 `border-gray-200`, 30 `text-gray-400`…— además de
+ * los hex sueltos. Reescribirlas una a una es un diff enorme, difícil de
+ * revisar, y deja el módulo igual de frágil: la siguiente clase que alguien
+ * escriba volverá a traer el gris de Tailwind sin que nada falle.
+ *
+ * Esta capa remapea la ESCALA, con ámbito en `.cp-tickets` y nada más. Gana a
+ * Tailwind por especificidad (0,2,0 contra 0,1,0), sin un solo `!important`, y
+ * cubre también lo que se escriba mañana.
+ *
+ * ── LA ESCALA, MEDIDA ANTES DE ESCRIBIRLA ─────────────────────────────────
+ * `python scripts/mide-paleta-tickets.py`. Tickets NO tiene una sola
+ * `.cp-card`: es isla clara, y en la misma vista conviven tarjetas blancas y
+ * el lavado de la página. Por eso cada tono tiene que pasar en LAS DOS:
+ *
+ *   alto   #202E3B   13.00:1 sobre el lavado · 13.86:1 sobre blanco
+ *   medio  #3D4B5C    8.35:1 · 8.90:1   ← el secundario de Activaciones 2.0
+ *   bajo   #667384    4.53:1 · 4.83:1
+ *
+ * El `--muted #6A7889` del documento NO sirve de texto aquí: da 4.51 sobre
+ * blanco y **4.23 sobre el lavado**, así que un secundario que se mueva de una
+ * tarjeta al fondo cae por debajo del umbral sin que nadie toque su color. Se
+ * oscurece lo justo y conserva el matiz azulado.
+ *
+ * Y el acento es el AZUL `#1D6CAA`, no el cian: el cian da 2.63:1 sobre blanco
+ * —ni siquiera los 3:1 de un objeto gráfico— y 2.31:1 sobre su propio tinte.
+ * El cian es el acento de las superficies OSCURAS. [[atlas-dashboard-contrast-architecture]]
+ */
+
+/* ── EL BORDE POR DEFECTO, QUE SON 489 ELEMENTOS ──────────────────────────
+ * El preflight de Tailwind pone `border-color: #E5E7EB` en `*,::before,::after`,
+ * así que todo lo que lleva `border` sin un color explícito sale con el gris
+ * de Tailwind. Medido en la pantalla: 489 elementos — las líneas de casi todas
+ * las tarjetas y filas del módulo.
+ *
+ * Va en `@layer base` A PROPÓSITO: ahí pisa al preflight y las utilidades
+ * siguen ganándole, de modo que un `border-orange-300` del aviso de SLA se
+ * respeta. Fuera de la capa, esta regla le habría robado el color a todo
+ * borde intencionado del módulo. */
+@layer base {
+  .cp-tickets *,
+  .cp-tickets *::before,
+  .cp-tickets *::after { border-color: #DFE8EF; }
+}
+
+/* Las superficies. */
+.cp-tickets                   { background: #F5F8FB; }
+.cp-tickets .bg-gray-50       { background-color: #F5F8FB; }
+.cp-tickets .bg-gray-100      { background-color: #EAF0F5; }
+.cp-tickets .bg-white         { background-color: #FFFFFF; }
+
+/* La jerarquía de texto, los tres niveles medidos. */
+.cp-tickets .text-gray-900,
+.cp-tickets .text-gray-800    { color: #202E3B; }
+.cp-tickets .text-gray-700,
+.cp-tickets .text-gray-600    { color: #3D4B5C; }
+.cp-tickets .text-gray-500,
+.cp-tickets .text-gray-400    { color: #667384; }
+/* `text-gray-300` SE SUBE AL SECUNDARIO, y esto se decidió mirando la pantalla.
+   La primera versión lo dejó en plata `#A8BACB` dándolo por decorativo —iconos
+   tenues, separadores—. Los CUATRO usos del archivo son el «—» que marca que
+   una celda NO TIENE DATO, y eso es información, no adorno: a 1.99:1 sobre
+   blanco no se lee, y una ausencia que no se lee se confunde con un cero.
+   [[feedback-cero-sin-medicion]] */
+.cp-tickets .text-gray-300    { color: #667384; }
+
+/* Bordes. Un separador no es un objeto informativo: basta con que se vea. */
+.cp-tickets .border-gray-200  { border-color: #DFE8EF; }
+.cp-tickets .border-gray-100  { border-color: #EDF2F7; }
+
+/* ── LAS VARIANTES CON OPACIDAD, QUE SON OTRA CLASE ────────────────────────
+ * Tailwind genera `bg-gray-50/70` como la clase `.bg-gray-50\/70`, que NO es
+ * `.bg-gray-50`: la regla de arriba no la alcanza. Se vieron al medir la
+ * pantalla —dos filas de tabla seguían en el `#F9FAFB` de Tailwind cuando
+ * todo lo demás ya era del documento— y son ocho en el archivo. */
+.cp-tickets .bg-gray-50\/70   { background-color: rgba(245,248,251,0.70); }
+.cp-tickets .bg-gray-50\/60   { background-color: rgba(245,248,251,0.60); }
+.cp-tickets .bg-blue-50\/50   { background-color: rgba(234,242,248,0.50); }
+.cp-tickets .bg-blue-50\/20   { background-color: rgba(234,242,248,0.20); }
+
+/* El acento. */
+.cp-tickets .text-blue-700,
+.cp-tickets .text-blue-500    { color: #1D6CAA; }
+.cp-tickets .bg-blue-50       { background-color: #EAF2F8; }
+.cp-tickets .border-blue-200  { border-color: #BBD4E6; }
+.cp-tickets .ring-blue-500    { --tw-ring-color: #1D6CAA; }
+.cp-tickets .focus\:ring-blue-500:focus { --tw-ring-color: #1D6CAA; }
+
 /* EL FOCO SE VE, Y SE VE EN NARANJA.
    `:focus-visible` y no `:focus`: con `:focus` el anillo aparece también al
    hacer clic con el ratón, la gente lo percibe como un defecto y acaba
