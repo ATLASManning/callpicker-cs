@@ -52,15 +52,32 @@ ALTER TABLE public.alertas_episodios
   ));
 
 -- ── VERIFICACIÓN ────────────────────────────────────────────────────────────
--- Las once tienen que estar. Si alguna falta, el ADD de arriba no corrió.
+--
+-- `una_sola` es la que de verdad importa, y no es paranoia: el nombre de la
+-- restricción se comprobó contra la base el 14 oct 2026 —provocando el rechazo
+-- y leyendo el cuerpo del error, porque PostgREST no expone `pg_constraint`—
+-- y es `alertas_episodios_condicion_check`. Si ese nombre no coincidiera, el
+-- DROP de arriba no borraría nada, el ADD crearía una SEGUNDA restricción y la
+-- vieja seguiría rechazando `atencion`: todo en verde y nada cambiado.
+--
+-- Por eso se cuentan las restricciones CHECK de UN SOLO atributo que sea
+-- `condicion`. Tiene que haber exactamente una. (`array_length = 1` deja fuera
+-- `fechas_coherentes`, que menciona `condicion_desde` y cuatro columnas más.)
 SELECT
-  pg_get_constraintdef(oid) LIKE '%atencion%'  AS admite_atencion,
-  pg_get_constraintdef(oid) LIKE '%mesa%'      AS admite_mesa,
-  pg_get_constraintdef(oid) LIKE '%importe%'   AS admite_importe,
-  pg_get_constraintdef(oid) LIKE '%escrito%'   AS admite_escrito,
-  pg_get_constraintdef(oid) LIKE '%trabajo%'   AS admite_trabajo
-FROM pg_constraint
-WHERE conname = 'alertas_episodios_condicion_check';
+  count(*) = 1                                                    AS una_sola,
+  bool_and(pg_get_constraintdef(c.oid) LIKE '%atencion%')         AS admite_atencion,
+  bool_and(pg_get_constraintdef(c.oid) LIKE '%mesa%')             AS admite_mesa,
+  bool_and(pg_get_constraintdef(c.oid) LIKE '%importe%')          AS admite_importe,
+  bool_and(pg_get_constraintdef(c.oid) LIKE '%escrito%')          AS admite_escrito,
+  bool_and(pg_get_constraintdef(c.oid) LIKE '%trabajo%')          AS admite_trabajo,
+  bool_and(pg_get_constraintdef(c.oid) NOT LIKE '%inventada%')    AS rechaza_lo_demas,
+  string_agg(c.conname, ', ')                                     AS nombre
+FROM pg_constraint c
+JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = c.conkey[1]
+WHERE c.conrelid = 'public.alertas_episodios'::regclass
+  AND c.contype  = 'c'
+  AND array_length(c.conkey, 1) = 1
+  AND a.attname  = 'condicion';
 
 -- Y los episodios que ya existen, por condición, para ver que no se rompió
 -- ninguno al reconstruir el CHECK (un ADD CONSTRAINT valida las filas vivas:
