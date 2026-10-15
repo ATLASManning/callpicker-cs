@@ -292,7 +292,13 @@ export async function POST(req: NextRequest) {
       buildAtlasContext(String(pregunta), sesion),
       buildCuentaDossier(String(pregunta), sesion).catch(() => null),
     ])
-    if (dossier) ctx.modulos.push(`dossier:${dossier.empresa}`)
+    /* `ajena` es el dossier que NO se entrega porque la cuenta es de otra
+       cartera: su texto es la instrucción de decirlo en vez de inventarlo. Se
+       inyecta como cualquier otro, y se registra distinto para que en la
+       bitácora se vea que la pregunta se hizo y qué se contestó. */
+    if (dossier) {
+      ctx.modulos.push(dossier.ajena ? 'dossier:fuera-de-cartera' : `dossier:${dossier.empresa}`)
+    }
 
     const systemMsgs: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: 'system', content: BASE_SYSTEM },

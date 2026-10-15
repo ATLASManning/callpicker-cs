@@ -157,6 +157,38 @@ T_CON   = token('claudia@callpicker.com', 'asesor', 'Claudia')
 T_SIN   = token('claudia@callpicker.com', 'asesor', '')        # fail-open
 T_ADMIN = token('lopezdjosemanuel@gmail.com', 'admin', '')
 
+def espera_despliegue(tok, minutos=8):
+    """Espera a que el codigo de ESTE cambio este sirviendo en linea.
+
+       Existe porque «lo desplegue» no es «lo estan viendo»: un build que aun
+       no termina deja servida la compilacion anterior, y entonces una sonda en
+       falla no distingue «el codigo no esta en linea» de «el codigo esta mal».
+       Se depuran las dos cosas a la vez y se pierde la tarde.
+
+       La marca es el campo `alcance` de /api/relacionamiento, que solo existe
+       a partir del candado de dueno. No es una version escrita a mano que haya
+       que acordarse de subir: es una consecuencia del propio cambio."""
+    limite = time.time() + minutos * 60
+    intento = 0
+    while time.time() < limite:
+        intento += 1
+        st, tx = pide('/api/relacionamiento', tok)
+        if st == 200 and '"alcance"' in tx:
+            print('  Despliegue EN LINEA (intento %d).' % intento)
+            return True
+        print('  ...aun sirve el build anterior (intento %d, status %d)' % (intento, st))
+        time.sleep(20)
+    print('  NO LLEGO en %d min. Las sondas de abajo medirian el build VIEJO:' % minutos)
+    print('  no se puede concluir nada de ellas. Revisar el build en Vercel.')
+    return False
+
+
+if '--espera-despliegue' in sys.argv:
+    print('Esperando a que el despliegue entre...')
+    if not espera_despliegue(token('lopezdjosemanuel@gmail.com', 'admin', '')):
+        sys.exit(2)
+    print()
+
 print('Base:', BASE)
 print('Cuenta propia : %s' % MIA['empresa'])
 print('Cuenta ajena  : %s (Dan)' % AJENA['empresa'])
@@ -433,15 +465,20 @@ else:
 def borra_marcadas():
     """Borra por su marca las filas que las sondas hayan creado. Si el candado
        funciona no habra ninguna, y eso es lo que se espera leer."""
+    # `radar_respuestas.respuestas` es JSONB y un `ilike` contra ella hace que
+    # PostgREST responda 404 — que esta limpieza leia como «no pude limpiar» y
+    # mandaba a revisar a mano algo que nunca se habia escrito. Un verificador
+    # que acusa en falso es peor que no tenerlo, asi que el jsonb se filtra por
+    # su llave (`->>marca`), que es como se escribe en la sonda.
     objetivos = [
-        ('seguimientos',       'descripcion', 'ilike', '*' + MARCA + '*'),
-        ('radar_respuestas',   'respuestas',  'ilike', '*' + MARCA + '*'),
-        ('adopcion_producto',  'notas',       'ilike', '*' + MARCA + '*'),
+        ('seguimientos',      'descripcion',        'ilike', '*' + MARCA + '*'),
+        ('radar_respuestas',  'respuestas->>marca', 'eq',    MARCA),
+        ('adopcion_producto', 'notas',              'ilike', '*' + MARCA + '*'),
     ]
     total = 0
     for tabla, col, op, val in objetivos:
         url = ('%s/rest/v1/%s?%s=%s.%s'
-               % (E['NEXT_PUBLIC_SUPABASE_URL'], tabla, col, op,
+               % (E['NEXT_PUBLIC_SUPABASE_URL'], tabla, urllib.parse.quote(col), op,
                   urllib.parse.quote(val)))
         req = urllib.request.Request(url, method='DELETE')
         for k, v in SB.items():

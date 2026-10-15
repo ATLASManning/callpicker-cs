@@ -119,7 +119,7 @@ function sem(hs: number | null): string {
 export async function buildCuentaDossier(
   pregunta: string,
   sesion?: SesionAtlas,
-): Promise<{ text: string; empresa: string } | null> {
+): Promise<{ text: string; empresa: string; ajena?: boolean } | null> {
   const q = normalizarNombre(pregunta)
   if (q.length < 4) return null
 
@@ -148,12 +148,39 @@ export async function buildCuentaDossier(
 
   /* EL DOSSIER ES LA FUGA MÁS DIRECTA DE TODAS: basta nombrar al cliente de
      otra cartera en la pregunta para recibir su expediente entero —facturación,
-     notas, adopción, contacto, hallazgos de auditoría—. Se devuelve `null`,
-     igual que si el nombre no existiera: un «no es tuyo» confirmaría que la
-     cuenta está en la cartera de alguien, y el nombre lo puso quien pregunta. */
+     notas, adopción, contacto, hallazgos de auditoría—.
+   *
+   * NO SE DEVUELVE `null`, Y ESO SE APRENDIÓ MIDIENDO. Al principio devolvía
+   * `null` —como si el nombre no existiera— y medido contra producción el 15
+   * oct 2026 el modelo rellenó el hueco: a la pregunta por una cuenta de Dan le
+   * contestó a Claudia «facturación $2,500, Health Score 75, último contacto 10
+   * de octubre», mientras al admin —con el dato de verdad— le decía $1,838 y
+   * HS 49. La fuga estaba cerrada y en su lugar había una invención, que es
+   * peor: una fuga se nota, un dato inventado se cree y se le dice al cliente.
+   *
+   * Un campo vacío se rellena con invención, así que la ausencia se marca CON
+   * PALABRAS. Y el texto no confirma que la cuenta exista ni de quién es: dice
+   * que no está en la cartera de quien pregunta, que es lo único que hace
+   * falta para que conteste eso mismo en vez de inventar. */
   if (sesion?.rol === 'asesor') {
     const mio = normalizarNombre(sesion.asesor)
-    if (!mio || normalizarNombre(mejor.asesor) !== mio) return null
+    if (!mio || normalizarNombre(mejor.asesor) !== mio) {
+      return {
+        ajena: true,
+        empresa: '',
+        text:
+          'CUENTA FUERA DE TU CARTERA — INSTRUCCIÓN DURA.\n'
+          + 'La pregunta nombra un cliente que NO está en tu cartera, así que NO '
+          + 'tienes ni un solo dato suyo: ni facturación, ni Health Score, ni '
+          + 'último contacto, ni tickets, ni alertas.\n'
+          + 'Contesta EXACTAMENTE eso: que esa cuenta no está en tu cartera y que '
+          + 'no tienes sus datos, y que lo vea con su asesor o con José Manuel.\n'
+          + 'PROHIBIDO dar una cifra, una fecha, un semáforo o un rango, aunque '
+          + 'parezca razonable o lo recuerdes de otra conversación. No estimes, no '
+          + 'deduzcas del nombre ni del sector, no digas «rondaría». Si no tienes '
+          + 'el dato, el dato no existe para esta respuesta.',
+      }
+    }
   }
 
   const c = mejor
@@ -390,6 +417,42 @@ export async function buildAtlasContext(
   const sections: string[] = [MARCO_SUMMARY, AUDITORIA_SUMMARY, TICKET_SUMMARY]
   const modulos: string[]  = ['marco-del-area', 'base-conocimiento', 'auditoria', 'tickets']
   const asesorPorNombre: Record<string, string> = {}
+
+  /* ── EL ALCANCE VA PRIMERO, ANTES DEL MARCO ───────────────────────────────
+   *
+   * Porque el recorte por sí solo no basta, y eso se midió: con las secciones
+   * ya acotadas, a «dame las cuentas de cada asesora» el modelo contestó
+   * «Claudia: 62, Fátima: 42, Dan: 42». El 62 era el suyo y era correcto; los
+   * otros dos los INVENTÓ —el admin, con el dato real, recibía 63 y 68—.
+   *
+   * O sea: quitar el dato cierra la fuga y abre un hueco, y un hueco se rellena
+   * con invención. La regla general de «no inventes» que ya trae el prompt no
+   * alcanzó, porque el modelo no sabía que le faltaba algo: creía tener el
+   * cuadro completo. Hay que decirle QUÉ no tiene, no sólo que no invente.
+   *
+   * Va en primer lugar por lo mismo que el marco: ordena cómo se lee todo lo
+   * que sigue. Y no sustituye al filtro de las consultas —una instrucción no es
+   * un control de acceso—: es lo que evita que el silencio se vuelva mentira. */
+  if (acotado) {
+    sections.unshift(
+      `TU ALCANCE — LÉELO ANTES QUE NADA.\n`
+      + `Esta sesión es de ${miCanonico}, rol asesor. TODO lo que viene abajo está `
+      + `recortado a SU cartera: las cuentas, los seguimientos, las alertas, el `
+      + `cumplimiento y las bajas.\n`
+      + `LO QUE NO TIENES: las cuentas, los indicadores y las bajas de las OTRAS `
+      + `carteras, y el total de la empresa. No los tienes, no es que estén en cero.\n`
+      + `POR LO TANTO:\n`
+      + `· Si te preguntan por otra asesora, por «el área», por «todas las carteras» `
+      + `o por el total de la empresa, di que sólo tienes la cartera de ${miCanonico} `
+      + `y que esa comparación la ve dirección. NO des números de nadie más.\n`
+      + `· Si te preguntan por un cliente que no aparece en tus secciones, di que no `
+      + `está en tu cartera y que no tienes sus datos.\n`
+      + `· PROHIBIDO estimar, deducir, redondear o «dar una idea» de un dato que no `
+      + `tienes. Un número inventado se cree y se le repite al cliente: es el peor `
+      + `resultado posible, peor que no contestar. Si no está en tu contexto, no existe.`,
+    )
+    modulos.unshift('alcance-cartera')
+  }
 
   /* Estos dos cierres se evalúan MÁS ABAJO, en el bloque de churn, cuando
      `asesorPorNombre` ya está poblado: leen el objeto, no una copia. */
