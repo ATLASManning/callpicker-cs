@@ -618,6 +618,90 @@ body {
 .cp-doc .ring-purple-300, .cp-doc .ring-purple-400 { --tw-ring-color: #1D6CAA; }
 .cp-doc .focus\:ring-blue-500:focus { --tw-ring-color: #1D6CAA; }
 
+/* ══ CHURN · DARLE VIDA A LA DATA ══════════════════════════════════════════
+ *
+ * Encargo de dirección, 15 oct 2026: «dale vida con los colores a todo el
+ * módulo y a toda la data del apartado Churn».
+ *
+ * Llevarlo a la paleta lo dejó coherente pero plano: once secciones de cajas
+ * blancas con borde gris, donde todas pesan lo mismo y hay que leer para
+ * saber qué es cada una. Lo que sigue da jerarquía SIN tocar las 3,384 líneas
+ * del módulo y sin inventar colores: todo sale del documento.
+ *
+ * Va con ámbito en `.cp-churn` y no en `.cp-doc` para que no se derrame a los
+ * otros veintidós módulos, que no se han mirado uno a uno. */
+
+/* Cada título de sección con su barra de acento. Es lo que convierte una
+   sucesión de cajas en una lectura con orden. El azul y no el cian: el cian
+   da 2.63:1 sobre blanco y no llega ni a los 3:1 de un objeto gráfico. */
+.cp-churn h3 { position: relative; padding-left: 11px; }
+.cp-churn h3::before {
+  content: ''; position: absolute; left: 0; top: 0.18em; bottom: 0.18em;
+  width: 3px; border-radius: 2px; background: #1D6CAA;
+}
+
+/* Las cabeceras de tabla, en marino con letra blanca: 12.43:1. Así la tabla
+   tiene cabeza y el ojo sabe dónde empieza cada bloque de cifras. */
+/* La cabecera gana a CUALQUIER clase de texto que traiga el `th`.
+ *
+ * `[class]` sube la especificidad a 0,2,1 y eso importa: sin él, un
+ * `<th class="text-gray-500">` se quedaba con el gris de la regla de abajo
+ * —0,2,0— y salía «Cliente» en #5C6978 sobre el marino, a 2.22:1. Lo creé yo
+ * al pintar la cabecera y lo vio la auditoría de la pestaña Cancelados. */
+.cp-churn thead th,
+.cp-churn thead th[class],
+.cp-churn thead th[class] * {
+  background-color: #10355D; color: #FFFFFF;
+  font-weight: 600; letter-spacing: 0.02em;
+}
+.cp-churn thead th[class] * { background-color: transparent; }
+.cp-churn thead th:first-child  { border-top-left-radius: 8px; }
+.cp-churn thead th:last-child   { border-top-right-radius: 8px; }
+
+/* Filas alternas en el lavado del documento: leer una fila de doce columnas
+   sin perder el renglón es la mitad del trabajo de esta pantalla. */
+.cp-churn tbody tr:nth-child(even):not([style*="background"]) { background: #F8FAFC; }
+.cp-churn tbody tr:hover { background: #EAF2F8; }
+
+/* El secundario, sobre las pastillas tintadas de la lista de semanas. Ahí el
+   fondo lleva una capa de color encima del lavado y el `#667384` del tablero
+   se queda en 4.20:1 — por poco, pero por debajo. Un punto más oscuro y pasa
+   también en el peor de los casos, que es la tarjeta seleccionada. */
+.cp-churn .text-gray-500,
+.cp-churn .text-gray-400 { color: #5C6978; }
+
+/* Las tarjetas de la rejilla superior ganan relieve al pasar por encima, para
+   que se lean como piezas y no como un fondo. */
+.cp-churn .rounded-xl { transition: box-shadow .18s ease, transform .18s ease; }
+
+/* ── LOS SEMÁNTICOS, EN SU VERSIÓN LEGIBLE ────────────────────────────────
+ * `text-red-500` de Tailwind da 3.76:1 sobre blanco y `text-amber-500` 2.15:1:
+ * el color comunica pero la cifra no se lee, y aquí las cifras SON el dato.
+ * Son los mismos tonos que `tonoSobreClaro` calcula para las constantes del
+ * módulo, puestos aquí para las clases que no pasan por ellas. El relleno y
+ * el punto conservan el color vivo. */
+.cp-churn .text-red-400,    .cp-churn .text-red-500    { color: #B83232; }
+.cp-churn .text-orange-400, .cp-churn .text-orange-500 { color: #A24A0E; }
+.cp-churn .text-amber-400,  .cp-churn .text-amber-500  { color: #8A5906; }
+.cp-churn .text-yellow-500, .cp-churn .text-yellow-600 { color: #8A6D08; }
+.cp-churn .text-green-500,  .cp-churn .text-green-600  { color: #1B7F3C; }
+.cp-churn .text-emerald-500,.cp-churn .text-emerald-600{ color: #0F766E; }
+
+/* Los mismos semánticos cuando vienen como estilo en línea con el hex crudo:
+ * el verde `#22c55e` da 2.22:1 sobre blanco y el ámbar `#f59e0b` 2.15:1, así
+ * que una cifra pintada con ellos no se lee. Se atacan por atributo porque no
+ * pasan por ninguna clase ni por las constantes del módulo. */
+.cp-churn [style*="#22c55e"], .cp-churn [style*="#22C55E"] { color: #15803D; }
+.cp-churn [style*="#f59e0b"], .cp-churn [style*="#F59E0B"] { color: #8A5906; }
+.cp-churn [style*="#ef4444"], .cp-churn [style*="#EF4444"] { color: #B83232; }
+.cp-churn [style*="#f97316"], .cp-churn [style*="#F97316"] { color: #A24A0E; }
+/* …salvo cuando el hex es el RELLENO y no la letra: ahí el color vivo es lo
+   que comunica y se respeta. */
+.cp-churn [style*="background"][style*="#22c55e"],
+.cp-churn [style*="background"][style*="#f59e0b"],
+.cp-churn [style*="background"][style*="#ef4444"],
+.cp-churn [style*="background"][style*="#f97316"] { color: inherit; }
+
 /* El degradado de un encabezado tambien lleva la marca. */
 .cp-doc .from-blue-500,  .cp-doc .from-blue-600,
 .cp-doc .from-indigo-500, .cp-doc .from-purple-500,

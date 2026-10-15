@@ -59,10 +59,34 @@ const BLUE   = '#1D6CAA'
 const INDIGO = '#082742'
 const GREEN  = '#22c55e'
 
+/* ── EL MISMO COLOR, PERO PARA LEERLO ──────────────────────────────────────
+ *
+ * Los cinco de arriba son colores de SEÑAL: el punto del semáforo, la barra
+ * de una gráfica, el borde de una tarjeta. Ahí el tono vivo es lo que
+ * comunica y se queda como está.
+ *
+ * Como LETRA no sirven, y está medido en la pantalla el 15 oct 2026 — 80
+ * textos del módulo por debajo del mínimo:
+ *
+ *     ámbar  #f59e0b sobre su tinte .... 1.80:1   «14 dg.»
+ *     naranja #f97316 sobre su tinte ... 2.29:1   «0 pend.»
+ *     rojo   #ef4444 sobre su tinte .... 2.99:1   «5 canc.»
+ *
+ * Estas variantes las oscurece `tonoSobreClaro` hasta que miden 4.5:1 contra
+ * su propio tinte. El relleno y el punto conservan el color original, que es
+ * donde el color tiene que verse. [[atlas-dashboard-contrast-architecture]]
+ *
+ * Regla para quien añada un color: si va en `color:` de un texto, usa la
+ * variante `_TX`; si va en `background`, `borderColor` o `fill`, la de arriba. */
+const RED_TX    = tonoSobreClaro(RED, 0.22)
+const ORANGE_TX = tonoSobreClaro(ORANGE, 0.22)
+const AMBER_TX  = tonoSobreClaro(AMBER, 0.22)
+const GREEN_TX  = tonoSobreClaro(GREEN, 0.22)
+
 const SEMAFORO_MAP: Record<SemaforoChurn, { color: string; label: string; dot: string }> = {
-  cancelado:  { color: RED,    label: 'Cancelado',          dot: '🔴' },
-  pendiente:  { color: ORANGE, label: 'Pendiente Facturar', dot: '🟠' },
-  downgrade:  { color: AMBER,  label: 'Downgrade',          dot: '🟡' },
+  cancelado:  { color: RED_TX,    label: 'Cancelado',          dot: '🔴' },
+  pendiente:  { color: ORANGE_TX, label: 'Pendiente Facturar', dot: '🟠' },
+  downgrade:  { color: AMBER_TX,  label: 'Downgrade',          dot: '🟡' },
   suspendido: { color: BLUE,   label: 'Suspendido/Inactivo',dot: '🔵' },
 }
 
@@ -1832,19 +1856,39 @@ function SemaforoDot({ tipo }: { tipo: SemaforoChurn }) {
   )
 }
 
+/* La tarjeta de KPI, CON EL COLOR DEL DATO A LA VISTA.
+ *
+ * Antes era una caja blanca con un borde gris: las cinco se veían iguales y
+ * había que leer la cifra para saber de qué hablaba cada una. La franja
+ * superior lleva el color del dato —rojo lo cancelado, ámbar lo que baja,
+ * marino lo institucional— así que la tarjeta se identifica de un vistazo y
+ * antes de leerla.
+ *
+ * La LETRA del valor no usa el color crudo: pasa por `tonoSobreClaro`, que lo
+ * oscurece hasta que mide 4.5:1 sobre blanco. El ámbar `#F59E0B` da 2.15:1 en
+ * crudo —ilegible— y la franja conserva el tono vivo, que es donde el color
+ * tiene que comunicar. [[atlas-dashboard-contrast-architecture]] */
 function KpiCard({ icon: Icon, label, value, sub, color }:
   { icon: React.ElementType; label: string; value: string; sub?: string; color: string }) {
+  const letra = tonoSobreClaro(color, 0.10)
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+    <div className="rounded-xl p-4 transition-shadow hover:shadow-md"
+      style={{
+        background: '#FFFFFF',
+        border: '1px solid #DFE8EF',
+        borderTop: `3px solid ${color}`,
+        boxShadow: '0 1px 2px rgba(16,53,93,0.06)',
+      }}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-xs text-gray-500 font-medium">{label}</p>
-          <p className="text-xl font-bold mt-1" style={{ color }}>{value}</p>
-          {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+          <p className="text-xs font-semibold tracking-wide uppercase"
+            style={{ color: '#667384', letterSpacing: '0.04em' }}>{label}</p>
+          <p className="text-2xl font-extrabold mt-1.5" style={{ color: letra }}>{value}</p>
+          {sub && <p className="text-xs mt-1" style={{ color: '#667384' }}>{sub}</p>}
         </div>
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: `${color}15` }}>
-          <Icon size={16} style={{ color }} />
+        <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: `${color}1A`, border: `1px solid ${color}33` }}>
+          <Icon size={17} style={{ color: letra }} />
         </div>
       </div>
     </div>
@@ -1871,7 +1915,7 @@ function DowngradeRow({ d }: { d: ChurnDowngrade }) {
       <tr className="border-b border-gray-100 cursor-pointer hover:bg-amber-50/40 transition-colors"
         onClick={() => setOpen(v => !v)}>
         <td className="py-3 px-4 text-sm font-medium text-gray-900">{d.cliente}</td>
-        <td className="py-3 px-4 text-right font-semibold text-sm" style={{ color: AMBER }}>{fmt(d.perdida)}</td>
+        <td className="py-3 px-4 text-right font-semibold text-sm" style={{ color: AMBER_TX }}>{fmt(d.perdida)}</td>
         <td className="py-3 px-4"><SemaforoDot tipo="downgrade" /></td>
         <td className="py-3 px-4 text-gray-400">{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</td>
       </tr>
@@ -1966,9 +2010,9 @@ function ChurnForm({ onClose, onSave }: { onClose: () => void; onSave: (r: Churn
           <p className="text-xs font-semibold text-gray-500 mb-3">Resumen de captura (se actualiza en cada paso)</p>
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: 'Pendientes',  val: fmt(totPend), count: data.pendientes.filter(r => r.cliente).length, color: ORANGE },
-              { label: 'Cancelados',  val: fmt(totCanc), count: data.cancelados.filter(r => r.cliente).length, color: RED    },
-              { label: 'Downgrades',  val: fmt(totDown), count: data.downgrades.filter(r => r.cliente).length, color: AMBER  },
+              { label: 'Pendientes',  val: fmt(totPend), count: data.pendientes.filter(r => r.cliente).length, color: ORANGE_TX },
+              { label: 'Cancelados',  val: fmt(totCanc), count: data.cancelados.filter(r => r.cliente).length, color: RED_TX    },
+              { label: 'Downgrades',  val: fmt(totDown), count: data.downgrades.filter(r => r.cliente).length, color: AMBER_TX  },
             ].map(s => (
               <div key={s.label} className="rounded-lg p-3 bg-white border border-gray-200 text-center">
                 <p className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: s.color }}>{s.label}</p>
@@ -1985,7 +2029,7 @@ function ChurnForm({ onClose, onSave }: { onClose: () => void; onSave: (r: Churn
     if (step === 1) return (
       <div>
         <p className="text-xs text-gray-500 mb-3">
-          Clientes pendientes de facturar · Total: <strong style={{ color: ORANGE }}>{fmt(totPend)}</strong>
+          Clientes pendientes de facturar · Total: <strong style={{ color: ORANGE_TX }}>{fmt(totPend)}</strong>
         </p>
         <div className="space-y-2">
           {/* header */}
@@ -2018,7 +2062,7 @@ function ChurnForm({ onClose, onSave }: { onClose: () => void; onSave: (r: Churn
     if (step === 2) return (
       <div>
         <p className="text-xs text-gray-500 mb-3">
-          Clientes cancelados · MRR perdido: <strong style={{ color: RED }}>{fmt(totCanc)}</strong>
+          Clientes cancelados · MRR perdido: <strong style={{ color: RED_TX }}>{fmt(totCanc)}</strong>
         </p>
         <div className="space-y-2">
           <div className="grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 px-1">
@@ -2050,7 +2094,7 @@ function ChurnForm({ onClose, onSave }: { onClose: () => void; onSave: (r: Churn
     if (step === 3) return (
       <div>
         <p className="text-xs text-gray-500 mb-3">
-          Clientes con reducción de plan · Ingreso perdido: <strong style={{ color: AMBER }}>{fmt(totDown)}</strong>
+          Clientes con reducción de plan · Ingreso perdido: <strong style={{ color: AMBER_TX }}>{fmt(totDown)}</strong>
         </p>
         <div className="space-y-3">
           {data.downgrades.map((r, i) => (
@@ -2166,19 +2210,19 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
     tabs.push({ id: 'grc', label: '📊 Comportamiento GRC',                            color: TEAL   })
   }
   tabs.push(
-    { id: 'pendiente',    label: `🟠 Pendientes (${r.pendientesCuentasReal ?? r.pendientes.length})`, color: ORANGE },
+    { id: 'pendiente',    label: `🟠 Pendientes (${r.pendientesCuentasReal ?? r.pendientes.length})`, color: ORANGE_TX },
   )
   if (r.cancelados.length > 0) {
-    tabs.push({ id: 'cancelados', label: `🔴 Cancelados (${r.cancelados.length})`,    color: RED    })
+    tabs.push({ id: 'cancelados', label: `🔴 Cancelados (${r.cancelados.length})`,    color: RED_TX    })
   }
   tabs.push(
-    { id: 'downgrades',  label: `🟡 Downgrades (${r.downgrades.length})`,             color: AMBER  },
+    { id: 'downgrades',  label: `🟡 Downgrades (${r.downgrades.length})`,             color: AMBER_TX  },
   )
   if (r.suspendidos && r.suspendidos.length > 0) {
     tabs.push({ id: 'suspendidos', label: `🔵 Suspendidos (${r.suspendidosCuentasReal ?? r.suspendidos.length})`, color: BLUE })
   }
   if (r.desactivados && r.desactivados.length > 0) {
-    tabs.push({ id: 'desactivados', label: `🟣 Desactivados (${r.desactivadosCuentasReal ?? r.desactivados.length})`, color: '#7C3AED' })
+    tabs.push({ id: 'desactivados', label: `🔵 Desactivados (${r.desactivadosCuentasReal ?? r.desactivados.length})`, color: '#10355D' })
   }
   tabs.push({ id: 't1',   label: 'Resumen T1 2026',                                   color: INDIGO })
   // NOTA: 'aaa' y 'conciliacion' NO van aquí. Son secciones propias, con su
@@ -2387,8 +2431,8 @@ export default function ChurnPage() {
   }, [acumuladoDowngrades, acumDgSort])
 
   const ACUM_TABS = [
-    { id: 'cancelados' as Tab, label: `🔴 Cancelados (${acumuladoCancelados.length})`, color: RED   },
-    { id: 'downgrades' as Tab, label: `🟡 Downgrades (${acumuladoDowngrades.length})`, color: AMBER },
+    { id: 'cancelados' as Tab, label: `🔴 Cancelados (${acumuladoCancelados.length})`, color: RED_TX   },
+    { id: 'downgrades' as Tab, label: `🟡 Downgrades (${acumuladoDowngrades.length})`, color: AMBER_TX },
   ]
 
   const handleSave = (r: ChurnReporte) => {
@@ -2413,7 +2457,7 @@ export default function ChurnPage() {
   const selectReporte = (id: string) => { setSelectedId(id); setTab('resumen') }
 
   return (
-    <div className="cp-doc flex flex-col h-full overflow-hidden bg-gray-50">
+    <div className="cp-doc cp-churn flex flex-col h-full overflow-hidden bg-gray-50">
       <PageHeader
         title="Churn"
         subtitle="Análisis de pérdida de clientes · DATA → Dirección de Satisfacción al Cliente"
@@ -2525,15 +2569,15 @@ export default function ChurnPage() {
                     </div>
                     <div className="flex gap-1 mt-1.5">
                       <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
-                        style={{ background: `${ORANGE}18`, color: ORANGE }}>
+                        style={{ background: `${ORANGE}18`, color: ORANGE_TX }}>
                         {r.pendientes.length} pend.
                       </span>
                       <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
-                        style={{ background: `${RED}18`, color: RED }}>
+                        style={{ background: `${RED}18`, color: RED_TX }}>
                         {r.cancelados.length} canc.
                       </span>
                       <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
-                        style={{ background: `${AMBER}18`, color: AMBER }}>
+                        style={{ background: `${AMBER}18`, color: AMBER_TX }}>
                         {r.downgrades.length} dg.
                       </span>
                     </div>
@@ -2636,27 +2680,27 @@ export default function ChurnPage() {
                 <div className="rounded-xl border-2 p-4" style={{ borderColor: `${ORANGE}50`, background: `${ORANGE}06` }}>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-3 h-3 rounded-full" style={{ background: ORANGE }} />
-                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: ORANGE }}>Pendiente de Facturar</span>
+                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: tonoSobreClaro(ORANGE, 0.06) }}>Pendiente de Facturar</span>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">{fmt(totalPendiente)}</p>
+                  <p className="text-2xl font-extrabold" style={{ color: tonoSobreClaro(ORANGE, 0.06) }}>{fmt(totalPendiente)}</p>
                   <p className="text-xs text-gray-500 mt-1">{pendientes.length} clientes en riesgo</p>
                   <p className="text-xs mt-3 text-gray-600">Deben facturarse esta semana para evitar churn. Acción inmediata requerida.</p>
                 </div>
                 <div className="rounded-xl border-2 p-4" style={{ borderColor: `${RED}50`, background: `${RED}06` }}>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-3 h-3 rounded-full" style={{ background: RED }} />
-                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: RED }}>Cancelados</span>
+                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: tonoSobreClaro(RED, 0.06) }}>Cancelados</span>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">{fmt(totalCancelados)}</p>
+                  <p className="text-2xl font-extrabold" style={{ color: tonoSobreClaro(RED, 0.06) }}>{fmt(totalCancelados)}</p>
                   <p className="text-xs text-gray-500 mt-1">{cancelados.length} clientes</p>
                   <p className="text-xs mt-3 text-gray-600">Cuentas que cancelaron. MRR perdido. Acumulado histórico relevante.</p>
                 </div>
                 <div className="rounded-xl border-2 p-4" style={{ borderColor: `${AMBER}50`, background: `${AMBER}06` }}>
                   <div className="flex items-center gap-2 mb-3">
                     <span className="w-3 h-3 rounded-full" style={{ background: AMBER }} />
-                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: AMBER }}>Downgrades</span>
+                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: tonoSobreClaro(AMBER, 0.06) }}>Downgrades</span>
                   </div>
-                  <p className="text-2xl font-bold text-gray-900">{fmt(totalDowngrades)}</p>
+                  <p className="text-2xl font-extrabold" style={{ color: tonoSobreClaro(AMBER, 0.06) }}>{fmt(totalDowngrades)}</p>
                   <p className="text-xs text-gray-500 mt-1">{downgrades.length} clientes con reducción de plan</p>
                   <p className="text-xs mt-3 text-gray-600">Ingreso mensual perdido por reducción de planes o cancelación parcial de productos.</p>
                 </div>
@@ -2670,14 +2714,14 @@ export default function ChurnPage() {
                 {(() => {
                   const total = totalPendiente + totalCancelados + totalDowngrades || 1
                   return [
-                    { label: 'MRR en riesgo (pendiente de facturar)', monto: totalPendiente,  color: ORANGE },
-                    { label: 'MRR cancelado definitivo',               monto: totalCancelados, color: RED    },
-                    { label: 'Ingreso perdido por downgrades',          monto: totalDowngrades, color: AMBER  },
+                    { label: 'MRR en riesgo (pendiente de facturar)', monto: totalPendiente,  color: ORANGE_TX },
+                    { label: 'MRR cancelado definitivo',               monto: totalCancelados, color: RED_TX    },
+                    { label: 'Ingreso perdido por downgrades',          monto: totalDowngrades, color: AMBER_TX  },
                   ].map(r => (
                     <div key={r.label}>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-gray-600">{r.label}</span>
-                        <span className="font-semibold" style={{ color: r.color }}>{fmt(r.monto)}</span>
+                        <span className="font-bold" style={{ color: tonoSobreClaro(r.color, 0.10) }}>{fmt(r.monto)}</span>
                       </div>
                       <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                         <div className="h-full rounded-full" style={{ width: `${(r.monto / total) * 100}%`, background: r.color }} />
@@ -2703,7 +2747,7 @@ export default function ChurnPage() {
                 </div>
                 <div className="rounded-lg border p-3" style={{ background: `${RED}06`, borderColor: `${RED}25` }}>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide">15 Clientes Relevantes</p>
-                  <p className="text-xl font-bold mt-1" style={{ color: RED }}>{fmt(TOTAL_T1_REL)}</p>
+                  <p className="text-xl font-bold mt-1" style={{ color: RED_TX }}>{fmt(TOTAL_T1_REL)}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">34.2% del total T1</p>
                 </div>
               </div>
@@ -2737,7 +2781,7 @@ export default function ChurnPage() {
                   {pendientes.map((c, i) => (
                     <tr key={i} className="border-b border-gray-100 hover:bg-orange-50/30 transition-colors">
                       <td className="py-3 px-4 font-medium text-gray-900">{c.cliente}</td>
-                      <td className="py-3 px-4 text-right font-semibold" style={{ color: ORANGE }}>{fmt(Number(c.monto))}</td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: ORANGE_TX }}>{fmt(Number(c.monto))}</td>
                       <td className="py-3 px-4 text-right">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                           c.mesesActivo >= 40 ? 'bg-green-100 text-green-700' :
@@ -2750,7 +2794,7 @@ export default function ChurnPage() {
                   ))}
                   <tr className="bg-orange-50/50 font-bold">
                     <td className="py-3 px-4 text-gray-900">TOTAL</td>
-                    <td className="py-3 px-4 text-right" style={{ color: ORANGE }}>{fmt(totalPendiente)}</td>
+                    <td className="py-3 px-4 text-right" style={{ color: ORANGE_TX }}>{fmt(totalPendiente)}</td>
                     <td colSpan={3} />
                   </tr>
                 </tbody>
@@ -2785,7 +2829,7 @@ export default function ChurnPage() {
                   {[...cancelados].sort((a, b) => Number(b.mrr) - Number(a.mrr)).map((c, i) => (
                     <tr key={i} className="border-b border-gray-100 hover:bg-red-50/30 transition-colors">
                       <td className="py-3 px-4 font-medium text-gray-900">{c.cliente}</td>
-                      <td className="py-3 px-4 text-right font-semibold" style={{ color: RED }}>{fmt(Number(c.mrr))}</td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: RED_TX }}>{fmt(Number(c.mrr))}</td>
                       <td className="py-3 px-4 text-right">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                           c.mesesActivo >= 40 ? 'bg-green-100 text-green-700' :
@@ -2798,7 +2842,7 @@ export default function ChurnPage() {
                   ))}
                   <tr className="bg-red-50/50 font-bold">
                     <td className="py-3 px-4 text-gray-900">TOTAL</td>
-                    <td className="py-3 px-4 text-right" style={{ color: RED }}>{fmt(totalCancelados)}</td>
+                    <td className="py-3 px-4 text-right" style={{ color: RED_TX }}>{fmt(totalCancelados)}</td>
                     <td colSpan={3} />
                   </tr>
                 </tbody>
@@ -2832,7 +2876,7 @@ export default function ChurnPage() {
                   {downgrades.map((d, i) => <DowngradeRow key={i} d={d} />)}
                   <tr className="bg-amber-50/50 font-bold">
                     <td className="py-3 px-4 text-gray-900">TOTAL</td>
-                    <td className="py-3 px-4 text-right" style={{ color: AMBER }}>{fmt(totalDowngrades)}</td>
+                    <td className="py-3 px-4 text-right" style={{ color: AMBER_TX }}>{fmt(totalDowngrades)}</td>
                     <td colSpan={2} />
                   </tr>
                 </tbody>
@@ -2864,7 +2908,7 @@ export default function ChurnPage() {
                     {([ ['cliente','Cliente','left'], ['mrr','MRR Perdido','right'], ['mesesActivo','Meses Activo','right'], ['acumulado','Acumulado','right'], ['periodo','Período','left'] ] as [typeof acumCancelSort['col'], string, string][]).map(([col, label, align]) => (
                       <th key={col}
                         className={`py-3 px-4 text-xs font-semibold uppercase tracking-wide cursor-pointer select-none group whitespace-nowrap text-${align}`}
-                        style={{ color: acumCancelSort.col === col ? RED : undefined }}
+                        style={{ color: acumCancelSort.col === col ? RED_TX : undefined }}
                         onClick={() => setAcumCancelSort(s => ({ col, dir: s.col === col && s.dir === 'desc' ? 'asc' : 'desc' }))}>
                         <span className="inline-flex items-center gap-1">
                           {label}
@@ -2880,7 +2924,7 @@ export default function ChurnPage() {
                   {sortedAcumCancelados.map((c, i) => (
                     <tr key={i} className="border-b border-gray-100 hover:bg-red-50/30 transition-colors">
                       <td className="py-3 px-4 font-medium text-gray-900">{c.cliente}</td>
-                      <td className="py-3 px-4 text-right font-semibold" style={{ color: RED }}>{fmt(Number(c.mrr))}</td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: RED_TX }}>{fmt(Number(c.mrr))}</td>
                       <td className="py-3 px-4 text-right">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                           c.mesesActivo >= 40 ? 'bg-green-100 text-green-700' :
@@ -2895,7 +2939,7 @@ export default function ChurnPage() {
                   ))}
                   <tr className="bg-red-50/60 font-bold">
                     <td className="py-3 px-4 text-gray-900">TOTAL ACUMULADO</td>
-                    <td className="py-3 px-4 text-right" style={{ color: RED }}>{fmt(totalAcumCancelados)}</td>
+                    <td className="py-3 px-4 text-right" style={{ color: RED_TX }}>{fmt(totalAcumCancelados)}</td>
                     <td colSpan={3} />
                   </tr>
                 </tbody>
@@ -2924,7 +2968,7 @@ export default function ChurnPage() {
                     {([ ['cliente','Cliente','left'], ['perdida','Ingreso Perdido','right'], ['periodo','Período','left'], ['nota','Detalle','left'] ] as [typeof acumDgSort['col'], string, string][]).map(([col, label, align]) => (
                       <th key={col}
                         className={`py-3 px-4 text-xs font-semibold uppercase tracking-wide cursor-pointer select-none group whitespace-nowrap text-${align}`}
-                        style={{ color: acumDgSort.col === col ? AMBER : undefined }}
+                        style={{ color: acumDgSort.col === col ? AMBER_TX : undefined }}
                         onClick={() => setAcumDgSort(s => ({ col, dir: s.col === col && s.dir === 'desc' ? 'asc' : 'desc' }))}>
                         <span className="inline-flex items-center gap-1">
                           {label}
@@ -2940,14 +2984,14 @@ export default function ChurnPage() {
                   {sortedAcumDowngrades.map((d, i) => (
                     <tr key={i} className="border-b border-gray-100 hover:bg-amber-50/30 transition-colors">
                       <td className="py-3 px-4 font-medium text-gray-900">{d.cliente}</td>
-                      <td className="py-3 px-4 text-right font-semibold" style={{ color: AMBER }}>{fmt(Number(d.perdida))}</td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: AMBER_TX }}>{fmt(Number(d.perdida))}</td>
                       <td className="py-3 px-4 text-xs text-gray-400 whitespace-nowrap">{d.periodo}</td>
                       <td className="py-3 px-4 text-xs text-gray-500 max-w-xs truncate">{d.nota}</td>
                     </tr>
                   ))}
                   <tr className="bg-amber-50/60 font-bold">
                     <td className="py-3 px-4 text-gray-900">TOTAL ACUMULADO</td>
-                    <td className="py-3 px-4 text-right" style={{ color: AMBER }}>{fmt(totalAcumDowngrades)}</td>
+                    <td className="py-3 px-4 text-right" style={{ color: AMBER_TX }}>{fmt(totalAcumDowngrades)}</td>
                     <td colSpan={2} />
                   </tr>
                 </tbody>
@@ -3008,7 +3052,7 @@ export default function ChurnPage() {
                 <div className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl"
                   style={{ background: `${RED}10`, border: `1px solid ${RED}30` }}>
                   <span className="text-xs font-semibold text-gray-600">GRC Acumulado</span>
-                  <span className="text-2xl font-black" style={{ color: RED }}>{grc.acumulado}%</span>
+                  <span className="text-2xl font-black" style={{ color: RED_TX }}>{grc.acumulado}%</span>
                 </div>
               </div>
               <p className="text-sm text-gray-700 leading-relaxed bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
@@ -3023,18 +3067,23 @@ export default function ChurnPage() {
                 {grc.evolucion.map((e, i) => {
                   const isCritical = e.pct >= 10
                   const color = e.pct >= 10 ? RED : e.pct >= 5 ? AMBER : GREEN
+                  /* El mismo tono, pero para la CIFRA. El verde `#22c55e` da
+                     2.22:1 sobre su tinte y el porcentaje es el dato de la
+                     tarjeta: el relleno de la barra y el borde conservan el
+                     color vivo, que es donde el color informa. */
+                  const colorTx = tonoSobreClaro(color, 0.10)
                   const pctMax = Math.max(...grc.evolucion.map(x => x.pct))
                   const barW = Math.round((e.pct / pctMax) * 100)
                   return (
                     <div key={i} className="rounded-xl border p-4"
                       style={{ background: `${color}08`, borderColor: `${color}30` }}>
                       <p className="text-xs font-semibold text-gray-500 mb-1">{e.mes}</p>
-                      <p className="text-3xl font-black mb-3" style={{ color }}>{e.pct}%</p>
+                      <p className="text-3xl font-black mb-3" style={{ color: colorTx }}>{e.pct}%</p>
                       <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${barW}%`, background: color }} />
                       </div>
                       {isCritical && (
-                        <p className="text-[10px] font-bold mt-2 uppercase tracking-wide" style={{ color: RED }}>
+                        <p className="text-[10px] font-bold mt-2 uppercase tracking-wide" style={{ color: RED_TX }}>
                           ⚠ Nivel crítico
                         </p>
                       )}
@@ -3069,7 +3118,7 @@ export default function ChurnPage() {
                     <h3 className="font-semibold text-gray-900 text-sm">Antigüedad de saldos — {reporte.periodo}</h3>
                     <p className="text-xs text-gray-500">
                       Total <strong className="text-gray-900">{fmt(totalSaldos)}</strong> ·{' '}
-                      vencido <strong style={{ color: RED }}>{fmt(vencido)}</strong>{' '}
+                      vencido <strong style={{ color: RED_TX }}>{fmt(vencido)}</strong>{' '}
                       ({Math.round((vencido / (totalSaldos || 1)) * 100)}%)
                     </p>
                   </div>
@@ -3112,11 +3161,11 @@ export default function ChurnPage() {
                   { label: pendienteNoReportado
                       ? 'Pendiente de facturar (no reportado en este corte)'
                       : `Pendiente de facturar (${reporte.pendientesCuentasReal ?? reporte.pendientes.length} cuentas)`,
-                    monto: totalPendiente, color: ORANGE,
+                    monto: totalPendiente, color: ORANGE_TX,
                     sub: pendienteNoReportado
                       ? 'El cierre de trimestre no trae cartera por cobrar — no es que valga cero'
                       : 'Riesgo inmediato de churn' },
-                  { label: 'Downgrades detectados',                   monto: totalDowngrades, color: AMBER,  sub: `${downgrades.length} clientes con reducción de plan` },
+                  { label: 'Downgrades detectados',                   monto: totalDowngrades, color: AMBER_TX,  sub: `${downgrades.length} clientes con reducción de plan` },
                   { label: 'Suspendidos / Inactivos en retención',    monto: totalSuspendidos, color: BLUE,  sub: `${reporte.suspendidosCuentasReal ?? suspendidos?.length ?? 0} cuentas pausadas` },
                 ].map(row => {
                   const total = totalPendiente + totalDowngrades + totalSuspendidos || 1
@@ -3212,17 +3261,17 @@ export default function ChurnPage() {
         {tab === 'desactivados' && reporte.desactivados && (
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2"
-              style={{ background: '#7C3AED08' }}>
+              style={{ background: '#10355D08' }}>
               <div>
                 <h3 className="font-semibold text-sm text-gray-900">Desactivados — {reporte.periodo}</h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Impacto: <strong style={{ color: '#7C3AED' }}>{fmt(reporte.desactivadosTotalReal ?? reporte.desactivados.reduce((s, c) => s + (Number(c.importe) || 0), 0))}</strong> ·{' '}
+                  Impacto: <strong style={{ color: '#10355D' }}>{fmt(reporte.desactivadosTotalReal ?? reporte.desactivados.reduce((s, c) => s + (Number(c.importe) || 0), 0))}</strong> ·{' '}
                   {reporte.desactivadosCuentasReal ?? reporte.desactivados.length} cuentas con módulo o servicio desactivado
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold border"
-                style={{ background: '#7C3AED15', color: '#7C3AED', borderColor: '#7C3AED35' }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#7C3AED' }} />
+                style={{ background: '#10355D15', color: '#10355D', borderColor: '#10355D35' }}>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#10355D' }} />
                 Desactivado
               </span>
             </div>
@@ -3244,7 +3293,7 @@ export default function ChurnPage() {
                   {reporte.desactivados.map((c, i) => (
                     <tr key={i} className="border-b border-gray-100 hover:bg-purple-50/30 transition-colors">
                       <td className="py-3 px-4 font-medium text-gray-900">{c.cliente}</td>
-                      <td className="py-3 px-4 text-right font-semibold" style={{ color: '#7C3AED' }}>{fmt(Number(c.importe))}</td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: '#10355D' }}>{fmt(Number(c.importe))}</td>
                       <td className="py-3 px-4 text-right">
                         {c.mesesActivo > 0 ? (
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -3255,9 +3304,9 @@ export default function ChurnPage() {
                       </td>
                     </tr>
                   ))}
-                  <tr className="font-bold" style={{ background: '#7C3AED0A' }}>
+                  <tr className="font-bold" style={{ background: '#10355D0A' }}>
                     <td className="py-3 px-4 text-gray-900">TOTAL</td>
-                    <td className="py-3 px-4 text-right" style={{ color: '#7C3AED' }}>
+                    <td className="py-3 px-4 text-right" style={{ color: '#10355D' }}>
                       {fmt(reporte.desactivadosTotalReal ?? reporte.desactivados.reduce((s, c) => s + (Number(c.importe) || 0), 0))}
                     </td>
                     <td />
@@ -3282,7 +3331,7 @@ export default function ChurnPage() {
                 </div>
                 <div className="flex-1 min-w-[140px] rounded-lg border p-3" style={{ background: `${RED}06`, borderColor: `${RED}25` }}>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide">Clientes Relevantes (15)</p>
-                  <p className="text-2xl font-bold mt-1" style={{ color: RED }}>{fmt(TOTAL_T1_REL)}</p>
+                  <p className="text-2xl font-bold mt-1" style={{ color: RED_TX }}>{fmt(TOTAL_T1_REL)}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">34.2% del total trimestral</p>
                 </div>
               </div>
@@ -3313,7 +3362,7 @@ export default function ChurnPage() {
                         <td className="py-3 px-4 text-xs text-gray-400 font-medium">{i + 1}</td>
                         <td className="py-3 px-4 font-medium text-gray-900">{c.cliente}</td>
                         <td className="py-3 px-4 text-right font-semibold"
-                          style={{ color: c.tipo === 'Downgrade' ? AMBER : RED }}>{fmt(c.perdida)}</td>
+                          style={{ color: c.tipo === 'Downgrade' ? AMBER_TX : RED_TX }}>{fmt(c.perdida)}</td>
                         <td className="py-3 px-4">
                           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                             c.mes === 'Enero' ? 'bg-blue-100 text-blue-700' :
