@@ -86,10 +86,18 @@ export type TipoAlerta =
    * puntaje, porque no existe ninguna ruta de código de la mesa al número.
    * GRUPO TORRES CORZO lleva un folio escalado **155 días** —156 sin que nadie
    * lo mueva— sobre $316,541 al mes, el 14.3% de la cartera, y el tablero lo
-   * ponía en el lugar 16. Y la causa raíz del único churn confirmado de la
-   * cartera, Polak Grupo, fue INTERNA: descontinuación de Legacy, meses de
+   * ponía en el lugar 16. Y la causa raíz del riesgo de baja mejor documentado
+   * de la cartera, Polak Grupo, es INTERNA: descontinuación de Legacy, meses de
    * llamadas caídas. El servicio que falla es el motivo de baja mejor
-   * documentado que tiene este proyecto, y era el único que no disparaba nada. */
+   * documentado que tiene este proyecto, y era el único que no disparaba nada.
+   *
+   * OJO CON POLAK: esta prosa decía «el único churn confirmado de la cartera»
+   * y es FALSO. Dirección lo corrigió el 14 oct 2026: «aún está vivo, aún no
+   * se tramita su churn definitivo». La cuenta está `activo` en la ficha, con
+   * asesor, y el 14 oct encendió `llamadas_perdidas_masivas`. Darla por
+   * perdida en los comentarios es cómo se suelta una cuenta recuperable — y
+   * [[feedback-conciliacion-churn]] es tajante: ninguna baja sin autorización,
+   * y una baja es pasar a Dormida, nunca darla por hecha. */
   | 'sac_fuera_sla'
   | 'sac_atraso_cronico'
   | 'sac_fallas_recurrentes'
@@ -700,11 +708,31 @@ export const TIPOS_RIESGO: ReadonlySet<TipoAlerta> = new Set<TipoAlerta>([
   'baja_declarada', 'riesgo_escrito',
   /* LA MESA ENTRA AQUÍ, y no es una ampliación cosmética (9 oct 2026).
    *
-   * El único churn confirmado de esta cartera —Polak Grupo, contrato ya
-   * firmado con otro proveedor— tiene causa raíz INTERNA escrita en su propio
-   * expediente: descontinuación de Legacy y meses de llamadas caídas. El
-   * servicio que falla es el motivo de baja mejor documentado que tenemos, y
-   * no contaba como riesgo en ninguna parte.
+   * El riesgo de baja mejor documentado de esta cartera —Polak Grupo— tiene
+   * causa raíz INTERNA escrita en su propio expediente: descontinuación de
+   * Legacy y meses de llamadas caídas. El servicio que falla es el motivo de
+   * baja mejor documentado que tenemos, y no contaba como riesgo en ninguna
+   * parte.
+   *
+   * ESTA PROSA DECÍA «el único churn confirmado de esta cartera —Polak Grupo,
+   * contrato ya firmado con otro proveedor—» Y ERA FALSO. Corregido el 14 oct
+   * 2026 por dirección —«aún está vivo, aún no se tramita su churn
+   * definitivo»— y comprobado contra las tres fuentes el mismo día:
+   *
+   *   ficha de Supabase ........ estado `activo`, asesor Fátima
+   *   cancelados publicados .... NO aparece
+   *   Gross Revenue ............ `churn` nulo, y mrrIni $26,980 → mrrFin
+   *                              $30,630: la facturación SUBIÓ un 13.5%
+   *
+   * Lo que sí dice su ficha es «No me atiende llamada, correo ni whatsapp
+   * desde junio 2026», con último contacto el 12 de agosto. O sea: cuenta
+   * viva, pagando más que antes, sin interlocutor desde hace meses y con
+   * miles de llamadas entrantes perdiéndose. Ese es el retrato, y es peor
+   * de trabajar que una baja: una baja ya no se puede evitar.
+   *
+   * Darla por perdida en un comentario es cómo se suelta una cuenta
+   * recuperable. [[feedback-conciliacion-churn]]: ninguna baja sin
+   * autorización, y una baja es pasar a Dormida, nunca darla por hecha.
    *
    * Entran los DOS de atraso: un folio fuera de SLA es que hoy le estamos
    * fallando, y arrastrarlo corte tras corte es que ya no lo notamos. No entra

@@ -155,10 +155,19 @@ ni una vez, aunque el módulo lleva 20 cortes con los días fuera de SLA de cada
 folio. GRUPO TORRES CORZO arrastraba el folio 106428 escalado **155 días**
 sobre $316,541 al mes y el tablero lo ponía en el lugar 16.
 
-Y hay un precedente que lo zanja: el único churn confirmado de la cartera
+Y hay un caso que lo zanja: el riesgo de baja mejor documentado de la cartera
 —Polak Grupo— tiene causa raíz **interna** escrita en su expediente
 (descontinuación de Legacy, meses de llamadas caídas). El servicio que falla
 es el motivo de baja mejor documentado del proyecto, y no disparaba nada.
+
+> **Corrección, 14 oct 2026.** Este párrafo decía «el único churn confirmado
+> de la cartera». **Polak Grupo no está en churn**: dirección confirma que
+> sigue viva y que su baja definitiva no se ha tramitado. Las tres fuentes
+> coinciden — ficha `activo`, ausente de los cancelados publicados, y en Gross
+> Revenue sin marca de churn y con el MRR **subiendo** de $26,980 a $30,630.
+> Lo que su ficha sí dice es «No me atiende llamada, correo ni whatsapp desde
+> junio 2026». El argumento se sostiene igual, y el ejemplo es más fuerte: no
+> es una cuenta que ya perdimos, es una que todavía se puede recuperar.
 
 | Tipo | Familia | Sev. | Regla | Pega a |
 |---|---|---|---|---|

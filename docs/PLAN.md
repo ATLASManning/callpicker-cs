@@ -116,14 +116,29 @@ escrita en el código.
 
 Aquí está el hallazgo más grave de la auditoría y merece fase propia.
 
-**Polak Grupo es una baja confirmada desde el 10-sep-2026** —contrato firmado
-con Zoom Phone, causa raíz interna de Callpicker— y treinta días después el
-tablero la cuenta como cartera viva, la pinta amarilla y le dice al asesor
-«pedir el Excel de llamadas». El motor **no lee el `estado` del expediente de
-auditoría ni una palabra de su texto**: sólo el booleano `tieneAuditoria`.
+> **CORRECCIÓN, 14 oct 2026.** Este apartado decía que *«Polak Grupo es una
+> baja confirmada desde el 10-sep-2026»*. **No lo es.** Dirección: «aún está
+> vivo, aún no se tramita su churn definitivo». Comprobado contra las tres
+> fuentes el mismo día: la ficha la tiene `activo` con asesora, **no aparece**
+> en los cancelados publicados, y en Gross Revenue su `churn` es nulo con
+> **mrrIni $26,980 → mrrFin $30,630** — la facturación subió un 13.5%.
+>
+> El hallazgo de fondo NO cambia, y conviene leerlo bien: el motor sigue sin
+> leer el `estado` del expediente ni una palabra de su texto. Lo que cambia es
+> el ejemplo — y a peor. No es una cuenta perdida que el tablero tarda en
+> enterarse: es una cuenta **viva, pagando más que antes y sin interlocutor
+> desde junio**, a la que el tablero le dice al asesor «pedir el Excel de
+> llamadas». Una baja ya no se puede evitar; ésta sí.
 
-- El `estado` del expediente entra al motor. Una cuenta con baja confirmada no
-  puede salir amarilla ni pedir levantamiento de datos.
+**El expediente de auditoría de Polak Grupo documenta desde el 10-sep-2026 un
+riesgo de baja con causa raíz interna de Callpicker** (descontinuación de
+Legacy, meses de llamadas caídas) y el tablero la pinta amarilla y le dice al
+asesor «pedir el Excel de llamadas». El motor **no lee el `estado` del
+expediente de auditoría ni una palabra de su texto**: sólo el booleano
+`tieneAuditoria`.
+
+- El `estado` del expediente entra al motor. Una cuenta con un riesgo de baja
+  escrito no puede salir amarilla ni pedir levantamiento de datos.
 - La nota del KAM deja de sumar puntos de relación **por existir**.
   `lib/relacionamiento.ts:193` nunca lee el contenido, y el de Polak dice *«No
   me atiende llamada, correo ni whatsapp desde junio 2026»*: la prueba del
@@ -184,7 +199,17 @@ pide, más las que salieron de medir:
 - [ ] Las candidaturas primarias no suman más que la cartera.
 - [ ] INBROTEK no aparece como la más saludable.
 - [ ] TORRES CORZO está en el top 3 de prioridad.
-- [ ] Ninguna cuenta con baja confirmada en el expediente sale como cartera viva.
+- [ ] ~~Ninguna cuenta con baja confirmada en el expediente sale como cartera
+      viva.~~ **RETIRADO el 14 oct 2026: este criterio era peligroso.**
+      Implementarlo habría sacado a Polak Grupo de la cartera viva, y Polak
+      está viva, con asesora y facturando **más** que antes ($26,980 →
+      $30,630). Un expediente no consuma una baja: la baja se tramita, y
+      sacarla del tablero es exactamente cómo se suelta un cliente que todavía
+      paga. Lo que sí hay que exigir es lo de abajo.
+- [ ] El expediente de auditoría **se lee** en el motor —hoy sólo entra el
+      booleano `tieneAuditoria`— y una cuenta con riesgo de baja escrito no
+      sale amarilla ni pide levantamiento de datos. Pero sigue en la cartera:
+      sólo la autorización de baja la mueve a Dormida.
 - [ ] Ninguna cuenta con fecha de contacto real sale como «nunca contactada».
 - [ ] Ningún score con cobertura < 60% muestra número.
 
@@ -199,10 +224,19 @@ evidencia distintos de lo que afirma el prompt — hay que corregir la tabla del
 
 1. **`MIN_FUENTES`**: ¿2 o menos (el código) o 3 o menos (el prompt)?
 2. **El SAC**: ¿se revive `actividades_sac` o se arma sólo sobre Zoho Desk?
-3. **Polak Grupo y las bajas confirmadas**: ¿el `estado` del expediente de
-   auditoría manda sobre `cuentas.estado`? Hay una baja firmada hace un mes
-   contada como cartera viva, y no la toco sin que lo digas —
-   [[feedback-conciliacion-churn]]: ninguna baja sin autorización.
+3. ~~**Polak Grupo y las bajas confirmadas**: ¿el `estado` del expediente de
+   auditoría manda sobre `cuentas.estado`?~~ **CONTESTADA el 14 oct 2026: NO.**
+   Dirección, sobre Polak: «aún está vivo, aún no se tramita su churn
+   definitivo». Un expediente que escribe «baja confirmada» documenta un
+   RIESGO, no consuma una baja: la baja se tramita, y hasta entonces la cuenta
+   es cartera viva y se trabaja. Comprobado el mismo día: ficha `activo`,
+   ausente de los cancelados publicados, y en Gross Revenue sin marca de churn
+   y con el MRR subiendo de $26,980 a $30,630.
+
+   Así que el expediente **informa** al motor —que hoy no lee ni una palabra
+   de él, y ése sigue siendo el hallazgo— pero **no decide el estado de la
+   cuenta**. [[feedback-conciliacion-churn]]: ninguna baja sin autorización, y
+   una baja es pasar a Dormida, nunca darla por hecha.
 4. **El orden**: propongo Fases 1→3 antes que nada del producto nuevo. Si
    prefieres ver antes la Account 360 o el SAC, se cambia — pero entonces se
    construye sobre cifras que hoy se contradicen.

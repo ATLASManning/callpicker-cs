@@ -215,15 +215,35 @@ columna afirman que se habló con 50 clientes con los que nadie ha hablado.
 
 Seis de las nueve contradicciones se confirman. Dos correcciones de fondo:
 
-**«CUENTA PERDIDA» no es el error de esa ficha: es lo único cierto que hay en
-ella.** El expediente `app/auditoria/polak-grupo-data.ts` (v2.1, 10-sep-2026)
-dice **BAJA CONFIRMADA**, contrato ya firmado con Zoom Phone, migración en 1–2
-meses, ventana de retención cero, y causa raíz **interna de Callpicker**
+**El expediente dice «CUENTA PERDIDA» y el tablero no lo lee.** El expediente
+`app/auditoria/polak-grupo-data.ts` (v2.1, 10-sep-2026) dice **BAJA
+CONFIRMADA**, contrato ya firmado con Zoom Phone, migración en 1–2 meses,
+ventana de retención cero, y causa raíz **interna de Callpicker**
 (descontinuación de Legacy, ~4 meses de llamadas caídas). Treinta días
 después, `cuentas.estado` sigue en `'activo'`, el tablero la cuenta como
 cartera viva, la pinta amarilla y le dice al asesor «pedir el Excel de
 llamadas». **El motor no lee ni el `estado` ni una palabra del expediente**:
 lo único que toma es el booleano `tieneAuditoria`.
+
+> **Corrección, 14 oct 2026 — y cambia la conclusión de este apartado.** La
+> v2.1 de esa auditoría escribió que *«"CUENTA PERDIDA" es lo único cierto que
+> hay en esa ficha»*. **No lo era.** Un mes después, dirección confirma: «aún
+> está vivo, aún no se tramita su churn definitivo». Comprobado contra las
+> tres fuentes el 14 oct: la ficha la tiene `activo` con asesora asignada,
+> **no aparece** en los cancelados publicados, y en Gross Revenue su `churn`
+> es nulo con el MRR **subiendo** de $26,980 a $30,630.
+>
+> O sea que el desacuerdo entre el expediente y `cuentas.estado` no se
+> resolvía a favor del expediente, como esta auditoría dio por hecho. Que una
+> auditoría escriba «baja confirmada» no la convierte en baja: eso se tramita,
+> y [[feedback-conciliacion-churn]] es la regla — ninguna baja sin
+> autorización, y una baja es pasar a Dormida, nunca darla por hecha.
+>
+> El hallazgo técnico de fondo sigue valiendo entero —el motor no lee el
+> expediente— pero la lección es la contraria de la que se sacó: **la cuenta
+> viva tenía razón**, y el riesgo real es que un expediente convenza al
+> tablero de soltar a un cliente que todavía paga. El 14 oct Polak encendió
+> `llamadas_perdidas_masivas`, que es exactamente el trabajo que le queda.
 
 **«MRR $1,345,140» es lo más grave de las nueve, y ya tiene origen.** Es el
 **importe acumulado recurrente de la vida del contrato** (56 meses), rotulado
