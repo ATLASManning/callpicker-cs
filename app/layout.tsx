@@ -3,6 +3,7 @@ import './globals.css'
 import Sidebar from '@/components/Sidebar'
 import PageTracker from '@/components/PageTracker'
 import AvisoPassword from '@/components/AvisoPassword'
+import ActualizaApp from '@/components/ActualizaApp'
 
 // Sin esto, páginas sin fetch de datos en el servidor (como /tickets o
 // /acceso) se pre-generan como HTML estático en el build, y Vercel las
@@ -61,6 +62,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <style dangerouslySetInnerHTML={{ __html: FORCE_THEME }} />
       </head>
       <body className="flex h-screen overflow-hidden" style={{ background: '#F5F8FB', color: '#202E3B' }}>
+        {/* Va en el layout raíz porque el problema no es de ninguna pantalla:
+            es que el Service Worker del PWA sirve el build anterior hasta que
+            algo le dice que mire. Sin esto, un deploy no llega a quien tiene
+            el tablero abierto —que es todo el equipo— y lo único que lo
+            arreglaba era borrar caché a mano. */}
+        <ActualizaApp />
         <PageTracker />
         <Sidebar />
         <main className="flex-1 overflow-y-auto" style={{ background: '#F5F8FB' }}>

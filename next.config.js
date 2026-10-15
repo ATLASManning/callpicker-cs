@@ -4,6 +4,31 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === 'development',
+
+  /* ── LOS DOCUMENTOS DE CLIENTE TAMPOCO ENTRAN AL PRECACHE ────────────────
+   *
+   * El bloque de `runtimeCaching` de abajo saca `/api/anexos` de la caché por
+   * esta misma razón, y se quedó corto: el PRECACHE barre `public/` entero al
+   * construir, así que todo lo que vive en `public/docs` y `public/auditorias`
+   * se descargaba al disco de cada máquina en la primera visita.
+   *
+   * Medido en producción el 14 oct 2026, leyendo el Cache Storage del
+   * navegador: 21 documentos precacheados —`Analisis_Cuenta_TecMonterrey_
+   * U4P.docx`, `Auditoria_Arkansas_v2.0.docx`, los reportes de llamadas de
+   * Ancona y de GWEP, las auditorías de Grupo 2711—. Servidos desde ahí NO
+   * pasan por el middleware: siguen disponibles después de cerrar sesión, y en
+   * un equipo compartido los abre quien se siente después.
+   *
+   * `publicExcludes` admite globs negados. El `.html` del documento marco
+   * también sale: pesa ~25 KB y no hace falta sin conexión.
+   *
+   * Lo que SÍ se precachea sigue siendo lo que hace falta para que la app
+   * arranque: los chunks, el CSS, los iconos y el manifiesto. */
+  publicExcludes: [
+    '!docs/**/*',
+    '!auditorias/**/*',
+    '!**/*.{docx,xlsx,pdf,csv}',
+  ],
   // Sin esto, el Service Worker nuevo se queda "esperando" a que se cierren
   // TODAS las pestañas abiertas antes de activarse — con el dashboard abierto
   // todo el día, un deploy nuevo nunca llegaba a los usuarios aunque
