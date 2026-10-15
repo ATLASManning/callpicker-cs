@@ -4,7 +4,7 @@ import { KB } from '@/app/base-cs/kb-data'
 import { supabaseAdmin } from '@/lib/supabase'
 import { buildAtlasContext, buildCuentaDossier } from '@/lib/atlas-context'
 import { hoyEnPalabras } from '@/lib/fecha-local'
-import { sesionDe, esRolAcotado, MENSAJE_SIN_CARTERA } from '@/lib/dueno'
+import { sesionDe, acotaLectura, MENSAJE_SIN_CARTERA } from '@/lib/dueno'
 import { Resend } from 'resend'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'placeholder' })
@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
        nombrara en la pregunta. Era la fuga que no parecía una fuga, porque la
        salida es prosa y no una tabla. Ver lib/atlas-context.ts. */
     const sesion = sesionDe(req.headers)
-    if (esRolAcotado(sesion) && !sesion.asesor) {
+    if (acotaLectura(sesion) && !sesion.asesor) {
       return NextResponse.json({ error: MENSAJE_SIN_CARTERA }, { status: 403 })
     }
 

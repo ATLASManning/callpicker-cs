@@ -19,6 +19,7 @@ import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
 import { MARCO_SUMMARY } from './marco-atlas'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
+import { LECTURA_LIBRE } from './dueno'
 
 // ── Pre-cómputo en carga de módulo (estático) ─────────────────────────────────
 const TICKETS = TICKETS_NORM
@@ -162,7 +163,7 @@ export async function buildCuentaDossier(
    * PALABRAS. Y el texto no confirma que la cuenta exista ni de quién es: dice
    * que no está en la cartera de quien pregunta, que es lo único que hace
    * falta para que conteste eso mismo en vez de inventar. */
-  if (sesion?.rol === 'asesor') {
+  if (sesion?.rol === 'asesor' && !LECTURA_LIBRE) {
     const mio = normalizarNombre(sesion.asesor)
     if (!mio || normalizarNombre(mejor.asesor) !== mio) {
       return {
@@ -374,7 +375,17 @@ export async function buildAtlasContext(
   pregunta = '',
   sesion?: SesionAtlas,
 ): Promise<{ text: string; modulos: string[] }> {
-  const acotado  = sesion?.rol === 'asesor'
+  /* CONSULTAR ES LIBRE (instrucción de dirección, 15 oct 2026), así que con
+     `LECTURA_LIBRE` Atlas vuelve a armar el contexto completo para todos y
+     `acotado` queda en false. Toda la maquinaria de acotado sigue aquí y
+     probada: es la escotilla. Ver `LECTURA_LIBRE` en lib/dueno.ts.
+   *
+     Y OJO CON EL ORDEN DE ESTA DECISIÓN, que es lo que se aprendió midiendo:
+     mientras estuvo acotado, quitarle el dato NO bastaba —el modelo rellenaba
+     el hueco con cifras inventadas—. Si algún día se vuelve a cerrar, lo que
+     hace falta no es sólo el filtro: es el bloque de ALCANCE de abajo, que le
+     dice QUÉ no tiene. Ver [[feedback-contexto-ia-sin-huecos]]. */
+  const acotado  = sesion?.rol === 'asesor' && !LECTURA_LIBRE
   const miNombre = (sesion?.asesor ?? '').trim()
   const mioNorm  = normalizarNombre(miNombre)
 

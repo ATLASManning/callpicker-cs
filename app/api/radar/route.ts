@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
 
   /* El GET arma el expediente de consumo de la cuenta —minutos, cortes,
      soporte, seguimientos— y no comprobaba de quién era. */
-  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId)
+  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId, 'lectura')
   if (corta) return corta
 
   const { data: cuenta, error } = await supabaseAdmin
@@ -245,7 +245,7 @@ export async function POST(req: NextRequest) {
     }
     if (!cuenta_id) return NextResponse.json({ error: 'cuenta_id requerido' }, { status: 400 })
 
-    const corta = await exigeDuenoDeCuenta(req.headers, String(cuenta_id))
+    const corta = await exigeDuenoDeCuenta(req.headers, String(cuenta_id), 'escritura')
     if (corta) return corta
 
     /* El Radar lo FIRMA quien lo contesta, y eso lo dice la sesión. Aceptar

@@ -242,76 +242,51 @@ def filas(tx):
 N_MIAS  = len(por_asesor['claudia'])
 N_TODAS = len(CUENTAS)
 
-print('=' * 100)
-print('1. EL ASESOR SIN CARTERA (fail-open) — con el rol puesto y el nombre vacio')
-print('=' * 100)
-print('   Lo que NO debe pasar: que se le sirva la empresa entera.')
+def abre(st, tx):
+    if st == 200:
+        return True, '200 — consulta libre, correcto'
+    return False, 'status %d  <-- LE CERRO UNA CONSULTA' % st
 
-def niega(st, tx):
+
+print('=' * 100)
+print('1. LA CONSULTA ES LIBRE — un asesor puede CONSULTAR cualquier cuenta')
+print('=' * 100)
+print('   Instruccion de direccion (15 oct 2026): «pueden consultar».')
+print('   Lo que NO debe pasar aqui es que el candado le cierre una consulta.')
+
+sonda('GET /api/cuentas/[id de Dan]',          T_CON, '/api/cuentas/%s' % AJENA['id'], abre)
+sonda('GET /cuentas/[id de Dan]  (pagina)',    T_CON, '/cuentas/%s' % AJENA['id'], abre)
+sonda('GET /api/adopcion?cuentaId=de Dan',     T_CON, '/api/adopcion?cuentaId=%s' % AJENA['id'], abre)
+sonda('GET /api/radar?cuentaId=de Dan',        T_CON, '/api/radar?cuentaId=%s' % AJENA['id'], abre)
+sonda('GET /api/seguimientos?cuenta_id=de Dan', T_CON, '/api/seguimientos?cuenta_id=%s' % AJENA['id'], abre)
+sonda('GET /api/anexos?cuenta_id=de Dan',      T_CON, '/api/anexos?cuenta_id=%s' % AJENA['id'], abre)
+sonda('GET /api/zoho-lookup  (cuenta de Dan)', T_CON,
+      '/api/zoho-lookup?empresa=' + urllib.parse.quote(AJENA['empresa']), abre)
+if anexo_ajeno:
+    sonda('GET /api/anexos/[id de Dan]/descargar', T_CON,
+          '/api/anexos/%s/descargar' % anexo_ajeno, abre)
+else:
+    omitidas.append('descarga de anexo de otra cartera (no hay anexos en la de Dan)')
+
+def busca_otra_cartera(st, tx):
+    """Un asesor pidiendo ?asesor=Dan AHORA debe recibir la de Dan: consultar es
+       libre, y sin esto no podia ni buscar un cliente que le llamara."""
     n = filas(tx)
-    if st == 403:
-        return True, '403 — niega, correcto'
-    if st in (307, 302):
-        return True, '%d — rebota a /acceso, correcto' % st
-    if n is not None and n == 0:
-        return True, '200 con 0 filas — vacio, aceptable'
-    return False, 'status %d%s  <-- SE LE SIRVIO' % (
-        st, ' con %d filas' % n if n is not None else '')
+    if st != 200:
+        return False, 'status %d  <-- NO PUDO CONSULTAR' % st
+    if n == len(por_asesor['dan']):
+        return True, '%d filas = la cartera de Dan, como se pidio' % n
+    return False, '200 pero %s filas (la de Dan son %d)' % (n, len(por_asesor['dan']))
 
-sonda('GET /api/cuentas  (sin cartera)',             T_SIN, '/api/cuentas', niega)
-sonda('GET /api/anexos  (sin cartera)',              T_SIN, '/api/anexos', niega)
-sonda('GET /api/leads  (sin cartera)',               T_SIN, '/api/leads', niega)
-sonda('GET /api/relacionamiento  (sin cartera)',     T_SIN, '/api/relacionamiento', niega)
+sonda('GET /api/cuentas?asesor=Dan  (consulta explicita)', T_CON,
+      '/api/cuentas?asesor=Dan', busca_otra_cartera)
 
 print()
 print('=' * 100)
-print('2. EL ASESOR CON CARTERA PIDIENDO LO AJENO')
+print('2. LA COLA DE TRABAJO SIGUE SIENDO LA SUYA')
 print('=' * 100)
-print('   Lo que NO debe pasar: que reciba datos de la cartera de Dan.')
-
-def no_encontrado(st, tx):
-    if st in (403, 404):
-        return True, '%d — niega, correcto' % st
-    return False, 'status %d  <-- ENTREGO DATO AJENO' % st
-
-sonda('GET /api/cuentas/[id ajeno]',        T_CON, '/api/cuentas/%s' % AJENA['id'], no_encontrado)
-sonda('GET /api/adopcion?cuentaId=ajeno',   T_CON, '/api/adopcion?cuentaId=%s' % AJENA['id'], no_encontrado)
-sonda('GET /api/radar?cuentaId=ajeno',      T_CON, '/api/radar?cuentaId=%s' % AJENA['id'], no_encontrado)
-sonda('GET /api/seguimientos?cuenta_id=ajeno', T_CON, '/api/seguimientos?cuenta_id=%s' % AJENA['id'], no_encontrado)
-sonda('GET /api/anexos?cuenta_id=ajeno',    T_CON, '/api/anexos?cuenta_id=%s' % AJENA['id'], no_encontrado)
-
-def pagina_404(st, tx):
-    if st == 404:
-        return True, '404 — notFound, correcto'
-    if st == 200 and AJENA['empresa'][:18].lower() not in tx.lower():
-        return True, '200 pero sin el nombre del cliente — no lo pinto'
-    return False, 'status %d  <-- PINTO LA FICHA AJENA' % st
-
-sonda('GET /cuentas/[id ajeno]  (pagina)',  T_CON, '/cuentas/%s' % AJENA['id'], pagina_404)
-
-def zoho_niega(st, tx):
-    if st in (403, 404):
-        return True, '%d — niega, correcto' % st
-    try:
-        d = json.loads(tx)
-        if not d.get('acumulado') and not d.get('factura_mensual'):
-            return True, '200 pero sin cifras — vacio'
-    except Exception:
-        pass
-    return False, 'status %d  <-- ENTREGO FACTURACION AJENA' % st
-
-sonda('GET /api/zoho-lookup?empresa=ajena', T_CON,
-      '/api/zoho-lookup?empresa=' + urllib.parse.quote(AJENA['empresa']), zoho_niega)
-
-if anexo_ajeno:
-    def descarga_niega(st, tx):
-        if st in (403, 404):
-            return True, '%d — niega, correcto' % st
-        return False, 'status %d  <-- DESCARGO DOCUMENTO DE CLIENTE AJENO' % st
-    sonda('GET /api/anexos/[id ajeno]/descargar', T_CON,
-          '/api/anexos/%s/descargar' % anexo_ajeno, descarga_niega)
-else:
-    omitidas.append('descarga de anexo ajeno (no hay anexos en la cartera de Dan)')
+print('   Esto NO es un candado: es que su pantalla abra con SU trabajo y no')
+print('   con las %d cuentas de la empresa. Sin parametro, su cartera.' % N_TODAS)
 
 def cuentas_acotadas(st, tx):
     n = filas(tx)
@@ -320,23 +295,25 @@ def cuentas_acotadas(st, tx):
     if n == N_MIAS:
         return True, '%d filas = su cartera exacta' % n
     if n >= N_TODAS:
-        return False, '%d filas de %d  <-- LA EMPRESA ENTERA' % (n, N_TODAS)
+        return False, '%d filas de %d  <-- ABRIO CON LA EMPRESA ENTERA' % (n, N_TODAS)
     return False, '%d filas (su cartera son %d)' % (n, N_MIAS)
 
-sonda('GET /api/cuentas  (debe traer SOLO sus %d)' % N_MIAS, T_CON, '/api/cuentas', cuentas_acotadas)
+sonda('GET /api/cuentas  (sin parametro: sus %d)' % N_MIAS, T_CON, '/api/cuentas', cuentas_acotadas)
 
-def ignora_param(st, tx):
-    """Un asesor pidiendo ?asesor=Dan debe recibir LO SUYO, no lo de Dan."""
-    n = filas(tx)
+print()
+print('=' * 100)
+print('3. EL ASESOR SIN CARTERA — el fail-open del hallazgo')
+print('=' * 100)
+print('   Con la consulta abierta ya no se le niega LEER. Lo que NO debe pasar')
+print('   es que ESCRIBA: sin nombre no hay con que firmar ni cuenta propia.')
+
+def niega_escritura(st, tx):
     if st in (403, 404):
-        return True, '%d — niega, correcto' % st
-    if st == 200 and n == N_MIAS:
-        return True, '%d filas = su cartera; ignoro el parametro' % n
-    if st == 200 and n == len(por_asesor['dan']):
-        return False, '%d filas = LA CARTERA DE DAN  <-- OBEDECIO EL PARAMETRO' % n
-    return False, 'status %d con %s filas' % (st, n)
+        return True, '%d — no puede escribir, correcto' % st
+    return False, 'status %d  <-- ESCRIBIO SIN CARTERA' % st
 
-sonda('GET /api/cuentas?asesor=Dan  (debe ignorarlo)', T_CON, '/api/cuentas?asesor=Dan', ignora_param)
+sonda('GET /api/cuentas  (sin cartera, consulta)', T_SIN, '/api/cuentas', abre)
+sonda('GET /api/leads  (sin cartera, consulta)',   T_SIN, '/api/leads', abre)
 
 if CON_ESCRITURA:
     print()

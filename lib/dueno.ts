@@ -53,7 +53,35 @@ import { supabaseAdmin } from '@/lib/supabase'
  * código no estaba en línea o si estaba mal. Vercel no publica el `buildId` en
  * esta app y no hay token para preguntarle.
  */
-export const CANDADO_VERSION = '2026-10-15.2-alcance-sin-invencion'
+export const CANDADO_VERSION = '2026-10-15.3-lectura-libre-escritura-propia'
+
+/* ── LA POLÍTICA, EN UNA SOLA CONSTANTE ─────────────────────────────────────
+ *
+ * Instrucción de dirección (José Manuel, 15 oct 2026), textual: «Ellos solo
+ * pueden escribir en sus propias cuentas asignadas no en las de los otros
+ * asesores. pueden consultar y yo José Manuel como administrador puedo y tengo
+ * la facultad para asignar cuentas y cambiar de asesor».
+ *
+ * O sea: la línea NO va entre carteras, va entre LEER y ESCRIBIR.
+ *
+ *   · CONSULTAR  → libre. Un asesor puede abrir la ficha, el radar, la
+ *                  adopción, los seguimientos, los anexos y la facturación de
+ *                  cualquier cuenta, y preguntarle a Atlas por ella.
+ *   · ESCRIBIR   → sólo en sus cuentas asignadas, y firmado con SU nombre.
+ *   · ASIGNAR    → sólo administración. Un asesor no se adjudica una cuenta ni
+ *                  se la pasa a otro.
+ *
+ * `LECTURA_LIBRE = false` vuelve a acotar la consulta por cartera, y toda la
+ * maquinaria para eso sigue aquí y probada: es la escotilla, por si dirección
+ * cambia de criterio. No hay que volver a escribirla, sólo mover la constante.
+ *
+ * LO QUE NO DEPENDE DE ESTA CONSTANTE, y por eso no está aquí: que una cuenta
+ * la escriba sólo su asesor, que la firma la ponga la sesión y no el cuerpo, y
+ * que mover cartera sea de administración. Eso no es una preferencia de
+ * visibilidad: un rastro falso en la bitácora de una cuenta hace responder al
+ * asesor suplantado por una gestión que no hizo.
+ */
+export const LECTURA_LIBRE = true
 
 export interface Sesion {
   rol: string
@@ -99,16 +127,31 @@ export function sesionDe(h: LectorCabeceras): Sesion {
   return { rol, asesor }
 }
 
-/** ¿A esta sesión hay que acotarle lo que ve a una sola cartera? */
+/** ¿Es un rol al que la cartera le marca lo que puede ESCRIBIR? */
 export function esRolAcotado(s: Sesion): boolean {
   return s.rol === 'asesor'
+}
+
+/**
+ * ¿Hay que acotarle la CONSULTA a su cartera?
+ *
+ * Hoy no, por instrucción de dirección — ver `LECTURA_LIBRE`. Se pregunta con
+ * esta función y no con `esRolAcotado` para que la diferencia entre «leer» y
+ * «escribir» esté escrita en el código y no haya que deducirla.
+ */
+export function acotaLectura(s: Sesion): boolean {
+  return esRolAcotado(s) && !LECTURA_LIBRE
 }
 
 export const MENSAJE_SIN_CARTERA =
   'La sesión tiene rol de asesor pero no trae asignada una cartera. '
   + 'Pedir a administración que complete el usuario.'
 
-/** ¿Es de esta sesión un dato cuyo dueño es `dueno`? */
+/**
+ * ¿Es de esta sesión un dato cuyo dueño es `dueno`? Es la pregunta de la
+ * ESCRITURA, y no depende de `LECTURA_LIBRE`: escribir en cartera ajena no se
+ * abre nunca.
+ */
 export function esSuya(s: Sesion, dueno: string | null | undefined): boolean {
   if (!esRolAcotado(s)) return true
   const suyo = normalizaAsesor(s.asesor)
@@ -116,24 +159,45 @@ export function esSuya(s: Sesion, dueno: string | null | undefined): boolean {
   return normalizaAsesor(dueno) === suyo
 }
 
+/**
+ * ¿Puede CONSULTAR este dato? Con `LECTURA_LIBRE` siempre sí; si algún día se
+ * cierra, cae en la misma regla de pertenencia que la escritura.
+ */
+export function puedeConsultar(s: Sesion, dueno: string | null | undefined): boolean {
+  if (LECTURA_LIBRE) return true
+  return esSuya(s, dueno)
+}
+
 export type Cartera =
   | { ok: true;  asesor: string | undefined }
   | { ok: false; res: NextResponse }
 
 /**
- * La cartera que esta petición puede mirar.
+ * LA CARTERA DE TRABAJO — para las listas que son la superficie de trabajo de
+ * un asesor: `/api/cuentas`, `/api/leads`, su portada, su seguimiento.
  *
- * Para un `asesor` devuelve SU nombre, ignorando cualquier `?asesor=` que
- * venga del cliente: el filtro no es decorativo. Para los demás roles devuelve
- * lo que pidan (o `undefined`, que es «toda»).
+ * Por omisión devuelve SU cartera, y eso NO es un candado: es su cola de
+ * trabajo. Que la pantalla de Claudia abra con sus 71 cuentas y no con las 223
+ * de la empresa es lo que la hace servir para algo, y así ha funcionado desde
+ * siempre en este tablero.
+ *
+ * Con `LECTURA_LIBRE` un `?asesor=` EXPLÍCITO se respeta: eso es consultar, y
+ * consultar está permitido. Sin el parámetro no se le cambia la vista debajo.
+ *
+ * Un rol `asesor` sin cartera ya no recibe 403 aquí —consultar es libre— y cae
+ * en «toda», que es lo que pidió: nada que recortar. La escritura sí lo sigue
+ * rechazando, en `firmaDeSesion`.
  */
-export function carteraDeSesion(
+export function carteraDeTrabajo(
   h: LectorCabeceras,
   pedido?: string | null,
 ): Cartera {
   const s = sesionDe(h)
   if (esRolAcotado(s)) {
+    const quiere = pedido?.trim() || ''
+    if (LECTURA_LIBRE && quiere) return { ok: true, asesor: quiere }
     if (!s.asesor) {
+      if (LECTURA_LIBRE) return { ok: true, asesor: undefined }
       return {
         ok: false,
         res: NextResponse.json({ error: MENSAJE_SIN_CARTERA }, { status: 403 }),
@@ -143,6 +207,40 @@ export function carteraDeSesion(
   }
   return { ok: true, asesor: pedido?.trim() || undefined }
 }
+
+/**
+ * LA CARTERA CONSULTADA — para las tablas que no son cola de trabajo sino
+ * consulta, como `/api/relacionamiento`: ahí lo natural es ver todo y filtrar
+ * si se quiere, no abrir recortado.
+ */
+export function carteraConsultada(
+  h: LectorCabeceras,
+  pedido?: string | null,
+): Cartera {
+  const s = sesionDe(h)
+  const quiere = pedido?.trim() || ''
+  if (acotaLectura(s)) {
+    if (quiere && normalizaAsesor(quiere) !== normalizaAsesor(s.asesor)) {
+      return {
+        ok: false,
+        res: NextResponse.json(
+          { error: 'No existe esa cartera para tu sesión.' }, { status: 404 }),
+      }
+    }
+    if (!s.asesor) {
+      return {
+        ok: false,
+        res: NextResponse.json({ error: MENSAJE_SIN_CARTERA }, { status: 403 }),
+      }
+    }
+    return { ok: true, asesor: s.asesor }
+  }
+  return { ok: true, asesor: quiere || undefined }
+}
+
+/** @deprecated Usar `carteraDeTrabajo` o `carteraConsultada`, que dicen cuál es
+ *  cuál. Se conserva el nombre para no romper una llamada que se quede atrás. */
+export const carteraDeSesion = carteraDeTrabajo
 
 /**
  * Quién firma una escritura.
@@ -187,16 +285,23 @@ export async function duenoDeCuenta(
  *
  * Devuelve `null` cuando puede pasar, o la respuesta con la que hay que cortar.
  *
- * EL 404 NO ES UN DESCUIDO. Una cuenta que existe pero es de otra cartera
- * responde igual que una que no existe: un 403 distinguible confirmaría que el
- * identificador es real, y eso ya es información sobre la cartera ajena.
+ * `para` DICE PARA QUÉ SE PREGUNTA, y es lo que separa las dos políticas:
+ * `'lectura'` pasa siempre con `LECTURA_LIBRE`; `'escritura'` exige pertenencia
+ * siempre. Es obligatorio y no tiene valor por omisión a propósito — quien
+ * escriba la siguiente ruta tiene que decidirlo, no heredarlo por descuido.
+ *
+ * EL 404 NO ES UN DESCUIDO cuando corta. Una cuenta que existe pero es de otra
+ * cartera responde igual que una que no existe: un 403 distinguible confirmaría
+ * que el identificador es real.
  */
 export async function exigeDuenoDeCuenta(
   h: LectorCabeceras,
   cuentaId: string,
+  para: 'lectura' | 'escritura',
 ): Promise<NextResponse | null> {
   const s = sesionDe(h)
   if (!esRolAcotado(s)) return null
+  if (para === 'lectura' && LECTURA_LIBRE) return null
   if (!s.asesor) {
     return NextResponse.json({ error: MENSAJE_SIN_CARTERA }, { status: 403 })
   }

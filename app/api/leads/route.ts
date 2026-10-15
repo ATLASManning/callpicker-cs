@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import {
   MENSAJE_SIN_CARTERA, firmaDeSesion, sesionDe, esRolAcotado, esSuya,
+  carteraDeTrabajo,
 } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
@@ -33,15 +34,19 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .limit(500)
 
-  /* FALLA CERRADO. `rol === 'asesor' && asesor` es el patrón del hallazgo: con
-     el rol puesto y el nombre vacío la condición se cae, el `.eq()` no se
-     aplica y salen los 500 leads de las tres carteras. Ver lib/dueno.ts. */
-  if (rol === 'asesor') {
-    if (!asesor) {
-      return NextResponse.json({ leads: [], error: MENSAJE_SIN_CARTERA }, { status: 403 })
-    }
-    q = q.eq('asesor', asesor)
-  }
+  /* Sus leads son su cola de trabajo, igual que en `/api/cuentas`: la lista
+     abre con los suyos y un `?asesor=` explícito se respeta, porque consultar
+     es libre (instrucción de dirección, 15 oct 2026).
+   *
+     El patrón que había era `rol === 'asesor' && asesor`, que parecía
+     defensivo y era lo contrario: con el rol puesto y el nombre vacío la
+     condición se caía, el `.eq()` no se aplicaba y salían los 500 leads de las
+     tres carteras — o sea que al usuario a medio configurar se le daba MÁS que
+     al bien configurado. Eso estaba mal con la lectura abierta o cerrada; hoy
+     la decisión la toma `carteraDeTrabajo` en un solo sitio. */
+  const cartera = carteraDeTrabajo(req.headers, req.nextUrl.searchParams.get('asesor'))
+  if (!cartera.ok) return cartera.res
+  if (cartera.asesor) q = q.eq('asesor', cartera.asesor)
 
   const { data, error } = await q
   if (error) {

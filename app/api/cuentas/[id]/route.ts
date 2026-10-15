@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCuentaById, updateCuenta, saveHealthSnapshot, deleteCuenta } from '@/lib/supabase'
-import { sesionDe, esSuya, firmaDeSesion } from '@/lib/dueno'
+import { sesionDe, esSuya, puedeConsultar, firmaDeSesion } from '@/lib/dueno'
 
 interface Ctx { params: { id: string } }
 
@@ -10,9 +10,11 @@ interface Ctx { params: { id: string } }
 export async function GET(req: NextRequest, { params }: Ctx) {
   const cuenta = await getCuentaById(params.id)
   if (!cuenta) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  /* Un 404 y no un 403: distinguirlos confirmaría que el identificador de otra
-     cartera es real. Ver lib/dueno.ts. */
-  if (!esSuya(sesionDe(req.headers), cuenta.asesor)) {
+  /* CONSULTAR ES LIBRE (instrucción de dirección, 15 oct 2026): un asesor abre
+     la ficha de cualquier cuenta. La comprobación se queda escrita porque es la
+     escotilla —`LECTURA_LIBRE = false` en lib/dueno.ts la vuelve a cerrar—, y
+     entonces responde 404 y no 403 para no confirmar que el id es real. */
+  if (!puedeConsultar(sesionDe(req.headers), cuenta.asesor)) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
   return NextResponse.json(cuenta)

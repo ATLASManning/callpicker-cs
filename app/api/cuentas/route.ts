@@ -4,7 +4,7 @@ import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { getZohoMap, lookupZoho } from '@/lib/zoho-enrich'
 import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
 import {
-  carteraDeSesion, firmaDeSesion, esSuya, sesionDe, exigeDuenoDeCuenta,
+  carteraDeTrabajo, firmaDeSesion, esSuya, sesionDe, exigeDuenoDeCuenta,
 } from '@/lib/dueno'
 
 // Stats de tickets por cuenta: fuente única en lib/tickets-cuenta.ts
@@ -14,12 +14,16 @@ import {
 export async function GET(req: NextRequest) {
   const sp  = req.nextUrl.searchParams
 
-  /* FALLA CERRADO. Antes era `rol === 'asesor' ? asesorHeader : (...)`, y el
-     caso que dolía era el que parecía inofensivo: con el rol puesto y el nombre
-     vacío, `asesorFiltro` salía cadena vacía, el `|| undefined` de abajo la
-     convertía en «sin filtro» y `getCuentas` devolvía la cartera entera de la
-     empresa. Ahora un rol `asesor` sin cartera recibe 403. Ver lib/dueno.ts. */
-  const cartera = carteraDeSesion(req.headers, sp.get('asesor'))
+  /* SU CARTERA ES SU COLA DE TRABAJO, no un candado: la lista abre con las
+     cuentas del asesor porque es lo que la hace servir para algo, y así ha sido
+     siempre en este tablero.
+   *
+   * Lo que cambia el 15 oct 2026 es que un `?asesor=` EXPLÍCITO se respeta —
+   * consultar es libre por instrucción de dirección—. Antes se ignoraba, así
+   * que un asesor no podía ni buscar la cuenta de un cliente que le llamara sin
+   * ser suya. Lo que NO se respeta nunca es el `asesor` del cuerpo al escribir:
+   * eso es firmar como otro. Ver lib/dueno.ts. */
+  const cartera = carteraDeTrabajo(req.headers, sp.get('asesor'))
   if (!cartera.ok) return cartera.res
   const asesorFiltro = cartera.asesor
 
@@ -94,7 +98,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
 
     if (body?.id) {
-      const corta = await exigeDuenoDeCuenta(req.headers, String(body.id))
+      const corta = await exigeDuenoDeCuenta(req.headers, String(body.id), 'escritura')
       if (corta) return corta
     }
 

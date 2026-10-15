@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const cuentaId = req.nextUrl.searchParams.get('cuentaId')
   if (!cuentaId) return NextResponse.json({ error: 'cuentaId requerido' }, { status: 400 })
 
-  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId)
+  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId, 'lectura')
   if (corta) return corta
 
   const { data, error } = await supabaseAdmin
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'cuenta_id y productos son requeridos' }, { status: 400 })
   }
 
-  const corta = await exigeDuenoDeCuenta(req.headers, String(cuenta_id))
+  const corta = await exigeDuenoDeCuenta(req.headers, String(cuenta_id), 'escritura')
   if (corta) return corta
 
   /* La revisión de adopción la firma quien la hace, no el cuerpo: la escalera

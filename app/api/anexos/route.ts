@@ -4,7 +4,7 @@ import {
   BUCKET, esTema, motivoRechazo, mimeEfectivo, rutaEnBucket, type Anexo,
 } from '@/lib/anexos'
 import {
-  sesionDe, esRolAcotado, exigeDuenoDeCuenta, cuentaIdsDeAsesor,
+  sesionDe, acotaLectura, exigeDuenoDeCuenta, cuentaIdsDeAsesor,
   MENSAJE_SIN_CARTERA,
 } from '@/lib/dueno'
 
@@ -16,24 +16,26 @@ export const runtime = 'nodejs'
    Lista los anexos. Con `cuenta_id` filtra a esa cuenta (es lo que usa la
    ficha); sin él los devuelve todos, para la pantalla de Anexos.
 
-   SIN `cuenta_id` ESTO ERA EL ÍNDICE COMPLETO DE DOCUMENTOS DE CLIENTE de las
-   tres carteras, hasta 500 filas, para cualquier sesión. Y la asimetría era el
-   indicio de que faltaba algo: el BORRADO de este mismo módulo sí comprobaba
-   de quién era el documento.
+   CONSULTAR ES LIBRE (instrucción de dirección, 15 oct 2026): el índice de
+   documentos se entrega completo a cualquier sesión válida, como antes. Lo que
+   cambia respecto al origen es que ESCRIBIR y BORRAR sí comprueban dueño —el
+   borrado ya lo hacía, y esa asimetría fue el indicio de que a la subida le
+   faltaba—.
 
-   El filtro va EN LA CONSULTA, con los `cuenta_id` de la cartera: recortar
-   después deja el dato viajando al cliente en cuanto alguien añada un campo. */
+   Si `LECTURA_LIBRE` se pone en false, el recorte vuelve y va EN LA CONSULTA,
+   con los `cuenta_id` de la cartera: recortar después deja el dato viajando al
+   cliente en cuanto alguien añada un campo. */
 export async function GET(req: NextRequest) {
   const cuentaId = req.nextUrl.searchParams.get('cuenta_id')
   const tema     = req.nextUrl.searchParams.get('tema')
 
   const s = sesionDe(req.headers)
-  if (esRolAcotado(s) && !s.asesor) {
+  if (acotaLectura(s) && !s.asesor) {
     return NextResponse.json({ error: MENSAJE_SIN_CARTERA }, { status: 403 })
   }
 
   if (cuentaId) {
-    const corta = await exigeDuenoDeCuenta(req.headers, cuentaId)
+    const corta = await exigeDuenoDeCuenta(req.headers, cuentaId, 'lectura')
     if (corta) return corta
   }
 
@@ -44,7 +46,7 @@ export async function GET(req: NextRequest) {
     .limit(500)
 
   if (cuentaId) query = query.eq('cuenta_id', cuentaId)
-  else if (esRolAcotado(s)) {
+  else if (acotaLectura(s)) {
     /* Una cartera sin cuentas devuelve lista vacía, no «todas»: `in` con un
        arreglo vacío es justo donde un filtro se cae solo. */
     let mios: string[]
@@ -96,7 +98,7 @@ export async function POST(req: NextRequest) {
   /* El dueño se comprueba antes de SUBIR, no sólo antes de insertar la fila:
      sin esto un asesor colgaba un documento de una cuenta de otra cartera, y el
      objeto quedaba en el bucket aunque la fila fallara después. */
-  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId)
+  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId, 'escritura')
   if (corta) return corta
 
   if (!nombreDoc) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { relacionamientoDeCuentas } from '@/lib/relacionamiento'
-import { carteraDeSesion, sesionDe, esRolAcotado, CANDADO_VERSION } from '@/lib/dueno'
+import { carteraConsultada, CANDADO_VERSION } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55
@@ -68,14 +68,14 @@ export async function GET(req: NextRequest) {
   try {
     const soloVivas = req.nextUrl.searchParams.get('todas') !== '1'
 
-    /* La cartera que puede mirar quien pregunta. Un `asesor` sin nombre recibe
-       403 en vez de la empresa entera. Ver lib/dueno.ts. */
-    const cartera = carteraDeSesion(req.headers)
+    /* Esto es una TABLA DE CONSULTA, no una cola de trabajo: lo natural es
+       abrirla completa y filtrar si se quiere, así que por omisión va toda.
+       Con `LECTURA_LIBRE = false` se acota a la cartera. Ver lib/dueno.ts. */
+    const cartera = carteraConsultada(req.headers, req.nextUrl.searchParams.get('asesor'))
     if (!cartera.ok) return cartera.res
-    const sesion  = sesionDe(req.headers)
-    const acotado = esRolAcotado(sesion)
+    const acotado = Boolean(cartera.asesor)
 
-    const filas = await calcular(soloVivas, acotado ? cartera.asesor : undefined)
+    const filas = await calcular(soloVivas, cartera.asesor)
     /* El promedio se calcula sobre lo que SE DEVUELVE. Si se promediara la
        empresa entera y se listara una cartera, el número de arriba no saldría
        de las filas de abajo — y una tabla agregada que no cierra miente sin
@@ -85,6 +85,8 @@ export async function GET(req: NextRequest) {
       : 0
     return NextResponse.json({
       alcance: acotado ? `cartera de ${cartera.asesor}` : 'todas las carteras',
+      // `promedio` sale de `filas`, así que el alcance tiene que viajar con él:
+      // un promedio sin decir de qué conjunto es, no cierra.
       // Marca de despliegue del candado — ver CANDADO_VERSION en lib/dueno.ts.
       candado: CANDADO_VERSION,
       total: filas.length,

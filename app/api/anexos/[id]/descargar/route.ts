@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, esTablaInexistente } from '@/lib/supabase'
 import { BUCKET, type Anexo } from '@/lib/anexos'
-import { sesionDe, esRolAcotado, exigeDuenoDeCuenta, MENSAJE_SIN_CARTERA } from '@/lib/dueno'
+import { sesionDe, acotaLectura, exigeDuenoDeCuenta, MENSAJE_SIN_CARTERA } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -48,26 +48,26 @@ export async function GET(
 
   /* ── DE QUIÉN ES EL DOCUMENTO ─────────────────────────────────────────────
    *
-   * Toda la nota de arriba protege el archivo de quien NO tiene sesión, y no
-   * comprobaba nada sobre quien sí la tiene: con el identificador de un anexo
-   * —que el índice de `/api/anexos` entregaba entero— cualquier asesor se
-   * bajaba el contrato de un cliente de otra cartera. El candado del bucket
-   * privado no ayuda, porque quien lee el objeto es el servidor con la llave
-   * de servicio.
+   * CONSULTAR ES LIBRE (instrucción de dirección, 15 oct 2026): un asesor puede
+   * descargar el documento de cualquier cuenta. Lo que sigue valiendo es todo lo
+   * de arriba —esto NO se sirve sin sesión, y nunca con URL firmada—, y que
+   * SUBIR sí comprueba dueño.
    *
-   * Se comprueba por `cuenta_id` y no por la etiqueta `empresa` de la fila: la
-   * regla del proyecto es que el nombre no identifica al cliente. */
+   * El recorte por cartera se queda escrito detrás de `LECTURA_LIBRE`: si se
+   * cierra, se comprueba por `cuenta_id` y no por la etiqueta `empresa` de la
+   * fila, porque la regla del proyecto es que el nombre no identifica al
+   * cliente. */
   const s = sesionDe(req.headers)
-  if (esRolAcotado(s) && !s.asesor) {
+  if (acotaLectura(s) && !s.asesor) {
     return NextResponse.json({ error: MENSAJE_SIN_CARTERA }, { status: 403 })
   }
-  if (esRolAcotado(s)) {
+  if (acotaLectura(s)) {
     if (!anexo.cuenta_id) {
       /* Un anexo sin cuenta no se le puede atribuir a nadie, así que no se
          entrega a una cartera: se queda para administración. */
       return NextResponse.json({ error: 'No existe ese anexo.' }, { status: 404 })
     }
-    const corta = await exigeDuenoDeCuenta(req.headers, String(anexo.cuenta_id))
+    const corta = await exigeDuenoDeCuenta(req.headers, String(anexo.cuenta_id), 'lectura')
     if (corta) return NextResponse.json({ error: 'No existe ese anexo.' }, { status: 404 })
   }
 

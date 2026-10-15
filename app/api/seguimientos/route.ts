@@ -6,7 +6,7 @@ import { exigeDuenoDeCuenta, firmaDeSesion, sesionDe, esRolAcotado, MENSAJE_SIN_
 export async function GET(req: NextRequest) {
   const cuentaId = req.nextUrl.searchParams.get('cuenta_id')
   if (!cuentaId) return NextResponse.json({ error: 'cuenta_id required' }, { status: 400 })
-  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId)
+  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId, 'lectura')
   if (corta) return corta
   const data = await getSeguimientos(cuentaId)
   return NextResponse.json(data)
@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest) {
       if (!data?.cuenta_id) {
         return NextResponse.json({ error: 'No existe ese seguimiento.' }, { status: 404 })
       }
-      const corta = await exigeDuenoDeCuenta(req.headers, String(data.cuenta_id))
+      const corta = await exigeDuenoDeCuenta(req.headers, String(data.cuenta_id), 'escritura')
       if (corta) return NextResponse.json({ error: 'No existe ese seguimiento.' }, { status: 404 })
     }
 
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'cuenta_id requerido' }, { status: 400 })
     }
 
-    const corta = await exigeDuenoDeCuenta(req.headers, String(body.cuenta_id))
+    const corta = await exigeDuenoDeCuenta(req.headers, String(body.cuenta_id), 'escritura')
     if (corta) return corta
 
     /* QUIÉN FIRMA LO DICE LA SESIÓN, NO EL CUERPO. Aceptar `body.asesor` dejaba
