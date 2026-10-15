@@ -101,7 +101,39 @@ const EMAILS_AUTORIZADOS_DEFAULT = [
    * no se lo quita. Las dos listas hay que mirarlas juntas, siempre.
    */
   'fatima@callpicker.com',
-  'claudia@callpicker.com',
+  /* ── CLAUDIA HERNÁNDEZ, FUERA EL 15 OCT 2026 ──────────────────────────────
+   *
+   * Dirección: «Retira el acceso al Dashboard a Claudia Hernández
+   * claudia@callpicker.com desde este momento. Yo lo hice en el panel,
+   * asegúrate que no pueda ingresar».
+   *
+   * ESTA LÍNEA COMENTADA ES LO QUE HACE QUE LA BAJA EXISTA. Lo del panel la
+   * dejó «Inactivo» y cerró el login nuevo, pero NO cerró su sesión viva.
+   * Medido en producción ANTES de tocar nada, con una cookie firmada suya:
+   *
+   *     /          HTTP 200   44,573 B   ABRE
+   *     /cuentas   HTTP 200   40,255 B   ABRE
+   *     /alertas   HTTP 200   39,318 B   ABRE
+   *     login      401 usuario_invalido   ← el panel SÍ cerró esta puerta
+   *
+   * O sea exactamente el caso de Aurora y el de los tres asesores del 6 oct:
+   * la marca `activo` se revisa en login/verify; esta lista se revisa en CADA
+   * request, y es la única de las dos que muerde contra una cookie ya emitida.
+   * Las cookies duran 30 días.
+   *
+   * Sus APIs ya daban 403 por el candado de cartera, pero las PÁGINAS abrían:
+   * veía la navegación y todo lo que no pasa por esas dos rutas. Un candado de
+   * alcance no sustituye a una baja.
+   *
+   * Se comenta y no se borra, para que quede el rastro de que tuvo acceso y de
+   * cuándo se le quitó. Nadie se dio de baja de los datos: su cartera, sus
+   * seguimientos y sus alertas siguen intactos. Devolver el acceso =
+   * descomentar y desplegar.
+   *
+   * Comprobado DESPUÉS de desplegar con
+   * `python scripts/revisa-acceso-correo.py claudia@callpicker.com --esperado fuera`.
+   */
+  // 'claudia@callpicker.com',
   'dominguez.dan@callpicker.com',
   /* Aurora — alta el 10 sep 2026 por instrucción de dirección, rol `viewer`.
    *
