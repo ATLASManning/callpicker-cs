@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { relacionamientoDeCuentas } from '@/lib/relacionamiento'
+import { carteraDeSesion, sesionDe, esRolAcotado } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55
@@ -25,9 +26,13 @@ export const maxDuration = 55
 const CAMPOS = 'id, consecutivo, cid, empresa, asesor, estado, score_relacional, '
              + 'ultimo_contacto, contactos_json, observaciones_kam, notas'
 
-async function calcular(soloVivas: boolean) {
+async function calcular(soloVivas: boolean, soloAsesor?: string) {
   let q = supabaseAdmin.from('cuentas').select(CAMPOS)
   if (soloVivas) q = q.in('estado', ['activo', 'en_riesgo'])
+  /* Acotar EN LA CONSULTA, no al devolver: el GET entrega una fila por cuenta
+     con empresa, CID, score y último contacto, así que sin esto un asesor
+     recibía el relacionamiento de las tres carteras. */
+  if (soloAsesor) q = q.eq('asesor', soloAsesor)
   const { data, error } = await q
   if (error) throw new Error(error.message)
 
@@ -62,11 +67,24 @@ async function calcular(soloVivas: boolean) {
 export async function GET(req: NextRequest) {
   try {
     const soloVivas = req.nextUrl.searchParams.get('todas') !== '1'
-    const filas = await calcular(soloVivas)
+
+    /* La cartera que puede mirar quien pregunta. Un `asesor` sin nombre recibe
+       403 en vez de la empresa entera. Ver lib/dueno.ts. */
+    const cartera = carteraDeSesion(req.headers)
+    if (!cartera.ok) return cartera.res
+    const sesion  = sesionDe(req.headers)
+    const acotado = esRolAcotado(sesion)
+
+    const filas = await calcular(soloVivas, acotado ? cartera.asesor : undefined)
+    /* El promedio se calcula sobre lo que SE DEVUELVE. Si se promediara la
+       empresa entera y se listara una cartera, el número de arriba no saldría
+       de las filas de abajo — y una tabla agregada que no cierra miente sin
+       decirlo. */
     const prom = filas.length
       ? Math.round(filas.reduce((s, f) => s + f.score_calculado, 0) / filas.length)
       : 0
     return NextResponse.json({
+      alcance: acotado ? `cartera de ${cartera.asesor}` : 'todas las carteras',
       total: filas.length,
       promedio: prom,
       niveles: filas.reduce<Record<string, number>>((a, f) => {

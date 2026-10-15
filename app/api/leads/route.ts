@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import {
+  MENSAJE_SIN_CARTERA, firmaDeSesion, sesionDe, esRolAcotado, esSuya,
+} from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +33,15 @@ export async function GET(req: NextRequest) {
     .order('created_at', { ascending: false })
     .limit(500)
 
-  if (rol === 'asesor' && asesor) q = q.eq('asesor', asesor)
+  /* FALLA CERRADO. `rol === 'asesor' && asesor` es el patrón del hallazgo: con
+     el rol puesto y el nombre vacío la condición se cae, el `.eq()` no se
+     aplica y salen los 500 leads de las tres carteras. Ver lib/dueno.ts. */
+  if (rol === 'asesor') {
+    if (!asesor) {
+      return NextResponse.json({ leads: [], error: MENSAJE_SIN_CARTERA }, { status: 403 })
+    }
+    q = q.eq('asesor', asesor)
+  }
 
   const { data, error } = await q
   if (error) {
@@ -48,6 +59,12 @@ export async function POST(req: NextRequest) {
 
   const txt = (k: string) => String(body[k] ?? '').trim()
   const empresa = txt('empresa')
+
+  /* El lead lo firma quien lo captura. Sin esto un asesor capturaba un
+     prospecto a nombre de otro, y el GET de arriba —que ya filtra por
+     `asesor`— se lo entregaba al suplantado como trabajo suyo. */
+  const firma = firmaDeSesion(req.headers, txt('asesor'))
+  if (!firma.ok) return firma.res
 
   // El nombre de la empresa es lo único sin lo cual el registro no sirve para
   // nada: sin él no hay a quién buscar después.
@@ -68,7 +85,7 @@ export async function POST(req: NextRequest) {
       telefono:         txt('telefono')         || null,
       email:            correo                  || null,
       interes_servicio: txt('interes_servicio') || null,
-      asesor:           txt('asesor')           || null,
+      asesor:           firma.asesor,
       notas:            txt('notas')            || null,
       estado:           txt('estado')           || 'nuevo',
       creado_por:       email                   || null,
@@ -92,6 +109,26 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const { id, ...campos } = await req.json() as Record<string, unknown> & { id?: string }
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
+
+  /* NO COMPROBABA NADA: un asesor editaba cualquier lead de la empresa, y
+     `asesor` está en la lista blanca de abajo, así que podía además
+     adjudicarse el prospecto de otro cambiándole el dueño. */
+  const s = sesionDe(req.headers)
+  if (esRolAcotado(s)) {
+    if (!s.asesor) {
+      return NextResponse.json({ error: MENSAJE_SIN_CARTERA }, { status: 403 })
+    }
+    const { data: duenoLead, error: errLead } = await supabaseAdmin
+      .from('leads').select('asesor').eq('id', id).maybeSingle()
+    if (errLead) return NextResponse.json({ error: errLead.message }, { status: 500 })
+    if (!duenoLead || !esSuya(s, (duenoLead as { asesor: string | null }).asesor)) {
+      return NextResponse.json({ error: 'No existe ese lead en tu cartera.' }, { status: 404 })
+    }
+    if ('asesor' in campos && !esSuya(s, String(campos.asesor ?? ''))) {
+      return NextResponse.json(
+        { error: 'No puedes pasar un lead a otra cartera.' }, { status: 403 })
+    }
+  }
 
   // Lista blanca: el resto de las columnas no se tocan desde el cliente.
   const permitidos = ['estado', 'asesor', 'notas', 'contacto', 'telefono', 'email', 'interes_servicio', 'empresa']

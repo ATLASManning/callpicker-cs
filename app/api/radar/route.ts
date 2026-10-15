@@ -6,6 +6,7 @@ import { baseMinutos } from '@/lib/plan-minutos'
 import { NOMBRES_CANCELACION, normalizarNombre } from '@/lib/elegibilidad'
 import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { hoyEnMexico } from '@/lib/fecha-local'
+import { exigeDuenoDeCuenta, firmaDeSesion } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55
@@ -70,6 +71,11 @@ async function getCortes(): Promise<Map<string, CorteRaw[]>> {
 export async function GET(req: NextRequest) {
   const cuentaId = req.nextUrl.searchParams.get('cuentaId')
   if (!cuentaId) return NextResponse.json({ error: 'cuentaId requerido' }, { status: 400 })
+
+  /* El GET arma el expediente de consumo de la cuenta —minutos, cortes,
+     soporte, seguimientos— y no comprobaba de quién era. */
+  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId)
+  if (corta) return corta
 
   const { data: cuenta, error } = await supabaseAdmin
     .from('cuentas')
@@ -239,10 +245,19 @@ export async function POST(req: NextRequest) {
     }
     if (!cuenta_id) return NextResponse.json({ error: 'cuenta_id requerido' }, { status: 400 })
 
+    const corta = await exigeDuenoDeCuenta(req.headers, String(cuenta_id))
+    if (corta) return corta
+
+    /* El Radar lo FIRMA quien lo contesta, y eso lo dice la sesión. Aceptar
+       `body.asesor` dejaba guardar las doce respuestas de una cuenta ajena con
+       el nombre de otra persona: la ficha las muestra como gestión suya. */
+    const firma = firmaDeSesion(req.headers, asesor)
+    if (!firma.ok) return firma.res
+
     const { data, error } = await supabaseAdmin
       .from('radar_respuestas')
       .insert({
-        cuenta_id, asesor, respuestas,
+        cuenta_id, asesor: firma.asesor, respuestas,
         score_atlas, nivel_atlas,
         fecha: hoyEnMexico(),
       })

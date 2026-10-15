@@ -52,6 +52,7 @@ import CuentaAnexosPanel from '@/components/CuentaAnexosPanel'
 import { getReunionesDeCuenta, getAnexosDeCuenta } from '@/lib/supabase'
 import { relacionamientoDeCuenta } from '@/lib/relacionamiento'
 import { headers } from 'next/headers'
+import { sesionDe, esSuya } from '@/lib/dueno'
 import { hoyEnMexico, textoFecha } from '@/lib/fecha-local'
 import { estadoDeCuenta } from '@/lib/estado-cuenta'
 import { personasConNombre } from '@/lib/personas-cuenta'
@@ -97,6 +98,23 @@ export default async function CuentaDetailPage({ params }: Props) {
       }
     : cuentaBase
   if (!cuenta) notFound()
+
+  /* ── DE QUIÉN ES ESTA CUENTA ──────────────────────────────────────────────
+   *
+   * La página sólo decidía `canEdit` (más abajo), que esconde los botones de
+   * edición y nada más: un asesor abría la ficha completa de una cuenta de otra
+   * cartera —facturación, tickets, llamadas, el expediente de auditoría— en
+   * modo lectura. Esconder lo que se puede tocar no es acotar lo que se puede
+   * ver.
+   *
+   * Y es `notFound()`, no una ficha recortada: una versión reducida seguiría
+   * confirmando que la cuenta existe y quién es, que es precisamente el dato.
+   *
+   * Va AQUÍ, antes de las consultas de abajo, y no junto a `canEdit`: desde
+   * este punto la página pide seguimientos, oportunidades, tickets, historial,
+   * llamadas y adopción de la cuenta. Comprobarlo al final sería traer todo eso
+   * de una cartera ajena para después no pintarlo. */
+  if (!esSuya(sesionDe(headers()), cuenta.asesor)) notFound()
 
   // Usar el UUID real para las demás queries
   const cuentaUUID = cuenta.id

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, esTablaInexistente } from '@/lib/supabase'
 import { BUCKET, type Anexo } from '@/lib/anexos'
+import { sesionDe, esRolAcotado, exigeDuenoDeCuenta, MENSAJE_SIN_CARTERA } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -44,6 +45,32 @@ export async function GET(
   if (!data) return NextResponse.json({ error: 'No existe ese anexo.' }, { status: 404 })
 
   const anexo = data as Anexo
+
+  /* ── DE QUIÉN ES EL DOCUMENTO ─────────────────────────────────────────────
+   *
+   * Toda la nota de arriba protege el archivo de quien NO tiene sesión, y no
+   * comprobaba nada sobre quien sí la tiene: con el identificador de un anexo
+   * —que el índice de `/api/anexos` entregaba entero— cualquier asesor se
+   * bajaba el contrato de un cliente de otra cartera. El candado del bucket
+   * privado no ayuda, porque quien lee el objeto es el servidor con la llave
+   * de servicio.
+   *
+   * Se comprueba por `cuenta_id` y no por la etiqueta `empresa` de la fila: la
+   * regla del proyecto es que el nombre no identifica al cliente. */
+  const s = sesionDe(req.headers)
+  if (esRolAcotado(s) && !s.asesor) {
+    return NextResponse.json({ error: MENSAJE_SIN_CARTERA }, { status: 403 })
+  }
+  if (esRolAcotado(s)) {
+    if (!anexo.cuenta_id) {
+      /* Un anexo sin cuenta no se le puede atribuir a nadie, así que no se
+         entrega a una cartera: se queda para administración. */
+      return NextResponse.json({ error: 'No existe ese anexo.' }, { status: 404 })
+    }
+    const corta = await exigeDuenoDeCuenta(req.headers, String(anexo.cuenta_id))
+    if (corta) return NextResponse.json({ error: 'No existe ese anexo.' }, { status: 404 })
+  }
+
   const { data: objeto, error: errBajar } = await supabaseAdmin.storage
     .from(BUCKET)
     .download(anexo.archivo_ruta)

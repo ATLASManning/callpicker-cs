@@ -14,6 +14,8 @@ import { SITUACION, LUZ } from '@/lib/alertas-veredicto'
 import ColaDeTrabajoAsesor, { ColaCargando, type AlertasAsesor } from '@/components/ColaDeTrabajoAsesor'
 import { Suspense } from 'react'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { normalizaAsesor } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,10 +25,22 @@ export default async function AsesoresPage() {
   const h = headers()
   const rol          = h.get('x-user-rol') ?? 'viewer'
   const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
-  const isAsesor     = rol === 'asesor' && !!asesorHeader
+  /* FALLA CERRADO, igual que `app/page.tsx`. `rol === 'asesor' && !!asesorHeader`
+     parecía defensivo y era lo contrario: con el rol puesto y el nombre vacío,
+     `isAsesor` quedaba en false y esta pantalla —que es la de inicio de los
+     tres— listaba las TRES carteras. A quien tiene el permiso a medio
+     configurar no se le ve menos, se le ve todo. */
+  if (rol === 'asesor' && !asesorHeader) {
+    redirect('/acceso?motivo=sin_cartera')
+  }
+  const isAsesor     = rol === 'asesor'
 
+  /* La comparación es normalizada: `asesorHeader` sale de
+     `usuarios.asesor_nombre` y esta lista está escrita a mano con acento. Un
+     'Fatima' sin acento en la tabla dejaba la lista VACÍA —sin asesor que
+     mostrar— en vez de recortarla a la suya. Ver lib/dueno.ts. */
   const ASESORES = isAsesor
-    ? ALL_ASESORES.filter(a => a === asesorHeader)
+    ? ALL_ASESORES.filter(a => normalizaAsesor(a) === normalizaAsesor(asesorHeader))
     : ALL_ASESORES
 
   // `cuentasTodas` va SIN filtrar aunque el usuario sea asesor: el resolutor de

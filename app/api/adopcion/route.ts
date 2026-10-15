@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { hoyEnMexico } from '@/lib/fecha-local'
+import { exigeDuenoDeCuenta, firmaDeSesion } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,6 +9,9 @@ export const dynamic = 'force-dynamic'
 export async function GET(req: NextRequest) {
   const cuentaId = req.nextUrl.searchParams.get('cuentaId')
   if (!cuentaId) return NextResponse.json({ error: 'cuentaId requerido' }, { status: 400 })
+
+  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId)
+  if (corta) return corta
 
   const { data, error } = await supabaseAdmin
     .from('adopcion_producto')
@@ -27,6 +31,15 @@ export async function POST(req: NextRequest) {
   if (!cuenta_id || !Array.isArray(productos) || !productos.length) {
     return NextResponse.json({ error: 'cuenta_id y productos son requeridos' }, { status: 400 })
   }
+
+  const corta = await exigeDuenoDeCuenta(req.headers, String(cuenta_id))
+  if (corta) return corta
+
+  /* La revisión de adopción la firma quien la hace, no el cuerpo: la escalera
+     de producto de una cuenta es la base del veredicto de crecimiento, y una
+     firma falsa se lo atribuye a quien no la evaluó. */
+  const firma = firmaDeSesion(req.headers, asesor)
+  if (!firma.ok) return firma.res
 
   /* «sin evaluar» NO SE GUARDA, y la ruta lo vuelve a comprobar aunque el modal
      ya lo filtre: es la unica puerta a esta tabla y el CHECK de la columna solo
@@ -49,7 +62,7 @@ export async function POST(req: NextRequest) {
     producto:  p.producto,
     nivel:     p.nivel,
     fecha:     fecha ?? hoyEnMexico(),
-    asesor:    asesor ?? null,
+    asesor:    firma.asesor,
     notas:     p.notas || null,
   }))
 

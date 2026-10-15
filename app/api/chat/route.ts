@@ -4,6 +4,7 @@ import { KB } from '@/app/base-cs/kb-data'
 import { supabaseAdmin } from '@/lib/supabase'
 import { buildAtlasContext, buildCuentaDossier } from '@/lib/atlas-context'
 import { hoyEnPalabras } from '@/lib/fecha-local'
+import { sesionDe, esRolAcotado, MENSAJE_SIN_CARTERA } from '@/lib/dueno'
 import { Resend } from 'resend'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || 'placeholder' })
@@ -271,14 +272,25 @@ export async function POST(req: NextRequest) {
     const email  = req.headers.get('x-user-email') ?? ''
     const nombre = decodeURIComponent(req.headers.get('x-user-nombre') ?? 'Usuario')
 
+    /* QUIÉN PREGUNTA DECIDE QUÉ SE CARGA. Sin esto, `buildAtlasContext` armaba
+       igual para todos la comparación entre las tres asesoras —cuentas, en
+       riesgo y cumplimiento SAC— y la metía como mensaje de sistema, y
+       `buildCuentaDossier` entregaba el expediente de cualquier cliente que se
+       nombrara en la pregunta. Era la fuga que no parecía una fuga, porque la
+       salida es prosa y no una tabla. Ver lib/atlas-context.ts. */
+    const sesion = sesionDe(req.headers)
+    if (esRolAcotado(sesion) && !sesion.asesor) {
+      return NextResponse.json({ error: MENSAJE_SIN_CARTERA }, { status: 403 })
+    }
+
     const pregunta = (messages as Array<{ role: string; content: string }>)
       .filter(m => m.role === 'user')
       .at(-1)?.content ?? ''
 
     // Contexto vivo de todos los modulos + dossier de la cuenta mencionada
     const [ctx, dossier] = await Promise.all([
-      buildAtlasContext(String(pregunta)),
-      buildCuentaDossier(String(pregunta)).catch(() => null),
+      buildAtlasContext(String(pregunta), sesion),
+      buildCuentaDossier(String(pregunta), sesion).catch(() => null),
     ])
     if (dossier) ctx.modulos.push(`dossier:${dossier.empresa}`)
 

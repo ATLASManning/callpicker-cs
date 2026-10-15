@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { tonoSobreClaro } from '@/lib/contraste'
 import { textoFecha, hoyEnPalabras } from '@/lib/fecha-local'
 
@@ -556,7 +557,13 @@ export default async function SeguimientoPage() {
   const h = headers()
   const rol          = h.get('x-user-rol') ?? 'viewer'
   const asesorHeader = decodeURIComponent(h.get('x-user-asesor') ?? '')
-  const isAsesor     = rol === 'asesor' && !!asesorHeader
+  /* FALLA CERRADO. Con el rol puesto y el nombre vacío, `isAsesor` quedaba en
+     false y `getCuentas()` de abajo se llamaba SIN filtro: el tablero de
+     seguimiento de las tres carteras. Ver lib/dueno.ts y `app/page.tsx`. */
+  if (rol === 'asesor' && !asesorHeader) {
+    redirect('/acceso?motivo=sin_cartera')
+  }
+  const isAsesor     = rol === 'asesor'
 
   // TODAS las cuentas del asesor. NO se filtra por estatus: el 9-sep-2026 lo
   // filtré a cartera viva y desapareció ~1 de cada 5 cuentas de la vista, que

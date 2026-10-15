@@ -116,7 +116,10 @@ function sem(hs: number | null): string {
 // consumo, tickets, actividades, seguimientos, Radar y huecos de datos de LA
 // cuenta preguntada — todo desde las fuentes vivas.
 
-export async function buildCuentaDossier(pregunta: string): Promise<{ text: string; empresa: string } | null> {
+export async function buildCuentaDossier(
+  pregunta: string,
+  sesion?: SesionAtlas,
+): Promise<{ text: string; empresa: string } | null> {
   const q = normalizarNombre(pregunta)
   if (q.length < 4) return null
 
@@ -142,6 +145,17 @@ export async function buildCuentaDossier(pregunta: string): Promise<{ text: stri
     if (c.cid && cidsEnPregunta.has(String(c.cid).trim())) { mejor = c; mejorLen = 999 }
   }
   if (!mejor) return null
+
+  /* EL DOSSIER ES LA FUGA MÁS DIRECTA DE TODAS: basta nombrar al cliente de
+     otra cartera en la pregunta para recibir su expediente entero —facturación,
+     notas, adopción, contacto, hallazgos de auditoría—. Se devuelve `null`,
+     igual que si el nombre no existiera: un «no es tuyo» confirmaría que la
+     cuenta está en la cartera de alguien, y el nombre lo puso quien pregunta. */
+  if (sesion?.rol === 'asesor') {
+    const mio = normalizarNombre(sesion.asesor)
+    if (!mio || normalizarNombre(mejor.asesor) !== mio) return null
+  }
+
   const c = mejor
 
   /* ── LO QUE FALTABA: EL RIESGO ────────────────────────────────────────
@@ -302,8 +316,70 @@ ${enriq.senales.map(s => `    [${s.tipo.toUpperCase()}] ${s.titulo}: ${s.detalle
   return { text, empresa: c.empresa }
 }
 
+/** Quién pregunta. Sin esto el contexto se arma igual para todos. */
+export interface SesionAtlas { rol: string; asesor: string }
+
+/* ── POR QUÉ ATLAS LLEVA CANDADO, Y POR QUÉ ES EL PEOR DE LOS SIETE ─────────
+ *
+ * Porque no parece una fuga. Las otras rutas devuelven JSON y se ven; ésta
+ * tomaba la comparación entre las tres asesoras —cuentas, en riesgo,
+ * cumplimiento SAC— y la REDACTABA EN PROSA como mensaje de sistema. Un asesor
+ * preguntando «¿cómo vamos?» recibía el tablero de dirección contado.
+ *
+ * DOS DECISIONES QUE NO HAY QUE DESHACER
+ * --------------------------------------
+ * 1. El filtro va en la CONSULTA, no en el prompt. Pedirle al modelo que
+ *    ignore lo que tiene delante no es un control de acceso: es una sugerencia.
+ *
+ * 2. LO QUE SE QUITA SE DICE CON PALABRAS. Recortar en silencio sería cambiar
+ *    una fuga por una mentira: el modelo leería una lista parcial como
+ *    completa y contestaría «ésas son todas las bajas» a un asesor que sólo ve
+ *    las suyas. Cada sección acotada lleva escrito su alcance, y los totales
+ *    se RECALCULAN sobre lo que queda —un total de la empresa encima de una
+ *    lista de una cartera no cierra, y una tabla que no cierra miente sin
+ *    decirlo.
+ *
+ * La escotilla es la de siempre: `admin` y `viewer` reciben el contexto
+ * completo. El candado sólo muerde al rol `asesor`.
+ */
 // ── Builder principal ─────────────────────────────────────────────────────────
-export async function buildAtlasContext(pregunta = ''): Promise<{ text: string; modulos: string[] }> {
+export async function buildAtlasContext(
+  pregunta = '',
+  sesion?: SesionAtlas,
+): Promise<{ text: string; modulos: string[] }> {
+  const acotado  = sesion?.rol === 'asesor'
+  const miNombre = (sesion?.asesor ?? '').trim()
+  const mioNorm  = normalizarNombre(miNombre)
+
+  /* Rol de asesor sin cartera: no se arma contexto. Falla cerrado igual que las
+     rutas, y lo DICE, para que el modelo no rellene el hueco con invención. */
+  if (acotado && !mioNorm) {
+    return {
+      text: 'SIN DATOS: la sesión tiene rol de asesor pero no trae asignada una '
+          + 'cartera, así que no se cargó ningún dato de clientes. No contestes '
+          + 'con cifras: di que administración tiene que completar el usuario.',
+      modulos: [],
+    }
+  }
+
+  /* La grafía REAL de la base y las empresas de la cartera, en una consulta.
+     Hace falta la grafía porque los filtros de abajo son `.eq()` exactos y el
+     nombre de la sesión sale de otra columna (`usuarios.asesor_nombre`): con
+     una diferencia de acento el `.eq()` no casaría nada y el asesor recibiría
+     un contexto vacío —falla cerrado, sí, pero mudo—. Ver lib/dueno.ts. */
+  let miCanonico = miNombre
+  let misEmpresas: string[] = []
+  if (acotado) {
+    const { data } = await supabaseAdmin.from('cuentas').select('empresa, asesor')
+    const mias = (data ?? []).filter(
+      c => normalizarNombre((c as { asesor: string | null }).asesor) === mioNorm)
+    if (mias.length) {
+      miCanonico = String((mias[0] as { asesor: string | null }).asesor ?? miNombre)
+    }
+    misEmpresas = mias
+      .map(c => String((c as { empresa: string | null }).empresa ?? '').trim())
+      .filter(Boolean)
+  }
   /* EL MARCO VA PRIMERO, Y NO ES DECORACIÓN. Es la doctrina del área —los
      siete principios, el encargo del rol, las reglas duras y lo que no se
      acepta como respuesta de un asesor—. Iba antes sin estar: dirección
@@ -315,45 +391,79 @@ export async function buildAtlasContext(pregunta = ''): Promise<{ text: string; 
   const modulos: string[]  = ['marco-del-area', 'base-conocimiento', 'auditoria', 'tickets']
   const asesorPorNombre: Record<string, string> = {}
 
+  /* Estos dos cierres se evalúan MÁS ABAJO, en el bloque de churn, cuando
+     `asesorPorNombre` ya está poblado: leen el objeto, no una copia. */
+  /** ¿Este cliente es de la cartera de quien pregunta? */
+  const esMio = (nombre: string): boolean => {
+    if (!acotado) return true
+    return normalizarNombre(asesorPorNombre[normalizarNombre(nombre)]) === mioNorm
+  }
+  /** ¿De este cliente no sabemos de quién es? (no está en la cartera CS) */
+  const sinDueno = (nombre: string): boolean =>
+    !asesorPorNombre[normalizarNombre(nombre)]
+
   try {
     const monday      = getMonday()
     const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
     const today        = hoyEnMexico()
 
+    /* EL FILTRO VA AQUÍ, EN LA CONSULTA. Si se pusiera al pintar, el dato ya
+       estaría cargado y lo volvería a filtrar —o no— quien añada el siguiente
+       campo. `miCanonico` es la grafía de la base, así que el `.eq()` casa. */
+    let qCuentas = supabaseAdmin
+      .from('cuentas')
+      .select('empresa,consecutivo,asesor,health_score,facturacion,estado,score_adopcion')
+      .in('estado', ['activo', 'en_riesgo'])
+    if (acotado) qCuentas = qCuentas.eq('asesor', miCanonico)
+
+    let qSegs = supabaseAdmin
+      .from('seguimientos')
+      .select('empresa,tipo,descripcion,asesor,created_at')
+      .gte('created_at', sevenDaysAgo)
+    if (acotado) qSegs = qSegs.eq('asesor', miCanonico)
+
+    let qActs = supabaseAdmin
+      .from('actividades')
+      .select('empresa,asesor,tipo,estado,completada')
+      .eq('semana_inicio', monday)
+    if (acotado) qActs = qActs.eq('asesor', miCanonico)
+
+    /* Reuniones no tiene columna `asesor` —nunca la tuvo—, así que la cartera
+       se acota por la empresa de la cuenta. Una reunión SIN cuenta vinculada no
+       se entrega a un asesor: su título puede nombrar a un cliente de otra
+       cartera, y no hay con qué comprobarlo. */
+    let qReu = supabaseAdmin
+      .from('reuniones')
+      .select('titulo,tipo,fecha,participantes,empresa')
+      .gte('fecha', today)
+      .order('fecha', { ascending: true })
+      .limit(7)
+    if (acotado) {
+      qReu = misEmpresas.length
+        ? qReu.in('empresa', misEmpresas)
+        : qReu.eq('empresa', '\u0000sin-cartera')   // no casa nada, a propósito
+    }
+
     const [csRes, segsRes, actRes, reuRes, todasRes] = await Promise.all([
-      supabaseAdmin
-        .from('cuentas')
-        .select('empresa,consecutivo,asesor,health_score,facturacion,estado,score_adopcion')
-        .in('estado', ['activo', 'en_riesgo'])
-        .order('health_score', { ascending: true }),
+      qCuentas.order('health_score', { ascending: true }),
 
-      supabaseAdmin
-        .from('seguimientos')
-        .select('empresa,tipo,descripcion,asesor,created_at')
-        .gte('created_at', sevenDaysAgo)
-        .order('created_at', { ascending: false })
-        .limit(12),
+      qSegs.order('created_at', { ascending: false }).limit(12),
 
-      supabaseAdmin
-        .from('actividades')
-        .select('empresa,asesor,tipo,estado,completada')
-        .eq('semana_inicio', monday)
-        .limit(50),
+      qActs.limit(50),
 
       /* `asesor` NO es una columna de `reuniones` — nunca lo fue. Pedirla hacía
          que PostgREST devolviera 400 (42703) y que `reuRes.data` fuera null,
          así que la sección PROXIMAS REUNIONES jamás se agregó al contexto:
          Atlas nunca ha visto una sola reunión. Quien lleva la reunión se lee
          de `participantes`. */
-      supabaseAdmin
-        .from('reuniones')
-        .select('titulo,tipo,fecha,participantes,empresa')
-        .gte('fecha', today)
-        .order('fecha', { ascending: true })
-        .limit(7),
+      qReu,
 
-      // Todas las cuentas (sin filtro de estado) — solo para cruzar nombre →
-      // asesor en la sección de churn (las canceladas ya no están "activas")
+      /* Todas las cuentas (sin filtro de estado) — para cruzar nombre → asesor
+         en la sección de churn, donde las canceladas ya no están «activas».
+         ESTA SÍ VA COMPLETA Y NO ES UNA FUGA: no se escribe en el contexto, se
+         usa en el servidor para decidir qué filas se emiten y cuáles no. Sin
+         ella no se puede saber que una baja es de otra cartera, y marcarla
+         «[sin asesor]» sería afirmar en falso que no está en la cartera CS. */
       supabaseAdmin
         .from('cuentas')
         .select('empresa,asesor'),
@@ -381,6 +491,12 @@ export async function buildAtlasContext(pregunta = ''): Promise<{ text: string; 
       }
 
       const semLine    = Object.entries(semCount).map(([s, n]) => `${s}:${n}`).join(' | ')
+
+      /* LA LÍNEA «Por asesor» ERA EL HALLAZGO. Es la comparación entre las tres
+         asesoras del Dashboard de dirección, redactada en prosa: «Fátima(76
+         cuentas, 11 en riesgo) | Dan(…) | Claudia(…)». A un asesor se le da SU
+         renglón y nada más — no es el mismo dato con menos filas, es que el
+         dato era la comparación. */
       const asesorLine = Object.entries(asesorStats)
         .map(([a, d]) => `${a}(${d.total} cuentas, ${d.riesgo} en riesgo)`)
         .join(' | ')
@@ -391,10 +507,16 @@ export async function buildAtlasContext(pregunta = ''): Promise<{ text: string; 
         .map(c => `    ${c.empresa} (${c.consecutivo}) HS:${c.health_score ?? '?'} [${c.asesor}]`)
         .join('\n')
 
+      const rotulo = acotado
+        ? `CUENTAS ACTIVAS DE TU CARTERA (${total} totales; SOLO las de ${miCanonico} — `
+          + `no tienes a la vista las de los demás asesores, así que no afirmes `
+          + `totales de la empresa ni compares carteras)`
+        : `CUENTAS ACTIVAS (${total} totales)`
+
       sections.push(
-        `CUENTAS ACTIVAS (${total} totales):
+        `${rotulo}:
   Semaforo: ${semLine}
-  Por asesor: ${asesorLine}
+  ${acotado ? 'Tu cartera' : 'Por asesor'}: ${asesorLine}
   TOP RIESGO (HS<40):
 ${topRiesgo || '    Ninguna en riesgo critico'}`
       )
@@ -406,7 +528,8 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       const segs = segsRes.data
         .map(s => `  [${s.asesor}] ${s.empresa} — ${s.tipo}: "${(s.descripcion ?? '').slice(0, 100)}"`)
         .join('\n')
-      sections.push(`SEGUIMIENTOS ULTIMOS 7 DIAS:\n${segs}`)
+      sections.push(
+        `SEGUIMIENTOS ULTIMOS 7 DIAS${acotado ? ` (SOLO los de ${miCanonico})` : ''}:\n${segs}`)
       modulos.push('seguimientos')
     }
 
@@ -427,10 +550,13 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
         .map(([a, d]) => `${a}: ${d.comp}/${d.total}`)
         .join(' | ')
 
+      /* El CUMPLIMIENTO SAC comparado entre las tres era la otra mitad del
+         hallazgo: «Fátima: 7/10 | Dan: 4/10 | Claudia: 9/10» es la evaluación
+         de desempeño del área. Acotado se queda en el renglón propio. */
       sections.push(
-        `ACTIVIDADES SAC SEMANA ${monday}:
+        `ACTIVIDADES SAC SEMANA ${monday}${acotado ? ` — SOLO ${miCanonico}` : ''}:
   Total: ${acts.length} | Completadas: ${completadas} | Pendientes: ${pendientes} | Bloqueadas: ${bloqueadas}
-  Por asesor: ${asesorLine}`
+  ${acotado ? 'Tu cumplimiento' : 'Por asesor'}: ${asesorLine}`
       )
       modulos.push('actividades')
     }
@@ -516,10 +642,30 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
      3. EL ENCABEZADO ESTABA VIEJO: decia «SOLO Enero a Julio 2026 — para agosto
         usa CHURN — CORTE VIGENTE» mientras el archivo ya traia septiembre. Ahora
         se arma con los meses que de verdad se incluyeron. */
+  /* ── EL RECORTE DEL CHURN, Y POR QUÉ LOS TOTALES SE RECALCULAN ────────────
+   *
+   * Los reportes de churn cubren toda la base de Zoho. Para un asesor se dejan
+   * SUS clientes y los que no están en la cartera CS —ésos no son de nadie, son
+   * cifra de empresa—, y se quitan los de las otras dos carteras: «qué se le
+   * cayó a Dan y por cuánto» es justo la comparación que no le toca.
+   *
+   * Los totales se recalculan sobre lo que queda. Dejar el total de la empresa
+   * encima de una lista recortada sería una tabla que no cierra: el modelo
+   * restaría y le contaría al asesor bajas que no puede ver. Y el rótulo lo
+   * dice con palabras, porque una lista parcial sin aviso se lee como completa.
+   */
+  const visible = <T extends { cliente: string }>(rows: T[]): T[] =>
+    acotado ? rows.filter(r => esMio(r.cliente) || sinDueno(r.cliente)) : rows
+  const ALCANCE_ACOTADO = acotado
+    ? ` | ALCANCE: solo TUS clientes y los que no están en la cartera CS. `
+      + `Las bajas de las otras carteras NO están en esta lista y sus importes `
+      + `NO están en estos totales: no las menciones ni deduzcas el total de la empresa`
+    : ''
+
   const grcLines: string[] = []
   for (const mes of AAA_GRC_MESES_CERRADOS) {
-    const churn = mes.clientes.filter(r => r.movimiento.includes('Churn'))
-    const down  = mes.clientes.filter(r => r.movimiento.includes('Downgrade'))
+    const churn = visible(mes.clientes.filter(r => r.movimiento.includes('Churn')))
+    const down  = visible(mes.clientes.filter(r => r.movimiento.includes('Downgrade')))
     const fmt = (rows: typeof mes.clientes) => rows
       .map(r => `${r.cliente}(${money(r.perdido ?? 0)})${cartera(r.cliente)}`)
       .join(', ')
@@ -541,7 +687,7 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     : ''
   sections.push(
     `CHURN — GRC AAA 2026 (apartado Churn > GRC AAA 2026 | ${rango}${nota} ` +
-    `| formato: cliente(MRR perdido)[cartera], ${LEYENDA_CARTERA}):\n${grcLines.join('\n')}`
+    `| formato: cliente(MRR perdido)[cartera], ${LEYENDA_CARTERA}${ALCANCE_ACOTADO}):\n${grcLines.join('\n')}`
   )
   modulos.push('churn-grc')
 
@@ -554,36 +700,66 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     const antig = (rep.antiguedadSaldos ?? [])
       .map(a => `${a.rango} $${a.monto.toLocaleString('es-MX')}`).join(' · ')
     const limpio = (c: string) => c.replace('🔝 ', '')
-    const top = rep.pendientes
-      .filter(p => !p.cliente.startsWith('+'))
+    /* El recorte mira el nombre LIMPIO: los pendientes traen el prefijo «🔝 »
+       y con el nombre crudo no cruzarían contra `cuentas`, así que todos
+       saldrían «sin dueño» y el candado no quitaría ninguno. */
+    const visibleLimpio = <T extends { cliente: string }>(rows: T[]): T[] =>
+      acotado
+        ? rows.filter(r => esMio(limpio(r.cliente)) || sinDueno(limpio(r.cliente)))
+        : rows
+
+    const pendVis = visibleLimpio(rep.pendientes.filter(p => !p.cliente.startsWith('+')))
+    const top = pendVis
       .map(p => `${limpio(p.cliente)} $${p.monto.toLocaleString('es-MX')} (${p.mesesActivo} meses)${cartera(limpio(p.cliente))}`)
       .join(', ')
     /* Uno por línea y numerado: en formato corrido el modelo colaba un cliente
      * de otro mes al final de la lista (Cargo Lift, 2 sep 2026). Con el índice
-     * y el total a la vista, la lista se cierra sola. */
-    const downs = rep.downgrades
-      .map((d, i) => `    ${i + 1}/${rep.downgrades.length}. ${limpio(d.cliente)} -$${d.perdida.toLocaleString('es-MX')}${cartera(limpio(d.cliente))} — ${d.nota}`)
+     * y el total a la vista, la lista se cierra sola.
+     *
+     * El índice se cuenta sobre las VISIBLES: numerar «3/14» en una lista de
+     * cinco le dice al modelo que le faltan nueve y lo invita a rellenarlas. */
+    const downVis = visibleLimpio(rep.downgrades)
+    const downs = downVis
+      .map((d, i) => `    ${i + 1}/${downVis.length}. ${limpio(d.cliente)} -$${d.perdida.toLocaleString('es-MX')}${cartera(limpio(d.cliente))} — ${d.nota}`)
       .join('\n')
+    const downTotalVis = downVis.reduce((s, d) => s + d.perdida, 0)
     /* Los grupos se entregan resueltos: pedirle al modelo que separe asignados
      * de no asignados le salía mal aun teniendo la marca al lado del nombre. */
     const enCartera: string[] = []
     const fueraCartera: string[] = []
-    for (const d of rep.downgrades) {
+    for (const d of downVis) {
       const nom = limpio(d.cliente)
       const a = asesorDe(nom)
       ;(a ? enCartera : fueraCartera).push(a ? `${nom} ${a}` : nom)
     }
+
+    /* LAS CIFRAS DE EMPRESA SE QUEDAN, PERO DICIENDO QUE LO SON. El % de GRC,
+       la cartera en activo, el dinero fuera de cartera y la antigüedad de
+       saldos son agregados publicados —no dicen de quién es qué— y un asesor
+       los necesita para situarse. Lo que NO puede pasar es que queden junto a
+       una lista recortada sin avisar: el modelo las leería como el total de lo
+       que tiene listado y la tabla no cerraría. Así que van rotuladas. */
+    const deEmpresa = acotado ? ' (cifra de EMPRESA, no de tu cartera)' : ''
+    const cierreDowns = acotado
+      ? `  Downgrades de agosto DE TU CARTERA (y los que no están en la cartera CS): `
+        + `${downVis.length} clientes por $${downTotalVis.toLocaleString('es-MX')}. `
+        + `La lista es completa PARA TU ALCANCE, no para el mes: el mes tiene más `
+        + `downgrades en las otras carteras y no los tienes. No los nombres ni los estimes.`
+      : `  Downgrades de agosto — lista COMPLETA y CERRADA de ${rep.downgrades.length} clientes `
+        + `por $${(rep.downgradeTotalReal ?? 0).toLocaleString('es-MX')}. `
+        + `No hay un cliente número ${rep.downgrades.length + 1}: cualquier otro nombre pertenece a otro mes.`
+
     sections.push(
       `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha} | ` +
       `ESTA es la fuente para agosto 2026: los downgrades listados abajo son los ÚNICOS del mes, ` +
-      `no agregues clientes de la sección GRC AAA (esa cubre enero–julio) | ${LEYENDA_CARTERA}):\n` +
-      `  Evolución GRC: ${evo}. Acumulado 2026: ${rep.grc.acumulado}%` +
+      `no agregues clientes de la sección GRC AAA (esa cubre enero–julio) | ${LEYENDA_CARTERA}${ALCANCE_ACOTADO}):\n` +
+      `  Evolución GRC${deEmpresa}: ${evo}. Acumulado 2026: ${rep.grc.acumulado}%` +
       `${rep.grc.anterior !== undefined ? ` (ant. ${rep.grc.anterior}%)` : ''} — MES CORRIENDO, NO DEFINITIVO.\n` +
-      `  Cartera en Activo: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} en ${rep.pendientesCuentasReal} cuentas. Top 10: ${top}.\n` +
-      `  Dinero fuera de cartera: $72,631 en 71 cuentas — Suspendidos 27 ($18,692 · 25.2 días promedio) · Desactivados 23 ($33,899 · 11.9 días) · Cancelados 21 ($20,040).\n` +
-      (antig ? `  Antigüedad de saldos (total $177,156.62): ${antig}.\n` : '') +
-      `  Downgrades de agosto — lista COMPLETA y CERRADA de ${rep.downgrades.length} clientes por $${(rep.downgradeTotalReal ?? 0).toLocaleString('es-MX')}. ` +
-      `No hay un cliente número ${rep.downgrades.length + 1}: cualquier otro nombre pertenece a otro mes.\n${downs}\n` +
+      `  Cartera en Activo${deEmpresa}: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} en ${rep.pendientesCuentasReal} cuentas.` +
+      ` Top 10${acotado ? ' (recortado a tu alcance)' : ''}: ${top || 'ninguno en tu alcance'}.\n` +
+      `  Dinero fuera de cartera${deEmpresa}: $72,631 en 71 cuentas — Suspendidos 27 ($18,692 · 25.2 días promedio) · Desactivados 23 ($33,899 · 11.9 días) · Cancelados 21 ($20,040).\n` +
+      (antig ? `  Antigüedad de saldos${deEmpresa} (total $177,156.62): ${antig}.\n` : '') +
+      `${cierreDowns}\n${downs || '    (ninguno en tu alcance)'}\n` +
       `  Downgrades de agosto agrupados por cartera (ya calculado, NO lo recalcules): ` +
       `EN CARTERA CS → ${enCartera.length ? enCartera.join(', ') : 'ninguno'}. ` +
       `SIN ASESOR ASIGNADO → ${fueraCartera.length ? fueraCartera.join(', ') : 'ninguno'}.\n` +
@@ -593,13 +769,18 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     modulos.push('churn-corte-vigente')
   }
 
+  /* Las cancelaciones también se recortan: es una lista de clientes con nombre
+     propio, y el conteo del rótulo se recalcula o diría «193 clientes» encima
+     de una lista de veinte. */
+  const cancelVis = visible(CLIENTES_CANCELADOS)
   const porPeriodo: Record<string, string[]> = {}
-  for (const c of CLIENTES_CANCELADOS) {
+  for (const c of cancelVis) {
     if (!porPeriodo[c.periodo]) porPeriodo[c.periodo] = []
     porPeriodo[c.periodo].push(c.cliente)
   }
   sections.push(
-    `CANCELACIONES CONFIRMADAS (apartado Churn > Análisis DATA — ${CLIENTES_CANCELADOS.length} clientes):\n` +
+    `CANCELACIONES CONFIRMADAS (apartado Churn > Análisis DATA — ${cancelVis.length} clientes` +
+    `${acotado ? ` de tu alcance; el total de la empresa es otro y no lo tienes` : ''}):\n` +
     Object.entries(porPeriodo).map(([p, cs]) => `  ${p}: ${cs.join(', ')}`).join('\n')
   )
   modulos.push('churn-cancelados')

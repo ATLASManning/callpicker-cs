@@ -1,22 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCuentaById, updateCuenta, saveHealthSnapshot, deleteCuenta } from '@/lib/supabase'
+import { sesionDe, esSuya, firmaDeSesion } from '@/lib/dueno'
 
 interface Ctx { params: { id: string } }
 
-export async function GET(_req: NextRequest, { params }: Ctx) {
+/* `getCuentaById` acepta UUID o consecutivo, así que el dueño se comprueba
+   SOBRE LA CUENTA YA RESUELTA y no con `exigeDuenoDeCuenta`, que busca por
+   `id`: pedir la cuenta por su consecutivo se habría saltado el candado. */
+export async function GET(req: NextRequest, { params }: Ctx) {
   const cuenta = await getCuentaById(params.id)
   if (!cuenta) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  /* Un 404 y no un 403: distinguirlos confirmaría que el identificador de otra
+     cartera es real. Ver lib/dueno.ts. */
+  if (!esSuya(sesionDe(req.headers), cuenta.asesor)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
   return NextResponse.json(cuenta)
 }
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
-  const rol    = req.headers.get('x-user-rol')    ?? 'viewer'
+  const s = sesionDe(req.headers)
 
-  if (rol !== 'admin' && rol !== 'asesor')
+  if (s.rol !== 'admin' && s.rol !== 'asesor')
     return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+
+  /* COMPROBAR EL ROL NO ES COMPROBAR EL DUEÑO, y aquí estaba sólo el rol: un
+     asesor editaba cualquier cuenta de la empresa. Es la ruta que `/api/
+     seguimientos` llama para mover `ultimo_contacto`, así que era además la
+     forma de tocar cartera ajena sin que lo pareciera. */
+  const actual = await getCuentaById(params.id)
+  if (!actual) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!esSuya(s, actual.asesor)) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
 
   try {
     const body = await req.json()
+
+    /* Un asesor no reasigna la cuenta: ni se la queda ni se la pasa a otro.
+       Administración sí, que mover cartera es su trabajo. */
+    if (s.rol === 'asesor' && 'asesor' in (body ?? {})) {
+      const firma = firmaDeSesion(req.headers, null)
+      if (!firma.ok) return firma.res
+      if (!esSuya(s, body.asesor)) {
+        return NextResponse.json(
+          { error: 'No puedes mover una cuenta a otra cartera.' },
+          { status: 403 })
+      }
+    }
+
     const updated = await updateCuenta(params.id, body)
 
     // Auto-save health score snapshot when scores change

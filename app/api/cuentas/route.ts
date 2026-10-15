@@ -3,6 +3,9 @@ import { getCuentas, upsertCuenta } from '@/lib/supabase'
 import { soporteDeCuenta } from '@/lib/soporte-cuenta'
 import { getZohoMap, lookupZoho } from '@/lib/zoho-enrich'
 import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
+import {
+  carteraDeSesion, firmaDeSesion, esSuya, sesionDe, exigeDuenoDeCuenta,
+} from '@/lib/dueno'
 
 // Stats de tickets por cuenta: fuente única en lib/tickets-cuenta.ts
 // (regla 30 Ago 2026: lo que se actualiza en Tickets se refleja en cuentas).
@@ -10,11 +13,15 @@ import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
 // ── Handlers ─────────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
   const sp  = req.nextUrl.searchParams
-  const rol = req.headers.get('x-user-rol') ?? 'viewer'
-  const asesorHeader = decodeURIComponent(req.headers.get('x-user-asesor') ?? '')
 
-  // Si el usuario es asesor, forzar filtro por su nombre (ignora el param del frontend)
-  const asesorFiltro = rol === 'asesor' ? asesorHeader : (sp.get('asesor') || undefined)
+  /* FALLA CERRADO. Antes era `rol === 'asesor' ? asesorHeader : (...)`, y el
+     caso que dolía era el que parecía inofensivo: con el rol puesto y el nombre
+     vacío, `asesorFiltro` salía cadena vacía, el `|| undefined` de abajo la
+     convertía en «sin filtro» y `getCuentas` devolvía la cartera entera de la
+     empresa. Ahora un rol `asesor` sin cartera recibe 403. Ver lib/dueno.ts. */
+  const cartera = carteraDeSesion(req.headers, sp.get('asesor'))
+  if (!cartera.ok) return cartera.res
+  const asesorFiltro = cartera.asesor
 
   try {
     const [data, zohoMap] = await Promise.all([
@@ -73,9 +80,40 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  /* Este POST es un UPSERT: con `id` reescribe una cuenta existente. Sin
+     comprobación, un asesor reescribía cualquier cuenta de la empresa —incluida
+     la columna `asesor`, con lo que podía adjudicarse cartera ajena— y un
+     `viewer` creaba cuentas. No estaba en los siete puntos de la auditoría;
+     salió al barrer la clase, que es el encargo. */
+  const s = sesionDe(req.headers)
+  if (s.rol !== 'admin' && s.rol !== 'asesor') {
+    return NextResponse.json({ error: 'Sin permisos' }, { status: 403 })
+  }
+
   try {
     const body = await req.json()
-    const cuenta = await upsertCuenta(body)
+
+    if (body?.id) {
+      const corta = await exigeDuenoDeCuenta(req.headers, String(body.id))
+      if (corta) return corta
+    }
+
+    /* El dueño lo pone la sesión, no el cuerpo: si no, un asesor se asigna a sí
+       mismo una cuenta de otro, o se la pasa a un tercero. Administración sigue
+       pudiendo mover cartera, que es su trabajo. */
+    const firma = firmaDeSesion(req.headers, body?.asesor)
+    if (!firma.ok) return firma.res
+    const sanea = s.rol === 'asesor'
+      ? { ...body, asesor: firma.asesor }
+      : body
+
+    if (s.rol === 'asesor' && body?.asesor && !esSuya(s, body.asesor)) {
+      return NextResponse.json(
+        { error: 'No puedes asignar una cuenta a otra cartera.' },
+        { status: 403 })
+    }
+
+    const cuenta = await upsertCuenta(sanea)
     return NextResponse.json(cuenta, { status: 201 })
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
