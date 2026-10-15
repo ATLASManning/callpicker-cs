@@ -165,18 +165,35 @@ def espera_despliegue(tok, minutos=8):
        falla no distingue «el codigo no esta en linea» de «el codigo esta mal».
        Se depuran las dos cosas a la vez y se pierde la tarde.
 
-       La marca es el campo `alcance` de /api/relacionamiento, que solo existe
-       a partir del candado de dueno. No es una version escrita a mano que haya
-       que acordarse de subir: es una consecuencia del propio cambio."""
+       La marca es `candado` en /api/relacionamiento, que lleva la version de
+       lib/dueno.ts. Se compara contra la del archivo LOCAL, que es el codigo
+       que se acaba de escribir.
+
+       La primera version de esto miraba solo si el campo `alcance` existia, y
+       eso no servia: el campo ya estaba del despliegue anterior, asi que daba
+       verde con el build viejo en linea. Una marca que no cambia no es una
+       marca."""
+    esperada = None
+    for ln in io.open(os.path.join(RAIZ, 'lib', 'dueno.ts'), encoding='utf-8'):
+        m = re.search(r"CANDADO_VERSION\s*=\s*'([^']+)'", ln)
+        if m:
+            esperada = m.group(1)
+            break
+    if not esperada:
+        print('  No encontre CANDADO_VERSION en lib/dueno.ts — no puedo esperar.')
+        return False
+    print('  Esperando la version: %s' % esperada)
     limite = time.time() + minutos * 60
     intento = 0
     while time.time() < limite:
         intento += 1
         st, tx = pide('/api/relacionamiento', tok)
-        if st == 200 and '"alcance"' in tx:
+        if st == 200 and ('"candado":"%s"' % esperada) in tx.replace(' ', ''):
             print('  Despliegue EN LINEA (intento %d).' % intento)
             return True
-        print('  ...aun sirve el build anterior (intento %d, status %d)' % (intento, st))
+        viva = re.search(r'"candado"\s*:\s*"([^"]*)"', tx)
+        print('  ...aun sirve %s (intento %d, status %d)'
+              % (viva.group(1) if viva else 'un build sin marca', intento, st))
         time.sleep(20)
     print('  NO LLEGO en %d min. Las sondas de abajo medirian el build VIEJO:' % minutos)
     print('  no se puede concluir nada de ellas. Revisar el build en Vercel.')

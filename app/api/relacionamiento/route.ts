@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { relacionamientoDeCuentas } from '@/lib/relacionamiento'
-import { carteraDeSesion, sesionDe, esRolAcotado } from '@/lib/dueno'
+import { carteraDeSesion, sesionDe, esRolAcotado, CANDADO_VERSION } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 55
@@ -85,6 +85,8 @@ export async function GET(req: NextRequest) {
       : 0
     return NextResponse.json({
       alcance: acotado ? `cartera de ${cartera.asesor}` : 'todas las carteras',
+      // Marca de despliegue del candado — ver CANDADO_VERSION en lib/dueno.ts.
+      candado: CANDADO_VERSION,
       total: filas.length,
       promedio: prom,
       niveles: filas.reduce<Record<string, number>>((a, f) => {

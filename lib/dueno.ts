@@ -41,6 +41,20 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
+/**
+ * Qué versión del candado está sirviendo. Se sube A MANO con cada cambio que
+ * haya que poder confirmar desde fuera, y viaja en el campo `alcance` de
+ * `/api/relacionamiento`.
+ *
+ * Existe por la misma razón que el `VERSION` de `/api/alertas`: «lo desplegué»
+ * no es «lo están viendo». Verificando este candado perdí una ronda porque la
+ * marca que usé —el campo `alcance`— ya existía del despliegue anterior, así
+ * que no distinguía un build del siguiente, y una sonda en falla no decía si el
+ * código no estaba en línea o si estaba mal. Vercel no publica el `buildId` en
+ * esta app y no hay token para preguntarle.
+ */
+export const CANDADO_VERSION = '2026-10-15.2-alcance-sin-invencion'
+
 export interface Sesion {
   rol: string
   /** `usuarios.asesor_nombre`, ya decodificado. Cadena vacía si no trae. */
