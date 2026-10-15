@@ -56,7 +56,7 @@ const ARRANQUE_MS = 1_500
 const TONO: Record<TonoLinea, { fondo: string; borde: string; texto: string; etiqueta: string }> = {
   grave:  { fondo: '#FEF2F2', borde: '#DC2626', texto: '#7F1D1D', etiqueta: 'Atender' },
   aviso:  { fondo: '#FFFBEB', borde: '#B45309', texto: '#78350F', etiqueta: 'Revisar' },
-  hueco:  { fondo: '#F5F3FF', borde: '#6D28D9', texto: '#4C1D95', etiqueta: 'No medido' },
+  hueco:  { fondo: '#EAF0F5', borde: '#6A7889', texto: '#3D4B5C', etiqueta: 'No medido' },
   bien:   { fondo: '#F0FDF4', borde: '#15803D', texto: '#14532D', etiqueta: 'En orden' },
   neutro: { fondo: '#F5F8FB', borde: '#3D4B5C', texto: '#334155', etiqueta: '' },
 }

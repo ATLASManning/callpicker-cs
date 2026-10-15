@@ -2436,7 +2436,7 @@ export default function ChurnPage() {
               onClick={() => setTab('aaa')}
               icon={<span style={{ fontSize: 13, lineHeight: 1 }}>⭐</span>}
               label="GRC · AAA 2026"
-              bg="#4c1d95"
+              bg="#10355D"
             />
             <AccesoBtn
               active={tab === 'conciliacion'}
@@ -2450,7 +2450,7 @@ export default function ChurnPage() {
               href="https://marketingplus.zoho.com/reports/open-view/245443000007094051"
               icon={<BarChart3 size={14} />}
               label="Gross Revenue Churn"
-              bg="#0E2354"
+              bg="#082742"
             />
           </div>
         }

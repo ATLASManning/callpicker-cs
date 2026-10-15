@@ -563,13 +563,68 @@ body {
 .cp-doc .bg-blue-50\/50   { background-color: rgba(234,242,248,0.50); }
 .cp-doc .bg-blue-50\/20   { background-color: rgba(234,242,248,0.20); }
 
-/* El acento. */
-.cp-doc .text-blue-700,
-.cp-doc .text-blue-500    { color: #1D6CAA; }
-.cp-doc .bg-blue-50       { background-color: #EAF2F8; }
-.cp-doc .border-blue-200  { border-color: #BBD4E6; }
-.cp-doc .ring-blue-500    { --tw-ring-color: #1D6CAA; }
+/* ── EL ACENTO: LA ESCALA COMPLETA, NO UNAS CUANTAS ────────────────────────
+ *
+ * La primera version listaba las clases que aparecian en Tickets y se quedo
+ * corta. Dirección lo vio en Churn el 15 oct: el boton «GRC · AAA 2026»
+ * seguia MORADO y la cabecera de la tabla en azul electrico.
+ *
+ * Y mi comprobacion no lo cazo porque busque los hex EN EL HTML: esos dos
+ * colores no son un hex, son `bg-purple-600` y `bg-blue-600` compilados
+ * dentro del CSS de Tailwind. Buscar `#1B3FCC` en el documento devolvia cero
+ * y la pantalla seguia azul. Lo que se LEE hay que mirarlo.
+ *
+ * Ahora va la escala entera, por luminosidad:
+ *   50/100   tinte claro      -> #EAF2F8
+ *   200/300  borde            -> #BBD4E6
+ *   400/500/600  acento       -> #1D6CAA sobre claro
+ *   700/800/900  solido       -> #10355D, con blanco encima da 12.4:1
+ *
+ * El MORADO entra aqui porque el documento no tiene morado en ninguna parte:
+ * `purple`, `violet`, `indigo` y `fuchsia` caen todos al azul de la casa. */
+.cp-doc .bg-blue-50,    .cp-doc .bg-blue-100,
+.cp-doc .bg-indigo-50,  .cp-doc .bg-indigo-100,
+.cp-doc .bg-violet-50,  .cp-doc .bg-violet-100,
+.cp-doc .bg-purple-50,  .cp-doc .bg-purple-100,
+.cp-doc .bg-sky-50,     .cp-doc .bg-sky-100     { background-color: #EAF2F8; }
+
+.cp-doc .bg-blue-400,   .cp-doc .bg-blue-500,   .cp-doc .bg-blue-600,
+.cp-doc .bg-blue-700,   .cp-doc .bg-blue-800,   .cp-doc .bg-blue-900,
+.cp-doc .bg-indigo-400, .cp-doc .bg-indigo-500, .cp-doc .bg-indigo-600,
+.cp-doc .bg-indigo-700, .cp-doc .bg-indigo-800,
+.cp-doc .bg-violet-500, .cp-doc .bg-violet-600, .cp-doc .bg-violet-700,
+.cp-doc .bg-purple-500, .cp-doc .bg-purple-600, .cp-doc .bg-purple-700,
+.cp-doc .bg-purple-800, .cp-doc .bg-sky-600     { background-color: #10355D; }
+
+.cp-doc .text-blue-400,   .cp-doc .text-blue-500,   .cp-doc .text-blue-600,
+.cp-doc .text-indigo-400, .cp-doc .text-indigo-500, .cp-doc .text-indigo-600,
+.cp-doc .text-violet-500, .cp-doc .text-violet-600,
+.cp-doc .text-purple-500, .cp-doc .text-purple-600,
+.cp-doc .text-sky-500,    .cp-doc .text-sky-600     { color: #1D6CAA; }
+
+.cp-doc .text-blue-700,   .cp-doc .text-blue-800,   .cp-doc .text-blue-900,
+.cp-doc .text-indigo-700, .cp-doc .text-indigo-800,
+.cp-doc .text-violet-700, .cp-doc .text-violet-800,
+.cp-doc .text-purple-700, .cp-doc .text-purple-800,
+.cp-doc .text-purple-900                            { color: #10355D; }
+
+.cp-doc .border-blue-100,   .cp-doc .border-blue-200,   .cp-doc .border-blue-300,
+.cp-doc .border-indigo-100, .cp-doc .border-indigo-200,
+.cp-doc .border-violet-100, .cp-doc .border-violet-200,
+.cp-doc .border-purple-100, .cp-doc .border-purple-200  { border-color: #BBD4E6; }
+
+.cp-doc .ring-blue-300,   .cp-doc .ring-blue-400,   .cp-doc .ring-blue-500,
+.cp-doc .ring-indigo-300, .cp-doc .ring-indigo-400,
+.cp-doc .ring-purple-300, .cp-doc .ring-purple-400 { --tw-ring-color: #1D6CAA; }
 .cp-doc .focus\:ring-blue-500:focus { --tw-ring-color: #1D6CAA; }
+
+/* El degradado de un encabezado tambien lleva la marca. */
+.cp-doc .from-blue-500,  .cp-doc .from-blue-600,
+.cp-doc .from-indigo-500, .cp-doc .from-purple-500,
+.cp-doc .from-purple-600 { --tw-gradient-from: #10355D var(--tw-gradient-from-position); }
+.cp-doc .to-blue-600,    .cp-doc .to-blue-700,
+.cp-doc .to-indigo-600,  .cp-doc .to-purple-600,
+.cp-doc .to-purple-700   { --tw-gradient-to: #1D6CAA var(--tw-gradient-to-position); }
 
 /* EL FOCO SE VE, Y SE VE EN NARANJA.
    `:focus-visible` y no `:focus`: con `:focus` el anillo aparece también al
