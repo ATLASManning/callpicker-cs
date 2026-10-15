@@ -62,8 +62,29 @@ import urllib.request
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-#: El correo de control. Tiene que entrar SIEMPRE; si no, la sonda esta rota.
+#: El correo de control POSITIVO. Tiene que entrar SIEMPRE.
 CONTROL = 'josel@callpicker.com'
+
+#: El control NEGATIVO, y es el que faltaba. Un correo que no existe ni puede
+#: existir: si este «entra», la sonda miente y no se concluye nada.
+#:
+#: LA PRIMERA VERSION NO LO TENIA Y SE EQUIVOCO ENTERA. Juzgaba por tamaño
+#: --`HTTP 200` y mas de 2 KB-- y el middleware contesta la PAGINA DE LOGIN con
+#: HTTP 200, no con un redirect visible. Asi que un correo inventado daba
+#: «ABRE» en las cinco rutas con 44,579 B identicos, las dos APIs incluidas,
+#: que deberian devolver JSON. Con eso llegue a creer que tres personas dadas
+#: de baja seguian dentro.
+#:
+#: El control positivo NO lo caza: solo detecta falsos NEGATIVOS --sonda muerta,
+#: produccion caida--. El falso POSITIVO, que es el que alarma en falso y el que
+#: haria dar por buena una baja que no existe, solo lo caza este.
+#: [[feedback-probar-al-reves]]
+CONTROL_NEGATIVO = 'no-existe-jamas-9fk2@ejemplo.invalido'
+
+#: Marcadores de la PAGINA DE LOGIN. Si el cuerpo trae uno, no se entro: se
+#: rebotó, aunque el status diga 200.
+MARCAS_LOGIN = ('type="password"', 'name="password"', 'Iniciar sesi',
+                'autenticaci', 'Ingresa tu correo')
 
 #: Las rutas que de verdad importan: la portada, la cartera y sus dos APIs.
 #: Si una sola contesta con datos, esa persona esta dentro.
@@ -106,26 +127,44 @@ def pide(base, ruta, gal=None):
     req.add_header('Cache-Control', 'no-cache')
     try:
         with urllib.request.urlopen(req, timeout=120) as x:
-            return x.status, len(x.read()), x.geturl()
+            cuerpo = x.read().decode('utf-8', 'replace')
+            return x.status, cuerpo, x.geturl()
     except urllib.error.HTTPError as e:
-        return e.code, len(e.read() or b''), None
+        return e.code, (e.read() or b'').decode('utf-8', 'replace'), None
     except Exception as e:
-        return None, 0, str(e)
+        return None, '', str(e)
 
 
 def sonda_cookie(base, email, rol, asesor):
-    u"""La sonda que decide. Devuelve (entra, detalle)."""
+    u"""La sonda que decide. Devuelve (entra, detalle).
+
+    SE JUZGA POR CONTENIDO, NO POR TAMAÑO. El middleware no contesta con un
+    redirect visible: sirve la PAGINA DE LOGIN con HTTP 200. Juzgar por «200 y
+    mas de 2 KB» daba «ABRE» a un correo inventado en las cinco rutas, las APIs
+    incluidas. Lo que distingue de verdad:
+
+      · una API tiene que devolver JSON. Si devuelve HTML, reboto.
+      · una pagina del tablero NO trae un campo de contraseña.
+    """
     gal = cookie_de(email, rol, asesor)
     filas, entra = [], False
     for r in RUTAS:
-        code, n, destino = pide(base, r, gal)
-        # Un redirect al login cuenta como BLOQUEADO aunque el status sea 200.
-        rebota = bool(destino and '/login' in destino)
-        ok = code == 200 and not rebota and n > 2000
+        code, cuerpo, _destino = pide(base, r, gal)
+        n = len(cuerpo)
+        es_api = r.startswith('/api/')
+        login = any(m in cuerpo for m in MARCAS_LOGIN)
+        if es_api:
+            # JSON de verdad, no la pagina de login disfrazada de 200.
+            ok = code == 200 and cuerpo.lstrip()[:1] in ('{', '[')
+            motivo = u'DEVUELVE DATOS' if ok else (
+                u'rebota (HTML)' if code == 200 else u'no')
+        else:
+            ok = code == 200 and not login
+            motivo = u'ABRE' if ok else (
+                u'pagina de LOGIN' if login else u'no')
         if ok:
             entra = True
-        filas.append((r, code, n, u'ABRE' if ok else
-                      (u'rebota al login' if rebota else u'no')))
+        filas.append((r, code, n, motivo))
     return entra, filas
 
 
@@ -193,13 +232,21 @@ def main():
 
     entra = revisa(base, email, 'asesor', None, u'EL CORREO EN CUESTION')
     ctrl = revisa(base, CONTROL, 'admin', None, u'CONTROL POSITIVO (debe entrar)')
+    neg = revisa(base, CONTROL_NEGATIVO, 'asesor', None,
+                 u'CONTROL NEGATIVO (NO debe entrar jamas)')
 
     print(u'\n  ' + u'=' * 70)
     if not ctrl:
-        print(u'  *** EL CONTROL NO ENTRA: la sonda esta rota, no saques conclusiones.')
+        print(u'  *** EL CONTROL POSITIVO NO ENTRA: la sonda esta rota.')
         print(u'      (secreto mal leido, produccion caida, o el dominio cambio)')
         sys.exit(2)
-    print(u'  control ok: la sonda SI detecta un acceso real.')
+    if neg:
+        print(u'  *** UN CORREO INVENTADO «ENTRA»: LA SONDA MIENTE.')
+        print(u'      No concluyas nada de lo de arriba. Es lo que paso el 15 oct')
+        print(u'      2026 por juzgar el acceso por tamaño de respuesta en vez de')
+        print(u'      por contenido: el middleware sirve el login con HTTP 200.')
+        sys.exit(2)
+    print(u'  los DOS controles cuadran: detecta un acceso real y rechaza uno falso.')
 
     if esperado == 'fuera' and entra:
         print(u'  *** %s TODAVIA ENTRA y deberia estar fuera.' % email)
