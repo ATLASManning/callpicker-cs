@@ -9,6 +9,12 @@ import { CANALES_CONTACTO, llegoAlCliente, llegoAlClienteActividad } from '@/lib
 import { senalesEscritas, type TextoCuenta } from '@/lib/senal-escrita'
 import { mesaDeCuenta } from '@/lib/mesa-ayuda'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
+/* LAS LLAMADAS, QUE ESTE ARCHIVO NO ABRÍA NUNCA (14 oct 2026).
+   Se usa `llamadas-resumen` y no `llamadas-cuenta`: el segundo arma la lectura
+   completa que pinta una ficha —series por mes, matriz día×hora, destinos—, y
+   eso es correcto para una cuenta y caro para doscientas. Aquí hacen falta
+   cuatro cifras. */
+import { resumenLlamadas, VOLUMEN_MINIMO, type ResumenLlamadas } from '@/lib/llamadas-resumen'
 import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
 
 /**
@@ -45,6 +51,35 @@ export const MESA = {
   /** Fallas en el histórico para hablar de recurrencia. */
   fallas: 3,
 }
+
+/**
+ * LA ATENCIÓN TELEFÓNICA. Medida con `scripts/mide-fuentes-sin-alerta.py`
+ * ANTES de escribir las dos alarmas, igual que se hizo con la mesa.
+ *
+ * La curva completa, sobre las 180 cuentas vivas con lectura medible:
+ *
+ *     tasa >= 10%   147 cuentas (76.2%)   $1,182,237   ← un color de fondo
+ *     tasa >= 20%    85 cuentas (44.0%)   $  675,615
+ *     tasa >= 30%    42 cuentas (21.8%)   $  423,501
+ *     tasa >= 40%    17 cuentas ( 8.8%)   $  191,377   ← éste
+ *     tasa >= 50%     8 cuentas ( 4.1%)   $  113,451
+ *
+ *     >= 10,000 perdidas   11 cuentas (5.7%)   añade 9 y $133,060 sobre el 40%
+ *
+ * El 40% deja 17 cuentas, el mismo calibre que `sac_fallas_recurrentes` (16,
+ * 8.3%). Y el volumen va aparte porque mide otra cosa: Alianza Multimarca
+ * pierde 40,935 llamadas con una tasa del 55% y OOAPAS pierde 2,625 con el
+ * 99.7%. Con la tasa sola, una cuenta grande que pierde veinte mil al 35% no
+ * saldría en ninguna lista.
+ */
+export const ATENCION = {
+  /** Tasa de entrantes que nadie contestó, en porcentaje. */
+  tasa: 40,
+  /** Perdidas absolutas en la ventana, cuando la tasa no alcanza el umbral. */
+  volumen: 10000,
+  /** Debajo de esto no se interpreta nada. Lo fija `lib/llamadas-resumen.ts`. */
+  volumenMinimo: VOLUMEN_MINIMO,
+} as const
 
 /** Umbrales. Están juntos A PROPÓSITO: son la perilla del volumen. */
 export const UMBRALES = {
@@ -369,6 +404,22 @@ export async function detectarAlertas(
      la cola de un asesor dependía de a quién pertenecía la cuenta. */
   const top = await topDeCartera(facturacion)
 
+  /* ── LA LECTURA DE LLAMADAS, UNA VEZ POR CUENTA ─────────────────────────
+   *
+   * `resumenLlamadas` es async por cuenta pero comparte una caché de módulo y
+   * una carga en vuelo, así que las 193 peticiones abren el archivo de 2.7 MB
+   * UNA sola vez. Se resuelven todas aquí arriba para que el bucle de abajo
+   * siga siendo sincrónico: un `await` dentro de un `for` sobre 193 cuentas
+   * serializa lo que puede ir junto.
+   *
+   * Un `null` NO significa que la cuenta atienda bien: significa que no se
+   * midió —sin CID, sin fila en el archivo, o menos de 30 entrantes en toda la
+   * ventana—. Las dos cosas se distinguen abajo. [[feedback-cero-sin-medicion]] */
+  const llamadas = new Map<string, ResumenLlamadas | null>()
+  await Promise.all(cuentas.map(async c => {
+    llamadas.set(c.id, await resumenLlamadas(c.cid))
+  }))
+
   const alertas: Alerta[] = []
   const add = (tipo: TipoAlerta, c: CuentaAlerta, ev: string, dias: number | null = null) =>
     alertas.push(construirAlerta(tipo, conImporte(c), ev, top.has(c.id), dias))
@@ -640,6 +691,61 @@ export async function detectarAlertas(
             `${tk.fallas} fallas del servicio registradas en el histórico de la `
           + `mesa, sobre ${tk.total} tickets atendidos`
           + (tk.ultima ? `. El último, el ${tk.ultima}` : ''))
+      }
+    }
+
+    /* ── LA ATENCIÓN TELEFÓNICA ───────────────────────────────────────────
+     *
+     * Instrucción de dirección, 14 oct 2026: «tu objetivo es que nutras las
+     * alertas con toda la data que tiene cada cuenta y con la información que
+     * se les alimenta».
+     *
+     * Esta fuente es la más grande de las que el motor ignoraba —180 de 193
+     * cuentas vivas con lectura medible, $1,633,640 de MRR institucional— y la
+     * auditoría de PROBEMEDIC ya había escrito el diagnóstico: «la atención
+     * telefónica se mide bien y se pinta bien, pero no tiene ningún detector
+     * que la saque de la ficha. Una cuenta así sólo se descubre si alguien la
+     * abre, y nadie abre una cuenta que no sale en ninguna lista». Nueve meses
+     * con cuatro de cada diez llamadas sin llegar a una persona, cero alertas.
+     *
+     * LOS DOS SON EXCLUYENTES y en este orden, porque comparten condición de
+     * episodio (`CONDICION[...] = 'atencion'`): la tasa gana al volumen porque
+     * dice algo peor —no es que se pierdan muchas, es que se pierden casi
+     * todas—. Dentro de un grupo los tipos tienen que ser excluyentes o el
+     * episodio se cierra el día que empeora.
+     *
+     * LO QUE NO SE HACE AQUÍ: señalar la pérdida por destino. Eso está en
+     * `lib/llamadas-cuenta.ts`, que sí tiene la matriz, y es lo primero que
+     * dice el guion — en PROBEMEDIC el 84.2% de las pérdidas estaba en «(sin
+     * destino registrado)» mientras 47,593 llamadas se atendían al 96%. El
+     * agregado dispara la alerta; el detalle lo resuelve quien la abre. */
+    const ll = llamadas.get(c.id) ?? null
+    if (ll) {
+      /* El denominador son las ENTRANTES y nada más. La pérdida SALIENTE no se
+         suma —marcar y no conectar es normal— y `Self_service` va del lado
+         atendido, porque el menú sí resolvió la llamada. Las tres reglas son
+         de `lib/llamadas-resumen.ts` y aquí sólo se respetan. */
+      if (ll.pctSinContestar >= ATENCION.tasa) {
+        add('llamadas_sin_contestar', c,
+            `${ll.sinContestar.toLocaleString('es-MX')} de `
+          + `${ll.entrantes.toLocaleString('es-MX')} llamadas entrantes `
+          + `(${ll.pctSinContestar.toFixed(1)}%) no las contestó nadie, en `
+          + `${ll.ventana}. `
+          + (ll.menu > 0
+              ? `El menú resolvió otras ${ll.menu.toLocaleString('es-MX')} `
+                + `(${ll.pctMenu.toFixed(1)}%), que NO cuentan como falla. `
+              : '')
+          + `Paga ${cuantoPaga(c)}, y quien pierde la llamada es su cliente: `
+          + `por eso no se queja.`)
+      } else if (ll.sinContestar >= ATENCION.volumen) {
+        add('llamadas_perdidas_masivas', c,
+            `${ll.sinContestar.toLocaleString('es-MX')} llamadas entrantes sin `
+          + `respuesta en ${ll.ventana}. La tasa es del `
+          + `${ll.pctSinContestar.toFixed(1)}% —por debajo del `
+          + `${ATENCION.tasa}% que enciende la alarma de tasa— pero son `
+          + `${ll.sinContestar.toLocaleString('es-MX')} personas que llamaron `
+          + `y no hablaron con nadie, sobre `
+          + `${ll.entrantes.toLocaleString('es-MX')} entrantes.`)
       }
     }
 

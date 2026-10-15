@@ -96,6 +96,42 @@ export type TipoAlerta =
   /* La octava fuente era la única que se medía, se publicaba en la tabla de
      huecos del tablero y no encendía ninguna luz. */
   | 'sin_importe'
+  /* ── LA ATENCIÓN TELEFÓNICA, QUE ES NUESTRO PROPIO SERVICIO ─────────────
+   *
+   * Instrucción de dirección, 14 oct 2026: «tu objetivo es que nutras las
+   * alertas con toda la data que tiene cada cuenta y con la información que se
+   * les alimenta».
+   *
+   * La auditoría de PROBEMEDIC ya había escrito el hueco, con estas palabras:
+   * «el motor de alertas no evalúa la atención telefónica en absoluto·…·la
+   * atención telefónica se mide bien y se pinta bien, pero no tiene ningún
+   * detector que la saque de la ficha. Una cuenta así sólo se descubre si
+   * alguien la abre, y nadie abre una cuenta que no sale en ninguna lista».
+   * Esa cuenta llevaba nueve meses con cuatro de cada diez llamadas sin llegar
+   * a una persona y CERO alertas.
+   *
+   * Medido con `scripts/mide-fuentes-sin-alerta.py` antes de escribir nada:
+   * 180 de las 193 cuentas vivas tienen lectura medible —el 93%, $1,633,640 de
+   * MRR institucional— y el detector no abría el archivo ni una vez. Es la
+   * fuente más grande de las que ignoraba.
+   *
+   * SON DOS TIPOS PORQUE SON DOS PROBLEMAS, y la curva lo enseña:
+   *
+   *   tasa >= 40%          17 cuentas (8.8%)   $191,377
+   *   >= 10,000 perdidas   11 cuentas (5.7%)   añade 9 y $133,060
+   *
+   * La tasa dice que la cuenta atiende mal; el volumen dice cuánta gente se
+   * queda sin respuesta. Con la tasa sola, Alianza Multimarca —40,935 llamadas
+   * perdidas al 55%— y una cuenta grande que pierde veinte mil al 35% se
+   * tratarían igual, y la segunda no saldría en ninguna lista. Veinte mil
+   * personas que no consiguieron hablar con nadie son veinte mil pase lo que
+   * pase con el porcentaje.
+   *
+   * El umbral del 40% no es un gusto: deja 17 cuentas, el mismo calibre que
+   * `sac_fallas_recurrentes` (16, 8.3%). Con el 30% serían 42 —el 21.8% de la
+   * cartera— y con el 10%, 147: un color de fondo, no una alarma. */
+  | 'llamadas_sin_contestar'
+  | 'llamadas_perdidas_masivas'
 
 /**
  * QUIÉN PUEDE CERRAR LA ALERTA. No es lo mismo que de quién es la cuenta.
@@ -413,6 +449,36 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
           + 'decisión que se tome por dinero.',
     enlaceEtiqueta: 'Abrir ficha y verificar CID',
   },
+
+  // ── LA ATENCIÓN TELEFÓNICA ─────────────────────────────────────────────
+  //
+  // Las dos salen de `data/analisis-llamadas.json` por CID, con el mismo
+  // criterio que el panel de la ficha: el denominador son las ENTRANTES, la
+  // pérdida saliente no se suma —marcar y no conectar es normal— y
+  // `Self_service` va del lado atendido, porque el menú sí resolvió.
+  //
+  // Son `riesgo` y no `ceguera`: aquí se ve perfectamente, y lo que se ve es
+  // que le estamos fallando. Pero NO entran en `TIPOS_RIESGO` — ver el
+  // comentario de ese conjunto.
+  llamadas_sin_contestar: {
+    tipo: 'llamadas_sin_contestar', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
+    titulo: 'Casi la mitad de sus llamadas no las contesta nadie',
+    accion: 'Mirar la pérdida POR DESTINO antes de llamar: en la mayoría de los '
+          + 'casos no es falta de personal, son números que ya no apuntan a '
+          + 'ningún sitio. Llevarle al cliente qué extensiones están muertas y '
+          + 'qué se propone, no el porcentaje. Quien pierde la llamada es su '
+          + 'cliente, no él, y por eso no se queja: no lo sabe.',
+    enlaceEtiqueta: 'Ver sus llamadas', ancla: 'llamadas',
+  },
+  llamadas_perdidas_masivas: {
+    tipo: 'llamadas_perdidas_masivas', familia: 'riesgo', severidad: 'alta', dueno: 'asesor',
+    titulo: 'Miles de llamadas entrantes sin respuesta',
+    accion: 'La tasa no es alarmante pero el volumen sí: son miles de personas '
+          + 'que llamaron y no hablaron con nadie. Revisar el enrutamiento y los '
+          + 'horarios de la cuenta, y presentarle el conteo — es la cifra que '
+          + 'convierte una conversación de precio en una de servicio.',
+    enlaceEtiqueta: 'Ver sus llamadas', ancla: 'llamadas',
+  },
 }
 
 /**
@@ -450,6 +516,14 @@ export type Condicion =
      tener importe Y no tener consumo a la vez, así que no cabe en `medicion`
      sin romper la regla de exclusividad del grupo. */
   | 'importe'
+  /* La atención telefónica (14 oct 2026). Sus dos tipos son excluyentes en el
+     detector —la tasa gana al volumen— porque son la misma historia: el
+     cliente final llama y no le contesta nadie.
+
+     Y NO cabe en `consumo`: una cuenta puede consumir su plan entero y no
+     contestar la mitad de lo que entra. De hecho es el caso típico — el
+     consumo mide los minutos que SÍ se hablaron. */
+  | 'atencion'
 
 export const CONDICION: Record<TipoAlerta, Condicion> = {
   sin_consumo_medible: 'medicion',
@@ -464,7 +538,23 @@ export const CONDICION: Record<TipoAlerta, Condicion> = {
   baja_declarada: 'escrito', riesgo_escrito: 'escrito', reduccion_declarada: 'escrito',
   sac_atraso_cronico: 'mesa', sac_fuera_sla: 'mesa', sac_fallas_recurrentes: 'mesa',
   sin_importe: 'importe',
+  llamadas_sin_contestar: 'atencion', llamadas_perdidas_masivas: 'atencion',
 }
+
+/* ── PENDIENTE EN SUPABASE, Y NO ES OPCIONAL ───────────────────────────────
+ *
+ * El CHECK de `alertas_episodios.condicion` sigue con los siete valores
+ * originales: ya rechaza `mesa` e `importe`, y ahora también `atencion`. Esas
+ * alertas se detectan, se ordenan y se pintan, pero NO ABREN EPISODIO — o sea
+ * que de ellas no se puede decir «lleva 47 días así», que es la única forma de
+ * anticipar en vez de contar.
+ *
+ * El `ALTER TABLE` está en `scripts/migracion-alertas-episodios.sql` y hay que
+ * correrlo a mano en el editor de Supabase. Mientras no se corra, `diasAbierta`
+ * y `recurrencia` llegan en `undefined` para estas cinco, y la pantalla dice
+ * que la antigüedad no se está midiendo — que es lo correcto: un 0 ahí diría
+ * «acaba de empezar» sobre una cuenta que lleva meses. [[alertas-movimiento]]
+ */
 
 /** Para ordenar. La ceguera pesa como el riesgo: una cuenta que no se ve es peor. */
 export const PESO_SEVERIDAD: Record<Severidad, number> = {
@@ -624,6 +714,17 @@ export const TIPOS_RIESGO: ReadonlySet<TipoAlerta> = new Set<TipoAlerta>([
    * que este conjunto estrecho existe para no repetir. Sigue siendo familia
    * `riesgo`, así que bloquea la luz verde y sale en rojo en la ficha. */
   'sac_fuera_sla', 'sac_atraso_cronico',
+  /* LAS DE ATENCIÓN TELEFÓNICA NO ENTRAN, por la misma razón medida y por
+     coherencia con la decisión de arriba (14 oct 2026).
+     `llamadas_sin_contestar` son 17 cuentas y `llamadas_perdidas_masivas`
+     añade 9: el KPI «En Riesgo» pasaría de 33 a 59 cuentas, el 31% de la
+     cartera, y volvería a ser inútil por el otro lado. Es el calibre de
+     `sac_fallas_recurrentes`, que se quedó fuera por lo mismo.
+
+     No es que no sean riesgo —son familia `riesgo`, bloquean la luz verde y
+     salen en rojo en la ficha—: es que el conjunto estrecho de dirección
+     responde a «¿cuántas cuentas se están yendo?», y para eso hace falta que
+     siga siendo una lista que alguien pueda recorrer el lunes. */
 ])
 
 export interface CuentaEnRiesgo {

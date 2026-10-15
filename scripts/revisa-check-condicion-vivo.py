@@ -51,18 +51,48 @@ CAB = {'apikey': KEY, 'Authorization': 'Bearer ' + KEY,
        'Content-Type': 'application/json', 'Prefer': 'return=representation'}
 
 # Las condiciones que el TIPO declara, leidas del codigo para no teclearlas.
+#
+# EL CORTE NO PUEDE SER UN RENGLON VACIO. La primera version del regex paraba
+# en el primer `\n\n` y el 14 oct 2026 eso le costo la prueba de `atencion`: su
+# comentario de bloque lleva un renglon en blanco dentro, asi que el tipo se
+# leyo truncado, la condicion nueva no se probo contra la base — y el guion
+# IMPRIMIO «el CHECK admite todas las condiciones del codigo». Un verificador
+# que concluye exito por defecto es peor que no tenerlo.
+# [[feedback-verificar-antes-asegurar]]
+#
+# Ahora corta en `export`, que es donde de verdad termina la declaracion.
 src = io.open(os.path.join(RAIZ, 'lib', 'alertas.ts'), encoding='utf-8').read()
-m = re.search(r'export type Condicion\s*=([\s\S]*?)\n\n', src)
+m = re.search(r'export type Condicion\s*=([\s\S]*?)(?=\nexport )', src)
 if not m:
     print(u'  *** no encuentro `export type Condicion` en lib/alertas.ts'); sys.exit(2)
-CONDICIONES = sorted(set(re.findall(r"'([a-z_]+)'", m.group(1))))
+# Los comentarios se QUITAN antes de buscar, en vez de intentar saltarlos con
+# el mismo patron: dentro de ellos hay nombres entrecomillados —`consumo`,
+# `medicion`— que entrarian como condiciones inexistentes. Y varias van en el
+# mismo renglon (`| 'medicion' | 'consumo' | …`), asi que el patron no puede
+# estar anclado al principio de linea: con `^\s*\|` salian 6 de 11.
+_limpio = re.sub(r'/\*[\s\S]*?\*/', ' ', m.group(1))
+_limpio = re.sub(r'//[^\n]*', ' ', _limpio)
+DECLARADAS = sorted(set(re.findall(r"'([a-z_]+)'", _limpio)))
 print(u'\n  el codigo declara %d condiciones: %s'
-      % (len(CONDICIONES), u', '.join(CONDICIONES)))
+      % (len(DECLARADAS), u', '.join(DECLARADAS)))
 
 # Y las que de verdad EMITE el mapa CONDICION.
 m2 = re.search(r'export const CONDICION[\s\S]*?\n\}', src)
 EMITIDAS = sorted(set(re.findall(r":\s*'([a-z_]+)'", m2.group(0)))) if m2 else []
 print(u'  el mapa CONDICION emite %d: %s' % (len(EMITIDAS), u', '.join(EMITIDAS)))
+
+# SE PRUEBA LA UNION, no una de las dos listas. `trabajo` esta declarada y ya
+# no la emite nadie —se conserva para poder cerrar sus 69 episodios—, y una
+# condicion nueva puede estar emitida antes de que este guion sepa leerla. Lo
+# que no se puede es dejar sin probar algo que el detector escribe hoy.
+CONDICIONES = sorted(set(DECLARADAS) | set(EMITIDAS))
+if not EMITIDAS:
+    print(u'  *** no pude leer el mapa CONDICION: sin el, esta prueba no '
+          u'significa nada'); sys.exit(2)
+sin_declarar = sorted(set(EMITIDAS) - set(DECLARADAS))
+if sin_declarar:
+    print(u'  ojo: %s se emite(n) y no aparece(n) en el tipo leido — se '
+          u'prueba(n) igual' % u', '.join(sin_declarar))
 
 CUENTA_PRUEBA = None
 r = urllib.request.Request(URL + '/rest/v1/cuentas?select=id&limit=1',

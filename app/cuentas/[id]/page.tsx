@@ -875,7 +875,11 @@ export default async function CuentaDetailPage({ params }: Props) {
             empresa={cuenta.empresa}
           />
 
-          {/* Atención de llamadas — entrantes y salientes, debajo de los cortes */}
+          {/* Atención de llamadas — entrantes y salientes, debajo de los cortes.
+              El ancla la necesitan `llamadas_sin_contestar` y
+              `llamadas_perdidas_masivas` del catálogo de alertas: su enlace
+              tiene que caer en este panel y no en lo alto de la ficha. */}
+          <div id="llamadas" style={{ scrollMarginTop: 96 }} />
           {llamadas
             ? <CuentaLlamadasPanel l={llamadas} meta={LLAMADAS_META} cola={colaLlamadas} />
             : <LlamadasSinLectura cid={cuenta.cid ?? null} meta={LLAMADAS_META} />}

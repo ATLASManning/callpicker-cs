@@ -60,6 +60,11 @@ const LO_QUE_LA_APAGA: Record<Condicion, string> = {
   medicion:  'que llegue el reporte de llamadas',
   importe:   'que la cuenta aparezca en el corte de facturación',
   mesa:      'que la mesa de ayuda cierre el folio',
+  /* La apaga el ENRUTAMIENTO del cliente, no una llamada nuestra. Y conviene
+     que la pantalla lo diga con esas palabras: el reflejo ante esta alerta es
+     marcarle al cliente, y marcarle no cambia el número. Lo que lo cambia es
+     que alguien arregle las extensiones muertas y los horarios. */
+  atencion:  'que sus llamadas entrantes empiecen a contestarse',
   trabajo:   'nada: este tipo de alerta se retiró',
 }
 
@@ -71,8 +76,11 @@ const LO_QUE_LA_APAGA: Record<Condicion, string> = {
  * única fuente: una reunión cuyo resumen dice «confirmó la cancelación» tiene
  * que poder encender `baja_declarada` igual que un seguimiento.
  *
- * `consumo`, `medicion`, `importe` y `mesa` no admiten NINGUNA: las mueve el
- * cliente o la factura, no nosotros. Que estén vacías es el punto.
+ * `consumo`, `medicion`, `importe`, `mesa` y `atencion` no admiten NINGUNA: las
+ * mueve el cliente, la factura o el enrutamiento, no nosotros. Que estén vacías
+ * es el punto — y en `atencion` más que en ninguna, porque es la única cuyo
+ * reflejo natural es equivocado: registrar la llamada al cliente NO baja el
+ * porcentaje de llamadas que su operación no contesta.
  */
 const LA_MUEVEN: Record<Condicion, ReadonlySet<TipoCaptura>> = {
   contacto:  new Set<TipoCaptura>(['reunion', 'seguimiento', 'actividad']),
@@ -84,6 +92,7 @@ const LA_MUEVEN: Record<Condicion, ReadonlySet<TipoCaptura>> = {
   medicion:  new Set<TipoCaptura>([]),
   importe:   new Set<TipoCaptura>([]),
   mesa:      new Set<TipoCaptura>([]),
+  atencion:  new Set<TipoCaptura>([]),
   trabajo:   new Set<TipoCaptura>([]),
 }
 
