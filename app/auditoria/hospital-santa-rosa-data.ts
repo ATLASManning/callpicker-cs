@@ -2,13 +2,13 @@ import type { AuditoriaCase } from './types'
 
 export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
   id:                    'hospital-santa-rosa',
-  asesor:                'Claudia',
+  asesor:                'Erick',
   nombre:                'Hospital Santa Rosa',
   sector:                'Salud / Hospitales Privados',
   fecha_periodo:         'Enero – Julio 2026',
   fecha_auditoria:       'Jul 2026',
   tipo_cliente:          'Mediana · 51–200 empleados · 1 oficina',
-  descripcion_contexto:  'Unidad hospitalaria privada · Querétaro, Qro. · CID 81735 · Asesora: Claudia Hernández',
+  descripcion_contexto:  'Unidad hospitalaria privada · Querétaro, Qro. · CID 81735 · Asesora: Erick Sánchez',
   estado:                'en_riesgo',
   clasificacion:         'CONFIDENCIAL',
   version:               '1.0',
@@ -48,7 +48,7 @@ export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
     { fecha: 'Circa 2022',  responsable: 'Hospital',           evento: 'Guillermo Peña deja de laborar en el hospital. El equipo de Callpicker no tiene notificación del cambio de contacto — brecha KAM de ~4 años.', tipo: 'problema' },
     { fecha: 'Ene 2026',    responsable: 'Análisis forense',   evento: 'Inicia el período analizado (203 días). Volumen estable: ~1,800–2,400 llamadas/mes, sin estacionalidad marcada.', tipo: 'neutral' },
     { fecha: 'Ene–Jun 2026',responsable: 'Plataforma',         evento: 'Tasa de pérdida interna sostenida: 22–25% mensual. Ext. 502 y 509 acumulan 1,458 comunicaciones internas fallidas.', tipo: 'problema' },
-    { fecha: '21 Jul 2026', responsable: 'Claudia Hernández',  evento: 'Actualización de contacto a Ernesto (Administrador de la cuenta) — primer interlocutor válido en ~4 años.', tipo: 'pivote' },
+    { fecha: '21 Jul 2026', responsable: 'Erick Sánchez',  evento: 'Actualización de contacto a Ernesto (Administrador de la cuenta) — primer interlocutor válido en ~4 años.', tipo: 'pivote' },
     { fecha: '23 Jul 2026', responsable: 'Callpicker / ATLAS', evento: 'Emisión de auditoría forense con 55,638 registros analizados. Hallazgo central: crisis de comunicación interna, oportunidad de IA de Voz.', tipo: 'ok' },
   ],
 
@@ -61,7 +61,7 @@ export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
     { label: 'Servicio contratado',value: 'Extensión VyC con SIM + Extensión VyC (plan ilimitado)' },
     { label: 'Contacto principal', value: 'Ernesto (Administrador) — actualizado 21-jul-2026' },
     { label: 'Contacto anterior',  value: 'Guillermo Peña — ya no labora (~4 años)' },
-    { label: 'Asesora de cuenta',  value: 'Claudia Hernández' },
+    { label: 'Asesora de cuenta',  value: 'Erick Sánchez' },
     { label: 'Tickets Zoho Desk',  value: '3 totales · 0 fallas técnicas · todos administrativos (voz)' },
     { label: 'Adopción IA/Chat',   value: '"No aplica" en CRM — desaprovechado pese a caso de uso validado' },
   ],
@@ -128,21 +128,21 @@ export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Confirmar contacto Ernesto y agendar sesión de hallazgos', responsable: 'Claudia Hernández', criterio: 'Reunión agendada antes del 31 Jul 2026' },
-    { accion: 'Presentar tabla de extensiones críticas (ext. 502, 509, 534, 599) con impacto operativo hospitalario', responsable: 'Claudia Hernández', criterio: 'Presentación entregada y comentarios recibidos' },
+    { accion: 'Confirmar contacto Ernesto y agendar sesión de hallazgos', responsable: 'Erick Sánchez', criterio: 'Reunión agendada antes del 31 Jul 2026' },
+    { accion: 'Presentar tabla de extensiones críticas (ext. 502, 509, 534, 599) con impacto operativo hospitalario', responsable: 'Erick Sánchez', criterio: 'Presentación entregada y comentarios recibidos' },
     { accion: 'Validar con equipo técnico Callpicker la unidad de total_minutes (min vs. seg) antes de usar en reporte formal', responsable: 'Equipo técnico Callpicker', criterio: 'Confirmación documentada' },
   ],
 
   plan_mediano: [
     { accion: 'Propuesta formal de Agente de Voz IA usando 24.5% de autoservicio como caso de negocio', responsable: 'José Manuel / Comercial', criterio: 'Propuesta enviada y apertura de conversación confirmada' },
-    { accion: 'Validar con cliente si ext. 548 y 599 siguen activas o son configuraciones residuales', responsable: 'Claudia Hernández', criterio: 'Extensiones corregidas o confirmadas como inactivas' },
+    { accion: 'Validar con cliente si ext. 548 y 599 siguen activas o son configuraciones residuales', responsable: 'Erick Sánchez', criterio: 'Extensiones corregidas o confirmadas como inactivas' },
     { accion: 'Revisar configuración de marcación rápida / capacitar a TI interno del hospital para reducir 484 marcaciones anómalas', responsable: 'Cliente (TI) con soporte Callpicker', criterio: 'Reducción > 50% de marcaciones anómalas en siguiente auditoría' },
   ],
 
   plan_estrategico: [
     { accion: 'Implementar Agente de Voz IA para primer nivel de atención externa', responsable: 'Equipo comercial + técnico Callpicker', criterio: 'Prueba piloto activa en 90 días' },
     { accion: 'Proponer enrutamiento inteligente interno (cola con reintento automático hacia ext. 502 y 509)', responsable: 'Equipo técnico Callpicker', criterio: 'Reducción de pérdida interna a < 10% en ext. críticas' },
-    { accion: 'Integrar Callpicker Chat para confirmación de citas y resultados (canal alternativo a saliente externa)', responsable: 'Claudia Hernández + comercial', criterio: 'Propuesta presentada y evaluada por el cliente' },
+    { accion: 'Integrar Callpicker Chat para confirmación de citas y resultados (canal alternativo a saliente externa)', responsable: 'Erick Sánchez + comercial', criterio: 'Propuesta presentada y evaluada por el cliente' },
   ],
 
   areas_oportunidad: [
@@ -176,7 +176,7 @@ export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia Hernández',
+      nombre: 'Erick Sánchez',
       rol:    'Asesora de cuenta Callpicker',
       color:  '#7c3aed',
       campos: [

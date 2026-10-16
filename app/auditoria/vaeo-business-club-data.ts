@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const VAEO_BUSINESS_CLUB: AuditoriaCase = {
   id: 'vaeo-business-club',
-  asesor: 'Claudia',
+  asesor: 'Erick',
   nombre: 'VAEO Business Club',
   sector: 'Centro de Negocios Premium Multi-Inquilino — Servicios a Empresas B2B',
   fecha_periodo: '22 Abr – 29 Jul 2026',
@@ -137,7 +137,7 @@ export const VAEO_BUSINESS_CLUB: AuditoriaCase = {
     { area: 'Replicación modelo MTY TNH',             impacto: 'De 24.4% a ≤30% de pérdida en inquilinos de alto volumen · evidencia interna probada · sin necesidad de hipótesis externas', responsable: 'VAEO + SAC técnico' },
     { area: 'Estandarización agente saliente',        impacto: 'De 43.8%–87.4% de contestación a un estándar de ≥70% · sin inversión tecnológica · solo gestión del desempeño', responsable: 'VAEO operaciones' },
     { area: 'Validación de consumo de minutos',       impacto: 'Cierra la incertidumbre de excedente en junio/julio · define si se puede activar sígueme y IA de Voz sin riesgo de cargos adicionales', responsable: 'SAC Callpicker facturación' },
-    { area: 'Reactivación ciclo KAM mensual',         impacto: 'Previene que VAEO atribuya el problema al proveedor · posiciona a Callpicker como advisor consultivo · retención de cuenta MRR $21,327', responsable: 'Claudia' },
+    { area: 'Reactivación ciclo KAM mensual',         impacto: 'Previene que VAEO atribuya el problema al proveedor · posiciona a Callpicker como advisor consultivo · retención de cuenta MRR $21,327', responsable: 'Erick' },
   ],
 
   perfiles: [

@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const ALTERNET: AuditoriaCase = {
   id: 'alternet',
-  asesor: 'Claudia',
+  asesor: 'Erick',
   nombre: 'ALTERNET',
   sector: 'Telecomunicaciones · ISP Fibra Óptica · Comunidades Rurales',
   fecha_periodo: 'Enero – Junio 2026',
@@ -55,7 +55,7 @@ export const ALTERNET: AuditoriaCase = {
     { label: 'Giro',                   value: 'Telecomunicaciones / ISP Fibra Óptica (comunidades rurales)' },
     { label: 'Tamaño',                 value: 'Pequeña empresa · 11–50 empleados' },
     { label: 'Oficinas',               value: '1 punto físico · Pedro Escobedo, Querétaro' },
-    { label: 'Asesor SAC',             value: 'Claudia' },
+    { label: 'Asesor SAC',             value: 'Erick' },
     { label: 'Contacto principal',     value: 'Anahí Santiago Vega — Jefa de Operaciones · anahi@alternet.io · 4482510220' },
     { label: 'Servicio contratado',    value: 'Visibilidad y Control IL + CP Chat + DIDs' },
     { label: 'Cliente desde',          value: 'Julio 2022 (1,428 días)' },
@@ -96,7 +96,7 @@ export const ALTERNET: AuditoriaCase = {
     { fase: '3. Tres agentes sin configurar',        area: 'Equipo Alternet / Claudia', accion: 'Osiel, Maricruz y Víctor no asignados al grupo entrante', resultado: '974 llamadas perdidas por período sin que sea problema de agentes.' },
     { fase: '4. Fin de semana sin cobertura',        area: 'Operación Alternet',       accion: 'Sin turnos de fin de semana ni canal automatizado de respaldo', resultado: '75.4% abandono domingo — ISP sin atención los días de mayor falla de red.' },
     { fase: '5. Ticket de capacitación (1 jun)',     area: 'Anahí Santiago',           accion: 'Cliente abre ticket de capacitación en Voz — señal de intención activa', resultado: 'Momentum disponible que caduca si no se activa en las próximas 2 semanas.' },
-    { fase: '6. Sub-cuenta inactiva sin seguimiento', area: 'Claudia',                 accion: 'Sub-cuenta sin factura de junio — sin acción documentada', resultado: 'Churn silencioso posible sin que nadie lo detecte.' },
+    { fase: '6. Sub-cuenta inactiva sin seguimiento', area: 'Erick',                 accion: 'Sub-cuenta sin factura de junio — sin acción documentada', resultado: 'Churn silencioso posible sin que nadie lo detecte.' },
   ],
 
   comparativo: [
@@ -112,17 +112,17 @@ export const ALTERNET: AuditoriaCase = {
   plan_inmediato: [
     { accion: 'Escalar con técnico Callpicker la configuración de ruteo saliente. Con 58.2% de pérdida constante en 6 meses, el problema no son los agentes — es la arquitectura de cola. Acción interna que no requiere aprobación del cliente.', responsable: 'Claudia + Técnico Callpicker', criterio: 'Diagnóstico técnico completado y resultado documentado en la semana' },
     { accion: 'Revisar configuración de Osiel Martínez, Maricruz Martínez y Víctor Marchán. Verificar asignación al grupo entrante, estado de extensión y desvío habilitado. 974 llamadas perdidas recuperables sin costo.', responsable: 'Claudia + Técnico', criterio: 'Tres agentes correctamente configurados. Verificar atención en las siguientes 48h' },
-    { accion: 'Identificar estado de sub-cuenta inactiva. Nombre del contacto responsable y motivo de inactividad en junio 2026. Acción de prevención de churn silencioso.', responsable: 'Claudia', criterio: 'Estado documentado en CRM en los próximos 7 días' },
+    { accion: 'Identificar estado de sub-cuenta inactiva. Nombre del contacto responsable y motivo de inactividad en junio 2026. Acción de prevención de churn silencioso.', responsable: 'Erick', criterio: 'Estado documentado en CRM en los próximos 7 días' },
   ],
 
   plan_mediano: [
-    { accion: 'Presentar a Anahí la mejora de entrantes (65.8% → 28.8%) como resultado de valor medible. Llevar el dato en formato visual antes de que el cliente lo descubra por su cuenta. Base perfecta para abrir conversación de expansión.', responsable: 'Claudia', criterio: 'Reunión realizada. Anahí informada formalmente del resultado.' },
+    { accion: 'Presentar a Anahí la mejora de entrantes (65.8% → 28.8%) como resultado de valor medible. Llevar el dato en formato visual antes de que el cliente lo descubra por su cuenta. Base perfecta para abrir conversación de expansión.', responsable: 'Erick', criterio: 'Reunión realizada. Anahí informada formalmente del resultado.' },
     { accion: 'Proponer IA de Voz para cobertura de fin de semana y horario nocturno. Argumento de negocio: ISP rural con 75.4% de abandono el domingo y 71.7% el sábado. La plataforma ya tiene la capacidad — el cliente no la usa.', responsable: 'Claudia + Ventas', criterio: 'Demo presentada a Anahí. Propuesta formal enviada.' },
-    { accion: 'Capitalizar el ticket de capacitación de voz del 1 de junio. Agendar sesión con el equipo Alternet donde Ximena Araujo (78% de atención) comparte su protocolo con el resto.', responsable: 'Claudia', criterio: 'Sesión de capacitación realizada. Benchmark interno activo.' },
+    { accion: 'Capitalizar el ticket de capacitación de voz del 1 de junio. Agendar sesión con el equipo Alternet donde Ximena Araujo (78% de atención) comparte su protocolo con el resto.', responsable: 'Erick', criterio: 'Sesión de capacitación realizada. Benchmark interno activo.' },
   ],
 
   plan_estrategico: [
-    { accion: 'Activar revisión mensual formal con Anahí. Panel administrador sin revisión documentada = cliente sin visibilidad de su propia operación. Proponer reunión mensual de 30 min con reporte de KPIs.', responsable: 'Claudia', criterio: 'Primera reunión mensual agendada a más tardar en julio 2026' },
+    { accion: 'Activar revisión mensual formal con Anahí. Panel administrador sin revisión documentada = cliente sin visibilidad de su propia operación. Proponer reunión mensual de 30 min con reporte de KPIs.', responsable: 'Erick', criterio: 'Primera reunión mensual agendada a más tardar en julio 2026' },
     { accion: 'Proponer cobertura de franja 18–20h del lunes con desbordamiento o IVR informativo. Lunes concentra 25.9% del volumen semanal con 44.1% de pérdida en ese horario.', responsable: 'Técnico + Claudia', criterio: 'Configuración activa. Medición de impacto en 30 días.' },
     { accion: 'Presentar hoja de ruta de adopción de módulos a 6 meses. IA Voz → IA Chat → API → pago automático. Contexto ISP rural: cada módulo tiene caso de uso inmediato y concreto.', responsable: 'Claudia + Dir. SAC', criterio: 'Hoja de ruta presentada y aceptada por Anahí.' },
   ],
@@ -130,8 +130,8 @@ export const ALTERNET: AuditoriaCase = {
   areas_oportunidad: [
     { area: 'IA de Voz (fin de semana + noche)',   impacto: 'ISP rural con 75.4% abandono domingo. Atención automática de reportes de fallas es el upsell más obvio y urgente de la cuenta.', responsable: 'Claudia + Ventas' },
     { area: 'IA de Chat para soporte técnico',     impacto: 'Problemas de conectividad repetibles son el caso de uso ideal para chat automatizado. Reduce carga del equipo y mejora NPS.', responsable: 'Claudia + Ventas' },
-    { area: 'Capacitación diferenciada',           impacto: 'Ximena Araujo: 3,083 llamadas con 78% de atención. Su protocolo es replicable. Sesión interna = mejora sin costo.', responsable: 'Claudia' },
-    { area: 'Pago automático',                     impacto: 'No configurado. Para empresa de 11–50 empleados con facturación mensual recurrente, es reducción directa de fricción administrativa.', responsable: 'Claudia' },
+    { area: 'Capacitación diferenciada',           impacto: 'Ximena Araujo: 3,083 llamadas con 78% de atención. Su protocolo es replicable. Sesión interna = mejora sin costo.', responsable: 'Erick' },
+    { area: 'Pago automático',                     impacto: 'No configurado. Para empresa de 11–50 empleados con facturación mensual recurrente, es reducción directa de fricción administrativa.', responsable: 'Erick' },
   ],
 
   perfiles: [
@@ -166,7 +166,7 @@ export const ALTERNET: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia', rol: 'Asesor SAC — Gestora de la cuenta', color: '#6366f1',
+      nombre: 'Erick', rol: 'Asesor SAC — Gestora de la cuenta', color: '#6366f1',
       campos: [
         { label: 'Prioridades',     value: '1. Escalar falla técnica de salientes a equipo técnico AHORA. 2. Presentar mejora de entrantes a Anahí. 3. Activar ticket de capacitación. 4. Verificar sub-cuenta.' },
         { label: 'Arma principal',  value: 'El dato positivo de entrantes es el mejor abre-puertas para una conversación de expansión. Usarlo primero — antes de llevar los problemas.' },

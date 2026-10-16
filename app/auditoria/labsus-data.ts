@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const LABSUS: AuditoriaCase = {
   id: 'labsus',
-  asesor: 'Claudia',
+  asesor: 'Erick',
   nombre: 'LABSUS Centro Diagnóstico',
   sector: 'Salud – Laboratorio Clínico / Imagenología Regional',
   fecha_periodo: '15 Feb – Jun 2026',
@@ -93,7 +93,7 @@ export const LABSUS: AuditoriaCase = {
   plan_inmediato: [
     { accion: 'Desactivar / redirigir extensión "juan" antes del lunes', responsable: 'José Manuel + Claudia', criterio: 'Extensión desactivada. Confirmación a Jennyffer antes de la reunión.' },
     { accion: 'Activar timbrado simultáneo en grupos de RECEPCION antes del lunes', responsable: 'José Manuel + Claudia', criterio: 'Config aplicada. Jennyffer puede verificarlo en su panel antes de la reunión.' },
-    { accion: 'Revisar estado real del AI Voice Agent — qué está configurado y qué falta', responsable: 'Claudia Hernández', criterio: 'Respuesta clara antes del lunes. Si llegan sin esta respuesta y el cliente lo menciona, se pierde credibilidad.' },
+    { accion: 'Revisar estado real del AI Voice Agent — qué está configurado y qué falta', responsable: 'Erick Sánchez', criterio: 'Respuesta clara antes del lunes. Si llegan sin esta respuesta y el cliente lo menciona, se pierde credibilidad.' },
     { accion: 'Preparar propuesta 2,500 min con argumento de ROI — no solo precio', responsable: 'Claudia (propuesta formal)', criterio: 'Propuesta lista antes del lunes. Incluye costo de Callpicker vs. ingreso perdido por 513 llamadas.' },
     { accion: 'Preparar brief de 1 página para Jennyffer: ROI, riesgo de cambio y prueba interna (Castaños)', responsable: 'José Manuel', criterio: 'Documento listo antes del lunes. Jennyffer lo usa con su dirección familiar.' },
     { accion: 'Confirmar equipo de Chat para demo de WhatsApp e integraciones en la misma sesión del lunes', responsable: 'José Manuel (coordinación)', criterio: 'Demo confirmada. Es la apertura más importante de negocio nuevo en la cuenta.' },
@@ -137,7 +137,7 @@ export const LABSUS: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia Hernández', rol: 'Callpicker SAC — Ejecutivo de cuenta · Prepara la propuesta del lunes', color: '#22c55e',
+      nombre: 'Erick Sánchez', rol: 'Callpicker SAC — Ejecutivo de cuenta · Prepara la propuesta del lunes', color: '#22c55e',
       campos: [
         { label: 'Rol crítico',        value: 'Debe llegar alineada en narrativa, no solo en precio. El tema del AV no configurado requiere respuesta antes de la reunión.' },
         { label: 'Pendiente urgente',  value: 'Verificar estado real del AI Voice Agent antes del lunes. Sin esta respuesta: riesgo de credibilidad.' },

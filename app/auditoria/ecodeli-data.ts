@@ -107,7 +107,7 @@ import type { AuditoriaCase } from './types'
  */
 export const ECODELI: AuditoriaCase = {
   id: 'ecodeli',
-  asesor: 'Claudia',
+  asesor: 'Erick',
   nombre: 'ECODELI (Grupo Ecodeli — Comercial e Industrial)',
   sector: 'Limpieza profesional y servicios de facility — León, Guanajuato',
   fecha_periodo: 'Septiembre 2024 – Octubre 2026',
@@ -155,10 +155,10 @@ export const ECODELI: AuditoriaCase = {
   cronologia: [
     { fecha: '30 Sep 2024',  responsable: 'Callpicker',        evento: 'Alta de la cuenta. Servicio: Canales concurrentes + DiD Nacional — un producto de capacidad, no de extensiones. 24 meses de relación ininterrumpida.', tipo: 'ok' },
     { fecha: 'Ene–Ago 2026', responsable: 'Operación Ecodeli', evento: 'Ocho meses CERRADOS de una estabilidad notable: entre 31,000 y 37,964 llamadas al mes, con la tasa sin contestar entre 0.0610% y 0.0782%. La operación no da un solo sobresalto. (El tramo parcial de septiembre, 1 al 14, sí se mueve: ver abajo.)', tipo: 'ok' },
-    { fecha: '17 Jul 2026',  responsable: 'Claudia',           evento: 'Actividad de llamada, completada, con resultado «No se logra contacto, se reintentará para actualizar información». NO llegó al cliente, y aun así es el ancla desde la que la alerta cuenta 88 días. La v1.1 la llamaba «el último contacto efectivo» citando esa misma frase.', tipo: 'problema' },
-    { fecha: '18 Jul 2026',  responsable: 'Claudia',           evento: 'Seguimiento de llamada preventiva registrado, pero no llega al cliente. Es el `condicion_desde` de la alerta `silencio_60` — la alerta NO se abre aquí: se abrió el 6 de octubre.', tipo: 'problema' },
-    { fecha: '23 Jul 2026',  responsable: 'Claudia',           evento: 'Actividad de llamada programada: NO se completó. Es la única sin cerrar de las tres registradas.', tipo: 'problema' },
-    { fecha: '07 Ago 2026',  responsable: 'Claudia',           evento: 'Revisión KAM cerrada el día 8: «Estado de relación: Positivo. La cuenta presenta una relación estable y sin señales actuales de riesgo». Correcto en el servicio; el riesgo no estaba ahí. La ficha pone aquí su `ultimo_contacto` —2026-08-08, 66 días al 13 de octubre—, aunque esto es trabajo nuestro sobre la cuenta y no una conversación con el cliente.', tipo: 'neutral' },
+    { fecha: '17 Jul 2026',  responsable: 'Erick',           evento: 'Actividad de llamada, completada, con resultado «No se logra contacto, se reintentará para actualizar información». NO llegó al cliente, y aun así es el ancla desde la que la alerta cuenta 88 días. La v1.1 la llamaba «el último contacto efectivo» citando esa misma frase.', tipo: 'problema' },
+    { fecha: '18 Jul 2026',  responsable: 'Erick',           evento: 'Seguimiento de llamada preventiva registrado, pero no llega al cliente. Es el `condicion_desde` de la alerta `silencio_60` — la alerta NO se abre aquí: se abrió el 6 de octubre.', tipo: 'problema' },
+    { fecha: '23 Jul 2026',  responsable: 'Erick',           evento: 'Actividad de llamada programada: NO se completó. Es la única sin cerrar de las tres registradas.', tipo: 'problema' },
+    { fecha: '07 Ago 2026',  responsable: 'Erick',           evento: 'Revisión KAM cerrada el día 8: «Estado de relación: Positivo. La cuenta presenta una relación estable y sin señales actuales de riesgo». Correcto en el servicio; el riesgo no estaba ahí. La ficha pone aquí su `ultimo_contacto` —2026-08-08, 66 días al 13 de octubre—, aunque esto es trabajo nuestro sobre la cuenta y no una conversación con el cliente.', tipo: 'neutral' },
     { fecha: 'Ago 2026',     responsable: 'Operación Ecodeli', evento: 'Mes cerrado: 35,146 llamadas, 23 perdidas (0.0654%), por DEBAJO de su propia base de 0.0680%. Una llamada menos de las que normalmente pierde.', tipo: 'ok' },
     { fecha: '1–14 Sep 2026', responsable: 'Operación Ecodeli', evento: 'Mes PARCIAL y último dato que hay: 15,788 llamadas con 26 perdidas, 0.1647%. Son 2.42 veces su propia base y 2.52 veces agosto — el único tramo de los nueve que se sale. Catorce días no concluyen, pero la v1.1 describía la serie como plana citando sólo los ocho cerrados.', tipo: 'problema' },
     { fecha: '06 Oct 2026',  responsable: 'Motor de alertas',  evento: 'Se abren las CUATRO alertas de la cuenta, no tres: `sin_consumo_medible` (crítica), `silencio_60` (crítica), `sin_radar` (alta) y `sin_contactos` (alta). Las cuatro tienen `abierto_en` = 2026-10-06 en `alertas_episodios`; lo que viene de julio es el `condicion_desde` de `silencio_60`. La de consumo afirma «0 de 5 meses» sobre una cuenta con 294,561 minutos registrados.', tipo: 'problema' },
@@ -239,14 +239,14 @@ export const ECODELI: AuditoriaCase = {
   plan_inmediato: [
     { accion: 'Resolver la contradicción entre fuentes: el archivo de llamadas registra 294,561 minutos y el Informe de Cortes dice «0 de 5 meses con dato de consumo». Una de las dos está equivocada sobre la cuenta de más tráfico de la cartera', responsable: 'Ingeniería', criterio: 'O la cuenta aparece en los cortes, o queda escrito por qué no puede aparecer' },
     { accion: 'Averiguar cuántos canales concurrentes tiene contratados: el servicio registrado no trae cantidad y `servicios_json` está vacío', responsable: 'Facturación / Claudia', criterio: 'El número en la ficha, comparado contra el pico medido de las 08:00' },
-    { accion: 'Llamar: no hay un contacto efectivo documentado y `silencio_60` está crítica desde el 6 de octubre. Abrir con su propio perfil horario, que describe su operación. Y de paso cuadrar las dos fechas: la alerta cuenta desde el 17 jul y la ficha trae 8 ago', responsable: 'Claudia', criterio: 'Contacto efectivo registrado CON resultado escrito, `ultimo_contacto` actualizado y la alerta cerrada por trabajo, no por el paso del tiempo' },
-    { accion: 'CONFIRMAR con el cliente para qué usa el servicio. El perfil dice checadora telefónica con tres evidencias, pero eso es nuestra lectura, no su palabra', responsable: 'Claudia', criterio: 'Queda escrito en la ficha para qué usa el cliente el servicio, en sus términos' },
-    { accion: 'Corregir el contacto: el correo está DENTRO del campo de nombre y `contacto_email` está vacío; `contacto_tel` trae dos números pegados', responsable: 'Claudia', criterio: 'Los campos separados, y al menos tres contactos en `contactos_json`' },
+    { accion: 'Llamar: no hay un contacto efectivo documentado y `silencio_60` está crítica desde el 6 de octubre. Abrir con su propio perfil horario, que describe su operación. Y de paso cuadrar las dos fechas: la alerta cuenta desde el 17 jul y la ficha trae 8 ago', responsable: 'Erick', criterio: 'Contacto efectivo registrado CON resultado escrito, `ultimo_contacto` actualizado y la alerta cerrada por trabajo, no por el paso del tiempo' },
+    { accion: 'CONFIRMAR con el cliente para qué usa el servicio. El perfil dice checadora telefónica con tres evidencias, pero eso es nuestra lectura, no su palabra', responsable: 'Erick', criterio: 'Queda escrito en la ficha para qué usa el cliente el servicio, en sus términos' },
+    { accion: 'Corregir el contacto: el correo está DENTRO del campo de nombre y `contacto_email` está vacío; `contacto_tel` trae dos números pegados', responsable: 'Erick', criterio: 'Los campos separados, y al menos tres contactos en `contactos_json`' },
     { accion: 'Aclarar cuál de las dos razones sociales del grupo es la contratante: la ficha lleva el domicilio de Ecodeli Comercial y el sitio y el correo de Ecodeli Industrial', responsable: 'Claudia / Facturación', criterio: 'La entidad contratante escrita en la ficha antes de cualquier renovación' },
   ],
 
   plan_mediano: [
-    { accion: 'Primera reunión en 24 meses, con quien opera el registro de asistencia y con quien lo consume del lado de recursos humanos', responsable: 'Claudia', criterio: 'Reunión registrada con minuta, y el Radar contestado en la misma sesión' },
+    { accion: 'Primera reunión en 24 meses, con quien opera el registro de asistencia y con quien lo consume del lado de recursos humanos', responsable: 'Erick', criterio: 'Reunión registrada con minuta, y el Radar contestado en la misma sesión' },
     { accion: 'Medir la concurrencia real dentro de la hora pico, no sólo el promedio horario. La cota inferior son 8.7 canales, pero si la mitad entra en diez minutos son unos 26', responsable: 'Ingeniería', criterio: 'Se publica el pico real y se compara contra lo contratado' },
     { accion: 'Aclarar por qué el 47.2% del tráfico cae en «(destino no venía en el archivo)» — 136,544 llamadas, que con las 152,638 de «Voice App» y las 56 del cubo agregado cierran las 289,238. Tiene el mismo perfil que «Voice App», así que probablemente es el mismo flujo — pero probablemente no basta', responsable: 'Ingeniería', criterio: 'Todas las llamadas con destino identificado' },
     { accion: 'Capturar la adopción real: hoy hay cero registros en una cuenta con 289,238 llamadas', responsable: 'SAC', criterio: 'El producto que de verdad usa, registrado con su nivel' },
@@ -254,7 +254,7 @@ export const ECODELI: AuditoriaCase = {
 
   plan_estrategico: [
     { accion: 'Reporte de asistencia por sitio y por turno. Si la plataforma ya sabe quién marcó desde dónde y a qué hora, ese dato es supervisión operativa para el cliente y no sólo un registro de llamadas', responsable: 'Producto / Claudia', criterio: 'Propuesta presentada con una muestra de sus propios datos' },
-    { accion: 'IA de Voz sobre el flujo de registro, que es lo que alivia un pico tan concentrado sin vender más canales', responsable: 'Claudia', criterio: 'Propuesta con el cálculo de canales liberados en la ventana de las 08:00' },
+    { accion: 'IA de Voz sobre el flujo de registro, que es lo que alivia un pico tan concentrado sin vender más canales', responsable: 'Erick', criterio: 'Propuesta con el cálculo de canales liberados en la ventana de las 08:00' },
     { accion: 'Integración API con su sistema de nómina o RH: el dato de asistencia tiene que acabar en algún sitio y hoy no sabemos en cuál', responsable: 'Ingeniería / Claudia', criterio: 'Se documenta a dónde va el dato hoy, y se propone la integración si no la hay' },
     { accion: 'QUE EL SEMÁFORO DE ATENCIÓN DIGA SOBRE QUÉ OPINA. En esta cuenta el 0.07% mide registros de turno de un minuto y sale verde; en IMPAS el 0% sin contestar tapaba que NADIE llegaba a una persona —allí sí era una máquina: redir 0 de 352— y ese 0% la pone POR DELANTE de ECODELI en el ranking en bruto. El mismo indicador no puede significar lo mismo en los dos casos, y hoy el que sale mejor es el peor atendido', responsable: 'Producto / Dirección', criterio: 'La ficha publica además el % que llega a una PERSONA (`redir`), que es lo que distingue los dos casos' },
   ],
@@ -263,9 +263,9 @@ export const ECODELI: AuditoriaCase = {
     { area: 'Capacidad en la ventana de las 08:00', impacto: 'El 32.3% de la operación diaria del cliente en una sola hora', responsable: 'Ingeniería / Claudia' },
     { area: 'Reporte de asistencia por sitio', impacto: 'Convierte un CDR en supervisión operativa para el cliente', responsable: 'Producto' },
     { area: 'Integración con nómina / RH', impacto: '`tiene_integracion_api` en falso sobre 289,238 registros al periodo', responsable: 'Ingeniería' },
-    { area: 'IA de Voz en el flujo de registro', impacto: 'Alivia el pico sin vender más canales', responsable: 'Claudia' },
-    { area: 'Primera reunión en 24 meses', impacto: 'La 1ª de 211 cuentas por llamadas entrantes, sin relación', responsable: 'Claudia' },
-    { area: 'Chat para personal en campo', impacto: 'Miles de empleados desplegados y ningún canal de texto', responsable: 'Claudia' },
+    { area: 'IA de Voz en el flujo de registro', impacto: 'Alivia el pico sin vender más canales', responsable: 'Erick' },
+    { area: 'Primera reunión en 24 meses', impacto: 'La 1ª de 211 cuentas por llamadas entrantes, sin relación', responsable: 'Erick' },
+    { area: 'Chat para personal en campo', impacto: 'Miles de empleados desplegados y ningún canal de texto', responsable: 'Erick' },
   ],
 
   perfiles: [
@@ -287,7 +287,7 @@ export const ECODELI: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia', rol: 'Asesora SAC de la cuenta — Callpicker', color: '#22c55e',
+      nombre: 'Erick', rol: 'Asesora SAC de la cuenta — Callpicker', color: '#22c55e',
       campos: [
         { label: 'Actividades',  value: '3 registradas · 2 completadas · 1 sin completar (llamada del 23 jul)' },
         { label: 'Lo que escribió bien', value: 'Las observaciones KAM explican el grupo, sus dos unidades de negocio y su tamaño. El entendimiento del cliente está.' },

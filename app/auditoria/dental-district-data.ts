@@ -2,14 +2,14 @@ import type { AuditoriaCase } from './types'
 
 export const DENTAL_DISTRICT: AuditoriaCase = {
   id:                    'dental-district',
-  asesor:                'Claudia',
+  asesor:                'Erick',
 
   nombre:                'Dental District',
   sector:                'Salud · Clínica Dental · Zona Fronteriza',
   fecha_periodo:         'Enero – Julio 2026',
   fecha_auditoria:       'Jul 2026',
   tipo_cliente:          'SMB · Plan 1,100 min/mes · CID 162151 · HS 50',
-  descripcion_contexto:  '4,574 llamadas analizadas · Asesor: Claudia Hernández · 2 extensiones activas · Operación mixta con predominancia saliente (3.1 sal/ent) · Tijuana (LADA 664) · 86.9% tráfico transfronterizo USA/Canadá',
+  descripcion_contexto:  '4,574 llamadas analizadas · Asesor: Erick Sánchez · 2 extensiones activas · Operación mixta con predominancia saliente (3.1 sal/ent) · Tijuana (LADA 664) · 86.9% tráfico transfronterizo USA/Canadá',
   estado:                'en_riesgo',
   clasificacion:         'CONFIDENCIAL',
   version:               '1.0',
@@ -112,11 +112,11 @@ export const DENTAL_DISTRICT: AuditoriaCase = {
 
   plan_inmediato: [
     { accion: 'Configurar IVR para ventana 8:00–10:00 que capture y agende llamadas antes de cobertura humana.', responsable: 'Claudia + Soporte/Ingeniería', criterio: 'Pérdida en bloque 8:00–9:59 cae por debajo del 30%.' },
-    { accion: 'Validar con el cliente si mayo 2026 generó cargos por excedente (confirmar factura real). Presentar análisis de consumo mes a mes.', responsable: 'Claudia', criterio: 'Cliente confirma o descarta sobreconsumo documentado. Primer paso para propuesta de upgrade de plan.' },
-    { accion: 'Completar perfil de cuenta en el panel: fecha de inicio, contacto principal, giro, servicios, MRR real.', responsable: 'Claudia', criterio: 'Perfil 100% completo. Health Score recalibrado con evaluación real (no valores de 50 por defecto).' },
+    { accion: 'Validar con el cliente si mayo 2026 generó cargos por excedente (confirmar factura real). Presentar análisis de consumo mes a mes.', responsable: 'Erick', criterio: 'Cliente confirma o descarta sobreconsumo documentado. Primer paso para propuesta de upgrade de plan.' },
+    { accion: 'Completar perfil de cuenta en el panel: fecha de inicio, contacto principal, giro, servicios, MRR real.', responsable: 'Erick', criterio: 'Perfil 100% completo. Health Score recalibrado con evaluación real (no valores de 50 por defecto).' },
   ],
   plan_mediano: [
-    { accion: 'Proponer upgrade de plan a bolsa mayor o plan sin límite de minutos. Argumento: tráfico transfronterizo crónico lleva la cuenta al límite mensual.', responsable: 'Claudia', criterio: 'Cliente aprueba ajuste de plan. Sobreconsumo eliminado.' },
+    { accion: 'Proponer upgrade de plan a bolsa mayor o plan sin límite de minutos. Argumento: tráfico transfronterizo crónico lleva la cuenta al límite mensual.', responsable: 'Erick', criterio: 'Cliente aprueba ajuste de plan. Sobreconsumo eliminado.' },
     { accion: 'Establecer protocolo diario de salientes por asesor (objetivo: recuperar >15 llamadas/día). Investigar posibilidad de contratar cobertura de reemplazo.', responsable: 'Claudia + cliente', criterio: 'Volumen saliente vuelve a >15/día sostenido por 30 días.' },
     { accion: 'Resolver pérdida en cierre de jornada (19:00): extender cobertura humana 30 minutos o activar IVR de buzón estructurado para el bloque 19:00–20:00.', responsable: 'Claudia + Ingeniería', criterio: 'Pérdida a las 19:00 baja de 48.5% a <25%.' },
   ],

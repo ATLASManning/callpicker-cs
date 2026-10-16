@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const NERUC_SEDE_CENTRAL: AuditoriaCase = {
   id:     'neruc-sede-central',
-  asesor: 'Claudia',
+  asesor: 'Erick',
 
   nombre:               'NERUC Sede Central',
   sector:               'Agencia de Performance Marketing / Reseller Callpicker (Co-Branding)',
@@ -60,7 +60,7 @@ export const NERUC_SEDE_CENTRAL: AuditoriaCase = {
     { label: 'Operaciones',          value: 'Alejandro Fuentes · alejandro.fuentes@gruponeruc.com' },
     { label: 'Dominios propios CP',  value: 'admin.voice.neruc.app · my.voice.neruc.app' },
     { label: 'Proyecto interno',     value: 'Neruc Prime OS — CRM + SMS + IA + automatización. Usarán Callpicker como motor de telefonía backend vía API/webhooks.' },
-    { label: 'Asesor',               value: 'Claudia Hernández · Callpicker Customer Success' },
+    { label: 'Asesor',               value: 'Erick Sánchez · Callpicker Customer Success' },
   ],
 
   necesidad_negocio: 'Neruc opera como agencia de performance marketing y reseller de Callpicker. Su negocio depende de la telefonía como pieza central del producto que venden a sus clientes finales (autos, hoteles, empresas). La necesidad inmediata es tener visibilidad real del consumo de minutos por sub-cuenta — el problema que causó toda esta auditoría: Axél no sabía cuántos minutos consumían y el reporte interno tampoco era completo.\n\nEl proyecto Neruc Prime OS eleva la relación: de "compra líneas a Callpicker" a "Callpicker es el motor de telefonía de mi plataforma empresarial propia." Esa transición es la apuesta de largo plazo del cliente y representa la mayor oportunidad de stickiness que existe en esta cuenta.',
@@ -148,7 +148,7 @@ export const NERUC_SEDE_CENTRAL: AuditoriaCase = {
   areas_oportunidad: [
     { area: 'API / Neruc Prime OS',               impacto: 'Callpicker como infraestructura crítica del sistema propio del cliente — stickiness máxima',       responsable: 'Daniel' },
     { area: 'Cuenta nueva Mazda EdoMex (5 ags)',  impacto: 'MRR incremental estimado ~$7,500-$10,000 MXN/mes según consumo real comparable',                   responsable: 'Daniel' },
-    { area: 'Panel de consumo en tiempo real',     impacto: 'Resuelve causa raíz confirmada en reunión — reduce riesgo de churn por opacidad de datos',          responsable: 'Claudia' },
+    { area: 'Panel de consumo en tiempo real',     impacto: 'Resuelve causa raíz confirmada en reunión — reduce riesgo de churn por opacidad de datos',          responsable: 'Erick' },
     { area: 'Right-sizing plan Sede Central',      impacto: 'Retención a precio justo post-reestructuración; elimina argumento de "costo innecesario"',          responsable: 'Daniel' },
   ],
 
@@ -193,7 +193,7 @@ export const NERUC_SEDE_CENTRAL: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia Hernández',
+      nombre: 'Erick Sánchez',
       rol:    'Asesora de cuenta · Seguimiento post-reunión',
       color:  '#a855f7',
       campos: [

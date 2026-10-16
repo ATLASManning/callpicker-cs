@@ -2,13 +2,13 @@ import type { AuditoriaCase } from './types'
 
 export const TRAVELLING: AuditoriaCase = {
   id:                    'travelling',
-  asesor:                'Claudia',
+  asesor:                'Erick',
   nombre:                'Travelling (Grupo Mundo Joven)',
   sector:                'Agencias de Viajes / Travel Arrangements',
   fecha_periodo:         'Enero – Julio 2026',
   fecha_auditoria:       'Jul 2026',
   tipo_cliente:          'Mediana · 43 oficinas (22 propias, 21 franquicias)',
-  descripcion_contexto:  'Grupo Mundo Joven · CID 176205 · Visibilidad y Control Callcenter · Asesora: Claudia Hernández',
+  descripcion_contexto:  'Grupo Mundo Joven · CID 176205 · Visibilidad y Control Callcenter · Asesora: Erick Sánchez',
   estado:                'en_riesgo',
   clasificacion:         'CONFIDENCIAL',
   version:               '1.0',
@@ -54,7 +54,7 @@ export const TRAVELLING: AuditoriaCase = {
     { fecha: 'Ene–Mar 2026',responsable: 'Plataforma / KAM',    evento: 'Volumen alto mantenido (1,807 → 1,330 → 704 llamadas). Tasa de pérdida oscila entre 52–58.5% — sin acciones correctivas documentadas.', tipo: 'neutral' },
     { fecha: 'Abr–May 2026',responsable: 'Travelling',          evento: 'Inicio del colapso de personal: liquidaciones y ajuste presupuestal obligan a reducción significativa de colaboradores. Volumen cae de 438 (abril) a 114 (mayo).', tipo: 'problema' },
     { fecha: 'Jun 2026',    responsable: 'Travelling',          evento: 'Volumen saliente en mínimo histórico: 23 llamadas en el mes completo (−98.7% vs. enero). Solo Omar Tegoma y Haniel Domínguez activos.', tipo: 'problema' },
-    { fecha: '23 Jul 2026', responsable: 'Claudia Hernández',   evento: 'Nota KAM: cliente reporta dificultades de pago y contexto de reducción de personal. Claudia inicia análisis de consumo para evaluar ajuste de plan.', tipo: 'pivote' },
+    { fecha: '23 Jul 2026', responsable: 'Erick Sánchez',   evento: 'Nota KAM: cliente reporta dificultades de pago y contexto de reducción de personal. Claudia inicia análisis de consumo para evaluar ajuste de plan.', tipo: 'pivote' },
     { fecha: '23 Jul 2026', responsable: 'Callpicker / ATLAS',  evento: 'Emisión de auditoría forense (4,439 salientes + 293 entrantes analizados). Los datos de tráfico confirman y cuantifican la narrativa del cliente.', tipo: 'ok' },
   ],
 
@@ -66,7 +66,7 @@ export const TRAVELLING: AuditoriaCase = {
     { label: 'Cliente desde',       value: 'Octubre 2025 (~295 días)' },
     { label: 'Servicio contratado', value: 'Visibilidad y Control Callcenter' },
     { label: 'Contacto principal',  value: 'Guillermo Ataxca — Consultor Independiente' },
-    { label: 'Asesora de cuenta',   value: 'Claudia Hernández' },
+    { label: 'Asesora de cuenta',   value: 'Erick Sánchez' },
     { label: 'MRR actual',         value: '$14,655 MXN' },
     { label: 'Tickets Zoho Desk',   value: '20 totales · 1 falla real — bajo nivel de incidencias técnicas' },
     { label: 'Situación financiera',value: 'Dificultades de pago: liquidaciones y obligaciones IMSS/Infonavit por reducción de personal' },
@@ -138,27 +138,27 @@ export const TRAVELLING: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Presentar al cliente el hallazgo Puebla + Dulce E. Juárez como el punto de mayor apalancamiento', responsable: 'Claudia Hernández', criterio: 'Sesión con Guillermo Ataxca antes del 1 Ago 2026' },
-    { accion: 'Confirmar estatus de extensiones "Vacante", "VACANTE SLP" y "VacanteXLP": ¿puestos por cubrir o error de configuración?', responsable: 'Claudia Hernández + cliente', criterio: 'Respuesta documentada del cliente' },
+    { accion: 'Presentar al cliente el hallazgo Puebla + Dulce E. Juárez como el punto de mayor apalancamiento', responsable: 'Erick Sánchez', criterio: 'Sesión con Guillermo Ataxca antes del 1 Ago 2026' },
+    { accion: 'Confirmar estatus de extensiones "Vacante", "VACANTE SLP" y "VacanteXLP": ¿puestos por cubrir o error de configuración?', responsable: 'Erick Sánchez + cliente', criterio: 'Respuesta documentada del cliente' },
     { accion: 'Validar con equipo técnico Callpicker la definición exacta de "Lost" vs. "Redirected" en reporte saliente para usar definición oficial con el cliente', responsable: 'Equipo técnico Callpicker', criterio: 'Confirmación documentada antes de siguiente reunión' },
   ],
 
   plan_mediano: [
-    { accion: 'Documentar el método de Francisco González y de sucursal Monterrey para usarlo como referencia de entrenamiento', responsable: 'Claudia Hernández + cliente', criterio: 'Guía de mejores prácticas documentada y compartida con el equipo' },
+    { accion: 'Documentar el método de Francisco González y de sucursal Monterrey para usarlo como referencia de entrenamiento', responsable: 'Erick Sánchez + cliente', criterio: 'Guía de mejores prácticas documentada y compartida con el equipo' },
     { accion: 'Revisar operación de la franja 17:00–19:00 h: ¿hay causa operativa identificable para la caída de desempeño en cierre de turno?', responsable: 'Cliente (ops) + Callpicker', criterio: 'Cambio de protocolo en franja 18:00 h implementado' },
-    { accion: 'Cerrar análisis de ajuste de plan incorporando que el ajuste resuelve el consumo, no la conversión — ambas conversaciones van juntas', responsable: 'Claudia Hernández + Comercial', criterio: 'Acuerdo firmado antes del 15 Ago 2026' },
+    { accion: 'Cerrar análisis de ajuste de plan incorporando que el ajuste resuelve el consumo, no la conversión — ambas conversaciones van juntas', responsable: 'Erick Sánchez + Comercial', criterio: 'Acuerdo firmado antes del 15 Ago 2026' },
   ],
 
   plan_estrategico: [
-    { accion: 'Proponer plan de contingencia de personal: con solo 2 personas activas, cualquier ausencia paraliza la operación saliente', responsable: 'Claudia Hernández + Guillermo Ataxca', criterio: 'Plan de respaldo mínimo documentado' },
-    { accion: 'Monitorear mensualmente la tasa de pérdida saliente como KPI central — no solo el volumen', responsable: 'Claudia Hernández', criterio: 'Dashboard de tasa de pérdida actualizado en cada ciclo KAM' },
-    { accion: 'Capitalizar adopción de Callpicker Chat (marcada como "Alto") para seguimiento asíncrono de prospectos no contactados por voz', responsable: 'Claudia Hernández + Comercial', criterio: 'Propuesta de uso de Chat enviada al cliente' },
+    { accion: 'Proponer plan de contingencia de personal: con solo 2 personas activas, cualquier ausencia paraliza la operación saliente', responsable: 'Erick Sánchez + Guillermo Ataxca', criterio: 'Plan de respaldo mínimo documentado' },
+    { accion: 'Monitorear mensualmente la tasa de pérdida saliente como KPI central — no solo el volumen', responsable: 'Erick Sánchez', criterio: 'Dashboard de tasa de pérdida actualizado en cada ciclo KAM' },
+    { accion: 'Capitalizar adopción de Callpicker Chat (marcada como "Alto") para seguimiento asíncrono de prospectos no contactados por voz', responsable: 'Erick Sánchez + Comercial', criterio: 'Propuesta de uso de Chat enviada al cliente' },
   ],
 
   areas_oportunidad: [
     { area: 'Redistribución de carga Puebla → Monterrey',   impacto: 'Alto — recupera ~300+ contactos sin llamadas adicionales', responsable: 'Cliente (ops) + Claudia' },
     { area: 'Formación basada en benchmark Francisco González', impacto: 'Alto — si la brecha de Dulce se cierra al promedio, la cuenta recupera eficiencia sin más personal', responsable: 'Cliente (ops)' },
-    { area: 'Ajuste de plan a consumo real',                 impacto: 'Alto — reduce riesgo de cancelación por presión financiera', responsable: 'Claudia Hernández' },
+    { area: 'Ajuste de plan a consumo real',                 impacto: 'Alto — reduce riesgo de cancelación por presión financiera', responsable: 'Erick Sánchez' },
     { area: 'Revisión horario de marcación (18:00 h)',       impacto: 'Medio — 72.4% de pérdida en segunda franja de mayor volumen es corregible con protocolo', responsable: 'Cliente (ops)' },
     { area: 'Callpicker Chat para seguimiento asíncrono',    impacto: 'Medio — reduce dependencia de saliente voz y da cobertura cuando el equipo es mínimo', responsable: 'KAM + Comercial' },
   ],
@@ -208,7 +208,7 @@ export const TRAVELLING: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia Hernández',
+      nombre: 'Erick Sánchez',
       rol:    'Asesora de cuenta Callpicker',
       color:  '#0891b2',
       campos: [

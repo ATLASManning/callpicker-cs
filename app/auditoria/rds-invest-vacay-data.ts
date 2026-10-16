@@ -6,7 +6,7 @@ import type { AuditoriaCase } from './types'
  * Galván, con notas de perfilamiento y cierre), fila LTV de RDS ELITE CONDOS
  * PDC (1 factura · LTV 5-Mínimo · semáforo 2-Riesgo · 0 meses activo),
  * registros KAM del 28 Ago de la llamada de cancelación (Ricardo Straffon
- * con Claudia Hernández y José Manuel López) y ticket de cancelación en
+ * con Erick Sánchez y José Manuel López) y ticket de cancelación en
  * Zoho Desk.
  *
  * Nota de precisión: el resumen de la llamada es una síntesis de reunión, no
@@ -17,7 +17,7 @@ import type { AuditoriaCase } from './types'
  */
 export const RDS_INVEST_VACAY: AuditoriaCase = {
   id:                    'rds-invest-vacay',
-  asesor:                'Claudia',
+  asesor:                'Erick',
   nombre:                'RDS / Invest Vacay Group',
   sector:                'Inmobiliario turístico — propiedades fraccionales y clubes vacacionales (Quintana Roo)',
   fecha_periodo:         '10 Julio – 28 Agosto 2026 (venta) · 6 meses la cuenta original',
@@ -64,7 +64,7 @@ export const RDS_INVEST_VACAY: AuditoriaCase = {
     { fecha: '20 Jul 2026',    responsable: 'Ventas',                      evento: 'Contrato firmado — Cierre logrado, $2,387, probabilidad 100%. Facturación a nombre de RDS ELITE CONDOS PDC SA DE CV (cotejo de cierre: Joaquín Martínez, 28 Jul).', tipo: 'neutral' },
     { fecha: '21 Jul 2026',    responsable: 'Facturación',                 evento: 'ÚNICA factura emitida de la cuenta nueva. En el tablero LTV queda: $2,387 acumulado · 5-Mínimo · semáforo 2-Riesgo · 0 meses activo.', tipo: 'problema' },
     { fecha: '28 Ago 2026',    responsable: 'Ricardo Straffon',            evento: 'Cancelación de AMBAS cuentas RDS en llamada con Claudia y José Manuel: respuesta de pautas desplomada (20-30% → 6-10%, cifras del cliente), migración a clic-a-WhatsApp, Bambete contratado y operando. Rechaza ajuste de plan y Callpicker Chat. "El servicio de Callpicker fue muy bueno".', tipo: 'problema' },
-    { fecha: '28 Ago 2026',    responsable: 'Claudia Hernández',           evento: 'Ticket de cancelación abierto; compromiso de notificación formal por escrito. Pendiente: confirmar alcance (¿toda la razón social o solo RDS?) — seguimiento en el caso Sofia.', tipo: 'pivote' },
+    { fecha: '28 Ago 2026',    responsable: 'Erick Sánchez',           evento: 'Ticket de cancelación abierto; compromiso de notificación formal por escrito. Pendiente: confirmar alcance (¿toda la razón social o solo RDS?) — seguimiento en el caso Sofia.', tipo: 'pivote' },
   ],
 
   perfil_campos: [
@@ -82,7 +82,7 @@ export const RDS_INVEST_VACAY: AuditoriaCase = {
     { label: 'Contacto operativo',          value: 'Julio Pech — Sistemas (jefe de departamento) · sistemas@investvacaygroup.com · 9831804118' },
     { label: 'Decisor real (no mapeado)',   value: 'Ricardo Straffon — decidió la cancelación de ambas cuentas' },
     { label: 'Competidor',                  value: 'Bambete — llamadas + IA + mensajes + redes sociales · contratado y operando antes de nuestra contraoferta' },
-    { label: 'Atendió la cancelación',      value: 'Claudia Hernández + José Manuel López · 28 Ago 2026' },
+    { label: 'Atendió la cancelación',      value: 'Erick Sánchez + José Manuel López · 28 Ago 2026' },
   ],
 
   necesidad_negocio:
@@ -136,8 +136,8 @@ export const RDS_INVEST_VACAY: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Enviar la notificación formal de baja de las 2 cuentas RDS (compromiso adquirido en la llamada).',      responsable: 'Claudia Hernández',    criterio: 'Notificación enviada; expediente cerrado en Zoho Desk.' },
-    { accion: 'Confirmar por escrito el alcance acotado (solo RDS, no la razón social) — ejecución en el caso Sofia.', responsable: 'Claudia Hernández',    criterio: 'Confirmación documentada.' },
+    { accion: 'Enviar la notificación formal de baja de las 2 cuentas RDS (compromiso adquirido en la llamada).',      responsable: 'Erick Sánchez',    criterio: 'Notificación enviada; expediente cerrado en Zoho Desk.' },
+    { accion: 'Confirmar por escrito el alcance acotado (solo RDS, no la razón social) — ejecución en el caso Sofia.', responsable: 'Erick Sánchez',    criterio: 'Confirmación documentada.' },
   ],
 
   plan_mediano: [
@@ -187,7 +187,7 @@ export const RDS_INVEST_VACAY: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia Hernández',
+      nombre: 'Erick Sánchez',
       rol:    'Atendió la cancelación — Cartera',
       color:  '#22c55e',
       campos: [

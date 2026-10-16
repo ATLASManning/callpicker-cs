@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const BRANDGROUP: AuditoriaCase = {
   id: 'brandgroup',
-  asesor: 'Claudia',
+  asesor: 'Erick',
   nombre: 'Brand-Kern-Liebers México, S.A. de C.V.',
   sector: 'Manufactura – Automotriz / Metalmecánica',
   fecha_periodo: 'Enero – Julio 2026',
@@ -47,7 +47,7 @@ export const BRANDGROUP: AuditoriaCase = {
     { fecha: '14 ene 2026',    responsable: 'Operación Brandgroup',              evento: 'Primer registro de llamadas del periodo auditado. Inicio de tráfico con 5 salientes y 1 entrante.', tipo: 'neutral' },
     { fecha: 'Mar 2026',       responsable: 'Fernando Hernandez (agente)',        evento: 'Pico aislado: 37 llamadas salientes — casi todas de un solo agente. Causa desconocida; se recomienda preguntar al cliente.', tipo: 'pivote' },
     { fecha: '28 feb – 3 jul 2026', responsable: '4 agentes distintos',          evento: 'Patrón de llamadas a Alemania (+49): 12 intentos, 66.7% de pérdida, incluyendo bloques de 3 intentos consecutivos en un solo día sin conexión.', tipo: 'problema' },
-    { fecha: '21 jul 2026',    responsable: 'Claudia Hernández – SAC Callpicker', evento: 'Entrega de auditoría forense de tráfico. Nota "pendiente" en CRM: análisis de comportamiento para establecer plan de retención.', tipo: 'ok' },
+    { fecha: '21 jul 2026',    responsable: 'Erick Sánchez – SAC Callpicker', evento: 'Entrega de auditoría forense de tráfico. Nota "pendiente" en CRM: análisis de comportamiento para establecer plan de retención.', tipo: 'ok' },
   ],
 
   perfil_campos: [
@@ -60,7 +60,7 @@ export const BRANDGROUP: AuditoriaCase = {
     { label: 'Dirección',           value: 'Av. El Tepeyac 11080, Parque Industrial O\'Donnell Aeropuerto, El Marqués, Querétaro' },
     { label: 'Tamaño declarado',    value: 'Grande · 5,001–10,000 empleados globales' },
     { label: 'Health Score CRM',    value: '50/100 (Actividad 50 · Adopción 50 · Pago 50 · Relacional 50)' },
-    { label: 'Asesor SAC',          value: 'Claudia Hernández – SAC Satisfacción al Cliente' },
+    { label: 'Asesor SAC',          value: 'Erick Sánchez – SAC Satisfacción al Cliente' },
   ],
 
   necesidad_negocio:
@@ -98,7 +98,7 @@ export const BRANDGROUP: AuditoriaCase = {
     { fase: '3. Demo sin cierre (ene-2025)', area: 'Callpicker + Zayra + Alois',     accion: 'Demo exitosa técnicamente, pero Zayra prioriza "proyecto BKL"', resultado: 'El seguimiento queda suspendido sin fecha, sin compromisos y sin alternativa interna clara' },
     { fase: '4. Pérdida de champion',        area: 'Kern-Liebers (Zayra Pulido)',     accion: 'Zayra sale de la empresa sin transferir el mandato', resultado: 'El proyecto de 4 países queda huérfano. Fabián Álvarez hereda la operación sin el contexto original' },
     { fase: '5. Modo automático (2026)',     area: 'Fabián Álvarez / agentes',        accion: 'Operación mínima: 185 llamadas en 7 meses, 16 min/mes facturables', resultado: 'El servicio sigue pagado pero sin expansión ni presión de adopción del lado del cliente' },
-    { fase: '6. Auditoría (jul-2026)',        area: 'Claudia Hernández – SAC',         accion: 'Análisis forense del tráfico completo ene-jul 2026', resultado: 'Diagnóstico documentado: patrón de Alemania nombrable, causa raíz identificada, ruta de conversación definida' },
+    { fase: '6. Auditoría (jul-2026)',        area: 'Erick Sánchez – SAC',         accion: 'Análisis forense del tráfico completo ene-jul 2026', resultado: 'Diagnóstico documentado: patrón de Alemania nombrable, causa raíz identificada, ruta de conversación definida' },
   ],
 
   comparativo: [
@@ -111,15 +111,15 @@ export const BRANDGROUP: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Conversación inicial con Fabián Álvarez: determinar si tiene contexto del proyecto original (4 países, Zayra Pulido)', responsable: 'Claudia Hernández – SAC', criterio: 'Documentar en CRM si Fabián conoce o no el alcance original cotizado' },
-    { accion: 'Presentar el patrón de Alemania: 12 intentos, 66.7% de pérdida, 4 agentes en 5 meses — preguntar si esa necesidad sigue vigente', responsable: 'Claudia Hernández – SAC', criterio: 'Obtener confirmación de si el contacto con Alemania es una necesidad activa o cerrada' },
-    { accion: 'Validar si la baja actividad telefónica se explica por migración real de tráfico a Teams (o por abandono del canal)', responsable: 'Claudia Hernández + Fabián Álvarez', criterio: 'Determinar el canal principal real de comunicación actual de la empresa' },
+    { accion: 'Conversación inicial con Fabián Álvarez: determinar si tiene contexto del proyecto original (4 países, Zayra Pulido)', responsable: 'Erick Sánchez – SAC', criterio: 'Documentar en CRM si Fabián conoce o no el alcance original cotizado' },
+    { accion: 'Presentar el patrón de Alemania: 12 intentos, 66.7% de pérdida, 4 agentes en 5 meses — preguntar si esa necesidad sigue vigente', responsable: 'Erick Sánchez – SAC', criterio: 'Obtener confirmación de si el contacto con Alemania es una necesidad activa o cerrada' },
+    { accion: 'Validar si la baja actividad telefónica se explica por migración real de tráfico a Teams (o por abandono del canal)', responsable: 'Erick Sánchez + Fabián Álvarez', criterio: 'Determinar el canal principal real de comunicación actual de la empresa' },
   ],
 
   plan_mediano: [
     { accion: 'Proponer enrutamiento internacional con reglas de horario para llamadas a Alemania', responsable: 'Callpicker – Ingeniería / SAC', criterio: 'Eliminar intentos nocturnos fallidos; reducir tasa de pérdida a <20%' },
     { accion: 'Sesión de reactivación de integración Teams ya contratada — mostrar capacidades no usadas', responsable: 'Callpicker – Activaciones', criterio: 'Al menos 1 agente adicional usando Teams activamente para el siguiente mes' },
-    { accion: 'Identificar si existe en Kern-Liebers alguien con autoridad para retomar el mandato original de los 4 países', responsable: 'Claudia Hernández + Fabián Álvarez', criterio: 'Nombre y contacto de decisor con contexto del proyecto original o la confirmación de que ese alcance está descartado' },
+    { accion: 'Identificar si existe en Kern-Liebers alguien con autoridad para retomar el mandato original de los 4 países', responsable: 'Erick Sánchez + Fabián Álvarez', criterio: 'Nombre y contacto de decisor con contexto del proyecto original o la confirmación de que ese alcance está descartado' },
   ],
 
   plan_estrategico: [

@@ -243,7 +243,7 @@ import type { AuditoriaCase } from './types'
  */
 export const TECH_PEOPLE: AuditoriaCase = {
   id: 'tech-people',
-  asesor: 'Claudia',
+  asesor: 'Erick',
   nombre: 'Tech People — Servicios y Reparaciones TP, S.A. de C.V.',
   sector: 'Reparación de dispositivos Apple — centros de servicio en tiendas iShop Mixup',
   fecha_periodo: 'Marzo 2017 – Octubre 2026',
@@ -293,14 +293,14 @@ export const TECH_PEOPLE: AuditoriaCase = {
   cronologia: [
     { fecha: '01 Mar 2017', responsable: 'Callpicker',       evento: 'Alta de la cuenta. 115 meses facturados hasta hoy, $6,919,304 acumulados en la línea principal.', tipo: 'ok' },
     { fecha: 'Ene–Ago 2026', responsable: 'Operación TP',    evento: 'Perdidas estables entre 5.9% y 6.6% cada mes — pero la atención POR UNA PERSONA se mantiene plana en torno al 44% todo el periodo, de 43.1% en enero a 45.2% en agosto. Lo estable no es que se atienda bien: es que la mitad del tráfico nunca llega a nadie.', tipo: 'ok' },
-    { fecha: '18 Jul 2026', responsable: 'Claudia',          evento: 'Resumen para el área técnica: «la operación del cliente se mantuvo estable; los tickets se distribuyen de forma equilibrada». La nota es del 18 —`seguimientos` la sella el 2026-07-18T18:33Z, que son las 12:33 en México—; el 17 de julio es la `fecha_programada` de la ACTIVIDAD `tickets` (vencimiento el 21), cuyo `resultado` repite el mismo texto. La v1.2 ponía la nota el 17 en esta línea y el 18 en el cuerpo, y se contradecía.', tipo: 'neutral' },
-    { fecha: '23 Jul 2026', responsable: 'Claudia',          evento: 'Actividad de análisis programada. NO se completó.', tipo: 'problema' },
-    { fecha: '04 Ago 2026', responsable: 'Claudia',          evento: 'Se completa el perfil de cliente — pero la actividad es de la SUBCUENTA: lleva cid 32785, consecutivo Z33 y empresa «Tech People Soluciones». Trabajo de ficha, no contacto con el cliente.', tipo: 'neutral' },
-    { fecha: '05 Ago 2026', responsable: 'Claudia',          evento: 'Análisis cerrado: «no se identificaron incumplimientos recurrentes de los SLA». También es de la SUBCUENTA (cid 32785, Z33). Las actividades de C1 son tres: `tickets` el 17 jul, `analisis` el 23 jul —que quedó bloqueada— y `llamada` el 20 ago.', tipo: 'neutral' },
+    { fecha: '18 Jul 2026', responsable: 'Erick',          evento: 'Resumen para el área técnica: «la operación del cliente se mantuvo estable; los tickets se distribuyen de forma equilibrada». La nota es del 18 —`seguimientos` la sella el 2026-07-18T18:33Z, que son las 12:33 en México—; el 17 de julio es la `fecha_programada` de la ACTIVIDAD `tickets` (vencimiento el 21), cuyo `resultado` repite el mismo texto. La v1.2 ponía la nota el 17 en esta línea y el 18 en el cuerpo, y se contradecía.', tipo: 'neutral' },
+    { fecha: '23 Jul 2026', responsable: 'Erick',          evento: 'Actividad de análisis programada. NO se completó.', tipo: 'problema' },
+    { fecha: '04 Ago 2026', responsable: 'Erick',          evento: 'Se completa el perfil de cliente — pero la actividad es de la SUBCUENTA: lleva cid 32785, consecutivo Z33 y empresa «Tech People Soluciones». Trabajo de ficha, no contacto con el cliente.', tipo: 'neutral' },
+    { fecha: '05 Ago 2026', responsable: 'Erick',          evento: 'Análisis cerrado: «no se identificaron incumplimientos recurrentes de los SLA». También es de la SUBCUENTA (cid 32785, Z33). Las actividades de C1 son tres: `tickets` el 17 jul, `analisis` el 23 jul —que quedó bloqueada— y `llamada` el 20 ago.', tipo: 'neutral' },
     { fecha: '06 Ago 2026', responsable: 'Sistema',          evento: 'Aviso automático: el perfil de Tech People Soluciones tiene 10 campos incompletos, 4 de ellos CRÍTICOS para análisis de riesgo.', tipo: 'problema' },
     { fecha: '08 Ago 2026', responsable: '—',                evento: 'Último contacto que registra la ficha —`cuentas.ultimo_contacto` = 2026-08-08— y el motor no reconoce ninguno por canal real. DE DÓNDE SALE ESA FECHA NO SE SABE: ningún seguimiento ni actividad la lleva (seguimientos 18 jul, 06 ago ×2, 22 ago y 08 oct; actividades 17 jul, 23 jul, 04 ago, 05 ago y 20 ago) y las cinco actividades tienen `completada_en` en null, así que no hay cierre de tarea del que pudiera salir. La v1.2 afirmaba «la fecha viene de cerrar una actividad»: la evidencia de la alerta sólo advierte que esa fecha «la escribe también el cierre de tareas internas», que es una cautela y no una atribución.', tipo: 'problema' },
-    { fecha: '20 Ago 2026', responsable: 'Claudia',          evento: 'Actividad de LLAMADA programada. NO se completó.', tipo: 'problema' },
-    { fecha: '22 Ago 2026', responsable: 'Claudia',          evento: 'Se prepara el análisis de uso «como preparación previa a la llamada con el cliente». La llamada no consta.', tipo: 'problema' },
+    { fecha: '20 Ago 2026', responsable: 'Erick',          evento: 'Actividad de LLAMADA programada. NO se completó.', tipo: 'problema' },
+    { fecha: '22 Ago 2026', responsable: 'Erick',          evento: 'Se prepara el análisis de uso «como preparación previa a la llamada con el cliente». La llamada no consta.', tipo: 'problema' },
     { fecha: '31 Ago 2026', responsable: 'Dirección',        evento: 'FUSIÓN: la subcuenta «Tech People - Soluciones» (Z33, CID 32785) se integra a C1 y se elimina el duplicado. La columna `facturacion` de la ficha no se actualizó: sigue en $59,423, que es un promedio de vida viejo y no el MRR de ninguna de las dos líneas.', tipo: 'pivote' },
     { fecha: '14 Sep 2026', responsable: 'Callpicker',       evento: 'Corte del archivo de llamadas de esta cuenta. Su lectura llega hasta aquí; su mes cerrado es AGOSTO.', tipo: 'neutral' },
     { fecha: '17–24 Sep 2026', responsable: 'Mesa de ayuda', evento: 'ÚLTIMA FALLA del CID 2094: `Falla (voz)` / `Falla SIP (voz)`, abierta el 17 y cerrada el 24. Son 5 fallas de ese CID cerradas en agosto y septiembre contra 0 entre febrero y abril. El ticket del 29 de septiembre NO es una falla: es `Contratación (chat)`.', tipo: 'problema' },
@@ -381,14 +381,14 @@ export const TECH_PEOPLE: AuditoriaCase = {
 
   plan_inmediato: [
     { accion: 'Corregir el importe de la cuenta: la ficha dice $59,423 —promedio de vida de un corte viejo— y el MRR institucional del GRC son $88,783.20 en dos líneas con CID 2094', responsable: 'Dirección / Facturación', criterio: 'La columna `facturacion` cuadra con el MRR institucional, y todo ranking de cartera deja dicho por qué camino se mide' },
-    { accion: 'Llamar a Camilo Eckardt. Es la PRIMERA llamada REGISTRADA en 9.6 años y así se plantea', responsable: 'Claudia', criterio: 'Contacto registrado por canal real; la alerta `nunca_contactada` se apaga' },
-    { accion: 'Llevar a esa llamada el desglose por tienda, con las SIETE que pierden más del 38%', responsable: 'Claudia', criterio: 'El cliente recibe la lista con nombre de sucursal y porcentaje, y se le dice que el desglose llega a catorce destinos y deja 140 sin abrir, 106 de ellos con alguna perdida' },
-    { accion: 'Preguntar qué es el destino «Fin de llamada»: 290 llamadas, 174 sin contestar y 116 al buzón, cero minutos en los dos lados', responsable: 'Claudia', criterio: 'Respuesta del cliente registrada; se descarta o se confirma que sea un problema de configuración' },
-    { accion: 'Pedir el export de llamadas CON la columna `destination_data_1` y el desglose completo por destino: hoy el 46.3% de lo perdido no se atribuye a ningún destino y 2,248 perdidas se quedan en un cubo', responsable: 'Claudia', criterio: 'Siguiente entrega con destino en todas las filas y sin cubo de «otros»' },
+    { accion: 'Llamar a Camilo Eckardt. Es la PRIMERA llamada REGISTRADA en 9.6 años y así se plantea', responsable: 'Erick', criterio: 'Contacto registrado por canal real; la alerta `nunca_contactada` se apaga' },
+    { accion: 'Llevar a esa llamada el desglose por tienda, con las SIETE que pierden más del 38%', responsable: 'Erick', criterio: 'El cliente recibe la lista con nombre de sucursal y porcentaje, y se le dice que el desglose llega a catorce destinos y deja 140 sin abrir, 106 de ellos con alguna perdida' },
+    { accion: 'Preguntar qué es el destino «Fin de llamada»: 290 llamadas, 174 sin contestar y 116 al buzón, cero minutos en los dos lados', responsable: 'Erick', criterio: 'Respuesta del cliente registrada; se descarta o se confirma que sea un problema de configuración' },
+    { accion: 'Pedir el export de llamadas CON la columna `destination_data_1` y el desglose completo por destino: hoy el 46.3% de lo perdido no se atribuye a ningún destino y 2,248 perdidas se quedan en un cubo', responsable: 'Erick', criterio: 'Siguiente entrega con destino en todas las filas y sin cubo de «otros»' },
   ],
 
   plan_mediano: [
-    { accion: 'Contestar las 12 preguntas del Radar en la misma visita', responsable: 'Claudia', criterio: '12 de 12 en la ficha' },
+    { accion: 'Contestar las 12 preguntas del Radar en la misma visita', responsable: 'Erick', criterio: '12 de 12 en la ficha' },
     { accion: 'Resolver por qué el CID 2094 no tiene dato de consumo en ninguno de los últimos 5 cortes', responsable: 'Facturación', criterio: 'La cuenta aparece con su % de plan en el siguiente Informe de Cortes' },
     { accion: 'Clasificar correctamente el upsell de $2,046: si los 3 usuarios son permanentes no es «temporal»', responsable: 'Facturación', criterio: 'El GRC refleja el movimiento con su naturaleza real' },
     { accion: 'Revisar las 12 fallas de servicio de los DOS CIDs: de las 7 del CID 2094, 5 cerraron en agosto y septiembre contra 0 entre febrero y abril, y la última se abrió el 17 de septiembre; las 5 del CID 32785 no se habían contado', responsable: 'Mesa de ayuda', criterio: 'Se identifica si hay una causa común o son independientes' },
@@ -396,7 +396,7 @@ export const TECH_PEOPLE: AuditoriaCase = {
 
   plan_estrategico: [
     { accion: 'Panel de desempeño por sucursal — es el producto que ya compró, aplicado a sus +100 puntos', responsable: 'Producto / Claudia', criterio: 'El cliente recibe un reporte mensual por tienda' },
-    { accion: 'Proponer IA de Voz para el alto volumen de consultas repetitivas de estado de reparación', responsable: 'Claudia', criterio: 'Propuesta presentada con el cálculo sobre sus 116,054 entrantes' },
+    { accion: 'Proponer IA de Voz para el alto volumen de consultas repetitivas de estado de reparación', responsable: 'Erick', criterio: 'Propuesta presentada con el cálculo sobre sus 116,054 entrantes' },
     { accion: 'Integración con su sistema de órdenes de servicio', responsable: 'Ingeniería / Claudia', criterio: 'Propuesta técnica y costo entregados' },
     { accion: 'Gobernanza: reunión semestral fija. Nunca ha habido una', responsable: 'Claudia / Dirección', criterio: 'Primera reunión agendada con fecha y asistentes' },
   ],
@@ -404,8 +404,8 @@ export const TECH_PEOPLE: AuditoriaCase = {
   areas_oportunidad: [
     { area: 'Las SIETE tiendas que pierden más del 38%', impacto: '908 llamadas perdidas en siete sucursales de más de cien — y 140 destinos sin abrir, 106 de ellos con alguna perdida', responsable: 'Claudia + TP' },
     { area: 'Visibilidad por sucursal',                  impacto: 'Es el producto contratado, sin aplicar a su propia red', responsable: 'Producto' },
-    { area: 'IA de Voz',                                 impacto: '116,054 entrantes de consulta repetitiva, sin automatizar', responsable: 'Claudia' },
-    { area: 'El 46.3% de perdidas sin destino',          impacto: '3,341 llamadas sin atribuir a ningún destino: 3,125 sin la columna y 216 «(sin destino registrado)»', responsable: 'Claudia' },
+    { area: 'IA de Voz',                                 impacto: '116,054 entrantes de consulta repetitiva, sin automatizar', responsable: 'Erick' },
+    { area: 'El 46.3% de perdidas sin destino',          impacto: '3,341 llamadas sin atribuir a ningún destino: 3,125 sin la columna y 216 «(sin destino registrado)»', responsable: 'Erick' },
     { area: 'Corrección del MRR',                        impacto: '$29,360.20 al mes mal reflejados en la ficha y en el ranking', responsable: 'Facturación' },
     { area: 'Pago automático',                           impacto: '115 meses sin incidencias y sin domiciliación', responsable: 'Administración' },
   ],
@@ -428,7 +428,7 @@ export const TECH_PEOPLE: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia', rol: 'Asesora SAC de la cuenta — Callpicker', color: '#6366f1',
+      nombre: 'Erick', rol: 'Asesora SAC de la cuenta — Callpicker', color: '#6366f1',
       campos: [
         { label: 'Actividades',    value: '5 colgadas de esta cuenta, pero sólo 3 son de C1 —`tickets` el 17 jul, `analisis` el 23 jul (quedó bloqueada) y `llamada` el 20 ago—; las del 4 y 5 de agosto llevan cid 32785 / Z33 / «Tech People Soluciones». La de LLAMADA del 20 ago quedó sin completar' },
         { label: 'Seguimientos',   value: '5, todos de tipo `nota`. Ninguno está REGISTRADO como contacto — pero el del 8 de octubre transcribe un intercambio con el cliente, así que «ninguno es un contacto» vale para el tipo, no para el contenido' },

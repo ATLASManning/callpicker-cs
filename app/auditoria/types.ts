@@ -14,7 +14,7 @@ export interface AuditoriaCase {
   estado:              EstadoAuditoria
   clasificacion:       string   // "CONFIDENCIAL"
   version:             string   // "1.0"
-  asesor?:             'Fátima' | 'Dan' | 'Claudia' | null
+  asesor?:             'Fátima' | 'Dan' | 'Erick' | null
 
   /* ── KPIs de crisis (max 4) ──────────────────────────────────── */
   kpis: { label: string; value: string; color: string }[]

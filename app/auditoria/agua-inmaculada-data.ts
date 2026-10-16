@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const AGUA_INMACULADA: AuditoriaCase = {
   id: 'agua-inmaculada',
-  asesor: 'Claudia',
+  asesor: 'Erick',
   nombre: 'Agua Inmaculada',
   sector: 'Franquicias – Distribución de Agua / Red Nacional',
   fecha_periodo: 'Enero – Mayo 2026',
@@ -37,7 +37,7 @@ export const AGUA_INMACULADA: AuditoriaCase = {
     { fecha: 'Feb 2026', responsable: 'Operación Agua Inmaculada', evento: 'Consumo: 9,060 min (90.6%). No atendidas: 1,124 (30.4%). Tendencia de pérdida inicia ascenso.', tipo: 'neutral' },
     { fecha: 'Mar 2026', responsable: 'Operación Agua Inmaculada', evento: 'Volumen sube pero consumo baja a 8,772 min (87.7%). No atendidas saltan a 1,503 (37.4%). Señal de saturación de agentes.', tipo: 'problema' },
     { fecha: 'Abr 2026', responsable: 'Operación Agua Inmaculada', evento: 'Plan al 99.1% (9,910 min). No atendidas: 1,641 (39.5%). Abril es el mes crítico — al límite del plan y con la mayor tasa de pérdida.', tipo: 'problema' },
-    { fecha: 'Jun 2026', responsable: 'Claudia Hernández — SAC',   evento: 'Se realiza auditoría completa de cuenta. Se entrega informe a Javier Peña con dos opciones de plan. Iniciativa proactiva de Callpicker.', tipo: 'ok' },
+    { fecha: 'Jun 2026', responsable: 'Erick Sánchez — SAC',   evento: 'Se realiza auditoría completa de cuenta. Se entrega informe a Javier Peña con dos opciones de plan. Iniciativa proactiva de Callpicker.', tipo: 'ok' },
   ],
 
   perfil_campos: [
@@ -47,7 +47,7 @@ export const AGUA_INMACULADA: AuditoriaCase = {
     { label: 'Líneas activas',      value: '10' },
     { label: 'Plan actual',         value: '10,000 minutos / mes — $12,500 MXN/mes' },
     { label: 'Tipo de cliente',     value: 'Mid-Market – Red de 1,800+ franquicias' },
-    { label: 'Ejecutivo SAC',       value: 'Claudia Hernández — Ejecutivo de Satisfacción al Cliente' },
+    { label: 'Ejecutivo SAC',       value: 'Erick Sánchez — Ejecutivo de Satisfacción al Cliente' },
   ],
 
   necesidad_negocio: 'Agua Inmaculada opera una red de más de 1,800 franquicias que dependen del canal telefónico para comunicación operativa con su coordinación central. El volumen de llamadas está creciendo (+17.8% en 4 meses) a medida que la red se expande.\n\nEl cliente contrató Callpicker para manejar la comunicación centralizada de su red. Su principal necesidad es asegurar que cada franquicia que llama reciba atención — sin exceder el presupuesto del plan contratado. La pregunta que llevó a esta auditoría fue si el costo mensual estaba justificado por el valor real del servicio.',
@@ -70,7 +70,7 @@ export const AGUA_INMACULADA: AuditoriaCase = {
     { fase: '2. Saturación de extensiones', area: 'Asistencia (Efraín/Luz/Pedro)', accion: 'Las 3 extensiones de asistencia reciben más llamadas de las que pueden procesar', resultado: '49.2%, 40.6% y 28.6% de tasa de pérdida respectivamente. Núcleo del problema.' },
     { fase: '3. Concentración horaria',      area: '09:00–13:00 h',               accion: '55% de llamadas no atendidas en solo 5 horas al día', resultado: 'Los momentos de mayor actividad de franquicias coinciden con el cuello de botella.' },
     { fase: '4. Plan al límite',             area: 'Plan 10,000 min/mes',          accion: 'Abril cierra al 99.1% — el primero en casi rebasar el techo', resultado: 'Sin intervención, junio generará cargos por excedente no presupuestados.' },
-    { fase: '5. Alerta proactiva de SAC',    area: 'Claudia Hernández – Callpicker',accion: 'Auditoría proactiva basada en los datos del cliente', resultado: 'Informe entregado con dos opciones concretas. Cliente posicionado para decidir.' },
+    { fase: '5. Alerta proactiva de SAC',    area: 'Erick Sánchez – Callpicker',accion: 'Auditoría proactiva basada en los datos del cliente', resultado: 'Informe entregado con dos opciones concretas. Cliente posicionado para decidir.' },
   ],
 
   comparativo: [
@@ -83,22 +83,22 @@ export const AGUA_INMACULADA: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Presentar el informe en reunión con Javier Peña y revisar las dos opciones de plan', responsable: 'Claudia Hernández', criterio: 'Reunión agendada antes del 20 de junio' },
-    { accion: 'Obtener decisión de plan (Opción A o B) antes del cierre de mayo para evitar excedente en junio', responsable: 'Claudia Hernández + Javier Peña', criterio: 'Contrato actualizado firmado' },
+    { accion: 'Presentar el informe en reunión con Javier Peña y revisar las dos opciones de plan', responsable: 'Erick Sánchez', criterio: 'Reunión agendada antes del 20 de junio' },
+    { accion: 'Obtener decisión de plan (Opción A o B) antes del cierre de mayo para evitar excedente en junio', responsable: 'Erick Sánchez + Javier Peña', criterio: 'Contrato actualizado firmado' },
     { accion: 'Revisar asignación de extensiones de asistencia — especialmente Efraín, Luz María y Pedro', responsable: 'Javier Peña (operativo)', criterio: 'Plan de distribución de carga compartido con SAC' },
   ],
   plan_mediano: [
     { accion: 'Activar asistente virtual de desbordamiento en horario 09:00–13:00 h (si elige Opción B)', responsable: 'Activaciones + Javier Peña', criterio: 'Asistente operativo y capturando llamadas antes del 1 de julio' },
     { accion: 'Configurar cola inteligente por extensión para distribuir carga en horas pico', responsable: 'Soporte Técnico Callpicker', criterio: 'Tasa de pérdida en extensiones de asistencia < 25% en 30 días' },
-    { accion: 'Emitir primer reporte mensual por extensión con alerta semanal', responsable: 'Claudia Hernández', criterio: 'Primer reporte enviado semana 1 de julio' },
+    { accion: 'Emitir primer reporte mensual por extensión con alerta semanal', responsable: 'Erick Sánchez', criterio: 'Primer reporte enviado semana 1 de julio' },
   ],
   plan_estrategico: [
-    { accion: 'Revisión trimestral de consumo y crecimiento para ajuste proactivo de plan', responsable: 'Claudia Hernández – SAC', criterio: 'Ningún mes supera el 85% del plan sin alerta previa' },
+    { accion: 'Revisión trimestral de consumo y crecimiento para ajuste proactivo de plan', responsable: 'Erick Sánchez – SAC', criterio: 'Ningún mes supera el 85% del plan sin alerta previa' },
     { accion: 'Evaluar expansión de líneas conforme crece la red de franquicias', responsable: 'Ventas + SAC', criterio: 'Propuesta de crecimiento lista para Q4 2026' },
     { accion: 'Documentar Agua Inmaculada como caso de éxito de auditoría proactiva', responsable: 'SAC + Marketing', criterio: 'Caso documentado internamente para replicar metodología' },
   ],
   areas_oportunidad: [
-    { area: 'Auditoría proactiva como metodología estándar SAC',           impacto: 'Convierte el momento de queja en momento de expansión de contrato. ROI inmediato.', responsable: 'SAC – Claudia Hernández' },
+    { area: 'Auditoría proactiva como metodología estándar SAC',           impacto: 'Convierte el momento de queja en momento de expansión de contrato. ROI inmediato.', responsable: 'SAC – Erick Sánchez' },
     { area: 'Asistente virtual de desbordamiento para redes de franquicias', impacto: 'Captura el 20–30% de llamadas perdidas sin contratar personal adicional. Caso replicable.', responsable: 'Producto + Activaciones' },
     { area: 'Alertas automáticas de consumo al 80% del plan',              impacto: 'Elimina la sorpresa del excedente. El cliente confía en que Callpicker lo cuida.', responsable: 'Ingeniería – Producto' },
     { area: 'Reporte por extensión como producto de retención',            impacto: 'El cliente usa los datos para gestionar a sus agentes — Callpicker se vuelve indispensable.', responsable: 'SAC + Producto' },
@@ -117,7 +117,7 @@ export const AGUA_INMACULADA: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia Hernández', rol: 'Callpicker SAC — Ejecutivo de Satisfacción al Cliente', color: '#22c55e',
+      nombre: 'Erick Sánchez', rol: 'Callpicker SAC — Ejecutivo de Satisfacción al Cliente', color: '#22c55e',
       campos: [
         { label: 'Aportación clave',    value: 'Transformó una queja sobre el costo en una auditoría proactiva que revela oportunidad de upsell con datos' },
         { label: 'Metodología',         value: 'Análisis llamada por llamada con reglas reales de contabilización — entregó credibilidad antes de proponer' },

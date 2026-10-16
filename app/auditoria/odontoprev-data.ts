@@ -196,7 +196,7 @@ import type { AuditoriaCase } from './types'
  */
 export const ODONTOPREV: AuditoriaCase = {
   id: 'odontoprev',
-  asesor: 'Claudia',
+  asesor: 'Erick',
   nombre: 'ODONTOPREV México (Odontored Seguros Dentales)',
   sector: 'Seguros dentales y salud bucal — administra coberturas vía red de prestadores',
   fecha_periodo: 'Julio 2024 – Octubre 2026',
@@ -247,10 +247,10 @@ export const ODONTOPREV: AuditoriaCase = {
     { fecha: '03 Jul 2024',   responsable: 'Callpicker',        evento: 'Alta de la cuenta. Servicio: CP Chat + Paquete de SMS + Visibilidad y Control + DID. 27 meses de relación.', tipo: 'ok' },
     { fecha: 'Ene 2026',      responsable: 'Operación CAT',     evento: '8,366 llamadas con 421 perdidas: 5.0%. Es el peor mes del periodo medido y el punto de partida de una mejora sostenida.', tipo: 'problema' },
     { fecha: 'Mar–May 2026',  responsable: 'Mesa de ayuda',     evento: 'Empiezan a acumularse los tickets de chat: envíos masivos, reportes de campaña, plantillas verificadas. Nueve en tres meses.', tipo: 'problema' },
-    { fecha: '26 Jun 2026',   responsable: 'Claudia',           evento: 'Actividad de llamada programada: NO se completó.', tipo: 'problema' },
-    { fecha: '16 Jul 2026',   responsable: 'Claudia',           evento: 'Análisis de tickets cerrado, y el diagnóstico es correcto: «la categoría con mayor recurrencia es Asistencia en Chat… la demanda de soporte es de carácter operativo y no por fallas del servicio».', tipo: 'ok' },
+    { fecha: '26 Jun 2026',   responsable: 'Erick',           evento: 'Actividad de llamada programada: NO se completó.', tipo: 'problema' },
+    { fecha: '16 Jul 2026',   responsable: 'Erick',           evento: 'Análisis de tickets cerrado, y el diagnóstico es correcto: «la categoría con mayor recurrencia es Asistencia en Chat… la demanda de soporte es de carácter operativo y no por fallas del servicio».', tipo: 'ok' },
     { fecha: '22 Jul 2026',   responsable: 'Claudia / Cisneros', evento: 'ÚLTIMO contacto efectivo. Cisneros responde que «actualmente no participa de forma directa en la operación» y que validará con su equipo. Desde aquí se cuentan los 83 días.', tipo: 'pivote' },
-    { fecha: '24 Jul 2026',   responsable: 'Claudia',           evento: 'Se registra el seguimiento. La retroalimentación prometida por el cliente nunca llegó, y nadie buscó al sustituto.', tipo: 'problema' },
+    { fecha: '24 Jul 2026',   responsable: 'Erick',           evento: 'Se registra el seguimiento. La retroalimentación prometida por el cliente nunca llegó, y nadie buscó al sustituto.', tipo: 'problema' },
     { fecha: 'Ago 2026',      responsable: 'Mesa de ayuda',     evento: 'Siete tickets CERRADOS, empatado con septiembre como el mes de más cierres del año, con dos fallas. Entre ellos el folio 105738 de «Bandeja de entrada», abierto el 16 de abril y cerrado el 7 de agosto: 2,709 horas de resolución.', tipo: 'problema' },
     { fecha: 'Ago 2026',      responsable: 'Operación CAT',     evento: 'Mes cerrado: 10,360 llamadas con 1.9% de pérdida, 1.58 puntos por DEBAJO de su base propia. La mejor lectura del periodo.', tipo: 'ok' },
     { fecha: '12 Sep 2026',   responsable: 'Mesa de ayuda',     evento: 'Se CIERRA el folio 385 de «Envío Masivo WhatsApp», que se había abierto el 8 de enero: 5,908 horas de resolución, 246 días. Septiembre es su mes de CIERRE y no de apertura — en esta fuente `fecha`/`mes` es el mes de cierre, y la v1.0 lo leyó como si fuera la apertura.', tipo: 'problema' },
@@ -338,22 +338,22 @@ export const ODONTOPREV: AuditoriaCase = {
     { accion: '✓ HECHO el 13 oct 2026 — Corregido el importe de la ficha: $10,901 → $23,325, que son las DOS líneas del mismo CID. Y capturados 8 contactos donde había cero, con el correo sacado del campo de nombre', responsable: 'Claudia / Facturación', criterio: 'Aplicado y comprobado leyendo de vuelta con `scripts/enriquece-odontoprev.py`' },
     { accion: 'ARREGLAR EL ENRUTAMIENTO DE LA EXTENSIÓN «Rojas Chávez Carlos Alberto Octaviano»: 918 sin contestar de 1,009, que es el 37.9% de las pérdidas de la cuenta sobre el 1.32% del tráfico. Y, por separado y con soporte, revisar las 322 que cayeron en el cubo «(sin destino registrado)» sin llegar a ninguna extensión: eso no es un destino que se pueda retirar, es una pregunta para el archivo', responsable: 'Ingeniería / Claudia', criterio: 'La extensión por debajo del 5% sin contestar, o retirada si ya no debe existir; y una explicación escrita de las 322' },
     { accion: 'EXPLICAR los 246 días que tardó en cerrarse el folio 385 de «Envío Masivo WhatsApp» (8 ene → 12 sep) y los 113 del 105738 de «Bandeja de entrada» (16 abr → 7 ago). Los DOS están cerrados, así que no hay nada que cerrar: lo que falta es por qué tardaron y qué evita el tercero', responsable: 'Mesa de ayuda', criterio: 'Causa escrita de los dos casos y una medida de contención, antes de la conversación comercial' },
-    { accion: 'IDENTIFICAR AL RESPONSABLE DE LA OPERACIÓN. Cisneros avisó el 22 de julio de que ya no participa; preguntarle a él mismo a quién hay que escribirle, que es lo que no se hizo en 83 días', responsable: 'Claudia', criterio: 'Un nombre con cargo y correo, capturado en la ficha' },
-    { accion: 'Preguntar por el Downgrade de la línea «Odontoprev ATC»: de $20,018 a $19,820. Son $198, pero es un movimiento a la baja en la línea que concentra el 85% del contrato', responsable: 'Claudia', criterio: 'Se sabe qué se redujo y por qué' },
+    { accion: 'IDENTIFICAR AL RESPONSABLE DE LA OPERACIÓN. Cisneros avisó el 22 de julio de que ya no participa; preguntarle a él mismo a quién hay que escribirle, que es lo que no se hizo en 83 días', responsable: 'Erick', criterio: 'Un nombre con cargo y correo, capturado en la ficha' },
+    { accion: 'Preguntar por el Downgrade de la línea «Odontoprev ATC»: de $20,018 a $19,820. Son $198, pero es un movimiento a la baja en la línea que concentra el 85% del contrato', responsable: 'Erick', criterio: 'Se sabe qué se redujo y por qué' },
     { accion: 'RETIRADA el 13 oct 2026 — no había contradicción que resolver: `tiene_pago_automatico` está en FALSO en las 223 cuentas de la tabla y nunca se pobló, así que no contradice al registro de adopción. No se le pregunta al cliente por un campo vacío nuestro', responsable: '—', criterio: 'Sin tarea: el flag no es una medición (`lib/adopcion-auto.ts`)' },
   ],
 
   plan_mediano: [
     { accion: 'Etiquetar el 51.4% del tráfico que llega sin destino identificado', responsable: 'Ingeniería', criterio: 'Todas las llamadas con su línea corporativa identificada' },
-    { accion: 'Primera reunión en 27 meses, con quien opere el CAT y con quien decida sobre el servicio', responsable: 'Claudia', criterio: 'Reunión registrada con minuta, y el Radar contestado en la misma sesión' },
+    { accion: 'Primera reunión en 27 meses, con quien opere el CAT y con quien decida sobre el servicio', responsable: 'Erick', criterio: 'Reunión registrada con minuta, y el Radar contestado en la misma sesión' },
     { accion: 'Atacar de raíz el envío masivo Y los reportes de campaña: 20 de 30 tickets —11 de envío masivo y 9 de reporte de campaña— y 3 de las 5 fallas son eso. O es una capacitación que no se dio, o es una función que no cubre lo que el cliente necesita', responsable: 'Mesa de ayuda / Producto', criterio: 'Cero tickets de envío masivo durante 60 días' },
-    { accion: 'Confirmar o descartar el vínculo con Bradesco que la ficha afirmaba y la investigación no respalda — y mientras tanto corregir `observaciones_kam`, que sigue afirmándolo como hecho aunque `grupo_empresarial` y `notas` ya digan POR CONFIRMAR', responsable: 'Claudia', criterio: 'Los TRES campos dicen lo mismo, y dicen lo que se puede sostener con su fuente' },
+    { accion: 'Confirmar o descartar el vínculo con Bradesco que la ficha afirmaba y la investigación no respalda — y mientras tanto corregir `observaciones_kam`, que sigue afirmándolo como hecho aunque `grupo_empresarial` y `notas` ya digan POR CONFIRMAR', responsable: 'Erick', criterio: 'Los TRES campos dicen lo mismo, y dicen lo que se puede sostener con su fuente' },
   ],
 
   plan_estrategico: [
     { accion: 'Reporte de atención por cliente corporativo. Cada destino es un contrato suyo —Bradescard, Zurich, OCESA, Welbe y las ocho marcas más que etiquetan sus 21 números; la de IKÉ es la de su socio—: un informe por línea es con lo que él cumple frente a SUS clientes', responsable: 'Producto / Claudia', criterio: 'El cliente recibe un reporte mensual por línea corporativa' },
-    { accion: 'IA de Chat: es el canal donde se concentran todos sus tickets, y no la tiene contratada', responsable: 'Claudia', criterio: 'Propuesta presentada citando sus propios 20 tickets de campañas y envíos masivos' },
-    { accion: 'IA de Voz para la franja de fin de semana: el CAT atiende sábado (6,997 llamadas) y domingo (2,561)', responsable: 'Claudia', criterio: 'Propuesta con el perfil real de su tráfico de fin de semana' },
+    { accion: 'IA de Chat: es el canal donde se concentran todos sus tickets, y no la tiene contratada', responsable: 'Erick', criterio: 'Propuesta presentada citando sus propios 20 tickets de campañas y envíos masivos' },
+    { accion: 'IA de Voz para la franja de fin de semana: el CAT atiende sábado (6,997 llamadas) y domingo (2,561)', responsable: 'Erick', criterio: 'Propuesta con el perfil real de su tráfico de fin de semana' },
     { accion: 'QUE EL TABLERO MUESTRE LA PÉRDIDA POR DESTINO, NO SÓLO EL TOTAL. El 3.17% de esta cuenta es aceptable y esconde UN destino real al 91.0% —la extensión «Rojas Chávez», 918 sin contestar de 1,009— más dos cubos de la tabla que no son destinos. El promedio no mintió: ocultó', responsable: 'Producto / Dirección', criterio: 'La ficha de cuenta señala los destinos cuya pérdida se aparta del resto' },
   ],
 
@@ -361,8 +361,8 @@ export const ODONTOPREV: AuditoriaCase = {
     { area: 'La extensión «Rojas Chávez» mal enrutada', impacto: '918 llamadas sin contestar, el 37.9% del total de la cuenta', responsable: 'Ingeniería' },
     { area: 'El envío masivo y los reportes de campaña, en el chat', impacto: '20 de 30 tickets —11 de envío masivo y 9 de reporte de campaña— y 3 de las 5 fallas', responsable: 'Mesa de ayuda / Producto' },
     { area: 'Reporte por cliente corporativo', impacto: 'Es con lo que el cliente cumple frente a Bradescard, Zurich, OCESA y las demás marcas de sus 21 números', responsable: 'Producto' },
-    { area: 'IA de Chat', impacto: 'El canal que le falla, sin producto que lo resuelva', responsable: 'Claudia' },
-    { area: 'Identificar al decisor', impacto: 'Cuenta de $23,325 al mes sin interlocutor desde julio', responsable: 'Claudia' },
+    { area: 'IA de Chat', impacto: 'El canal que le falla, sin producto que lo resuelva', responsable: 'Erick' },
+    { area: 'Identificar al decisor', impacto: 'Cuenta de $23,325 al mes sin interlocutor desde julio', responsable: 'Erick' },
     { area: 'Integración API', impacto: 'Validación de coberturas por teléfono, hoy manual', responsable: 'Ingeniería' },
   ],
 
@@ -393,7 +393,7 @@ export const ODONTOPREV: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia', rol: 'Asesora SAC de la cuenta — Callpicker', color: '#22c55e',
+      nombre: 'Erick', rol: 'Asesora SAC de la cuenta — Callpicker', color: '#22c55e',
       campos: [
         { label: 'Actividades', value: '3 registradas · 2 completadas · 1 sin completar (llamada del 26 jun)' },
         { label: 'Lo que diagnosticó bien', value: '16 jul 2026: identificó que el grueso del soporte es asistencia en chat sobre campañas, «de carácter operativo y no por fallas del servicio». Correcto.' },

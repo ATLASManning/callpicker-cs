@@ -2,7 +2,7 @@ import type { AuditoriaCase } from './types'
 
 export const CLICKBALANCE: AuditoriaCase = {
   id: 'clickbalance',
-  asesor: 'Claudia',
+  asesor: 'Erick',
   nombre: 'ClickBalance ERP',
   sector: 'SaaS / ERP para PyMEs mexicanas — Tecnología B2B',
   fecha_periodo: '26 Ene – 25 Jun 2026',

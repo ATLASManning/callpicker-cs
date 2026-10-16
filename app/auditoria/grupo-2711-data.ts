@@ -32,13 +32,13 @@ import type { AuditoriaCase } from './types'
  */
 export const GRUPO_2711: AuditoriaCase = {
   id:                    'grupo-2711',
-  asesor:                'Claudia',
+  asesor:                'Erick',
   nombre:                'GRUPO 2711',
   sector:                'Mantenimiento, reparación y servicio integral automotriz multimarcas',
   fecha_periodo:         '27 Julio – 2 Septiembre 2026 · CDR de 19,870 llamadas · 46 tickets históricos',
   fecha_auditoria:       'Sep 2026',
   tipo_cliente:          'Agente Virtual pagado y hoy no utilizable · 3 incidentes de plataforma en el periodo · plan de acción conjunto acordado con el cliente',
-  descripcion_contexto:  'CID 12283 · Consecutivo C26 · Auditoría Corporativa Integral v3 — incorpora la sesión de presentación al cliente del 4 Sep 2026 · Automotriz Maver · Asesora: Claudia Hernández',
+  descripcion_contexto:  'CID 12283 · Consecutivo C26 · Auditoría Corporativa Integral v3 — incorpora la sesión de presentación al cliente del 4 Sep 2026 · Automotriz Maver · Asesora: Erick Sánchez',
   estado:                'en_riesgo',
   clasificacion:         'CONFIDENCIAL',
   version:               '3.0',
@@ -51,7 +51,7 @@ export const GRUPO_2711: AuditoriaCase = {
   ],
 
   resumen_ejecutivo:
-    'El 4 de septiembre este informe se presentó al cliente. Claudia Hernández expuso las cifras centrales —19,870 llamadas analizadas, 19 incidencias, solo 3 de origen de plataforma— y el cliente las recibió SIN objeción a los números, lo cual valida externamente el trabajo de las versiones anteriores. Pero la sesión sacó a la luz dos problemas que no estaban documentados ni en tickets ni en el CDR.\n\n' +
+    'El 4 de septiembre este informe se presentó al cliente. Erick Sánchez expuso las cifras centrales —19,870 llamadas analizadas, 19 incidencias, solo 3 de origen de plataforma— y el cliente las recibió SIN objeción a los números, lo cual valida externamente el trabajo de las versiones anteriores. Pero la sesión sacó a la luz dos problemas que no estaban documentados ni en tickets ni en el CDR.\n\n' +
     'El primero: el Agente Virtual está interceptando llamadas que los ejecutivos YA estaban atendiendo, generando pérdidas en vez de evitarlas. El desarrollo ya fue pagado por el cliente y hoy no es utilizable de forma efectiva. El segundo: el cliente invirtió aproximadamente $25,000 MXN en diademas, equipo de cómputo y software nuevos para resolver fallas que, al final, se corrigieron creando una nueva extensión —es decir, con una acción de configuración, no de hardware.\n\n' +
     'La dirección de Callpicker (Joaquin Martinez) ofreció una disculpa formal, reconoció que las fallas NO son esporádicas y se comprometió a invertir en resolver la situación. Se acordó además un cambio de enfoque: dejar de medir el éxito solo por fallas técnicas resueltas y empezar a medirlo por indicadores de negocio del cliente —llamadas perdidas y ventas.\n\n' +
     'Un punto que amerita honestidad completa: el cliente presentó su propio historial de 16 meses (abril 2025 – agosto 2026, 48 reportes) donde identifica lunes Y viernes como los días de mayor recurrencia de llamadas perdidas. El análisis de CDR de 5-6 semanas (v2) mostró que el lunes es consistentemente el peor día, pero no encontró al viernes como atípico en ese periodo corto. Ambas cosas pueden ser ciertas a la vez: en una ventana más larga el viernes puede resurgir, y no hay contradicción real en recomendar seguir monitoreando ambos días en vez de descartar el viernes por completo.',
@@ -103,7 +103,7 @@ export const GRUPO_2711: AuditoriaCase = {
     { fecha: '29 Ago · #114229', responsable: 'PLATAFORMA',          evento: 'Cotización no se muestra en algunas llamadas: 130 min. Demora/omisión en eventos vía API/webhook — no intermitencia de llamada.', tipo: 'problema' },
     { fecha: '29 Ago · #114250', responsable: 'Operativo',           evento: 'Ajuste de softphone en ext. 169. Configuración de autorespuesta y bloqueo de ajustes.', tipo: 'neutral' },
     { fecha: '02 Sep · #114451', responsable: 'PLATAFORMA',          evento: 'Llamadas entrantes no enlazaban: 9 min, 19 entrantes y 9 salientes afectadas. Falla en SIP Legacy Collector; la migración a Atlas resolvió.', tipo: 'problema' },
-    { fecha: '04 Sep 2026',  responsable: 'Claudia Hernández',       evento: 'Presentación del informe v2 al cliente. Expone 19,870 llamadas, 19 incidencias y solo 3 de plataforma. El cliente recibe las cifras SIN objeción — validación externa del diagnóstico.', tipo: 'ok' },
+    { fecha: '04 Sep 2026',  responsable: 'Erick Sánchez',       evento: 'Presentación del informe v2 al cliente. Expone 19,870 llamadas, 19 incidencias y solo 3 de plataforma. El cliente recibe las cifras SIN objeción — validación externa del diagnóstico.', tipo: 'ok' },
     { fecha: '04 Sep 2026',  responsable: 'Rodolfo M. (Maver)',      evento: 'HALLAZGO NUEVO: el Agente Virtual intercepta llamadas que los ejecutivos ya estaban atendiendo, generando pérdidas. Ya pagado por el cliente, hoy no utilizable de forma efectiva.', tipo: 'problema' },
     { fecha: '04 Sep 2026',  responsable: 'Automotriz Maver',        evento: 'HALLAZGO NUEVO: ~$25,000 MXN invertidos en diademas, cómputo y software para fallas cuya causa raíz era de configuración — se resolvieron creando una nueva extensión (Josué Ortiz y Kelly Villanueva).', tipo: 'problema' },
     { fecha: '04 Sep 2026',  responsable: 'Joaquin Martinez',        evento: 'La dirección de Callpicker ofrece disculpa formal, reconoce que las fallas NO son esporádicas y compromete inversión para resolver la situación.', tipo: 'pivote' },
@@ -120,7 +120,7 @@ export const GRUPO_2711: AuditoriaCase = {
     { label: 'Volumen analizado',     value: '19,870 llamadas — 15,858 entrantes + 4,012 salientes (CDR del periodo)' },
     { label: 'Dirección general',     value: 'Marcelo — marcelo.mm@eamaver.com · abierto a invertir "si se le indica exactamente qué hacer"' },
     { label: 'Contacto técnico de facto', value: 'Ismael Sádile — reporta la mayoría de los eventos; presentó el historial de 16 meses' },
-    { label: 'Asesora de cuenta',     value: 'Claudia Hernández' },
+    { label: 'Asesora de cuenta',     value: 'Erick Sánchez' },
     { label: 'Productos en uso',      value: 'Conmutador + Agente Virtual (pagado, hoy no utilizable de forma efectiva por interceptar llamadas ya atendidas)' },
     { label: 'Infraestructura del cliente', value: 'Sin encargado de sistemas · equipos no homologados · enlaces domésticos en sitios remotos (incl. Saltillo) · ~$25,000 MXN ya gastados en hardware que no resolvió la causa real' },
     { label: 'Sucursal peor',         value: 'LTH Battery City Saltillo — 35% de llamadas perdidas sobre 749 llamadas' },
@@ -208,16 +208,16 @@ export const GRUPO_2711: AuditoriaCase = {
     { accion: 'Compartir la presentación de hallazgos de la sesión para cotejo de datos interno del cliente.',                      responsable: 'Ismael Sádile (Maver)',               criterio: 'Presentación entregada y cotejada.' },
     { accion: 'Enviar la plantilla de mapeo de extensiones y la documentación del modelo de trabajo remoto.',                        responsable: 'Paola Bárcenas',                      criterio: 'Plantilla en manos del cliente.' },
     { accion: 'Actualizar el listado de extensiones con la información de red solicitada.',                                          responsable: 'Ismael Sádile (Maver)',               criterio: 'Listado completo con ubicación física y rol, incluido home office.' },
-    { accion: 'Coordinar la logística de la visita física vía correo de soporte técnico, con copia a Claudia Hernández.',            responsable: 'El grupo',                            criterio: 'Fecha y agenda confirmadas.' },
+    { accion: 'Coordinar la logística de la visita física vía correo de soporte técnico, con copia a Erick Sánchez.',            responsable: 'El grupo',                            criterio: 'Fecha y agenda confirmadas.' },
     { accion: 'Entregar una hora de grabaciones para análisis de calidad de audio, con foco en los problemas de la IA.',             responsable: 'Automotriz Maver',                    criterio: 'Grabaciones recibidas y analizadas.' },
   ],
 
   plan_mediano: [
     { accion: 'Ejecutar la visita técnica ya aprobada (1-2 semanas), priorizando Saltillo, Guadalajara y Monterrey (Mty 9931).', responsable: 'Daniel Martínez Loyola', criterio: 'Visita realizada con inventario de infraestructura por sucursal documentado.' },
     { accion: 'Establecer un protocolo de diagnóstico de configuración obligatorio ANTES de recomendar cualquier gasto en hardware al cliente.', responsable: 'Dirección SAC', criterio: 'Protocolo escrito y aplicado — evita repetir el caso de los $25,000 MXN.' },
-    { accion: 'Solicitar el desglose completo de los 48 reportes históricos (16 meses) para reconciliarlos con la auditoría de 46 tickets.', responsable: 'Claudia Hernández', criterio: 'Desglose recibido y traslape cuantificado; ambigüedad de "problemas internos" resuelta.' },
+    { accion: 'Solicitar el desglose completo de los 48 reportes históricos (16 meses) para reconciliarlos con la auditoría de 46 tickets.', responsable: 'Erick Sánchez', criterio: 'Desglose recibido y traslape cuantificado; ambigüedad de "problemas internos" resuelta.' },
     { accion: 'Definir indicadores de negocio conjuntos (llamadas perdidas, ventas) como métrica de éxito del servicio.',        responsable: 'Dirección SAC / Cliente', criterio: 'Indicadores acordados y con línea base, según lo pactado el 4 de septiembre.' },
-    { accion: 'Monitorear lunes Y viernes en el seguimiento continuo, sin cerrar el tema del viernes con la lectura corta de la v2.', responsable: 'Claudia Hernández', criterio: 'Reporte de recurrencia por día sobre ventana larga.' },
+    { accion: 'Monitorear lunes Y viernes en el seguimiento continuo, sin cerrar el tema del viernes con la lectura corta de la v2.', responsable: 'Erick Sánchez', criterio: 'Reporte de recurrencia por día sobre ventana larga.' },
   ],
 
   plan_estrategico: [
@@ -306,7 +306,7 @@ export const GRUPO_2711: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia Hernández',
+      nombre: 'Erick Sánchez',
       rol:    'Asesora de cuenta — presentó el análisis al cliente',
       color:  '#0057FF',
       campos: [

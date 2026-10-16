@@ -39,7 +39,7 @@ const ESTADO_ORDER: EstadoAuditoria[] = ['en_riesgo', 'en_recuperacion', 'rescat
 const ASESOR_COLORS: Record<string, string> = {
   'Fátima':  '#A855F7',
   'Dan':     '#0EA5E9',
-  'Claudia': '#F97316',
+  'Erick': '#F97316',
 }
 
 function loadFromLS(): AuditoriaCase[] {

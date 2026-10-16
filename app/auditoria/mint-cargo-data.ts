@@ -11,13 +11,13 @@ import type { AuditoriaCase } from './types'
  */
 export const MINT_CARGO: AuditoriaCase = {
   id:                    'mint-cargo',
-  asesor:                'Claudia',
+  asesor:                'Erick',
   nombre:                'MINT CARGO',
   sector:                'Transporte, logística, cadena de suministro y almacenamiento',
   fecha_periodo:         '4 Mayo – 24 Agosto 2026',
   fecha_auditoria:       'Ago 2026',
   tipo_cliente:          'Operación logística · plan con extensiones ilimitadas',
-  descripcion_contexto:  'CID 164518 · Consecutivo Z58 · 81.6% llamadas entrantes · Asesora: Claudia Hernández',
+  descripcion_contexto:  'CID 164518 · Consecutivo Z58 · 81.6% llamadas entrantes · Asesora: Erick Sánchez',
   estado:                'activo',
   clasificacion:         'CONFIDENCIAL',
   version:               '1.0',
@@ -53,7 +53,7 @@ export const MINT_CARGO: AuditoriaCase = {
     { fecha: '4 Oct 2024',            responsable: 'Callpicker',                        evento: 'Alta de la cuenta MINT CARGO (CID 164518, consecutivo Z58).', tipo: 'ok' },
     { fecha: '4 May – 24 Ago 2026',   responsable: 'Callpicker / Análisis de datos',    evento: 'Periodo analizado: 1,319 llamadas registradas — 1,076 entrantes y 243 salientes.', tipo: 'neutral' },
     { fecha: 'Ago 2026',              responsable: 'Equipo Experiencia al Cliente',     evento: 'Se emite el reporte ejecutivo de análisis de llamadas entrantes y salientes bajo la premisa de extensiones ilimitadas.', tipo: 'pivote' },
-    { fecha: 'Pendiente',             responsable: 'MINT CARGO / Claudia Hernández',    evento: 'Sesión de diagnóstico con Operación/SAC, Comercial y Sistemas para validar causas de Lost, mapear flujos críticos y definir un piloto con KPI de éxito.', tipo: 'neutral' },
+    { fecha: 'Pendiente',             responsable: 'MINT CARGO / Erick Sánchez',    evento: 'Sesión de diagnóstico con Operación/SAC, Comercial y Sistemas para validar causas de Lost, mapear flujos críticos y definir un piloto con KPI de éxito.', tipo: 'neutral' },
   ],
 
   perfil_campos: [
@@ -64,7 +64,7 @@ export const MINT_CARGO: AuditoriaCase = {
     { label: 'Cliente desde',            value: 'Octubre 2024' },
     { label: 'Plan actual',              value: 'Extensiones ilimitadas' },
     { label: 'Contacto principal',       value: 'Arturo Garza — Coordinador de TI' },
-    { label: 'Asesora de cuenta',        value: 'Claudia Hernández' },
+    { label: 'Asesora de cuenta',        value: 'Erick Sánchez' },
     { label: 'Modalidad de operación',   value: '81.6% entrantes · 18.4% salientes' },
     { label: 'Destinos configurados',    value: 'Recepción · Fuera de Horario · FTL · LTL · usuarios específicos' },
     { label: 'Periodo analizado',        value: '4 May – 24 Ago 2026 (1,319 llamadas)' },
@@ -135,9 +135,9 @@ export const MINT_CARGO: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Validar qué significa "Lost" para MINT CARGO y separar sus causas.',      responsable: 'Claudia Hernández / MINT CARGO', criterio: 'Diagnóstico confiable: es el KPI que puede ocultar problemas distintos.' },
+    { accion: 'Validar qué significa "Lost" para MINT CARGO y separar sus causas.',      responsable: 'Erick Sánchez / MINT CARGO', criterio: 'Diagnóstico confiable: es el KPI que puede ocultar problemas distintos.' },
     { accion: 'Revisar cobertura en la franja 11:00–16:00 y los martes.',                 responsable: 'MINT CARGO (Operación)',         criterio: 'Menor riesgo de saturación en las ventanas de alta actividad.' },
-    { accion: 'Revisar la ruta de Fuera de Horario y las reglas de desborde.',            responsable: 'Claudia Hernández / Soporte',    criterio: 'Continuidad: hay tráfico específico llegando por esa ruta.' },
+    { accion: 'Revisar la ruta de Fuera de Horario y las reglas de desborde.',            responsable: 'Erick Sánchez / Soporte',    criterio: 'Continuidad: hay tráfico específico llegando por esa ruta.' },
   ],
 
   plan_mediano: [
@@ -149,7 +149,7 @@ export const MINT_CARGO: AuditoriaCase = {
 
   plan_estrategico: [
     { accion: 'Piloto de IA de voz o chat en un proceso repetitivo.',                        responsable: 'Callpicker / MINT CARGO',      criterio: 'Capacidad adicional mediante automatización selectiva y medible.' },
-    { accion: 'Sesión de diagnóstico con Operación/SAC, Comercial y Sistemas.',              responsable: 'Claudia Hernández',            criterio: 'Validar causas de Lost, mapear flujos críticos y definir un piloto con KPI de éxito.' },
+    { accion: 'Sesión de diagnóstico con Operación/SAC, Comercial y Sistemas.',              responsable: 'Erick Sánchez',            criterio: 'Validar causas de Lost, mapear flujos críticos y definir un piloto con KPI de éxito.' },
   ],
 
   areas_oportunidad: [
@@ -174,7 +174,7 @@ export const MINT_CARGO: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia Hernández',
+      nombre: 'Erick Sánchez',
       rol:    'Asesora de cuenta — Callpicker',
       color:  '#22c55e',
       campos: [

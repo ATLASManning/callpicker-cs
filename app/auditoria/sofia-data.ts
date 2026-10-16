@@ -11,13 +11,13 @@ import type { AuditoriaCase } from './types'
  */
 export const SOFIA: AuditoriaCase = {
   id:                    'sofia',
-  asesor:                'Claudia',
+  asesor:                'Erick',
   nombre:                'Sofia',
   sector:                'Inmobiliario turístico — grupo con 3 subcuentas',
   fecha_periodo:         'Enero – Agosto 2026 (7 cortes de facturación)',
   fecha_auditoria:       'Ago 2026',
   tipo_cliente:          'Cuenta madre de grupo · $11,744 MRR · consumo intensivo saliente',
-  descripcion_contexto:  'CID 178011 · Consecutivo F66 · Última cuenta del grupo RDS · Asesora: Claudia Hernández',
+  descripcion_contexto:  'CID 178011 · Consecutivo F66 · Última cuenta del grupo RDS · Asesora: Erick Sánchez',
   estado:                'perdido',
   clasificacion:         'CONFIDENCIAL',
   version:               '1.1',
@@ -73,7 +73,7 @@ export const SOFIA: AuditoriaCase = {
     { label: 'Health Score',         value: '66 · Pagos 100 · KAM 100 · Información CRÍTICO (1/8) · Módulos CRÍTICO (0/6)' },
     { label: 'Radar ATLAS',          value: '73 OPTIMIZE · 3 alertas: decisores sin contactos · adopción sin datos · observaciones KAM vacías' },
     { label: 'Soporte',              value: '20 tickets · 1 falla · 16 de asistencia (voz) en cadencia semanal may-jul' },
-    { label: 'Asesora',              value: 'Claudia Hernández · contacto esta semana · actividad SAC "Completar Perfil" PENDIENTE' },
+    { label: 'Asesora',              value: 'Erick Sánchez · contacto esta semana · actividad SAC "Completar Perfil" PENDIENTE' },
     { label: 'Propiedad',            value: 'MISMO DUEÑO que RDS/Invest Vacay — el decisor que canceló las 2 cuentas el 28 Ago y contrató a Bambete' },
     { label: 'Riesgo externo',       value: 'Ticket de alcance de la cancelación RDS abierto · competidor Bambete operando con el mismo dueño' },
   ],
@@ -133,8 +133,8 @@ export const SOFIA: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Cerrar el ticket de alcance con confirmación escrita: la baja cubre únicamente las 2 cuentas RDS.',        responsable: 'Claudia Hernández',   criterio: 'Notificación formal enviada y aceptada.' },
-    { accion: 'Completar la actividad SAC pendiente: perfil 8/8, Radar 12/12, decisores con Straffon incluido.',           responsable: 'Claudia Hernández',   criterio: 'Actividad completada esta semana.' },
+    { accion: 'Cerrar el ticket de alcance con confirmación escrita: la baja cubre únicamente las 2 cuentas RDS.',        responsable: 'Erick Sánchez',   criterio: 'Notificación formal enviada y aceptada.' },
+    { accion: 'Completar la actividad SAC pendiente: perfil 8/8, Radar 12/12, decisores con Straffon incluido.',           responsable: 'Erick Sánchez',   criterio: 'Actividad completada esta semana.' },
     { accion: 'Preparar la propuesta de ampliación de bolsa con los 7 cortes como evidencia.',                             responsable: 'Claudia / SAC',       criterio: 'Propuesta lista antes del corte de septiembre.' },
   ],
 
@@ -149,9 +149,9 @@ export const SOFIA: AuditoriaCase = {
   ],
 
   areas_oportunidad: [
-    { area: 'Acotar el alcance de la cancelación',   impacto: 'Muy alto — contiene la exposición en $2,387 vs $11,744.',             responsable: 'Claudia Hernández' },
+    { area: 'Acotar el alcance de la cancelación',   impacto: 'Muy alto — contiene la exposición en $2,387 vs $11,744.',             responsable: 'Erick Sánchez' },
     { area: 'Ampliación de bolsa',                   impacto: 'Muy alto — upsell sobre 2 excedentes ya pagados y tendencia +5.8%.',  responsable: 'Claudia / Comercial' },
-    { area: 'Perfil + decisores',                    impacto: 'Alto — elimina la ceguera que hizo invisible la crisis del grupo.',   responsable: 'Claudia Hernández' },
+    { area: 'Perfil + decisores',                    impacto: 'Alto — elimina la ceguera que hizo invisible la crisis del grupo.',   responsable: 'Erick Sánchez' },
     { area: 'Adopción sobre tickets',                impacto: 'Alto — convierte fricción semanal en anclas de permanencia.',         responsable: 'SAC' },
     { area: 'Omnicanal del grupo',                   impacto: 'Medio-alto — defensa frente a Bambete, después de acotar y ampliar.', responsable: 'Comercial / SAC' },
   ],
@@ -167,7 +167,7 @@ export const SOFIA: AuditoriaCase = {
       ],
     },
     {
-      nombre: 'Claudia Hernández',
+      nombre: 'Erick Sánchez',
       rol:    'Asesora de la cuenta — Callpicker',
       color:  '#22c55e',
       campos: [
