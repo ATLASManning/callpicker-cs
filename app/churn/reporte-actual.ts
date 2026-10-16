@@ -3,210 +3,252 @@
  *
  * Separado de `page.tsx` para que Atlas (servidor) y el módulo Churn (cliente)
  * lean exactamente las mismas cifras. Al cargar un corte nuevo, este archivo se
- * reemplaza y el anterior se archiva dentro de `page.tsx`.
+ * reemplaza y el anterior se archiva dentro de `page.tsx` con
+ * `scripts/archiva-corte-churn.py`.
  */
 import type { ChurnReporte } from './tipos'
 
 /* ═══════════════════════════════════════════════════════════════════════
-   REPORTE SEMANAL — SEMANA 23 · CIERRE DE TRIMESTRE T3 2026  (6 oct 2026)
-   Remitente: Valeria Zepeda Hernández (equipo Data). Recibido el 7 oct.
+   REPORTE SEMANAL — SEMANA 24 · CIERRE DE SEPTIEMBRE Y AVANCE DE OCTUBRE
+   Al 16 de octubre de 2026. Remitente: Valeria Zepeda Hernández (equipo Data).
 
-   NO ES UN CORTE SEMANAL NORMAL: es el consolidado del trimestre. No trae Top
-   10 de Activo, ni Hard/Soft Suspend, ni antigüedad de saldos. Esos campos van
-   VACÍOS a propósito — no se rellenan con los de la semana 22.
+   VUELVE A SER UN CORTE SEMANAL. El de la semana 23 era el consolidado de T3 y
+   por eso no traía Top de Activo, ni suspendidos, ni antigüedad de saldos; éste
+   los trae, así que esos bloques dejan de salir vacíos.
 
-   CONCILIADO CON `scripts/concilia-churn-t3.py`. Cierra todo lo verificable:
-     · las tres filas mensuales suman el TOTAL T3 en las CUATRO columnas ✓
-     · Downgrade + Churn = Baja Total en cada mes ✓
-     · los tres porcentajes se reconstruyen desde sus propias cifras ✓
-       (1.91% · 2.12% · 3.14%, no se espejan del origen)
-     · las 24 salidas tempranas suman $26,808.00 ✓ — 18 con CERO meses
-     · los 14 downgrades de más del 60% suman $22,399.83 ✓
-     · los 4 artículos de CP Chat cierran su categoría en $45,452.51 ✓
-     · CP Chat + CP Voz = la «pérdida total» del resumen amplio ✓
-     · las TRES bases de MRR coincidían al centavo con `GRC_BASE_MRR` cuando
-       se publicó este corte — dos fuentes independientes ✓
+   CÓMO SE MAPEÓ EL CORREO A LOS BLOQUES DE LA PANTALLA
+     · «Cartera por Cobrar» por antigüedad .................. pendientes + antiguedadSaldos
+     · «Cancelaciones» de octubre ........................... cancelados
+     · «Top 4 · Mayor Reducción» y la suma por producto ..... downgrades + downgradeArticulos
+     · «Mes de Septiembre — Cómo Cerró» (hard suspend) ...... suspendidos
+     · «Top 5 · Clientes Activos» ........................... NINGUNO — va en la nota
 
-   OJO, 11 OCT 2026: el export institucional `Gross_Revenue_Facturación.xlsx`
-   REEXPRESÓ las bases después de que Data mandó este corte (+$700 en julio y
-   agosto, +$1,225.33 en septiembre) y bajó el churn de septiembre a
-   $79,483.96. Las cifras de ESTE corte se conservan tal como llegaron —es lo
-   que Data publicó el 6 de octubre— y la nota queda aquí. Ver
-   `GRC_BASE_MRR_ANTES_2026_10_11` en `grc-reporte.ts`.
+   Y AQUÍ SE ROMPE CON LAS SEMANAS 20 A 22 A PROPÓSITO. Esos cortes metían el
+   Top de cuentas ACTIVO en `pendientes`, y la pantalla rotula ese bloque
+   «PENDIENTE DE FACTURAR · clientes en riesgo · acción inmediata requerida» y
+   lo suma al «Total impacto». Con este corte eso daba «MRR en riesgo
+   $408,857.69» usando la cartera SANA del mes, y un impacto total de
+   $475,605.02 que mezcla lo que facturamos con lo que perdimos. La cartera
+   activa no está en riesgo: la que lo está es la cartera POR COBRAR
+   ($51,042.30 en 45 clientes), y ésa es la que va en ese bloque.
+   El Top 5 de Activos no tiene bloque con rótulo honesto, así que va completo
+   dentro de la nota —con sus cinco nombres, sus importes y el 76.2% que el
+   corte no desglosa— en vez de bajo una etiqueta que lo llama riesgo.
+   [[feedback-kpi-con-fuente]]
 
-   LO QUE NO CIERRA, Y ESTÁ EN LA NOTA ESPECIAL: el Top 5 de CP Voz deja fuera
-   $99,642.28 (22.8% de su categoría), y las dos bases de MRR del mismo
-   trimestre difieren en $623,324.30 sin explicación.
-═══════════════════════════════════════════════════════════════════════ */
-export const REPORTE_S23_T3_2026: ChurnReporte = {
-  id:      's23-t3-2026',
-  periodo: 'Semana 23 · Cierre T3 2026',
-  fecha:   '06/10/2026',
-  notas:   'Gross Revenue Churn · Semana 23. Cierre de trimestre T3 al 6 de octubre del 2026. '
-         + 'Consolidado de julio, agosto y septiembre; Top 5 de cancelaciones del trimestre, '
-         + 'pérdida por producto en CP Chat y CP Voz, las 24 salidas tempranas con 0 o 1 mes '
-         + 'activo y los 14 downgrades de más del 60%. Por ser cierre de trimestre NO trae Top 10 '
-         + 'de Activo, ni Hard/Soft Suspend, ni antigüedad de saldos: esos bloques salen vacíos '
-         + 'porque el corte no los reporta, no porque valgan cero. Próxima revisión: miércoles '
-         + 'próximo, por la mañana.',
-  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles próximo, por la mañana.',
+   CONCILIADO CON `scripts/concilia-churn-s24.py`. Cierra:
+     · las 11 cancelaciones suman $35,127.00 ✓
+     · los cinco tramos de cartera suman $51,042.30 y 45 clientes ✓
+     · el Top 4 de downgrades suma los $18,717.97 «a detalle» ✓
+
+   LO QUE NO CIERRA, Y VA DICHO EN LA NOTA:
+     · HARD SUSPEND DE SEPTIEMBRE. Las cuatro filas suman $16,379.98 y el correo
+       declara $12,371.00 — $4,008.98 de diferencia. Sin «Hoteles y Servicios»
+       tampoco cuadra ($5,433.00), así que el total declarado no lo excluye.
+       Se publican LAS CUATRO FILAS, que es el dato verificable.
+     · EL TOP 5 DE ACTIVOS DEJA FUERA $311,416.73, el 76.2% de la cartera activa
+       de octubre, y el TOP 4 DE DOWNGRADES el 40.8% del total neto. Los dos
+       llevan cubo «otros». [[feedback-tablas-deben-cerrar]]
+
+   Y UNA COINCIDENCIA QUE VALE LA PENA: «Hoteles y Servicios» es la 3ª mayor
+   cancelación del corte archivado de T3 ($10,946.98, 2 meses) y este corte lo
+   reporta en hard suspend preguntando si sigue contando.
+   ═══════════════════════════════════════════════════════════════════════ */
+export const REPORTE_S24_OCT_2026: ChurnReporte = {
+  id:      's24-octubre-2026',
+  periodo: 'Semana 24 · Oct 2026',
+  fecha:   '16/10/2026',
+  notas:   'Gross Revenue Churn · Semana 24. Al 16 de octubre del 2026. Trae el cierre definitivo de '
+         + 'septiembre —quién sigue activo y quién quedó en hard suspend— y el avance de octubre: '
+         + 'Top 5 de cuentas Activas sobre una cartera activa de $408,857.69, las 11 cancelaciones '
+         + 'del mes con su motivo, la cartera por cobrar por antigüedad de días pendientes y los '
+         + 'downgrades por producto y por cliente. Vuelve a ser un corte semanal: el cierre de T3 no '
+         + 'traía estos bloques. Próxima revisión: miércoles 21 de octubre.',
+  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 21 de octubre.',
 
   grc: {
+    /* Los tres meses del trimestre con su reexpresión. `anterior` guarda la
+       cifra del corte previo para que la pantalla enseñe de dónde viene cada
+       número: que un mes cerrado cambie no es un error, son los pagos que
+       entran tarde. [[regla-churn-mes-vencido]] */
     evolucion: [
-      { mes: 'Julio',      pct: 1.91 },
-      { mes: 'Agosto',     pct: 2.12 },
-      { mes: 'Septiembre', pct: 3.14, anterior: 6.9 },
+      { mes: 'Julio',      pct: 1.9 },
+      { mes: 'Agosto',     pct: 2.1, anterior: 2.3 },
+      { mes: 'Septiembre', pct: 2.6, anterior: 6.9 },
     ],
-    acumulado: 2.39,
-    /* El 2.39% es del TRIMESTRE, no del año. Sin esta etiqueta la tarjeta
-       diría «GRC Acumulado Septiembre 2.39%» y se leería como que el año se
-       desplomó desde el 23.7% de la semana 22, que es otra cosa. */
-    acumuladoEtiqueta: 'T3 2026 · Jul–Sep (ponderado)',
+    acumulado: 19.5,
+    anterior:  23.7,
+    /* El acumulado vuelve a ser el DEL AÑO —19.5%, reexpresado desde el 23.7%
+       de la semana 22— y no el del trimestre como el 2.39% del corte de T3. La
+       misma casilla significó dos cosas en dos cortes seguidos; sin rótulo se
+       leería como un salto del 2.39% al 19.5%. [[churn-analisis-data]] */
+    acumuladoEtiqueta: '2026 acumulado hasta septiembre · NO DEFINITIVO',
     notaClave:
-      'Cierre de T3 2026: Julio 1.91% · Agosto 2.12% · Septiembre 3.14%. Baja total del trimestre '
-      + '$356,494.79 sobre $14,905,931.06 de MRR. El trimestre EMPEORA mes a mes y lo que crece es '
-      + 'el churn confirmado ($69,086.46 → $100,567.96), no el downgrade. El 2.39% es el promedio '
-      + 'PONDERADO de los tres meses: el corte deja esa casilla en blanco y lo reconstruye '
-      + 'Customer Success dividiendo la baja total entre la suma de las tres bases.',
+      'Cierre de septiembre y avance de octubre. Septiembre cierra en 2.6%, reexpresado desde el '
+      + '6.9% de la semana 22, y el acumulado del año baja de 23.7% a 19.5%. LAS DOS CIFRAS SIGUEN '
+      + 'MARCADAS COMO NO DEFINITIVAS por el propio reporte. En octubre van $35,127.00 en once '
+      + 'cancelaciones y $51,042.30 de cartera por cobrar en 45 clientes, con el grueso '
+      + '—$38,671.30 en 27 clientes— en el tramo de 8 a 15 días. La cartera activa del mes es de '
+      + '$408,857.69.',
     notaEspecial:
-      '🔵 SEPTIEMBRE CIERRA EN 3.14%, Y ES LA TERCERA LECTURA DEL MISMO MES: 23.6% el 22 de '
-      + 'septiembre, 6.9% el 29, y 3.14% ya cerrado. De la primera cifra a la definitiva se '
-      + 'desinfló a UNA SÉPTIMA PARTE. Quien haya reportado el 23.6% como resultado de septiembre '
-      + 'reportó un número siete veces mayor que el real. Es exactamente lo que este módulo lleva '
-      + 'tres cortes advirtiendo: el mes vivo mide retraso de cobranza, no bajas, porque Zoho marca '
-      + 'como churn todo contrato que aún no factura. '
-      + '📌 EL ACUMULADO DEL AÑO QUEDA VENCIDO Y SIN SUSTITUTO. La semana 22 publicó 23.7% acumulado '
-      + '2026; este corte reexpresa septiembre a la baja y NO vuelve a publicar el acumulado anual. '
-      + 'O sea que el 23.7% ya no es cierto y no hay cifra nueva — no se inventa una. El 2.39% de la '
-      + 'tarjeta es del TRIMESTRE. '
-      + '⏱️ VEINTICUATRO CUENTAS SE FUERON CON 0 O 1 MES DE VIDA ($26,808.00), y DIECIOCHO de ellas '
-      + 'con CERO meses ($13,740.00): nunca llegaron a facturar un mes completo. Dos ni siquiera '
-      + 'tienen nombre en el sistema (cp188899, cp189204) — entraron y se fueron sin que nadie las '
-      + 'bautizara. '
-      + '🔻 EL TOP 5 DE CANCELACIONES SUMA $53,095.93 de los $225,867.20 de churn confirmado del '
-      + 'trimestre: el 23.5%. Los otros $172,771.27 no se desglosan en este corte. '
+      '🔵 SEPTIEMBRE BAJA OTRA VEZ: 6.9% → 2.6%. Es la CUARTA lectura del mismo mes — 23.6% el 22 de '
+      + 'septiembre, 6.9% el 29, 3.14% en el cierre de trimestre y 2.6% ahora. Cada corte lo afina a '
+      + 'la baja conforme entran los pagos, que es exactamente lo que este módulo lleva cuatro '
+      + 'cortes advirtiendo: el mes vivo mide retraso de cobranza, no bajas. Quien reportó el 23.6% '
+      + 'como resultado de septiembre publicó un número NUEVE VECES mayor que el que hoy se '
+      + 'sostiene. Ojo con la flecha del correo: su «antes» es el 6.9% de la semana 22, no el 3.14% '
+      + 'del cierre de T3, así que la caída real de este corte es de 3.14% a 2.6%. '
+      + '📌 EL ACUMULADO DEL AÑO VUELVE A TENER CIFRA: 19.5%, reexpresado desde el 23.7% de la '
+      + 'semana 22. El cierre de T3 lo había dejado vencido y sin sustituto —y no se inventó uno—; '
+      + 'este corte lo repone y lo marca NO DEFINITIVO. '
+      + '🔻 LAS ONCE CANCELACIONES DE OCTUBRE SUMAN $35,127.00 Y DOS SON EL 73.4%: Jason de México '
+      + '($17,225.00, 43 meses) y KOMBITEC ($8,539.00, 73 meses), las dos por MIGRACIÓN A OTRO '
+      + 'PROVEEDOR. Es el motivo más caro del mes con diferencia —$26,253.00 de los $35,127.00— y '
+      + 'las otras nueve juntas suman $8,874.00. Cuatro cuentas se fueron por «cambios '
+      + 'organizacionales internos», dos por poco uso, una por precio y una sin comentarios. '
+      + '⏱️ TRES DE LAS ONCE SE FUERON CON MENOS DE UN AÑO: FOBE con 1 MES ($519.00), Avezado '
+      + 'Abogados con 8 ($489.00) y ENCAMINO Chat con 11 ($1,750.00). En el otro extremo, TP DIGITAL '
+      + 'se va tras 105 MESES —casi nueve años— por cambios organizacionales internos. '
+      + '💰 LA CARTERA POR COBRAR ES JOVEN: $38,671.30 de los $51,042.30 (el 75.8%) lleva entre 8 y '
+      + '15 días y son 27 de los 45 clientes; sólo $3,505.00 en 3 clientes pasa de 30 días. Eso es '
+      + 'cobranza reciente y se recupera con pagos, no cartera perdida. Los tramos «por vencer» y '
+      + '«1 a 7 días» vienen en CERO con CERO clientes: esta vez el cero está medido, no es un hueco. '
+      + '🏆 TOP 5 DE CUENTAS ACTIVAS DE OCTUBRE, sobre una cartera activa total de $408,857.69: '
+      + 'Blueservices $24,616.03 (43 meses) · Azyco Guadalajara $22,984.00 (25) · Gas Economico '
+      + 'Metropolitano $18,659.00 (43) · VAEO $15,995.52 (5) · FabricAir Latin America $15,186.41 '
+      + '(68). Los cinco suman $97,440.96, el 23.8%: los otros $311,416.73 —el 76.2%— no tienen '
+      + 'nombre en el corte y tampoco dice cuántas cuentas son. Esto va aquí, en la nota, y NO en el '
+      + 'bloque de «Pendiente de Facturar» como en los cortes de las semanas 20 a 22: la cartera '
+      + 'activa es lo que SÍ factura, no dinero en riesgo, y sumarla al impacto del mes daba un '
+      + '«MRR en riesgo» de $408,857.69 que es falso. '
+      + '🟢 UNA CUENTA SIGUE ACTIVA Y NO ES CHURN: Colegio NWL - Corregidora, $1,392.00, 64 meses, '
+      + 'última factura de agosto y 54 días pendientes de pago desde el corte del 23 de agosto. El '
+      + 'reporte la publica aparte, fuera del hard suspend, precisamente para que no se cuente como '
+      + 'baja. No está en el Top 5 de activos ni en los suspendidos de esta pantalla. '
       + '\n\n━━ OBSERVACIONES DE CUSTOMER SUCCESS ━━ '
       + 'Lo que sigue lo detectamos NOSOTROS al conciliar el corte contra sus propias tablas con '
-      + '`scripts/concilia-churn-t3.py`. Queda registrado de nuestra parte, no se consultó al equipo '
-      + 'Data y no se corrige ninguna cifra publicada. '
-      + '① EL TOP 5 DE CP VOZ DEJA FUERA $99,642.28, el 22.8% de su categoría. Los cinco artículos '
-      + 'suman $337,904.27 y la categoría vale $437,546.55. Citar el Top 5 como «la pérdida de voz» '
-      + 'se equivoca por casi un cuarto. El de CP Chat sí cierra: son los cuatro artículos completos. '
-      + '② LAS DOS BASES DE MRR DEL MISMO TRIMESTRE NO COINCIDEN. El resumen mensual usa '
-      + '$14,905,931.06 y el resumen amplio $14,282,606.76 — $623,324.30 de diferencia que el corte '
-      + 'no explica. Preguntarlo antes de citar cualquiera de los dos como «el MRR del T3». '
-      + '③ LA PÉRDIDA POR PRODUCTO ($482,999.06) SUPERA A LA BAJA TOTAL ($356,494.79) EN $126,504.27, '
-      + 'y eso NO es un descuadre: la tabla de productos es impacto BRUTO, sin netear contra los '
-      + 'upsells dentro de la misma cuenta. Es el mismo aviso de la semana 22. No sumar las dos tablas. '
-      + '④ TATSA (D59) ES LA SEGUNDA CANCELACIÓN MÁS GRANDE DEL TRIMESTRE —$11,086 en agosto, 4 meses '
-      + 'activa— Y LA DIMOS DE ALTA COMO CUENTA TOP EL 9 DE SEPTIEMBRE, un mes DESPUÉS de su baja. '
-      + 'Hoy figura en hibernación, así que ya se corrigió; lo que conviene saber es cómo entró: el '
-      + 'alta se hizo desde una ficha de dirección y SIN CID, así que no cruzaba con facturación y '
-      + 'ninguna fuente pudo avisar. Es el argumento más concreto para exigir CID en toda alta. '
-      + '⑤ CINCO CLIENTES DE ESTE CORTE ESTÁN EN NUESTRA CARTERA: Bliss crédito libre (C28, '
-      + 'cancelado), TATSA (D59, hibernación), Mas Suites (C32, hibernación), INBROTEK SERVICIOS '
-      + '(C66, en riesgo) y Hound Express (D30, en riesgo). Los tres primeros ya están movidos; los '
-      + 'dos últimos siguen vivos con downgrades del 71.17% y 64.01%. El cruce es POR NOMBRE —el '
-      + 'correo no trae CIDs— así que es indicativo y no obliga a mover nada por sí solo. '
-      + '⑥ INBROTEK CAMBIA DE CLASIFICACIÓN ENTRE CORTES: la semana 22 la listaba como Cancelado '
-      + '($2,801) y ésta como downgrade del 71.17% ($6,915.96) en agosto. Dos lecturas distintas del '
-      + 'mismo cliente en la misma familia de reportes. Hoy está en nuestra cartera como en riesgo '
-      + 'con $5,510, que es coherente con el downgrade y no con la cancelación. Vale preguntarlo. '
-      + '⑦ LO QUE SÍ CUADRA, al centavo: las tres filas mensuales contra el TOTAL T3 en las cuatro '
-      + 'columnas; Downgrade + Churn = Baja Total en cada mes; los tres porcentajes reconstruidos '
-      + 'desde sus propias cifras; las 24 salidas tempranas ($26,808.00); los 14 downgrades '
-      + '($22,399.83); los 4 artículos de CP Chat ($45,452.51); CP Chat + CP Voz = la pérdida total '
-      + 'del resumen amplio ($482,999.06); y las TRES bases de MRR del correo coincidían al centavo '
-      + 'con las del export institucional cuando se publicó este corte. '
-      + '⑧ ACTUALIZACIÓN DEL 11 OCT: el export institucional reexpresó esas bases DESPUÉS de que '
-      + 'Data mandó este corte —+$700 en julio y agosto, +$1,225.33 en septiembre— y bajó el churn '
-      + 'de septiembre de $100,567.96 a $79,483.96. No es un error de nadie: es que el '
-      + 'institucional se mueve. Y la bajada de septiembre NO es sólo cobranza que entró: la mayor '
-      + 'parte son contratos reclasificados de «Churn confirmado» a «Churn mensual», que el GRC no '
-      + 'cuenta. Las cifras de este corte se conservan tal como Data las publicó el 6 de octubre.',
+      + '`scripts/concilia-churn-s24.py`. Queda registrado de nuestra parte y no corrige ninguna '
+      + 'cifra publicada. '
+      + '① EL HARD SUSPEND DE SEPTIEMBRE NO CUADRA. Las cuatro cuentas listadas suman $16,379.98 y '
+      + 'el correo declara un total de $12,371.00: $4,008.98 de diferencia. Quitando «Hoteles y '
+      + 'Servicios» —el caso que el propio corte pone en duda— tampoco cuadra, porque las otras tres '
+      + 'suman $5,433.00: el total declarado no lo está excluyendo. Esta pantalla publica LAS CUATRO '
+      + 'FILAS, que es el dato verificable; antes de citar los $12,371.00 hay que preguntarlo. '
+      + '② «HOTELES Y SERVICIOS» CAMBIA DE ESTADO ENTRE CORTES, Y NOSOTROS TENEMOS EL DATO ANTERIOR. '
+      + 'El cierre de T3 lo publicó como la TERCERA mayor cancelación del trimestre: $10,946.98, 2 '
+      + 'meses activo, baja en septiembre, con $32,742.00 de acumulado histórico. Éste lo reporta en '
+      + 'hard suspend —servicio activo con restricciones— y pregunta abiertamente si debe seguir '
+      + 'contándose en la cartera por cobrar. Es el mismo patrón de INBROTEK en la semana 22: un '
+      + 'cliente clasificado de dos formas en la misma familia de reportes. Nuestra respuesta, por '
+      + 'la regla de la casa: mientras no haya baja autorizada no es churn, y un servicio activo con '
+      + 'restricciones es cartera por cobrar, no pérdida. [[feedback-conciliacion-churn]] '
+      + '③ EL TOP 5 DE ACTIVOS DEJA FUERA EL 76.2% DE LA CARTERA. Los cinco suman $97,440.96 de los '
+      + '$408,857.69: $311,416.73 no se desglosan y el corte tampoco dice cuántas cuentas son. Por '
+      + 'eso el Top 5 se publica en esta nota, con el porcentaje que deja fuera a la vista, y no '
+      + 'como tabla con total propio: una tabla que enseña el 23.8% y un total del 100% se lee como '
+      + 'si fuera la cartera entera. [[feedback-tablas-deben-cerrar]] '
+      + '④ LAS DOS TABLAS DE DOWNGRADE NO SE SUMAN, y el corte lo avisa. El impacto por producto es '
+      + 'BRUTO ($32,187.97) y el total neto es $31,620.33: la diferencia son los upsells dentro de la '
+      + 'misma cuenta, como TUNALI TEC, que quita DiD Nacional y Min VyC pero añade Agente CP Chat. '
+      + 'Mismo aviso que en los dos cortes anteriores. '
+      + '⑤ EL TOP 4 DE DOWNGRADES CUBRE EL 59.2% del total neto: $18,717.97 de $31,620.33 sobre 10 '
+      + 'casos. Los otros $12,902.36 —el 40.8%— no se desglosan en este corte. '
+      + '⑥ PORTALIA ES EL MAYOR DOWNGRADE DEL MES con $9,754.97, el 30.9% de todo el ingreso perdido '
+      + 'por reducción, y el movimiento es doble: quita Extension VyC y además recorta el paquete de '
+      + 'minutos de Voicebot de $3,000 a $1,000. Dos decisiones sobre la misma cuenta en el mismo mes. '
+      + '⑦ LO QUE SÍ CUADRA, al centavo: las once cancelaciones contra su total ($35,127.00); los '
+      + 'cinco tramos de cartera contra el suyo ($51,042.30) y sus 45 clientes; y el Top 4 de '
+      + 'downgrades contra la «sumatoria a detalle» ($18,717.97). '
+      + '⑧ LOS PORCENTAJES DE CHURN NO SE PUEDEN RECONSTRUIR: el correo no publica la base de MRR de '
+      + 'cada mes, así que 1.9%, 2.1% y 2.6% se citan como vienen del reporte y no se verifican '
+      + 'dividiendo, a diferencia del cierre de T3, que sí traía las bases. '
+      + '[[feedback-metricas-derivadas-origen]]',
   },
 
-  /* El cierre de trimestre NO reporta Top 10 de cuentas Activo. Va vacío
-     porque el corte no lo trae, no porque no haya cartera por cobrar. */
-  pendientes: [],
+  /* ── CARTERA POR COBRAR ─────────────────────────────────────────────────
+     Hard suspend arrastrado de septiembre + soft suspend nuevo de octubre, por
+     antigüedad de días pendientes de pago. 45 clientes, $51,042.30 ✓
+     Esto es lo que de verdad está pendiente de cobro, y por eso ocupa el
+     bloque que la pantalla rotula «Pendiente de Facturar». El corte NO da
+     detalle por cliente de este bloque: sólo los cinco tramos. */
+  pendientesTotalReal:   51042.30,
+  pendientesCuentasReal: 45,
+  pendientes: [
+    { cliente: '8 a 15 días vencido — 27 clientes. El 75.8% de la cartera por cobrar: cobranza reciente, se recupera con pagos.', monto: 38671.30, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: '16 a 30 días vencido — 15 clientes. El tramo donde la conversación de valor todavía llega antes del corte.',       monto:  8866.00, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: 'Más de 30 días vencido — 3 clientes. El único tramo que ya es cartera vencida de verdad.',                         monto:  3505.00, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: 'Por vencer y de 1 a 7 días — 0 clientes, $0.00. El corte los reporta en CERO con cero clientes: es un cero medido, no un bloque que falte.', monto: 0, mesesActivo: 0, ultimaFactura: '—' },
+  ],
 
-  /* Top 5 de cancelaciones de TODO el trimestre. Suman $53,095.93 de los
-     $225,867.20 de churn confirmado: el 23.5%. El resto no se desglosa.
-     `acumulado` (histórico facturado) sólo lo traía el corte de la semana 22
-     para tres de ellos; para Bliss y TATSA NO hay dato y queda en 0 dicho con
-     palabras — un cero sin medición no es un cero. */
+  antiguedadSaldos: [
+    { rango: 'Por vencer',           monto:     0.00 },
+    { rango: '1 – 7 días vencido',   monto:     0.00 },
+    { rango: '8 – 15 días vencido',  monto: 38671.30 },
+    { rango: '16 – 30 días vencido', monto:  8866.00 },
+    { rango: 'Más de 30 días',       monto:  3505.00 },
+  ],
+
+  /* ── LAS 11 CANCELACIONES DE OCTUBRE ────────────────────────────────────
+     Suman $35,127.00 ✓. `acumulado` va en 0 porque este corte NO publica el
+     histórico facturado de cada cuenta: es «no reportado», no «cero», y así se
+     dice en el texto de cada fila. [[feedback-cero-sin-medicion]] */
   cancelados: [
-    { cliente: 'Bliss crédito libre — la mayor cancelación del trimestre, 24 meses activa, baja en julio. ACUMULADO HISTÓRICO NO DISPONIBLE: ningún corte lo ha publicado. En nuestra cartera es C28 y ya figura como cancelado.', mrr: 16799.97, mesesActivo: 24, acumulado: 0 },
-    { cliente: 'TATSA — baja en agosto con 4 meses activa. ACUMULADO HISTÓRICO NO DISPONIBLE. ⚠ Es D59 en nuestra cartera: se dio de alta como cuenta TOP el 9 de septiembre, un mes DESPUÉS de esta baja, con ficha de dirección y sin CID. Hoy está en hibernación.', mrr: 11086.00, mesesActivo: 4, acumulado: 0 },
-    { cliente: 'Hoteles y Servicios — contratado en junio 2026, llegó por Adwords tras cambiar de proveedor. Empezó con 16 extensiones y terminó con 6 antes de cancelar en septiembre. Acumulado del corte de la semana 22.', mrr: 10946.98, mesesActivo: 2, acumulado: 32742.00 },
-    { cliente: 'Mas Suites — 70 meses activo, el cliente más antiguo de los que se fueron en el trimestre. El corte no da motivo. Es C32 en nuestra cartera, ya en hibernación. Acumulado del corte de la semana 22.', mrr: 7372.98, mesesActivo: 70, acumulado: 393693.64 },
-    { cliente: 'VEMEPE — 1 mes activo. También encabeza las salidas tempranas del trimestre. Acumulado del corte de la semana 22.', mrr: 6890.00, mesesActivo: 1, acumulado: 13780.00 },
+    { cliente: 'Jason de México — TOP, la mayor del mes. MIGRACIÓN A OTRO PROVEEDOR. Acumulado histórico no publicado por el corte.', mrr: 17225.00, mesesActivo: 43, acumulado: 0 },
+    { cliente: 'KOMBITEC — más de seis años. MIGRACIÓN A OTRO PROVEEDOR. Con Jason son el 73.4% de las bajas del mes. Acumulado no publicado.', mrr: 8539.00, mesesActivo: 73, acumulado: 0 },
+    { cliente: 'WhatsHome — Restructuración. Acumulado no publicado.', mrr: 3250.00, mesesActivo: 71, acumulado: 0 },
+    { cliente: 'ENCAMINO Chat — Poco uso. Acumulado no publicado.', mrr: 1750.00, mesesActivo: 11, acumulado: 0 },
+    { cliente: 'TP DIGITAL — 105 meses: casi nueve años, el cliente más antiguo que se va este mes. Cambios organizacionales internos. Acumulado no publicado.', mrr: 1300.00, mesesActivo: 105, acumulado: 0 },
+    { cliente: 'LUNAH ECO-RESORTS — el corte dice «sin comentarios»: no registra motivo. Acumulado no publicado.', mrr: 588.00, mesesActivo: 51, acumulado: 0 },
+    { cliente: 'FOBE — 1 MES ACTIVO, la salida más temprana del mes. Cambios organizacionales internos. Acumulado no publicado.', mrr: 519.00, mesesActivo: 1, acumulado: 0 },
+    { cliente: 'Avezado Abogados Penales — 8 meses. Cambios organizacionales internos. Acumulado no publicado.', mrr: 489.00, mesesActivo: 8, acumulado: 0 },
+    { cliente: 'Schimer — Poco uso. Acumulado no publicado.', mrr: 489.00, mesesActivo: 18, acumulado: 0 },
+    { cliente: 'Cole Majzner arquitectos — PRECIO: la única del mes que se va por costo. Acumulado no publicado.', mrr: 489.00, mesesActivo: 40, acumulado: 0 },
+    { cliente: 'Annova Logistics — Migración a otro proveedor. Acumulado no publicado.', mrr: 489.00, mesesActivo: 29, acumulado: 0 },
   ],
 
-  /* El total del trimestre es $130,627.59; los 14 de abajo son SÓLO el
-     subconjunto de reducciones mayores al 60%, que suman $22,399.83. */
-  downgradeTotalReal: 130627.59,
+  /* ── DOWNGRADES ─────────────────────────────────────────────────────────
+     Total NETO del mes $31,620.33 sobre 10 casos; el corte detalla los 4 de
+     mayor importe ($18,717.97 ✓) y la última fila es el cubo de cierre. */
+  downgradeTotalReal: 31620.33,
+  downgradeCasosReal: 10,
   downgrades: [
-    { cliente: 'MEGAVIAL ABOGADOS', perdida: 1407.00, nota: '93.43% de reducción — la mayor en proporción del trimestre. Septiembre.' },
-    { cliente: 'CiberZion',          perdida:  421.87, nota: '86.27% de reducción. Julio. Ojo: la semana 22 reportó para este cliente $1,926.74 de pérdida con 49% de baja — es otro evento, no el mismo.' },
-    { cliente: 'MIRA DIAMANTE SOLUCLOUD', perdida: 1122.00, nota: '82.26% de reducción. Julio.' },
-    { cliente: 'DUNA',               perdida:  784.00, nota: '80.08% de reducción. Agosto.' },
-    { cliente: 'Artesanal.com.mx',   perdida:  784.00, nota: '80.08% de reducción. Septiembre. Mismo importe y mismo porcentaje que DUNA en agosto.' },
-    { cliente: 'DATA SMART INFORMATIC', perdida: 604.00, nota: '75.59% de reducción. Septiembre.' },
-    { cliente: 'INBROTEK SERVICIOS', perdida: 6915.96, nota: '71.17% de reducción y la MAYOR pérdida de este subconjunto. Agosto. ⚠ Es C66 en nuestra cartera, de Fátima, hoy en riesgo con $5,510. La semana 22 la listaba como Cancelado ($2,801): dos clasificaciones distintas del mismo cliente.' },
-    { cliente: 'Zuhma',              perdida:  340.00, nota: '69.53% de reducción. Agosto.' },
-    { cliente: 'Soluciones Textiles del Norte', perdida: 1350.00, nota: '68.91% de reducción. Julio.' },
-    { cliente: 'BAKELGROUP',         perdida:  320.00, nota: '65.44% de reducción. Julio.' },
-    { cliente: 'Hound Express',      perdida: 4481.00, nota: '64.01% de reducción. Septiembre. Es D30 en nuestra cartera, de Dan, hoy en riesgo. La semana 22 reportó el mismo importe ($4,481, paquete Min VyC de $7,000 a $2,519): es el mismo evento visto dos veces, no dos bajas.' },
-    { cliente: 'Embler Autopartes',  perdida: 3281.00, nota: '61.44% de reducción. Agosto.' },
-    { cliente: 'Visualizza',         perdida:  295.00, nota: '60.20% de reducción. Julio.' },
-    { cliente: 'CASBA Consultoría, Seguridad e Higiene Laboral y Salud Ocupacional', perdida: 294.00, nota: '60.12% de reducción. Julio. El menor del subconjunto, justo en el umbral.' },
+    { cliente: 'Portalia — TOP', perdida: 9754.97, nota: 'El mayor del mes: el 30.9% de todo el ingreso perdido por reducción. Movimiento doble — quita Extension VyC y recorta el paquete de minutos de Voicebot de $3,000 a $1,000.' },
+    { cliente: 'TUNALI TEC', perdida: 5404.00, nota: 'Quita DiD Nacional y paquete Min VyC, pero AÑADE Agente CP Chat. Es el caso que explica por qué la tabla de productos (bruta) no cuadra con el total neto.' },
+    { cliente: 'Corporativo grupo funerario San Javier', perdida: 1959.00, nota: 'Quita el paquete Min VyC.' },
+    { cliente: 'Grupo Guía', perdida: 1600.00, nota: 'Reduce DiD Nacional y paquete Min VyC.' },
+    { cliente: '+ Resto de los downgrades de octubre', perdida: 12902.36, nota: '⚠ CUBO DE CIERRE. Son 10 los casos de downgrade del mes y el corte sólo detalla los 4 de mayor importe. Sin esta fila el Top 4 se leería como todo el downgrade de octubre y dejaría fuera el 40.8% del total neto.' },
   ],
 
-  /* Pérdida por producto del trimestre. El importe va en el nombre porque el
-     corte NO publica en cuántos casos se perdió cada artículo: `vecesAfectado`
-     se queda en 0 y eso significa «no reportado», no «ninguno». */
+  /* Impacto BRUTO por producto: lo que se quitó o redujo en cada caso, SIN
+     netear los upsells de la misma cuenta. Suma $32,187.97 contra los
+     $31,620.33 de pérdida neta y el propio corte advierte que no coinciden
+     1:1. NO se suman las dos tablas. `vecesAfectado` sí viene en este corte. */
   downgradeArticulos: [
-    { articulo: 'CP VOZ · paquete Min VyC — $118,684.52',             vecesAfectado: 0, clientes: ['(el corte no publica cuántos casos)'] },
-    { articulo: 'CP VOZ · Extension Callcenter — $78,481.64',         vecesAfectado: 0, clientes: ['(el corte no publica cuántos casos)'] },
-    { articulo: 'CP VOZ · paquete Min CE — $63,561.10',               vecesAfectado: 0, clientes: ['(el corte no publica cuántos casos)'] },
-    { articulo: 'CP VOZ · Extension VyC — $48,689.44',                vecesAfectado: 0, clientes: ['(el corte no publica cuántos casos)'] },
-    { articulo: 'CP VOZ · DiD Nacional — $28,487.57',                 vecesAfectado: 0, clientes: ['(el corte no publica cuántos casos)'] },
-    { articulo: 'CP VOZ · el resto de la categoría — $99,642.28',     vecesAfectado: 0, clientes: ['⚠ CUBO DE CIERRE. El corte sólo publica el Top 5 ($337,904.27) de una categoría que vale $437,546.55. Sin esta fila el Top 5 se leería como toda la pérdida de voz, y deja fuera el 22.8%.'] },
-    { articulo: 'CP CHAT · Agente CP Chat — $34,079.14',              vecesAfectado: 0, clientes: ['(el corte no publica cuántos casos)'] },
-    { articulo: 'CP CHAT · Agente CP Chat Callcenter — $10,313.37',   vecesAfectado: 0, clientes: ['(el corte no publica cuántos casos)'] },
-    { articulo: 'CP CHAT · paquete Chatbot — $1,000.00',              vecesAfectado: 0, clientes: ['(el corte no publica cuántos casos)'] },
-    { articulo: 'CP CHAT · paquete Whatsapp API — $60.00',            vecesAfectado: 0, clientes: ['CP Chat SÍ cierra: estos cuatro artículos son la categoría completa, $45,452.51.'] },
+    { articulo: 'paquete Min VyC — $17,326.00',     vecesAfectado: 7, clientes: ['El artículo más golpeado del mes: 7 de los 10 casos.'] },
+    { articulo: 'Extension VyC — $10,161.97',       vecesAfectado: 2, clientes: ['Sólo 2 casos pero el segundo importe del mes: Portalia se lleva la mayor parte.'] },
+    { articulo: 'paquete Min Voicebot — $2,000.00', vecesAfectado: 1, clientes: ['Un solo caso: Portalia, de $3,000 a $1,000.'] },
+    { articulo: 'DiD Nacional — $1,671.00',         vecesAfectado: 4, clientes: ['El segundo más repetido y el de menor importe por caso.'] },
+    { articulo: 'paquete Min CE — $1,029.00',       vecesAfectado: 1, clientes: ['Un solo caso.'] },
   ],
 
-  /* Las 24 salidas tempranas del trimestre: cuentas que se cayeron con 0 o 1
-     mes activo. 18 con CERO meses ($13,740.00) y 6 con uno ($13,068.00). */
-  desactivadosTotalReal:   26808.00,
-  desactivadosCuentasReal: 24,
-  desactivados: [
-    { cliente: 'VEMEPE — septiembre',                              importe: 6890.00, mesesActivo: 1 },
-    { cliente: 'GRUPO GEVHE — julio. Pedía un plan más grande: no le avisaron al contratar que los minutos se tarifican distinto. Se le ofrecieron alternativas y decidió no continuar.', importe: 3817.00, mesesActivo: 1 },
-    { cliente: 'RDS ELITE CONDOS PDC SA DE CV — agosto. Se fue por la caída de las tasas de respuesta telefónica, que bajaron al 6–10%. Descartó ajustar plan o migrar a chat y contrató a un competidor externo con mensajería integrada.', importe: 2387.00, mesesActivo: 0 },
-    { cliente: 'Delta Capital & Holding Street — julio',           importe: 2377.00, mesesActivo: 0 },
-    { cliente: 'Alamo Seguros — julio',                            importe: 1959.00, mesesActivo: 0 },
-    { cliente: 'syndeX — agosto',                                  importe: 1318.00, mesesActivo: 1 },
-    { cliente: 'IMAGINA SER — septiembre',                         importe: 1080.00, mesesActivo: 0 },
-    { cliente: 'BLACKNET — septiembre',                            importe:  668.00, mesesActivo: 0 },
-    { cliente: 'INTERHOME GJ — septiembre',                        importe:  519.00, mesesActivo: 0 },
-    { cliente: 'Grupo Altiora — septiembre',                       importe:  519.00, mesesActivo: 0 },
-    { cliente: 'Dios Del Aire CLN — julio',                        importe:  489.00, mesesActivo: 0 },
-    { cliente: 'Torre Himalaya 24 — julio',                        importe:  489.00, mesesActivo: 1 },
-    { cliente: 'MA-AR TRANSPORTE LOGISTICO — julio',               importe:  489.00, mesesActivo: 0 },
-    { cliente: 'DISENSA FC — agosto',                              importe:  489.00, mesesActivo: 0 },
-    { cliente: 'Sistemas Secuencia — agosto',                      importe:  489.00, mesesActivo: 0 },
-    { cliente: 'Sport and Therapy — agosto',                       importe:  489.00, mesesActivo: 0 },
-    { cliente: 'cp188899 — agosto. SIN NOMBRE en el sistema: entró y se fue sin que nadie la bautizara.', importe: 489.00, mesesActivo: 0 },
-    { cliente: 'COMERCIALIZADORA SIN FRONTERAS — agosto',          importe:  489.00, mesesActivo: 0 },
-    { cliente: 'cp189204 — septiembre. SIN NOMBRE en el sistema.', importe:  359.00, mesesActivo: 1 },
-    { cliente: 'SMUM México — septiembre',                         importe:  209.00, mesesActivo: 0 },
-    { cliente: 'Rentería Flow& Axis Consulting — septiembre. Aparecía como Hard Suspend en la semana 22 por el mismo importe.', importe: 209.00, mesesActivo: 0 },
-    { cliente: 'Inmobiliaria Gess 2.17 — agosto',                  importe:  195.00, mesesActivo: 1 },
-    { cliente: 'SGI MEXICO — agosto',                              importe:  195.00, mesesActivo: 0 },
-    { cliente: 'Denver Medical — agosto',                          importe:  195.00, mesesActivo: 0 },
+  /* ── CIERRE DE SEPTIEMBRE · HARD SUSPEND ────────────────────────────────
+     Las cuatro cuentas que quedaron en hard suspend —servicio activo con
+     restricciones— y que el corte describe como «continúa sin entrar a la
+     cartera». Van en `suspendidos`, que la pantalla rotula «Suspendidos /
+     Inactivos en retención»: es exactamente lo que son.
+
+     El total es la SUMA DE LAS FILAS ($16,379.98), no los $12,371.00 que
+     declara el correo: ver la observación ① de la nota.
+
+     Colegio NWL - Corregidora ($1,392.00, 64 meses, última factura de agosto,
+     54 días pendientes) NO va aquí: el corte lo publica aparte como ACTIVO y
+     meterlo en este bloque lo contaría como baja. Va dicho en la nota. */
+  suspendidosTotalReal:   16379.98,
+  suspendidosCuentasReal: 4,
+  suspendidos: [
+    { cliente: 'Hoteles y Servicios — HARD SUSPEND. ⚠ El cierre de T3 lo publicó como la TERCERA mayor cancelación del trimestre ($10,946.98, baja en septiembre, $32,742.00 de acumulado histórico) y aquí figura en hard suspend. El propio reporte pregunta si debe seguir contándose en la cartera por cobrar. Por la regla de la casa: sin baja autorizada no es churn. Corte al 29 ago 2026 · 48 días pendientes.', importe: 10946.98, mesesActivo: 2, estado: 'Suspendido' },
+    { cliente: 'Skyhous — HARD SUSPEND. Corte al 05 sep 2026 · 41 días pendientes.',                                  importe: 2497.00, mesesActivo: 65, estado: 'Suspendido' },
+    { cliente: 'Uno Suministros — HARD SUSPEND. 70 meses, la más antigua del bloque. Corte al 18 sep 2026 · 28 días.', importe: 1759.00, mesesActivo: 70, estado: 'Suspendido' },
+    { cliente: 'Epinova Bio Labs — HARD SUSPEND. Corte al 26 sep 2026 · 20 días pendientes.',                          importe: 1177.00, mesesActivo:  9, estado: 'Suspendido' },
   ],
 }

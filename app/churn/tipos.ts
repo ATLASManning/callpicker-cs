@@ -54,4 +54,10 @@ export interface ChurnReporte {
   desactivadosTotalReal?:  number
   desactivadosCuentasReal?: number
   downgradeTotalReal?:     number
+  /**
+   * Cuántos casos de downgrade tuvo el corte, cuando declara más de los que
+   * desglosa. La tabla lleva el Top N más una fila de cierre, así que contar
+   * filas daba «5 clientes con reducción de plan» sobre un mes de 10 casos.
+   */
+  downgradeCasosReal?:     number
 }

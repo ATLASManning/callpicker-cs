@@ -59,7 +59,11 @@ def suma(bloque, campo):
 print()
 print('=== CIFRAS DEL CORTE VIGENTE ===')
 pruebas = [
-    ('cartera Activo',  suma('pendientes', 'monto'),        num('pendientesTotalReal')),
+    # El bloque `pendientes` es el que la pantalla rotula «Pendiente de
+    # Facturar». Segun el corte lleva el Top de cartera ACTIVO (semanas 20-22) o
+    # la cartera POR COBRAR (desde la 24): el nombre de la fila no se puede fijar
+    # aqui, asi que se dice neutro y el reporte explica cual es.
+    ('bloque pendientes', suma('pendientes', 'monto'),       num('pendientesTotalReal')),
     ('downgrades',      suma('downgrades', 'perdida'),      num('downgradeTotalReal')),
     ('suspendidos',     suma('suspendidos', 'importe'),     num('suspendidosTotalReal')),
 ]
@@ -118,5 +122,20 @@ porVencer = float(mPV.group(1))
 vencido = round(ant - porVencer, 2)
 print('  %-16s tramos %12s   por vencer %13s   vencido %s'
       % ('antigüedad', format(ant, ','), format(porVencer, ','), format(vencido, ',')))
-print('  vencido == suspendidos: %s'
-      % ('si' if abs(vencido - (num('suspendidosTotalReal') or 0)) < 0.01 else '** no'))
+# EL VENCIDO TIENE QUE SER EL MISMO DINERO QUE UN BLOQUE DECLARADO, pero NO
+# siempre el mismo bloque: hasta la semana 22 la cartera por cobrar vivia en
+# `suspendidos` (Hard + Soft) y desde la 24 vive en `pendientes`. Comparando
+# solo contra `suspendidos`, el verificador decia «** no» en un corte correcto
+# — y un «no» que se repite sin ser nada es como no tener verificador. Ahora
+# dice CONTRA CUAL cuadra, y solo falla si no cuadra contra ninguno.
+candidatos = [('pendientes', num('pendientesTotalReal')),
+              ('suspendidos', num('suspendidosTotalReal'))]
+casa = [n for n, v in candidatos if v is not None and abs(vencido - v) < 0.01]
+if casa:
+    print('  el vencido es el bloque: %s' % ' y '.join(casa))
+else:
+    print('  *** el vencido (%s) no cuadra con ningun bloque declarado: %s'
+          % (format(vencido, ','),
+             ' · '.join('%s %s' % (n, format(v, ',') if v is not None else '—')
+                        for n, v in candidatos)))
+    raise SystemExit(1)

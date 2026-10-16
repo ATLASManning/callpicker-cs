@@ -14,7 +14,7 @@ import { getZohoMap, lookupZoho } from './zoho-enrich'
 import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { esConElCliente, etiquetaTipo } from './reuniones-tipo'
 import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
-import { REPORTE_S23_T3_2026 } from '@/app/churn/reporte-actual'
+import { REPORTE_S24_OCT_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
 import { MARCO_SUMMARY } from './marco-atlas'
@@ -766,7 +766,7 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   modulos.push('churn-grc')
 
   // Corte vigente de Gross Revenue Churn — misma fuente que renderiza el módulo.
-  const rep = REPORTE_S23_T3_2026
+  const rep = REPORTE_S24_OCT_2026
   if (rep.grc) {
     const evo = rep.grc.evolucion
       .map(e => `${e.mes} ${e.pct}%${e.anterior !== undefined ? ` (ant. ${e.anterior}%)` : ''}`)
@@ -792,7 +792,11 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
      *
      * El índice se cuenta sobre las VISIBLES: numerar «3/14» en una lista de
      * cinco le dice al modelo que le faltan nueve y lo invita a rellenarlas. */
-    const downVis = visibleLimpio(rep.downgrades)
+    /* Los cubos de cierre («+ Resto de los downgrades…») se filtran igual que
+       en pendientes: son un agregado, no un cliente, y el modelo los nombraba
+       como si lo fueran. El importe que agrupan se dice aparte, en `cierreDowns`. */
+    const cuboDowns = rep.downgrades.filter(d => d.cliente.startsWith('+'))
+    const downVis = visibleLimpio(rep.downgrades.filter(d => !d.cliente.startsWith('+')))
     const downs = downVis
       .map((d, i) => `    ${i + 1}/${downVis.length}. ${limpio(d.cliente)} -$${d.perdida.toLocaleString('es-MX')}${cartera(limpio(d.cliente))} — ${d.nota}`)
       .join('\n')
@@ -814,31 +818,73 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
        una lista recortada sin avisar: el modelo las leería como el total de lo
        que tiene listado y la tabla no cerraría. Así que van rotuladas. */
     const deEmpresa = acotado ? ' (cifra de EMPRESA, no de tu cartera)' : ''
+    /* Si el corte sólo desglosa un Top, la lista NO está cerrada y decir que
+       sí lo está es una mentira cómoda: el modelo se niega a aceptar que falta
+       dinero. Se dice cuánto agrupa el cubo y que esos clientes no tienen
+       nombre en el corte. [[feedback-tablas-deben-cerrar]] */
+    const cuboMonto = cuboDowns.reduce((s, d) => s + d.perdida, 0)
     const cierreDowns = acotado
-      ? `  Downgrades de agosto DE TU CARTERA (y los que no están en la cartera CS): `
+      ? `  Downgrades de ${rep.periodo} DE TU CARTERA (y los que no están en la cartera CS): `
         + `${downVis.length} clientes por $${downTotalVis.toLocaleString('es-MX')}. `
-        + `La lista es completa PARA TU ALCANCE, no para el mes: el mes tiene más `
+        + `La lista es completa PARA TU ALCANCE, no para el corte: hay más `
         + `downgrades en las otras carteras y no los tienes. No los nombres ni los estimes.`
-      : `  Downgrades de agosto — lista COMPLETA y CERRADA de ${rep.downgrades.length} clientes `
-        + `por $${(rep.downgradeTotalReal ?? 0).toLocaleString('es-MX')}. `
-        + `No hay un cliente número ${rep.downgrades.length + 1}: cualquier otro nombre pertenece a otro mes.`
+      : cuboMonto > 0
+        ? `  Downgrades de ${rep.periodo} — el corte declara $${(rep.downgradeTotalReal ?? 0).toLocaleString('es-MX')} `
+          + `en total y sólo desglosa a ${downVis.length} clientes por $${downTotalVis.toLocaleString('es-MX')}. `
+          + `Los otros $${cuboMonto.toLocaleString('es-MX')} NO tienen nombre en el corte: no los atribuyas a nadie `
+          + `ni completes la lista con clientes de otros meses.`
+        : `  Downgrades de ${rep.periodo} — lista COMPLETA y CERRADA de ${downVis.length} clientes `
+          + `por $${(rep.downgradeTotalReal ?? 0).toLocaleString('es-MX')}. `
+          + `No hay un cliente número ${downVis.length + 1}: cualquier otro nombre pertenece a otro corte.`
+
+    /* TODO LO DE AQUÍ SE DERIVA DE `rep`. Estuvo meses escrito a mano con las
+       cifras de un corte de AGOSTO —«ESTA es la fuente para agosto 2026», «la
+       sección GRC AAA cubre enero–julio», «$72,631 en 71 cuentas», «antigüedad
+       total $177,156.62», «próxima revisión martes 8 de septiembre»— y el
+       módulo ya iba por el cierre de T3. Al rotar el corte, el texto fijo no
+       rotaba: Atlas respondía octubre con rótulos de agosto, que es peor que
+       no tener el dato porque suena igual de seguro.
+       [[feedback-contexto-ia-sin-huecos]] */
+    const mesCorte = rep.periodo
+    /* El acumulado NO siempre es del año: el cierre de T3 publicó el del
+       trimestre. Si el corte trae etiqueta, se usa la etiqueta. */
+    const etqAcum = rep.grc.acumuladoEtiqueta ?? 'Acumulado 2026'
+    const cuentasActivo = rep.pendientesCuentasReal !== undefined
+      ? `en ${rep.pendientesCuentasReal} cuentas`
+      : 'el corte NO dice en cuántas cuentas'
+    const topN = rep.pendientes.filter(p => !p.cliente.startsWith('+')).length
+    /* Dinero fuera de cartera: se SUMA de este corte, no se recuerda del
+       anterior. Si el corte no lo reporta, se dice que no lo reporta. */
+    const fueraTotal = (rep.suspendidosTotalReal ?? 0) + (rep.desactivadosTotalReal ?? 0)
+      + rep.cancelados.reduce((s, c) => s + c.mrr, 0)
+    const fueraDetalle = [
+      rep.suspendidosTotalReal !== undefined
+        ? `Cartera por cobrar / suspendidos ${rep.suspendidosCuentasReal ?? '—'} cuentas ($${rep.suspendidosTotalReal.toLocaleString('es-MX')})` : '',
+      rep.desactivadosTotalReal !== undefined
+        ? `Hard suspend del mes cerrado ${rep.desactivadosCuentasReal ?? '—'} cuentas ($${rep.desactivadosTotalReal.toLocaleString('es-MX')})` : '',
+      `Cancelados ${rep.cancelados.length} ($${rep.cancelados.reduce((s, c) => s + c.mrr, 0).toLocaleString('es-MX')})`,
+    ].filter(Boolean).join(' · ')
+    const antigTotal = (rep.antiguedadSaldos ?? []).reduce((s, a) => s + a.monto, 0)
 
     sections.push(
       `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha} | ` +
-      `ESTA es la fuente para agosto 2026: los downgrades listados abajo son los ÚNICOS del mes, ` +
-      `no agregues clientes de la sección GRC AAA (esa cubre enero–julio) | ${LEYENDA_CARTERA}${ALCANCE_ACOTADO}):\n` +
-      `  Evolución GRC${deEmpresa}: ${evo}. Acumulado 2026: ${rep.grc.acumulado}%` +
-      `${rep.grc.anterior !== undefined ? ` (ant. ${rep.grc.anterior}%)` : ''} — MES CORRIENDO, NO DEFINITIVO.\n` +
-      `  Cartera en Activo${deEmpresa}: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} en ${rep.pendientesCuentasReal} cuentas.` +
-      ` Top 10${acotado ? ' (recortado a tu alcance)' : ''}: ${top || 'ninguno en tu alcance'}.\n` +
-      `  Dinero fuera de cartera${deEmpresa}: $72,631 en 71 cuentas — Suspendidos 27 ($18,692 · 25.2 días promedio) · Desactivados 23 ($33,899 · 11.9 días) · Cancelados 21 ($20,040).\n` +
-      (antig ? `  Antigüedad de saldos${deEmpresa} (total $177,156.62): ${antig}.\n` : '') +
+      `ESTA es la fuente para ${mesCorte}: los downgrades listados abajo son los ÚNICOS del corte, ` +
+      `no agregues clientes de la sección GRC AAA (esa cubre ${rango}) | ${LEYENDA_CARTERA}${ALCANCE_ACOTADO}):\n` +
+      `  Evolución GRC${deEmpresa}: ${evo}. ${etqAcum}: ${rep.grc.acumulado}%` +
+      `${rep.grc.anterior !== undefined ? ` (ant. ${rep.grc.anterior}%)` : ''}.` +
+      ` Los meses se REEXPRESAN corte a corte conforme entran pagos tardíos: si una cifra cambió` +
+      ` respecto a un corte anterior no es un error, y el mes vivo mide retraso de cobranza, no bajas.\n` +
+      `  Cartera en Activo${deEmpresa}: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} ${cuentasActivo}.` +
+      ` Top ${topN}${acotado ? ' (recortado a tu alcance)' : ''}: ${top || 'ninguno en tu alcance'}.` +
+      ` El Top no es la cartera: lo que no está listado no tiene nombre en el corte, no lo inventes.\n` +
+      `  Dinero fuera de cartera${deEmpresa}: $${fueraTotal.toLocaleString('es-MX')} — ${fueraDetalle}.\n` +
+      (antig ? `  Antigüedad de saldos${deEmpresa} (total $${antigTotal.toLocaleString('es-MX')}): ${antig}.\n` : '') +
       `${cierreDowns}\n${downs || '    (ninguno en tu alcance)'}\n` +
-      `  Downgrades de agosto agrupados por cartera (ya calculado, NO lo recalcules): ` +
+      `  Downgrades de ${mesCorte} agrupados por cartera (ya calculado, NO lo recalcules): ` +
       `EN CARTERA CS → ${enCartera.length ? enCartera.join(', ') : 'ninguno'}. ` +
       `SIN ASESOR ASIGNADO → ${fueraCartera.length ? fueraCartera.join(', ') : 'ninguno'}.\n` +
       `  ${rep.grc.notaEspecial ?? ''}\n` +
-      `  Cadencia: el reporte se envía los martes. Próxima revisión: martes 8 de septiembre de 2026.`
+      `  Cadencia y remitente: ${rep.notaRemitente ?? 'no reportado en este corte'}`
     )
     modulos.push('churn-corte-vigente')
   }
