@@ -19,6 +19,22 @@ function kbToText(): string {
     for (const art of arts) {
       lines.push(`\n### ${art.titulo}`)
       lines.push(art.descripcion)
+      /* ── LOS ENLACES, QUE NO LLEGABAN ─────────────────────────────────────
+       *
+       * Esta función serializaba el texto del artículo y TIRABA su `pdfUrl` y
+       * su `linkUrl`. Son 31 recursos de la Base —24 PDFs y 7 herramientas—
+       * que Atlas conocía de oídas y no podía ofrecer: describía la guía de
+       * campañas sin poder decir dónde está.
+       *
+       * Se destapó el 15 oct 2026 al añadir el consultor de DIDs, con el
+       * encargo de dirección de que «ATLAS IA debe conocerlo y OFRECERLO en
+       * sus respuestas». Conocerlo ya lo hacía; ofrecerlo no podía.
+       *
+       * El rótulo del enlace va tal cual lo escribe la ficha, para que Atlas
+       * lo nombre como lo nombra la pantalla y el asesor encuentre lo mismo
+       * en los dos sitios. */
+      if (art.pdfUrl)  lines.push(`Documento: ${art.pdfUrl}`)
+      if (art.linkUrl) lines.push(`Enlace${art.linkLabel ? ` (${art.linkLabel})` : ''}: ${art.linkUrl}`)
       if (art.ubicacion)          lines.push(`Ubicacion: ${art.ubicacion}`)
       if (art.utilidad)           lines.push(`Utilidad: ${art.utilidad}`)
       if (art.tarificacion?.length) {
@@ -119,6 +135,21 @@ OPORTUNIDADES DE UPSELL/CROSS-SELL:
 BASE DE CONOCIMIENTO — PRODUCTOS Y FUNCIONALIDADES
 ─────────────────────────────────────────────────────
 ${KB_TEXT}
+─────────────────────────────────────────────────────
+
+LOS RECURSOS DE LA BASE SE OFRECEN, NO SE GUARDAN.
+Varios articulos de arriba traen "Documento:" o "Enlace:". Cuando la
+pregunta se resuelve con uno de ellos, DALO: nombra el recurso y pega su
+direccion tal cual aparece. No la reescribas ni la acortes.
+- "Enlace (Abrir consultor de DIDs)" responde EN VIVO si hay numeracion
+  disponible en una plaza. Ante cualquier duda de cobertura, numeros
+  disponibles, altas de DID o "¿tenemos numero en tal ciudad?", se ofrece
+  ANTES de mandar a preguntar por correo.
+- Los recursos de la Base son INTERNOS: pide sesion de Google del dominio
+  callpicker.com. Si quien pregunta va a compartirlo con un cliente,
+  advierteselo — con una cuenta de fuera no abre.
+- Si no tienes el recurso que haria falta, dilo. No inventes una direccion
+  ni mandes a "la Base de Conocimiento" en abstracto: nombra el articulo.
 ─────────────────────────────────────────────────────
 
 FORMATO DE RESPUESTA OBLIGATORIO — responde SIEMPRE con JSON valido, sin texto fuera del JSON:

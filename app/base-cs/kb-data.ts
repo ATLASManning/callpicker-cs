@@ -1581,6 +1581,31 @@ export const KB: Categoria[] = [
   {
     id: 'cobertura', label: 'Cobertura y DIDs', color: '#F59E0B',
     articulos: [
+      /* Pedido por dirección el 15 oct 2026: «una liga para consulta y
+         disponibilidad de DIDs».
+
+         Va el PRIMERO de la categoría a propósito. Es la única pieza de toda
+         la Base que contesta EN EL MOMENTO —hay número en esa plaza o no lo
+         hay— y es lo que frena una venta mientras se pregunta por correo. Lo
+         demás de esta categoría explica qué es un DID; esto dice si existe.
+
+         Es un Apps Script del dominio de Callpicker, así que pide sesión de
+         Google corporativa: con una cuenta de fuera no abre. Se dice aquí
+         para que nadie lo mande a un cliente esperando que lo vea. */
+      {
+        id: 'disponibilidad-dids',
+        linkUrl: 'https://script.google.com/a/macros/callpicker.com/s/AKfycbyDdnpS1m4RDPNZp2E2qhYsHWy_zCOF9Pqx5UKAVp9aNFFBknp65-9JbCIUnVK797rb/exec',
+        linkLabel: 'Abrir consultor de DIDs',
+        titulo: 'Consulta y disponibilidad de DIDs',
+        descripcion: 'Herramienta en vivo para consultar qué numeración hay disponible antes de comprometer una plaza con el cliente. Responde en el momento si hay número en una ciudad y de qué tipo, sin pasar por correo.',
+        utilidad: 'Antes de prometer cobertura en una plaza, se consulta aquí. Evita el ida y vuelta por correo que retrasa altas y portabilidades, y evita comprometer una ciudad en la que no hay numeración.',
+        badge: 'nuevo',
+        consideraciones: [
+          { texto: 'Requiere sesión de Google del dominio callpicker.com: con una cuenta externa no abre. NO se le comparte el enlace al cliente.', tipo: 'warning' },
+          { texto: 'La disponibilidad es del momento de la consulta: si el alta tarda, conviene volver a comprobarla antes de confirmar.', tipo: 'info' },
+          { texto: 'Para migrar un número que el cliente ya tiene, el camino no es éste sino la portabilidad, más abajo en esta misma categoría.' },
+        ],
+      },
       {
         id: 'cobertura-mexico',
         pdfUrl: '/docs/Callpicker - Cobertura de Números Telefónicos - cobertura.pdf',
