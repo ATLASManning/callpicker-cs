@@ -134,6 +134,25 @@ const EMAILS_AUTORIZADOS_DEFAULT = [
    * `python scripts/revisa-acceso-correo.py claudia@callpicker.com --esperado fuera`.
    */
   // 'claudia@callpicker.com',
+  /* ── ERICK SÁNCHEZ, ALTA EL 16 OCT 2026 ───────────────────────────────────
+   *
+   * Dirección: «Te comparto el correo de Erick Sánchez […] y le permitas el
+   * acceso a la plataforma ya lo registré». Recibe la cartera que era de
+   * Claudia: 71 cuentas, ya a su nombre en `cuentas.asesor` desde el 15 oct.
+   *
+   * REGISTRARLO EN EL PANEL NO LE DA ACCESO. Su fila en `usuarios` ya existe
+   * y está Activo, pero `verify/route.ts` comprueba ESTA lista ANTES que la
+   * contraseña y antes que `activo`: sin esta línea recibiría
+   * «usuario_invalido», que se lee como correo mal escrito y no como falta de
+   * permiso. Es exactamente lo que les pasó a los tres asesores el 12 oct.
+   *
+   * Y TAMPOCO BASTA CON ESTO: el candado de `lib/dueno.ts` falla CERRADO, así
+   * que un rol `asesor` con `usuarios.asesor_nombre` vacío entra al tablero y
+   * recibe 403 en sus propios datos. Su fila tiene que decir «Erick» en la
+   * columna ASESOR, que es justo lo que la tabla de Gestión de Usuarios no
+   * dejaba editar hasta hoy.
+   */
+  'erick@callpicker.com',
   'dominguez.dan@callpicker.com',
   /* Aurora — alta el 10 sep 2026 por instrucción de dirección, rol `viewer`.
    *

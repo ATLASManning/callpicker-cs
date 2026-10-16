@@ -343,9 +343,10 @@ export const ASESOR_CONFIG: Record<Asesor, {
   'Fátima':  { color: '#A855F7', initial: 'F', fullName: 'Fátima González',   ext: '457', email: 'fatima@callpicker.com' },
   'Dan':     { color: '#0EA5E9', initial: 'D', fullName: 'Dan Domínguez',     ext: '450', email: 'dominguez.dan@callpicker.com' },
   /* Erick Sánchez sustituye a Claudia Hernández — 15 oct 2026. Su cartera, las
-     71 cuentas, ya está a su nombre en `cuentas.asesor`. El correo lo da
-     dirección el lunes; hasta entonces queda vacío y NO se inventa. */
-  'Erick':   { color: '#1D6CAA', initial: 'E', fullName: 'Erick Sánchez',     ext: '—',   email: '' },
+     71 cuentas, ya está a su nombre en `cuentas.asesor`. Correo dado por
+     dirección el 16 oct 2026. La EXTENSIÓN sigue sin darse: queda en «—» y no
+     se hereda la 452 de Claudia — un número de teléfono equivocado se marca. */
+  'Erick':   { color: '#1D6CAA', initial: 'E', fullName: 'Erick Sánchez',     ext: '—',   email: 'erick@callpicker.com' },
   /* Claudia se queda en el mapa, sin cartera. Su nombre sigue escrito en el
      histórico —episodios de alerta abiertos a su nombre, tickets que atendió,
      expedientes que la citan— y ese histórico se muestra: si la quitamos de

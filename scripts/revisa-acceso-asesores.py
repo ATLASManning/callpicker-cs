@@ -31,10 +31,21 @@ import urllib.request
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# CADA UNO CON LO QUE SE ESPERA DE EL, no «todos bloqueados».
+#
+# Este script nacio durante la suspension del 6 oct 2026 y su lectura final
+# exigia que los TRES estuvieran fuera. Dirección les devolvio el acceso el 12
+# oct, y desde entonces el script cerraba SIEMPRE con «*** El bloqueo NO esta
+# completo» sobre un estado correcto. Un detector que grita cuando no pasa nada
+# deja de leerse, y el dia que pase algo tampoco se leera.
+# [[feedback-verificar-antes-asegurar]]
 ASESORES = [
-    (u'Fátima',  'fatima@callpicker.com'),
-    (u'Claudia', 'claudia@callpicker.com'),
-    (u'Dan',     'dominguez.dan@callpicker.com'),
+    (u'Fátima',  'fatima@callpicker.com',         u'dentro'),
+    (u'Dan',     'dominguez.dan@callpicker.com',  u'dentro'),
+    # Erick Sánchez sustituye a Claudia — alta del 16 oct 2026, cartera de 71.
+    (u'Erick',   'erick@callpicker.com',          u'dentro'),
+    # Claudia, fuera el 15 oct 2026 por instrucción de dirección.
+    (u'Claudia', 'claudia@callpicker.com',        u'fuera'),
 ]
 
 
@@ -67,7 +78,7 @@ for linea in bloque.split('\n'):
 
 print(u'\n  PUERTA 1 · lib/auth.ts (se evalua en CADA request)')
 print(u'      %d correo(s) autorizados en total' % len(activos))
-for nombre, correo in ASESORES:
+for nombre, correo, _esperado in ASESORES:
     tiene = correo.lower() in activos
     print(u'      %-9s %-30s %s' % (nombre, correo,
           u'*** AUTORIZADO' if tiene else u'bloqueado (linea comentada)'))
@@ -77,7 +88,7 @@ local = env('EMAILS_AUTORIZADOS')
 print(u'\n  LA ESCOTILLA · variable EMAILS_AUTORIZADOS')
 if local:
     print(u'      *** DEFINIDA en .env.local: SUSTITUYE a la lista de arriba.')
-    for nombre, correo in ASESORES:
+    for nombre, correo, _esperado in ASESORES:
         if correo.lower() in local.lower():
             print(u'      *** %s SI esta en la variable: la lista del codigo NO manda' % nombre)
 else:
@@ -107,18 +118,30 @@ def trae(tabla, select, extra=u''):
 
 
 print(u'\n  PUERTA 2 · usuarios.activo (solo se revisa en login/verify)')
+sin_cartera = []
 us = trae('usuarios', 'email,nombre,rol,activo,asesor_nombre')
 if us is None:
     print(u'      no se pudo leer')
 else:
     porCorreo = {str(u.get('email', '')).lower(): u for u in us}
-    for nombre, correo in ASESORES:
+    for nombre, correo, _esperado in ASESORES:
         u2 = porCorreo.get(correo.lower())
         if not u2:
             print(u'      %-9s sin fila en `usuarios`' % nombre)
         else:
-            print(u'      %-9s rol=%-8s activo=%-5s nombre=%s'
-                  % (nombre, u2.get('rol'), u2.get('activo'), u2.get('nombre')))
+            # LA COLUMNA QUE IMPORTA ES `asesor_nombre`, NO `nombre`.
+            # Esta linea imprimia `nombre` —la etiqueta que se ve en el
+            # tablero— y por eso no se notaba que Erick Sánchez entraba con la
+            # cartera SIN asignar: `asesor_nombre` en blanco y el candado de
+            # lib/dueno.ts, que falla cerrado, devolviendole 403 en sus propios
+            # datos. Se enseñan las dos, y la vacia se grita.
+            cart = u2.get('asesor_nombre')
+            aviso = u'' if cart else u'   *** SIN CARTERA: entrara y recibira 403'
+            print(u'      %-9s rol=%-8s activo=%-5s nombre=%-16s cartera=%s%s'
+                  % (nombre, u2.get('rol'), u2.get('activo'),
+                     u2.get('nombre'), cart or u'(vacia)', aviso))
+            if u2.get('rol') == 'asesor' and not cart:
+                sin_cartera.append(nombre)
     # «Ojo: hay DOS Dan» — se nombran todos los que contengan «dan».
     dans = [u2 for u2 in us if 'dan' in str(u2.get('email', '')).lower()
             or 'dan' in str(u2.get('nombre', '')).lower()]
@@ -136,7 +159,7 @@ if uso is None:
     print(u'      no se pudo leer')
 else:
     print(u'      %s registro(s) en total' % u'{:,}'.format(len(uso)))
-    for nombre, correo in ASESORES:
+    for nombre, correo, _esperado in ASESORES:
         suyos = [x for x in uso if str(x.get('email', '')).lower() == correo.lower()]
         if not suyos:
             print(u'      %-9s SIN NINGUN registro' % nombre)
@@ -146,11 +169,31 @@ else:
                   % (nombre, len(suyos), fechas[0], fechas[-1]))
 
 print(u'\n  ── LECTURA ───────────────────────────────────────────────────')
-bloqueados = [n for n, c in ASESORES if c.lower() not in activos]
-if len(bloqueados) == 3 and not local:
-    print(u'  Los tres estan BLOQUEADOS en la puerta que de verdad muerde.')
-    print(u'  Que no tengan registro de acceso HOY es lo esperado.')
-    print(u'  Para devolverselo: descomentar sus tres lineas en lib/auth.ts y')
-    print(u'  desplegar. Marcarlos activos en Gestion de Usuarios NO basta.')
-else:
-    print(u'  *** El bloqueo NO esta completo. Revisa lo marcado arriba.')
+print(u'  %-9s %-9s %-9s %s' % (u'asesor', u'esperado', u'real', u'veredicto'))
+fallos = []
+for nombre, correo, esperado in ASESORES:
+    real = u'dentro' if correo.lower() in activos else u'fuera'
+    ok = (real == esperado)
+    if not ok:
+        fallos.append(u'%s: se esperaba %s y esta %s' % (nombre, esperado, real))
+    print(u'  %-9s %-9s %-9s %s' % (nombre, esperado, real, u'ok' if ok else u'*** NO'))
+
+print()
+print(u'  Recordatorio de las DOS puertas: esta lectura es la PUERTA 1, la lista')
+print(u'  blanca de lib/auth.ts, que es la unica que muerde contra una cookie ya')
+print(u'  emitida. Marcar a alguien Activo en Gestion de Usuarios no le da')
+print(u'  acceso, y marcarlo inactivo no se lo quita.')
+print(u'  Y HAY UNA TERCERA: `usuarios.asesor_nombre`. El candado de lib/dueno.ts')
+print(u'  falla CERRADO, asi que un rol `asesor` con esa columna vacia ENTRA al')
+print(u'  tablero y recibe 403 en sus propios datos — se ve «dentro» en las dos')
+print(u'  puertas y no puede trabajar. Se comprueba arriba, en `cartera=`.')
+
+for n in sin_cartera:
+    fallos.append(u'%s: rol asesor con `usuarios.asesor_nombre` VACIA — entra y recibe 403' % n)
+
+if fallos:
+    print()
+    print(u'  *** %d DIFERENCIA(S) con lo esperado:' % len(fallos))
+    for f in fallos:
+        print(u'      - %s' % f)
+    raise SystemExit(1)

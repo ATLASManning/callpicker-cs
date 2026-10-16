@@ -114,6 +114,24 @@ export default function AdminUsuariosPage() {
     setUsuarios(prev => prev.map(x => x.id === u.id ? { ...x, rol } : x))
   }
 
+  /**
+   * LA CARTERA DE UN ASESOR SE PODÍA FIJAR AL CREARLO Y NUNCA MÁS.
+   *
+   * La columna ASESOR era texto plano: si el usuario se daba de alta sin
+   * elegir asesor —o si cambiaba de cartera— no había forma de corregirlo
+   * desde aquí. Y eso no es un detalle cosmético: el candado de `lib/dueno.ts`
+   * falla CERRADO, así que un rol `asesor` con este campo vacío entra al
+   * tablero y recibe 403 en sus propios datos. Pasó con Erick Sánchez el 16
+   * oct 2026, registrado con la columna en «—».
+   */
+  async function changeAsesor(u: Usuario, asesor_nombre: string) {
+    await fetch('/api/admin/usuarios', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: u.id, asesor_nombre: asesor_nombre || null }),
+    })
+    setUsuarios(prev => prev.map(x => x.id === u.id ? { ...x, asesor_nombre: asesor_nombre || null } : x))
+  }
+
   async function deleteUser(id: string) {
     if (!confirm('¿Eliminar este usuario?')) return
     await fetch('/api/admin/usuarios', {
@@ -229,7 +247,14 @@ export default function AdminUsuariosPage() {
                             { value: 'perfilamiento', label: 'Perfilamiento' },
                           ]} />
                       </td>
-                      <td className="py-3 px-4 text-xs text-gray-500">{u.asesor_nombre ?? '—'}</td>
+                      <td className="py-3 px-4 text-xs text-gray-500">
+                        {u.rol === 'asesor'
+                          ? <CustomSelect value={u.asesor_nombre ?? ''} onChange={v => changeAsesor(u, v)}
+                              className="cp-select"
+                              options={[{ value: '', label: 'Sin cartera' },
+                                        ...ASESORES.map(a => ({ value: a, label: a }))]} />
+                          : '—'}
+                      </td>
                       <td className="py-3 px-4">
                         <button onClick={() => toggleActivo(u)}
                           className="flex items-center gap-1.5 text-[11px] font-semibold transition-colors"
