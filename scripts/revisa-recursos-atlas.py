@@ -79,6 +79,27 @@ def main():
     if not dids:
         fallos.append(u'dids')
 
+    # ── EL DOCUMENTO MARCO, QUE ES OTRO RECURSO Y FALLABA IGUAL ────────────
+    #
+    # Direccion pregunto DOS VECES por «el mensaje de la direccion» y las dos
+    # veces Atlas recito los siete principios sin decir de donde salian ni dar
+    # el enlace. El resumen del marco SI estaba en su contexto --por eso los
+    # sabia-- y SI nombra su ruta; lo que faltaba era la instruccion de
+    # ofrecerlo. Tenerlo no es darlo, igual que con los 31 recursos de la Base.
+    marco = os.path.join(RAIZ, 'lib', 'marco-atlas.ts')
+    tiene_ruta = False
+    if os.path.exists(marco):
+        tiene_ruta = 'MARCO_RUTA' in io.open(marco, encoding='utf-8').read()
+    manda_citar = 'EL DOCUMENTO MARCO SE CITA' in ruta
+    print(u'  %-34s %s' % (u'el marco nombra su ruta',
+                           u'si' if tiene_ruta else u'*** NO'))
+    print(u'  %-34s %s' % (u'el prompt manda citarlo y enlazarlo',
+                           u'si' if manda_citar else u'*** NO: recitaria sin fuente'))
+    if not tiene_ruta:
+        fallos.append(u'marco-ruta')
+    if not manda_citar:
+        fallos.append(u'marco-conducta')
+
     print(u'')
     print(u'  ' + u'=' * 70)
     if fallos:
