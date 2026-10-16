@@ -9,6 +9,8 @@ import { DashFiltrosProvider } from '@/lib/dash-filtros'
 import * as TEMA from '@/lib/chart-theme'
 import TopRiesgoTable from '@/components/TopRiesgoTable'
 import AutoRefresh from '@/components/AutoRefresh'
+import GloboNuevosSinAsesor from '@/components/GloboNuevosSinAsesor'
+import { nuevosSinAsesor } from '@/lib/nuevos-sin-asesor'
 import DashAlertasGraficas, { GraficasCargando } from '@/components/DashAlertasGraficas'
 import SoloEnCliente from '@/components/charts/SoloEnCliente'
 import TopCuentasVersatil, { type CuentaRank } from '@/components/TopCuentasVersatil'
@@ -183,6 +185,12 @@ export default async function DashboardPage() {
     .catch((e: unknown) => proyectaTablero([], (e as Error)?.message
       ?? 'el motor de veredictos no respondió', alcance))
 
+  /* Los clientes grandes sin asesor. Se lanza AQUÍ, sin `await`, para que se
+     resuelva mientras el resto de la portada se arma: lee dos archivos de
+     datos y la cartera entera, y encadenarlo sumaría su tiempo al de todo lo
+     demás. Se espera abajo, en el punto donde se pinta. */
+  const huerfanos = nuevosSinAsesor()
+
   async function Graficas() {
     return (
     <SoloEnCliente reserva={<GraficasCargando />}>
@@ -307,6 +315,15 @@ export default async function DashboardPage() {
           </div>
         }
       />
+
+      {/* ── CLIENTES GRANDES QUE NADIE ATIENDE ───────────────────────────
+          Encargo de dirección, 16 oct 2026. Va lo PRIMERO bajo la cabecera y
+          por encima de los avisos de ficha: aquéllos dicen que falta un dato,
+          éste dice que falta una persona. Y no se pinta cuando no hay nadie —
+          un aviso permanente deja de ser un aviso. */}
+      <div className="mx-6">
+        <GloboNuevosSinAsesor d={await huerfanos} />
+      </div>
 
       {/* ── Banners fichas pendientes ────────────────────────────────────── */}
       {(kpis.faltaTC > 0 || kpis.faltaHS > 0) && (
