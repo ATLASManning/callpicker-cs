@@ -45,6 +45,7 @@ import {
 } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
+import { TX_TENUE } from '@/lib/contraste'
 
 /* Paleta sobre FONDO OSCURO. La regla es fondo oscuro -> letra clara, y al
  * reves: por eso aqui van los tonos CLAROS de cada color (#F87171 y no
@@ -67,8 +68,13 @@ const NEUTRO = '#A8BACB'
 const MARINO = '#122E5E', MARINO_TENUE = '#3A5085'
 const TXT_HI = 'rgba(255,255,255,0.92)'
 const TXT_MID = 'rgba(255,255,255,0.72)'
-/** El mas tenue que se admite sobre #0D1829. Nada por debajo lleva texto. */
-const TENUE = 'rgba(255,255,255,0.48)'
+/** El texto mas tenue que se admite. Nada por debajo lleva texto.
+ *
+ *  Era un 0.48 escrito a mano "sobre #0D1829", y ese fondo ya no es el de
+ *  todos los paneles de esta pantalla: las `.cp-card` pasaron a #082742 con la
+ *  paleta del 13 oct, y la cabecera sticky de la tabla es #16233A. Pasa al
+ *  token compartido, que se mide contra el peor de los tres. */
+const TENUE = TX_TENUE
 const FONDO_TENUE = 'rgba(255,255,255,0.04)'
 
 /**

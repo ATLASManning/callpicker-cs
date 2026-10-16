@@ -25,6 +25,7 @@ const IC   = '#FFFFFF'
 
 // ── Definición de nav ─────────────────────────────────────────────────────────
 import { puedeVerModulo, definicionRol } from '@/lib/permisos'
+import { TX_TENUE } from '@/lib/contraste'
 
 type NavItem   = { href: string; label: string; icon: React.ElementType }
 type NavGroup  = { group: string; icon: React.ElementType; children: NavItem[] }
@@ -229,7 +230,7 @@ function NavGroupItem({ group, icon: Icon, children }: NavGroup) {
         <ChevronDown
           size={13}
           style={{
-            color: 'rgba(255,255,255,0.50)',
+            color: TX_TENUE,
             transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 200ms',
             marginLeft: 4,

@@ -9,7 +9,7 @@ import PageHeader from '@/components/PageHeader'
 import StatCard from '@/components/StatCard'
 import DiagnosticoSacUx from './DiagnosticoSacUx'
 import { CHAT_CLIENTES, CHAT_RESUMEN, type SemaforoChat, type ChatCliente, type ChatInbox } from './chat-data'
-import { tonoSobreFondo } from '@/lib/contraste'
+import { TX_TENUE, tonoSobreFondo } from '@/lib/contraste'
 
 /* ── Semáforo de salud de uso ───────────────────────────────────────────────
    No replica `uso_rango` de la hoja de origen: ese campo divide mensajes entre
@@ -229,7 +229,7 @@ export default function CallpickerChatPage() {
               )
             })}
           </div>
-          <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <p className="text-[11px] mt-3 leading-relaxed" style={{ color: TX_TENUE }}>
             {filtro ? SEMAFORO[filtro].desc : 'Pasa el cursor sobre cada estado para ver su regla, o haz clic para filtrar la tabla.'}
           </p>
         </div>
@@ -282,7 +282,7 @@ export default function CallpickerChatPage() {
                 {filtrados.length === 0 && (
                   <tr>
                     <td colSpan={11} className="px-3 py-10 text-center text-sm"
-                      style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      style={{ color: TX_TENUE }}>
                       Ningún cliente coincide con el filtro.
                     </td>
                   </tr>
@@ -513,7 +513,7 @@ function Detalle({ c }: { c: ChatCliente }) {
       {c.inboxes.length > 0 && <TablaInboxes inboxes={c.inboxes} />}
 
       {c.inboxes.length === 0 && (
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <p className="text-xs" style={{ color: TX_TENUE }}>
           El origen no trae desglose de bandejas para este corte
           {c.inboxesRelleno > 0 && ' — la medición se hizo por respaldo de cuenta, no bandeja por bandeja'}.
         </p>
@@ -572,7 +572,7 @@ function TablaInboxes({ inboxes }: { inboxes: ChatInbox[] }) {
                   <td className="px-3 py-2 text-center" style={{ color: i.mensajes > 0 ? '#fff' : 'rgba(255,255,255,0.6)' }}>
                     {i.nombre}
                   </td>
-                  <td className="px-3 py-2 text-center font-mono text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  <td className="px-3 py-2 text-center font-mono text-[10px]" style={{ color: TX_TENUE }}>
                     {i.id ?? '—'}
                   </td>
                   <td className="px-3 py-2 text-center whitespace-nowrap">
@@ -600,7 +600,7 @@ function TablaInboxes({ inboxes }: { inboxes: ChatInbox[] }) {
                           style={{ background: 'rgba(249,115,22,0.18)', color: '#F97316' }}>No</span>}
                   </td>
                   <td className="px-3 py-2 text-center" style={{ color: 'rgba(255,255,255,0.75)' }}>{n(i.conversaciones)}</td>
-                  <td className="px-3 py-2 text-center font-semibold" style={{ color: i.mensajes > 0 ? '#fff' : 'rgba(255,255,255,0.35)' }}>
+                  <td className="px-3 py-2 text-center font-semibold" style={{ color: i.mensajes > 0 ? '#fff' : TX_TENUE }}>
                     {n(i.mensajes)}
                   </td>
                   <td className="px-3 py-2 text-center" style={{ color: 'rgba(255,255,255,0.6)' }}>
@@ -638,13 +638,13 @@ function TablaInboxes({ inboxes }: { inboxes: ChatInbox[] }) {
       )}
 
       {sinTipo > 0 && (
-        <p className="text-[11px] mt-2 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <p className="text-[11px] mt-2 leading-relaxed" style={{ color: TX_TENUE }}>
           {sinTipo} de {inboxes.length} bandejas no traen tipo en la hoja de origen (campo <code style={{ color: '#93C5FD' }}>inbox_type</code> vacío).
           No se infiere aquí: se muestra lo que publica la fuente.
         </p>
       )}
       {ociosas.length > 0 && (
-        <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <p className="text-[11px] mt-1" style={{ color: TX_TENUE }}>
           Las contratadas sin uso son capacidad pagada ociosa — candidatas a activación o a ajuste de plan.
         </p>
       )}
@@ -655,7 +655,7 @@ function TablaInboxes({ inboxes }: { inboxes: ChatInbox[] }) {
 function Dato({ label, valor }: { label: string; valor: string }) {
   return (
     <div className="rounded-lg py-1.5" style={{ background: 'rgba(255,255,255,0.05)' }}>
-      <p className="text-[9px] uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</p>
+      <p className="text-[9px] uppercase tracking-wide" style={{ color: TX_TENUE }}>{label}</p>
       <p className="text-sm font-bold" style={{ color: '#fff' }}>{valor}</p>
     </div>
   )

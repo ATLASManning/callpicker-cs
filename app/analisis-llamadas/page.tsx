@@ -19,7 +19,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { PhoneIncoming, PhoneOutgoing, RefreshCw, AlertTriangle, Users, Clock } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
-import { tonoSobreFondo } from '@/lib/contraste'
+import { TX_TENUE, tonoSobreFondo } from '@/lib/contraste'
 
 /* ── Tipos ─────────────────────────────────────────────────────────────── */
 interface Meta {
@@ -72,7 +72,7 @@ const fechaCorta = (iso: string) => {
 
 const DC: React.CSSProperties = { background: '#0D1829', borderRadius: 14, padding: 18, border: '1px solid rgba(255,255,255,0.08)' }
 const DT: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3 }
-const DS: React.CSSProperties = { fontSize: 11, color: 'rgba(255,255,255,0.45)', marginBottom: 14 }
+const DS: React.CSSProperties = { fontSize: 11, color: TX_TENUE, marginBottom: 14 }
 
 export default function AnalisisLlamadas() {
   const [filtros, setFiltros] = useState<{ meta: Meta; cuentas: FilaCuenta[]; asesores: string[]; meses: string[] } | null>(null)
@@ -401,7 +401,7 @@ function Kpi({ label, valor, sub, color, icon: Icon }: {
   return (
     <div style={{ ...DC, padding: 14 }}>
       <Icon size={13} style={{ color, marginBottom: 6 }} />
-      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 3 }}>{label}</p>
+      <p style={{ fontSize: 10, color: TX_TENUE, marginBottom: 3 }}>{label}</p>
       <p style={{ fontSize: 20, fontWeight: 800, color, lineHeight: 1 }}>{valor}</p>
       <p style={{ fontSize: 9, color: '#667384', marginTop: 4 }}>{sub}</p>
     </div>
@@ -435,7 +435,7 @@ function SerieMensual({ serie, esEnt, corte }: { serie: Serie[]; esEnt: boolean;
           return (
             <g key={i}>
               <line x1={PL} y1={y} x2={W - PR} y2={y} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-              <text x={PL - 7} y={y + 3} textAnchor="end" fontSize="9" fill="rgba(255,255,255,0.45)">
+              <text x={PL - 7} y={y + 3} textAnchor="end" fontSize="9" fill={TX_TENUE}>
                 {(max * i / 3) >= 1000 ? `${Math.round(max * i / 3 / 1000)}k` : Math.round(max * i / 3)}
               </text>
             </g>
@@ -466,7 +466,7 @@ function SerieMensual({ serie, esEnt, corte }: { serie: Serie[]; esEnt: boolean;
                   {esEnt ? `${Math.round(s.pct)}%` : `${Math.round(100 - s.pct)}%`}
                 </text>
               )}
-              <text x={x + bar / 2} y={H - 9} textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.45)">
+              <text x={x + bar / 2} y={H - 9} textAnchor="middle" fontSize="9" fill={TX_TENUE}>
                 {mesLabel(s.mes).split(' ')[0]}{parcial ? ' ·p' : ''}
               </text>
             </g>
@@ -565,7 +565,7 @@ function SerieDiaria({ dia }: { dia: { f: string; t: number; l: number }[] }) {
         )
       })}
       {dia.length > 0 && [0, Math.floor(dia.length / 2), dia.length - 1].map((i, k) => (
-        <text key={k} x={Math.min(Math.max(i * bw, 26), W - 26)} y={H - 2} textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.42)">
+        <text key={k} x={Math.min(Math.max(i * bw, 26), W - 26)} y={H - 2} textAnchor="middle" fontSize="9" fill={TX_TENUE}>
           {fechaCorta(dia[i].f)}
         </text>
       ))}

@@ -6,6 +6,7 @@ import {
   CheckCircle, Columns, ArrowUp, ArrowDown, ArrowUpDown, HelpCircle,
 } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
+import { TX_TENUE } from '@/lib/contraste'
 
 /* ── Tipos */
 interface Stats {
@@ -160,7 +161,7 @@ function VBarChart({ entries, height = 160, fmtVal = (n: number) => n.toLocaleSt
               boxShadow: `0 4px 18px ${e.color}45`,
               transition: 'height 0.5s cubic-bezier(.34,1.56,.64,1)',
             }} title={`${e.label}: ${fmtVal(e.value)}`} />
-            <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.45)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', display: 'block' }}>
+            <span style={{ fontSize: 8, color: TX_TENUE, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', display: 'block' }}>
               {e.label.length > 13 ? e.label.slice(0, 12) + '…' : e.label}
             </span>
             {e.sub && <span style={{ fontSize: 7, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>{e.sub}</span>}
@@ -187,7 +188,7 @@ function KpiCard({ icon: Icon, label, value, sub, color, alert }: {
       <div>
         <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>{label}</p>
         <p style={{ fontSize: 22, fontWeight: 800, color: alert ? '#F87171' : '#fff', lineHeight: 1 }}>{value}</p>
-        {sub && <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 4 }}>{sub}</p>}
+        {sub && <p style={{ fontSize: 11, color: TX_TENUE, marginTop: 4 }}>{sub}</p>}
       </div>
     </div>
   )
@@ -357,7 +358,7 @@ export default function InformeCortesPage() {
   /* ── Shortcuts de estilo dark-card */
   const DC = { background: '#0D1829', borderRadius: 14, padding: 20, border: '1px solid rgba(255,255,255,0.08)' }
   const DT = { fontSize: 13, fontWeight: 700, color: '#fff',                    marginBottom: 4  }
-  const DS = { fontSize: 11, color: 'rgba(255,255,255,0.45)',                   marginBottom: 16 }
+  const DS = { fontSize: 11, color: TX_TENUE,                   marginBottom: 16 }
 
   return (
     <div style={{ padding: '28px 32px', background: '#F5F8FB', minHeight: '100vh' }}>
@@ -380,8 +381,8 @@ export default function InformeCortesPage() {
       {/* ── Filtros */}
       <div className="cp-card" style={{ borderRadius: 14, padding: '14px 18px', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <Filter size={13} style={{ color: 'rgba(255,255,255,0.45)' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Filtros</span>
+          <Filter size={13} style={{ color: TX_TENUE }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: TX_TENUE, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Filtros</span>
           {(filtFecha || filtPlan || filtClas || filtUso) && (
             <button onClick={resetFiltros}
               style={{ marginLeft: 'auto', fontSize: 11, color: '#ef4444', background: '#fef2f2', border: '1px solid #fecaca', padding: '3px 10px', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>
@@ -396,7 +397,7 @@ export default function InformeCortesPage() {
           <FiltroSelect label="USO PRINCIPAL" value={filtUso}   options={filtros.usos}   onChange={v => { setFiltUso(v);   setPage(1) }} placeholder="Todos los usos" />
         </div>
         {filtFecha && (
-          <p style={{ marginTop: 10, fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+          <p style={{ marginTop: 10, fontSize: 12, color: TX_TENUE }}>
             Mostrando: <strong style={{ color: '#10355D' }}>{fmtMes(filtFecha)}</strong>
             {filtClas && <> · <strong>{filtClas}</strong></>}
             {filtPlan && <> · <strong>{filtPlan.length > 35 ? filtPlan.slice(0, 35) + '…' : filtPlan}</strong></>}
@@ -515,7 +516,7 @@ export default function InformeCortesPage() {
                 </div>
               )}
             </div>
-            {list && <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>{list.total.toLocaleString('es-MX')} registros</span>}
+            {list && <span style={{ fontSize: 12, color: TX_TENUE, whiteSpace: 'nowrap' }}>{list.total.toLocaleString('es-MX')} registros</span>}
           </div>
 
           {loadingList ? (
@@ -557,7 +558,7 @@ export default function InformeCortesPage() {
                       {colOrder.filter(k => visibleCols.has(k)).map(k => {
                         if (k === 'cid')          return <td key={k} style={{ padding: '8px 10px', color: '#A8BACB', fontWeight: 600, fontSize: 11 }}>{r.cid}</td>
                         if (k === 'cliente')       return <td key={k} style={{ padding: '8px 10px', fontWeight: 600, color: '#fff', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.cliente}</td>
-                        if (k === 'periodo')       return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap', fontSize: 11 }}>{r.periodo}</td>
+                        if (k === 'periodo')       return <td key={k} style={{ padding: '8px 10px', color: TX_TENUE, whiteSpace: 'nowrap', fontSize: 11 }}>{r.periodo}</td>
                         if (k === 'plan')          return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
                         if (k === 'minutosIncl')   return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', textAlign: 'right' }}>{r.minutosIncl.toLocaleString()}</td>
                         if (k === 'minutosConsum') return <td key={k} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#082742' }}>{r.minutosConsum.toLocaleString()}</td>
@@ -588,7 +589,7 @@ export default function InformeCortesPage() {
 
           {list && totalPages > 1 && (
             <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>Página {page} de {totalPages}</span>
+              <span style={{ fontSize: 12, color: TX_TENUE }}>Página {page} de {totalPages}</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: page === 1 ? 'not-allowed' : 'pointer', opacity: page === 1 ? 0.4 : 1 }}><ChevronLeft size={13} /></button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
@@ -731,7 +732,10 @@ export default function InformeCortesPage() {
                         border: v.parcial ? '1px dashed rgba(251,191,36,0.7)' : undefined,
                         boxShadow: isLast ? '0 4px 18px rgba(96,165,250,0.45)' : undefined,
                       }} title={tip} />
-                      <span style={{ fontSize: 8, color: v.parcial ? '#FBBF24' : 'rgba(255,255,255,0.38)', textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtMes(mes)}</span>
+                      {/* `background` salva el ambar de «parcial»: sin el, la
+                          regla de .cp-card lo pinta blanco y el mes incompleto
+                          se ve igual que uno cerrado. */}
+                      <span style={{ background: 'transparent', fontSize: 8, color: v.parcial ? '#FBBF24' : TX_TENUE, textAlign: 'center', whiteSpace: 'nowrap' }}>{fmtMes(mes)}</span>
                       {/* Blanco al 22% sobre la isla oscura son 2.01:1, y a
                           7px el ojo necesita MÁS contraste, no menos. El piso
                           documentado del proyecto es 0.48; aquí se sube a 0.6
@@ -784,7 +788,7 @@ export default function InformeCortesPage() {
                       }} title={v.parcial
                         ? `${fmtMes(mes)}: ${avgC.toFixed(1)}% · solo ${v.count} cortes, del ${v.desde?.slice(8)} al ${v.hasta?.slice(8)}`
                         : `${fmtMes(mes)}: ${avgC.toFixed(1)}%`} />
-                      <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.38)', whiteSpace: 'nowrap' }}>{fmtMes(mes)}</span>
+                      <span style={{ fontSize: 8, color: TX_TENUE, whiteSpace: 'nowrap' }}>{fmtMes(mes)}</span>
                     </div>
                   )
                 })}
@@ -810,7 +814,7 @@ export default function InformeCortesPage() {
                   </p>
                   {/* Decir sobre qué meses se calculó evita la pregunta obvia y,
                       sobre todo, deja ver que el mes a medias quedó fuera. */}
-                  <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                  <p style={{ fontSize: 10, color: TX_TENUE, marginTop: 2 }}>
                     Sobre {forecast.base.map(fmtMes).join(', ')}
                     {mesesParciales.length > 0 && ` · ${mesesParciales.map(fmtMes).join(' y ')} queda fuera por estar a medias`}
                   </p>
@@ -830,7 +834,7 @@ export default function InformeCortesPage() {
               </div>
               {/* Blanco al 22% sobre la isla oscura son 2.01:1. El piso
                   documentado del proyecto es 0.48, que da 4.91:1. */}
-              <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.48)', marginTop: 16 }}>
+              <p style={{ fontSize: 11, color: TX_TENUE, marginTop: 16 }}>
                 * Basado en promedio de los últimos {Math.min(mesTendencia.length, 3)} meses. No considera estacionalidad ni eventos especiales.
               </p>
             </div>

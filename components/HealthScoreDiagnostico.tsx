@@ -7,6 +7,7 @@ import type { Cuenta, Seguimiento } from '@/lib/types'
 import type { TicketRow } from '@/lib/cuenta-data'
 import HealthScoreRing from './HealthScoreRing'
 import { pesoMedido, textoPesoMedido } from '@/lib/health-score'
+import { TX_TENUE } from '@/lib/contraste'
 
 // ── Paleta de colores ─────────────────────────────────────────────────────────
 // Verde/Azul = sano · Naranja→Rojo intenso = riesgo gradiente según %
@@ -407,7 +408,7 @@ export default function HealthScoreDiagnostico({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <HealthScoreRing score={hs} size={84} strokeWidth={8} estado={cuenta.estado} />
             {isPartial && (
-              <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.35)', textAlign: 'center', lineHeight: 1.3 }}>
+              <span style={{ fontSize: 9, color: TX_TENUE, textAlign: 'center', lineHeight: 1.3 }}>
                 Parcial<br />({avail.length}/{dims.length})
               </span>
             )}
@@ -427,8 +428,12 @@ export default function HealthScoreDiagnostico({
                 <span
                   title={textoPesoMedido(pm)}
                   style={{
+                    /* `background` salva el ambar de «flojo»: sin el, la regla
+                       de .cp-card lo pinta blanco y el peso mal medido se ve
+                       igual que uno sano. */
+                    background: 'transparent',
                     fontSize: 9, lineHeight: 1.3, textAlign: 'center',
-                    color: flojo ? '#FBBF24' : 'rgba(255,255,255,0.45)',
+                    color: flojo ? '#FBBF24' : TX_TENUE,
                     fontWeight: flojo ? 700 : 500,
                   }}>
                   Medido al {pct}%
@@ -524,7 +529,7 @@ export default function HealthScoreDiagnostico({
                 <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: '#F87171', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                   Actividad SAC Requerida
                 </p>
-                <p style={{ margin: 0, fontSize: 10, color: 'rgba(255,255,255,0.45)', lineHeight: 1.2 }}>
+                <p style={{ margin: 0, fontSize: 10, color: TX_TENUE, lineHeight: 1.2 }}>
                   Información faltante para diagnóstico completo
                 </p>
               </div>

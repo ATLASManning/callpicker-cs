@@ -4,6 +4,7 @@ import {
   Radar, Lock, Check, Loader2, Copy, Database, ClipboardList, X, Save,
 } from 'lucide-react'
 import { PREGUNTAS_RADAR, type RadarCuenta as RadarData, type NivelRadar } from '@/lib/radar'
+import { TX_TENUE } from '@/lib/contraste'
 
 const SQL_TABLA = `CREATE TABLE IF NOT EXISTS radar_respuestas (
   id          bigserial   PRIMARY KEY,
@@ -115,7 +116,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
         <Radar size={13} className="text-textMid" />
         <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Radar de Cuenta</h3>
       </div>
-      <div className="flex items-center justify-center py-8 gap-2 text-xs" style={{ color: 'rgba(255,255,255,.45)' }}>
+      <div className="flex items-center justify-center py-8 gap-2 text-xs" style={{ color: TX_TENUE }}>
         <Loader2 size={14} className="animate-spin" /> Evaluando indicadores…
       </div>
     </div>
@@ -127,7 +128,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
         <Radar size={13} className="text-textMid" />
         <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Radar de Cuenta</h3>
       </div>
-      <p className="text-[11px]" style={{ color: 'rgba(255,255,255,.45)' }}>{error ?? 'Sin datos disponibles'}</p>
+      <p className="text-[11px]" style={{ color: TX_TENUE }}>{error ?? 'Sin datos disponibles'}</p>
     </div>
   )
 
@@ -151,7 +152,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
           ATLAS · automático
         </span>
         <span className="inline-flex items-center gap-1 text-[9px] font-mono px-2 py-[3px] rounded-full"
-          style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.40)', border: '1px solid rgba(255,255,255,.10)' }}>
+          style={{ background: 'rgba(255,255,255,.06)', color: TX_TENUE, border: '1px solid rgba(255,255,255,.10)' }}>
           <Lock size={8} /> no editable
         </span>
       </div>
@@ -177,7 +178,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
       {radar.serie.length > 0 && (
         <div>
           <div className="flex justify-between items-baseline mb-1 flex-wrap gap-2">
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,.40)' }}>
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: TX_TENUE }}>
               Consumo mensual · minutos
             </span>
             <span className="text-[11px] font-mono" style={{ color: 'rgba(255,255,255,.55)' }}>
@@ -196,7 +197,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
                     : 'linear-gradient(180deg,#5B8DEF,rgba(91,141,239,.35))',
                 }}>
                   <span className="absolute left-1/2 -translate-x-1/2 font-mono whitespace-nowrap"
-                    style={{ bottom: -18, fontSize: 8.5, color: 'rgba(255,255,255,.40)' }}>
+                    style={{ bottom: -18, fontSize: 8.5, color: TX_TENUE }}>
                     {fmtMesCorto(s.mes)}
                   </span>
                 </div>
@@ -207,7 +208,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
             const u = radar.serie[radar.serie.length - 1]
             if (u.pctConsumo === null) return null
             return (
-              <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,.45)' }}>
+              <p className="text-[11px] mt-1" style={{ color: TX_TENUE }}>
                 Último corte: <strong style={{ color: u.pctConsumo < 40 ? '#FF3B4E' : '#fff' }}>
                 {u.pctConsumo.toFixed(1)}%</strong> del plan · {fmtN(u.minutosCons)} de {fmtN(u.ilimitado && u.extensiones ? u.extensiones * 1500 : u.minutosIncl)} min
                 {u.ilimitado && ' (estimados por extensión)'}
@@ -224,9 +225,9 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
             background: i.riesgo ? 'rgba(255,59,78,.11)' : 'rgba(255,255,255,.05)',
             border: `1px solid ${i.riesgo ? 'rgba(255,59,78,.35)' : 'rgba(255,255,255,.10)'}`,
           }}>
-            <span className="text-[9.5px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,.40)' }}>{i.label}</span>
+            <span className="text-[9.5px] uppercase tracking-wider" style={{ color: TX_TENUE }}>{i.label}</span>
             <span className="font-bold leading-tight" style={{ fontSize: 15, color: i.riesgo ? '#FF3B4E' : '#fff' }}>{i.valor}</span>
-            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,.40)' }}>{i.nota}</span>
+            <span className="text-[10px]" style={{ color: TX_TENUE }}>{i.nota}</span>
           </div>
         ))}
       </div>

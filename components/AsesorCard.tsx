@@ -18,6 +18,7 @@ import {
 import SemaforoBadge from '@/components/SemaforoBadge'
 import HealthScoreRing from '@/components/HealthScoreRing'
 import { fechaLocal } from '@/lib/fecha-local'
+import { TX_TENUE } from '@/lib/contraste'
 
 // ── Paleta azul marino (header) ───────────────────────────────────────────────
 const NAVY      = '#0A1628'
@@ -25,7 +26,7 @@ const NAVY_MID  = '#0F2040'
 const NAVY_LINE = 'rgba(255,255,255,0.10)'
 const TX_HI     = '#FFFFFF'
 const TX_MID    = 'rgba(255,255,255,0.70)'
-const TX_LOW    = 'rgba(255,255,255,0.45)'
+const TX_LOW    = TX_TENUE
 
 // ── Paleta clara (tabla expandida) ────────────────────────────────────────────
 const L_BG      = '#FFFFFF'

@@ -9,6 +9,7 @@ import {
 import type { SeguimientoConCuenta, OportunidadConCuenta, TicketConCuenta } from '@/lib/supabase'
 import type { Cuenta, SemaforoAsesor, Asesor, TipoSeguimiento } from '@/lib/types'
 import { ASESOR_CONFIG, configAsesor, SEMAFORO_CONFIG, getSemaforoCuenta, formatMXN } from '@/lib/types'
+import { TX_TENUE } from '@/lib/contraste'
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ const TIPO_SEG: Record<TipoSeguimiento, { label: string; color: string; Icon: Re
   email:    { label: 'Email',    color: '#1D6CAA', Icon: Mail },
   reunion:  { label: 'Reunión',  color: '#F97316', Icon: Users },
   ticket:   { label: 'Ticket',   color: '#EF4444', Icon: AlertCircle },
-  nota:     { label: 'Nota',     color: 'rgba(255,255,255,0.45)', Icon: FileText },
+  nota:     { label: 'Nota',     color: TX_TENUE, Icon: FileText },
   demo:     { label: 'Demo',     color: '#0EA5E9', Icon: Monitor },
   upsell:   { label: 'Upsell',   color: '#1D6CAA', Icon: TrendingUp },
 }
@@ -27,7 +28,7 @@ const PRIORIDAD: Record<string, { label: string; color: string }> = {
   critica: { label: 'Crítica', color: '#EF4444' },
   alta:    { label: 'Alta',    color: '#F97316' },
   normal:  { label: 'Normal',  color: '#EAB308' },
-  baja:    { label: 'Baja',    color: 'rgba(255,255,255,0.45)' },
+  baja:    { label: 'Baja',    color: TX_TENUE },
 }
 
 const ESTADO_OPP: Record<string, { label: string; color: string }> = {
@@ -35,7 +36,7 @@ const ESTADO_OPP: Record<string, { label: string; color: string }> = {
   en_proceso:   { label: 'En Proceso',   color: '#F97316' },
   ganada:       { label: 'Ganada',       color: '#22C55E' },
   perdida:      { label: 'Perdida',      color: '#EF4444' },
-  descartada:   { label: 'Descartada',   color: 'rgba(255,255,255,0.45)' },
+  descartada:   { label: 'Descartada',   color: TX_TENUE },
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

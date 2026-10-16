@@ -3,6 +3,7 @@ import {
   ETIQUETA_TEMA, COLOR_TEMA, etiquetaFormato, pesoLegible, TEMAS, type Anexo,
 } from '@/lib/anexos'
 import { textoFecha } from '@/lib/fecha-local'
+import { TX_TENUE } from '@/lib/contraste'
 
 /**
  * Documentos anexados a esta cuenta.
@@ -18,7 +19,7 @@ import { textoFecha } from '@/lib/fecha-local'
 
 const TXT_HI  = 'rgba(255,255,255,0.92)'
 const TXT_MID = 'rgba(255,255,255,0.72)'
-const TENUE   = 'rgba(255,255,255,0.45)'
+const TENUE   = TX_TENUE
 
 function C({ c, b, children }: { c: string; b?: boolean; children: React.ReactNode }) {
   return (

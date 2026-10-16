@@ -1,6 +1,7 @@
 import type { ReunionCuenta } from '@/lib/supabase'
 import type { Relacionamiento } from '@/lib/relacionamiento'
 import { esConElCliente, etiquetaTipo } from '@/lib/reuniones-tipo'
+import { TX_TENUE } from '@/lib/contraste'
 
 /**
  * Relacionamiento de la cuenta y las reuniones que lo sustentan.
@@ -20,7 +21,7 @@ import { esConElCliente, etiquetaTipo } from '@/lib/reuniones-tipo'
 
 const TXT_HI = 'rgba(255,255,255,0.92)'
 const TXT_MID = 'rgba(255,255,255,0.72)'
-const TENUE = 'rgba(255,255,255,0.45)'
+const TENUE = TX_TENUE
 
 /* Tonos CLAROS de cada color: sobre #0D1829 un verde oscuro no se lee. */
 const COLOR = {

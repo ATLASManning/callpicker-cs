@@ -1,6 +1,7 @@
 ﻿'use client'
 import { useEffect, useState } from 'react'
 import { BarChart2, Loader2, AlertTriangle, Zap, TrendingUp, ExternalLink } from 'lucide-react'
+import { TX_TENUE } from '@/lib/contraste'
 
 interface CorteRow {
   cid: string; cliente: string; fechaCorte: string; periodo: string
@@ -121,7 +122,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <BarChart2 size={13} className="text-textMid" />
-          <h3 style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+          <h3 style={{ fontSize: 11, fontWeight: 700, color: TX_TENUE, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
             Cortes de Facturación
           </h3>
           {/* `#10355D` es el azul de marca de la PÁGINA clara, y esta pastilla
@@ -234,7 +235,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
             ].map(({ icon: Icon, label, value, color, sub }) => (
               <div key={label} style={{ padding: '10px 12px', borderRadius: 10, background: color + '08', border: `1px solid ${color}18` }}>
                 <Icon size={11} style={{ color, marginBottom: 4 }} />
-                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>{label}</p>
+                <p style={{ fontSize: 10, color: TX_TENUE, marginBottom: 2 }}>{label}</p>
                 <p style={{ fontSize: 14, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
                 <p style={{ fontSize: 9, color: '#A8BACB', marginTop: 2 }}>{sub}</p>
               </div>
@@ -252,7 +253,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
           {/* Detalle de cortes individuales */}
           <button
             onClick={() => setOpenDetalle(v => !v)}
-            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openDetalle ? 8 : 4, padding: 0 }}>
+            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: TX_TENUE, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openDetalle ? 8 : 4, padding: 0 }}>
             {openDetalle ? '▴' : '▾'} Detalle de cortes ({filas.length} registros)
           </button>
 
@@ -280,12 +281,12 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                         onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                         <td style={{ padding: '5px 8px', color: 'rgba(255,255,255,0.75)', whiteSpace: 'nowrap' }}>{r.periodo}</td>
-                        <td style={{ padding: '5px 8px', color: 'rgba(255,255,255,0.45)', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
+                        <td style={{ padding: '5px 8px', color: TX_TENUE, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
                         <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtNum(r.minutosIncl)}</td>
                         <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtNum(r.minutosConsum)}</td>
                         {/* Sin base de minutos no hay porcentaje: se dice, no
                             se pinta un 0% en rojo que acusa un desuso falso. */}
-                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 800, color: r.medible ? pctColor(r.pctConsumo) : 'rgba(255,255,255,0.35)' }}
+                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 800, color: r.medible ? pctColor(r.pctConsumo) : TX_TENUE }}
                           title={r.medible ? undefined : 'El plan no incluye minutos de voz: no hay base contra la cual medir el consumo'}>
                           {r.medible ? `${r.pctConsumo.toFixed(1)}%` : 's/med.'}
                         </td>
@@ -311,7 +312,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
           {/* Historial de meses */}
           <button
             onClick={() => setOpenMes(v => !v)}
-            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openMes ? 8 : 0, padding: 0 }}>
+            style={{ width: '100%', textAlign: 'left', fontSize: 11, color: TX_TENUE, fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', marginBottom: openMes ? 8 : 0, padding: 0 }}>
             {openMes ? '▴' : '▾'} Historial por mes ({meses.length} periodos)
           </button>
 
@@ -332,9 +333,9 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                     return (
                       <tr key={mes} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                         <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtMes(mes)}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.45)' }}>{v.count}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', color: TX_TENUE }}>{v.count}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#10355D' }}>{fmt$(v.monto)}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: avg === null ? 'rgba(255,255,255,0.35)' : pctColor(avg) }}>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: avg === null ? TX_TENUE : pctColor(avg) }}>
                           {avg === null ? 's/med.' : `${avg.toFixed(1)}%`}
                         </td>
                       </tr>

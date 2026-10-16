@@ -7,6 +7,7 @@ import {
 import PageHeader from '@/components/PageHeader'
 import { ASESOR_CONFIG } from '@/lib/types'
 import { fechaLocal, hoyLocal } from '@/lib/fecha-local'
+import { TX_TENUE } from '@/lib/contraste'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 type Row = {
@@ -793,7 +794,7 @@ export default function UsoDashboardPage() {
                         <span className="text-[11px] font-bold"
                           style={{
                             color: !d.medible ? 'rgba(255,255,255,0.18)'
-                              : d.visitas === 0 ? 'rgba(255,255,255,0.35)' : '#fff',
+                              : d.visitas === 0 ? TX_TENUE : '#fff',
                             background: 'transparent',
                           }}>
                           {d.dia}

@@ -6,6 +6,7 @@ import { veredictosDeCartera, type CuentaConVeredicto } from '@/lib/alertas-esta
 import { SITUACION, LUZ, type Situacion, type ClaseHallazgo } from '@/lib/alertas-veredicto'
 import { hoyEnPalabras } from '@/lib/fecha-local'
 import { movimientoDeCartera, type Movimiento } from '@/lib/alertas-movimiento'
+import { TX_TENUE } from '@/lib/contraste'
 
 /**
  * /alertas — EL OBJETIVO DE TRABAJO DE SAC
@@ -58,7 +59,7 @@ const PANEL = '#0D1829'
 const BORDER = 'rgba(255,255,255,0.08)'
 const TX_HI = 'rgba(255,255,255,0.94)'
 const TX_MID = 'rgba(255,255,255,0.72)'
-const TX_LOW = 'rgba(255,255,255,0.48)'
+const TX_LOW = TX_TENUE
 
 /** A nivel de PÁGINA: fondo claro, letra oscura. */
 const PAG_HI  = '#122E5E'

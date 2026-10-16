@@ -11,6 +11,7 @@
 import Link from 'next/link'
 import { MessageCircle, AlertTriangle, TrendingUp, TrendingDown, ExternalLink } from 'lucide-react'
 import type { ChatDeCuenta } from '@/lib/chat-cuenta'
+import { TX_TENUE } from '@/lib/contraste'
 
 const SEMAFORO: Record<string, { label: string; color: string }> = {
   intenso:      { label: 'Uso intenso',  color: '#22C55E' },
@@ -47,7 +48,7 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
           </div>
           <div>
             <p className="text-sm font-bold" style={{ color: '#fff' }}>Callpicker Chat</p>
-            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            <p className="text-[11px]" style={{ color: TX_TENUE }}>
               Corte desde {chat.periodo}
             </p>
           </div>
@@ -70,7 +71,7 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
       {chat.planFacturado && (
         <div className="rounded-xl px-3.5 py-2.5 mb-2.5"
           style={{ background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.18)' }}>
-          <p className="text-[10px] mb-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>
+          <p className="text-[10px] mb-0.5" style={{ color: TX_TENUE }}>
             Plan que nombra la factura ({chat.mesFactura})
           </p>
           <p className="text-xs font-medium" style={{ color: '#fff' }}>
@@ -149,13 +150,13 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
                 {delta > 0 ? '+' : ''}{delta}
               </span>
             </div>
-            <p className="text-[10px] mb-1.5" style={{ color: 'rgba(255,255,255,0.42)' }}>
+            <p className="text-[10px] mb-1.5" style={{ color: TX_TENUE }}>
               80% del Health Score oficial + 20% del uso de chat ({chat.score}/100). El oficial no
               se modifica: se recompone encima. Una cuenta sin chat queda idéntica a hoy.
             </p>
           </>
         ) : (
-          <p className="text-[10px] mb-1.5" style={{ color: 'rgba(255,255,255,0.42)' }}>
+          <p className="text-[10px] mb-1.5" style={{ color: TX_TENUE }}>
             El Health Score se queda en <strong style={{ color: 'rgba(255,255,255,0.7)' }}>{chat.hsOficial}</strong>,
             sin ajuste por chat.
           </p>
@@ -190,7 +191,7 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
       )}
 
       <p className="text-[10px] mt-3 pt-3 flex items-center justify-between gap-2"
-        style={{ color: 'rgba(255,255,255,0.38)', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        style={{ color: TX_TENUE, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         <span>{chat.origen}.</span>
         <Link href="/callpicker-chat" className="flex items-center gap-1 flex-shrink-0 hover:underline"
           style={{ color: '#93C5FD' }}>
@@ -204,7 +205,7 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
 function Dato({ label, valor, alerta }: { label: string; valor: string; alerta?: string }) {
   return (
     <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
-      <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.42)' }}>{label}</p>
+      <p className="text-[10px]" style={{ color: TX_TENUE }}>{label}</p>
       <p className="text-sm font-bold" style={{ color: '#fff' }}>{valor}</p>
       {alerta && <p className="text-[9px] mt-0.5" style={{ color: '#FDBA74' }}>{alerta}</p>}
     </div>
@@ -214,7 +215,7 @@ function Dato({ label, valor, alerta }: { label: string; valor: string; alerta?:
 function Marcador({ label, valor, color }: { label: string; valor: number; color: string }) {
   return (
     <div>
-      <p className="text-[9px]" style={{ color: 'rgba(255,255,255,0.38)' }}>{label}</p>
+      <p className="text-[9px]" style={{ color: TX_TENUE }}>{label}</p>
       <p className="text-base font-bold leading-none" style={{ color }}>{valor}</p>
     </div>
   )

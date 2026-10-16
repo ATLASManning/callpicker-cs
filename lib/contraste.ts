@@ -20,6 +20,53 @@
  * su color —que es lo que comunica— y gana el contraste.
  */
 
+/**
+ * EL TEXTO TENUE DE LOS PANELES OSCUROS. Un solo valor, medido, compartido.
+ *
+ * ── EL PROBLEMA ────────────────────────────────────────────────────────────
+ * El texto secundario de los paneles oscuros se pintaba con un blanco
+ * translúcido escrito a mano en cada archivo: `rgba(255,255,255,0.45)` en unos
+ * veinte sitios, con hermanos en 0.35, 0.38, 0.40, 0.42, 0.48 y 0.50 según
+ * quién escribiera el panel. Medido el 9 oct 2026, **ninguno llegaba al 4.5:1
+ * de AA** sobre su propio fondo: el 0.45 daba entre 4.31 y 4.51:1 y el 0.40
+ * bajaba a 3.69. Son las etiquetas de 11px, que son las que menos perdonan.
+ *
+ * ── POR QUÉ UN TOKEN Y NO VEINTE CONSTANTES ────────────────────────────────
+ * Veinte constantes con el mismo oficio divergen: así nacieron los siete alfas
+ * distintos de arriba, y así volvería a pasar. Peor, el valor correcto NO ES
+ * FIJO — depende del panel, y el panel cambió: la paleta del Customer Success
+ * Operating System (13 oct 2026) pasó `.cp-card` de `#0D1829` a `#082742`, que
+ * es más CLARO, y de un día para otro dejó corto todo lo que estaba calculado
+ * contra el marino viejo. Con un token, re-medir es cambiar una línea.
+ *
+ * ── LA MEDICIÓN (16 oct 2026, `scripts/mide-texto-tenue.py`) ───────────────
+ * El alfa lo fija la superficie más CLARA sobre la que de verdad cae texto
+ * tenue, que no es el panel a pelo: es el panel con una caja tintada encima.
+ * `rgba(255,255,255,0.08)` se usa 27 veces y aclara el fondo lo justo para
+ * comerse tres décimas de ratio.
+ *
+ *   superficie        alfa mínimo para 4.5:1
+ *   #082742 + 0.09    0.53   <- EL QUE APRIETA (.cp-card + tinte más claro)
+ *   #082742 + 0.08    0.53   (.cp-card + el tinte más usado)
+ *   #082742           0.48   (.cp-card a pelo)
+ *   #0F2040 + 0.04    0.49   (la CAJA de ColaDeTrabajoAsesor)
+ *   #0D1829 + 0.07    0.48   (Sidebar, renglón activo)
+ *   #16233A / #16243D 0.47   (cabeceras y pies sticky)
+ *   #0F2040           0.47   (extremo claro del degradado de AsesorCard)
+ *   #0D1829           0.46   (paneles de /alertas, /analisis-llamadas, cortes)
+ *   #0A1628 / #0A0F1C 0.45-0.46
+ *
+ * Se eligió **0.55 y no el 0.53 justo** por la misma razón por la que el 8 oct
+ * se descartó el 0.47 en `ColaDeTrabajoAsesor`: el mínimo va al filo, y
+ * cualquier caja tintada nueva lo tumba sin que falle nada. Con 0.55 las doce
+ * superficies miden entre **4.74:1 y 6.22:1**.
+ *
+ * Esto es TEXTO. Las rejillas, los ejes y los trazos de las gráficas son
+ * objetos gráficos: piden 3:1, no 4.5:1, y subirles el alfa los convierte en
+ * protagonistas de la gráfica. No usar este token ahí.
+ */
+export const TX_TENUE = 'rgba(255,255,255,0.55)'
+
 const CACHE = new Map<string, string>()
 
 function hexARgb(h: string): [number, number, number] {
@@ -136,11 +183,25 @@ export function pastillaClara(hex: string, alfa = 0.14) {
 /**
  * EL FONDO DE LA PÁGINA. No es blanco, y esa diferencia descuadra la medición.
  *
- * `app/globals.css` pone `html, body { background: #EFF6FF }`. Un tinte
- * translúcido encima de eso NO compone sobre blanco: compone sobre este azul
- * clarito, que es un pelo más oscuro y se come unas tres décimas de ratio.
+ * `app/globals.css:11` pone `html, body { background: #F5F8FB !important }`. Un
+ * tinte translúcido encima de eso NO compone sobre blanco: compone sobre este
+ * gris azulado, que es un pelo más oscuro y se come décimas de ratio.
+ *
+ * CORREGIDO el 16 oct 2026: decía `#EFF6FF`, que fue el fondo hasta que la
+ * paleta del Customer Success Operating System (13 oct) lo cambió a `#F5F8FB`.
+ *
+ * Y la dirección del error se MIDIÓ antes de escribirla aquí, porque el
+ * razonamiento la tenía al revés. `#F5F8FB` es más CLARO (luminancia 0.9351
+ * contra 0.9148), así que la constante vieja hacía el descenso contra un fondo
+ * más oscuro del real y oscurecía la letra DE MÁS: medidos los seis tonos del
+ * tablero sobre el fondo de verdad, el tono viejo daba entre 4.58 y 4.79:1 y
+ * el nuevo entre 4.52 y 4.76:1. **Los doce pasan AA.** O sea que esto no
+ * rescata ningún contraste roto —nada estaba roto por aquí— sino que deja de
+ * apagar el color de la pastilla sin motivo, y sobre todo quita una constante
+ * que decía ser el fondo de la página y ya no lo era: la siguiente vez que
+ * alguien la lea para medir algo, lo medirá contra la pantalla que existe.
  */
-export const FONDO_PAGINA = '#EFF6FF'
+export const FONDO_PAGINA = '#F5F8FB'
 
 /**
  * El tono de letra para una pastilla que vive A NIVEL DE PÁGINA.

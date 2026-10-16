@@ -18,6 +18,7 @@ import {
   serieMensual, mesLargo, fechaCorta, U,
   type LecturaLlamadas, type LlamadasMeta,
 } from '@/lib/llamadas-cuenta'
+import { TX_TENUE } from '@/lib/contraste'
 
 /* `BLU` era `#1B3FCC`, el azul de marca de la PÁGINA clara, y este panel es
    una tarjeta oscura: la pastilla «N entrantes» pintaba letra y fondo con ese
@@ -34,7 +35,7 @@ export function LlamadasSinLectura({ cid, meta }: { cid: string | null; meta: Ll
   return (
     <div className="cp-card">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <PhoneIncoming size={13} style={{ color: 'rgba(255,255,255,0.45)' }} />
+        <PhoneIncoming size={13} style={{ color: TX_TENUE }} />
         <h3 style={ttl}>Atención de llamadas</h3>
         <span style={bdg(GRY)}>SIN LECTURA</span>
       </div>
@@ -70,7 +71,7 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
       {/* Encabezado */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <PhoneIncoming size={13} style={{ color: 'rgba(255,255,255,0.45)' }} />
+          <PhoneIncoming size={13} style={{ color: TX_TENUE }} />
           <h3 style={ttl}>Atención de llamadas</h3>
           {d.ent && <span style={bdg(BLU)}>{nf(d.ent.total)} entrantes</span>}
           {d.sal && <span style={bdg(AMB)}>{nf(d.sal.total)} salientes</span>}
@@ -352,7 +353,7 @@ function Grafica({ serie, conf, sinVol, base }: {
         return (
           <g key={i}>
             <line x1={PL} y1={y} x2={W - PR} y2={y} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
-            <text x={PL - 6} y={y + 3} textAnchor="end" fontSize="9" fill="rgba(255,255,255,0.45)">
+            <text x={PL - 6} y={y + 3} textAnchor="end" fontSize="9" fill={TX_TENUE}>
               {v >= 1000 ? `${Math.round(v / 1000)}k` : Math.round(v)}
             </text>
           </g>
@@ -394,7 +395,7 @@ function Grafica({ serie, conf, sinVol, base }: {
             {!etiqueta && s.t > 0 && !sinVol && (
               <text x={x + bar / 2} y={PT + ih - h(s.t) - 5} textAnchor="middle" fontSize="9" fill={GRY}>n&lt;{U.MES_ETIQUETA}</text>
             )}
-            <text x={x + bar / 2} y={H - 6} textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.45)">{s.label}</text>
+            <text x={x + bar / 2} y={H - 6} textAnchor="middle" fontSize="9" fill={TX_TENUE}>{s.label}</text>
           </g>
         )
       })}
@@ -455,7 +456,7 @@ function TiraHoras({ ent, hallazgo }: { ent: NonNullable<LecturaLlamadas['datos'
                 {Math.round(pct)}%
               </text>
             )}
-            <text x={x + bw * 0.32} y={H - 4} textAnchor="middle" fontSize="8" fill="rgba(255,255,255,0.42)">{h}</text>
+            <text x={x + bw * 0.32} y={H - 4} textAnchor="middle" fontSize="8" fill={TX_TENUE}>{h}</text>
           </g>
         )
       })}
@@ -475,7 +476,7 @@ function Kpi({ icon: Icon, label, value, sub, color }: {
       border: `1px solid ${suave ? 'rgba(255,255,255,0.10)' : `${color}2E`}`,
     }}>
       <Icon size={11} style={{ color, marginBottom: 4 }} />
-      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', marginBottom: 2 }}>{label}</p>
+      <p style={{ fontSize: 10, color: TX_TENUE, marginBottom: 2 }}>{label}</p>
       <p style={{ fontSize: 14, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
       <p style={{ fontSize: 9, color: GRY, marginTop: 2 }}>{sub}</p>
     </div>
@@ -495,7 +496,7 @@ function Chip({ c, t, rayado }: { c: string; t: string; rayado?: boolean }) {
 }
 
 const ttl: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)',
+  fontSize: 11, fontWeight: 700, color: TX_TENUE,
   textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0,
 }
 const sec: React.CSSProperties = {

@@ -71,10 +71,17 @@ body {
 .cp-card .bg-surface    { background-color: rgba(255,255,255,0.07) !important; }
 .cp-card .bg-surfaceAlt { background-color: rgba(255,255,255,0.04) !important; }
 .cp-card .hover\:bg-surface:hover { background-color: rgba(255,255,255,0.06) !important; }
-/* Clases de texto → blancos legibles */
+/* Clases de texto → blancos legibles.
+   OJO: `.text-textLow` es el MISMO valor que `TX_TENUE` de lib/contraste.ts,
+   escrito dos veces porque el CSS no puede importar el token. Iba en 0.50 y
+   medía 4.35:1 dentro de una `.bg-surface` (el tinte 0.07 de la línea 71
+   aclara el fondo y se come el margen) y 4.50:1 justo dentro de un `thead`
+   — por debajo, o al filo, del 4.5 de AA. Con 0.55 son 4.93 y 5.11. Los dos
+   valores tienen que moverse juntos, y `scripts/mide-texto-tenue.py` falla si
+   divergen, para que esto no vuelva a quedarse atrás cuando cambie la paleta. */
 .cp-card .text-textHi  { color: rgba(255,255,255,0.92) !important; }
 .cp-card .text-textMid { color: rgba(255,255,255,0.75) !important; }
-.cp-card .text-textLow { color: rgba(255,255,255,0.50) !important; }
+.cp-card .text-textLow { color: rgba(255,255,255,0.55) !important; }
 /* Bordes */
 .cp-card .border-border { border-color: rgba(255,255,255,0.08) !important; }
 

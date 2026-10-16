@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { CHAT_SACUX } from './chat-data'
 import { inventarioBandejas } from '@/lib/chat-bandejas'
+import { TX_TENUE } from '@/lib/contraste'
 
 const S = CHAT_SACUX as any
 
@@ -131,7 +132,7 @@ function BandaInventario() {
                 {['Tipo', 'Bandejas', 'Clientes', 'Medidas', 'Sin ver', 'Con tráfico', 'Ociosas', 'Cliente que domina'].map((h, i) => (
                   <th key={h} style={{
                     padding: '6px 8px', textAlign: i === 0 || i === 7 ? 'left' : 'right',
-                    color: 'rgba(255,255,255,0.45)', fontWeight: 700, fontSize: 10, whiteSpace: 'nowrap',
+                    color: TX_TENUE, fontWeight: 700, fontSize: 10, whiteSpace: 'nowrap',
                     borderBottom: '1px solid rgba(255,255,255,0.12)',
                   }}>{h}</th>
                 ))}
@@ -154,8 +155,11 @@ function BandaInventario() {
                     <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{t.conTrafico}</td>
                     <td style={{ padding: '5px 8px', textAlign: 'right', color: 'rgba(255,255,255,0.7)' }}>{t.ociosas}</td>
                     <td style={{ padding: '5px 8px', color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}>
+                      {/* `background` es lo que salva el naranja: sin el,
+                          `.cp-card span:not([style*="background"])` lo pinta
+                          blanco y la bandeja dominante deja de señalarse. */}
                       {t.dominante
-                        ? <>{t.dominante.slice(0, 26)} <span style={{ color: domPct >= 50 ? '#F97316' : 'rgba(255,255,255,0.35)' }}>
+                        ? <>{t.dominante.slice(0, 26)} <span style={{ background: 'transparent', color: domPct >= 50 ? '#F97316' : TX_TENUE }}>
                             {t.dominanteBandejas} ({domPct.toFixed(0)}%)</span></>
                         : '—'}
                     </td>
@@ -187,7 +191,7 @@ function BandaInventario() {
               <span className="text-[11px] font-semibold flex-1 truncate" style={{ color: '#fff' }}>{c.nombre}</span>
               {c.tier && <span className="text-[9px] px-1.5 py-0.5 rounded"
                 style={{ background: 'rgba(255,255,255,0.10)', color: 'rgba(255,255,255,0.7)' }}>{c.tier}</span>}
-              <span className="text-[10px] w-20 text-right" style={{ color: 'rgba(255,255,255,0.45)' }}>{c.bandejas} bandejas</span>
+              <span className="text-[10px] w-20 text-right" style={{ color: TX_TENUE }}>{c.bandejas} bandejas</span>
               <span className="text-[11px] w-24 text-right font-semibold" style={{ color: '#84CC16' }}>{n(c.mensajes)}</span>
             </div>
           ))}
@@ -251,7 +255,7 @@ function Bloque({ titulo, base, children }: { titulo: string; base: string; chil
       <div className="mb-3">
         <p className="text-sm font-bold" style={{ color: '#fff' }}>{titulo}</p>
         {/* El denominador va SIEMPRE junto al título, no en letra chica al pie. */}
-        <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.45)' }}>{base}</p>
+        <p className="text-[11px] mt-0.5" style={{ color: TX_TENUE }}>{base}</p>
       </div>
       {children}
     </div>
@@ -291,7 +295,7 @@ function BandaAgenda() {
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
                       style={{ background: 'rgba(255,255,255,0.12)', color: '#fff' }}>{x.tier}</span>
                   )}
-                  <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{n(x.mensajes)} mensajes</span>
+                  <span className="text-[10px]" style={{ color: TX_TENUE }}>{n(x.mensajes)} mensajes</span>
                 </div>
                 <p className="text-[11px] font-semibold mb-1" style={{ color: '#F97316' }}>{x.motivo}</p>
                 <p className="text-xs leading-snug" style={{ color: 'rgba(255,255,255,0.72)' }}>{x.guion}</p>
@@ -300,7 +304,7 @@ function BandaAgenda() {
           </div>
         ))}
       </div>
-      <p className="text-[11px] mt-3 leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+      <p className="text-[11px] mt-3 leading-relaxed" style={{ color: TX_TENUE }}>
         Quedaron {S.agendaTotal - a.length} hallazgos fuera de la lista. No desaparecen: están en las otras bandas.
         Se recortan aquí a propósito, porque una lista de {S.agendaTotal} llamadas sobre {S.cobertura.medibles} cuentas
         medibles no es un plan, es ruido.
@@ -362,7 +366,7 @@ function BandaContinuidad() {
           El día que se desconecte o que Meta lo tumbe, no pierdes una función: pierdes el número que tienes publicado
           y todo el historial. Pasar a la API oficial lo vuelve tuyo y deja de depender de un teléfono prendido.»
         </p>
-        <p className="text-[11px] mt-2" style={{ color: 'rgba(255,255,255,0.45)' }}>
+        <p className="text-[11px] mt-2" style={{ color: TX_TENUE }}>
           Cierre esperado: una fecha de migración, no un «lo vemos después».
         </p>
       </div>
@@ -445,7 +449,7 @@ function BandaCanales() {
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold" style={{ color: '#F59E0B' }}>{(x.pct * 100).toFixed(0)}%</p>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                <p className="text-[10px]" style={{ color: TX_TENUE }}>
                   en {x.activas} de {x.bandejas} bandejas
                 </p>
               </div>
@@ -539,7 +543,7 @@ function BandaOperacion() {
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold" style={{ color: '#F59E0B' }}>{x.valor.toFixed(2)}</p>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>salen / entran</p>
+                <p className="text-[10px]" style={{ color: TX_TENUE }}>salen / entran</p>
               </div>
             </div>
           ))}
@@ -574,7 +578,7 @@ function BandaOperacion() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold" style={{ color: '#A855F7' }}>{x.valor.toFixed(2)}</p>
-                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>salen / entran</p>
+                  <p className="text-[10px]" style={{ color: TX_TENUE }}>salen / entran</p>
                 </div>
               </div>
             ))}
@@ -599,7 +603,7 @@ function BandaOperacion() {
                 <Bot size={16} style={{ color: '#22D3EE' }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold" style={{ color: '#fff' }}>{x.nombre}</p>
-                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                  <p className="text-[10px]" style={{ color: TX_TENUE }}>
                     {n(x.mensajes)} mensajes · {n(x.carga)} por agente
                   </p>
                 </div>
@@ -700,7 +704,7 @@ function BandaCobertura() {
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.7)' }}>{x.k}</span>
                 <span className="text-xs font-bold" style={{ color: '#fff' }}>
-                  {n(x.v)} <span className="font-normal text-[10px]" style={{ color: 'rgba(255,255,255,0.45)' }}>· {x.pct}%</span>
+                  {n(x.v)} <span className="font-normal text-[10px]" style={{ color: TX_TENUE }}>· {x.pct}%</span>
                 </span>
               </div>
               <Barra valor={x.pct} max={100} color={x.color} alto={9} />

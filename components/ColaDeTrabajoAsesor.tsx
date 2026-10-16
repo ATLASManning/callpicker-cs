@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { AlertTriangle, BellRing } from 'lucide-react'
 import { formatMXN } from '@/lib/types'
+import { TX_TENUE } from '@/lib/contraste'
 
 /**
  * components/ColaDeTrabajoAsesor.tsx — SU SEMANA, EN SU PANTALLA DE INICIO
@@ -29,9 +30,24 @@ const TX_HI  = '#FFFFFF'                      /* 16.14:1 sobre #0F2040 */
 const TX_MID = 'rgba(255,255,255,0.70)'       /*  8.48:1 */
 /* El 0.45 de la primera versión medía 4.31:1 — por debajo del 4.5 de AA, y
    justo en las etiquetas de 11px, que son las que menos perdonan. El alfa
-   mínimo que pasa es 0.47 (4.57:1) y ése va demasiado al filo: 0.50 da
-   4.84:1. Medido el 8 oct 2026 contra #0F2040. */
-const TX_LOW = 'rgba(255,255,255,0.50)'       /*  4.84:1 */
+   mínimo que pasa sobre #0F2040 es 0.47 (4.57:1), y ése va demasiado al filo.
+   Medido el 8 oct 2026.
+
+   Pasa al token compartido el 16 oct 2026. Dos correcciones de esa medición:
+
+   (a) el 0.50 que puso esta línea NO daba 4.84:1 sobre #0F2040, da 4.99:1.
+       El 4.84 es el ratio de 0.49. La cifra se calculó con un alfa y se
+       escribió junto a otro; el 4.31 y el 4.57 de arriba reproducen exactos,
+       que es lo que lo deja en un rótulo mal puesto y no en un error de
+       fórmula.
+   (b) y lo que importaba de verdad: la medición se hizo contra el degradado
+       desnudo, pero este componente pinta su contenido DENTRO de `CAJA`, que
+       lleva `rgba(255,255,255,0.04)` encima. Ese tinte aclara el fondo y baja
+       el ratio: el 0.50 se quedaba en **4.74:1** ahí dentro, o sea seguía por
+       debajo de AA en el sitio donde de verdad cae la letra. El alfa mínimo
+       sobre #0F2040+0.04 es 0.49... para el fondo de ESTE panel; el token
+       resuelve el peor caso de todo el tablero. */
+const TX_LOW = TX_TENUE       /*  5.42:1 sobre #0F2040+0.04 (CAJA), 5.75:1 sin ella */
 const LINEA  = 'rgba(255,255,255,0.10)'
 
 export interface AlertasAsesor {
