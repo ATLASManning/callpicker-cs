@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import {
@@ -13,7 +13,7 @@ import CustomSelect from '@/components/CustomSelect'
 import type { Cuenta, Asesor } from '@/lib/types'
 import { getSemaforoCuenta, formatMXN } from '@/lib/types'
 
-const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
+const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Erick']
 
 // ── Segmento badge ────────────────────────────────────────────────────────────
 const SEG_COLOR: Record<string, string> = {

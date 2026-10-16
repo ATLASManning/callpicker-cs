@@ -36,7 +36,7 @@ const ESTADOS = [
   { value: 'perdido',      label: 'Perdido',        color: '#EF4444' },
 ]
 
-const ASESORES = ['Fátima', 'Dan', 'Claudia']
+const ASESORES = ['Fátima', 'Dan', 'Erick']
 
 interface Lead {
   id: string; consecutivo: number

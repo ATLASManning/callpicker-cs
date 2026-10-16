@@ -15,7 +15,7 @@ import type { Cuenta, Asesor, Semaforo } from '@/lib/types'
 import { getSemaforoCuenta, formatMXN } from '@/lib/types'
 import { tonoSobreClaro } from '@/lib/contraste'
 
-const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
+const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Erick']
 // SIN opción 'inactivo' a propósito. Esta pantalla excluye por diseño las
 // cuentas dormidas y canceladas (ver `filtered`: `getEstadoKey(c) !== '4'`,
 // "Dormidas van a su propia sección"), así que un filtro "Sin servicio" aquí

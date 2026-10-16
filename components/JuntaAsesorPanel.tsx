@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 import { useState } from 'react'
 import Link from 'next/link'
 import {
@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import type { SeguimientoConCuenta, OportunidadConCuenta, TicketConCuenta } from '@/lib/supabase'
 import type { Cuenta, SemaforoAsesor, Asesor, TipoSeguimiento } from '@/lib/types'
-import { ASESOR_CONFIG, SEMAFORO_CONFIG, getSemaforoCuenta, formatMXN } from '@/lib/types'
+import { ASESOR_CONFIG, configAsesor, SEMAFORO_CONFIG, getSemaforoCuenta, formatMXN } from '@/lib/types'
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -84,7 +84,7 @@ export default function JuntaAsesorPanel({
   const [tab, setTab] = useState<Tab>('actividad')
   const [open, setOpen] = useState(true)
 
-  const ac = ASESOR_CONFIG[asesor]
+  const ac = configAsesor(asesor)
 
   // Activity counts by tipo
   const counts = seguimientos.reduce<Record<string, number>>((acc, s) => {

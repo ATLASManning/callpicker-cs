@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { AlertTriangle, ArrowUpRight } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
-import { getSemaforoCuenta, ASESOR_CONFIG, formatMXN } from '@/lib/types'
+import { getSemaforoCuenta, ASESOR_CONFIG, configAsesor, formatMXN } from '@/lib/types'
 import SemaforoBadge from './SemaforoBadge'
 import HealthScoreRing from './HealthScoreRing'
 import * as TEMA from '@/lib/chart-theme'
@@ -144,7 +144,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
         <tbody>
           {cuentas.map((c, idx) => {
             const semaforo = getSemaforoCuenta(c)
-            const ac = ASESOR_CONFIG[c.asesor]
+            const ac = configAsesor(c.asesor)
             // 'inactivo' se contempla explícitamente: sin este caso caía en el
             // `else` y una cuenta cancelada mostraba su Health Score en ROJO,
             // es decir "riesgo alto" — cuando ya no hay riesgo, hay baja.

@@ -13,7 +13,7 @@ import { hoyLocal } from '@/lib/fecha-local'
 
 interface Props { cuenta: Cuenta; canEdit?: boolean }
 
-const ASESORES = ['Fátima', 'Dan', 'Claudia'] as const
+const ASESORES = ['Fátima', 'Dan', 'Erick'] as const
 const TAMANOS  = ['Micro', 'Pequeña', 'Mediana', 'Grande', 'Enterprise'] as const
 
 const EMPTY_CONTACTO: ContactoCuenta = { nombre: '', cargo: '', email: '', tel: '' }

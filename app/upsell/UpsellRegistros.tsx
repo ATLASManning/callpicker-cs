@@ -36,7 +36,7 @@ const ESTADO_CFG: Record<Estado, { label: string; color: string; dot: string }> 
 }
 
 const ESTADOS: Estado[] = ['nuevo', 'seguimiento', 'propuesta', 'ganado', 'perdido']
-const ASESORES = ['Fátima', 'Dan', 'Claudia']
+const ASESORES = ['Fátima', 'Dan', 'Erick']
 const LS_KEY   = 'upsell_registros'
 
 /* ─── Helpers ────────────────────────────────────────────── */

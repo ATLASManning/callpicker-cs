@@ -143,7 +143,7 @@ export default function RevisionEnriquecimiento(
           {esAdmin && (
             <div className="w-44 flex-shrink-0">
               <CustomSelect value={fAsesor} onChange={setFAsesor}
-                options={['Todos', 'Fátima', 'Dan', 'Claudia']} />
+                options={['Todos', 'Fátima', 'Dan', 'Erick']} />
             </div>
           )}
           <div className="w-48 flex-shrink-0">

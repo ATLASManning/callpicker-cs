@@ -19,7 +19,7 @@ import { normalizaAsesor } from '@/lib/dueno'
 
 export const dynamic = 'force-dynamic'
 
-const ALL_ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
+const ALL_ASESORES: Asesor[] = ['Fátima', 'Dan', 'Erick']
 
 export default async function AsesoresPage() {
   const h = headers()

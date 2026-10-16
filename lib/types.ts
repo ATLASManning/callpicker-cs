@@ -1,5 +1,10 @@
 // ── Enums ───────────────────────────────────────────────────────────────────
-export type Asesor = 'Fátima' | 'Dan' | 'Claudia'
+/* `Erick` entra el 15 oct 2026 al sustituir a Claudia Hernández; ella se
+   queda en el tipo porque el histórico sigue nombrándola —episodios de alerta
+   abiertos a su nombre, tickets que atendió, expedientes que la citan— y esas
+   pantallas tienen que poder pintarla. Quién ENTRA al tablero no lo decide
+   este tipo, lo decide la lista blanca de `lib/auth.ts`. */
+export type Asesor = 'Fátima' | 'Dan' | 'Erick' | 'Claudia'
 /** Los cinco niveles de SALUD. Solo aplican a una cuenta que sigue viva. */
 export type SemaforoSalud = 'verde' | 'azul' | 'amarillo' | 'naranja' | 'rojo'
 
@@ -337,7 +342,48 @@ export const ASESOR_CONFIG: Record<Asesor, {
 }> = {
   'Fátima':  { color: '#A855F7', initial: 'F', fullName: 'Fátima González',   ext: '457', email: 'fatima@callpicker.com' },
   'Dan':     { color: '#0EA5E9', initial: 'D', fullName: 'Dan Domínguez',     ext: '450', email: 'dominguez.dan@callpicker.com' },
+  /* Erick Sánchez sustituye a Claudia Hernández — 15 oct 2026. Su cartera, las
+     71 cuentas, ya está a su nombre en `cuentas.asesor`. El correo lo da
+     dirección el lunes; hasta entonces queda vacío y NO se inventa. */
+  'Erick':   { color: '#1D6CAA', initial: 'E', fullName: 'Erick Sánchez',     ext: '—',   email: '' },
+  /* Claudia se queda en el mapa, sin cartera. Su nombre sigue escrito en el
+     histórico —episodios de alerta abiertos a su nombre, tickets que atendió,
+     expedientes que la citan— y ese histórico se muestra: si la quitamos de
+     aquí, esas pantallas vuelven a quedarse sin `initial` y revientan igual.
+     No tiene acceso: eso lo decide la lista blanca de `lib/auth.ts`. */
   'Claudia': { color: '#F97316', initial: 'C', fullName: 'Claudia Hernández', ext: '452', email: 'claudia@callpicker.com', tel: '442 454 0355' },
+}
+
+/**
+ * EL ACCESO AL MAPA, A PRUEBA DE UN NOMBRE QUE NO ESTÉ.
+ *
+ * ── LO QUE PASÓ EL 15 OCT 2026 ────────────────────────────────────────────
+ * Al pasar la cartera de Claudia a Erick, `cuentas.asesor` empezó a decir
+ * «Erick» y este mapa no lo tenía. Los componentes hacen
+ * `ASESOR_CONFIG[asesor].initial` dentro de un `.map()`, así que el acceso
+ * devolvió `undefined` y la portada entera murió con
+ * «Cannot read properties of undefined (reading 'initial')» — el tablero
+ * completo en blanco, sin poder navegar.
+ *
+ * El fallo real no fue olvidar un nombre: fue que un dato de la BASE pueda
+ * tumbar la interfaz. Un asesor nuevo, una alta, un nombre escrito distinto —
+ * cualquiera de las tres lo repite.
+ *
+ * `configAsesor()` devuelve una ficha neutra en vez de `undefined`: la
+ * pantalla muestra la inicial del nombre y sigue funcionando. Usar SIEMPRE
+ * esto en vez de indexar el mapa a pelo.
+ */
+export function configAsesor(asesor: string | null | undefined) {
+  const k = String(asesor ?? '').trim()
+  const hit = (ASESOR_CONFIG as Record<string, typeof ASESOR_CONFIG[Asesor]>)[k]
+  if (hit) return hit
+  return {
+    color: '#6A7889',
+    initial: (k[0] || '?').toUpperCase(),
+    fullName: k || 'Sin asesor',
+    ext: '—',
+    email: '',
+  }
 }
 
 export function formatMXN(amount: number): string {

@@ -1,0 +1,499 @@
+[
+ {
+  "id": "2b23c89a-7dd2-493a-a74d-9a15b08d51c0",
+  "consecutivo": "C41",
+  "empresa": "Gruas el Toques",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "b9336bb9-3e99-487e-9d68-e9f76ebe5b22",
+  "consecutivo": "C40",
+  "empresa": "Linden",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "1ecda300-6f62-437c-a6ca-84ac9a83080e",
+  "consecutivo": "C43",
+  "empresa": "ClickBalance",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "ab804910-84f8-4ace-98ad-92f203ef9bdb",
+  "consecutivo": "C21",
+  "empresa": "CS7",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "b0d2082a-26b0-4212-9973-657336bcf1b7",
+  "consecutivo": "C29",
+  "empresa": "Biolaboratorio Sadat",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "56578e12-4987-4ef0-88cd-cd37f0a475d6",
+  "consecutivo": "C51",
+  "empresa": "VAEO",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "21b7d4a4-72ed-4e33-b5a5-2425bbeb333b",
+  "consecutivo": "C47",
+  "empresa": "Jump In",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "a7c9800b-4283-43ae-9c5b-4ad24a10f35a",
+  "consecutivo": "C69",
+  "empresa": "Universidad UniverMilenium",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "a6c4df7b-e43c-446e-9938-2a247247bc29",
+  "consecutivo": "Z44",
+  "empresa": "Centinela Property",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "00c139c0-9214-46a8-a0a5-20f498f65b90",
+  "consecutivo": "Z21",
+  "empresa": "Servidiesel",
+  "asesor": "Claudia",
+  "estado": "hibernacion"
+ },
+ {
+  "id": "eeecf985-724d-4c85-8512-0f823d99e34c",
+  "consecutivo": "Z51",
+  "empresa": "Torre 2 - Via Montejo",
+  "asesor": "Claudia",
+  "estado": "hibernacion"
+ },
+ {
+  "id": "1616d9a8-8947-4513-82a3-380882d86f68",
+  "consecutivo": "F67",
+  "empresa": "Grupo DC Mexico",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "58c76ec4-dc37-4612-8134-0f4753cf2875",
+  "consecutivo": "F66",
+  "empresa": "Sofia",
+  "asesor": "Claudia",
+  "estado": "cancelado"
+ },
+ {
+  "id": "efd94fa6-5ae2-47ff-a755-98642cf5c8fe",
+  "consecutivo": "Z58",
+  "empresa": "Mint Cargo",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "8557f9cb-9cf7-412e-8572-98594bc7410d",
+  "consecutivo": "C15",
+  "empresa": "Company is brandgroup Mexico",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "68b649bc-8a95-4322-b64a-574c59cfd420",
+  "consecutivo": "C46",
+  "empresa": "EBAC Educación",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "fdddb3ce-7a68-40d9-b5b5-a2e1dfadaa78",
+  "consecutivo": "C17",
+  "empresa": "Agua Inmaculada",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "a7347286-1004-44d0-b235-f0931d5ba70b",
+  "consecutivo": "C",
+  "empresa": "LINEACEL",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "49f3bf86-5654-4c9d-b34a-4b9b2d0798c7",
+  "consecutivo": "C2",
+  "empresa": "ECODELI",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "640f77a6-3380-4c22-bf24-ddbc97e1fba9",
+  "consecutivo": "C16",
+  "empresa": "Travelling",
+  "asesor": "Claudia",
+  "estado": "hibernacion"
+ },
+ {
+  "id": "6d46068d-2fea-409d-aee4-d99bfa21c00f",
+  "consecutivo": "Z46",
+  "empresa": "Seguros Banorte",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "44409737-86ef-431a-a7e6-fc8756510f21",
+  "consecutivo": "Z55",
+  "empresa": "Progencell",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "fecccce5-9ecf-4977-9319-8118b0c68d30",
+  "consecutivo": "C12",
+  "empresa": "SW Sapien",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "aa88d1df-4e78-42bf-8df4-ee51e1ccbb51",
+  "consecutivo": "C42",
+  "empresa": "ESDIE",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "04cf96f5-d883-478b-b32c-a96e45b02829",
+  "consecutivo": "C25",
+  "empresa": "Grupo Norveg",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "732aa283-312b-466b-a5eb-5c641b6165f8",
+  "consecutivo": "C37",
+  "empresa": "labsus lab",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "5fa4c769-688a-4d93-9626-63949e24bbd2",
+  "consecutivo": "Z54",
+  "empresa": "Dental District",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "94ff2360-d841-40bd-9911-74881eba4319",
+  "consecutivo": "C14",
+  "empresa": "EASO",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "d8c39b5a-7002-4685-b7e0-32d54cb3d2e4",
+  "consecutivo": "C8",
+  "empresa": "ATP Sofom",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "39acd3c7-a868-45ee-8b0f-1e1c5c4e27a5",
+  "consecutivo": "C11",
+  "empresa": "ABRL SISTEMAS & PROYECTOS",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "9da32542-4fd8-4abc-9a5d-aa16aa3c059c",
+  "consecutivo": "C39",
+  "empresa": "HumanSmart Consulting",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "36ec172a-40b7-4de0-b348-a7cde7a5984c",
+  "consecutivo": "C9",
+  "empresa": "Neruc Sede Central",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "519bc9f6-2692-421e-9cd7-fd58be736bb4",
+  "consecutivo": "C5",
+  "empresa": "Renault Concordia Agencia del Sol",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "34a232fd-be49-418a-856d-2db98ed000b2",
+  "consecutivo": "C68",
+  "empresa": "Baterias LTH",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "8db2a9c7-c6c2-4b5b-a27f-87d0282e48eb",
+  "consecutivo": "Z53",
+  "empresa": "INVEXIO",
+  "asesor": "Claudia",
+  "estado": "hibernacion"
+ },
+ {
+  "id": "383bca9a-76a0-4900-8cde-7657e13e5b2c",
+  "consecutivo": "C44",
+  "empresa": "LUNA SOFT",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "2667e0ca-6572-4c9a-ae6a-1f78717ddd5b",
+  "consecutivo": "C45",
+  "empresa": "HorizonteM",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "cfafc89b-75c7-4698-8d9e-d38943a5f38e",
+  "consecutivo": "C49",
+  "empresa": "TAQUERIA EL PARIENTE",
+  "asesor": "Claudia",
+  "estado": "cancelado"
+ },
+ {
+  "id": "2103197b-3152-4402-8b58-f6313fb088c1",
+  "consecutivo": "C48",
+  "empresa": "Hairfix",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "63c40360-83e1-467f-a68e-bc0385d47781",
+  "consecutivo": "Z31",
+  "empresa": "Dental Bueno",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "ed5111b8-f570-4c1e-91bb-0f6765b19b65",
+  "consecutivo": "Z64",
+  "empresa": "FCA Stellantis México",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "968237b7-4ba4-43d7-985f-a771b86f1981",
+  "consecutivo": "C4",
+  "empresa": "Hospital Santa Rosa",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "b217f00c-0067-4a24-b5ca-033c670dfe1f",
+  "consecutivo": "C20",
+  "empresa": "Portalia",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "20c8cc65-7795-4f09-96b6-11c1faf2e9e0",
+  "consecutivo": "C27",
+  "empresa": "Innovación Hidráulica",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "b11134bc-9b21-49eb-a12b-a63eee4be779",
+  "consecutivo": "C23",
+  "empresa": "GRUPO CENSERE",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "4a981597-d458-4144-9087-402511392870",
+  "consecutivo": "C22",
+  "empresa": "Elery Brands Inc",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "8c64e63f-6b79-410d-9299-25f08b4e85a2",
+  "consecutivo": "C26",
+  "empresa": "GRUPO 2711",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "757a4657-e90c-4e49-b6f7-10414bf82e78",
+  "consecutivo": "C24",
+  "empresa": "Lean Tools",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "08412a23-a511-4889-9c40-cb797e40ac23",
+  "consecutivo": "C18",
+  "empresa": "Gigacable",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "254c27cd-0fcf-4a03-ae95-644783c58e13",
+  "consecutivo": "C28",
+  "empresa": "Bliss crédito libre",
+  "asesor": "Claudia",
+  "estado": "cancelado"
+ },
+ {
+  "id": "aafa8892-7f49-4ab7-9df6-1b76aa8004a1",
+  "consecutivo": "C36",
+  "empresa": "RODAC SOLUCIONES INTEGRALES",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "6ca5eb4d-c492-4162-9995-c34e4c00cf95",
+  "consecutivo": "C35",
+  "empresa": "Blueservices",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "83546020-3271-4e2d-96b4-74f7c29ba8e2",
+  "consecutivo": "C30",
+  "empresa": "Pastelería Antares",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "4aa8c603-b4e2-48b2-adf4-e513d2404ad1",
+  "consecutivo": "C38",
+  "empresa": "Inteligencia Canina",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "74232844-a2a3-4234-abf7-b31cdaa8a535",
+  "consecutivo": "Z23",
+  "empresa": "ProHabitación - Maderas Querétaro",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "a1e1cd28-de28-4db1-86dd-5f0f12fe527a",
+  "consecutivo": "C3",
+  "empresa": "Gas Economico Metropolitano",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "14b9937e-853f-4e87-945c-3a745152b9ec",
+  "consecutivo": "C13",
+  "empresa": "ODONTOPREV",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "7f29535b-8788-48f5-b75b-31f6702e0f9d",
+  "consecutivo": "Z39",
+  "empresa": "Contenedores Mas",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "004566c1-83f8-436a-882e-86a4b4f842af",
+  "consecutivo": "C19",
+  "empresa": "ALARMAS GUARDIAN",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "23b41cc0-eeb9-46e0-af0e-895f3db44891",
+  "consecutivo": "C33",
+  "empresa": "Centro Mexicano de Psicologia Integrativa CEMEPI",
+  "asesor": "Claudia",
+  "estado": "hibernacion"
+ },
+ {
+  "id": "670b6f56-377e-4d87-9130-0831a9f1355a",
+  "consecutivo": "D15",
+  "empresa": "SOBERANI",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "f6968016-0dd3-4f8b-b049-561b3b6c0d41",
+  "consecutivo": "Z59",
+  "empresa": "Hotel Real de Minas San Miguel",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "73485d05-35e7-4351-a784-cfe4db45bcf4",
+  "consecutivo": "Z27",
+  "empresa": "Besser Vacuum",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "594778e6-2f0d-4a07-af9c-20550529bdc0",
+  "consecutivo": "C34",
+  "empresa": "CH Desarrollos",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "611893fd-c7d7-4a65-aa59-c12bd1b5f366",
+  "consecutivo": "Z20",
+  "empresa": "Not Just",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "99d5d7b8-33cd-4472-bda8-ab4572f04878",
+  "consecutivo": "C32",
+  "empresa": "Mas Suites",
+  "asesor": "Claudia",
+  "estado": "hibernacion"
+ },
+ {
+  "id": "a6e7f539-031a-469e-9f83-6331adda6f17",
+  "consecutivo": "C1",
+  "empresa": "Tech People",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "65b58b9d-e6b3-4236-8403-8a1990b4e131",
+  "consecutivo": "C10",
+  "empresa": "ALTERNET",
+  "asesor": "Claudia",
+  "estado": "en_riesgo"
+ },
+ {
+  "id": "4b5ac9d3-f374-46a4-a86b-d4807242a0b2",
+  "consecutivo": "C6",
+  "empresa": "Omnitracs",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "f00f4cb6-86d7-462d-acbc-eaba834e5d2a",
+  "consecutivo": "C7",
+  "empresa": "Power Street",
+  "asesor": "Claudia",
+  "estado": "activo"
+ },
+ {
+  "id": "4436dd6c-7467-43c4-afd8-163a3960756e",
+  "consecutivo": "F65",
+  "empresa": "SIMAGASMEX",
+  "asesor": "Claudia",
+  "estado": "activo"
+ }
+]

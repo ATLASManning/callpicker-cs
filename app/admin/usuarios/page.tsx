@@ -19,7 +19,7 @@ const ROL_CONFIG: Record<Rol, { label: string; color: string; icon: React.Elemen
   viewer:        { label: 'Viewer',        color: '#D97706', icon: Eye        },
   perfilamiento: { label: 'Perfilamiento', color: '#7E22CE', icon: Target     },
 }
-const ASESORES = ['Fátima', 'Dan', 'Claudia', 'Monse', 'José']
+const ASESORES = ['Fátima', 'Dan', 'Erick', 'Monse', 'José']
 
 /* Genera contraseña legible del lado cliente (para mostrarla en modal) */
 function genPass() {

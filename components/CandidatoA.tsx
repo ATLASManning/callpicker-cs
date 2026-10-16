@@ -134,7 +134,7 @@ export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
         </div>
         <div className="w-44 flex-shrink-0">
           <CustomSelect value={asesor} onChange={setAsesor}
-                        options={['Todos', 'Fátima', 'Dan', 'Claudia']} />
+                        options={['Todos', 'Fátima', 'Dan', 'Erick']} />
         </div>
         <div className="w-52 flex-shrink-0">
           <CustomSelect value={tipo} onChange={setTipo} options={[

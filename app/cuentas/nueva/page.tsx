@@ -12,8 +12,14 @@ import CustomSelect from '@/components/CustomSelect'
 import type { Asesor, EstadoCuenta } from '@/lib/types'
 import { formatMXN } from '@/lib/types'
 
-const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Claudia']
-const ASESOR_INITIALS: Record<Asesor, string> = { 'Fátima': 'F', 'Dan': 'D', 'Claudia': 'C' }
+/* A quién se le puede ASIGNAR una cuenta nueva. Claudia no está: dejó la
+   cartera el 15 oct 2026 y la heredó Erick, así que ofrecerla aquí sería
+   dar de alta trabajo a nombre de alguien que ya no lo atiende. Sigue en el
+   tipo `Asesor` porque el histórico la nombra — pero eso es leer, no asignar. */
+const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Erick']
+const ASESOR_INITIALS: Record<Asesor, string> = {
+  'Fátima': 'F', 'Dan': 'D', 'Erick': 'E', 'Claudia': 'C',
+}
 
 // ── Estado inicial del formulario ─────────────────────────────────────────────
 const DEFAULTS = {

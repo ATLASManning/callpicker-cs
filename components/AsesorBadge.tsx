@@ -1,5 +1,5 @@
 import type { Asesor } from '@/lib/types'
-import { ASESOR_CONFIG } from '@/lib/types'
+import { ASESOR_CONFIG, configAsesor } from '@/lib/types'
 
 interface Props {
   asesor: Asesor
@@ -7,7 +7,7 @@ interface Props {
 }
 
 export default function AsesorBadge({ asesor, size = 'sm' }: Props) {
-  const cfg = ASESOR_CONFIG[asesor]
+  const cfg = configAsesor(asesor)
   const sz = size === 'sm' ? 'w-5 h-5 text-[10px]' : 'w-7 h-7 text-xs'
   return (
     <span className="inline-flex items-center gap-1.5">

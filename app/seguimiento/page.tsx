@@ -1,6 +1,6 @@
 import { getCuentas } from '@/lib/supabase'
 import { soporteDeCuenta } from '@/lib/soporte-cuenta'
-import { formatMXN, getSemaforoCuenta, esCuentaSinServicio, SEMAFORO_CONFIG, ASESOR_CONFIG } from '@/lib/types'
+import { formatMXN, getSemaforoCuenta, esCuentaSinServicio, SEMAFORO_CONFIG, ASESOR_CONFIG, configAsesor } from '@/lib/types'
 import type { Asesor, Cuenta } from '@/lib/types'
 import PageHeader from '@/components/PageHeader'
 import AutoRefresh from '@/components/AutoRefresh'
@@ -588,8 +588,8 @@ export default async function SeguimientoPage() {
   })
 
   const asesores: Asesor[] = isAsesor
-    ? (['Fátima', 'Dan', 'Claudia'] as Asesor[]).filter(a => a === asesorHeader)
-    : ['Fátima', 'Dan', 'Claudia']
+    ? (['Fátima', 'Dan', 'Erick'] as Asesor[]).filter(a => a === asesorHeader)
+    : ['Fátima', 'Dan', 'Erick']
   const today = hoyEnPalabras()
 
   const totalChurn   = cuentas.filter(c => c.health_score < 60).length
@@ -622,7 +622,7 @@ export default async function SeguimientoPage() {
       {/* ── Cuerpo: un bloque por asesor ─────────────────────────────────── */}
       <div className="px-6 space-y-5 mt-2">
         {asesores.map(asesor => {
-          const ac = ASESOR_CONFIG[asesor]
+          const ac = configAsesor(asesor)
           const lista = cuentas.filter(c => c.asesor === asesor)
 
           const verde    = lista.filter(c => c.health_score >= 80).length
