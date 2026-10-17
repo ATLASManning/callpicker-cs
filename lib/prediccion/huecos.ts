@@ -35,6 +35,8 @@
  */
 
 /** Quién lo consigue. Ver la regla de ruteo arriba. */
+import { TICKETS, TICKETS_SIN_CIERRE } from '@/lib/tickets-norm'
+
 export type DuenoHueco = 'asesor' | 'direccion'
 
 /** Una tarea por cuenta, o una sola para toda la cartera. */
@@ -192,8 +194,15 @@ export const HUECOS: Record<ClaveHueco, DefinicionHueco> = {
     dueno: 'direccion', alcance: 'cartera',
     pedir: 'Pedir que el reporte de Zoho Desk incluya los tickets ABIERTOS, con '
          + 'su fecha de apertura y su antigüedad',
-    porque: 'El export está filtrado a cerrados: 6,326 de 6,328 filas traen '
-          + 'fecha de cierre. Así que «0 abiertos» no es un cero, es ceguera.',
+    /* LA CIFRA SE CUENTA, NO SE RECUERDA. Decía «6,326 de 6,328 filas», que
+       era el corte del 2 de octubre, y el archivo ya iba por 6,982. Es un
+       texto que dirección lee para decidir si pide el cambio a la mesa: un
+       dato viejo ahí no se nota, porque suena igual de preciso.
+       [[feedback-contexto-ia-sin-huecos]] [[tickets-fuente]] */
+    porque: 'El export está filtrado a cerrados: '
+          + (TICKETS.length - TICKETS_SIN_CIERRE).toLocaleString('es-MX') + ' de '
+          + TICKETS.length.toLocaleString('es-MX') + ' filas traen fecha de '
+          + 'cierre. Así que «0 abiertos» no es un cero, es ceguera.',
     donde: 'Daniel Martínez → mesa de ayuda.',
     bloquea: 'Un cliente que lleva tres semanas esperando se ve hoy igual que '
            + 'uno sin incidencias. Es el único hueco donde no tenemos nada en su '

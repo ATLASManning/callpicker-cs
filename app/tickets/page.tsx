@@ -593,8 +593,19 @@ export default function TicketsPage() {
               <div className="text-xs leading-relaxed" style={{ color: '#7C2D12' }}>
                 <strong>Todo lo que hay abajo son tickets CERRADOS.</strong> El export de
                 Zoho no trae los abiertos, así que este módulo no puede verlos ni contarlos.
+                {/* «HOY» NO, LA FECHA DEL CORTE.
+                    Estas cifras salen del último corte diario de la mesa, que
+                    puede llevar días parado — al 16 oct 2026 el más reciente
+                    era del día 5, once días atrás, mientras el export de Zoho
+                    ya venía al 16. Decir «hoy» sobre un número de hace once
+                    días es inventarle frescura a un dato viejo, y es la regla
+                    que `lib/mesa-ayuda.ts` ya exige: un dato sin fecha se lee
+                    como si fuera de hoy. Si el corte no trae fecha, se dice
+                    que no la trae. */}
                 {mesa.hay && mesa.abiertos !== null && (
-                  <> Hoy la mesa tiene <strong>{mesa.abiertos} abiertos</strong>
+                  <> En el último corte de la mesa
+                    {mesa.fecha ? <> (<strong>{mesa.fecha}</strong>)</> : ' (sin fecha en el corte)'} había{' '}
+                    <strong>{mesa.abiertos} abiertos</strong>
                     {mesa.enEspera !== null && <> y <strong>{mesa.enEspera} en espera</strong></>},
                     y ninguno aparece en estas cifras.</>
                 )}
