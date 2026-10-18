@@ -33,6 +33,7 @@
        python scripts/sonda-activaciones.py --base http://localhost:3000
 """
 import argparse
+import datetime
 import base64
 import gzip
 import hashlib
@@ -72,15 +73,57 @@ def lee_archivo():
         filas.append({cab[i]: r[i] for i in range(min(len(cab), len(r)))})
     wb.close()
 
+    # LA SONDA TIENE QUE CALCULAR COMO CALCULA EL MODULO, o mide otra cosa y
+    # acusa a produccion de servir un corte viejo cuando lo que esta viejo es
+    # ella. Paso el 17 oct 2026: el modulo empezo a fundir los IDs repetidos y
+    # a recuperar el año de la fecha de pago, la sonda siguio con la regla de
+    # antes, y las tres comprobaciones de conteo fallaron sobre una pantalla
+    # CORRECTA. [[activaciones-fuente]]
+    #
+    # Las dos reglas son las de `app/activaciones/page.tsx`. Si cambian alli,
+    # cambian aqui — y lo que NO se hace nunca es mover el numero esperado para
+    # que cuadre con lo que la pantalla ya dice.
+    def anio_de_fecha(v):
+        """Espejo de `anoDeXlsx` en lib/fecha-xlsx.ts."""
+        if isinstance(v, (datetime.datetime, datetime.date)):
+            return v.year
+        if isinstance(v, (int, float)) and v > 0:
+            try:
+                return (datetime.datetime(1899, 12, 30)
+                        + datetime.timedelta(days=float(v))).year
+            except (ValueError, OverflowError):
+                return 0
+        if isinstance(v, str):
+            s = v.strip()
+            m = re.match(r'^(\d{4})-\d{2}-\d{2}', s)
+            if m:
+                return int(m.group(1))
+            m = re.match(r'^\d{1,2}-[A-Za-z]{3}-(\d{4})', s)
+            if m:
+                return int(m.group(1))
+        return 0
+
     def ano(f):
         v = f.get(u'Año')
         try:
-            return float(v)
+            a = float(v)
         except (TypeError, ValueError):
-            return 0.0
+            a = 0.0
+        # Casilla vacia -> se saca de la fecha del primer pago.
+        return a if a else float(anio_de_fecha(f.get('Fecha 1er Pago')))
+
+    def llenos(f):
+        return sum(1 for v in f.values() if v is not None and str(v).strip() != '')
 
     regs = [f for f in filas
             if str(f.get('ID') or '').strip() and str(f.get('Cliente') or '').strip()]
+    # Dos filas con el mismo ID son UNA activacion: se queda la mas completa.
+    porId = {}
+    for f in regs:
+        k = str(f.get('ID')).strip()
+        if k not in porId or llenos(f) > llenos(porId[k]):
+            porId[k] = f
+    regs = list(porId.values())
     regs = [f for f in regs if ano(f) >= 2020]
     act = [f for f in regs if str(f.get('Tipo') or '').strip().lower() != 'demo']
     # Las activaciones de ID más alto son las que trajo el corte nuevo: si el
@@ -208,8 +251,20 @@ t = re.sub(r'<[^>]+>', ' ', html)
 t = t.replace('&#x27;', "'").replace('&amp;', '&').replace('&quot;', '"')
 t = re.sub(r'\s+', ' ', t)
 
-for k, etq in (('filas', u'filas del archivo'),
-               ('reales', u'activaciones reales'),
+# LA PANTALLA NO IMPRIME EL TOTAL DE FILAS, y exigirlo era pedirle una cadena
+# que nunca ha estado ahí: el encabezado dice «2,157 activaciones · 582 demos»
+# y el total es la SUMA de las dos, que no se escribe en ningún sitio. La
+# comprobación fallaba desde que se escribió, sobre pantallas correctas, y una
+# que siempre falla se acaba leyendo como ruido — justo lo que no puede pasarle
+# a la que avisa de que el corte no entró.
+#
+# Lo que esa comprobación QUERÍA decir sí se verifica: que las dos partes estén
+# en pantalla, y que sumen el archivo. [[feedback-verificar-antes-asegurar]]
+exige(esp['reales'] + esp['demos'] == esp['filas'],
+      u'las dos partes suman el archivo (%s + %s = %s)'
+      % (format(esp['reales'], ',d'), format(esp['demos'], ',d'),
+         format(esp['filas'], ',d')))
+for k, etq in (('reales', u'activaciones reales'),
                ('demos', u'demos')):
     exige(hay(esp[k]), u'aparece la cifra de %s (%s)' % (etq, format(esp[k], ',d')))
 
