@@ -1,6 +1,7 @@
 import path from 'path'
 import { supabaseAdmin, traerPorPaginas } from '@/lib/supabase'
 import { hoyEnMexico } from '@/lib/fecha-local'
+import { fechaDeXlsx } from '@/lib/fecha-xlsx'
 
 /**
  * lib/nuevos-sin-asesor.ts — CLIENTES GRANDES QUE NADIE ESTÁ ATENDIENDO
@@ -99,12 +100,6 @@ function tokens(s: string | null | undefined): string[] {
   return norm(s).split(' ').filter(t => t.length > 3 && !VACIAS.has(t))
 }
 
-/** Los meses como los escribe el .xlsx: `10-Dec-2025`. */
-const MESES: Record<string, string> = {
-  JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06',
-  JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12',
-}
-
 /**
  * La fecha del primer pago, venga como venga.
  *
@@ -117,26 +112,12 @@ const MESES: Record<string, string> = {
  *
  * Un aviso que multiplica por treinta lo que pasa es peor que no tenerlo: se
  * lee una vez, se comprueba, y ya nadie lo vuelve a mirar.
+ *
+ * LA FUNCIÓN YA NO VIVE AQUÍ: la necesitaba también el módulo de Activaciones
+ * y se movió entera a `lib/fecha-xlsx.ts`. Copiarla habría sido la segunda
+ * versión de algo que ya se equivocó una vez.
  */
-function fechaDe(cru: unknown): string | null {
-  if (typeof cru === 'number' && cru > 0) {
-    const d = new Date(Date.UTC(1899, 11, 30) + cru * 86400000)
-    return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10)
-  }
-  if (cru instanceof Date && !Number.isNaN(cru.getTime())) {
-    return cru.toISOString().slice(0, 10)
-  }
-  if (typeof cru === 'string') {
-    const s = cru.trim()
-    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10)
-    const m = s.match(/^(\d{1,2})-([A-Za-z]{3})-(\d{4})/)
-    if (m) {
-      const mes = MESES[m[2].toUpperCase()]
-      if (mes) return `${m[3]}-${mes}-${m[1].padStart(2, '0')}`
-    }
-  }
-  return null
-}
+const fechaDe = fechaDeXlsx
 
 function diasDesde(iso: string | null, hoy: string): number | null {
   if (!iso) return null

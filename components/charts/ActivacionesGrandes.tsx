@@ -315,7 +315,9 @@ function Frecuencia({
             {' · '}
             {activo.n === 0
               ? 'ninguna activación arriba del umbral'
-              : <>{activo.n} activación{activo.n === 1 ? '' : 'es'}
+              /* El plural de «activación» pierde el acento: activaciones.
+                 Pegarle «es» al singular daba «activaciónes». */
+              : <>{activo.n === 1 ? '1 activación' : `${activo.n} activaciones`}
                   {' · '}
                   <strong style={{ color: VERDE }}>{pesos(activo.dinero)}</strong>
                   {' de primer pago'}</>}

@@ -112,7 +112,28 @@ export async function GET(req: NextRequest) {
       if (registros.length >= 20) break // un cliente con 20+ altas es un error de captura
     }
 
-    return NextResponse.json({ registros, total: registros.length, columnasArchivo: headers.length })
+    /* DOS FILAS CON EL MISMO ID SON UNA ACTIVACIÓN, NO DOS.
+       Esta ruta pinta la ficha de la cuenta leyendo el .xlsx en crudo, así que
+       los seis IDs repetidos del corte del 16 oct 2026 —el mismo cliente, el
+       mismo día y el mismo importe, apuntado dos veces, una de ellas a medio
+       capturar— le habrían dicho al asesor que su cuenta tiene DOS altas.
+       Se queda la fila con más campos llenos, igual que en
+       `app/activaciones/page.tsx`. [[activaciones-fuente]] */
+    const porCid = new Map<string, RegistroDetalle>()
+    for (const r of registros) {
+      const previa = porCid.get(r.cid)
+      if (!previa || r.campos.length > previa.campos.length) porCid.set(r.cid, r)
+    }
+    const unicos = Array.from(porCid.values())
+
+    return NextResponse.json({
+      registros: unicos,
+      total: unicos.length,
+      /* Se dice cuántas se fundieron: callarlo deja al que mantiene la hoja
+         sin saber que tiene filas repetidas. */
+      duplicadasQuitadas: registros.length - unicos.length,
+      columnasArchivo: headers.length,
+    })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

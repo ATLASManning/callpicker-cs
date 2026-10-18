@@ -29,6 +29,8 @@
 import io
 import os
 import sys
+import datetime
+import re
 import unicodedata
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
@@ -311,29 +313,121 @@ for k in ('anio_1899', 'sin_id', 'sin_cliente', 'ids_dup', 'nombre_sucio', 'pago
     if d > 0:
         peor.append(u'%s (+%d)' % (k, d))
     print(u'      %-26s %8d %8d %+8d' % (k, x, y, d))
+# UN DUPLICADO NO ES SIEMPRE EL MISMO DUPLICADO, y tratarlos igual convierte
+# este guion en una alarma que hay que ignorar para poder trabajar.
+#
+#   · MISMO CLIENTE dos veces (misma fecha, mismo importe, mismo mes): es una
+#     captura repetida. El modulo se queda con la fila mas completa y no se
+#     pierde nada. Paso con los seis IDs del corte del 16 oct 2026.
+#   · DOS CLIENTES compartiendo ID: ahi si, quedarse con uno BORRA una
+#     activacion de verdad. Eso es lo que hay que parar.
+#
+# Se separan, y solo el segundo caso falla. El primero se dice y se sigue.
+def dups_por_tipo(filas):
+    porId = {}
+    for f in filas:
+        k = clave(f)
+        if not k:
+            continue
+        porId.setdefault(k, []).append(f)
+    mismos, distintos = [], []
+    for k, fs in porId.items():
+        if len(fs) < 2:
+            continue
+        nombres = set(norm(str(f.get('Cliente') or '')) for f in fs)
+        (mismos if len(nombres) == 1 else distintos).append((k, fs))
+    return mismos, distintos
+
+
+dup_mismo_n, dup_distinto_n = dups_por_tipo(filas_n)
+dup_mismo_v, dup_distinto_v = dups_por_tipo(filas_v)
+if dup_mismo_n or dup_distinto_n:
+    print()
+    print(u'      de los IDs repetidos del archivo NUEVO:')
+    print(u'        %d son el MISMO cliente apuntado dos veces (el modulo funde'
+          % len(dup_mismo_n))
+    print(u'          la fila mas completa: no se pierde nada)')
+    for k, fs in dup_mismo_n[:8]:
+        print(u'            %-10s %s' % (k, str(fs[0].get('Cliente') or '')[:40]))
+    print(u'        %d son DOS CLIENTES compartiendo ID (quedarse con uno BORRA'
+          % len(dup_distinto_n))
+    print(u'          una activacion — esto si hay que resolverlo en la hoja)')
+    for k, fs in dup_distinto_n[:8]:
+        print(u'            %-10s %s' % (k, u' | '.join(
+            str(f.get('Cliente') or '')[:28] for f in fs)))
+
+# El conteo crudo deja de fallar por si solo: lo que falla es el caso que pierde
+# dato. `peor` conserva el resto de anomalias.
+peor = [p for p in peor if not p.startswith('ids_dup')]
 exige(not peor, u'la calidad del dato no empeora',
       u'' if not peor else u'empeora en: ' + ', '.join(peor))
+exige(len(dup_distinto_n) <= len(dup_distinto_v),
+      u'ningun ID NUEVO reparte dos clientes distintos',
+      u'en uso %d · nuevo %d' % (len(dup_distinto_v), len(dup_distinto_n)))
 
 
 # ── 5 · lo que el módulo PINTARÍA ────────────────────────────────────────
+#
+# ESTA SIMULACION TIENE QUE SEGUIR AL MODULO, o deja de servir para las dos
+# cosas que hace: avisar de lo que se cae, y no gritar por lo que ya no se cae.
+# Desde el 17 oct 2026 `app/activaciones/page.tsx` hace DOS cosas mas antes de
+# filtrar por año, y aqui se replican:
+#   1. funde las filas que comparten ID, quedandose con la mas completa
+#   2. si la casilla «Año» esta vacia, saca el año de `Fecha 1er Pago`
+# Si el modulo cambia y esto no, el guion da verde sobre una perdida real.
+def anio_de_fecha(v):
+    """El año de `Fecha 1er Pago`, venga como venga. Espejo de lib/fecha-xlsx.ts."""
+    if isinstance(v, datetime.datetime) or isinstance(v, datetime.date):
+        return v.year
+    if isinstance(v, (int, float)) and v > 0:
+        try:
+            return (datetime.datetime(1899, 12, 30)
+                    + datetime.timedelta(days=float(v))).year
+        except (ValueError, OverflowError):
+            return None
+    if isinstance(v, str):
+        s = v.strip()
+        m = re.match(r'^(\d{4})-\d{2}-\d{2}', s)
+        if m:
+            return int(m.group(1))
+        m = re.match(r'^\d{1,2}-[A-Za-z]{3}-(\d{4})', s)
+        if m:
+            return int(m.group(1))
+    return None
+
+
+def anio_efectivo(f):
+    try:
+        a = int(str(f.get('Año') or '0').strip() or 0)
+    except ValueError:
+        a = 0
+    if a:
+        return a
+    return anio_de_fecha(f.get('Fecha 1er Pago')) or 0
+
+
+def llenos(f):
+    return sum(1 for v in f.values()
+               if v is not None and str(v).strip() != '')
+
+
 def pintables(filas):
-    out = []
+    # 1 · fundir por ID, la mas completa gana
+    porId = {}
     for f in filas:
-        if not clave(f):
+        k = clave(f)
+        if not k:
             continue
         if not str(f.get('Cliente') or '').strip():
             continue
-        try:
-            anio = int(str(f.get('Año') or '0').strip() or 0)
-        except ValueError:
-            continue
-        if anio < ANIO_MINIMO:
-            continue
-        out.append(f)
-    return out
+        if k not in porId or llenos(f) > llenos(porId[k]):
+            porId[k] = f
+    # 2 · año efectivo (casilla, o fecha de pago)
+    return [f for f in porId.values() if anio_efectivo(f) >= ANIO_MINIMO]
 
 
 pv, pn = pintables(filas_v), pintables(filas_n)
+pn_por_id = {clave(f): f for f in pn}
 
 
 def demos(filas):
@@ -359,9 +453,12 @@ if descartadas:
             por.append('sin ID')
         if not str(f.get('Cliente') or '').strip():
             por.append('sin Cliente')
+        if anio_efectivo(f) < ANIO_MINIMO:
+            por.append('sin Año y sin Fecha 1er Pago')
+        elif clave(f) and f is not pn_por_id.get(clave(f)):
+            por.append('ID repetido — se queda la fila mas completa')
         try:
-            if int(str(f.get('Año') or '0').strip() or 0) < ANIO_MINIMO:
-                por.append('Año=%s' % (f.get('Año')))
+            pass
         except ValueError:
             por.append('Año no numérico (%s)' % (f.get('Año'),))
         print(u'        %-10s %-28s %-10s %s'

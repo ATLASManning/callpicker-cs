@@ -1,4 +1,5 @@
 import path from 'path'
+import { anoDeXlsx } from '@/lib/fecha-xlsx'
 import ActivacionesCharts, { RegistroItem } from '@/components/charts/ActivacionesCharts'
 import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico'
 import SoloEnCliente, { ReservaGrafica } from '@/components/charts/SoloEnCliente'
@@ -54,6 +55,10 @@ interface Descartada {
    compilaba mintiendo. */
 async function getRegistros(): Promise<{
   registros: RegistroItem[]; descartadas: Descartada[]
+  /** Filas que compartían ID con otra y se fundieron. Se dice, no se calla. */
+  duplicadasQuitadas: number
+  /** Cuántas salvó el año sacado de la fecha de pago. */
+  recuperadas: number
 }> {
   try {
     // Importación dinámica para que Next.js no falle en build client-side
@@ -63,20 +68,47 @@ async function getRegistros(): Promise<{
 
     if (!fs.existsSync(filePath)) {
       console.warn('[activaciones] Excel no encontrado en', filePath)
-      return { registros: [], descartadas: [] }
+      return { registros: [], descartadas: [], duplicadasQuitadas: 0, recuperadas: 0 }
     }
 
     const wb   = xlsx.readFile(filePath)
     const ws   = wb.Sheets['Hoja1']
     if (!ws) {
       console.warn('[activaciones] Hoja Hoja1 no encontrada')
-      return { registros: [], descartadas: [] }
+      return { registros: [], descartadas: [], duplicadasQuitadas: 0, recuperadas: 0 }
     }
 
     const raw: Record<string, any>[] = xlsx.utils.sheet_to_json(ws, { defval: '' })
 
     const conIdYCliente = raw.filter(r => r['ID'] && r['Cliente'])
-    const filas = conIdYCliente
+
+    /* ── DOS FILAS CON EL MISMO ID SON UNA ACTIVACIÓN, NO DOS ───────────────
+       El corte del 16 oct 2026 trajo seis IDs repetidos, y los seis son el
+       MISMO cliente, el MISMO día, el MISMO importe y el MISMO mes, dos veces:
+       una fila completa y otra a medio capturar, sin `Año`, sin ejecutivo y
+       sin días. No son dos activaciones, es la misma apuntada dos veces.
+
+       Hasta hoy no se notaba porque el filtro de año las tiraba de rebote —la
+       copia incompleta no tiene año—, o sea que lo correcto pasaba por
+       casualidad. En cuanto el año se recupera de la fecha de pago (abajo),
+       esa casualidad se acaba y cada una contaría doble.
+
+       Se queda la fila MÁS COMPLETA. Y lo que se descarta se cuenta: no se
+       tira nada en silencio. [[activaciones-fuente]] */
+    const llenos = (r: Record<string, any>) =>
+      Object.values(r).filter(v => v !== '' && v !== null && v !== undefined).length
+    const porId = new Map<string, Record<string, any>>()
+    let duplicadasQuitadas = 0
+    for (const r of conIdYCliente) {
+      const k = String(r['ID']).trim()
+      const previa = porId.get(k)
+      if (!previa) { porId.set(k, r); continue }
+      duplicadasQuitadas++
+      if (llenos(r) > llenos(previa)) porId.set(k, r)
+    }
+    const unicas = Array.from(porId.values())
+
+    const filas = unicas
       .map(r => ({
         id:             String(r['ID']),
         cliente:        String(r['Cliente']).trim(),
@@ -84,7 +116,19 @@ async function getRegistros(): Promise<{
         tamano:         normTamano(String(r['Tamaño'])),
         ejecutivo:      normEjecutivo(String(r['Ejecutivo'])),
         mes:            String(r['Mes 1er Pago']).trim(),
-        ano:            typeof r['Año'] === 'number' ? r['Año'] : parseInt(String(r['Año'])) || 0,
+        /* SI LA COLUMNA «Año» VIENE VACÍA, SE SACA DE LA FECHA DE PAGO.
+           Es el caso GAMP otra vez, y van tres cortes. En el del 16 oct 2026
+           había CUATRO activaciones pagadas de octubre —Cityplanners $1,470,
+           cp190206 $1,558, Avagic $1,029 y Plastitabla $379, $4,436 en
+           total— con `Fecha 1er Pago` del 8 y el 14 de octubre y la casilla
+           del año en blanco. El filtro de abajo las tiraba enteras.
+           La fecha de pago es un dato mejor que la casilla del año: la
+           escribe el cobro, no el capturista. Si tampoco hay fecha, queda 0 y
+           el filtro la descarta — contándola, como siempre. */
+        ano:            typeof r['Año'] === 'number' ? r['Año']
+                        : parseInt(String(r['Año'])) || anoDeXlsx(r['Fecha 1er Pago']) || 0,
+        anoRecuperado:  !(typeof r['Año'] === 'number' || parseInt(String(r['Año'])))
+                        && anoDeXlsx(r['Fecha 1er Pago']) !== null,
         vendedor:       normVendedor(String(r['Vendedor'])),
         giro:           normGiro(String(r['Giro'])),
         tipo:           normTipo(String(r['Tipo'])),
@@ -116,17 +160,18 @@ async function getRegistros(): Promise<{
       .filter(r => r.ano < 2020)
       .map(r => ({ id: r.id, cliente: r.cliente, ejecutivo: r.ejecutivo,
                    ano: r.ano, primerPago: r.primerPago }))
-    return { registros: validas, descartadas }
+    const recuperadas = validas.filter(r => r.anoRecuperado).length
+    return { registros: validas, descartadas, duplicadasQuitadas, recuperadas }
 
   } catch (err) {
     console.error('[activaciones] Error leyendo Excel:', err)
-    return { registros: [], descartadas: [] }
+    return { registros: [], descartadas: [], duplicadasQuitadas: 0, recuperadas: 0 }
   }
 }
 
 // ── Página ────────────────────────────────────────────────────────────────────
 export default async function ActivacionesPage() {
-  const { registros, descartadas } = await getRegistros()
+  const { registros, descartadas, duplicadasQuitadas, recuperadas } = await getRegistros()
 
   if (registros.length === 0) {
     return (
@@ -175,12 +220,23 @@ export default async function ActivacionesPage() {
         <div style={{ margin: '16px 32px 0', padding: '12px 16px', borderRadius: 12,
                       background: '#FFF7ED', border: '1px solid #FED7AA' }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: '#7C2D12', marginBottom: 6 }}>
-            {descartadas.length} activación{descartadas.length !== 1 ? 'es' : ''} del archivo
-            no {descartadas.length !== 1 ? 'aparecen' : 'aparece'} abajo: les falta el AÑO
+            {/* «activaciónes» NO EXISTE. El plural de «activación» pierde el
+                acento: activaciones. Estuvo así desde que se escribió el
+                aviso, en el único texto que se lee cuando algo va mal. */}
+            {descartadas.length === 1
+              ? '1 activación del archivo no aparece abajo'
+              : `${descartadas.length} activaciones del archivo no aparecen abajo`}
+            : no hay con qué fecharla{descartadas.length !== 1 ? 's' : ''}
           </p>
           <p style={{ fontSize: 12, color: '#9A3412', lineHeight: 1.6 }}>
-            La celda «Año» viene vacía y Excel la entrega como 1899, así que no entra en
-            ningún corte. Se arregla en la hoja de origen, capturando el año:
+            {/* El texto decía sólo «Excel la entrega como 1899». Desde que el
+                año se recupera de la fecha de pago, lo que queda aquí es otra
+                cosa: filas SIN año y SIN fecha de primer pago, o sea sin
+                ningún dato con el que situarlas en el tiempo. Decir la causa
+                vieja manda a buscar donde ya no está el problema. */}
+            Les falta la casilla «Año» <strong>y</strong> la «Fecha 1er Pago», así que no
+            hay forma de saber a qué corte pertenecen. Se arregla en la hoja de origen,
+            capturando cualquiera de las dos:
           </p>
           <ul style={{ fontSize: 12, color: '#7C2D12', marginTop: 6, paddingLeft: 18 }}>
             {descartadas.map(d => (
@@ -190,6 +246,39 @@ export default async function ActivacionesPage() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {/* LO QUE EL MÓDULO ARREGLÓ DEL ARCHIVO, DICHO EN VOZ ALTA.
+          Recuperar un dato en silencio es tan opaco como tirarlo en silencio:
+          quien mantiene la hoja de origen no se entera de que hay filas a
+          medio capturar, y el mes siguiente vuelven. Esto no es un error del
+          tablero — es trabajo pendiente en la hoja. */}
+      {(duplicadasQuitadas > 0 || recuperadas > 0) && (
+        <div style={{ margin: '16px 32px 0', padding: '12px 16px', borderRadius: 12,
+                      background: '#F5F8FB', border: '1px solid #DFE8EF' }}>
+          <p style={{ fontSize: 12, color: '#3D4B5C', lineHeight: 1.6 }}>
+            {recuperadas > 0 && (
+              <>
+                <strong>{recuperadas === 1 ? '1 activación' : `${recuperadas} activaciones`}</strong>{' '}
+                {recuperadas === 1
+                  ? 'traía la casilla «Año» en blanco y se recuperó'
+                  : 'traían la casilla «Año» en blanco y se recuperaron'}{' '}
+                con la fecha del primer pago, así que sí{' '}
+                {recuperadas === 1 ? 'cuenta' : 'cuentan'} abajo. Conviene capturar el año
+                en la hoja.{' '}
+              </>
+            )}
+            {duplicadasQuitadas > 0 && (
+              <>
+                <strong>{duplicadasQuitadas} fila{duplicadasQuitadas !== 1 ? 's' : ''}</strong>{' '}
+                compartía{duplicadasQuitadas !== 1 ? 'n' : ''} ID con otra —el mismo cliente
+                apuntado dos veces, una de ellas a medio capturar— y se fundi
+                {duplicadasQuitadas !== 1 ? 'eron' : 'ó'} con la más completa: una activación,
+                no dos.
+              </>
+            )}
+          </p>
         </div>
       )}
 
