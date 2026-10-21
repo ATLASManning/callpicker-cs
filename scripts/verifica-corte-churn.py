@@ -114,14 +114,25 @@ ant = suma('antiguedadSaldos', 'monto')
 # esta comprobacion y todas las de abajo sin decir que se las saltaba, que es
 # peor que fallar—. Ahora tolera el sufijo y, si de verdad no esta, lo dice.
 mPV = re.search(r"'Por vencer[^']*',\s*monto:\s*([0-9.]+)", actual)
-if not mPV:
-    print()
-    print('  *** el corte no declara tramo «Por vencer»: no se puede cuadrar la antiguedad.')
-    raise SystemExit(1)
-porVencer = float(mPV.group(1))
+if mPV:
+    porVencer = float(mPV.group(1))
+    etqPV = format(porVencer, ',')
+else:
+    # NO TODOS LOS CORTES TRAEN ESA CASILLA, y que falte no impide cuadrar: si
+    # el primer tramo es «1 a 7 dias vencido», lo que la tabla reporta esta
+    # TODO vencido y el por vencer es cero POR AUSENCIA DE TRAMO, no por
+    # medicion. La version anterior abortaba aqui con SystemExit(1) y se
+    # saltaba la comprobacion de abajo —la que de verdad importa—, asi que un
+    # corte legitimo como el de la semana 25 tumbaba el verificador entero.
+    #
+    # Lo que NO se hace es inventar un cero: si ademas hubiera un tramo que
+    # pareciera «por vencer» sin llamarse asi, esto lo contaria como vencido y
+    # la comprobacion de abajo lo delataria al no cuadrar con ningun bloque.
+    porVencer = 0.0
+    etqPV = 'sin tramo'
 vencido = round(ant - porVencer, 2)
 print('  %-16s tramos %12s   por vencer %13s   vencido %s'
-      % ('antigüedad', format(ant, ','), format(porVencer, ','), format(vencido, ',')))
+      % ('antigüedad', format(ant, ','), etqPV, format(vencido, ',')))
 # EL VENCIDO TIENE QUE SER EL MISMO DINERO QUE UN BLOQUE DECLARADO, pero NO
 # siempre el mismo bloque: hasta la semana 22 la cartera por cobrar vivia en
 # `suspendidos` (Hard + Soft) y desde la 24 vive en `pendientes`. Comparando
