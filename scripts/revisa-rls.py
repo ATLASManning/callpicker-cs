@@ -181,6 +181,14 @@ if '--sql' in sys.argv and abiertas:
             f.write(u'--     cuando sale gratis. Si ya lo tenian, esto no cambia nada.\n')
             for t in sorted(vacias):
                 f.write(u'ALTER TABLE public."%s" ENABLE ROW LEVEL SECURITY;  -- vacia\n' % t)
+        f.write(u'\n-- ACTIVAR RLS PUEDE NO BASTAR, y pasó aquí el 21 oct 2026:\n')
+        f.write(u'-- una politica permisiva de antes se queda escrita aunque RLS este\n')
+        f.write(u'-- APAGADO —ahi no se aplica— y al encenderlo se ACTIVA. Resultado: el\n')
+        f.write(u'-- aviso de Supabase se calla, `rowsecurity` dice true, y la llave\n')
+        f.write(u'-- publica sigue leyendo la tabla entera. Por eso el veredicto sale de\n')
+        f.write(u'-- pedir las filas desde fuera, no de mirar el panel.\n')
+        f.write(u'SELECT tablename, policyname, roles, cmd, qual\n  FROM pg_policies\n'
+                u" WHERE schemaname = 'public'\n ORDER BY tablename, policyname;\n")
         f.write(u'\n-- COMPROBAR DESPUES, en el mismo editor:\n')
         f.write(u'SELECT tablename, rowsecurity\n  FROM pg_tables\n'
                 u" WHERE schemaname = 'public'\n ORDER BY rowsecurity, tablename;\n")
