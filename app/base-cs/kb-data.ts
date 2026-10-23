@@ -1864,4 +1864,159 @@ export const KB: Categoria[] = [
 
     ],
   },
+
+  /* ══════════════════════════════════════════════════════════════════════
+     PORTABILIDAD · DERECHOS DEL USUARIO
+
+     Nace de un caso real (23 oct 2026): TELMEX frenó una portabilidad y el
+     asesor no tenía con qué contestar. El trámite ya estaba en la Base
+     —`lineas > portabilidad`, los papeles que pide Callpicker—, pero eso
+     sirve para ARMAR la solicitud, no para defenderla cuando el donador la
+     traba.
+
+     Lo que falta es lo regulatorio, y es lo que convierte una negativa en un
+     trámite que sigue: la obligación NO es de Callpicker, es del proveedor
+     que tiene el número. Las dos fuentes son públicas y verificables, y una
+     de ellas es del propio Telmex — un documento que firma el cliente y que
+     obliga a quien lo redactó.
+
+     REGLA DE USO: cada afirmación de aquí lleva su artículo o su regla al
+     lado. Un derecho citado sin su fundamento es una opinión, y en una mesa
+     de negociación se cae sola. [[feedback-auditorias-verificar]]
+     ══════════════════════════════════════════════════════════════════════ */
+  {
+    id: 'portabilidad', label: 'Portabilidad y Derechos', color: '#1D6CAA',
+    articulos: [
+
+      // ── 1. EL PLAYBOOK — lo que se usa cuando frenan el trámite ─────────
+      {
+        id: 'portabilidad-frenada',
+        badge: 'nuevo',
+        titulo: 'Le frenaron la portabilidad al cliente — qué contestar',
+        descripcion: 'Guía de respuesta cuando el proveedor donador (Telmex, Axtel, Totalplay…) traba, condiciona o retrasa una portabilidad hacia Callpicker. Cada negativa tiene enfrente una obligación escrita, y casi todas están en un documento que el propio donador redactó o en la Carta de Derechos del IFT. El trámite es GRATUITO y el donador NO puede negarse: portar es un derecho del usuario, no una concesión del proveedor.',
+        utilidad: 'Es el material para contestar en el momento, por escrito y con fundamento. Sirve para el correo al cliente, para que el cliente se lo reenvíe a su proveedor, y para decidir cuándo ya toca escalar al IFT o a PROFECO.',
+        subtitulos: [
+          {
+            titulo: 'Las negativas típicas, y con qué se contestan',
+            items: [
+              '«Tiene que estar al corriente de pago» → FALSO. Se puede portar AUN CON ADEUDOS. Carta de Derechos, punto 66 (Regla 14 de las Reglas de Portabilidad Numérica). El adeudo sigue existiendo y hay que pagarlo, pero NO bloquea la portación.',
+              '«No le damos el NIP porque el servicio está suspendido / sin saldo» → PROHIBIDO condicionarlo. Carta de Derechos, punto 59 (Reglas 13 fr. VIII y 39). El NIP se pide marcando 051 desde la línea.',
+              '«Si porta ese número pierde todo el paquete» → NO. Al portar se cancela AUTOMÁTICAMENTE sólo el servicio telefónico asociado al número; los demás servicios contratados siguen. Carta de Derechos, punto 61 (NOM-184 5.2.23.1 y 5.2.23.2) y Condiciones Telmex, cláusula 11.',
+              '«Hay que esperar al corte / al fin del contrato» → NO. El plazo es de 24 HORAS, o hasta 5 días hábiles si el cliente elige la fecha. Carta de Derechos, punto 60 (LFTR art. 191 fr. III; Reglas 13 fr. IV y 37) y Condiciones Telmex, cláusula 9 inciso h).',
+              '«El número ya se canceló, ya no se puede» → SÍ se puede, si no han pasado más de 40 DÍAS NATURALES desde la cancelación. Se llama Proceso de Recuperación de Números. Condiciones Telmex, cláusula 8 incisos a) y c).',
+              '«Le cobramos el trámite» → NO. La portabilidad es GRATUITA, y cancelarla también. Carta de Derechos, puntos 58 y 65; Condiciones Telmex, cláusula 1.',
+              'Le llaman para retenerlo / le ofrecen un plan mejor → PROHIBIDO. El proveedor anterior NO puede contactar al cliente para retenerlo durante la portación. Carta de Derechos, punto 64 (Reglas 13 fr. XVI y 21).',
+              '«Es que el contrato dice que no puede» → Ninguna cláusula puede limitar la portabilidad. Carta de Derechos, punto 61 (Regla 16). Y el donador no puede imponer condiciones que la inhiban: Condiciones Telmex, cláusula 9 inciso i).',
+            ],
+          },
+          {
+            titulo: 'Qué hacer, en orden',
+            items: [
+              '1 · CONFIRMAR QUE EL TRÁMITE ESTÁ BIEN ARMADO antes de reclamar nada. Persona moral: identificación del representante legal, solicitud firmada y escritura pública con poder suficiente. Si falta el poder, la negativa es legítima y la pelea se pierde. Ver el artículo «Solicitud de Portabilidad» en Líneas y Canales.',
+              '2 · PEDIR LA NEGATIVA POR ESCRITO, con folio. Si el donador no la da por escrito, el cliente la pide por su centro de atención y guarda el número de reporte: sin folio no hay queja que sostener.',
+              '3 · CONSULTAR EL ESTADO en el sistema de información de portabilidad — el cliente tiene derecho a consultarlo y a que le expliquen cómo. Carta de Derechos, punto 63 (Reglas 13 fr. IX, 18 y 34).',
+              '4 · CONTESTAR CITANDO EL ARTÍCULO, no la costumbre. Mandar al cliente el párrafo exacto para que lo reenvíe a su proveedor, con los dos PDFs adjuntos.',
+              '5 · SI SE VENCE EL PLAZO, hay pena convencional a favor del cliente — Carta de Derechos, punto 62 (NOM-184 5.2.23.3; Regla 13 fr. XII).',
+              '6 · ESCALAR. Queja ante el IFT por incumplimiento del operador (punto 125) y ante PROFECO, que asesora, concilia y representa al cliente frente a su proveedor (punto 124). Las dos instituciones pueden verificar e iniciar sanción.',
+            ],
+          },
+          {
+            titulo: 'Lo que NO se debe prometer al cliente',
+            items: [
+              'NO prometer una fecha de corte: las 24 horas corren desde que el RECEPTOR concluye la instalación y el cliente da su consentimiento, no desde que se manda el correo.',
+              'NO decirle que deja de deber lo que debe. Portar no finiquita adeudos, penalizaciones por cancelación anticipada ni la devolución de equipos que no son suyos — Condiciones Telmex, cláusula 10 incisos b) y e).',
+              'NO iniciar una portabilidad sin consentimiento expreso del titular: está prohibida y el cliente puede exigir que le devuelvan el número en 15 días hábiles. Carta de Derechos, punto 67 (Regla 52).',
+              'NO afirmar que «Callpicker lo resuelve»: el obligado a ejecutar es el proveedor que tiene el número. Callpicker acompaña, documenta y escala.',
+            ],
+          },
+        ],
+        consideraciones: [
+          { texto: 'La portabilidad aplica de SERVICIO LOCAL FIJO a servicio local fijo, y de un servicio no geográfico al mismo servicio no geográfico. No se porta un fijo a un no geográfico (800) ni al revés — Condiciones Telmex, cláusula 2.', tipo: 'warning' },
+          { texto: 'Para números NO GEOGRÁFICOS y para la recuperación de cancelados SIEMPRE hay que llenar y firmar la solicitud, aunque sea persona física. Condiciones Telmex, cláusula 6.', tipo: 'warning' },
+          { texto: 'El plazo de recuperación de un número ya cancelado son 40 días naturales. Pasados, el número se pierde: si una cuenta avisa que va a cancelar con su proveedor, esto es urgente, no un trámite más.', tipo: 'error' },
+          { texto: 'Las comunicaciones hacia o desde un número portado no pueden ser discriminadas en calidad ni en tarifa respecto de las de un número no portado — Condiciones Telmex, cláusula 8 inciso f).' },
+        ],
+      },
+
+      // ── 2. LA CARTA DEL IFT ─────────────────────────────────────────────
+      {
+        id: 'carta-derechos-ift',
+        pdfUrl: '/docs/Carta de Derechos Minimos de los Usuarios de Telecomunicaciones (IFT).pdf',
+        badge: 'nuevo',
+        titulo: 'Carta de Derechos Mínimos de los Usuarios de Telecomunicaciones (IFT)',
+        descripcion: 'Documento oficial del Instituto Federal de Telecomunicaciones con los derechos mínimos de cualquier usuario de telecomunicaciones en México, cada uno con su fundamento legal al pie. Son 126 derechos en catorce apartados; el apartado V es el de portabilidad (puntos 58 a 68) y el XIV el de protección de las instituciones.',
+        utilidad: 'Es la fuente que se cita en una negociación y la que se adjunta cuando el cliente tiene que escribirle a su proveedor. Al venir del IFT, no es la opinión de Callpicker: es la norma.',
+        subtitulos: [
+          {
+            titulo: 'Apartado V · Portabilidad del número telefónico (58 a 68)',
+            items: [
+              '58 · Cambiarse de compañía GRATIS conservando el número.',
+              '59 · Recibir el NIP de confirmación, sin condicionarlo a tener saldo ni a que el servicio esté activo.',
+              '60 · Que la portabilidad se ejecute en 24 horas, o en los 5 días hábiles siguientes si el usuario lo decide.',
+              '61 · Que se cancele automáticamente SÓLO el servicio telefónico, no los demás. Ningún contrato puede limitar este derecho.',
+              '62 · Cobrar la pena convencional si no se cumplen los plazos.',
+              '63 · Consultar el estado del trámite en el sistema de información.',
+              '64 · Que el proveedor anterior NO lo contacte para retenerlo.',
+              '65 · Cancelar la portabilidad cuando quiera, sin penalización.',
+              '66 · Portar AUN CON ADEUDOS — sin que eso lo exima de pagarlos.',
+              '67 · Que no lo porten sin su consentimiento, y recuperar el número en 15 días hábiles si ocurre.',
+              '68 · Recibir orientación para portar o recuperar su número.',
+            ],
+          },
+          {
+            titulo: 'Apartado XIV · A quién se escala (123 a 126)',
+            items: [
+              '123 · Protección y representación de PROFECO y del IFT, que pueden verificar e iniciar un procedimiento de sanción.',
+              '124 · Que PROFECO asesore, defienda, concilie y represente al usuario frente a su proveedor por incumplir el contrato de adhesión.',
+              '125 · Presentar queja ante el IFT por fallas de calidad o incumplimientos del operador.',
+              '126 · Ser representado en una acción colectiva.',
+            ],
+          },
+        ],
+      },
+
+      // ── 3. EL DOCUMENTO DEL PROPIO TELMEX ───────────────────────────────
+      {
+        id: 'cond-portabilidad-telmex',
+        pdfUrl: '/docs/Condiciones del Servicio de Portabilidad (Telmex).pdf',
+        badge: 'nuevo',
+        titulo: 'Condiciones del Servicio de Portabilidad — Telmex (Reg. 178-2016)',
+        descripcion: 'Las condiciones del servicio de portabilidad para mercado residencial y comercial que Telmex registra ante PROFECO y el IFT, y que forman parte del Contrato Marco que el cliente firmó. Define el proceso, los requisitos por tipo de persona, los derechos del consumidor y —lo más útil— las OBLIGACIONES DE TELMEX.',
+        utilidad: 'Es el documento más fuerte que hay para contestar una negativa de Telmex, porque lo redactó Telmex. Citarle a un proveedor su propio contrato registrado ante la autoridad cierra la discusión mucho antes que citarle una ley.',
+        subtitulos: [
+          {
+            titulo: 'Requisitos, por tipo de persona (cláusula 6)',
+            items: [
+              'PERSONA FÍSICA · NIP de confirmación (marcando 051 desde la línea a portar), el número a portar e identificación oficial.',
+              'PERSONA MORAL · identificación oficial del representante legal, solicitud de portabilidad llenada y firmada, y ESCRITURA PÚBLICA con poder suficiente a favor de quien firma. Éste es el requisito que más trámites detiene.',
+              'GOBIERNO · identificación del funcionario, solicitud firmada y documentación que acredite sus facultades de contratación.',
+              'Para NÚMEROS NO GEOGRÁFICOS y para RECUPERAR cancelados hay que llenar y firmar la solicitud siempre, sea quien sea.',
+            ],
+          },
+          {
+            titulo: 'Obligaciones de Telmex (cláusula 9) — lo que se le puede exigir',
+            items: [
+              'g) Correr con los costos de actualizar sus redes y con los costos de señalización.',
+              'h) Ejecutar la portación en no más de 24 horas desde que concluyó la instalación física, o en la fecha que pidió el cliente.',
+              'i) NO IMPONER CONDICIONES QUE INHIBAN LA PORTABILIDAD. Si el cliente tiene otros servicios con Telmex, Telmex debe individualizarlos y facturarlos por separado cuando el cliente lo pida por escrito.',
+              'f) Usar los datos personales del cliente únicamente para el trámite de portabilidad.',
+            ],
+          },
+          {
+            titulo: 'Lo que el cliente sigue debiendo (cláusulas 10 y 11)',
+            items: [
+              'Portar NO exime de pagar otros servicios o productos facturados o financiados por Telmex.',
+              'Portar NO exime de devolver equipos que no son del cliente, ni de pagar cargos pendientes ni penalizaciones por cancelación anticipada registradas ante PROFECO e IFT.',
+              'Presentar la solicitud IMPLICA el consentimiento de terminar la relación contractual, pero únicamente de los servicios que requieren los números portados, y a partir de la fecha de ejecución.',
+            ],
+          },
+        ],
+        consideraciones: [
+          { texto: 'Documento registrado: F-B, Reg. 178-2016/30-06-16. Citar el registro al reclamar: es lo que lo vuelve exigible ante PROFECO.' },
+          { texto: 'Es el contrato de TELMEX. Otros donadores (Axtel, Totalplay, Megacable) tienen el suyo, y los derechos de la Carta del IFT aplican igual a todos: para ésos se cita la Carta.', tipo: 'info' },
+        ],
+      },
+
+    ],
+  },
 ]
