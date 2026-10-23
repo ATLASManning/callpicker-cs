@@ -36,6 +36,7 @@
    el fuente de ahora.
 """
 import io
+import json
 import os
 import re
 import subprocess
@@ -72,11 +73,15 @@ head = git('rev-parse', '--short', 'HEAD')
 print('  HEAD local                %s  %s' % (head, git('log', '-1', '--format=%s')[:52]))
 
 # ── 1. El `dpl_` de una ruta publica ──────────────────────────────────────
+# Se GUARDA en una variable, no solo se imprime: es la unica senal que cambia
+# con cada build, y la comprobacion 4 la necesita.
+dpl = None
 try:
     with urllib.request.urlopen(BASE + '/acceso', timeout=60) as x:
         html = x.read().decode('utf-8', 'replace')
     m = re.search(r'dpl=(dpl_[A-Za-z0-9]+)', html)
-    print('  despliegue sirviendo      %s' % (m.group(1) if m else 'no se encontro el dpl_'))
+    dpl = m.group(1) if m else None
+    print('  despliegue sirviendo      %s' % (dpl or 'no se encontro el dpl_'))
 except urllib.error.HTTPError as e:
     print('  despliegue sirviendo      /acceso respondio %s' % e.code)
 
@@ -136,6 +141,48 @@ if DEL_CORREO:
         print('  ya superado. Lo que manda es la VERSION de arriba.')
     else:
         print('  ...que NO esta en esta rama')
+
+# ── 4. LA VERSION NO SE MUEVE SOLA, Y POR ESO NO BASTA ────────────────────
+#
+# `VERSION` es una constante que se sube A MANO. Un commit que no la toca —la
+# inmensa mayoria— la deja igual, asi que la comparacion CUADRA aunque el
+# build no haya entrado nunca. Es exactamente el fallo que la cabecera de este
+# guion dice que no hay que cometer, cometido por el guion.
+#
+# Paso el 21-23 oct 2026: el corte de Churn de la semana 25 se empujo a las
+# dos ramas, Vercel no lo recogio, y este script dijo DOS DIAS SEGUIDOS «el
+# codigo de HEAD esta sirviendo en produccion». La unica senal que sirve
+# siempre es el `dpl_`, que cambia con CADA build.
+#
+# Asi que se recuerda: el dpl visto la ultima vez, con su commit y su fecha.
+# Si el HEAD avanzo y el dpl NO, el build no entro — lo diga la VERSION lo que
+# diga. [[feedback-verificar-antes-asegurar]]
+MEMORIA = os.path.join(RAIZ, 'scripts', '.ultimo-despliegue.json')
+previo = {}
+try:
+    previo = json.loads(io.open(MEMORIA, encoding='utf-8').read())
+except (OSError, ValueError):
+    pass
+
+if previo.get('dpl') and previo.get('commit'):
+    print('\n  la vez anterior           %s  con HEAD %s'
+          % (previo['dpl'][:28], previo['commit']))
+    if previo['commit'] != head and previo['dpl'] == dpl:
+        n = git('rev-list', '--count', '%s..HEAD' % previo['commit']) or '?'
+        fallas.append('EL HEAD AVANZO %s commit(s) y el despliegue NO CAMBIO: '
+                      'el build no entro, por mucho que la VERSION cuadre' % n)
+    elif previo['dpl'] != dpl:
+        print('  el despliegue CAMBIO desde entonces')
+else:
+    print('\n  la vez anterior           (sin registro — esta es la primera)')
+    print('  OJO: sin un dpl anterior con que comparar, lo unico que se ha')
+    print('  mirado es la VERSION, y esa no cambia si el commit no la toca.')
+
+try:
+    io.open(MEMORIA, 'w', encoding='utf-8', newline='\n').write(
+        json.dumps({'dpl': dpl, 'commit': head, 'version': viva}, indent=1) + '\n')
+except OSError:
+    pass
 
 print('\n  %s' % ('el codigo de HEAD esta sirviendo en produccion' if not fallas
                   else '*** ' + ' · '.join(fallas)))
