@@ -343,6 +343,22 @@ export default function TicketsPage() {
       })
       .catch(() => { setMesesDisp([]); setCob(null) })
   }, [])
+  /* CUÁNTO LLEVA PARADO EL CORTE DE LA MESA frente al de tickets.
+     Se compara contra `cob.hasta` —el corte del archivo— y NO contra hoy: lo
+     que importa es si las dos cifras de la pantalla describen el mismo
+     momento, no la antigüedad absoluta. `null` cuando falta cualquiera de las
+     dos fechas, que es distinto de «cero días». */
+  const diasMesaAtras = useMemo(() => {
+    const a = mesa?.fecha, b = cob?.hasta
+    if (!a || !b) return null
+    const f = /^(\d{4})-(\d{2})-(\d{2})/
+    const ma = f.exec(a), mb = f.exec(b)
+    if (!ma || !mb) return null
+    const ta = Date.UTC(+ma[1], +ma[2] - 1, +ma[3])
+    const tb = Date.UTC(+mb[1], +mb[2] - 1, +mb[3])
+    return Math.max(0, Math.round((tb - ta) / 86400000))
+  }, [mesa?.fecha, cob?.hasta])
+
   const MESES = useMemo(() => [
     ...MESES_FALLBACK,
     ...mesesDisp.map(m => ({ val: m, label: mesLabelLargo(m) })),
@@ -607,7 +623,27 @@ export default function TicketsPage() {
                     {mesa.fecha ? <> (<strong>{mesa.fecha}</strong>)</> : ' (sin fecha en el corte)'} había{' '}
                     <strong>{mesa.abiertos} abiertos</strong>
                     {mesa.enEspera !== null && <> y <strong>{mesa.enEspera} en espera</strong></>},
-                    y ninguno aparece en estas cifras.</>
+                    y ninguno aparece en estas cifras.
+                    {/* PONER LA FECHA NO BASTA CUANDO LA FECHA YA ES VIEJA.
+                        Los cortes diarios de la mesa se paran sin avisar: al
+                        24 oct 2026 el último era del día 5, DIECINUEVE días
+                        detrás del corte de tickets, y la frase seguía igual de
+                        aplomada. Un lector que ve dos cifras juntas asume que
+                        miden el mismo momento. A partir de una semana se dice
+                        cuántos días lleva parado, que es el dato que decide si
+                        la cifra sirve. [[feedback-kpi-con-fuente]] */}
+                    {diasMesaAtras !== null && diasMesaAtras >= 7 && (
+                      /* El tono sale de la paleta del módulo, no de mi cabeza:
+                         `#C2410C` es el que ya carga el peso de alerta en este
+                         mismo panel (el icono y el número de Fuera de SLA).
+                         Metí un `#9A1C1C` inventado y lo cazó
+                         `revisa-paleta-tickets`. */
+                      <> <strong style={{ color: '#C2410C' }}>
+                        Ojo: ese corte lleva {diasMesaAtras} días parado
+                        {cob ? ` frente al de tickets (${cob.hasta.slice(0, 10)})` : ''}, así que
+                        esos dos números ya no describen el presente de la mesa.
+                      </strong></>
+                    )}</>
                 )}
               </div>
             </div>
