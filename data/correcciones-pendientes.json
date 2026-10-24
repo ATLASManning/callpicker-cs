@@ -44,12 +44,31 @@
       "id": "act-cristal-duplicado",
       "fuente": "Tablero de Activaciones 2.0.xlsx",
       "detectada": "2026-09-25",
-      "comprometida": "2026-10-02",
+      "comprometida": "2026-10-31",
+      "resuelta_por_direccion": "2026-10-24",
       "captura": "Cecilia",
-      "que_pasa": "Dos altas nuevas de la misma semana y del mismo ejecutivo con nombres casi iguales: «CRISTAL SERVICIOS» (ID 189977, $519, pagada) y «Servicios Cristal» (ID 189867, $0, demo). Pueden ser dos clientes distintos o el mismo capturado dos veces.",
-      "que_se_espera": "Que dirección confirme si son uno o dos. NO se toca ninguno hasta entonces: un parecido de nombres no prueba nada en ninguna de las dos direcciones.",
+      "que_pasa": "«CRISTAL SERVICIOS» (ID 189977, $519, pagada, 14-sep) y «Servicios Cristal» (ID 189867, $0, demo) son UN SOLO CLIENTE — confirmado por dirección el 24 oct 2026. Hoy la hoja los trae con nombres distintos, así que cruzan como dos.",
+      "que_se_espera": "NO borrar ninguna de las dos filas. Un demo que se convierte en cliente NO es un duplicado: es el patrón normal de esta hoja, y hay 23 clientes más así (MEGAVIAL, Métrica Móvil, EURO STERN...). Borrar el demo perdería que hubo demo, su fecha y su ejecutiva. Se unifican con DOS cambios: (1) poner el MISMO nombre en las dos filas — dejar «CRISTAL SERVICIOS» también en el ID 189867, para que crucen como un solo cliente; (2) cambiar el Tipo del ID 189977 de «pagada» a «convertida», que es como esta hoja marca un demo que acabó pagando (320 filas ya lo usan).",
       "comprobacion": {
-        "tipo": "pregunta"
+        "tipo": "campos_iguales",
+        "columna_id": "ID",
+        "esperado": [
+          {
+            "valor_id": "189867",
+            "columna": "Cliente",
+            "debe_ser": "CRISTAL SERVICIOS"
+          },
+          {
+            "valor_id": "189977",
+            "columna": "Cliente",
+            "debe_ser": "CRISTAL SERVICIOS"
+          },
+          {
+            "valor_id": "189977",
+            "columna": "Tipo",
+            "debe_ser": "convertida"
+          }
+        ]
       }
     }
   ]

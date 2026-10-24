@@ -119,6 +119,33 @@ def comprueba(p):
         return 'pendiente', '«%s» sigue en %s (se espera entre %s y %s)' % (
             c['columna'], int(n), c['min'], c['max'])
 
+    if tipo == 'campos_iguales':
+        """Varias celdas que tienen que quedar con un valor EXACTO.
+
+           Nace de unificar «CRISTAL SERVICIOS» y «Servicios Cristal» (24 oct
+           2026). Hasta ahora esa corrección era de tipo `pregunta`, o sea que
+           ni estando resuelta podía comprobarse sola: habría seguido saliendo
+           «ESPERA RESPUESTA» en cada carga aunque Cecilia ya la hubiera hecho.
+
+           Una corrección que no se puede verificar no se cierra nunca, y el
+           que la lee acaba ignorando la lista entera.
+        """
+        faltan, listas = [], []
+        for e in c['esperado']:
+            objetivo = [f for f in filas if texto(f.get(col_id)) == texto(e['valor_id'])]
+            if not objetivo:
+                faltan.append('no encuentro la fila con %s = %s' % (col_id, e['valor_id']))
+                continue
+            v = texto(objetivo[0].get(e['columna'])).strip()
+            if v.lower() == texto(e['debe_ser']).strip().lower():
+                listas.append('%s.%s = «%s»' % (e['valor_id'], e['columna'], v))
+            else:
+                faltan.append('%s.%s trae «%s» y se espera «%s»'
+                              % (e['valor_id'], e['columna'], v, e['debe_ser']))
+        if faltan:
+            return 'pendiente', '; '.join(faltan)
+        return 'corregida', ' · '.join(listas)
+
     return 'pendiente', 'tipo de comprobación desconocido: %r' % tipo
 
 
