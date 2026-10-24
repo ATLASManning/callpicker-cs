@@ -146,6 +146,27 @@ PUB_ANTES_2026_10_11 = {
        'Agosto': (5013222.60, 60957.78, 49977.17),
        'Septiembre': (4949144.17, 129905.96, 55073.67)}
 
+# ── REEXPRESION DEL 24-OCT-2026 (export `GRC.xlsx`) ───────────────────────
+# NO trae mes nuevo: son los MISMOS diez meses (Ene-Oct) refrescados, con 3,635
+# contratos por mes contra 3,635 — o sea un refresco puro, que es justo el caso
+# donde la reescritura de meses cerrados pasa mas desapercibida.
+#
+# Se movieron DOS meses cerrados, y poco:
+#   · Agosto     churn      -$3,013.50
+#   · Septiembre MRR inicio +$2,227.50  y  churn -$8,554.00
+#
+# El delta quedo EXPLICADO con `concilia-grc-zoho.py` ANTES de tocar esta tabla,
+# que es la condicion que el propio conciliador exige: cierra al centavo contra
+# el delta de perdida, y la causa es la de siempre — 885 lineas que estaban
+# marcadas como perdida y DESDE ENTONCES FACTURARON (-$1,657,439.00 sobre el
+# total del corte). [[regla-churn-mes-vencido]]
+#
+# Lo anterior queda abajo para que el cambio sea auditable y no una correccion
+# silenciosa.
+PUB_ANTES_2026_10_24 = {
+       'Agosto': (5013922.60, 56212.78, 49851.84),
+       'Septiembre': (4950369.50, 79483.96, 55273.67)}
+
 PUB = {
        'Enero': (4650270.89, 74083.11, 20848.01),
        'Febrero': (4696946.10, 65589.19, 34216.37),
@@ -154,8 +175,8 @@ PUB = {
        'Mayo': (5076566.09, 32586.00, 42283.26),
        'Junio': (5103995.12, 87260.00, 81522.81),
        'Julio': (4944264.29, 69086.46, 25576.75),
-       'Agosto': (5013922.60, 56212.78, 49851.84),
-       'Septiembre': (4950369.50, 79483.96, 55273.67)}
+       'Agosto': (5013922.60, 53199.28, 49851.84),
+       'Septiembre': (4952597.00, 70929.96, 55273.67)}
 for m in SER:
     p = PUB.get(m['mes'])
     if not p:

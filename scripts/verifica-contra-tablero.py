@@ -40,6 +40,17 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_bufferin
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CENT = 0.005
 
+# CUANDO SE COPIO EL TABLERO. Va en una constante y se imprime al fallar,
+# porque un desajuste contra una transcripcion vieja se lee como «el dato esta
+# mal» cuando lo viejo es la REFERENCIA. El 24 oct 2026 el export se refresco y
+# los seis desajustes que salieron eran todos contra esta copia del dia 11: lo
+# que hay que actualizar es ella, mirando Zoho, no las cifras calculadas.
+#
+# Y lo que NO se hace nunca: mover estos numeros para que cuadren con lo que el
+# repo calcula. Eso es hacer que la prueba le de la razon al codigo y deja de
+# comprobar nada. Se copian del tablero o no se tocan.
+FECHA_TRANSCRIPCION = '11 oct 2026'
+
 # ── TRANSCRIPCION DEL TABLERO (11 oct 2026) ─────────────────────────────────
 #   mes: (MRR inicio, Churn, Downgrade, Perdida, GRC mensual %, GRC acum %)
 TABLERO = [
@@ -152,5 +163,11 @@ for mes, mrr, ch, dw, pe, pct, acum in TABLERO:
 print(u'\n  ═══════════════════════════════════════════════════════════')
 if fallos:
     print(u'  *** %d comprobación(es) fallan contra el tablero oficial.' % len(fallos))
+    print(u'      La transcripción de arriba es del %s.' % FECHA_TRANSCRIPCION)
+    print(u'      ANTES de dar por malo el dato: si desde entonces se cargó un')
+    print(u'      export nuevo, el tablero TAMBIÉN se movió y lo viejo es esta')
+    print(u'      copia. Se actualiza mirando Zoho —clic derecho sobre el mes,')
+    print(u'      «Ver datos subyacentes»— y NUNCA copiando lo que calcula el')
+    print(u'      repo, que es hacer que la prueba le dé la razón al código.')
     sys.exit(1)
 print(u'  LO PUBLICADO ES LO QUE DICE EL TABLERO OFICIAL, celda por celda.')
