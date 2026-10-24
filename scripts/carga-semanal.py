@@ -200,7 +200,34 @@ def aplica(f):
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--aplicar', action='store_true', help='carga de verdad; sin esto solo diagnostica')
+# ── UNA PETICION SOBRE UN MODULO NO DEBE MOVER OTRO ───────────────────────
+#
+# `--aplicar` carga TODAS las fuentes que tengan datos nuevos, y eso esta bien
+# para la carga semanal completa — que es para lo que se escribio. Pero el 24
+# oct 2026 direccion pidio actualizar el Informe de Cortes, se corrio tal cual,
+# y de paso entro Activaciones 2.0, que NO se habia pedido ni compartido.
+#
+# Salio bien porque se le corrio su diff antes, pero eso fue cuidado manual, no
+# una garantia: una carga que toca lo que nadie pidio es un cambio sin dueño, y
+# el dia que traiga un dato malo nadie va a estar buscando ahi.
+#
+# `--solo` acota. La carga semanal completa sigue siendo `--aplicar` a secas.
+ap.add_argument('--solo', metavar='FUENTE', default=None,
+                help='carga UNA sola fuente (basta un trozo del nombre: cortes, '
+                     'tickets, activaciones, dids). Sin esto, --aplicar carga TODAS '
+                     'las que tengan datos nuevos.')
 args = ap.parse_args()
+
+if args.solo:
+    _q = args.solo.strip().lower()
+    _hay = [f for f in FUENTES if _q in f['nombre'].lower()]
+    if len(_hay) != 1:
+        print('  *** «%s» casa con %d fuente(s): %s'
+              % (args.solo, len(_hay), ', '.join(f['nombre'] for f in _hay) or 'ninguna'))
+        print('      Opciones: %s' % ', '.join(f['nombre'] for f in FUENTES))
+        raise SystemExit(2)
+    FUENTES = _hay
+    print('  (--solo: esta corrida mira UNICAMENTE «%s»)\n' % FUENTES[0]['nombre'])
 
 print('=== CARGA SEMANAL · %s ===' % datetime.datetime.now().strftime('%d/%m/%Y %H:%M'))
 print('  origen: %s' % ORIGEN)
