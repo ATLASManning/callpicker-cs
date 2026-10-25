@@ -109,11 +109,17 @@ const NAV_ENTRADAS: NavEntry[] = [
   {
     group: 'Cuentas',
     icon: Users,
+    /* ALFABÉTICO, por instrucción de dirección (24 oct 2026). El orden venía
+       de cuándo se fue añadiendo cada pantalla, que no le dice nada a quien
+       busca una. Se ordena por la ETIQUETA que se ve, no por la ruta:
+       «Auditoría» vive en `/auditoria` y por ruta caería en otro sitio.
+       Con acentos y en español — `localeCompare('es')` es lo que pone la A
+       con tilde donde la busca un lector, no donde la deja un `sort` ASCII. */
     children: [
-      { href: '/cuentas',          label: 'Activas',   icon: Users         },
-      { href: '/cuentas/dormidas', label: 'Dormidas',  icon: Archive       },
+      { href: '/cuentas',           label: 'Activas',   icon: Users         },
+      { href: '/auditoria',         label: 'Auditoría', icon: ClipboardList },
       { href: '/cuentas/contratos', label: 'Contratos', icon: FileSignature },
-      { href: '/auditoria',        label: 'Auditoría', icon: ClipboardList },
+      { href: '/cuentas/dormidas',  label: 'Dormidas',  icon: Archive       },
     ],
   },
   { href: '/customer-tenure', label: 'Customer Tenure',   icon: Clock },
