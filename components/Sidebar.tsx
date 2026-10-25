@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Users, MessageSquare, TrendingUp,
   Settings, ChevronRight, Activity, BookOpenCheck,
-  CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt, Paperclip,
+  CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt, Paperclip, FileSignature,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
   Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox, BellRing,
 } from 'lucide-react'
@@ -112,6 +112,7 @@ const NAV_ENTRADAS: NavEntry[] = [
     children: [
       { href: '/cuentas',          label: 'Activas',   icon: Users         },
       { href: '/cuentas/dormidas', label: 'Dormidas',  icon: Archive       },
+      { href: '/cuentas/contratos', label: 'Contratos', icon: FileSignature },
       { href: '/auditoria',        label: 'Auditoría', icon: ClipboardList },
     ],
   },
