@@ -35,6 +35,7 @@ u"""CLIENTES DE MAS DE $3,500 QUE NADIE ESTA ATENDIENDO.
 import io
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -95,6 +96,30 @@ def mrr_institucional(f):
     return 0.0
 
 
+def lineas_de_cuenta():
+    u"""La tabla `LINEAS_DE_CUENTA` de lib/nuevos-sin-asesor.ts, LEIDA DE ALLI.
+
+       No se copia: una segunda copia de una tabla curada se desalinea sola, y
+       entonces este medidor acusa de huerfano a un CID que el modulo ya
+       resolvio. Ya paso con la sonda de activaciones y con la de despliegue:
+       la simulacion tiene que seguir al modulo, no correr en paralelo.
+    """
+    ts = os.path.join(RAIZ, 'lib', 'nuevos-sin-asesor.ts')
+    try:
+        txt = io.open(ts, encoding='utf-8').read()
+    except OSError:
+        return {}
+    m = re.search(r'LINEAS_DE_CUENTA[^=]*=\s*\{(.*?)\n\}', txt, re.S)
+    if not m:
+        return {}
+    out = {}
+    for mm in re.finditer(r"'(\d+)':\s*\{(.*?)\}", m.group(1), re.S):
+        cid_padre = re.search(r"cidCuenta:\s*'(\d+)'", mm.group(2))
+        if cid_padre:
+            out[mm.group(1)] = cid_padre.group(1)
+    return out
+
+
 def main():
     cuentas = supabase('cuentas', {'select': 'id,consecutivo,empresa,cid,asesor,estado'})
     por_cid = {}
@@ -120,6 +145,10 @@ def main():
         for t in tokens(c.get('empresa')):
             por_token.setdefault(t, []).append(c)
 
+
+    # La tabla curada, leida de lib/nuevos-sin-asesor.ts (una sola fuente).
+    ALIAS = lineas_de_cuenta()
+
     def asesor_de(cid, nombre):
         u"""Devuelve (cuenta, veredicto).
 
@@ -133,6 +162,12 @@ def main():
         que es una cosa distinta y la pantalla lo dice así.
         """
         k = str(cid or '').strip()
+        # Antes de nada: ¿es una LINEA de una cuenta que ya existe?
+        padre = ALIAS.get(k)
+        if padre and padre in por_cid:
+            c = por_cid[padre]
+            a = str(c.get('asesor') or '').strip()
+            return c, (u'sin asesor' if not a else a + u'  (linea de %s)' % str(c.get('consecutivo')))
         if k and k in por_cid:
             c = por_cid[k]
             a = str(c.get('asesor') or '').strip()
@@ -201,7 +236,10 @@ def main():
                         return cab.index(n)
                 return None
             i_cli = col('Cliente', 'CLIENTE', 'Empresa')
-            i_cid = col('CID', 'Cid', 'cid')
+            # EN ESTE ARCHIVO LA COLUMNA SE LLAMA «ID», Y ES EL CID. Buscando
+            # solo «CID» no la encontraba, pasaba None y cruzaba por nombre —
+            # el mismo fallo que tenia el modulo en TS. [[activaciones-fuente]]
+            i_cid = col('ID', 'CID', 'Cid', 'cid')
             i_pago = col('1er Pago', 'Primer Pago', 'Facturan')
             if i_cli is None or i_pago is None:
                 print(u'      *** no encuentro las columnas: %s' % cab[:12])

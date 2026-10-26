@@ -48,6 +48,42 @@ export const UMBRAL_NUEVO = 3500
  *  conversación de seguimiento sin que suene a arqueología. */
 export const DIAS_NUEVO = 90
 
+/**
+ * CIDs QUE NO SON UN CLIENTE NUEVO: son una LÍNEA de una cuenta que ya existe.
+ *
+ * Callpicker factura por línea, y una cuenta grande puede abrir una línea
+ * aparte para un cliente suyo. Esa línea llega con CID propio, sin cuenta en
+ * la cartera, y el globo la anuncia como «cliente nuevo sin asesor» — cuando
+ * tiene asesor: el de su cuenta madre.
+ *
+ * ── LO QUE ENTRA AQUÍ ES LO CONFIRMADO, NUNCA LO QUE SE PARECE ────────────
+ * Mismo contrato que `lib/grc-asesor-alias.ts` y que el dict `MISMA_CUENTA`
+ * de `scripts/gen-grc-zoho.py`: **la nota con quién lo confirmó y cuándo es
+ * obligatoria**. Sin eso la regla no debería existir — sobre estos mismos
+ * datos, un cruce por parecido propone «ADSA ≈ TATSA» y son dos empresas
+ * distintas.
+ *
+ * Y se resuelve contra la cuenta madre EN VIVO: si mañana C51 cambia de
+ * asesor, esta línea cambia con ella. Por eso se guarda el CID del padre y no
+ * el nombre del asesor, que se congelaría.
+ */
+const LINEAS_DE_CUENTA: Record<string, { cuenta: string; cidCuenta: string; nota: string }> = {
+  /* El globo lo anunció el 26 oct 2026 como «cp190357 · $41,110 de primer
+     pago, sin asesor». No es un cliente: es VAEO (C51, CID 180631).
+     Grupo Hermosillo es cliente DE VAEO y pidió sus llamadas aparte para no
+     mezclarlas con las de los demás clientes de VAEO; VAEO le sigue dando el
+     servicio de Callpicker directamente, así que abrió una línea con CID
+     propio. De los $41,110, el recurrente son ~$2,900 al mes: el resto es
+     compra e instalación de equipo, que es de una sola vez. */
+  '190357': {
+    cuenta: 'VAEO',
+    cidCuenta: '180631',
+    nota: 'Confirmado por Daniel Martínez (Slack, 26 oct 2026): «el cliente final se '
+        + 'llama Grupo Hermosillo, pero es a su vez un cliente de Vaeo […] le pidió a '
+        + 'Vaeo tener sus llamadas aparte». El caso llegó por Enrique.',
+  },
+}
+
 export interface ClienteSinAsesor {
   /** De dónde salió: decide qué significa el importe. */
   fuente: 'activacion' | 'facturacion'
@@ -163,6 +199,14 @@ export async function nuevosSinAsesor(): Promise<NuevosSinAsesor> {
   const cruzar = (cid: string | null, nombre: string):
       { veredicto: ClienteSinAsesor['veredicto'] | 'atendida'; seParece?: string } => {
     const k = String(cid ?? '').trim()
+    /* Antes de dar por nuevo un CID, mirar si es una LÍNEA de una cuenta que
+       ya está en la cartera. Ver `LINEAS_DE_CUENTA` arriba: lo que entra ahí
+       es lo CONFIRMADO, no lo que se parece. */
+    const alias = k ? LINEAS_DE_CUENTA[k] : undefined
+    const padre = alias ? porCid.get(alias.cidCuenta) : undefined
+    if (alias && padre) {
+      return { veredicto: String(padre.asesor ?? '').trim() ? 'atendida' : 'sin_asesor' }
+    }
     const c = (k && porCid.get(k)) || porNombre.get(norm(nombre))
     if (c) {
       return { veredicto: String(c.asesor ?? '').trim() ? 'atendida' : 'sin_asesor' }
@@ -214,8 +258,8 @@ export async function nuevosSinAsesor(): Promise<NuevosSinAsesor> {
   } catch { /* se queda en false y la pantalla lo dice */ }
 
   /* ── ACTIVACIONES: el PRIMER PAGO ────────────────────────────────────
-     Sin CID en el archivo, así que el cruce es por nombre con sus tres
-     intentos. El importe es con lo que ENTRÓ, no lo que vale hoy, y el
+     La columna `ID` es el CID, así que el cruce arranca por ahí y sólo cae
+     al nombre —con sus tres intentos— cuando no lo trae. El importe es con lo que ENTRÓ, no lo que vale hoy, y el
      panel lo rotula así. [[activaciones-fuente]] */
   try {
     const fs = (await import('fs')).default
@@ -230,12 +274,20 @@ export async function nuevosSinAsesor(): Promise<NuevosSinAsesor> {
         if (!(monto >= UMBRAL_NUEVO)) continue
         const cliente = String(r['Cliente'] ?? '').trim()
         if (!cliente) continue
-        const { veredicto, seParece } = cruzar(null, cliente)
+        /* LA COLUMNA `ID` DE ESTE ARCHIVO **ES** EL CID, y aquí se estaba
+           tirando: la llamada pasaba `null` y cruzaba sólo por nombre, con
+           un comentario que decía «sin CID en el archivo». Es falso y está
+           medido en [[activaciones-fuente]]: por CID cruzan 49 de 143 (34%)
+           y por nombre 38 (27%) — o sea que además de perder once cuentas,
+           cruzar por nombre MEZCLA cuentas, que es lo que este tablero evita
+           en todas las demás fuentes. */
+        const cidAct = String(r['ID'] ?? '').replace(/\D/g, '') || null
+        const { veredicto, seParece } = cruzar(cidAct, cliente)
         if (veredicto === 'atendida') continue
         if (veredicto === 'parecida') { porConfirmar++; continue }
         const iso = fechaDe(r['Fecha 1er Pago'])
         todos.push({ fuente: 'activacion', cliente, importe: monto,
-                     fecha: iso, dias: diasDesde(iso, hoy), cid: null,
+                     fecha: iso, dias: diasDesde(iso, hoy), cid: cidAct,
                      veredicto, seParece })
       }
       leyó.activaciones = true
