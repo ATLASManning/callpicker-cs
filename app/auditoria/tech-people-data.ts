@@ -6,9 +6,87 @@ import type { AuditoriaCase } from './types'
  * que la fuente sostiene — ver el punto 5 de las correcciones.)
  *
  * Auditoría del 12 oct 2026 · v1.1, v1.2 y v1.3, las tres del 13 oct.
+ * v1.4 del 27 oct 2026: entra la AUDITORÍA DE PROFUNDIDAD DE TRÁFICO DE VOZ.
  *
- * (El campo `version` se había quedado en '1.0' al publicar la v1.1. Con esta
- * ronda queda en '1.3'.)
+ * (El campo `version` se había quedado en '1.0' al publicar la v1.1.)
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * v1.4 — 27 OCT 2026 · LA AUDITORÍA DE TRÁFICO, Y LO QUE CAMBIA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Dirección comparte dos archivos: `Auditoria_Telefonia_TechPeople_2026.pdf`
+ * (36 láminas) y su anexo `.xlsx` (11 hojas). El ANEXO es el dato; el PDF
+ * afirma sobre él. Conciliado con `scripts/concilia-auditoria-techpeople.py`
+ * ANTES de publicar una sola cifra aquí.
+ *
+ * ── QUÉ ES, Y POR QUÉ SUPERA A LO QUE TENÍAMOS ───────────────────────────
+ * Es un CENSO de 399,585 CDR del 1 ene al 26/27 oct 2026, registro por
+ * registro, sin muestreo, de las DOS cuentas (2094 y la subcuenta 32785).
+ * Las versiones anteriores midieron con `data/analisis-llamadas.json`:
+ * 116,054 entrantes hasta el 14 sep y 121,485 salientes desde el 9 abr —dos
+ * ventanas distintas que el propio expediente advertía que no se comparan—.
+ * Esto las sustituye: una sola ventana, las dos direcciones, y el detalle por
+ * sitio, por hora y por extensión que no teníamos.
+ *
+ * ── LO QUE CONFIRMA (y es lo más importante que diga) ────────────────────
+ * El hallazgo central de la v1.1 queda CORROBORADO por una fuente
+ * independiente y más grande: **a una persona llega el 45.7%**, contra el
+ * 44.40% que medimos nosotros sobre una ventana más corta. Dos métodos
+ * distintos, dos archivos distintos, la misma conclusión. Eso es lo que
+ * convierte una lectura en un hecho.
+ *
+ * ── LO QUE AÑADE, Y NO TENÍAMOS ──────────────────────────────────────────
+ *
+ * 1. LA PRUEBA DE QUE NO ES LA PLATAFORMA, Y ESTÁ EN SU PROPIA CASA. La
+ *    subcuenta Soluciones atiende el **94.4%** con 16 agentes nombrados,
+ *    sobre la misma plataforma, el mismo contrato y el mismo menú, desde
+ *    enero. 45.7% contra 94.4%. La diferencia no es técnica: una tiene cola
+ *    de respaldo y la otra reparte a mostradores sin plan alterno. Ningún
+ *    argumento de «es que el sistema» sobrevive a este dato.
+ *
+ * 2. EL BLOQUE MÁS GRANDE NO ES UNA TIENDA MALA: SON 51,991 LLAMADAS QUE NO
+ *    TENÍAN A DÓNDE IR. El 37.3% de las entrantes nunca se enrutó a ninguna
+ *    extensión, cola ni sitio, y **cero** llegaron a un agente. No es
+ *    saturación ni abandono: en hora pico sigue siendo 31–35%, estable toda
+ *    la jornada. Es configuración del menú.
+ *
+ * 3. LAS SIETE TIENDAS DE LA v1.2 ERAN UN PISO, Y AHORA SE VE EL SUELO. El
+ *    censo trae 105 sitios con 32 nombres duplicados; la brecha va de
+ *    Perisur 95.5% a Carso Plaza 12.7% — 83 puntos con la misma tecnología.
+ *
+ * 4. LA VENTANA DE 9 A 11. Dos horas cada mañana, los siete días, sin una
+ *    sola celda que llegue al 30% de atención: 9,432 llamadas al 18.6%.
+ *
+ * 5. CONTRADICE NUESTRA PROPIA FICHA DE ADOPCIÓN. El 92% de las salientes
+ *    —205,080 llamadas— se originan por integración, y `cuentas` dice
+ *    `tiene_integracion_api = false` (comprobado el 27 oct). Una de las dos
+ *    está mal. El propio documento lo marca como HIPÓTESIS, porque el campo
+ *    de origen podría significar un origen interno de plataforma, y así se
+ *    recoge aquí: no se convierte en hecho lo que su autor no afirma.
+ *
+ * ── LAS TRES TRAMPAS DE ESTE DOCUMENTO, Y CÓMO SE TRATAN ─────────────────
+ *
+ * A. SON DOS ALCANCES Y EL PDF ALTERNA SIN AVISAR. «Sin conversación» son
+ *    **150,594** contando las dos cuentas y **147,422** sólo la principal.
+ *    Las dos son ciertas; citar la primera diciendo «de la cuenta» es falso.
+ *    En este expediente se escribe siempre con su alcance al lado.
+ *
+ * B. EL REPARTO DE SALIENTES NO CIERRA, POR CUATRO LLAMADAS. El anexo
+ *    declara 223,024 salientes y sus partes suman 223,020; la tabla de la
+ *    página 5 del PDF repite el hueco (151,405 + 63,688 + 7,927). Son el
+ *    0.0018% y no mueven ninguna conclusión, pero una tabla que no cierra es
+ *    una tabla que no cierra: se dice y se pregunta. [[feedback-tablas-deben-cerrar]]
+ *
+ * C. EL DOCUMENTO SE CONTRADICE EN SU PRIMERA PÁGINA. La portada dice «1 ene
+ *    – 26 oct» y el pie de la misma lámina «1 ene – 27 oct», igual que el
+ *    anexo. Se publica el 27 —lo que dicen dos de las tres— y se anota; y
+ *    además el periodo NO es el mismo para las dos cuentas: octubre corta el
+ *    26 en la principal y el 27 en la subcuenta.
+ *
+ * ── LO QUE SIGUE SIN RESOLVERSE, Y YA LO DECÍA LA v1.3 ───────────────────
+ * `cuentas.facturacion` sigue en $59,423 (comprobado el 27 oct). La
+ * recomendación de corregirlo antes de llamar al cliente lleva dos semanas
+ * abierta.
  *
  * LA v1.0 DIJO QUE LA ATENCIÓN ERA «EXCELENTE EN EL AGREGADO —6.21% sin
  * contestar—». El 6.21% es correcto como tasa de PERDIDAS, pero no mide lo
@@ -252,11 +330,12 @@ export const TECH_PEOPLE: AuditoriaCase = {
   descripcion_contexto: '9.6 años de cliente · $88,783.20 al mes de MRR institucional en el GRC (la ficha dice $59,423, que es promedio de vida) · 116,054 entrantes del 1 ene al 14 sep 2026 y 121,485 salientes desde el 9 abr —ventanas distintas, no se comparan— · 6.21% sin contestar y 44.40% atendido por una persona · 57 tickets entre los dos CIDs de la cuenta · CERO contactos registrados por canal real en todo el historial',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',
-  version: '1.3',
+  version: '1.4',
 
   kpis: [
-    { label: 'Llegan a una persona',      value: '44.40%',                   color: '#ef4444' },
-    { label: 'Y SIETE tiendas pierden',    value: 'entre 38.7% y 64.2%',     color: '#ef4444' },
+    { label: 'Llegan a una persona',      value: '45.7% · censo CDR',        color: '#ef4444' },
+    { label: 'Su propio equipo atiende',   value: '94.4% · misma plataforma', color: '#22c55e' },
+    { label: 'Entraron y no tenían a dónde ir', value: '51,991 · 0 atendidas', color: '#ef4444' },
     { label: 'Contacto REGISTRADO en 9.6 años', value: 'CERO · 0 reuniones', color: '#ef4444' },
     { label: 'MRR institucional vs. ficha', value: '$88,783 vs $59,423',     color: '#f97316' },
     { label: 'Fallas del servicio',        value: '12 de 57 tickets · 21.05%', color: '#f59e0b' },
@@ -267,6 +346,19 @@ export const TECH_PEOPLE: AuditoriaCase = {
   resultado_positivo: 'Es una relación de 115 meses facturados —y hay que decir el puesto bien: es la #13 de la cartera VIVA por antigüedad, no la más larga. La superan DOCE consecutivos activos o en riesgo, entre ellos F20 Eticket con 189 meses, F16 Grupo Frisa con 152, D5 Cargo Lift con 132 y D3 Salud y Hogar con 118 y $23,480 de MRR; un decimotercero, Z22 Grupo Garmo con 155, está en hibernación y queda fuera de la población con la que este archivo mide—. Lleva $6,919,304 acumulados en la línea principal y $915,880 más en la subcuenta, con cero incidencias de pago en todo ese tiempo.\n\nLa operación no se le cae. El 6.21% sin contestar es bajo para una red de más de cien puntos de servicio —aunque no diga nada de cuántas llamadas atendió una persona—, y los fines de semana —cuando las tiendas de centro comercial trabajan— pierde MENOS que entre semana: 5.0% el sábado y 4.3% el domingo contra 6.3%–6.9% de lunes a viernes. Eso es una operación que sabe dónde está su demanda.\n\nLa adopción está medida y es alta: Voz VyC en nivel ALTO y uso del panel administrador entre medio y alto. Tiene Callpicker Chat activo. Y hay un interlocutor de alto nivel identificado: Camilo Eckardt, Director General, con correo y teléfono. Dos avisos sobre eso, porque la v1.1 lo contó al revés: no es el contacto mejor capturado de las cuentas auditadas —Sección Amarilla, IMPAS, Probemedic y Odontoprev tienen el principal completo y MÁS de un interlocutor, mientras aquí hay exactamente uno— y su registro está sucio: `contacto_nombre` trae el correo pegado («Camilo Eckardt      camilo@techpeople.mx») y el cargo de `contactos_json` dice «Director Gral.    Cliente desde2017».\n\nEl 8 de octubre se facturó un upsell de $2,046 —3 usuarios, 3 números y un administrador adicional— que el GRC ya registra. La cuenta crece sola.',
 
   hallazgos: [
+    'TRÁFICO · CENSO — LA PRUEBA DE QUE NO ES LA PLATAFORMA ESTÁ EN SU PROPIA CASA. La subcuenta Soluciones (32785) atiende el 94.4% de sus entrantes con 16 agentes nombrados, desde enero, sobre la misma plataforma, el mismo contrato y el mismo menú que la cuenta principal, que atiende el 45.7%. Cuarenta y nueve puntos de diferencia sin una sola diferencia técnica: una tiene cola de respaldo y la otra reparte a mostradores sin plan alterno. Fuente: censo de 399,585 CDR del 1 ene al 26/27 oct 2026, conciliado con `scripts/concilia-auditoria-techpeople.py`.',
+    'TRÁFICO · CENSO — 51,991 LLAMADAS ENTRARON Y NO TENÍAN A DÓNDE IR: el 37.3% de las entrantes de la cuenta principal nunca se enrutó a ninguna extensión, cola ni sitio, y CERO llegaron a un agente. Ni una. No es saturación ni abandono voluntario: en hora pico, de 11:00 a 19:00, sigue siendo 31–35% del tráfico, estable toda la jornada productiva. Es el bloque más grande del diagnóstico y se corrige con configuración del menú, no con inversión. Va bajando solo: 38.2% en enero, 31.5% en octubre.',
+    'TRÁFICO · CENSO — EL HALLAZGO DE LA v1.1 QUEDA CORROBORADO POR UNA FUENTE INDEPENDIENTE. Nosotros medimos 44.40% de atención por una persona sobre 116,054 entrantes hasta el 14 de septiembre; el censo mide 45.7% sobre 139,561 hasta el 26 de octubre. Dos archivos distintos, dos métodos distintos, la misma conclusión: más de la mitad del tráfico de esta cuenta no habla con nadie. Eso es lo que convierte una lectura en un hecho.',
+    'TRÁFICO · CENSO — LA VENTANA DE LAS 9 A LAS 11. Dos filas completas del mapa hora-por-día, los SIETE días, sin una sola celda que llegue al 30% de atención: 9,432 llamadas al 18.6%, con la peor tasa de perdidas de la jornada (11.2%). No es un sitio ni un día: es la red entera. Y el domingo atiende MEJOR que el martes en toda la tarde — no es actitud, es cobertura programada.',
+    'TRÁFICO · CENSO — LA BRECHA ENTRE SITIOS ES DE 83 PUNTOS CON LA MISMA TECNOLOGÍA: Perisur atiende el 95.5% y Carso Plaza el 12.7%. De 91 sitios con volumen suficiente, 50 están en cuadrantes mixtos —buenos de un lado y malos del otro—, lo que descarta falta de personal: es el mismo equipo, el mismo sitio y el mismo horario. Las SIETE tiendas que publicó la v1.2 eran un PISO, y ahora se ve el suelo.',
+    'TRÁFICO · CENSO — LA DEVOLUCIÓN NO SE HACE, Y CUANDO SE HACE FUNCIONA. 59,697 clientes llamaron, nadie los atendió y nadie les devolvió la llamada en 72 horas. Sólo el 13.2% recibe devolución en 24 horas — pero de las que sí se devuelven, CONECTA EL 76.9%. No es que el cliente no conteste: es que la devolución no existe como proceso. Y 1,148 de los 1,504 mensajes de buzón nunca recibieron respuesta.',
+    'TRÁFICO · CENSO — EL CLIENTE INSISTE Y TAMPOCO LO LOGRA. 41,895 rellamadas en 24 horas tras no haber hablado con nadie: el 30% de todo el tráfico entrante es reintento, y dos de cada tres reintentos vuelven a fracasar. 34,469 jornadas cliente-día (42.8%) terminaron sin que el cliente hablara con nadie, gastando 50,169 llamadas. No es demanda nueva: es la misma demanda insatisfecha, pagada dos y tres veces.',
+    'DATOS · CONTRADICE NUESTRA PROPIA FICHA — El 92% de las salientes (205,080 de 223,024) se originan por integración, y `cuentas.tiene_integracion_api` está en FALSE para el CID 2094 (comprobado el 27 oct 2026). Una de las dos está mal, y tiene consecuencias comerciales y de soporte. OJO: el propio documento lo marca como HIPÓTESIS —el campo de origen podría significar un origen interno de la plataforma— y aquí se recoge igual: no se convierte en hecho lo que su autor no afirma. Pendiente de validar con ingeniería.',
+    'MEDICIÓN · DEUDA DE DATOS — CUALQUIER REPORTE POR SUCURSAL QUE CORRAN HOY ESTÁ MAL. 32 sitios aparecen con dos nombres distintos, hay 11 etiquetas de prueba con tráfico real en producción —incluida una llamada «Fin de llamada» con 636 llamadas y 0% de atención— y 16 centros activos no figuran en su padrón público de ubicaciones. Además, Hermosillo Colossus aparece como cerrado en su web y registra 1,062 salientes, la última el 24 de octubre.',
+    'MEDICIÓN · ASIMETRÍA — SABEN A QUIÉN LLAMAN, NO SABEN QUIÉN LES LLAMA. El 95.3% de las salientes trae etiqueta de sitio y sólo el 26.2% de las entrantes. Tres de cada cuatro llamadas entrantes no se pueden atribuir a ningún centro. Hoy no se puede responder qué plaza genera más demanda de servicio ni cuál se está quedando sin atender, porque la demanda entrante no tiene dueño en el dato.',
+    'CAPACIDAD — EL PLAN ES ILIMITADO Y SE USA AL 16%. El sitio promedio cursa 242 llamadas al mes contra un objetivo de 1,500; de 106 mostradores activos, CERO lo alcanzan y 102 no llegan ni a la mitad. El mayor consumidor del objetivo es el vacío: el destino sin asignar cursa 5,277 llamadas al mes, el 352% de una extensión, y ninguna produce contacto. OJO con la lectura: el propio documento advierte que corregir el enrutamiento lleva el uso útil del 14% al 19% y NO cierra la brecha de volumen — no se debe prometer que sí.',
+    'MEDICIÓN · EL DOCUMENTO NO CIERRA POR CUATRO LLAMADAS, y se dice. El anexo declara 223,024 salientes y sus partes suman 223,020; la tabla de la página 5 del PDF repite el hueco. Es el 0.0018% y no mueve ninguna conclusión, pero una tabla que no cierra es una tabla que no cierra. Preguntar a quien construyó el anexo antes de publicar el desglose de salientes.',
+    'MEDICIÓN · DOS ALCANCES EN EL MISMO DOCUMENTO. «Sin conversación» son 150,594 contando las dos cuentas y 147,422 contando sólo la principal; el PDF alterna entre ambos sin repetir el alcance en cada lámina. Las dos cifras son ciertas y citar una por la otra es falso. En este expediente toda cifra del censo va con su alcance escrito al lado.',
     'DINERO — La ficha dice $59,423 y el MRR institucional del GRC son $88,783.20, repartidos en DOS líneas con el mismo CID 2094: «Tech People» ($82,360.30) y «Tech People Soluciones» ($6,422.90). La diferencia es de $29,360.20 al mes, el 33%. Y los $59,423 no son ninguna de las dos líneas ni su suma: son `acumulado ÷ meses` —el promedio de vida— de un corte anterior; hoy ese mismo promedio da $60,168 y en el respaldo del 2 de octubre daba $59,973. Las alertas usan el MRR; la ficha y el ranking de cartera, el promedio viejo.',
     'DINERO — Con el MRR institucional, $88,783.20 es el importe MÁS ALTO medido por CID en el GRC. La población que se ordena son 171 cuentas y no 203: en `data/grc-zoho.json` hay 203 CIDs distintos, pero 32 computan $0 y 28 corresponden a cuentas canceladas o en hibernación. Sobre esas 171 —todas vivas, $1,758,279 entre todas— C1 pesa el 5.05%, y el porcentaje es un TECHO: al denominador le faltan los $488,540 de promedio de vida de 13 vivas y todas las líneas del GRC que facturan sin CID. EL PUESTO EN LA CARTERA DEPENDE DEL CAMINO, y hay tres lecturas ciertas: (1) por CID en el GRC, C1 es la #1 —le siguen IMPAS Z63 $65,640, University 4 People D58 $54,060, Finsus Growth F1 $38,215 y ECODELI C2 $32,740—; (2) sumando a mano los grupos que facturan sin CID, las siete líneas «Finsus …» suman $278,154 y las 19 de GTC sumaban $272,436 en el corte del 2 de octubre, las dos por encima de C1; (3) por la columna del tablero —promedio de vida, que no es MRR— figura CUARTA, detrás de GTC ($316,541), Sección Amarilla ($84,254) e IMPAS ($65,640). La v1.2 decía «la SEGUNDA, detrás de GTC» y sumaba a mano sólo a GTC: ése es el método que no se sostiene.',
     'DINERO — La reserva, dicha bien y cerrada. De las 193 cuentas vivas, 22 NO tienen MRR institucional: 13 sólo traen el promedio de la ficha —$488,540, que no es MRR— y 9 no traen nada. Descontando a GTC, que se suma a mano, quedan 12 de sólo-ficha con $171,999, el mismo total que cita la cabecera de `lib/facturacion-cuenta.ts`. El mayor de ese cubo es Sección Amarilla con $84,254; el siguiente, F32 Grupo Petroil con $14,197, que es lo que la v1.2 publicaba como máximo. Y el motivo no es siempre la falta de CID: C9 Neruc Sede Central, C66 INBROTEK, Z25 99 minutos y Z23 ProHabitación SÍ tienen línea con CID en el GRC, pero su MRR institucional computa 0. Cierra: 171 + 13 + 9 = 193.',
@@ -307,6 +399,7 @@ export const TECH_PEOPLE: AuditoriaCase = {
     { fecha: '06 Oct 2026', responsable: 'Motor de alertas', evento: 'Se abren dos alertas CRÍTICAS: nunca contactada y sin consumo medible. Más `sin_radar` en alta.', tipo: 'problema' },
     { fecha: '08 Oct 2026', responsable: 'Monse / Toño del Río', evento: 'Monse le pide apoyo a Toño del Río para cobrar $2,046 + IVA: 3 usuarios, 3 números y 1 administrador adicional —«Toño solicitando tu apoyo para realizar un cobro al cliente TechPeople por…»—, y Toño es quien emite y manda la factura. El GRC lo registra como «Upsell temporal». El hilo documenta además un intercambio CON el cliente —si acepta una segunda factura en octubre— y recoge el nombre de Sandra Sánchez como destino de las facturas, dicho por un tercero sin nombre («me dice que se la mandan a a Sandra Sanchez») y sin que la nota la sitúe en Tech People: es el único rastro de la voz del cliente en todo el expediente.', tipo: 'ok' },
     { fecha: '12 Oct 2026', responsable: 'Motor de alertas', evento: 'Se abre `sac_fallas_recurrentes` en alta. Su evidencia dice «7 fallas … sobre 31 tickets»: cuenta sólo el CID 2094. Sumando la subcuenta fusionada son 12 fallas de 57 tickets.', tipo: 'problema' },
+    { fecha: '27 Oct 2026', responsable: 'Callpicker · SAC',  evento: 'AUDITORÍA DE PROFUNDIDAD DE TRÁFICO DE VOZ: censo de 399,585 CDR del 1 ene al 26/27 oct, las dos cuentas, sin muestreo. Corrobora el hallazgo de la v1.1 por una fuente independiente —a una persona llega el 45.7%, nosotros medimos 44.40% sobre una ventana más corta— y añade la prueba que faltaba: la subcuenta Soluciones atiende el 94.4% sobre la MISMA plataforma. Conciliada con `scripts/concilia-auditoria-techpeople.py` antes de publicarse.', tipo: 'neutral' },
   ],
 
   perfil_campos: [
