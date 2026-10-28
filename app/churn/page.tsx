@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
 import PageHeader from '@/components/PageHeader'
-import { REPORTE_S25_OCT_2026 } from './reporte-actual'
+import { REPORTE_S26_OCT_2026 } from './reporte-actual'
 import ConciliacionChurn from '@/components/ConciliacionChurn'
 import type {
   ChurnPendiente, ChurnCancelado, ChurnDowngrade, ChurnReporte,
@@ -286,6 +286,7 @@ const REPORTE_S1_JUNIO_2026: ChurnReporte = {
   ],
 
   /* Cancelados — 26 cuentas $24,213 */
+  canceladosCasosReal: 26,
   cancelados: [
     { cliente: 'Finaura',                     mrr: 5484,  mesesActivo: 10,  acumulado: 0 },
     { cliente: 'Abelyne Inc',                 mrr: 1797,  mesesActivo: 9,   acumulado: 0 },
@@ -560,6 +561,7 @@ const REPORTE_S4_JUNIO_2026: ChurnReporte = {
   ],
 
   /* Cancelados — 5 cuentas · $5,904 */
+  canceladosCasosReal: 5,
   cancelados: [
     { cliente: 'Adim ecosistema', mrr: 1959, mesesActivo: 0,  acumulado: 0 },
     { cliente: 'satvpafc',        mrr: 1771, mesesActivo: 30, acumulado: 0 },
@@ -624,6 +626,7 @@ const REPORTE_CIERRE_JUNIO_2026: ChurnReporte = {
   ],
 
   /* Cancelados — 6 cuentas · $7,365 */
+  canceladosCasosReal: 6,
   cancelados: [
     { cliente: '🔝 ZD - Grupo Liber',              mrr: 2355, mesesActivo: 28, acumulado: 0 },
     { cliente: 'IT REINGENIERIAS',                  mrr: 1959, mesesActivo: 87, acumulado: 0 },
@@ -1166,6 +1169,7 @@ const REPORTE_S3_AGOSTO_2026: ChurnReporte = {
   ],
 
   /* Cancelados Sem 3 Agosto — 8 cuentas · $11,667 · top 5 */
+  canceladosCasosReal: 8,
   cancelados: [
     { cliente: '🔝 Centro Mexicano de Psicología Integrativa CEMEPI', mrr: 2921, mesesActivo: 77, acumulado: 204386 },
     { cliente: 'Custodias RJ',                                       mrr: 2920, mesesActivo: 5,  acumulado: 14600  },
@@ -1792,6 +1796,7 @@ const REPORTE_S18_AGOSTO_2026: ChurnReporte = {
 
   /* Cancelados agosto — 21 cuentas · $20,040. El corte de cierre no desglosa nombres;
      el detalle por cuenta está en los cortes semanales de agosto. */
+  canceladosCasosReal: 21,
   cancelados: [
     { cliente: '+ 21 cuentas canceladas en agosto — el reporte de cierre no desglosa nombres (ver cortes semanales 2 y 3 de agosto).', mrr: 20040, mesesActivo: 0, acumulado: 0 },
   ],
@@ -2209,6 +2214,21 @@ function sinCubo<T extends { cliente: string }>(rows: T[]): T[] {
   return rows.filter(r => !r.cliente.trimStart().startsWith('+'))
 }
 
+/* Cuántas cancelaciones rotular, en UN solo sitio para los cuatro que lo pintan
+   (tarjeta KPI, resumen, pestaña y tarjeta del selector). Devuelve 'n/d' cuando
+   el corte sólo trae cubo y no declara el conteo: ahí el número no es cero, es
+   desconocido. [[feedback-cero-sin-medicion]] [[feedback-tablas-deben-cerrar]] */
+function etiquetaCancelados(r: ChurnReporte): string {
+  if (r.canceladosCasosReal !== undefined) return String(r.canceladosCasosReal)
+  const n = sinCubo(r.cancelados).length
+  return n === 0 && r.cancelados.length > 0 ? 'n/d' : String(n)
+}
+
+/* Un corte que no cuantifica downgrades no es un corte con cero downgrades. */
+function downgradesSinMedir(r: ChurnReporte): boolean {
+  return r.downgradeTotalReal === undefined && r.downgrades.length === 0
+}
+
 function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[] {
   const tabs: { id: Tab; label: string; color: string }[] = [
     { id: 'resumen',    label: 'Resumen',                                              color: INDIGO },
@@ -2220,10 +2240,14 @@ function buildTabs(r: ChurnReporte): { id: Tab; label: string; color: string }[]
     { id: 'pendiente',    label: `🟠 Pendientes (${r.pendientesCuentasReal ?? sinCubo(r.pendientes).length})`, color: ORANGE_TX },
   )
   if (r.cancelados.length > 0) {
-    tabs.push({ id: 'cancelados', label: `🔴 Cancelados (${r.cancelados.length})`,    color: RED_TX    })
+    tabs.push({ id: 'cancelados', label: `🔴 Cancelados (${etiquetaCancelados(r)})`, color: RED_TX })
   }
   tabs.push(
-    { id: 'downgrades',  label: `🟡 Downgrades (${r.downgradeCasosReal ?? sinCubo(r.downgrades).length})`, color: AMBER_TX  },
+    /* «(0)» en el rótulo afirma que no hubo ninguno. Cuando el corte no los
+       mide, el rótulo lo dice. [[feedback-cero-sin-medicion]] */
+    { id: 'downgrades',  label: downgradesSinMedir(r)
+        ? '🟡 Downgrades (no reportados)'
+        : `🟡 Downgrades (${r.downgradeCasosReal ?? sinCubo(r.downgrades).length})`, color: AMBER_TX  },
   )
   if (r.suspendidos && r.suspendidos.length > 0) {
     tabs.push({ id: 'suspendidos', label: `🔵 Suspendidos (${r.suspendidosCuentasReal ?? r.suspendidos.length})`, color: BLUE })
@@ -2676,6 +2700,155 @@ const REPORTE_S24_OCT_2026: ChurnReporte = {
 }
 
 
+/* ── ARCHIVADO: era el corte vigente hasta que llegó el siguiente.
+      NO se retecleó: se extrajo de git con
+      `scripts/archiva-corte-churn.py` y se verificó byte a byte. */
+const REPORTE_S25_OCT_2026: ChurnReporte = {
+  id:      's25-octubre-2026',
+  periodo: 'Semana 25 · Oct 2026',
+  fecha:   '21/10/2026',
+  notas:   'Gross Revenue Churn · Semana 25. Al 21 de octubre del 2026. Avance del mes: Top 5 de '
+         + 'clientes activos sobre una cartera de $128,640.37 en 26 clientes, resumen de soft y hard '
+         + 'suspend, las 2 cancelaciones del mes, la cartera por cobrar por antigüedad —173 clientes, '
+         + '$272,319.60— y los 4 downgrades. Octubre marca 22.1% pero es MES CORRIENDO y NO '
+         + 'DEFINITIVO: es la primera lectura, la misma clase de cifra que en septiembre arrancó en '
+         + '23.6% y acabó en 2.5%. Próxima revisión: miércoles 28 de octubre.',
+  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 28 de octubre.',
+
+  grc: {
+    /* El corte ya no publica julio: arranca en agosto. Se respeta lo que trae
+       en vez de arrastrar el mes de un corte anterior. */
+    evolucion: [
+      { mes: 'Agosto',     pct: 2.1 },
+      { mes: 'Septiembre', pct: 2.5, anterior: 2.6 },
+      { mes: 'Octubre',    pct: 22.1 },
+    ],
+    acumulado: 41.6,
+    anterior:  19.5,
+    acumuladoEtiqueta: '2026 acumulado hasta octubre · NO DEFINITIVO',
+    notaClave:
+      'Avance de octubre. El mes marca 22.1% y el acumulado del año salta de 19.5% a 41.6%, LAS DOS '
+      + 'MARCADAS NO DEFINITIVAS por el propio reporte. Octubre lleva $6,708.50 en dos cancelaciones '
+      + 'y $6,038.00 en cuatro downgrades, pero la cifra gorda está en la cartera por cobrar: '
+      + '$272,319.60 repartidos en 173 clientes, con $177,513.29 —el 65.2%— a menos de una semana de '
+      + 'vencer. La cartera activa del mes son $128,640.37 en 26 clientes.',
+    notaEspecial:
+      '🚨 EL 22.1% DE OCTUBRE ES LA PRIMERA LECTURA DE UN MES VIVO, Y ESA CIFRA SE DESINFLA. '
+      + 'Septiembre recorrió 23.6% → 6.9% → 3.14% → 2.6% → 2.5%: de la primera lectura a la que hoy '
+      + 'se sostiene hay una DÉCIMA PARTE. Octubre arranca en 22.1%, que es casi exactamente el '
+      + '23.6% con el que arrancó septiembre. Quien publique «octubre cerró en 22.1%» va a repetir, '
+      + 'palabra por palabra, el error que este módulo lleva cinco cortes documentando: el mes vivo '
+      + 'NO mide bajas, mide retraso de cobranza. Se recupera con pagos. [[regla-churn-mes-vencido]] '
+      + '📌 EL ACUMULADO DEL AÑO SALE DE SUMAR, no de ponderar: 19.5% (hasta septiembre, semana 24) + '
+      + '22.1% (octubre) = 41.6%, que es exactamente lo declarado. O sea que el acumulado hereda '
+      + 'ENTERO el 22.1% no definitivo, y se va a desinflar con él. Un detalle que además no casa: '
+      + 'septiembre se reexpresó de 2.6% a 2.5%, así que la base debería ser 19.4% y no 19.5%. '
+      + '🔻 LAS CANCELACIONES CAEN A DOS, $6,708.50 — un 80.9% menos que los $35,127.00 de la semana '
+      + '24. Grupo Turístico Rumbo ($4,349.00, 6 meses) se va porque «no lo usaba», que es la única '
+      + 'de las dos sobre la que se podía haber hecho algo: seis meses pagando sin usar el producto '
+      + 'es una cuenta que pedía una llamada. PSI División Latinoamérica ($2,359.50, 21 meses) cierra '
+      + 'proyecto, que no es un fallo de servicio. '
+      + '🏆 TOP 5 DE CLIENTES ACTIVOS, sobre una cartera de $128,640.37 en 26 clientes: HomiRent '
+      + '$11,998.00 (52 meses) · MKG $11,283.03 (157) · CS7 $11,073.00 (33) · LI FINANCIERA '
+      + '$9,104.00 (11) · SIMAGASMEX $8,272.00 (9). Los cinco suman $51,730.03, el 40.2%: los otros '
+      + '$76,910.34 en 21 clientes no se desglosan. Va aquí, en la nota, y NO en el bloque de '
+      + '«Pendiente de Facturar»: la cartera activa es lo que SÍ factura, no dinero en riesgo. '
+      + '⏳ MKG LLEVA 157 MESES ACTIVO — trece años y un mes. Es, con diferencia, la relación más '
+      + 'larga de todo el corte; la siguiente son los 52 de HomiRent. '
+      + '💰 LA CARTERA POR COBRAR ES CASI TODA RECIENTE: $177,513.29 en 107 clientes lleva entre 1 y '
+      + '7 días, el 65.2% del total; $74,008.03 en 51 clientes va de 8 a 15; y $20,798.28 en 15 '
+      + 'clientes de 16 a 30. **Más de 30 días: CERO, con cero clientes.** Eso último es una buena '
+      + 'noticia que conviene leer bien — es el tramo que históricamente antecede a la suspensión. '
+      + '\n\n━━ OBSERVACIONES DE CUSTOMER SUCCESS ━━ '
+      + 'Lo que sigue lo detectamos NOSOTROS al conciliar el corte contra sus propias tablas y contra '
+      + 'el de hace cinco días, con `scripts/concilia-churn-s25.py`. No corrige ninguna cifra '
+      + 'publicada. '
+      + '① LA CARTERA ACTIVA SE DERRUMBA UN 68.5% EN CINCO DÍAS: de $408,857.69 (semana 24) a '
+      + '$128,640.37. Y no es que se hayan ido los grandes — los CINCO del Top cambian ENTEROS: '
+      + 'Blueservices, Azyco Guadalajara, Gas Economico Metropolitano, VAEO y FabricAir no aparecen, '
+      + 'y en su lugar hay cinco nombres nuevos. Ninguna de las dos cancelaciones del mes explica '
+      + 'nada de eso: suman $6,708.50. O cambió el criterio de qué cuenta como «activo», o el corte '
+      + 'mira otra población. HAY QUE PREGUNTARLO ANTES DE CITAR LA CIFRA. '
+      + '② LA CARTERA POR COBRAR ES MÁS DEL DOBLE QUE LA ACTIVA — $272,319.60 contra $128,640.37 — y '
+      + 'eso es al revés de como se ha visto en todos los cortes anteriores. Sube un 433.5% (de '
+      + '$51,042.30) y los clientes pasan de 45 a 173. Un salto así en cinco días no es cobranza '
+      + 'normal: o entró una facturación masiva, o la tabla cambió de alcance. Misma pregunta. '
+      + '③ ESTE CORTE NO TRAE TRAMO «POR VENCER». El anterior lo publicaba en cero; éste lo omite. '
+      + 'Como el primer tramo es «1 a 7 días», lo que la tabla reporta está TODO vencido. No se '
+      + 'inventa un cero donde no hay casilla. [[feedback-cero-sin-medicion]] '
+      + '④ LOS CUATRO DOWNGRADES SON LA LISTA COMPLETA, no un top: el corte declara 4 clientes y '
+      + 'detalla 4, y suman los $6,038.00. Es la primera vez en cinco cortes que esta tabla cierra '
+      + 'sin cubo de «otros». '
+      + '⑤ EL MARCADO «top» DEL DOWNGRADE VA POR PORCENTAJE, NO POR DINERO. Señala a Proseso '
+      + 'Consultores (81%, $2,210.00), pero el que más ingreso se lleva es Hotel Real de Minas '
+      + '(48%, $2,490.00). Las dos lecturas valen y miden cosas distintas; citar una por la otra no. '
+      + '⑥ JULIO DESAPARECE DE LA SERIE. Los cortes anteriores abrían en julio (1.9%); éste arranca '
+      + 'en agosto. No se arrastra el mes que falta desde el corte viejo: se publica la serie que '
+      + 'trae el reporte y se dice que son tres meses. '
+      + '⑦ LO QUE SÍ CUADRA, al centavo: las dos cancelaciones contra su total ($6,708.50); soft + '
+      + 'hard suspend contra el suyo ($26,949.28) y sus 16 clientes; los cuatro tramos de cartera '
+      + 'contra $272,319.60 y sus 173 clientes; y los cuatro downgrades contra $6,038.00. '
+      + '⑧ LOS PORCENTAJES NO SE PUEDEN RECONSTRUIR: el correo no publica la base de MRR de cada mes, '
+      + 'así que 2.1%, 2.5% y 22.1% se citan como vienen y no se verifican dividiendo. '
+      + '[[feedback-metricas-derivadas-origen]]',
+  },
+
+  /* ── CARTERA POR COBRAR ─────────────────────────────────────────────────
+     Lo que de verdad está pendiente de cobro, y por eso ocupa el bloque que la
+     pantalla rotula «Pendiente de Facturar». El corte no da detalle por
+     cliente: sólo los cuatro tramos. 173 clientes, $272,319.60 ✓ */
+  pendientesTotalReal:   272319.60,
+  pendientesCuentasReal: 173,
+  pendientes: [
+    { cliente: '1 a 7 días vencido — 107 clientes. El 65.2% de la cartera por cobrar, y lo más reciente que hay: esto es cobranza del día, no deuda.', monto: 177513.29, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: '8 a 15 días vencido — 51 clientes.',                                                                                                   monto:  74008.03, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: '16 a 30 días vencido — 15 clientes. El último tramo antes del que antecede a la suspensión.',                                           monto:  20798.28, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: 'Más de 30 días — 0 clientes, $0.00. CERO MEDIDO, y es la buena noticia del corte: es el tramo que históricamente antecede a la suspensión.', monto: 0, mesesActivo: 0, ultimaFactura: '—' },
+  ],
+
+  /* El corte NO trae tramo «Por vencer» —el anterior lo publicaba en cero— así
+     que la tabla entera es saldo vencido. No se añade una casilla que el
+     reporte no tiene. */
+  antiguedadSaldos: [
+    { rango: '1 – 7 días vencido',   monto: 177513.29 },
+    { rango: '8 – 15 días vencido',  monto:  74008.03 },
+    { rango: '16 – 30 días vencido', monto:  20798.28 },
+    { rango: 'Más de 30 días',       monto:      0.00 },
+  ],
+
+  /* ── LAS 2 CANCELACIONES DE OCTUBRE ─────────────────────────────────────
+     Suman $6,708.50 ✓. `acumulado` va en 0 porque el corte NO publica el
+     histórico facturado: es «no reportado», no «cero», y la pantalla lo
+     escribe con esas palabras. [[feedback-cero-sin-medicion]] */
+  cancelados: [
+    { cliente: 'Grupo Turístico Rumbo S de RL de CV — «comenta que no lo usaba». Seis meses pagando sin usar el producto: de las dos, es la única sobre la que se podía haber hecho algo. Acumulado histórico no publicado por el corte.', mrr: 4349.00, mesesActivo: 6, acumulado: 0 },
+    { cliente: 'PSI División Latinoamérica — cierre de proyecto, que no es un fallo de servicio: el contrato tenía fin. Acumulado no publicado.', mrr: 2359.50, mesesActivo: 21, acumulado: 0 },
+  ],
+
+  /* ── DOWNGRADES ─────────────────────────────────────────────────────────
+     LISTA COMPLETA: el corte declara 4 clientes y detalla 4. Primera vez en
+     cinco cortes que esta tabla cierra sin cubo de «otros». */
+  downgradeTotalReal: 6038.00,
+  downgradeCasosReal: 4,
+  downgrades: [
+    { cliente: 'Proseso Consultores — TOP por porcentaje', perdida: 2210.00, nota: '81% de reducción, la mayor en proporción del mes. El corte lo marca como «top», pero por PORCENTAJE: en dinero el mayor es Hotel Real de Minas.' },
+    { cliente: 'Hotel Real de Minas San Miguel de Allende', perdida: 2490.00, nota: '48% de reducción y el MAYOR IMPORTE del mes — se lleva el 41.2% de todo el ingreso perdido por downgrade.' },
+    { cliente: 'Huellitas Resort GDL', perdida: 799.00, nota: '33% de reducción, la más suave de las cuatro.' },
+    { cliente: 'Sparkgam', perdida: 539.00, nota: '52% de reducción. El importe más pequeño del mes.' },
+  ],
+
+  /* ── SOFT / HARD SUSPEND DE OCTUBRE ─────────────────────────────────────
+     16 clientes, $26,949.28 ✓. El corte da los dos estatus agregados, con su
+     promedio de días pendientes; no desglosa por cliente. */
+  suspendidosTotalReal:   26949.28,
+  suspendidosCuentasReal: 16,
+  suspendidos: [
+    { cliente: 'Hard Suspend — 12 clientes · 17.6 días promedio pendientes de pago. Servicio activo con restricciones: sin baja autorizada NO es churn.', importe: 16311.28, mesesActivo: 0, estado: 'Suspendido' },
+    { cliente: 'Soft Suspend — 4 clientes · 13.0 días promedio pendientes de pago.',                                                                      importe: 10638.00, mesesActivo: 0, estado: 'Suspendido' },
+  ],
+}
+
+
 export default function ChurnPage() {
   const [userReportes, setUserReportes] = useState<ChurnReporte[]>([])
   /* LA SELECCIÓN POR DEFECTO SE DERIVA DEL CORTE VIGENTE, no se escribe.
@@ -2684,7 +2857,7 @@ export default function ChurnPage() {
      tres semanas antes. El `?? REPORTE_…` de abajo no lo salvaba, porque
      `find` encontraba el S21 y el fallback nunca entraba. Atada a la
      constante, la próxima rotación sólo tiene que cambiar el import. */
-  const [selectedId,   setSelectedId]   = useState<string>(REPORTE_S25_OCT_2026.id)
+  const [selectedId,   setSelectedId]   = useState<string>(REPORTE_S26_OCT_2026.id)
   const [tab,          setTab]          = useState<Tab>('resumen')
   const [showForm,     setShowForm]     = useState(false)
   const [acumCancelSort, setAcumCancelSort] = useState<{ col: 'cliente' | 'mrr' | 'mesesActivo' | 'acumulado' | 'periodo'; dir: 'asc' | 'desc' }>({ col: 'mrr', dir: 'desc' })
@@ -2695,8 +2868,8 @@ export default function ChurnPage() {
   useEffect(() => { setUserReportes(loadReportes()) }, [])
 
   const BASE_IDS = ['abril-2026', 's4-mayo-2026', 's5-mayo-2026', 's1-junio-2026', 's2-junio-2026', 's3-junio-2026', 's4-junio-2026', 'cierre-junio-2026', 's1-julio-2026', 's2-julio-2026']
-  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, REPORTE_S2_AGOSTO_2026, REPORTE_S3_AGOSTO_2026, REPORTE_S18_AGOSTO_2026, REPORTE_S19_SEPTIEMBRE_2026, REPORTE_S20_SEPTIEMBRE_2026, REPORTE_S21_SEPTIEMBRE_2026, REPORTE_S22_SEPTIEMBRE_2026, REPORTE_S23_T3_2026, REPORTE_S24_OCT_2026, REPORTE_S25_OCT_2026, ...userReportes]
-  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S25_OCT_2026
+  const allReportes: ChurnReporte[] = [REPORTE_ABRIL_2026, REPORTE_S4_MAYO_2026, REPORTE_S5_MAYO_2026, REPORTE_S1_JUNIO_2026, REPORTE_S2_JUNIO_2026, REPORTE_S3_JUNIO_2026, REPORTE_S4_JUNIO_2026, REPORTE_CIERRE_JUNIO_2026, REPORTE_S1_JULIO_2026, REPORTE_S2_JULIO_2026, REPORTE_S3_JULIO_2026, REPORTE_S4_JULIO_2026, REPORTE_S2_AGOSTO_2026, REPORTE_S3_AGOSTO_2026, REPORTE_S18_AGOSTO_2026, REPORTE_S19_SEPTIEMBRE_2026, REPORTE_S20_SEPTIEMBRE_2026, REPORTE_S21_SEPTIEMBRE_2026, REPORTE_S22_SEPTIEMBRE_2026, REPORTE_S23_T3_2026, REPORTE_S24_OCT_2026, REPORTE_S25_OCT_2026, REPORTE_S26_OCT_2026, ...userReportes]
+  const reporte = allReportes.find(r => r.id === selectedId) ?? REPORTE_S26_OCT_2026
 
   const { pendientes, cancelados, downgrades, suspendidos, grc } = reporte
   const totalPendiente  = reporte.pendientesTotalReal   ?? pendientes.reduce((s, c) => s + (Number(c.monto)   || 0), 0)
@@ -2708,7 +2881,27 @@ export default function ChurnPage() {
   const pendienteNoReportado =
     reporte.pendientesTotalReal === undefined && pendientes.length === 0
   const totalCancelados = cancelados.reduce((s, c) => s + (Number(c.mrr)     || 0), 0)
-  const totalDowngrades = downgrades.reduce((s, c) => s + (Number(c.perdida) || 0), 0)
+  /* EL TOTAL DECLARADO MANDA SOBRE LA SUMA DE LAS FILAS.
+     Durante nueve cortes esta línea era `downgrades.reduce(...)` y no consultaba
+     `downgradeTotalReal`, así que cuando el correo detallaba un TOP y declaraba
+     un total mayor, la pantalla publicaba el top como si fuera el mes entero:
+     $177,602.61 subdeclarados en total, y el cierre de T3 publicaba $22,399.83
+     de los $130,627.59 que dice el corte — un 83% de menos. Medido con
+     `scripts/mide-total-downgrades.py`. [[feedback-tablas-deben-cerrar]] */
+  const sumaFilasDowngrade = downgrades.reduce((s, c) => s + (Number(c.perdida) || 0), 0)
+  const totalDowngrades = reporte.downgradeTotalReal ?? sumaFilasDowngrade
+  /* Lo que el corte declara y no desglosa. Se calcula aquí y se pinta como fila
+     de cierre, en vez de teclearlo en los nueve bloques archivados: así cierra
+     también el próximo corte que llegue con un top. */
+  const restoDowngrade = Math.max(0, totalDowngrades - sumaFilasDowngrade)
+  /* UN CERO SIN MEDICIÓN NO ES UN CERO — y «no significativos» tampoco.
+     La semana 26 dice «no hay downgrades significativos en la semana»: es un
+     juicio sobre la SEMANA mientras el resto del corte habla del MES, y el
+     corte anterior reportaba 4 por $6,038.00 en ese mismo mes. Sin esto la
+     tarjeta diría «$0.00 · 0 clientes», que se lee como que no hubo ninguno.
+     [[feedback-cero-sin-medicion]] */
+  const downgradeNoReportado =
+    reporte.downgradeTotalReal === undefined && downgrades.length === 0
   const totalSuspendidos = reporte.suspendidosTotalReal ?? (suspendidos ?? []).reduce((s, c) => s + (Number(c.importe) || 0), 0)
   /* UN CUBO DE CIERRE NO ES UN CLIENTE.
      Las tablas parciales llevan una fila «+ Resto de…» para que el total
@@ -2718,6 +2911,17 @@ export default function ChurnPage() {
      de las filas SIN cubo. [[feedback-tablas-deben-cerrar]] */
   const nPendientes = reporte.pendientesCuentasReal ?? sinCubo(pendientes).length
   const nDowngrades = reporte.downgradeCasosReal    ?? sinCubo(downgrades).length
+  const nCancelados = reporte.canceladosCasosReal   ?? sinCubo(cancelados).length
+  /* Y SI EL CORTE SÓLO TRAE CUBO, EL CONTEO NO ES CERO: ES DESCONOCIDO.
+     Filtrar cubos arregló los cortes que detallan un top, pero el cierre de
+     agosto —cuya única fila es «+ 21 cuentas canceladas»— pasaba a «0 canc.»
+     con $20,040 al lado. A esos cinco cortes se les declaró el conteo a mano
+     (`scripts/mide-conteo-cancelados.py` los encontró y dice de dónde sale cada
+     número); esto es la red para el PRÓXIMO que llegue sin declararlo.
+     [[feedback-cero-sin-medicion]] */
+  const nCanceladosDesconocido =
+    reporte.canceladosCasosReal === undefined && cancelados.length > 0 && nCancelados === 0
+  const etqCancelados = nCanceladosDesconocido ? 'n/d' : String(nCancelados)
   const TABS = buildTabs(reporte)
 
   const isAcumulado = selectedId === 'acumulado'
@@ -2844,7 +3048,7 @@ export default function ChurnPage() {
     const updated = userReportes.filter(r => r.id !== id)
     setUserReportes(updated)
     saveReportes(updated)
-    if (selectedId === id) setSelectedId(REPORTE_S25_OCT_2026.id)
+    if (selectedId === id) setSelectedId(REPORTE_S26_OCT_2026.id)
     setDelConfirm(null)
   }
 
@@ -2969,11 +3173,13 @@ export default function ChurnPage() {
                       </span>
                       <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
                         style={{ background: `${RED}18`, color: RED_TX }}>
-                        {r.cancelados.length} canc.
+                        {etiquetaCancelados(r)} canc.
                       </span>
                       <span className="text-[9px] px-1.5 py-0.5 rounded font-medium"
                         style={{ background: `${AMBER}18`, color: AMBER_TX }}>
-                        {r.downgradeCasosReal ?? sinCubo(r.downgrades).length} dg.
+                        {downgradesSinMedir(r)
+                          ? 'dg. s/d'
+                          : `${r.downgradeCasosReal ?? sinCubo(r.downgrades).length} dg.`}
                       </span>
                     </div>
                   </button>
@@ -3015,12 +3221,17 @@ export default function ChurnPage() {
             color={ORANGE} />
           {cancelados.length > 0
             ? <KpiCard icon={XCircle}    label="MRR Cancelado"            value={fmt(totalCancelados)}
-                sub={`${cancelados.length} clientes · ${reporte.periodo}`} color={RED} />
+                sub={nCanceladosDesconocido
+                  ? `el corte no dice cuántas cuentas · ${reporte.periodo}`
+                  : `${nCancelados} clientes · ${reporte.periodo}`} color={RED} />
             : <KpiCard icon={BarChart3}  label="Suspendidos / Inactivos"  value={fmt(totalSuspendidos)}
                 sub={`${reporte.suspendidosCuentasReal ?? (suspendidos?.length ?? 0)} cuentas pausadas`} color={BLUE} />
           }
-          <KpiCard icon={ArrowDownRight} label="Ingreso Perdido Downgrade" value={fmt(totalDowngrades)}
-            sub={`${nDowngrades} clientes · ${reporte.periodo}`}  color={AMBER}  />
+          <KpiCard icon={ArrowDownRight} label="Ingreso Perdido Downgrade"
+            value={downgradeNoReportado ? 'no reportado' : fmt(totalDowngrades)}
+            sub={downgradeNoReportado
+              ? `El corte no los mide · ${reporte.periodo}`
+              : `${nDowngrades} clientes · ${reporte.periodo}`}  color={AMBER}  />
           {grc
             ? <KpiCard icon={TrendingDown} label={grc.acumuladoEtiqueta ? `GRC ${grc.acumuladoEtiqueta}` : `GRC Acumulado ${grc.evolucion[grc.evolucion.length - 1]?.mes ?? 'GRC'}`} value={`${grc.acumulado}%`}
                 sub={`${grc.evolucion[grc.evolucion.length - 1]?.mes ?? 'Mes'} actual: ${grc.evolucion[grc.evolucion.length - 1]?.pct ?? 0}%`} color={RED} />
@@ -3087,7 +3298,9 @@ export default function ChurnPage() {
                     <span className="text-xs font-bold uppercase tracking-wide" style={{ color: tonoSobreClaro(RED, 0.06) }}>Cancelados</span>
                   </div>
                   <p className="text-2xl font-extrabold" style={{ color: tonoSobreClaro(RED, 0.06) }}>{fmt(totalCancelados)}</p>
-                  <p className="text-xs text-gray-500 mt-1">{cancelados.length} clientes</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {nCanceladosDesconocido ? 'el corte no dice cuántas cuentas' : `${etqCancelados} clientes`}
+                  </p>
                   <p className="text-xs mt-3 text-gray-600">Cuentas que cancelaron. MRR perdido. Acumulado histórico relevante.</p>
                 </div>
                 <div className="rounded-xl border-2 p-4" style={{ borderColor: `${AMBER}50`, background: `${AMBER}06` }}>
@@ -3095,8 +3308,14 @@ export default function ChurnPage() {
                     <span className="w-3 h-3 rounded-full" style={{ background: AMBER }} />
                     <span className="text-xs font-bold uppercase tracking-wide" style={{ color: tonoSobreClaro(AMBER, 0.06) }}>Downgrades</span>
                   </div>
-                  <p className="text-2xl font-extrabold" style={{ color: tonoSobreClaro(AMBER, 0.06) }}>{fmt(totalDowngrades)}</p>
-                  <p className="text-xs text-gray-500 mt-1">{nDowngrades} clientes con reducción de plan</p>
+                  <p className="text-2xl font-extrabold" style={{ color: tonoSobreClaro(AMBER, 0.06) }}>
+                    {downgradeNoReportado ? 'no reportado' : fmt(totalDowngrades)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {downgradeNoReportado
+                      ? 'El corte no desglosa downgrades del período'
+                      : `${nDowngrades} clientes con reducción de plan`}
+                  </p>
                   <p className="text-xs mt-3 text-gray-600">Ingreso mensual perdido por reducción de planes o cancelación parcial de productos.</p>
                 </div>
               </div>
@@ -3111,12 +3330,15 @@ export default function ChurnPage() {
                   return [
                     { label: 'MRR en riesgo (pendiente de facturar)', monto: totalPendiente,  color: ORANGE_TX },
                     { label: 'MRR cancelado definitivo',               monto: totalCancelados, color: RED_TX    },
-                    { label: 'Ingreso perdido por downgrades',          monto: totalDowngrades, color: AMBER_TX  },
+                    { label: 'Ingreso perdido por downgrades',          monto: totalDowngrades, color: AMBER_TX,
+                      sinMedir: downgradeNoReportado  },
                   ].map(r => (
                     <div key={r.label}>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-gray-600">{r.label}</span>
-                        <span className="font-bold" style={{ color: tonoSobreClaro(r.color, 0.10) }}>{fmt(r.monto)}</span>
+                        <span className="font-bold" style={{ color: tonoSobreClaro(r.color, 0.10) }}>
+                          {r.sinMedir ? 'no reportado' : fmt(r.monto)}
+                        </span>
                       </div>
                       <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                         <div className="h-full rounded-full" style={{ width: `${(r.monto / total) * 100}%`, background: r.color }} />
@@ -3124,9 +3346,20 @@ export default function ChurnPage() {
                     </div>
                   ))
                 })()}
-                <div className="pt-2 border-t border-gray-100 flex justify-between">
-                  <span className="text-sm font-semibold text-gray-800">Total impacto</span>
-                  <span className="text-sm font-bold text-gray-900">{fmt(totalPendiente + totalCancelados + totalDowngrades)}</span>
+                <div className="pt-2 border-t border-gray-100">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-semibold text-gray-800">
+                      Total impacto{downgradeNoReportado ? ' (mínimo)' : ''}
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">{fmt(totalPendiente + totalCancelados + totalDowngrades)}</span>
+                  </div>
+                  {/* Sin downgrades medidos, la suma es un PISO, no un total. */}
+                  {downgradeNoReportado && (
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Es un piso: el corte no mide los downgrades, así que falta
+                      un sumando que nadie cuantificó.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -3263,7 +3496,10 @@ export default function ChurnPage() {
               style={{ background: `${AMBER}08` }}>
               <div>
                 <h3 className="font-semibold text-sm text-gray-900">Downgrades — {reporte.periodo}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Ingreso perdido: <strong>{fmt(totalDowngrades)}</strong></p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Ingreso perdido:{' '}
+                  <strong>{downgradeNoReportado ? 'no reportado por el corte' : fmt(totalDowngrades)}</strong>
+                </p>
               </div>
               <SemaforoDot tipo="downgrade" />
             </div>
@@ -3279,9 +3515,40 @@ export default function ChurnPage() {
                 </thead>
                 <tbody>
                   {downgrades.map((d, i) => <DowngradeRow key={i} d={d} />)}
+                  {/* La tabla CIERRA en pantalla: si el corte detalla un top y
+                      declara más, el resto se ve. No un top que calla el resto. */}
+                  {restoDowngrade > 0.004 && (
+                    <tr className="border-b border-gray-100 bg-amber-50/20">
+                      <td className="py-3 px-4 text-gray-600 italic">
+                        + Resto no desglosado por el corte
+                      </td>
+                      <td className="py-3 px-4 text-right font-semibold" style={{ color: AMBER_TX }}>
+                        {fmt(restoDowngrade)}
+                      </td>
+                      <td className="py-3 px-4 text-xs text-gray-400">—</td>
+                      <td className="py-3 px-4 text-xs text-gray-500">
+                        El corte declara <strong>{fmt(totalDowngrades)}</strong> y detalla{' '}
+                        {fmt(sumaFilasDowngrade)} en {sinCubo(downgrades).length} cliente(s).
+                        Esta fila es la diferencia, para que la tabla cuadre con lo
+                        declarado; el corte no dice a quién corresponde.
+                      </td>
+                    </tr>
+                  )}
+                  {downgradeNoReportado && (
+                    <tr className="border-b border-gray-100">
+                      <td colSpan={4} className="py-4 px-4 text-xs text-gray-600">
+                        <strong>El corte no reporta downgrades.</strong> No es un cero:
+                        el correo dice que «no hay downgrades significativos en la
+                        semana», que es un juicio y además habla de la semana, no del
+                        mes. No se publica $0.00 sobre algo que nadie midió.
+                      </td>
+                    </tr>
+                  )}
                   <tr className="bg-amber-50/50 font-bold">
                     <td className="py-3 px-4 text-gray-900">TOTAL</td>
-                    <td className="py-3 px-4 text-right" style={{ color: AMBER_TX }}>{fmt(totalDowngrades)}</td>
+                    <td className="py-3 px-4 text-right" style={{ color: AMBER_TX }}>
+                      {downgradeNoReportado ? 'no reportado' : fmt(totalDowngrades)}
+                    </td>
                     <td colSpan={2} />
                   </tr>
                 </tbody>
@@ -3590,12 +3857,18 @@ export default function ChurnPage() {
                   { label: pendienteNoReportado
                       ? 'Pendiente de facturar (no reportado en este corte)'
                       : `Pendiente de facturar (${nPendientes} cuentas)`,
-                    monto: totalPendiente, color: ORANGE_TX,
+                    monto: totalPendiente, color: ORANGE_TX, sinMedir: pendienteNoReportado,
                     sub: pendienteNoReportado
                       ? 'El cierre de trimestre no trae cartera por cobrar — no es que valga cero'
                       : 'Riesgo inmediato de churn' },
-                  { label: 'Downgrades detectados',                   monto: totalDowngrades, color: AMBER_TX,  sub: `${nDowngrades} clientes con reducción de plan` },
-                  { label: 'Suspendidos / Inactivos en retención',    monto: totalSuspendidos, color: BLUE,  sub: `${reporte.suspendidosCuentasReal ?? suspendidos?.length ?? 0} cuentas pausadas` },
+                  { label: downgradeNoReportado
+                      ? 'Downgrades (no reportados en este corte)'
+                      : 'Downgrades detectados',
+                    monto: totalDowngrades, color: AMBER_TX, sinMedir: downgradeNoReportado,
+                    sub: downgradeNoReportado
+                      ? 'El corte los llama «no significativos» sin cuantificarlos — no es que valgan cero'
+                      : `${nDowngrades} clientes con reducción de plan` },
+                  { label: 'Suspendidos / Inactivos en retención',    monto: totalSuspendidos, color: BLUE, sinMedir: false, sub: `${reporte.suspendidosCuentasReal ?? suspendidos?.length ?? 0} cuentas pausadas` },
                 ].map(row => {
                   const total = totalPendiente + totalDowngrades + totalSuspendidos || 1
                   return (
@@ -3603,7 +3876,11 @@ export default function ChurnPage() {
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-gray-700 font-medium">{row.label}</span>
                         <div className="text-right">
-                          <span className="font-bold" style={{ color: row.color }}>{fmt(row.monto)}</span>
+                          {/* Un rótulo que dice «no reportado» con un $0.00 al lado
+                              se contradice: la cifra es la que se recuerda. */}
+                          <span className="font-bold" style={{ color: row.color }}>
+                            {row.sinMedir ? 'no reportado' : fmt(row.monto)}
+                          </span>
                           <span className="text-gray-400 ml-2 text-[11px]">{row.sub}</span>
                         </div>
                       </div>
@@ -3613,9 +3890,19 @@ export default function ChurnPage() {
                     </div>
                   )
                 })}
-                <div className="pt-3 border-t border-gray-100 flex justify-between">
-                  <span className="text-sm font-semibold text-gray-800">Exposición total identificada</span>
-                  <span className="text-sm font-bold text-gray-900">{fmt(totalPendiente + totalDowngrades + totalSuspendidos)}</span>
+                <div className="pt-3 border-t border-gray-100">
+                  <div className="flex justify-between">
+                    <span className="text-sm font-semibold text-gray-800">Exposición total identificada</span>
+                    <span className="text-sm font-bold text-gray-900">{fmt(totalPendiente + totalDowngrades + totalSuspendidos)}</span>
+                  </div>
+                  {(pendienteNoReportado || downgradeNoReportado) && (
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      Falta{pendienteNoReportado && downgradeNoReportado ? 'n' : ''}{' '}
+                      {[pendienteNoReportado && 'la cartera por cobrar',
+                        downgradeNoReportado && 'los downgrades'].filter(Boolean).join(' y ')}
+                      , que este corte no cuantifica: la suma es un piso.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

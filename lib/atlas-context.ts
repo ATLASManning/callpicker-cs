@@ -14,7 +14,7 @@ import { getZohoMap, lookupZoho } from './zoho-enrich'
 import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { esConElCliente, etiquetaTipo } from './reuniones-tipo'
 import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
-import { REPORTE_S25_OCT_2026 } from '@/app/churn/reporte-actual'
+import { REPORTE_S26_OCT_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
 import { MARCO_SUMMARY } from './marco-atlas'
@@ -766,7 +766,7 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   modulos.push('churn-grc')
 
   // Corte vigente de Gross Revenue Churn — misma fuente que renderiza el módulo.
-  const rep = REPORTE_S25_OCT_2026
+  const rep = REPORTE_S26_OCT_2026
   if (rep.grc) {
     const evo = rep.grc.evolucion
       .map(e => `${e.mes} ${e.pct}%${e.anterior !== undefined ? ` (ant. ${e.anterior}%)` : ''}`)
@@ -823,7 +823,26 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
        dinero. Se dice cuánto agrupa el cubo y que esos clientes no tienen
        nombre en el corte. [[feedback-tablas-deben-cerrar]] */
     const cuboMonto = cuboDowns.reduce((s, d) => s + d.perdida, 0)
-    const cierreDowns = acotado
+    /* UN CORTE QUE NO MIDE DOWNGRADES NO ES UN CORTE CON CERO DOWNGRADES.
+       Sin esto, la rama de abajo le decía a Atlas «lista COMPLETA y CERRADA de
+       0 clientes por $0 — no hay un cliente número 1», que es afirmar que no
+       hubo ninguno. La semana 26 sólo dice «no hay downgrades significativos en
+       la semana»: un juicio, sin cifra, y sobre la semana en vez del mes,
+       cuando la 25 reportó cuatro por $6,038.00 en ese mismo octubre.
+       [[feedback-cero-sin-medicion]] [[feedback-contexto-ia-sin-huecos]] */
+    const downsNoReportados =
+      rep.downgradeTotalReal === undefined && rep.downgrades.length === 0
+    const cierreDowns = downsNoReportados
+      /* Sin cifras ni meses escritos aquí: el detalle de POR QUÉ este corte no
+         los mide vive en `notaEspecial`, que rota con el corte. Un importe
+         tecleado en el código se queda cuando el corte cambia.
+         [[feedback-contexto-ia-sin-huecos]] */
+      ? `  Downgrades de ${rep.periodo} — EL CORTE NO LOS CUANTIFICA. No publica un importe ni una `
+        + `lista. NO respondas que hubo cero, ni un importe de cero, ni que la lista está completa: `
+        + `di que este corte no los mide y que por eso no se puede dar la cifra. Cortes anteriores de `
+        + `este mismo mes sí reportaron downgrades, así que un cero sería falso. Si te preguntan, `
+        + `responde eso, remite a la nota del corte y sugiere pedir la cifra al equipo Data.`
+      : acotado
       ? `  Downgrades de ${rep.periodo} DE TU CARTERA (y los que no están en la cartera CS): `
         + `${downVis.length} clientes por $${downTotalVis.toLocaleString('es-MX')}. `
         + `La lista es completa PARA TU ALCANCE, no para el corte: hay más `
@@ -857,32 +876,58 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
        anterior. Si el corte no lo reporta, se dice que no lo reporta. */
     const fueraTotal = (rep.suspendidosTotalReal ?? 0) + (rep.desactivadosTotalReal ?? 0)
       + rep.cancelados.reduce((s, c) => s + c.mrr, 0)
+    /* UN CUBO DE CIERRE NO ES UN CLIENTE: `cancelados.length` contaba la fila
+       «+ Resto…» como una baja más, así que un mes de 11 cancelaciones con un
+       top de 5 se le entregaba a Atlas como «Cancelados 6». El importe sí sale
+       de todas las filas —el cubo existe para que cuadre—, pero el CONTEO sale
+       de las filas sin cubo y se dice cuántas no tienen nombre.
+       [[feedback-tablas-deben-cerrar]] */
+    const cancelConNombre = rep.cancelados.filter(c => !c.cliente.trimStart().startsWith('+'))
+    const cancelSinNombre = rep.cancelados.length - cancelConNombre.length
+    const cancelMonto = rep.cancelados.reduce((s, c) => s + c.mrr, 0)
+    const cuboCancel = rep.cancelados
+      .filter(c => c.cliente.trimStart().startsWith('+'))
+      .reduce((s, c) => s + c.mrr, 0)
     const fueraDetalle = [
       rep.suspendidosTotalReal !== undefined
-        ? `Cartera por cobrar / suspendidos ${rep.suspendidosCuentasReal ?? '—'} cuentas ($${rep.suspendidosTotalReal.toLocaleString('es-MX')})` : '',
+        ? `Suspendidos (soft + hard) ${rep.suspendidosCuentasReal ?? '—'} cuentas ($${rep.suspendidosTotalReal.toLocaleString('es-MX')})` : '',
       rep.desactivadosTotalReal !== undefined
         ? `Hard suspend del mes cerrado ${rep.desactivadosCuentasReal ?? '—'} cuentas ($${rep.desactivadosTotalReal.toLocaleString('es-MX')})` : '',
-      `Cancelados ${rep.cancelados.length} ($${rep.cancelados.reduce((s, c) => s + c.mrr, 0).toLocaleString('es-MX')})`,
+      `Cancelados $${cancelMonto.toLocaleString('es-MX')} en `
+        + `${rep.canceladosCasosReal ?? cancelConNombre.length} cuentas`
+        + (cancelSinNombre > 0 || (rep.canceladosCasosReal ?? 0) > cancelConNombre.length
+          ? `, de las que sólo ${cancelConNombre.length} tienen NOMBRE en el corte`
+            + (cuboCancel > 0 ? ` (las demás van agrupadas en $${cuboCancel.toLocaleString('es-MX')})` : '')
+            + `. NO inventes los nombres que faltan ni los completes con clientes de otros meses`
+          : ''),
     ].filter(Boolean).join(' · ')
     const antigTotal = (rep.antiguedadSaldos ?? []).reduce((s, a) => s + a.monto, 0)
 
     sections.push(
       `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha} | ` +
-      `ESTA es la fuente para ${mesCorte}: los downgrades listados abajo son los ÚNICOS del corte, ` +
-      `no agregues clientes de la sección GRC AAA (esa cubre ${rango}) | ${LEYENDA_CARTERA}${ALCANCE_ACOTADO}):\n` +
+      `ESTA es la fuente para ${mesCorte}: ` +
+      (downsNoReportados
+        ? `este corte NO cuantifica downgrades —ver la línea de downgrades abajo— y no se suple con ` +
+          `la sección GRC AAA (esa cubre ${rango})`
+        : `los downgrades listados abajo son los ÚNICOS del corte, ` +
+          `no agregues clientes de la sección GRC AAA (esa cubre ${rango})`) +
+      ` | ${LEYENDA_CARTERA}${ALCANCE_ACOTADO}):\n` +
       `  Evolución GRC${deEmpresa}: ${evo}. ${etqAcum}: ${rep.grc.acumulado}%` +
       `${rep.grc.anterior !== undefined ? ` (ant. ${rep.grc.anterior}%)` : ''}.` +
       ` Los meses se REEXPRESAN corte a corte conforme entran pagos tardíos: si una cifra cambió` +
       ` respecto a un corte anterior no es un error, y el mes vivo mide retraso de cobranza, no bajas.\n` +
-      `  Cartera en Activo${deEmpresa}: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} ${cuentasActivo}.` +
+      `  ${rep.pendientesEtiqueta ?? 'Cartera en Activo'}${deEmpresa}: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} ${cuentasActivo}.` +
       ` Top ${topN}${acotado ? ' (recortado a tu alcance)' : ''}: ${top || 'ninguno en tu alcance'}.` +
       ` El Top no es la cartera: lo que no está listado no tiene nombre en el corte, no lo inventes.\n` +
       `  Dinero fuera de cartera${deEmpresa}: $${fueraTotal.toLocaleString('es-MX')} — ${fueraDetalle}.\n` +
       (antig ? `  Antigüedad de saldos${deEmpresa} (total $${antigTotal.toLocaleString('es-MX')}): ${antig}.\n` : '') +
-      `${cierreDowns}\n${downs || '    (ninguno en tu alcance)'}\n` +
-      `  Downgrades de ${mesCorte} agrupados por cartera (ya calculado, NO lo recalcules): ` +
-      `EN CARTERA CS → ${enCartera.length ? enCartera.join(', ') : 'ninguno'}. ` +
-      `SIN ASESOR ASIGNADO → ${fueraCartera.length ? fueraCartera.join(', ') : 'ninguno'}.\n` +
+      `${cierreDowns}\n` +
+      (downsNoReportados
+        ? '    (el corte no publica ninguno, y eso NO quiere decir que no haya habido)\n'
+        : `${downs || '    (ninguno en tu alcance)'}\n` +
+          `  Downgrades de ${mesCorte} agrupados por cartera (ya calculado, NO lo recalcules): ` +
+          `EN CARTERA CS → ${enCartera.length ? enCartera.join(', ') : 'ninguno'}. ` +
+          `SIN ASESOR ASIGNADO → ${fueraCartera.length ? fueraCartera.join(', ') : 'ninguno'}.\n`) +
       `  ${rep.grc.notaEspecial ?? ''}\n` +
       `  Cadencia y remitente: ${rep.notaRemitente ?? 'no reportado en este corte'}`
     )

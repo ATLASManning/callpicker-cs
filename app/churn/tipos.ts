@@ -49,6 +49,17 @@ export interface ChurnReporte {
   grc?:        ChurnGRC
   pendientesTotalReal?:   number
   pendientesCuentasReal?: number
+  /**
+   * Qué es, con palabras, lo que el corte puso en el slot `pendientes`.
+   *
+   * El contexto de Atlas lo rotulaba fijo como «Cartera en Activo», y desde la
+   * semana 24 ese slot guarda la CARTERA POR COBRAR. O sea que Atlas le decía a
+   * un asesor que los $497,941.00 de saldo vencido eran la cartera activa,
+   * cuando la activa de ese mismo corte son $206,983.42: menos de la mitad, y
+   * significa lo contrario. Un rótulo que miente no se arregla con una nota.
+   * [[feedback-kpi-con-fuente]]
+   */
+  pendientesEtiqueta?: string
   suspendidosTotalReal?:  number
   suspendidosCuentasReal?: number
   desactivadosTotalReal?:  number
@@ -60,4 +71,16 @@ export interface ChurnReporte {
    * filas daba «5 clientes con reducción de plan» sobre un mes de 10 casos.
    */
   downgradeCasosReal?:     number
+  /**
+   * Cuántas cancelaciones tuvo el corte, cuando declara más de las que
+   * desglosa.
+   *
+   * `cancelados` era el único de los tres bloques sin conteo declarado ni filtro
+   * de cubo: la tarjeta sumaba filas, así que la semana 26 publicaba «MRR
+   * Cancelado $20,234 · 6 clientes» cuando el corte declara ONCE —cinco con
+   * nombre y un cubo de cierre por los seis restantes—. El importe salía bien y
+   * el conteo mentía, que es la peor combinación: nadie revisa un número que
+   * acompaña a una cifra correcta. [[feedback-tablas-deben-cerrar]]
+   */
+  canceladosCasosReal?:    number
 }

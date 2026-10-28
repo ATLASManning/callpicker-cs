@@ -139,14 +139,41 @@ print('  %-16s tramos %12s   por vencer %13s   vencido %s'
 # solo contra `suspendidos`, el verificador decia «** no» en un corte correcto
 # — y un «no» que se repite sin ser nada es como no tener verificador. Ahora
 # dice CONTRA CUAL cuadra, y solo falla si no cuadra contra ninguno.
+#
+# Y «POR VENCER» NO SIEMPRE ES LO MISMO, que es lo que rompio esto en la semana
+# 26. Hay DOS formas legitimas del rotulo y significan cosas distintas:
+#   A) «Por vencer (total Activo)» — NO es parte de la cartera por cobrar, es
+#      otra cifra puesta al lado. Ahi el bloque es tramos MENOS por vencer.
+#   B) «Por vencer» a secas — SI es un tramo de la cartera, y el corte lo mete
+#      dentro de su propio total (semana 26: 6 clientes, y los 363 declarados
+#      los incluyen). Ahi el bloque es el total de tramos, sin restar nada.
+# Restando siempre, la semana 26 daba 476,802.59 contra 497,941.00 declarados y
+# el verificador fallaba en un corte correcto. Se prueban las DOS lecturas y se
+# dice CUAL cuadra; si no cuadra ninguna, falla.
 candidatos = [('pendientes', num('pendientesTotalReal')),
               ('suspendidos', num('suspendidosTotalReal'))]
-casa = [n for n, v in candidatos if v is not None and abs(vencido - v) < 0.01]
+# Control negativo: con --control se mete un peso de mas para comprobar que esta
+# comprobacion TODAVIA sabe fallar. Un verificador que concluye exito por
+# defecto es peor que no tenerlo. [[feedback-verificar-antes-asegurar]]
+sesgo = 1.0 if '--control' in sys.argv else 0.0
+lecturas = [('el total de tramos', round(ant + sesgo, 2)),
+            ('los tramos menos «por vencer»', round(vencido + sesgo, 2))]
+casa = [(etq, n) for etq, val in lecturas
+        for n, v in candidatos
+        if v is not None and abs(val - v) < 0.01]
 if casa:
-    print('  el vencido es el bloque: %s' % ' y '.join(casa))
+    for etq, n in casa:
+        print('  %s ES el bloque declarado «%s»' % (etq, n))
+    if sesgo:
+        print('  *** CONTROL NEGATIVO FALLIDO: cuadro con un peso de mas.')
+        raise SystemExit(1)
 else:
-    print('  *** el vencido (%s) no cuadra con ningun bloque declarado: %s'
-          % (format(vencido, ','),
-             ' · '.join('%s %s' % (n, format(v, ',') if v is not None else '—')
-                        for n, v in candidatos)))
-    raise SystemExit(1)
+    if sesgo:
+        print('  control negativo ok: con un peso de mas, NO cuadra.')
+    else:
+        print('  *** la antigüedad no cuadra con ningun bloque declarado, ni')
+        print('      sumando «por vencer» (%s) ni restandolo (%s). Bloques: %s'
+              % (format(ant, ','), format(vencido, ','),
+                 ' · '.join('%s %s' % (n, format(v, ',') if v is not None else '—')
+                            for n, v in candidatos)))
+        raise SystemExit(1)
