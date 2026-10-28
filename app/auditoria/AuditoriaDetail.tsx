@@ -1,4 +1,5 @@
 'use client'
+import { rico } from './Rico'
 import { useState } from 'react'
 import type { AuditoriaCase } from './types'
 import { tonoSobreClaro, tonoSobreFondo, pastillaClara } from '@/lib/contraste'
@@ -229,9 +230,12 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
         {activeTab === 'resumen' && (
           <>
             <SectionCard title="Resumen Ejecutivo" icon={FileText} color={INDIGO}>
+              {/* Era el único campo que pintaba el `**` — con
+                  `dangerouslySetInnerHTML` y una expresión suelta que no veía
+                  los backticks. `rico()` hace las dos marcas sin inyectar
+                  HTML. */}
               {caso.resumen_ejecutivo.split('\n\n').map((p, i) => (
-                <p key={i} className="text-sm text-gray-700 leading-relaxed mt-3 first:mt-0 whitespace-pre-line"
-                  dangerouslySetInnerHTML={{ __html: p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
+                <p key={i} className="text-sm text-gray-700 leading-relaxed mt-3 first:mt-0 whitespace-pre-line">{rico(p)}</p>
               ))}
             </SectionCard>
 
@@ -243,14 +247,14 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                       style={{ ...pastillaClara(RED, 0.125) }}>
                       <span className="text-[10px] font-bold">{String(i + 1).padStart(2, '0')}</span>
                     </div>
-                    <p className="text-sm text-gray-700 leading-relaxed">{h}</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{rico(h)}</p>
                   </div>
                 ))}
               </div>
             </SectionCard>
 
             <SectionCard title="Resultado Positivo" icon={CheckCircle2} color={GREEN}>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{caso.resultado_positivo}</p>
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{rico(caso.resultado_positivo)}</p>
             </SectionCard>
 
             <SectionCard title="Cronología del Caso" icon={Clock} color={BLUE}>
@@ -268,7 +272,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                       </div>
                       <div className="flex-1 min-w-0 pb-1">
                         <p className="text-[11px] font-semibold text-gray-500">{e.responsable}</p>
-                        <p className="text-sm text-gray-700 leading-relaxed mt-0.5">{e.evento}</p>
+                        <p className="text-sm text-gray-700 leading-relaxed mt-0.5">{rico(e.evento)}</p>
                       </div>
                     </div>
                   )
@@ -286,7 +290,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                 {caso.perfil_campos.map(r => (
                   <div key={r.label} className="border border-gray-100 rounded-lg px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{r.label}</p>
-                    <p className="text-sm text-gray-800 mt-1">{r.value}</p>
+                    <p className="text-sm text-gray-800 mt-1">{rico(r.value)}</p>
                   </div>
                 ))}
               </div>
@@ -294,8 +298,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
 
             <SectionCard title="Necesidad de Negocio" icon={Target} color={BLUE}>
               {caso.necesidad_negocio.split('\n\n').map((p, i) => (
-                <p key={i} className="text-sm text-gray-700 leading-relaxed mt-3 first:mt-0 whitespace-pre-line"
-                  dangerouslySetInnerHTML={{ __html: p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
+                <p key={i} className="text-sm text-gray-700 leading-relaxed mt-3 first:mt-0 whitespace-pre-line">{rico(p)}</p>
               ))}
             </SectionCard>
 
@@ -316,8 +319,8 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                           <td className="py-3 pr-4 font-medium text-gray-900 align-top">
                             <Badge color={AMBER}>{r.nombre}</Badge>
                           </td>
-                          <td className="py-3 pr-4 text-gray-700 align-top">{r.descripcion}</td>
-                          <td className="py-3 text-gray-600 align-top text-xs">{r.impacto}</td>
+                          <td className="py-3 pr-4 text-gray-700 align-top">{rico(r.descripcion)}</td>
+                          <td className="py-3 text-gray-600 align-top text-xs">{rico(r.impacto)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -326,7 +329,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                 {caso.senal_alarma && (
                   <div className="mt-4 p-3 rounded-lg border" style={{ background: `${AMBER}08`, borderColor: `${AMBER}30` }}>
                     <p className="text-xs font-semibold" style={{ color: AMBER_TX }}>⚠ Señal de alarma</p>
-                    <p className="text-xs text-gray-600 mt-1 whitespace-pre-line">{caso.senal_alarma}</p>
+                    <p className="text-xs text-gray-600 mt-1 whitespace-pre-line">{rico(caso.senal_alarma)}</p>
                   </div>
                 )}
               </SectionCard>
@@ -340,7 +343,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                     {caso.potencial_corto.map(i => (
                       <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
                         <CheckCircle2 size={13} style={{ color: GREEN, flexShrink: 0 }} className="mt-0.5" />
-                        {i}
+                        {rico(i)}
                       </li>
                     ))}
                   </ul>
@@ -351,7 +354,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                     {caso.potencial_largo.map(i => (
                       <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
                         <TrendingUp size={13} style={{ color: GREEN, flexShrink: 0 }} className="mt-0.5" />
-                        {i}
+                        {rico(i)}
                       </li>
                     ))}
                   </ul>
@@ -368,7 +371,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               <div className="p-4 rounded-xl text-center border-2" style={{ borderColor: `${RED}40`, background: `${RED}06` }}>
                 <p className="text-lg font-bold text-gray-900">{caso.problema_raiz}</p>
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed mt-4 whitespace-pre-line">{caso.problema_raiz_detalle}</p>
+              <p className="text-sm text-gray-700 leading-relaxed mt-4 whitespace-pre-line">{rico(caso.problema_raiz_detalle)}</p>
             </SectionCard>
 
             {caso.flujo_real.length > 0 && (
@@ -407,7 +410,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                       largos: el diagnóstico viene con `\n\n` y sin esto los
                       párrafos de FINSUS y de FRISA se pegaban en un solo
                       bloque. Se ve en pantalla, no lo caza ninguna prueba. */}
-                  <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-line">{caso.auditoria_servicio.diagnostico}</p>
+                  <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-line">{rico(caso.auditoria_servicio.diagnostico)}</p>
                 </div>
 
                 <div className="overflow-x-auto mb-5">
@@ -424,7 +427,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                         <tr key={m.metrica} className="border-b border-gray-100 last:border-0">
                           <td className="py-3 pr-4 font-medium text-gray-900 align-top text-xs">{m.metrica}</td>
                           <td className="py-3 pr-4 align-top text-xs font-bold" style={{ color: ORANGE_TX }}>{m.valor}</td>
-                          <td className="py-3 align-top text-xs text-gray-600">{m.lectura}</td>
+                          <td className="py-3 align-top text-xs text-gray-600">{rico(m.lectura)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -440,7 +443,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                         <span className="text-xs font-bold px-2 py-0.5 rounded-full"
                           style={{ background: `${RED}18`, color: tonoSobreFondo(RED, '#FDE6DD', 4.5) }}>{r.veces}</span>
                       </div>
-                      <p className="text-xs text-gray-600 mt-1">{r.causa}</p>
+                      <p className="text-xs text-gray-600 mt-1">{rico(r.causa)}</p>
                     </div>
                   ))}
                 </div>
@@ -450,7 +453,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   {caso.auditoria_servicio.hallazgos.map((h, i) => (
                     <li key={i} className="flex gap-2 text-sm text-gray-700 leading-relaxed">
                       <span style={{ color: ORANGE }} className="flex-shrink-0 font-bold">·</span>
-                      <span>{h}</span>
+                      <span>{rico(h)}</span>
                     </li>
                   ))}
                 </ul>
@@ -472,8 +475,8 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                       {caso.comparativo.map(r => (
                         <tr key={r.metrica} className="border-b border-gray-100 last:border-0">
                           <td className="py-3 pr-4 font-medium text-gray-900 align-top text-xs">{r.metrica}</td>
-                          <td className="py-3 pr-4 align-top text-xs" style={{ color: RED_TX }}>{r.real}</td>
-                          <td className="py-3 align-top text-xs" style={{ color: GREEN_TX }}>{r.ideal}</td>
+                          <td className="py-3 pr-4 align-top text-xs" style={{ color: RED_TX }}>{rico(r.real)}</td>
+                          <td className="py-3 align-top text-xs" style={{ color: GREEN_TX }}>{rico(r.ideal)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -497,10 +500,10 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                         <span className="text-[10px] font-bold">{i + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800">{a.accion}</p>
+                        <p className="text-sm font-medium text-gray-800">{rico(a.accion)}</p>
                         <div className="flex flex-wrap gap-3 mt-2">
                           <span className="text-[11px] text-gray-500"><strong>Responsable:</strong> {a.responsable}</span>
-                          <span className="text-[11px] text-gray-500"><strong>Criterio:</strong> {a.criterio}</span>
+                          <span className="text-[11px] text-gray-500"><strong>Criterio:</strong> {rico(a.criterio)}</span>
                         </div>
                       </div>
                     </div>
@@ -519,10 +522,10 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                         <span className="text-[10px] font-bold">{i + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800">{a.accion}</p>
+                        <p className="text-sm font-medium text-gray-800">{rico(a.accion)}</p>
                         <div className="flex flex-wrap gap-3 mt-2">
                           <span className="text-[11px] text-gray-500"><strong>Responsable:</strong> {a.responsable}</span>
-                          <span className="text-[11px] text-gray-500"><strong>Criterio:</strong> {a.criterio}</span>
+                          <span className="text-[11px] text-gray-500"><strong>Criterio:</strong> {rico(a.criterio)}</span>
                         </div>
                       </div>
                     </div>
@@ -541,10 +544,10 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                         <span className="text-[10px] font-bold">{i + 1}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800">{a.accion}</p>
+                        <p className="text-sm font-medium text-gray-800">{rico(a.accion)}</p>
                         <div className="flex flex-wrap gap-3 mt-2">
                           <span className="text-[11px] text-gray-500"><strong>Responsable:</strong> {a.responsable}</span>
-                          <span className="text-[11px] text-gray-500"><strong>Criterio:</strong> {a.criterio}</span>
+                          <span className="text-[11px] text-gray-500"><strong>Criterio:</strong> {rico(a.criterio)}</span>
                         </div>
                       </div>
                     </div>
@@ -564,7 +567,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-800">{o.area}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{o.impacto}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{rico(o.impacto)}</p>
                         <p className="text-[11px] text-gray-400 mt-1"><strong>Área:</strong> {o.responsable}</p>
                       </div>
                     </div>
@@ -620,7 +623,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   {caso.foda.fortalezas.map(item => (
                     <li key={item} className="flex items-start gap-2 text-sm text-gray-700">
                       <span className="text-lg leading-none mt-[-2px]" style={{ color: GREEN }}>•</span>
-                      {item}
+                      {rico(item)}
                     </li>
                   ))}
                 </ul>
@@ -636,7 +639,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   {caso.foda.oportunidades.map(item => (
                     <li key={item} className="flex items-start gap-2 text-sm text-gray-700">
                       <span className="text-lg leading-none mt-[-2px]" style={{ color: BLUE }}>•</span>
-                      {item}
+                      {rico(item)}
                     </li>
                   ))}
                 </ul>
@@ -652,7 +655,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   {caso.foda.debilidades.map(item => (
                     <li key={item} className="flex items-start gap-2 text-sm text-gray-700">
                       <span className="text-lg leading-none mt-[-2px]" style={{ color: AMBER }}>•</span>
-                      {item}
+                      {rico(item)}
                     </li>
                   ))}
                 </ul>
@@ -668,7 +671,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                   {caso.foda.amenazas.map(item => (
                     <li key={item} className="flex items-start gap-2 text-sm text-gray-700">
                       <span className="text-lg leading-none mt-[-2px]" style={{ color: RED }}>•</span>
-                      {item}
+                      {rico(item)}
                     </li>
                   ))}
                 </ul>
@@ -678,7 +681,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
             {/* Conclusión */}
             <SectionCard title="Conclusión y Recomendación Central" icon={CheckCircle2} color={INDIGO}>
               {caso.conclusion && (
-                <p className="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-line">{caso.conclusion}</p>
+                <p className="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-line">{rico(caso.conclusion)}</p>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 {caso.pierde.length > 0 && (
@@ -689,7 +692,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                     <ul className="space-y-1">
                       {caso.pierde.map(i => (
                         <li key={i} className="text-xs text-gray-600 flex gap-2">
-                          <span style={{ color: RED_TX }}>✕</span>{i}
+                          <span style={{ color: RED_TX }}>✕</span>{rico(i)}
                         </li>
                       ))}
                     </ul>
@@ -703,7 +706,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                     <ul className="space-y-1">
                       {caso.gana.map(i => (
                         <li key={i} className="text-xs text-gray-600 flex gap-2">
-                          <span style={{ color: GREEN_TX }}>✓</span>{i}
+                          <span style={{ color: GREEN_TX }}>✓</span>{rico(i)}
                         </li>
                       ))}
                     </ul>
@@ -712,7 +715,7 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
               </div>
               {caso.recomendacion_central && (
                 <div className="p-4 rounded-xl text-center border-2" style={{ borderColor: `${INDIGO}40`, background: `${INDIGO}06` }}>
-                  <p className="text-sm font-semibold text-gray-900 whitespace-pre-line">{caso.recomendacion_central}</p>
+                  <p className="text-sm font-semibold text-gray-900 whitespace-pre-line">{rico(caso.recomendacion_central)}</p>
                 </div>
               )}
             </SectionCard>

@@ -14,8 +14,12 @@ u"""POR QUE UNA CUENTA ES CIEGA AL CONSUMO.
    cuenta al corte; (b) es el NOMBRE DEL PLAN, que nuestro propio parser no
    entiende — y entonces el aviso le echa la culpa al archivo equivocado.
 
-   Reproduce `baseMinutos` de `lib/plan-minutos.ts`. Si ese archivo cambia,
-   esto miente: por eso imprime las constantes que usa, para poder cotejarlas.
+   Reproduce `baseMinutos` de `lib/plan-minutos.ts`. La primera version COPIO
+   las constantes a mano y copio TRES mal: `BOLSA_MINIMA` 250 en vez de 3,
+   `MIN_POR_EXT_PLAUSIBLE` 100 en vez de 50, y un `RX_SIN_VOZ` que incluia
+   «agente virtual», que el de verdad NO trae. Imprimirlas para «poder
+   cotejarlas» no es cotejarlas: nadie lo hizo. Ahora se LEEN del propio .ts y
+   si no se encuentran, el guion se cae en vez de medir con un numero inventado.
 
    Es de SOLO LECTURA. [[feedback-cero-sin-medicion]]
 
@@ -34,17 +38,55 @@ if len(sys.argv) < 2:
     print(__doc__); sys.exit(2)
 CID = sys.argv[1].strip()
 
-# ── Las constantes de lib/plan-minutos.ts, copiadas con su nombre ──────────
-MINUTOS_POR_EXTENSION = 1500
-BOLSA_MINIMA = 250
-MIN_POR_EXT_PLAUSIBLE = 100
-RX_EXTENSIONES = re.compile(r'(\d+)\s*extensiones?', re.I)
-RX_EXT_ABREVIADO = re.compile(r'(\d+)\s*ext\b', re.I)
-RX_SIN_VOZ = re.compile(r'chat|whatsapp|agente\s+virtual|numeros?\s+virtuales?', re.I)
+# ── Las constantes se LEEN de lib/plan-minutos.ts, no se copian ────────────
+#
+# Un espejo que se escribe a mano deja de ser un espejo en cuanto el original
+# cambia — o en cuanto se teclea mal, que es lo que paso. Si alguna no aparece,
+# esto NO sigue con un valor por omision: se cae. Un medidor que adivina una
+# constante es peor que no tener medidor. [[feedback-verificar-antes-asegurar]]
+TS = io.open(os.path.join(RAIZ, 'lib', 'plan-minutos.ts'), encoding='utf-8').read()
+
+
+def const_num(nombre):
+    m = re.search(r'\b' + nombre + r'\s*=\s*(\d+)', TS)
+    if not m:
+        print(u'  *** lib/plan-minutos.ts ya no define «%s». El guion no puede'
+              u' medir sin ella.' % nombre)
+        sys.exit(2)
+    return int(m.group(1))
+
+
+def const_rx(nombre):
+    m = re.search(r'\b' + nombre + r'\s*=\s*/(.+)/([gimsuy]*)\s*$',
+                  TS, re.MULTILINE)
+    if not m:
+        print(u'  *** lib/plan-minutos.ts ya no define «%s».' % nombre)
+        sys.exit(2)
+    cuerpo = m.group(1)
+    señales = re.I if 'i' in m.group(2) else 0
+    try:
+        return re.compile(cuerpo, señales)
+    except re.error as e:
+        print(u'  *** «%s» no se puede traducir a Python: %s' % (nombre, e))
+        sys.exit(2)
+
+
+MINUTOS_POR_EXTENSION = const_num('MINUTOS_POR_EXTENSION')
+BOLSA_MINIMA = const_num('BOLSA_MINIMA')
+MIN_POR_EXT_PLAUSIBLE = const_num('MIN_POR_EXT_PLAUSIBLE')
+RX_EXTENSIONES = const_rx('RX_EXTENSIONES')
+RX_EXT_ABREVIADO = const_rx('RX_EXT_ABREVIADO')
+RX_SIN_VOZ = const_rx('RX_SIN_VOZ')
+
+# Control: los casos que el propio .ts documenta en sus comentarios tienen que
+# dar lo que ahi dice. Si esto falla, el espejo esta roto y no se mide nada.
+_C = [(u'13 Extensiones Ilimitadas', 1, 13 * MINUTOS_POR_EXTENSION, u'extensiones'),
+      (u'50 Extensiones Visibilidad y Control IP', 12500, 12500, u'bolsa'),
+      (u'AV 1,000 min Agente Virtual', 1, None, u'sin_medicion')]
 
 
 def base_minutos(plan, incl):
-    u"""Devuelve (base, origen). Espejo de `baseMinutos`."""
+    u"""Devuelve (base, origen). Espejo de `baseMinutos`, en su mismo orden."""
     nombre = plan or u''
     m = RX_EXTENSIONES.search(nombre) or RX_EXT_ABREVIADO.search(nombre)
     ext = int(m.group(1)) if m else None
@@ -58,6 +100,15 @@ def base_minutos(plan, incl):
     if incl >= BOLSA_MINIMA:
         return incl, u'bolsa'
     return None, u'sin_medicion'
+
+
+for _p, _i, _b, _o in _C:
+    _rb, _ro = base_minutos(_p, _i)
+    if (_rb, _ro) != (_b, _o):
+        print(u'  *** EL ESPEJO ESTA ROTO. «%s» con %s incluidos deberia dar'
+              u' (%s, %s) y da (%s, %s). No se mide nada hasta arreglarlo.'
+              % (_p, _i, _b, _o, _rb, _ro))
+        sys.exit(2)
 
 
 def mes(v):

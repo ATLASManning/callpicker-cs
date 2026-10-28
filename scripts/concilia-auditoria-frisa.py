@@ -553,6 +553,60 @@ for cifra, acompanan, por_que in [
           u'las %d citas de %s dicen %s' % (total, cifra, por_que),
           u'%d suelta(s)%s' % (len(malas), u': «%s…»' % malas[0] if malas else u''))
 
+# ── 12 · LO QUE LA FICHA ENSEÑA Y EL EXPEDIENTE TIENE QUE EXPLICAR ─────────
+#
+# Jose Manuel enseño la ficha en pantalla y traia dos cifras que el expediente
+# no mencionaba: el consecutivo F16 (la memoria decia F32, que es de Petroil) y
+# un «MRR $523,634» que es el ACUMULADO, no el mensual. Un lector que compare
+# ficha contra auditoria y encuentre $523,634 frente a $17,909 sin explicacion
+# se queda sin saber cual vale. [[feedback-auditorias-verificar]]
+print(u'\n  ══ LA FICHA CONTRA EL EXPEDIENTE ═══════════════════════════')
+exige((f.get('consecutivo') or u'').upper() == u'F16',
+      u'el consecutivo de la cuenta es F16', f.get('consecutivo'))
+_lin = [x for x in G['filas'] if str(x.get('cid') or '').strip() == CID]
+exige(len(_lin) == 2, u'el GRC trae DOS lineas del CID %s' % CID, u'%d' % len(_lin))
+_acum = sum(float(x.get('acumulado') or 0) for x in _lin)
+exige(abs(_acum - 523633.55) < 1,
+      u'los dos acumulados suman $523,634 — el «MRR» de la esquina de la ficha',
+      u'$%s' % u'{:,.2f}'.format(_acum))
+escrito(u'$523,634', u'el acumulado, explicado para que no se lea como mensual')
+exige(u'NO es mensual' in TXT or u'no es mensual' in TXT,
+      u'el expediente dice que esa cifra NO es mensual')
+# «Meses Activo» y «Facturas_2026» son columnas DISTINTAS y la confusion entre
+# ellas es lo que haria leer «152 meses» como «152 facturas».
+_menor = min(_lin, key=lambda x: float(x.get('mrrFin') or 0))
+exige(int(_menor.get('meses') or 0) == 152,
+      u'la linea menor trae 152 en «Meses Activo»')
+exige(int(_menor.get('facturas') or 0) == 12,
+      u'esa misma linea trae 12 en «Facturas_2026» — no son 152 facturas')
+escrito(u'Meses Activo', u'el nombre REAL de la columna, no «meses de facturacion»')
+
+# ── 13 · EL SERVICIO CONTRATADO, QUE ES LA BASE QUE FALTA ──────────────────
+#
+# La ficha declara «14 Extensiones VyC + 1,000 Minutos Asistente Virtual». A
+# 1,500 min por extension eso son 21,000 minutos de base de voz — y en el
+# archivo de cortes NO HAY NI UNA FILA de ese plan. Corregir el 1 por 1,000
+# arregla el AV y deja la voz igual de invisible.
+print(u'\n  ══ EL SERVICIO CONTRATADO ══════════════════════════════════')
+_srv = f.get('servicio') or u''
+exige(u'14 Extensiones' in _srv,
+      u'la ficha declara las 14 Extensiones VyC', _srv[:60])
+escrito(u'14 Extensiones VyC', u'el servicio, citado tal como lo declara la ficha')
+escrito(u'21,000 minutos', u'la base de voz que implican las 14 extensiones')
+exige(14 * 1500 == 21000, u'14 extensiones x 1,500 = 21,000 minutos')
+# Y las constantes del parser, LEIDAS del .ts: el expediente afirma que la
+# bolsa minima es 3, y si alguien la sube, la frase «si dijera 1,000 mediria»
+# puede dejar de ser cierta.
+_ts = io.open(os.path.join(RAIZ, 'lib', 'plan-minutos.ts'), encoding='utf-8').read()
+_bm = re.search(r'\bBOLSA_MINIMA\s*=\s*(\d+)', _ts)
+exige(_bm and int(_bm.group(1)) == 3,
+      u'`BOLSA_MINIMA` sigue siendo 3 en lib/plan-minutos.ts',
+      _bm.group(1) if _bm else u'no esta')
+exige(not re.search(r'agente\s*\\?s\*\s*virtual', _ts, re.I),
+      u'`RX_SIN_VOZ` NO incluye «agente virtual» (el expediente ya no lo dice)')
+exige(u'la bolsa mínima de la casa es 3' in TXT,
+      u'el expediente explica el mecanismo real, no «plan sin voz»')
+
 # ── VEREDICTO ──────────────────────────────────────────────────────────────
 print(u'\n  ' + u'=' * 64)
 print(u'  %d comprobaciones en verde.' % _n_ok[0])
