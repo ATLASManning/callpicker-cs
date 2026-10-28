@@ -174,7 +174,10 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
             </p>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
-            <Badge color={estadoColor}>{caso.estado.toUpperCase()}</Badge>
+            {/* El guion bajo es del identificador, no de la etiqueta: el badge
+                decía «EN_RIESGO» y «EN_RECUPERACION» en las 33 cuentas que los
+                traen, mientras la cabecera de la lista ya los pinta con espacio. */}
+            <Badge color={estadoColor}>{caso.estado.replace(/_/g, ' ').toUpperCase()}</Badge>
             <span className="text-xs text-gray-400">v{caso.version} · {caso.fecha_auditoria}</span>
             <button
               onClick={() => window.print()}
@@ -400,7 +403,11 @@ export default function AuditoriaDetail({ caso }: { caso: AuditoriaCase }) {
                 <p className="text-xs font-semibold text-gray-700 mb-3">{caso.auditoria_servicio.periodo}</p>
 
                 <div className="rounded-lg p-4 mb-5" style={{ background: `${ORANGE}10`, border: `1px solid ${ORANGE}33` }}>
-                  <p className="text-sm leading-relaxed text-gray-800">{caso.auditoria_servicio.diagnostico}</p>
+                  {/* `whitespace-pre-line` como en los demás campos de prosa
+                      largos: el diagnóstico viene con `\n\n` y sin esto los
+                      párrafos de FINSUS y de FRISA se pegaban en un solo
+                      bloque. Se ve en pantalla, no lo caza ninguna prueba. */}
+                  <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-line">{caso.auditoria_servicio.diagnostico}</p>
                 </div>
 
                 <div className="overflow-x-auto mb-5">
