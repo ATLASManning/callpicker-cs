@@ -132,6 +132,36 @@ print(u'     SIN tickets : %3d' % len(sin))
 print(u'     sin CID util: %3d' % len(sin_cid))
 
 VIVAS = ('activo', 'en_riesgo')
+
+# ── ESTA CIFRA NO ES LA DE LA PANTALLA, Y NO SE INTENTA PREDECIR ────────────
+# La pestaña Conciliacion de /tickets publica otro par de cifras para lo que
+# suena al mismo cruce (31 oct 2026: 188 CIDs · 2,136 tickets, contra 189
+# cuentas · 2,193 de aqui). NO se contradicen: miden poblaciones distintas.
+#
+#   - Esto cuenta CUENTAS con asesor, canceladas incluidas, cruzando SOLO
+#     por CID.
+#   - La pantalla cuenta CIDs, descarta las canceladas y, cuando el CID no
+#     entra, CAE A UN CRUCE POR NOMBRE normalizado (app/api/tickets/route.ts).
+#     Ese tercer camino es suyo y no se reproduce aqui.
+#
+# Reproducir la regla de otro modulo para «explicar» su numero es inventarlo:
+# dos intentos de hacerlo fallaron antes de llegar a esto —uno dijo 186 y el
+# otro tambien—, porque les faltaba justo el cruce por nombre. Lo que si se
+# publica es la pieza que de verdad separa las dos cuentas, que son las
+# canceladas; quien quiera el otro numero, que lo lea de la pantalla.
+# [[feedback-verificar-antes-asegurar]]
+CANCELADO = 'cancelado'
+canc = [(c, n) for c, n in con if str(c.get('estado')) == CANCELADO]
+if canc:
+    print(u'\n     de esas %d, %d estan CANCELADAS y la pantalla no las cuenta'
+          % (len(con), len(canc)))
+    print(u'     como cuenta (su CID puede seguir cruzando por otro camino):')
+    for c, n in sorted(canc, key=lambda x: -x[1]):
+        print(u'       %-30s %-5s CID %-8s %4d ticket(s)'
+              % (str(c.get('empresa'))[:30], c.get('consecutivo') or '—',
+                 c.get('cid'), n))
+    print(u'     suman %s tickets.' % format(sum(n for _, n in canc), ',d'))
+
 sin_vivas = [c for c in sin if str(c.get('estado')) in VIVAS]
 print(u'\n  ── LAS %d CUENTAS SIN UN SOLO TICKET ────────────────────────' % len(sin))
 print(u'     de ellas %d estan vivas (activo o en_riesgo) y %d no.'
