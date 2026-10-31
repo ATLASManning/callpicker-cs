@@ -22,7 +22,13 @@
       mandaba 89 cortes CON consumo a «sin medicion». El sintoma no es un error:
       es un 0% que parece un cliente que dejo de usar el servicio.
 
-   3. QUE EL % DEL ARCHIVO SIGA SIENDO BASURA. La columna «% Consumo» divide
+   3. QUE NINGUNA COLUMNA DEJE DE CAPTURARSE. `carga-semanal.py` vigila que la
+      columna EXISTA; esto vigila que venga LLENA. «Clasificacion» venia
+      completa hasta marzo 2026 y esta vacia al 100% desde septiembre: la
+      columna sigue en su sitio, la estructura no cambio, y el Resumen pintaba
+      el hueco como un segmento «—» con los 2,195 cortes del mes dentro.
+
+   4. QUE EL % DEL ARCHIVO SIGA SIENDO BASURA. La columna «% Consumo» divide
       entre 1 en los planes por extensiones y publica cosas como 3,417,300%. Si
       algun dia deja de serlo, hay que enterarse.
 
@@ -130,6 +136,19 @@ def main():
         print('  no se pudo leer %s en %s.' % (REL, rev))
         return 0
 
+    # CONTROL NEGATIVO. Un chequeo que solo se ha visto en verde no esta
+    # probado: se le vacia a mano una columna que HOY viene llena en el ultimo
+    # mes y tiene que bloquear. Si sale exit 0 con esto, el chequeo no sirve.
+    if '--prueba-colapso' in sys.argv:
+        COL, MES = 'Sesiones', max(mes_de(f.get('Fecha de corte')) for f in nuevo)
+        tocadas = 0
+        for f in nuevo:
+            if mes_de(f.get('Fecha de corte')) == MES:
+                f[COL] = None
+                tocadas += 1
+        print('  [prueba] vaciadas %d filas de «%s» en %s — DEBE bloquear.'
+              % (tocadas, COL, MES))
+
     print('=' * 76)
     print('  INFORME DE CORTES — %s  ->  archivo nuevo' % rev)
     print('=' * 76)
@@ -176,7 +195,100 @@ def main():
         print('    %-9s %9s %9s %9s'
               % (m, format(a, ','), format(b, ','), ('%+d' % (b - a)) if b != a else '='))
 
-    # ── 3. Planes nuevos ──────────────────────────────────────────────
+    # ── 3. Que una columna no deje de capturarse ──────────────────────
+    #
+    # `carga-semanal.py` vigila que la columna EXISTA; esto vigila que venga
+    # LLENA, que es otro fallo y mas callado: la columna sigue en su sitio, el
+    # diff estructural pasa, y la pantalla publica el hueco COMO SI FUERA UN
+    # VALOR. Ya paso con «Clasificacion»: completa hasta marzo 2026, 17 huecos
+    # en junio, 1,792 de 2,027 en agosto, vacia al 100% desde septiembre — y el
+    # Resumen pintaba el cubo vacio como un segmento «—» con los 2,195 cortes
+    # del mes y sus $2.6M dentro.
+    #
+    # Como el chequeo de consumo de abajo, solo FALLA por lo que ESTA carga
+    # introduce: un colapso que ya venia se informa y no tumba el despliegue,
+    # porque un guion que grita lo mismo cada semana deja de leerse.
+    LLENA, HUECO = 0.90, 0.50
+
+    def llenado(filas):
+        """{columna: {mes: [llenas, total]}}  — un hueco es None o cadena vacia."""
+        d = defaultdict(lambda: defaultdict(lambda: [0, 0]))
+        for f in filas:
+            m = mes_de(f.get('Fecha de corte'))
+            for c in cabN:
+                par = d[c][m]
+                par[1] += 1
+                v = f.get(c)
+                if v is not None and str(v).strip() != '':
+                    par[0] += 1
+        return d
+
+    lv, ln = llenado(viejo), llenado(nuevo)
+
+    def tasa(d, c, m):
+        p = d.get(c, {}).get(m)
+        return (float(p[0]) / p[1]) if p and p[1] else None
+
+    # UN COLAPSO MIRA HACIA ATRAS, NO AL TECHO. La primera version de esto
+    # marcaba vacia toda columna que llegara al 90% en CUALQUIER mes, y asi
+    # acusaba a siete columnas —Contactos, Cuenta, Sesiones...— que estaban
+    # vacias hasta junio y se capturan al 100% desde julio. Eso no es una
+    # columna que se apaga: es una que ENCIENDE, y se informa en una linea.
+    nuevos_vacios, viejos_vacios, altas_col = [], [], []
+    for c in cabN:
+        meses = sorted(ln.get(c, {}))
+        for i, m in enumerate(meses):
+            t = tasa(ln, c, m)
+            if t is None:
+                continue
+            previas = [x for x in (tasa(ln, c, p) for p in meses[:i]) if x is not None]
+            if t < HUECO and previas and max(previas) >= LLENA:
+                antes = tasa(lv, c, m)
+                destino = (viejos_vacios if (antes is not None and antes < HUECO)
+                           else nuevos_vacios)
+                destino.append((c, m, t, antes))
+            elif t >= LLENA and previas and max(previas) < HUECO:
+                altas_col.append((c, m))
+
+    print()
+    print('  COLUMNAS QUE DEJAN DE CAPTURARSE — la columna esta, el dato no')
+
+    def pinta_col(casos):
+        for c, m, t, antes in sorted(casos):
+            llenas, total = ln[c][m]
+            print('      %-24s %s  %5s de %-6s llenas (%3.0f%%)%s'
+                  % (c[:24], m, format(llenas, ','), format(total, ','), 100 * t,
+                     '' if antes is None else '   antes era %.0f%%' % (100 * antes)))
+
+    afectadas = sorted({c for c, _, _, _ in nuevos_vacios + viejos_vacios})
+    if nuevos_vacios:
+        problemas += 1
+        print('    *** NUEVOS con esta carga: %d mes(es) en %d columna(s)'
+              % (len(nuevos_vacios), len({c for c, _, _, _ in nuevos_vacios})))
+        pinta_col(nuevos_vacios)
+        print('    Eso NO se arregla en el tablero: la hoja de origen dejo de')
+        print('    capturarlo. Lo que si toca aqui es que la pantalla lo diga con')
+        print('    palabras —«sin clasificar»— y no pinte el hueco como un valor.')
+    else:
+        print('    nuevas con esta carga: ninguna.')
+    if viejos_vacios:
+        print('    (ya venian vacias antes de esta carga — no bloquean)')
+        pinta_col(viejos_vacios)
+    for c in afectadas:
+        serie = ' '.join('%s:%.0f%%' % (m, 100 * tasa(ln, c, m))
+                         for m in sorted(ln[c]) if tasa(ln, c, m) is not None)
+        print('      historia de «%s»:' % c)
+        print('        %s' % serie)
+    if altas_col:
+        por_col = defaultdict(list)
+        for c, m in altas_col:
+            por_col[c].append(m)
+        print('    (al contrario: %d columna(s) EMPIEZAN a capturarse — no es un fallo)'
+              % len(por_col))
+        for c in sorted(por_col):
+            print('      %-24s desde %s' % (c[:24], min(por_col[c])))
+
+    # ── 4. Planes nuevos ──────────────────────────────────────────────
     pv = {str(f.get('Nombre del Plan') or '').strip() for f in viejo}
     pn = Counter(str(f.get('Nombre del Plan') or '').strip() for f in nuevo)
     planes_nuevos = sorted(set(pn) - pv)
@@ -187,7 +299,7 @@ def main():
         print('    NUEVO  %-52s %d corte(s)' % (p[:52], pn[p]))
         print('           base por nombre: %s (%s)' % (b if b is not None else 'sin medicion', origen))
 
-    # ── 4. EL CHEQUEO QUE IMPORTA: consumo sin base contra la cual medir ──
+    # ── 5. EL CHEQUEO QUE IMPORTA: consumo sin base contra la cual medir ──
     #
     # Se calcula sobre AMBOS archivos y solo FALLA por lo que esta carga
     # introduce. Un caso preexistente se informa, pero no tumba el despliegue:

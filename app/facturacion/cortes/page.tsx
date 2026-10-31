@@ -296,14 +296,42 @@ export default function InformeCortesPage() {
     }).finally(() => setLoading(false))
   }, [])
 
+  /* ── LOS KPIs TIENEN QUE SER LOS DEL FILTRO, Y SE PERDIAN EN UNA CARRERA
+   *
+   * Al 31 oct 2026 la pantalla decia «Mostrando: Oct 2026», la tabla traia
+   * sus 2,193 registros y los cinco KPIs de arriba publicaban el UNIVERSO:
+   * 23,647 cortes y $28.4M, cuando octubre son 2,193 y $2.56M. Quien filtrara
+   * un mes leia la facturacion de once.
+   *
+   * La API nunca estuvo mal —`?fecha=2026-10` devuelve lo de octubre—: lo que
+   * fallaba era cual de las dos respuestas se quedaba. Este efecto corre DOS
+   * veces al abrir: una con `filtFecha` vacio (porque los filtros aun no han
+   * llegado) y otra con el mes ya puesto. Las dos escriben en el mismo estado
+   * y gana la que termina, no la que importa — y la que termina es siempre la
+   * de sin filtro, porque es la que recorre las 23,647 filas y tarda mas. Un
+   * bug que pierde SIEMPRE no se ve como carrera: se ve como un KPI mal.
+   *
+   * Dos candados, porque arreglan cosas distintas:
+   *   1. No se pide nada hasta que los filtros existen. Eso borra la peticion
+   *      inutil del arranque, que es el origen del problema.
+   *   2. Un numero de secuencia descarta toda respuesta que llegue tarde.
+   *      Hace falta igual: cambiar de un plan chico a «todos» tiene la misma
+   *      forma, y ahi no hay carga inicial que culpar.
+   * [[feedback-kpi-con-fuente]] */
+  const statsSeq = useRef(0)
   useEffect(() => {
+    if (!filtros.fechas.length) return
     const p = new URLSearchParams({ mode: 'stats' })
     if (filtFecha) p.set('fecha', filtFecha)
     if (filtPlan)  p.set('plan',  filtPlan)
     if (filtClas)  p.set('clas',  filtClas)
     if (filtUso)   p.set('uso',   filtUso)
-    fetch(`/api/cortes?${p}`).then(r => r.json()).then(s => { if (s.total != null) setStats(s) })
-  }, [filtFecha, filtPlan, filtClas, filtUso])
+    const mio = ++statsSeq.current
+    fetch(`/api/cortes?${p}`).then(r => r.json()).then(s => {
+      if (mio !== statsSeq.current) return      // llego tarde: ya hay otra mas nueva
+      if (s.total != null) setStats(s)
+    })
+  }, [filtros, filtFecha, filtPlan, filtClas, filtUso])
 
   const fetchList = useCallback(() => {
     setLoadingList(true)
@@ -573,7 +601,11 @@ export default function InformeCortesPage() {
                            las claras (#10355D, #f59e0b) daban azul marino
                            sobre azul marino. Las gráficas de más abajo ya
                            usaban las `_D` — estas dos se habían quedado. */
-                        if (k === 'clasificacion') return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.clasificacion, CLAS_COLOR_D)}>{r.clasificacion || '—'}</span></td>
+                        /* Sin clasificación NO lleva pastilla: una pastilla es
+                           una categoría, y la ausencia se dice con palabras. */
+                        if (k === 'clasificacion') return <td key={k} style={{ padding: '8px 10px' }}>{r.clasificacion
+                          ? <span style={getBadgeSt(r.clasificacion, CLAS_COLOR_D)}>{r.clasificacion}</span>
+                          : <span style={{ fontSize: 11, color: TX_TENUE, fontStyle: 'italic' }}>sin clasificar</span>}</td>
                         if (k === 'uso')           return <td key={k} style={{ padding: '8px 10px' }}><span style={getBadgeSt(r.usoPrincipal, USO_COLOR_D)}>{r.usoPrincipal || '—'}</span></td>
                         if (k === 'eventos')       return <td key={k} style={{ padding: '8px 10px', textAlign: 'center' }}>{r.eventosAnal === 'Si' ? <CheckCircle size={13} style={{ color: '#22c55e' }} /> : <span style={{ color: '#A8BACB', fontSize: 11 }}>—</span>}</td>
                         return null
@@ -867,16 +899,47 @@ export default function InformeCortesPage() {
             />
           </div>
 
-          {/* Clasificación de Empresa */}
+          {/* Clasificación de Empresa — el hueco se DICE, no se pinta.
+              La hoja de origen dejó de capturar esta columna: completa hasta
+              julio 2026, 12% en agosto y 0% desde septiembre. Pintar «—» como
+              una barra publicaba los 2,195 cortes del mes y sus $2.6M como si
+              «sin clasificar» fuera un segmento del negocio. */}
           <div style={DC}>
             <p style={DT}>Clasificación de Empresa</p>
             <p style={DS}>Distribución de cortes por segmento</p>
-            <VBarChart
-              height={170}
-              entries={Object.entries(stats.byClas)
-                .sort((a, b) => b[1].count - a[1].count)
-                .map(([clas, v]) => ({ label: clas || '—', value: v.count, color: CLAS_COLOR_D[clas] ?? '#A8BACB', sub: fmtK(v.monto) }))}
-            />
+            {(() => {
+              const todo   = Object.entries(stats.byClas)
+              const clasif = todo.filter(([c]) => c.trim() !== '')
+              const hueco  = todo.filter(([c]) => c.trim() === '')
+                .reduce((a, [, v]) => ({ count: a.count + v.count, monto: a.monto + v.monto }),
+                        { count: 0, monto: 0 })
+              const total = todo.reduce((s, [, v]) => s + v.count, 0)
+              return (
+                <>
+                  {clasif.length > 0 ? (
+                    <VBarChart
+                      height={170}
+                      entries={clasif
+                        .sort((a, b) => b[1].count - a[1].count)
+                        .map(([clas, v]) => ({ label: clas, value: v.count, color: CLAS_COLOR_D[clas] ?? '#A8BACB', sub: fmtK(v.monto) }))}
+                    />
+                  ) : (
+                    <p style={{ fontSize: 13, color: '#fff', margin: '36px 0 32px', lineHeight: 1.5 }}>
+                      Ningún corte de este periodo trae clasificación: no hay nada
+                      que distribuir.
+                    </p>
+                  )}
+                  {hueco.count > 0 && total > 0 && (
+                    <p style={{ fontSize: 11, color: TX_TENUE, marginTop: 12, lineHeight: 1.5 }}>
+                      {hueco.count.toLocaleString('es-MX')} de {total.toLocaleString('es-MX')} cortes
+                      ({((hueco.count / total) * 100).toFixed(0)}%) llegan <strong>sin clasificar</strong>
+                      {' '}—{fmtK(hueco.monto)}— y quedan fuera de la gráfica. La columna dejó de
+                      capturarse en la hoja de origen; venía completa hasta julio 2026.
+                    </p>
+                  )}
+                </>
+              )
+            })()}
           </div>
 
           {/* Uso Principal */}
