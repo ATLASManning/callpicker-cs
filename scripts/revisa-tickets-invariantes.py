@@ -131,6 +131,32 @@ check(desconocidos == 0,
       'ningun valor de prioridad DESCONOCIDO se disfraza de «Sin prioridad» '
       '(vacios reales: %d)' % vacios)
 
+# ══ PRODUCTO ════════════════════════════════════════════════════════
+# El Overview publica DOS tarjetas de producto, Voz y Chat, y el reparto
+# tiene TRES cajones. El 31 oct 2026 eran 6,969 + 459 = 7,428 contra un
+# total de 7,615: un hueco de 187 en pantalla y nada que lo explicara.
+# Aqui se vigilan las dos mitades del problema — que la particion cierre,
+# y que el residuo NO sea cero, porque mientras exista hay que nombrarlo.
+# [[feedback-tablas-deben-cerrar]]
+print()
+print('=== PRODUCTO ===')
+pr = Counter((t.get('producto') or 'Sin producto') for t in T)
+for k, n in pr.most_common():
+    print('    %-16s %5d' % (k, n))
+check(sum(pr.values()) == len(T), 'los productos cierran el total')
+resto = {k: n for k, n in pr.items() if k not in ('Voz', 'Chat')}
+suma_resto = sum(resto.values())
+print('    Voz + Chat = %d de %d  ->  residuo %d en %s'
+      % (pr.get('Voz', 0) + pr.get('Chat', 0), len(T), suma_resto,
+         ', '.join(sorted(resto)) or '(nada)'))
+check(pr.get('Voz', 0) + pr.get('Chat', 0) + suma_resto == len(T),
+      'Voz + Chat + residuo = %d' % len(T))
+# Si el residuo llegara a cero, la frase de la pantalla se calla sola (ya lo
+# hace: devuelve null). Se avisa para que nadie la borre creyendola muerta.
+if suma_resto == 0:
+    print('    nota: hoy no hay residuo. La frase del Overview no se pinta,')
+    print('          pero NO se borra: el archivo es acumulativo y vuelve.')
+
 # ══ CATEGORIA -> tipo ═══════════════════════════════════════════════
 print()
 print('=== CATEGORIA ===')

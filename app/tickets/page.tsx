@@ -728,6 +728,42 @@ export default function TicketsPage() {
                   catalogó como falla y la bandera no reconoce.
                 </p>
 
+                {/* VOZ + CHAT NO SUMAN EL CORTE, y hasta el 31 oct 2026 nada lo
+                    decía. `byProd` tiene un TERCER cajón —«Sin producto»— con
+                    los folios que la mesa cerró sin capturarlo: 187 de 7,615 en
+                    ese corte. Las dos tarjetas daban 7,428 y el KPI de al lado
+                    7,615, así que quien las sumaba se topaba con un hueco de 187
+                    sin nada que lo explicara. Es justo lo que prohíbe
+                    [[feedback-tablas-deben-cerrar]]: un reparto que se publica a
+                    medias miente sin decirlo.
+
+                    La lista de barras de abajo SÍ recorre `byProd` entera, así
+                    que el dato nunca estuvo mal — estaba mal lo que se leía.
+
+                    El residuo se CALCULA (todo lo que no es Voz ni Chat) y se
+                    nombra cajón por cajón: si mañana aparece un producto nuevo
+                    sale aquí solo, en vez de engordar el hueco en silencio. */}
+                {(() => {
+                  const resto = Object.entries(stats.byProd).filter(([p]) => p !== 'Voz' && p !== 'Chat')
+                  const suma = resto.reduce((a, [, n]) => a + n, 0)
+                  if (suma === 0) return null
+                  return (
+                    <p className="text-[11px] text-gray-500 -mt-1">
+                      Voz y Chat no suman el corte: faltan{' '}
+                      <strong className="text-gray-700">{suma.toLocaleString()}</strong> folios en{' '}
+                      {/* Con UN solo cajón, repetir su cifra entre paréntesis
+                          deja «187 folios en Sin producto (187)». El desglose
+                          sólo se escribe cuando hay algo que desglosar. */}
+                      {resto.length === 1
+                        ? resto[0][0]
+                        : resto.sort((a, b) => b[1] - a[1])
+                               .map(([p, n]) => `${p} (${n.toLocaleString()})`).join(' · ')}.
+                      {' '}Los {resto.length + 2} cajones sí cierran
+                      los {stats.total.toLocaleString()} del corte.
+                    </p>
+                  )
+                })()}
+
                 {/* Por mes de APERTURA, y ESTE es el filtro de mes.
                     Se dibuja con `statsGlobal` —sin filtrar— para que al elegir
                     un mes las doce tarjetas sigan ahí y se pueda cambiar. */}
