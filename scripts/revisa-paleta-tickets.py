@@ -58,6 +58,13 @@ SEMANTICOS = {
     '#B45309': u'ambar oscuro', '#B91C1C': u'rojo oscuro',
     '#7C2D12': u'marron SLA', '#FEE2E2': u'tinte rojo',
     '#FEF3C7': u'tinte ambar', '#FED7AA': u'tinte naranja',
+    # Alta del 31 oct 2026, para la insignia «Cerro el …» de Fuera de SLA.
+    # NO es un color suelto: es el ANALOGO EXACTO del par rojo que ya estaba
+    # —tinte claro de fondo + tono oscuro de texto, como #FEE2E2/#B91C1C—,
+    # que es el patron de insignia de este archivo. El verde que ya habia
+    # (#22C55E / #16A34A) esta pensado para texto sobre oscuro: sobre el
+    # lavado claro de la tabla da 3.1:1 y no alcanza. Este par da ~6:1.
+    '#DCFCE7': u'tinte verde', '#166534': u'verde oscuro de texto',
 }
 
 

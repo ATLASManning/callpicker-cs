@@ -263,6 +263,10 @@ interface VencidoVivo {
   folio: string; asunto: string; contacto: string; cid: string; cuenta: string
   vence: string; diasSLA: number | null; ultimaAct: string
   diasSinMover: number | null; estado: string; responsable: string; canal: string
+  /* Lo resuelve `/api/mesa-ayuda` cruzando el folio contra el export de
+     tickets, que es más nuevo que el corte. `null` = sigue sin rastro, o sea
+     ABIERTO; `ambiguo` = el folio cae en varias filas y no se declara nada. */
+  desenlace: { cerro: string; dias: number | null } | { ambiguo: number } | null
 }
 interface MesaResumen {
   hay: boolean
@@ -1417,8 +1421,17 @@ export default function TicketsPage() {
           mesa?.hay ? (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* El KPI es el número DEL CORTE y así se queda — es lo que
+                    la mesa midió ese día. Lo que no puede quedarse es sin
+                    decir que parte de esos folios ya cerraron, con la tabla
+                    de abajo diciéndolo en la misma pantalla. */}
                 <KpiCard icon={AlertTriangle} label="Fuera de SLA" value={String(mesa.vencidos)}
-                  sub={`corte ${mesa.fecha}`} color={RED} />
+                  sub={(() => {
+                    const ya = mesa.vencidosDetalle.filter(v => v.desenlace && 'cerro' in v.desenlace).length
+                    return ya > 0
+                      ? `corte ${mesa.fecha} · ${ya} ya cerraron`
+                      : `corte ${mesa.fecha}`
+                  })()} color={RED} />
                 <KpiCard icon={Tag} label="Abiertos en la mesa" value={mesa.abiertos ?? '—'}
                   sub="no están en este módulo" color={BLUE} />
                 <KpiCard icon={Users} label="En espera" value={mesa.enEspera ?? '—'}
@@ -1465,6 +1478,19 @@ export default function TicketsPage() {
                     mismo que los días fuera de SLA: un ticket puede vencer ayer y llevar
                     cuarenta días en silencio.
                   </p>
+                  {/* El desenlace NO se describe si no hay nada que describir:
+                      con el corte al día, todos los folios siguen abiertos y
+                      esta frase sobra. Se pinta cuando alguno ya cerró. */}
+                  {mesa.vencidosDetalle.some(v => v.desenlace && 'cerro' in v.desenlace) && (
+                    <p className="text-xs text-gray-500 mt-1.5">
+                      El <strong className="text-gray-700">estado es el del corte</strong>, que
+                      lleva {diasMesaAtras ?? '—'} días parado. Cada folio se cruza contra el
+                      export de tickets, que llega hasta hoy: los que aparecen ahí{' '}
+                      <strong className="text-gray-700">ya cerraron</strong> y se marcan con su
+                      fecha. Los que no aparecen siguen abiertos, y su cuenta de días
+                      se arrastra hasta hoy.
+                    </p>
+                  )}
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
@@ -1481,18 +1507,50 @@ export default function TicketsPage() {
                           <td className="py-2 px-3 font-mono text-gray-500">#{v.folio}</td>
                           <td className="py-2 px-3 font-semibold text-gray-900">{v.cuenta}</td>
                           <td className="py-2 px-3 text-gray-600 max-w-[280px] truncate" title={v.asunto}>{v.asunto}</td>
+                          {/* EL ESTADO ES EL DEL CORTE, Y EL CORTE SE CONGELA.
+                              El 31 oct 2026 esta tabla publicaba los cuatro
+                              vencidos del corte del 5 de octubre como
+                              «Abierto», y dos ya habían cerrado. La corrección
+                              vivía en el MISMO proceso —el export de tickets—
+                              y nadie la cruzaba: una cifra superada que se
+                              publica sin su corrección.
+                              `desenlace` lo trae resuelto desde la API.
+                              [[feedback-auditorias-verificar]] */}
                           <td className="py-2 px-3">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                              style={v.estado === 'Escalado'
-                                ? { background: '#FEE2E2', color: '#B91C1C' }
-                                : { background: '#F5F8FB', color: '#202E3B' }}>
-                              {v.estado}
-                            </span>
+                            {v.desenlace && 'cerro' in v.desenlace ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                style={{ background: '#DCFCE7', color: '#166534' }}
+                                title={`El corte decía «${v.estado}». El export de tickets lo trae cerrado.`}>
+                                {/* «59 d» al lado de un «20 d» en la columna
+                                    FUERA son dos medidas distintas: una es la
+                                    vida del folio y la otra lo vencido sobre
+                                    el SLA. Una cifra así no va sin su
+                                    referencia. [[feedback-auditorias-verificar]] */}
+                                Cerró el {v.desenlace.cerro}
+                                {v.desenlace.dias !== null ? ` · ${v.desenlace.dias} d abierto` : ''}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                                style={v.estado === 'Escalado'
+                                  ? { background: '#FEE2E2', color: '#B91C1C' }
+                                  : { background: '#F5F8FB', color: '#202E3B' }}>
+                                {v.estado}
+                                {v.desenlace && 'ambiguo' in v.desenlace ? ' · folio repetido' : ''}
+                              </span>
+                            )}
                           </td>
                           <td className="py-2 px-3 text-gray-600">{v.responsable}</td>
                           <td className="py-2 px-3 text-gray-500">{v.canal}</td>
+                          {/* Los días del corte son los de SU día. Si el folio
+                              sigue sin rastro y el corte lleva tiempo parado,
+                              la cifra real es mayor — y es la que decide. Se
+                              enseñan las dos, no se sustituye una por otra. */}
                           <td className="py-2 px-3 text-right font-semibold"
-                            style={{ color: (v.diasSLA ?? 0) >= 30 ? RED : '#C2410C' }}>{v.diasSLA} d</td>
+                            style={{ color: (v.diasSLA ?? 0) >= 30 ? RED : '#C2410C' }}>
+                            {v.desenlace === null && v.diasSLA !== null && diasMesaAtras
+                              ? <>{v.diasSLA + diasMesaAtras} d<span className="block font-normal text-[10px] text-gray-400">{v.diasSLA} al corte</span></>
+                              : <>{v.diasSLA} d</>}
+                          </td>
                           <td className="py-2 px-3 text-right text-gray-500">{v.diasSinMover} d</td>
                         </tr>
                       ))}
