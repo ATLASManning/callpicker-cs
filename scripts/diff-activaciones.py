@@ -64,8 +64,12 @@ except ImportError:
     sys.exit(1)
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EN_USO = os.path.join(RAIZ, 'data', 'activaciones.xlsx')
 NUEVO = sys.argv[1] if len(sys.argv) > 1 else r'D:\Archivos\Tablero de Activaciones 2.0.xlsx'
+# El segundo argumento sirve para REHACER la medicion cuando ya se copio el
+# archivo encima: se saca el anterior de git (`git show HEAD~1:data/...`) y se
+# pasa aqui. Sin esto, un diff posterior a la copia compara el archivo consigo
+# mismo y sale «0 cambios», que se lee como que el corte no traia nada.
+EN_USO = sys.argv[2] if len(sys.argv) > 2 else os.path.join(RAIZ, 'data', 'activaciones.xlsx')
 HOJA = 'Hoja1'          # el módulo la busca por NOMBRE
 ANIO_MINIMO = 2020      # el filtro de `app/activaciones/page.tsx`
 
@@ -176,25 +180,57 @@ for k in idos:
 norms_v = {}
 for f in filas_v:
     norms_v.setdefault(norm(f.get('Cliente')), []).append(clave(f))
-limpieza, negocio = [], []
+
+# QUE EL NOMBRE YA ESTUVIERA NO BASTA PARA LLAMARLO RENUMERACION. Renumerar es
+# que el ID VIEJO DESAPAREZCA y el nuevo ocupe su lugar; si el viejo sigue en el
+# archivo, lo que hay es un SEGUNDO registro del mismo cliente — y si ese
+# registro es `pagada` con importe, es NEGOCIO, no limpieza.
+# Lo probo el corte del 31 oct: «Colibri Turquesa» entro como 190410, pagada,
+# $1,029 de octubre, mientras su 189895 —un demo de septiembre— seguia en el
+# archivo. Esto lo archivaba como arreglo de numeracion y se comia la
+# conversion de un demo en cliente que paga, que es justo lo que SAC quiere
+# ver. El error del 9 oct era inflar el mes; este es deflactarlo.
+renum, segundo, negocio = [], [], []
 for kk in nuevos:
     f = idx_n[kk][0]
     previos = norms_v.get(norm(f.get('Cliente')), [])
-    (limpieza if previos else negocio).append((kk, f, previos))
+    vivos = [p for p in previos if p in idx_n]      # el ID viejo sigue en el archivo
+    if not previos:
+        negocio.append((kk, f, previos))
+    elif len(vivos) < len(previos):
+        renum.append((kk, f, [p for p in previos if p not in idx_n]))
+    else:
+        segundo.append((kk, f, vivos))
 
 print(u'\n      de los %d IDs nuevos:' % len(nuevos))
-print(u'        %d son clientes que YA estaban, renumerados (limpieza)' % len(limpieza))
-for kk, f, previos in limpieza:
+print(u'        %d son renumeraciones — el ID viejo YA NO esta (limpieza)' % len(renum))
+for kk, f, previos in renum:
     print(u'          %-10s %-28s antes %s'
           % (kk, str(f.get('Cliente') or '')[:28], ', '.join(previos[:3])))
-ndemo = [x for x in negocio if str(x[1].get('Tipo') or '').strip().lower() != 'demo']
-print(u'        %d son clientes nuevos — %d de ellos no-demo, $%s de 1er pago'
-      % (len(negocio), len(ndemo),
-         format(int(sum(plata(f) for _, f, _ in ndemo)), ',d')))
-for kk, f, _ in ndemo:
-    print(u'          %-10s %-28s %-9s $%-8s %s'
-          % (kk, str(f.get('Cliente') or '')[:28], str(f.get('Tipo') or ''),
-             format(int(plata(f)), ',d'), f.get('Mes 1er Pago') or 'sin mes'))
+
+
+def pinta_plata(titulo, grupo, cola=u''):
+    ndemo = [x for x in grupo if str(x[1].get('Tipo') or '').strip().lower() != 'demo']
+    print(u'        %d %s — %d de ellos no-demo, $%s de 1er pago%s'
+          % (len(grupo), titulo, len(ndemo),
+             format(int(sum(plata(f) for _, f, _ in ndemo)), ',d'), cola))
+    for kk, f, extra in ndemo:
+        print(u'          %-10s %-28s %-9s $%-8s %-9s %s'
+              % (kk, str(f.get('Cliente') or '')[:28], str(f.get('Tipo') or ''),
+                 format(int(plata(f)), ',d'), f.get('Mes 1er Pago') or 'sin mes',
+                 (u'ya tenia ' + ', '.join(extra[:2])) if extra else u''))
+    return ndemo
+
+
+nd_neg = pinta_plata(u'son clientes nuevos', negocio)
+nd_seg = pinta_plata(u'son OTRO registro de un cliente que ya estaba', segundo,
+                     u' — el ID viejo sigue ahi')
+if nd_seg:
+    print(u'        Esos cuentan como activacion igual que los nuevos: el cliente')
+    print(u'        ya existia, el cobro no. En total el corte trae %d activacion(es)'
+          % (len(nd_neg) + len(nd_seg)))
+    print(u'        no-demo por $%s.'
+          % format(int(sum(plata(f) for _, f, _ in nd_neg + nd_seg)), ',d'))
 
 # UN ID QUE DESAPARECE TAMPOCO ES NEUTRO. Puede ser un dedazo corregido —ya
 # pasó con `189867]`, con un corchete pegado— o un registro perdido.
