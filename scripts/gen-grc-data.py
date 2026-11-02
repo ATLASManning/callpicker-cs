@@ -4,9 +4,29 @@ Regenera app/churn/aaa-grc-data.ts desde el Excel de Zoho Analytics.
 Uso:
     python scripts/gen-grc-data.py "D:/Archivos/GRC_AAA_2026.xlsx"
     python scripts/gen-grc-data.py "<ruta>" ENE FEB MAR ABR MAY JUN JUL AGO
+    python scripts/gen-grc-data.py "<ruta>" --conserva ENE FEB … OCT
 
 Sin lista de meses toma ENE..AGO (el corte vigente). Para incorporar un mes
 nuevo basta con añadir su clave al final de la llamada.
+
+── `--conserva`: PARA UN EXPORT FILTRADO POR MOVIMIENTO ─────────────────────
+El export institucional (`Gross_Revenue_Facturación.xlsx`) trae los CINCO
+movimientos de pérdida. El export del tablero GRC viene filtrado a los que el
+GRC cuenta —Churn confirmado y Downgrade, con sus variantes de fraude— y NO
+trae «Churn mensual» ni «Churn financiero», que son pérdida real que el GRC no
+cuenta y que este módulo publica en la canasta `otros`.
+
+Regenerar a secas con un archivo filtrado BORRA esas filas sin decirlo: el 2
+nov 2026 eran 306 filas y $395,487.99 repartidos en nueve meses, y las
+tarjetas por mes —que suman TODA la pérdida real— habrían bajado sin que nada
+hubiera pasado en el negocio.
+
+Con `--conserva` el universo de movimientos se LEE del propio xlsx y, mes a
+mes, se conservan del `.ts` vigente las filas cuyo movimiento quede fuera de
+ese universo. Si un cliente conservado vuelve a aparecer en el export para el
+mismo mes —reclasificado—, manda el export y la conservada se descarta. Con el
+archivo institucional el universo lo cubre todo y la bandera no conserva nada:
+degrada sola, no hay que acordarse de quitarla.
 
 Acepta los DOS formatos que ha entregado Zoho Analytics:
   (a) una hoja por mes, nombrada ENE, FEB, … (DT_Churn_etiquetas.xlsx)
@@ -87,13 +107,61 @@ def normalizar(s):
     return re.sub(r'[^a-z0-9]', '', s.lower())
 
 
+# El bloque de un mes y cada fila dentro de el, tal como los escribe este
+# mismo guion mas abajo. Se leen de vuelta para `--conserva`.
+RX_MES = re.compile(r"mes:\s*'([^']+)'")
+RX_FILA = re.compile(r"\{\s*cliente:\s*'((?:[^'\\]|\\.)*)'(.*?)\}", re.S)
+
+
+def lee_ts_publicado(ruta):
+    u"""Devuelve {mes: [fila, ...]} leyendo el .ts vigente.
+
+       Se cae si no puede leerlo, y se cae tambien si lo lee ENTERO con
+       importes en cero: eso seria el patron roto, y un patron roto aqui
+       conserva cero filas y se lee como «no habia nada que conservar».
+    """
+    if not os.path.exists(ruta):
+        raise SystemExit('--conserva: no existe %s, no hay de donde conservar.' % ruta)
+    src = open(ruta, encoding='utf-8').read()
+    porMes, mes = {}, None
+    campos = ('clas', 'movimiento', 'rango')
+    for m in re.finditer(r"mes:\s*'([^']+)'|\{\s*cliente:\s*'((?:[^'\\]|\\.)*)'(.*?)\}", src):
+        if m.group(1):
+            mes = m.group(1)
+            continue
+        if mes is None:
+            continue
+        cuerpo = m.group(3) or ''
+        f = {'cliente': m.group(2)}
+        for c in campos:
+            g = re.search(r"\b%s:\s*'([^']*)'" % c, cuerpo)
+            f[c] = g.group(1) if g else ''
+        for c in ('facturas', 'meses', 'acumulado', 'mrrInicio', 'mrrFin',
+                  'ganado', 'perdido', 'perdido2'):
+            g = re.search(r"\b%s:\s*(-?[\d.]+)" % c, cuerpo)
+            f[c] = (int(float(g.group(1))) if c in ('facturas', 'meses')
+                    else float(g.group(1))) if g else 0
+        porMes.setdefault(mes, []).append(f)
+    if not porMes:
+        raise SystemExit('--conserva: no lei ni una fila de %s. No sigo.' % ruta)
+    total = sum(f['perdido'] + f['perdido2'] for fs in porMes.values() for f in fs)
+    if total <= 0:
+        raise SystemExit(
+            '--conserva: lei %d filas de %s y TODAS con importe 0. El patron de '
+            'los numeros esta roto; conservar cero seria una conclusion falsa.'
+            % (sum(len(v) for v in porMes.values()), ruta))
+    return porMes
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
         raise SystemExit(1)
 
     origen = sys.argv[1]
-    hojas = sys.argv[2:] or POR_OMISION
+    args = sys.argv[2:]
+    conserva = '--conserva' in args
+    hojas = [a for a in args if not a.startswith('--')] or POR_OMISION
     destino = os.path.join(os.path.dirname(__file__), '..', 'app', 'churn', 'aaa-grc-data.ts')
     destino = os.path.normpath(destino)
 
@@ -166,6 +234,33 @@ def main():
             print('AVISO: el archivo trae meses que no se pidieron y quedan FUERA: %s'
                   % ', '.join(sobran))
 
+    # ── Lo que este export NO trae y el .ts vigente SI publica ───────────────
+    conservadas = []        # (mes, cliente, movimiento, importe)
+    desplazadas = []        # conservadas que el export reclasifico
+    if conserva:
+        universo = {f['movimiento'] for fs in porMes.values() for f in fs}
+        print('Universo de movimientos del export: %s' % ' · '.join(sorted(universo)))
+        publicado = lee_ts_publicado(destino)
+        ajenos = [m for m in publicado if m not in porMes]
+        if ajenos:
+            print('AVISO: el .ts vigente tiene meses que el export no trae y que '
+                  'se conservan enteros: %s' % ', '.join(ajenos))
+            for m in ajenos:
+                porMes[m] = publicado[m]
+        for nombre, filas in porMes.items():
+            if nombre in ajenos:
+                continue
+            nuevos = {normalizar(f['cliente']) for f in filas}
+            for f in publicado.get(nombre, []):
+                if f['movimiento'] in universo:
+                    continue            # el export manda sobre su propio universo
+                if normalizar(f['cliente']) in nuevos:
+                    desplazadas.append((nombre, f['cliente'], f['movimiento']))
+                    continue
+                filas.append(f)
+                conservadas.append((nombre, f['cliente'], f['movimiento'],
+                                    f['perdido'] + f['perdido2']))
+
     meses = []
     total = 0
     for clave in hojas:
@@ -184,8 +279,20 @@ def main():
     A('   Se cargan TODAS las clasificaciones (AAA · AA · A · B · C) para poder')
     A('   filtrarlas en la vista; el módulo resalta AAA por omisión.')
     A('')
+    A('')
     A('   GENERADO — no editar a mano. Regenerar con:')
-    A('     python scripts/gen-grc-data.py "<ruta del Excel>" %s' % ' '.join(hojas))
+    A('     python scripts/gen-grc-data.py "<ruta del Excel>"%s %s'
+      % (' --conserva' if conserva else '', ' '.join(hojas)))
+    if conserva:
+        A('')
+        A('   PROCEDENCIA MIXTA, y hay que saberlo para leer este archivo:')
+        A('   el export de arriba viene FILTRADO a los movimientos que el GRC')
+        A('   cuenta. Las %d filas de «Churn mensual» y «Churn financiero»' % len(conservadas))
+        A('   (%s) NO salen de él: se conservan del corte' % ('$' + format(
+            sum(x[3] for x in conservadas), ',.2f')))
+        A('   institucional anterior, porque son pérdida real que el GRC no')
+        A('   cuenta y ningún otro archivo las trae. Regenerar sin --conserva')
+        A('   las borra en silencio.')
     A('═══════════════════════════════════════════════════════════════════════ */')
     A('')
     A('export interface AAAGrcRow {')
@@ -243,6 +350,28 @@ def main():
         print('OMITIDAS por FUERA_DEL_CHURN (%d): %s' % (len(fuera), ', '.join(fuera)))
         print('  Recuerda ajustar app/churn/grc-reporte.ts si cambio el monto.')
     print('%d filas en %d meses' % (total, len(meses)))
+    if conserva:
+        porMesCons = {}
+        for mes, _cli, mov, imp in conservadas:
+            n, s = porMesCons.get(mes, (0, 0.0))
+            porMesCons[mes] = (n + 1, s + imp)
+        print('\nCONSERVADAS del .ts anterior (el export no trae su movimiento):')
+        if not porMesCons:
+            print('  ninguna — el export cubre todos los movimientos publicados.')
+        for nombre, _ in meses:
+            if nombre in porMesCons:
+                n, s = porMesCons[nombre]
+                print('  %-12s %4d filas   $%s' % (nombre, n, format(s, ',.2f')))
+        print('  %-12s %4d filas   $%s' % (
+            'TOTAL', len(conservadas),
+            format(sum(x[3] for x in conservadas), ',.2f')))
+        if desplazadas:
+            print('\nDESCARTADAS por reclasificacion (el export las trae con otro '
+                  'movimiento):')
+            for mes, cli, mov in desplazadas:
+                print('  %-12s %-44s era %s' % (mes, cli[:44], mov))
+    print('\nperdida real $%s · fraude/reestructura $%s'
+          % (format(perdido, ',.2f'), format(fraude, ',.2f')))
     for nombre, filas in meses:
         aaa = sum(1 for f in filas if f['clas'] == 'AAA')
         print('  %-11s %4d filas · %3d AAA' % (nombre, len(filas), aaa))

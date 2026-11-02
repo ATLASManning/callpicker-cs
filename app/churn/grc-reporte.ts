@@ -113,13 +113,26 @@ export const GRC_BASE_PROVISIONAL: readonly string[] = []
  * Al cerrar el mes: poner aquí el siguiente mes vivo. Sus bajas sobrevivientes
  * pasan a ser churn real y generan aclaración solas.
  */
-/* OCTUBRE desde el export del 11 oct 2026. Septiembre ya cerró: su GRC quedó
-   en 2.7% ($134,758 de pérdida) tras bajar el churn −$50,422 — y de esa bajada
-   la mayor parte NO son pagos que entraron sino contratos reclasificados de
-   «Churn confirmado» a «Churn mensual», que el GRC no cuenta. Octubre marca
-   52.2% y es exactamente la patología del mes vivo: de sus 1,487 filas de
-   churn, 90 están DESMENTIDAS por la base y 1,396 no se pueden cotejar. El
-   piso verificado es 0.5%. Ver [[regla-churn-mes-vencido]]. */
+/* OCTUBRE SIGUE AQUÍ AUNQUE EL MES YA TERMINÓ — 2 nov 2026.
+
+   El corte nuevo se tomó dos días después del cierre y octubre bajó muchísimo:
+   de 624 filas y $850,238.92 a 295 filas y $393,410.82, un GRC de 17.4% → 8.1%.
+   Son $456,828.10 que nunca fueron churn: contratos marcados «Churn
+   confirmado» por no haber facturado todavía, que facturaron.
+
+   La tentación es rotar la constante a Noviembre y dar octubre por cerrado.
+   NO, y está medido: `scripts/mide-cierre-de-mes-grc.py Octubre` dice que al
+   rotarla entran 251 nombres a NOMBRES_CHURN_GRC, de los que 15 cruzan con la
+   cartera — y los 15 están ACTIVOS o EN RIESGO, ninguno de baja. Atlas diría
+   de Jason de México (D7, $17,225), ATP Sofom (C8, $14,848) o KOMBITEC (D22,
+   $8,539) que «aparecen como Churn confirmado». Cero capturas correctas y
+   quince afirmaciones falsas sobre clientes vivos.
+
+   Dos días después del cierre la cobranza tardía sigue entrando, que es
+   exactamente lo que describe la regla: septiembre 2026 tuvo TRES lecturas
+   —23.6% → 6.9% → 3.14%— y ni el mes recién cerrado era definitivo. Octubre
+   sale de «en curso» cuando esos 15 bajen, no cuando cambie el calendario.
+   Ver [[regla-churn-mes-vencido]]. */
 export const GRC_MES_EN_CURSO: string | null = 'Octubre'
 
 /**
@@ -205,19 +218,37 @@ export const GRC_REEXPRESION_2026_09_20 = {
 }
 
 
-/** El mismo resumen sin el mes en curso — la cifra comparable contra el histórico. */
+/**
+ * El mismo resumen sin el mes en curso — la cifra comparable contra el
+ * histórico.
+ *
+ * ESTÁ ESCRITO A MANO Y YA SE QUEDÓ VIEJO DOS VECES. La primera decía «hasta
+ * Agosto» con septiembre cerrado; la segunda —descubierta el 2 nov 2026— traía
+ * el churn inflado en $11,567.50 contra los datos que el propio módulo ya
+ * publicaba, desde la carga del 11 oct. Un número plausible dentro de una
+ * tabla no se audita solo.
+ *
+ * Desde el 2 nov lo comprueba `scripts/verifica-resumen-cerrados.py`, que lo
+ * recalcula desde `aaa-grc-data.ts` + `GRC_BASE_MRR` leyendo las reglas de
+ * clasificación del propio `GrcAaaSection.tsx`. CORRERLO AL CARGAR.
+ */
 export const GRC_RESUMEN_CERRADOS = {
   hasta:     'Septiembre',
   base:      44070926.40,
-  churn:       605061.56,
-  downgrade:   361721.27,
-  perdida:     966782.83,
-  pct:               2.19,
+  churn:       591437.06,
+  downgrade:   362173.68,
+  perdida:     953610.74,
+  pct:               2.16,
 }
 
 /**
  * El fraude / reestructura queda FUERA del Gross Revenue Churn: la pérdida
- * real del periodo enero–septiembre es $2,151,751.56, sin los $244,432.68 de
- * fraude-reestructura de los mismos nueve meses. Se reporta por separado.
+ * real del periodo enero–septiembre es $1,349,098.73 —los tres churns más el
+ * downgrade—, sin los $457,271.65 de fraude-reestructura de los mismos nueve
+ * meses. Se reporta por separado.
+ *
+ * Las dos cifras las imprime `scripts/verifica-resumen-cerrados.py`; antes
+ * estaban en $2,151,751.56 y $244,432.68, de un corte anterior. El grueso del
+ * fraude-reestructura es una sola fila: GTC - Oleksei, febrero, $189,440.
  */
 export const GRC_EXCLUYE_FRAUDE = true

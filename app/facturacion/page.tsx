@@ -154,6 +154,21 @@ type Datos = {
     cuentasVivaCartera: number; cuentasVivaFactura: number; churnVivaFactura: number
     reactivacionesHasta: string; mesesConDetalle: string[]
     sinFuente: string[]; advertencia: string; notaCambio?: string
+    /**
+     * EL ÚNICO CAMPO DE ESTE META QUE **NO** GENERA `gen-grc-zoho.py`.
+     *
+     * Existe para los ratos en que llega un corte más nuevo del tablero GRC
+     * —que trae sólo filas de pérdida— y NO el export institucional, que es el
+     * único con la base de MRR. En esos ratos Churn · GRC AAA ya se actualizó
+     * y esta tabla no puede, así que las dos pantallas publican un número
+     * distinto del mismo mes. Callarlo es dejar una contradicción a la vista
+     * sin explicación.
+     *
+     * Se escribe a mano en `data/grc-zoho.json` y SE AUTODESTRUYE: la próxima
+     * corrida del generador reescribe el meta sin esta clave, que es
+     * exactamente cuando deja de hacer falta. Por eso es opcional.
+     */
+    notaCorteNuevo?: string
   }
   serie: Mes[]
   detallePerdida: { mes: string; filas: { movimiento: string; perdida: number; fraude: number }[] }[]
@@ -448,6 +463,34 @@ export default function GrossRevenueChurnPage() {
           sub={`${d.desmentidas.length} cuentas que el corte clasifica «Churn confirmado» y que están desmentidas por una de dos vías: o siguen activas en nuestra cartera, o su importe acumulado creció entre dos cortes —o sea que facturaron, y una cuenta dada de baja no factura—. La columna «Desmentida por» dice cuál. Antes de reportar cualquiera como baja hay que confirmarla: el mes todavía corre.`}>
           <TablaDesmentidas filas={d.desmentidas} />
         </Tarjeta>
+      )}
+
+      {/* HAY UN CORTE MÁS NUEVO QUE ESTA TABLA, y se dice antes de la tabla.
+          Mismo recuadro ámbar que la nota de abajo —isla clara, letra oscura,
+          ver ahí el porqué del contraste— pero con el borde más marcado,
+          porque esto no explica el pasado: avisa de que lo que viene debajo
+          ya tiene sustituto en otra pantalla. */}
+      {d?.meta?.notaCorteNuevo && (
+        /* `cp-light` en el contenedor: es una isla CLARA, y sin el escape las
+           reglas `.cp-card p {color:#fff !important}` pintarían estos dos
+           párrafos de blanco sobre ámbar si este bloque acabara colgando de
+           una tarjeta. Para `<p>` no hay cláusula de escape por atributo —la
+           del `background` sólo vale para `<span>`—, así que el escape es
+           éste. El bloque de abajo es anterior a esa regla y por eso no lo
+           lleva; va en la cuenta de `revisa-contraste-cpcard.py`. */
+        <div className="cp-light rounded-xl px-4 py-3 mt-5"
+          style={{ background: '#FEF3C7', border: '2px solid #F59E0B', color: '#78350F' }}>
+          <p className="text-[11.5px] font-bold mb-1">
+            <span style={{ background: 'transparent', color: MARINO }}>
+              Hay un corte más reciente que esta tabla
+            </span>
+          </p>
+          <p className="text-[11px] leading-relaxed">
+            <span style={{ background: 'transparent', color: 'inherit' }}>
+              {d.meta.notaCorteNuevo}
+            </span>
+          </p>
+        </div>
       )}
 
       {/* LA NOTA DEL CAMBIO, arriba y en ámbar. Dirección fue explícita: «no

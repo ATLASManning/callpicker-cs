@@ -647,6 +647,16 @@ META = {
     'mesesCerrados': [m for m, _, _, _, _ in HISTORIA],
     'reactivacionesHasta': REACTIVACIONES[-1][0],
     'mesesConDetalle': sorted(detalle.keys(), key=lambda x: MESES.index(x)),
+    # ── `notaCorteNuevo` NO SE GENERA AQUI, Y ES A PROPOSITO ─────────────
+    # Es la unica clave del meta que se escribe a mano en el JSON. Avisa de
+    # que llego un corte del tablero GRC mas nuevo que esta tabla —ese export
+    # trae solo filas de perdida, sin la base de MRR— y que Churn · GRC AAA ya
+    # lo tiene. Mientras eso pasa, las dos pantallas publican un numero
+    # distinto del mismo mes, y eso hay que decirlo donde se ve.
+    #
+    # Que este generador la OMITA es el mecanismo: esta corrida la borra, que
+    # es justo el momento en que deja de ser cierta. No anadirla aqui.
+    #
     # ── LA NOTA DEL CAMBIO ───────────────────────────────────────────────
     # Direccion, 2 oct 2026: «esta es la ultima informacion de la herramienta
     # institucional, no puede haber dos cifras; si cambio simplemente cambio».
