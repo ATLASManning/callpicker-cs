@@ -306,25 +306,43 @@ check(not fuga, u'ningun rotulo filtra las etiquetas internas del amarre',
 sols = [(i, q) for i, t, q in rotulos if t == SOLICITUD]
 print(u'')
 print(u'  solicitud(es) de cancelacion en la base: %d' % len(sols))
+
+# Sin ninguna guardada, el rotulo se prueba igual — contra una fila ARMADA
+# aqui. Dejar las tres comprobaciones sin hacer seria concluir exito por
+# defecto; pero caerse cada semana por falta de datos es un guion que nadie
+# vuelve a leer. Asi que se prueba siempre, y se dice de donde salio la fila.
+SINTETICA = u'\n'.join([
+    u'%s enviado · http://ejemplo' % ET_FORMATO,
+    u'%s X1 · CID 000 · EJEMPLO' % ET_CUENTA,
+    u'%s %s' % (ET_ACCION, sorted(ACCIONES.values())[0]),
+    u'',
+    u'fila armada por el verificador, no sale de la base.',
+])
+if not sols:
+    print(u'  (ninguna guardada: el rotulo se prueba contra una fila armada aqui)')
+    sols = [(u'sintetica', que_nuevo(SOLICITUD, SINTETICA, False))]
 for i, q in sols:
     print(u'      %s' % q)
-if sols:
-    check(all(q.startswith(etiqueta_tipo(SOLICITUD)) for _, q in sols),
-          u'la solicitud se rotula por su nombre, no como «Nota interna»')
-    # AL REVES: el rotulo tiene que decir algo. Una accion del catalogo, o
-    # que no se declaro — nunca las dos ni ninguna.
-    utiles = [q for _, q in sols
-              if any(q.endswith(a) for a in ACCIONES.values())
-              or q.endswith(u'no se declaró qué se hizo para evitarla')]
-    check(len(utiles) == len(sols),
-          u'el rotulo termina en una accion del catalogo o dice que no se declaro',
-          u'%d de %d' % (len(utiles), len(sols)))
-    check(not any(q.startswith(u'Nota interna') for _, q in sols),
-          u'AL REVES: ninguna solicitud se rotula «Nota interna»')
-else:
-    print(u'  *** no hay ninguna solicitud guardada: las tres comprobaciones de')
-    print(u'      rotulo no se pueden hacer. NO cuento esto como verde.')
-    fallos.append(u'sin solicitudes que comprobar')
+
+check(all(q.startswith(etiqueta_tipo(SOLICITUD)) for _, q in sols),
+      u'la solicitud se rotula por su nombre, no como «Nota interna»')
+# AL REVES: el rotulo tiene que decir algo. Una accion del catalogo, o que no
+# se declaro — nunca fontaneria.
+utiles = [q for _, q in sols
+          if any(a in q for a in ACCIONES.values())
+          or u'no se declaró qué se hizo para evitarla' in q]
+check(len(utiles) == len(sols),
+      u'el rotulo trae una accion del catalogo o dice que no se declaro',
+      u'%d de %d' % (len(utiles), len(sols)))
+check(not any(q.startswith(u'Nota interna') for _, q in sols),
+      u'AL REVES: ninguna solicitud se rotula «Nota interna»')
+# CONTROL: la comprobacion de arriba tiene que saber fallar. El rotulo de
+# ANTES del 2 nov 2026 — el que producción publicaba — debe caerse en las tres.
+VIEJO = u'Nota interna (%s): %s…' % (SOLICITUD, SINTETICA.replace('\n', u' ')[:40])
+check(VIEJO.startswith(u'Nota interna')
+      and not any(a in VIEJO for a in ACCIONES.values())
+      and u'_' in VIEJO.split(u':')[0],
+      u'CONTROL: el rotulo viejo falla las tres comprobaciones de arriba', VIEJO)
 
 print(u'')
 if fallos:
