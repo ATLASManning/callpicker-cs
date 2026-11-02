@@ -3,6 +3,9 @@ import { hoyEnMexico } from '@/lib/fecha-local'
 import { PESO_SEVERIDAD, type Condicion } from '@/lib/alertas'
 import { CANALES_CONTACTO } from '@/lib/contacto-cuenta'
 import { esConElCliente } from '@/lib/reuniones-tipo'
+import {
+  SOLICITUD_CANCELACION, etiquetaTipoSeguimiento, leerSolicitud,
+} from '@/lib/seguimiento-tipos'
 
 /**
  * lib/alertas-movimiento.ts — QUÉ LE HIZO A ESTA ALERTA LO QUE ACABAS DE CAPTURAR
@@ -102,6 +105,21 @@ export interface Captura {
   tipo: TipoCaptura
   fecha: string
   que: string
+  /**
+   * Si esta captura es CONTACTO con el cliente. Va como dato y no se deduce
+   * del rótulo.
+   *
+   * Hasta el 2 nov 2026 el contador de la condición `contacto` lo decidía
+   * leyendo la prosa: `c.que.startsWith('Seguimiento')`. Daba el resultado
+   * correcto, pero por coincidencia — el día que alguien tocara el rótulo, la
+   * cuenta de contactos de todas las alertas se movía en silencio, sin que
+   * ninguna prueba lo notara. Y ese día llegó con «Solicitud de cancelación»,
+   * que no empieza por «Seguimiento» ni por «Nota interna».
+   *
+   * Un `reunion` lo decide `esConElCliente`; un `seguimiento`, `CANALES_CONTACTO`.
+   * Las dos reglas viven en su archivo y aquí sólo se copian al dato.
+   */
+  esContacto: boolean
 }
 
 export interface Movimiento {
@@ -122,6 +140,43 @@ export interface Movimiento {
   noCuentan: Captura[]
   /** Qué tendría que pasar para que se apague. */
   laApaga: string
+}
+
+/**
+ * Cómo se nombra un seguimiento en el bloque de movimiento.
+ *
+ * ── LO QUE PUBLICABA ANTES ────────────────────────────────────────────────
+ * «Nota interna (solicitud_cancelacion): Formato de solicitud de cancelación:
+ * env…» — medido en producción el 2 nov 2026, en CINCO alertas de la misma
+ * cuenta. Tres cosas mal en un solo renglón:
+ *
+ *   1. El tipo salía CRUDO, con guion bajo. Para eso existe
+ *      `etiquetaTipoSeguimiento`: ningún tipo se muestra con guion bajo.
+ *   2. Una cuenta que pide irse se rotulaba «Nota interna». Es la captura más
+ *      grave que el sistema puede guardar y se leía como papeleo.
+ *   3. El adelanto de 40 letras caía justo dentro de la etiqueta interna del
+ *      amarre, así que el renglón no decía NADA: cuarenta caracteres de
+ *      fontanería. El cuerpo de una solicitud empieza siempre por esas
+ *      etiquetas, así que el recorte nunca iba a servir para este tipo.
+ *
+ * Para una solicitud, lo que importa en una línea es QUÉ SE HIZO para evitar
+ * la baja — y si no se declaró, se dice con palabras en vez de dejar el hueco.
+ */
+function queDeSeguimiento(
+  tipo: string, descripcion: string | null, canal: boolean,
+): string {
+  if (tipo === SOLICITUD_CANCELACION) {
+    const sol = leerSolicitud(descripcion)
+    return `${etiquetaTipoSeguimiento(tipo)}: `
+      + (sol.accion ?? 'no se declaró qué se hizo para evitarla')
+  }
+  /* 40 letras, no 90. Estos textos son pegados de WhatsApp y de correo
+     —«Hola @Daniel Martínez Loyola - 904 te acabamos de reasignar el…»— y a
+     90 el renglón se come el bloque entero. Aquí sólo hace falta reconocer
+     CUÁL captura es; el contenido se lee en Seguimientos. */
+  return `${canal ? 'Seguimiento' : 'Nota interna'}`
+    + (tipo ? ` (${etiquetaTipoSeguimiento(tipo)})` : '')
+    + (descripcion ? `: ${descripcion.replace(/\s+/g, ' ').trim().slice(0, 40)}…` : '')
 }
 
 function diasEntre(desde: string, hasta: string): number {
@@ -195,13 +250,15 @@ async function capturasDe(
   for (const r of reuniones) {
     const f = String(r.fecha ?? '').slice(0, 10)
     if (!f || f < desde) continue
+    const conCliente = esConElCliente(r.tipo)
     mete(r.cuenta_id, {
       tipo: 'reunion',
       fecha: f,
+      esContacto: conCliente,
       /* El TIPO va en el texto porque decide si cuenta: una de estrategia es
          SOBRE la cuenta y una de cliente es CON la cuenta, y en la pantalla
          tiene que verse por qué una suma y la otra no. */
-      que: `${esConElCliente(r.tipo) ? 'Reunión con el cliente' : 'Reunión interna'}`
+      que: `${conCliente ? 'Reunión con el cliente' : 'Reunión interna'}`
          + (r.titulo ? `: ${r.titulo}` : ''),
     })
   }
@@ -220,17 +277,13 @@ async function capturasDe(
   for (const s of segs) {
     const f = String(s.fecha ?? '').slice(0, 10)
     if (!f || f < desde) continue
-    const canal = CANALES_CONTACTO.has(String(s.tipo ?? '').toLowerCase())
+    const t = String(s.tipo ?? '').toLowerCase()
+    const canal = CANALES_CONTACTO.has(t)
     mete(s.cuenta_id, {
       tipo: 'seguimiento',
       fecha: f,
-      /* 40 letras, no 90. Estos textos son pegados de WhatsApp y de correo
-         —«Hola @Daniel Martínez Loyola - 904 te acabamos de reasignar el…»—
-         y a 90 el renglón se come el bloque entero. Aquí sólo hace falta
-         reconocer CUÁL captura es; el contenido se lee en Seguimientos. */
-      que: `${canal ? 'Seguimiento' : 'Nota interna'}`
-         + (s.tipo ? ` (${s.tipo})` : '')
-         + (s.descripcion ? `: ${s.descripcion.replace(/\s+/g, ' ').trim().slice(0, 40)}…` : ''),
+      esContacto: canal,
+      que: queDeSeguimiento(t, s.descripcion, canal),
     })
   }
 
@@ -322,12 +375,11 @@ export async function movimientoDeCartera(
     const cuentan = suyas.filter(c => {
       if (!mueven.has(c.tipo)) return false
       /* Una reunión interna no es contacto, aunque el tipo `reunion` sí lo
-         sea: la distinción vive en `esConElCliente` y aquí se respeta leyendo
-         cómo se rotuló arriba. */
-      if (cond === 'contacto' && c.tipo === 'reunion'
-          && !c.que.startsWith('Reunión con el cliente')) return false
-      if (cond === 'contacto' && c.tipo === 'seguimiento'
-          && !c.que.startsWith('Seguimiento')) return false
+         sea; y una nota tampoco, aunque sea un seguimiento. Eso lo dice
+         `esContacto`, que viene decidido donde se sabe — ya NO se deduce del
+         rótulo. Sólo pesa en `contacto`: para `escrito` la prosa es prosa,
+         venga de una junta interna o de una solicitud de cancelación. */
+      if (cond === 'contacto' && !c.esContacto) return false
       return true
     })
     const noCuentan = suyas.filter(c => !cuentan.includes(c))
