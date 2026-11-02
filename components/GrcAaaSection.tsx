@@ -14,7 +14,7 @@ import type { AAAGrcRow } from '@/app/churn/aaa-grc-data'
 import { normalizarNombre } from '@/lib/elegibilidad'
 import {
   GRC_BASE_MRR,
-  GRC_BASE_PROVISIONAL, GRC_RESUMEN_CERRADOS, GRC_MES_EN_CURSO,
+  GRC_BASE_PROVISIONAL, GRC_RESUMEN_CERRADOS, GRC_MES_EN_CURSO, GRC_MES_SIN_MADURAR,
   GRC_RECUPERACION_PAGOS,
 } from '@/app/churn/grc-reporte'
 
@@ -343,7 +343,7 @@ export default function GrcAaaSection() {
                     {f.mes}
                     {f.enCurso && (
                       <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded"
-                        style={{ background: '#FDE68A', color: '#92400E' }}>mes en curso · provisional</span>
+                        style={{ background: '#FDE68A', color: '#92400E' }}>churn sin madurar</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums text-gray-600 whitespace-nowrap">
@@ -402,15 +402,18 @@ export default function GrcAaaSection() {
         {GRC_MES_EN_CURSO && (
           <p className="px-5 py-2.5 text-[11px] border-t border-gray-100"
             style={{ background: '#FFFBEB', color: '#92400E' }}>
-            <strong>{GRC_MES_EN_CURSO} no es el dato final: es cartera por cobrar.</strong> Zoho
-            marca «Churn confirmado» todo contrato que todavía no factura, así que el mes vivo
-            mide retraso de cobranza, no bajas. El churn real es el del <strong>mes vencido</strong>,
-            y cada mes se afina con el tiempo conforme entran los pagos: entre el corte del 17 y
-            el del 20 de septiembre, <strong>{GRC_RECUPERACION_PAGOS.cuentas} cuentas</strong>{' '}
+            <strong>{GRC_MES_EN_CURSO} ya terminó, pero su churn todavía no ha madurado.</strong>{' '}
+            Zoho marca «Churn confirmado» todo contrato que todavía no factura, así que lo que
+            mide es retraso de cobranza, no bajas. Medido el{' '}
+            {GRC_MES_SIN_MADURAR.medido.slice(8, 10)}/{GRC_MES_SIN_MADURAR.medido.slice(5, 7)}:
+            de las <strong>{GRC_MES_SIN_MADURAR.filasChurn} filas</strong> marcadas sólo{' '}
+            {GRC_MES_SIN_MADURAR.cotejables} cruzan con una cuenta de la cartera, y{' '}
+            <strong>las {GRC_MES_SIN_MADURAR.cotejablesVivas} siguen vivas</strong> — ninguna de
+            baja. Cada mes se afina conforme entran los pagos: entre el corte del 17 y el del 20
+            de septiembre, <strong>{GRC_RECUPERACION_PAGOS.cuentas} cuentas</strong>{' '}
             facturaron y salieron del churn — {fmtF(GRC_RECUPERACION_PAGOS.total)}, de los cuales{' '}
             {fmtF(GRC_RECUPERACION_PAGOS.porMes.find(m => m.mes === 'Agosto')?.monto ?? 0)} eran
-            de agosto. Al cierre de mes quedará lo más cercano al número con el que cierra. Para
-            comparar contra el histórico, usar el renglón de meses cerrados.
+            de agosto. Para comparar contra el histórico, usar el renglón de meses cerrados.
           </p>
         )}
 

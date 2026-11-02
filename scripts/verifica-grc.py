@@ -167,16 +167,43 @@ PUB_ANTES_2026_10_24 = {
        'Agosto': (5013922.60, 56212.78, 49851.84),
        'Septiembre': (4950369.50, 79483.96, 55273.67)}
 
-PUB = {
-       'Enero': (4650270.89, 74083.11, 20848.01),
-       'Febrero': (4696946.10, 65589.19, 34216.37),
+# ── REEXPRESION DEL 2-NOV-2026 (export `GRC (2).xlsx`, institucional) ─────
+# Los MISMOS diez meses, 3,644 contratos por mes (antes 3,635). Se movieron
+# SEIS meses cerrados, todos poco salvo septiembre:
+#   · Marzo      MRR inicio   +$490.00
+#   · Junio      MRR inicio +$2,398.00  y  downgrade  +$295.00
+#   · Julio      MRR inicio   -$295.00  y  downgrade  -$295.00
+#   · Agosto     MRR inicio   +$966.00
+#   · Septiembre MRR inicio +$3,326.62 · churn -$2,057.00 · downgrade +$452.41
+#
+# Los $295.00 de junio y julio son el mismo downgrade cambiando de mes: sale de
+# julio y entra en junio. No es plata nueva.
+#
+# El delta quedo EXPLICADO con `concilia-grc-zoho.py` ANTES de tocar esta tabla:
+# cierra al centavo, y la causa vuelve a ser la de siempre — 317 lineas que
+# estaban marcadas «Churn confirmado» y desde el corte anterior FACTURARON
+# (-$435,510.10, casi todo en el mes vivo). [[regla-churn-mes-vencido]]
+#
+# Las nueve filas de abajo estan COTEJADAS CELDA POR CELDA contra la captura
+# del tablero que mando direccion el 2 nov 2026, no copiadas de lo que calcula
+# el repo — ver `verifica-contra-tablero.py`, que es donde vive ese contraste.
+PUB_ANTES_2026_11_02 = {
        'Marzo': (4777170.30, 82546.00, 25734.97),
-       'Abril': (4857421.51, 58214.06, 26413.59),
-       'Mayo': (5076566.09, 32586.00, 42283.26),
        'Junio': (5103995.12, 87260.00, 81522.81),
        'Julio': (4944264.29, 69086.46, 25576.75),
        'Agosto': (5013922.60, 53199.28, 49851.84),
        'Septiembre': (4952597.00, 70929.96, 55273.67)}
+
+PUB = {
+       'Enero': (4650270.89, 74083.11, 20848.01),
+       'Febrero': (4696946.10, 65589.19, 34216.37),
+       'Marzo': (4777660.30, 82546.00, 25734.97),
+       'Abril': (4857421.51, 58214.06, 26413.59),
+       'Mayo': (5076566.09, 32586.00, 42283.26),
+       'Junio': (5106393.12, 87260.00, 81817.81),
+       'Julio': (4943969.29, 69086.46, 25281.75),
+       'Agosto': (5014888.60, 53199.28, 49851.84),
+       'Septiembre': (4955923.62, 68872.96, 55726.08)}
 for m in SER:
     p = PUB.get(m['mes'])
     if not p:

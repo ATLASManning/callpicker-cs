@@ -247,7 +247,11 @@ export default function GrossRevenueChurnPage() {
       <PageHeader
         title="Gross Revenue Facturación"
         subtitle={m
-          ? `Pérdida bruta de ingreso recurrente · mes en curso: ${m.mesVivo} · ${nf(m.clientes)} clientes`
+          /* «sin madurar», no «en curso»: desde el 2 nov 2026 el mes marcado ya
+             terminó y lo que sigue abierto es su churn, no el mes. El mismo
+             rótulo que usa Churn · GRC AAA — las dos pantallas hablan del mismo
+             mes y no pueden llamarlo de dos maneras. */
+          ? `Pérdida bruta de ingreso recurrente · churn sin madurar: ${m.mesVivo} · ${nf(m.clientes)} clientes`
           : 'Pérdida bruta de ingreso recurrente'}
       />
 
@@ -269,7 +273,7 @@ export default function GrossRevenueChurnPage() {
         <div className="rounded-xl px-4 py-3 mb-5"
           style={{ background: '#FEF3C7', border: '1px solid #FCD34D' }}>
           <p className="text-sm font-bold mb-1" style={{ color: MARINO }}>
-            {m.mesVivo} está en curso — la pérdida va en tres canastas y no se suma en una
+            El churn de {m.mesVivo} no ha madurado — la pérdida va en tres canastas y no se suma en una
           </p>
           <p className="text-[12px] leading-relaxed" style={{ color: MARINO }}>
             El corte marca «Churn confirmado» a todo contrato que aún no se factura. De esas cuentas,

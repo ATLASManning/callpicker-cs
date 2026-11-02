@@ -42,16 +42,41 @@
 export const GRC_BASE_MRR: Record<string, number> = {
   Enero:      4650270.89,
   Febrero:    4696946.10,
-  Marzo:      4777170.30,
+  Marzo:      4777660.30,
   Abril:      4857421.51,
   Mayo:       5076566.09,
+  Junio:      5106393.12,
+  Julio:      4943969.29,
+  Agosto:     5014888.60,
+  Septiembre: 4955923.62,
+  /* Al centavo, nunca redondeado. Lo escribí una vez como 4886743 y lo cazó
+     `verifica-contra-tablero.py`: un denominador redondeado da un porcentaje
+     que no es el del tablero. */
+  Octubre:    4914429.57,
+}
+
+/**
+ * REEXPRESIÓN DEL 2-NOV-2026 — las bases que había antes del export
+ * institucional `GRC (2).xlsx`, para que el cambio sea auditable.
+ *
+ * Se movieron seis meses: Marzo +$490, Junio +$2,398, Julio −$295, Agosto
+ * +$966, Septiembre +$5,554.12 y Octubre +$27,686.72 — +$9,113.12 sobre los
+ * nueve cerrados. Los contratos del mes pasaron de 3,635 a 3,644.
+ *
+ * OJO con el de septiembre: contra la tabla `PUB` de `verifica-grc.py` ese
+ * mismo mes se mueve +$3,326.62, no +$5,554.12, porque las dos tablas venían
+ * de cortes distintos. Son dos deltas correctos de la misma celda; el de aquí
+ * es el que mide contra ESTA constante. Lo cazó `verifica-resumen-cerrados.py`
+ * al no cuadrar la suma por $2,227.50.
+ *
+ * Los demás meses no están aquí porque no se movieron.
+ */
+export const GRC_BASE_MRR_ANTES_2026_11_02: Record<string, number> = {
+  Marzo:      4777170.30,
   Junio:      5103995.12,
   Julio:      4944264.29,
   Agosto:     5013922.60,
   Septiembre: 4950369.50,
-  /* 4886742.85, no 4886743. Lo escribí redondeado al cargar y lo cazó
-     `verifica-contra-tablero.py`: un denominador redondeado da un porcentaje
-     que no es el del tablero. Aquí se copia al centavo. */
   Octubre:    4886742.85,
 }
 
@@ -134,6 +159,38 @@ export const GRC_BASE_PROVISIONAL: readonly string[] = []
    sale de «en curso» cuando esos 15 bajen, no cuando cambie el calendario.
    Ver [[regla-churn-mes-vencido]]. */
 export const GRC_MES_EN_CURSO: string | null = 'Octubre'
+
+/**
+ * POR QUÉ OCTUBRE SIGUE EXCLUIDO AUNQUE YA TERMINÓ.
+ *
+ * El 2-nov-2026 octubre ya es mes vencido y el tablero lo publica como un mes
+ * normal (7.9%). La tentación es rotar `GRC_MES_EN_CURSO` a `null` y darlo por
+ * cerrado. **Se midió antes de hacerlo y la medición lo desaconseja**, con
+ * `scripts/mide-cierre-de-mes-grc.py Octubre`:
+ *
+ *   · 246 filas de octubre traen «Churn confirmado»
+ *   · sólo 15 cruzan con una cuenta de la cartera — las únicas cotejables
+ *   · **las 15 están VIVAS** (activo o en_riesgo). Ninguna de baja ni dormida.
+ *
+ * O sea: rotar captura CERO bajas reales y mete 15 cuentas vivas a
+ * `NOMBRES_CHURN_GRC`, donde Atlas diría de ellas «aparece como Churn
+ * confirmado». El coste es seguro y el beneficio es nulo.
+ *
+ * Esto NO dice que octubre esté en curso —no lo está—: dice que su churn no ha
+ * madurado. Es lo que el rótulo de la tabla tiene que decir, y por eso dejó de
+ * poner «mes en curso». `lib/grc-cerrados.ts` ya lo llama por su nombre:
+ * `GRC_MES_EXCLUIDO`.
+ *
+ * SE REVISA EN CADA CARGA: en cuanto las cotejables empiecen a salir de baja,
+ * esto se rota y `GRC_RESUMEN_CERRADOS.hasta` pasa a 'Octubre'.
+ */
+export const GRC_MES_SIN_MADURAR = {
+  medido:        '2026-11-02',
+  guion:         'scripts/mide-cierre-de-mes-grc.py',
+  filasChurn:    246,
+  cotejables:    15,
+  cotejablesVivas: 15,
+}
 
 /**
  * RECUPERACIÓN POR PAGOS — la prueba de que el mes vivo no es churn.
@@ -234,7 +291,7 @@ export const GRC_REEXPRESION_2026_09_20 = {
  */
 export const GRC_RESUMEN_CERRADOS = {
   hasta:     'Septiembre',
-  base:      44070926.40,
+  base:      44080039.52,
   churn:       591437.06,
   downgrade:   362173.68,
   perdida:     953610.74,
@@ -243,12 +300,13 @@ export const GRC_RESUMEN_CERRADOS = {
 
 /**
  * El fraude / reestructura queda FUERA del Gross Revenue Churn: la pérdida
- * real del periodo enero–septiembre es $1,349,098.73 —los tres churns más el
+ * real del periodo enero–septiembre es $1,329,439.73 —los tres churns más el
  * downgrade—, sin los $457,271.65 de fraude-reestructura de los mismos nueve
  * meses. Se reporta por separado.
  *
- * Las dos cifras las imprime `scripts/verifica-resumen-cerrados.py`; antes
- * estaban en $2,151,751.56 y $244,432.68, de un corte anterior. El grueso del
- * fraude-reestructura es una sola fila: GTC - Oleksei, febrero, $189,440.
+ * Las dos cifras las imprime `scripts/verifica-resumen-cerrados.py` y hay que
+ * releerlas en CADA carga: han pasado por $2,151,751.56 / $244,432.68 y por
+ * $1,349,098.73 / $457,271.65 antes de éstas. El grueso del fraude-reestructura
+ * sigue siendo una sola fila: GTC - Oleksei, febrero, $189,440.
  */
 export const GRC_EXCLUYE_FRAUDE = true

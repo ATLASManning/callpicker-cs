@@ -689,7 +689,7 @@ META = {
     # Un rotulo guardado en el dato envejece peor que uno escrito en la
     # pantalla, porque nadie lo ve al revisar el componente.
     'advertencia': (
-        'El corte se tomó con el mes en curso. De las cuentas que marca como baja, %d están en la '
+        'El corte se tomó con el churn del último mes sin madurar. De las cuentas que marca como baja, %d están en la '
         'cartera y se cotejan contra la base: %d siguen activas o en riesgo. Otras %d quedan '
         'desmentidas sin necesidad de la cartera, porque su importe acumulado creció entre dos '
         'cortes: facturaron, y una cuenta dada de baja no factura. Las %d restantes no se pueden '

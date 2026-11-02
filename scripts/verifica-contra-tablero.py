@@ -49,25 +49,28 @@ CENT = 0.005
 # Y lo que NO se hace nunca: mover estos numeros para que cuadren con lo que el
 # repo calcula. Eso es hacer que la prueba le de la razon al codigo y deja de
 # comprobar nada. Se copian del tablero o no se tocan.
-FECHA_TRANSCRIPCION = '11 oct 2026'
+FECHA_TRANSCRIPCION = '2 nov 2026'
 
-# ── TRANSCRIPCION DEL TABLERO (11 oct 2026) ─────────────────────────────────
+# ── TRANSCRIPCION DEL TABLERO (2 nov 2026) ──────────────────────────────────
+# Copiada de la captura que mando direccion el 2 nov 2026, con octubre ya
+# cerrado. Octubre deja de ser el mes desbocado del corte anterior: 52.2% ->
+# 7.9%, porque 317 contratos marcados «Churn confirmado» facturaron.
 #   mes: (MRR inicio, Churn, Downgrade, Perdida, GRC mensual %, GRC acum %)
 TABLERO = [
-    (u'Enero',      4650270.89,   74083.11, 20848.01,   94931.12,  2.0,  2.0),
-    (u'Febrero',    4696946.10,   65589.19, 34216.37,   99805.56,  2.1,  4.2),
-    (u'Marzo',      4777170.30,   82546.00, 25734.97,  108280.97,  2.3,  6.4),
-    (u'Abril',      4857421.51,   58214.06, 26413.59,   84627.65,  1.7,  8.2),
-    (u'Mayo',       5076566.09,   32586.00, 42283.26,   74869.26,  1.5,  9.6),
-    (u'Junio',      5103995.12,   87260.00, 81522.81,  168782.81,  3.3, 13.0),
-    (u'Julio',      4944264.29,   69086.46, 25576.75,   94663.21,  1.9, 14.9),
-    (u'Agosto',     5013922.60,   56212.78, 49851.84,  106064.62,  2.1, 17.0),
-    (u'Septiembre', 4950369.50,   79483.96, 55273.67,  134757.63,  2.7, 19.7),
-    (u'Octubre',    4886742.85, 2528125.71, 22307.46, 2550433.17, 52.2, 71.9),
+    (u'Enero',      4650270.89,  74083.11, 20848.01,   94931.12, 2.0,  2.0),
+    (u'Febrero',    4696946.10,  65589.19, 34216.37,   99805.56, 2.1,  4.2),
+    (u'Marzo',      4777660.30,  82546.00, 25734.97,  108280.97, 2.3,  6.4),
+    (u'Abril',      4857421.51,  58214.06, 26413.59,   84627.65, 1.7,  8.2),
+    (u'Mayo',       5076566.09,  32586.00, 42283.26,   74869.26, 1.5,  9.6),
+    (u'Junio',      5106393.12,  87260.00, 81817.81,  169077.81, 3.3, 13.0),
+    (u'Julio',      4943969.29,  69086.46, 25281.75,   94368.21, 1.9, 14.9),
+    (u'Agosto',     5014888.60,  53199.28, 49851.84,  103051.12, 2.1, 16.9),
+    (u'Septiembre', 4955923.62,  68872.96, 55726.08,  124599.04, 2.5, 19.4),
+    (u'Octubre',    4914429.57, 351054.00, 37083.82,  388137.82, 7.9, 27.3),
 ]
 # La fila «Resumen amplio» que el propio tablero imprime al pie.
-RESUMEN = {'mrr': 48957669.25, 'churn': 3133187.27,
-           'down': 384028.73, 'perdida': 3517216.00, 'grc': 7.2}
+RESUMEN = {'mrr': 48994469.09, 'churn': 942491.06,
+           'down': 399257.50, 'perdida': 1341748.56, 'grc': 2.7}
 
 fallos = []
 
