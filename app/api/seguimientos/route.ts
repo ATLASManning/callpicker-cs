@@ -3,6 +3,34 @@ import { getSeguimientos, addSeguimiento, updateSeguimientoResultado, supabaseAd
 import { hoyEnMexico } from '@/lib/fecha-local'
 import { exigeDuenoDeCuenta, firmaDeSesion, sesionDe, esRolAcotado, MENSAJE_SIN_CARTERA } from '@/lib/dueno'
 
+/**
+ * `String(e)` sobre un error de Supabase imprime «[object Object]».
+ *
+ * Y con eso el cliente no puede decir nada útil: el 2 nov 2026, con el CHECK
+ * de `tipo` rechazando `solicitud_cancelacion`, la API contestaba
+ * `{"error":"[object Object]"}` y el formulario solo podía decir «no se guardó
+ * (500)». El mensaje real —`violates check constraint
+ * "seguimientos_tipo_check"`— es justo el que dice QUÉ hacer. Son errores de
+ * esquema, no traen datos de cliente.
+ */
+function mensajeDeError(e: unknown): string {
+  if (typeof e === 'string') return e
+  if (e && typeof e === 'object') {
+    const o = e as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown }
+    /* `details` SE QUEDA FUERA: PostgREST mete ahí la fila entera —«Failing row
+       contains (…)»—, que repite lo que el asesor acaba de escribir y alarga el
+       aviso sin añadir nada. El nombre del constraint, que es lo que dice qué
+       hacer, viene en `message`. */
+    const partes = [o.message, o.hint]
+      .filter(v => typeof v === 'string' && v.trim() !== '') as string[]
+    if (partes.length) {
+      return (o.code ? `${o.code}: ` : '') + partes.join(' · ')
+    }
+    try { return JSON.stringify(e) } catch { /* cae al String de abajo */ }
+  }
+  return String(e)
+}
+
 export async function GET(req: NextRequest) {
   const cuentaId = req.nextUrl.searchParams.get('cuenta_id')
   if (!cuentaId) return NextResponse.json({ error: 'cuenta_id required' }, { status: 400 })
@@ -46,7 +74,7 @@ export async function PATCH(req: NextRequest) {
     await updateSeguimientoResultado(id, resultado)
     return NextResponse.json({ ok: true })
   } catch (e: unknown) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+    return NextResponse.json({ error: mensajeDeError(e) }, { status: 500 })
   }
 }
 
@@ -82,6 +110,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(s, { status: 201 })
   } catch (e: unknown) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+    return NextResponse.json({ error: mensajeDeError(e) }, { status: 500 })
   }
 }

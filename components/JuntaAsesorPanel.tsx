@@ -4,8 +4,9 @@ import Link from 'next/link'
 import {
   Phone, MessageCircle, Mail, Users, AlertCircle,
   FileText, Monitor, TrendingUp, TicketIcon,
-  ChevronRight, Clock, Calendar, AlertTriangle,
+  ChevronRight, Clock, Calendar, AlertTriangle, ShieldAlert,
 } from 'lucide-react'
+import { etiquetaTipoSeguimiento } from '@/lib/seguimiento-tipos'
 import type { SeguimientoConCuenta, OportunidadConCuenta, TicketConCuenta } from '@/lib/supabase'
 import type { Cuenta, SemaforoAsesor, Asesor, TipoSeguimiento } from '@/lib/types'
 import { ASESOR_CONFIG, configAsesor, SEMAFORO_CONFIG, getSemaforoCuenta, formatMXN } from '@/lib/types'
@@ -22,6 +23,22 @@ const TIPO_SEG: Record<TipoSeguimiento, { label: string; color: string; Icon: Re
   nota:     { label: 'Nota',     color: TX_TENUE, Icon: FileText },
   demo:     { label: 'Demo',     color: '#0EA5E9', Icon: Monitor },
   upsell:   { label: 'Upsell',   color: '#1D6CAA', Icon: TrendingUp },
+  /* `#DC2626` no es un color nuevo: es el de «Retención y Churn» en
+     /seguimiento, y es más oscuro que el `#EF4444` de ticket, así que sobre el
+     fondo claro de estas pastillas contrasta mejor, no peor. El icono y la
+     etiqueta la distinguen de ticket sin depender del color. */
+  solicitud_cancelacion: { label: 'Solicitud de cancelación', color: '#DC2626', Icon: ShieldAlert },
+}
+
+/* Un tipo que la base trae y este mapa no conoce DEJABA CAER EL PANEL ENTERO:
+   `TIPO_SEG[s.tipo]` salía `undefined` y la fila reventaba al leer `.label`.
+   El tipo de TS no protege de eso —la fila viene de la base, no del código— y
+   es exactamente lo que habría pasado hoy si el combo se hubiera desplegado
+   antes de ampliar el CHECK. */
+const SEG_DESCONOCIDO = { label: '', color: TX_TENUE, Icon: FileText }
+function cfgDeTipo(t: string | null | undefined) {
+  const cfg = TIPO_SEG[String(t ?? '') as TipoSeguimiento]
+  return cfg ?? { ...SEG_DESCONOCIDO, label: etiquetaTipoSeguimiento(t) }
 }
 
 const PRIORIDAD: Record<string, { label: string; color: string }> = {
@@ -215,7 +232,7 @@ export default function JuntaAsesorPanel({
                       </thead>
                       <tbody>
                         {seguimientos.map(s => {
-                          const cfg = TIPO_SEG[s.tipo]
+                          const cfg = cfgDeTipo(s.tipo)
                           return (
                             <tr key={s.id}>
                               <td className="whitespace-nowrap text-textLow text-xs">{fmtFecha(s.fecha)}</td>

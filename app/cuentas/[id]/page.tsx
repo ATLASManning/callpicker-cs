@@ -2,8 +2,11 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Phone, Globe, MapPin, ExternalLink, Building2,
-  TrendingUp, AlertTriangle, MessageSquare, Calendar, ClipboardCheck
+  TrendingUp, AlertTriangle, MessageSquare, Calendar, ClipboardCheck, ShieldAlert
 } from 'lucide-react'
+import {
+  SOLICITUD_CANCELACION, leerSolicitud, etiquetaTipoSeguimiento,
+} from '@/lib/seguimiento-tipos'
 import { findAuditoriaForConsecutivo } from '@/app/auditoria/registry'
 import { getAuditCaseById }           from '@/app/auditoria/cases'
 import { soporteDeCuenta } from '@/lib/soporte-cuenta'
@@ -920,28 +923,64 @@ export default async function CuentaDetailPage({ params }: Props) {
               </h3>
               <span className="text-xs text-textLow">{seguimientos.length} registros</span>
             </div>
-            <SeguimientoForm cuentaId={cuenta.id} asesor={cuenta.asesor} canEdit={canEdit} />
+            <SeguimientoForm cuentaId={cuenta.id} asesor={cuenta.asesor} canEdit={canEdit}
+              consecutivo={cuenta.consecutivo} cid={cuenta.cid} empresa={cuenta.empresa} />
             <div className="mt-4 space-y-3">
               {seguimientos.length === 0 ? (
                 <p className="text-xs text-textLow text-center py-6">Sin actividad registrada</p>
-              ) : seguimientos.map(s => (
+              ) : seguimientos.map(s => {
+                /* La solicitud de cancelación se pinta desarmada: el formato,
+                   la cuenta a la que quedó ligada y la acción de retención van
+                   como campos, no enterrados en el párrafo. Lo que NO se
+                   declaró se dice con palabras — una solicitud registrada antes
+                   de esta regla no trae nada, y rellenar el hueco en silencio
+                   sería inventarlo. */
+                const sol = s.tipo === SOLICITUD_CANCELACION ? leerSolicitud(s.descripcion) : null
+                return (
                 <div key={s.id} className="flex gap-3">
                   <div className="flex-shrink-0 w-8 h-8 rounded-full bg-cp/10 flex items-center justify-center text-cp">
-                    <MessageSquare size={13} />
+                    {sol ? <ShieldAlert size={13} /> : <MessageSquare size={13} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-xs font-semibold text-textHi capitalize">{s.tipo}</span>
-                      <SeguimientoStatusSelect seguimientoId={s.id} resultado={s.resultado} canEdit={canEdit} />
+                      <span className="text-xs font-semibold text-textHi">
+                        {etiquetaTipoSeguimiento(s.tipo)}
+                      </span>
+                      <SeguimientoStatusSelect seguimientoId={s.id} resultado={s.resultado}
+                        tipo={s.tipo} canEdit={canEdit} />
                       <span className="text-[10px] text-textLow ml-auto flex-shrink-0">
                         {textoFecha(s.fecha) ?? s.fecha}
                       </span>
                     </div>
-                    {s.descripcion && <p className="text-xs text-textMid">{s.descripcion}</p>}
+                    {sol ? (
+                      <div className="text-xs text-textMid space-y-0.5">
+                        <p>
+                          <span className="text-textLow">Formato: </span>
+                          {sol.url
+                            ? <a href={sol.url} target="_blank" rel="noopener noreferrer"
+                                className="text-cp hover:underline">
+                                {sol.enviado ? 'enviado' : 'pendiente de enviar'} — abrir
+                              </a>
+                            : <span className="text-naranja">no se declaró</span>}
+                        </p>
+                        <p>
+                          <span className="text-textLow">Cuenta ligada: </span>
+                          {sol.cuenta ?? <span className="text-naranja">no se declaró</span>}
+                        </p>
+                        <p>
+                          <span className="text-textLow">Para evitar la baja: </span>
+                          {sol.accion ?? <span className="text-naranja">no se declaró</span>}
+                        </p>
+                        {sol.detalle && <p className="pt-0.5">{sol.detalle}</p>}
+                      </div>
+                    ) : (
+                      s.descripcion && <p className="text-xs text-textMid">{s.descripcion}</p>
+                    )}
                     {s.asesor && <p className="text-[11px] text-textLow mt-0.5">{s.asesor}</p>}
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 

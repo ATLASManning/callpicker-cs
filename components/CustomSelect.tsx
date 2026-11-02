@@ -160,12 +160,19 @@ export default function CustomSelect({ value, onChange, options, className = '',
             const v = getValue(opt)
             const label = getLabel(opt)
             const isSelected = v === value
+            /* `capitalize` SÓLO cuando la opción es una cadena pelada.
+               Quien pasa `{value, label}` ya decidió el texto, y el
+               text-transform se lo deshace: «Solicitud de cancelación» salía
+               «Solicitud De Cancelación». Con cadenas sueltas sigue haciendo
+               falta —los catálogos que las usan guardan 'llamada', 'activo'— y
+               por eso no se quita, se condiciona. */
+            const auto = typeof opt === 'string' ? 'capitalize' : ''
             return (
               <button
                 key={v}
                 type="button"
                 onClick={() => { onChange(v); setOpen(false); setBusqueda('') }}
-                className="w-full text-left capitalize"
+                className={`w-full text-left ${auto}`.trim()}
                 style={{
                   padding: '8px 12px',
                   fontSize: '13px',

@@ -19,7 +19,11 @@ export type SemaforoSalud = 'verde' | 'azul' | 'amarillo' | 'naranja' | 'rojo'
  */
 export type Semaforo = SemaforoSalud | 'inactivo'
 export type EstadoCuenta = 'activo' | 'en_riesgo' | 'hibernacion' | 'cancelado'
-export type TipoSeguimiento = 'llamada' | 'whatsapp' | 'email' | 'reunion' | 'ticket' | 'nota' | 'demo' | 'upsell'
+/* `solicitud_cancelacion` (2 nov 2026) no es un canal como los otros ocho: dice
+   que el cliente pidió irse o bajar de plan. Arrastra el formato oficial y la
+   acción de retención, y NO cuenta como contacto — ver lib/seguimiento-tipos.ts
+   y `CANALES_CONTACTO` en lib/contacto-cuenta.ts. */
+export type TipoSeguimiento = 'llamada' | 'whatsapp' | 'email' | 'reunion' | 'ticket' | 'nota' | 'demo' | 'upsell' | 'solicitud_cancelacion'
 export type TipoOportunidad = 'upsell' | 'crossell'
 export type EstadoOportunidad = 'identificada' | 'en_proceso' | 'ganada' | 'perdida' | 'descartada'
 export type PrioridadTicket = 'critica' | 'alta' | 'normal' | 'baja'
