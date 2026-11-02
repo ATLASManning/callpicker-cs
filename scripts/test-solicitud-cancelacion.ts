@@ -13,7 +13,7 @@ import {
   componerSolicitud, leerSolicitud, identificadorDeCuenta,
   FORMATO_SOLICITUD_CANCELACION, etiquetaAccionRetencion,
   TIPOS_SEGUIMIENTO, resultadosDe, etiquetaTipoSeguimiento, etiquetaResultado,
-  SOLICITUD_CANCELACION,
+  SOLICITUD_CANCELACION, resumenDeSeguimiento, lineaSeguimientosKAM,
 } from '../lib/seguimiento-tipos'
 
 let fallos = 0
@@ -97,6 +97,83 @@ check(etiquetaTipoSeguimiento('un_tipo_viejo') === 'Un tipo viejo',
       etiquetaTipoSeguimiento('un_tipo_viejo'))
 check(etiquetaResultado('escrito a mano por alguien') === 'escrito a mano por alguien',
       'un resultado escrito a mano se muestra tal cual')
+
+// ── 5 · El resumen de una línea ─────────────────────────────────────────────
+// Es la función que arregla el renglón que producción publicaba el 2 nov 2026:
+// «Nota interna (solicitud_cancelacion): Formato de solicitud de cancelación:
+// env…» — cuarenta caracteres de fontanería. La prueba de fondo es que NINGÚN
+// resumen empiece por una etiqueta del amarre, con el recorte que sea.
+const r40 = resumenDeSeguimiento(SOLICITUD_CANCELACION, texto, 40)
+const r160 = resumenDeSeguimiento(SOLICITUD_CANCELACION, texto, 160)
+check(r40 === etiquetaAccionRetencion('ajuste_plan'),
+      'a 40 letras el resumen es la acción sola: no cabe nada más', r40)
+check(r160.startsWith(etiquetaAccionRetencion('ajuste_plan')) && r160.includes('presupuesto'),
+      'a 160 sí entra el detalle que escribió el asesor', r160)
+for (const n of [10, 20, 40, 70, 160, 500]) {
+  const r = resumenDeSeguimiento(SOLICITUD_CANCELACION, texto, n)
+  check(!r.startsWith('Formato') && !r.includes('docs.google.com'),
+        `con max=${n} el resumen no empieza por fontanería ni trae la URL`, r)
+}
+check(resumenDeSeguimiento(SOLICITUD_CANCELACION,
+        componerSolicitud({ accion: '', identificador: ident, detalle: '', enviado: false }), 70)
+      .length > 0,
+      'una solicitud sin acción declarada igual dice algo')
+check(resumenDeSeguimiento('llamada', 'Hablé con el cliente.', 70) === 'Hablé con el cliente.',
+      'un seguimiento normal corto se devuelve entero, sin puntos suspensivos',
+      resumenDeSeguimiento('llamada', 'Hablé con el cliente.', 70))
+check(resumenDeSeguimiento('llamada', 'x'.repeat(100), 70) === 'x'.repeat(70) + '…',
+      'y uno largo se corta exactamente en `max` y lo señala')
+check(resumenDeSeguimiento('nota', null, 70) === '' && resumenDeSeguimiento(null, null) === '',
+      'sin texto, el resumen es vacío: no se inventa un guion')
+
+// ── 6 · Lo que lee el MODELO ────────────────────────────────────────────────
+// Esta es la línea del dossier de Atlas. Se prueba aquí y no armando el
+// dossier entero porque eso exige base de datos y archivos — y una línea que
+// un modelo lee no puede quedarse sin comprobar por culpa del andamio.
+const FILAS = [
+  { fecha: '2026-11-02', tipo: SOLICITUD_CANCELACION, resultado: 'en_negociacion',
+    descripcion: texto },
+  { fecha: '2026-09-14', tipo: 'email', resultado: 'exitoso',
+    descripcion: 'Mandé la cotización de $96,250 + IVA.' },
+]
+const linea2 = lineaSeguimientosKAM(FILAS, 5)
+check(linea2.startsWith('(1/2) '), 'los seguimientos van numerados i/N', linea2.slice(0, 20))
+check(linea2.includes('(2/2) '), 'y el segundo también')
+check(linea2.includes('Solicitud de cancelación'),
+      'el tipo se le da al modelo por su nombre, no como `solicitud_cancelacion`')
+check(!linea2.includes('solicitud_cancelacion'),
+      'AL REVÉS: el valor crudo NO llega al modelo', linea2)
+check(!linea2.includes('docs.google.'),
+      'AL REVÉS: la URL del formato NO llega como si fuera el texto', linea2)
+check(linea2.includes(etiquetaAccionRetencion('ajuste_plan')),
+      'lo que SÍ llega es qué se hizo para evitar la baja')
+check(linea2.includes('recorte de presupuesto'),
+      'y el motivo que dio el cliente')
+check(linea2.endsWith('son todos los que tiene.'),
+      'con menos filas que el tope, se dice que es la bitácora entera', linea2.slice(-40))
+
+// Con el tope justo, NO se puede afirmar el total — y la línea lo dice.
+const CINCO = Array.from({ length: 5 }, (_, i) => ({
+  fecha: `2026-10-0${i + 1}`, tipo: 'llamada', resultado: 'exitoso',
+  descripcion: `llamada ${i + 1}`,
+}))
+const linea5 = lineaSeguimientosKAM(CINCO, 5)
+check(/NO afirmes cuántos seguimientos/.test(linea5),
+      'con el tope lleno, se le prohíbe al modelo afirmar el total', linea5.slice(-60))
+check(!linea5.includes('son todos los que tiene'),
+      'AL REVÉS: con el tope lleno NO se dice que sean todos')
+check(lineaSeguimientosKAM([], 5) === 'NINGUNO registrado',
+      'sin seguimientos se dice NINGUNO, que no es lo mismo que no haber mirado')
+check(lineaSeguimientosKAM([{ fecha: '2026-10-01', tipo: 'nota', descripcion: null }], 5)
+        .includes('sin texto capturado'),
+      'un seguimiento sin texto se marca con palabras, no se deja en blanco')
+
+// CONTROL NEGATIVO: el formato de ANTES del 2 nov 2026 tiene que fallar estas
+// mismas comprobaciones. Si pasara, no estarían probando nada.
+const VIEJO = `[2026-11-02] ${SOLICITUD_CANCELACION}: ${texto.replace(/\s+/g, ' ').slice(0, 70)}`
+check(VIEJO.includes('solicitud_cancelacion') && VIEJO.includes('docs.google.')
+      && !/\(1\//.test(VIEJO) && !/son todos los que tiene/.test(VIEJO),
+      'CONTROL: el formato viejo falla las cuatro comprobaciones de arriba', VIEJO)
 
 console.log('')
 if (fallos > 0) {

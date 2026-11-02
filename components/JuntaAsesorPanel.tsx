@@ -6,7 +6,9 @@ import {
   FileText, Monitor, TrendingUp, TicketIcon,
   ChevronRight, Clock, Calendar, AlertTriangle, ShieldAlert,
 } from 'lucide-react'
-import { etiquetaTipoSeguimiento } from '@/lib/seguimiento-tipos'
+import {
+  etiquetaTipoSeguimiento, etiquetaResultado, resumenDeSeguimiento,
+} from '@/lib/seguimiento-tipos'
 import type { SeguimientoConCuenta, OportunidadConCuenta, TicketConCuenta } from '@/lib/supabase'
 import type { Cuenta, SemaforoAsesor, Asesor, TipoSeguimiento } from '@/lib/types'
 import { ASESOR_CONFIG, configAsesor, SEMAFORO_CONFIG, getSemaforoCuenta, formatMXN } from '@/lib/types'
@@ -251,13 +253,20 @@ export default function JuntaAsesorPanel({
                                   <cfg.Icon size={12} />{cfg.label}
                                 </span>
                               </td>
+                              {/* El `truncate` de CSS corta por ANCHO, y en una
+                                  solicitud de cancelación los primeros 200px
+                                  son la etiqueta del amarre: la celda enseñaba
+                                  «Formato de solicitud de cancelación: env…» y
+                                  nada más. `resumenDeSeguimiento` sabe que ahí
+                                  el contenido empieza después. El `title` lleva
+                                  el texto completo, como antes. */}
                               <td className="text-xs text-textMid max-w-[200px] truncate"
                                 title={s.descripcion ?? ''}>
-                                {s.descripcion ?? '—'}
+                                {resumenDeSeguimiento(s.tipo, s.descripcion, 120) || '—'}
                               </td>
                               <td className="text-xs text-textLow max-w-[150px] truncate"
                                 title={s.resultado ?? ''}>
-                                {s.resultado ?? '—'}
+                                {s.resultado ? etiquetaResultado(s.resultado) : '—'}
                               </td>
                               <td className="text-right text-xs text-textLow">{s.duracion_min ?? '—'}</td>
                             </tr>

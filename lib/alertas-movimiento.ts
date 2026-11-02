@@ -4,7 +4,7 @@ import { PESO_SEVERIDAD, type Condicion } from '@/lib/alertas'
 import { CANALES_CONTACTO } from '@/lib/contacto-cuenta'
 import { esConElCliente } from '@/lib/reuniones-tipo'
 import {
-  SOLICITUD_CANCELACION, etiquetaTipoSeguimiento, leerSolicitud,
+  SOLICITUD_CANCELACION, etiquetaTipoSeguimiento, resumenDeSeguimiento,
 } from '@/lib/seguimiento-tipos'
 
 /**
@@ -165,18 +165,19 @@ export interface Movimiento {
 function queDeSeguimiento(
   tipo: string, descripcion: string | null, canal: boolean,
 ): string {
-  if (tipo === SOLICITUD_CANCELACION) {
-    const sol = leerSolicitud(descripcion)
-    return `${etiquetaTipoSeguimiento(tipo)}: `
-      + (sol.accion ?? 'no se declaró qué se hizo para evitarla')
-  }
   /* 40 letras, no 90. Estos textos son pegados de WhatsApp y de correo
      —«Hola @Daniel Martínez Loyola - 904 te acabamos de reasignar el…»— y a
      90 el renglón se come el bloque entero. Aquí sólo hace falta reconocer
-     CUÁL captura es; el contenido se lee en Seguimientos. */
+     CUÁL captura es; el contenido se lee en Seguimientos. El recorte lo hace
+     `resumenDeSeguimiento`, que sabe que en una solicitud las primeras 40
+     letras son la etiqueta del amarre y no el contenido. */
+  const resumen = resumenDeSeguimiento(tipo, descripcion, 40)
+  if (tipo === SOLICITUD_CANCELACION) {
+    return `${etiquetaTipoSeguimiento(tipo)}: ${resumen}`
+  }
   return `${canal ? 'Seguimiento' : 'Nota interna'}`
     + (tipo ? ` (${etiquetaTipoSeguimiento(tipo)})` : '')
-    + (descripcion ? `: ${descripcion.replace(/\s+/g, ' ').trim().slice(0, 40)}…` : '')
+    + (resumen ? `: ${resumen}` : '')
 }
 
 function diasEntre(desde: string, hasta: string): number {

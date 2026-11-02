@@ -193,15 +193,45 @@ def lee_accion(desc):
     return v or None
 
 
-def que_nuevo(tipo, desc, canal):
+def lee_detalle(desc):
+    u"""El texto libre, sin las tres lineas del amarre. Como `leerSolicitud`."""
+    d = (desc or u'').replace('\r\n', '\n')
+    lineas = [l for l in d.split('\n')
+              if not any(e in l for e in (ET_FORMATO, ET_CUENTA, ET_ACCION))]
+    return re.sub(r'\s+', u' ', u'\n'.join(lineas)).strip()
+
+
+MINIMO_UTIL = 12
+
+
+def corta(s, n):
+    return s[:n] + u'…' if len(s) > n else s
+
+
+def resumen(tipo, desc, mx):
+    u"""Espejo de `resumenDeSeguimiento`. LA AUTORIDAD ES EL TEST DE TS
+       (`npm run test:solicitud`), que importa la funcion de verdad; esto es
+       solo lo que hace falta aqui para recorrer la base."""
     if tipo == SOLICITUD:
-        return u'%s: %s' % (etiqueta_tipo(tipo),
-                            lee_accion(desc) or u'no se declaró qué se hizo para evitarla')
+        cabeza = lee_accion(desc) or u'no se declaró qué se hizo para evitarla'
+        resto = lee_detalle(desc)
+        sobra = mx - len(cabeza) - 3
+        if not resto or sobra < MINIMO_UTIL:
+            return cabeza
+        return u'%s — %s' % (cabeza, corta(resto, sobra))
+    t = re.sub(r'\s+', u' ', (desc or u'')).strip()
+    return corta(t, mx) if t else u''
+
+
+def que_nuevo(tipo, desc, canal):
+    r = resumen(tipo, desc, 40)
+    if tipo == SOLICITUD:
+        return u'%s: %s' % (etiqueta_tipo(tipo), r)
     base = (u'Seguimiento' if canal else u'Nota interna')
     if tipo:
         base += u' (%s)' % etiqueta_tipo(tipo)
-    if desc:
-        base += u': %s…' % re.sub(r'\s+', u' ', desc).strip()[:40]
+    if r:
+        base += u': %s' % r
     return base
 
 

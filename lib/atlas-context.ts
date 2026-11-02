@@ -13,6 +13,7 @@ import { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } from './eleg
 import { getZohoMap, lookupZoho } from './zoho-enrich'
 import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { esConElCliente, etiquetaTipo } from './reuniones-tipo'
+import { lineaSeguimientosKAM } from './seguimiento-tipos'
 import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
 import { REPORTE_S26_OCT_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
@@ -294,6 +295,13 @@ export async function buildCuentaDossier(
 
   const antig = c.activo_desde ? `cliente desde ${String(c.activo_desde).slice(0, 10)}` : 'antigüedad sin registrar'
 
+  /* La línea va armada en `lib/seguimiento-tipos.ts` para poder probarla sin
+     base de datos: numera `i/N` y dice si es la bitácora entera o una muestra.
+     Antes del 2 nov 2026 enseñaba tres de cinco sin decirlo, y recortaba a 70
+     letras que en una solicitud de cancelación caían dentro de la URL del
+     formato. [[feedback-contexto-ia-sin-huecos]] */
+  const segsTexto = lineaSeguimientosKAM(segs)
+
   /* EL RIESGO VA PRIMERO, ANTES QUE EL HEALTH SCORE.
    *
    * Aquí estaba el error de fondo del incidente de Grupo 2711: el dossier
@@ -326,7 +334,7 @@ ${cortesTxt}
   Upsell/Cross marcado en CRM: ${c.upsell_producto ?? '—'} / ${c.crossell_producto ?? '—'}
   SOPORTE (leer completo antes de opinar de la salud de la cuenta): ${sop.frase}
   Actividades SAC (HISTÓRICO, el generador se retiró el 8 oct 2026 — no se piden más): ${acts.length ? `${acts.length} registradas, ${actsComp} completadas; última semana ${acts[0].semana_inicio}` : 'ninguna quedó registrada'}
-  Seguimientos KAM: ${segs.length ? segs.slice(0, 3).map(s => `[${String(s.fecha).slice(0, 10)}] ${s.tipo}: ${(s.descripcion ?? '').slice(0, 70)}`).join(' | ') : 'NINGUNO registrado'}
+  Seguimientos KAM: ${segsTexto}
   Radar de Cuenta: ${radarN}/12 preguntas respondidas
   CALIDAD DE DATOS DE ESTA CUENTA: ${faltantes.length ? 'INCOMPLETA — ' + faltantes.join('; ') : 'completa'}${
     enriq && enriq.total ? `

@@ -195,6 +195,97 @@ export function componerSolicitud(d: {
   return lineas.join('\n')
 }
 
+/**
+ * Lo que dice un seguimiento, en una línea, para quien sólo tiene una línea.
+ *
+ * ── POR QUÉ HACE FALTA ─────────────────────────────────────────────────────
+ * El cuerpo de una solicitud de cancelación empieza SIEMPRE por las tres
+ * etiquetas del amarre, así que cualquier `slice` sobre `descripcion` cae
+ * dentro de la fontanería. Medido el 2 nov 2026 en tres sitios distintos:
+ *
+ *   - el bloque de movimiento de alertas cortaba a 40 y publicaba
+ *     «Formato de solicitud de cancelación: env…»;
+ *   - la tabla de la junta del asesor enseñaba 200px de lo mismo;
+ *   - y `lib/atlas-context.ts` le pasaba al MODELO 70 letras que terminan
+ *     dentro de la URL de Google. Eso es lo peor de los tres: una pantalla
+ *     con un renglón feo se nota, pero un modelo al que le llega una cuenta
+ *     que pidió irse descrita como media URL no dice «no sé» — rellena.
+ *
+ * Para una solicitud, la línea útil es QUÉ SE HIZO para evitar la baja, y
+ * después el detalle que escribió el asesor. Lo que no se declaró se dice.
+ *
+ * `max` es el presupuesto de TODA la línea, no sólo del texto libre. En una
+ * solicitud la acción va entera —cortarla por la mitad («Resolución del
+ * problema de sopo…») la vuelve a hacer ilegible— y el detalle libre entra
+ * sólo con lo que sobre. Si no sobra sitio para decir algo, no entra: el
+ * bloque de alertas pide 40 letras y ahí la acción ya es la línea.
+ */
+const MINIMO_UTIL = 12
+
+export function resumenDeSeguimiento(
+  tipo: string | null | undefined,
+  descripcion: string | null | undefined,
+  max = 70,
+): string {
+  const limpia = (s: string) => s.replace(/\s+/g, ' ').trim()
+  const cortar = (s: string, n: number) => (s.length > n ? s.slice(0, n) + '…' : s)
+  if (String(tipo ?? '').toLowerCase() === SOLICITUD_CANCELACION) {
+    const sol = leerSolicitud(descripcion)
+    const cabeza = sol.accion ?? 'no se declaró qué se hizo para evitarla'
+    const resto = limpia(sol.detalle)
+    const sobra = max - cabeza.length - 3   // el « — »
+    if (!resto || sobra < MINIMO_UTIL) return cabeza
+    return `${cabeza} — ${cortar(resto, sobra)}`
+  }
+  const t = limpia(String(descripcion ?? ''))
+  return t ? cortar(t, max) : ''
+}
+
+/**
+ * La bitácora de seguimientos, tal y como se la damos a un MODELO.
+ *
+ * Vive aquí y no en `lib/atlas-context.ts` porque así se puede probar sola:
+ * armar el dossier entero exige base de datos y archivos, y una línea que el
+ * modelo lee no puede quedar sin comprobar por culpa del andamio.
+ *
+ * ── LO QUE LE PASABA ANTES ─────────────────────────────────────────────────
+ *   Seguimientos KAM: [2026-11-02] solicitud_cancelacion: Formato de
+ *   solicitud de cancelación: enviado · https://docs.google.c
+ *
+ * Dos huecos, y los dos de la misma familia — callarle al modelo lo que no
+ * tiene:
+ *
+ *   1. Setenta letras que terminan DENTRO de la URL. Una cuenta que pidió
+ *      irse le llegaba descrita como media dirección web. Un hueco así no
+ *      produce un «no sé»: produce una invención.
+ *   2. Enseñaba TRES de los CINCO que la consulta trae, sin decirlo. Tres
+ *      renglones sin índice se leen como la bitácora entera, y el modelo
+ *      contesta «tiene tres seguimientos» sobre una cuenta que tiene treinta.
+ *
+ * Ahora van numerados `i/N`, y la línea dice si es la bitácora completa o una
+ * muestra — y cuando es una muestra, le prohíbe afirmar el total.
+ */
+export function lineaSeguimientosKAM(
+  segs: Array<{ fecha?: unknown; tipo?: string | null
+                descripcion?: string | null; resultado?: string | null }>,
+  tope = 5,
+): string {
+  if (!segs.length) return 'NINGUNO registrado'
+  const n = Math.min(segs.length, tope)
+  const cuerpo = segs.slice(0, tope).map((s, i) =>
+    `(${i + 1}/${n}) [${String(s.fecha ?? 'sin fecha').slice(0, 10)}] `
+    + `${etiquetaTipoSeguimiento(s.tipo)}`
+    + (s.resultado ? ` [${etiquetaResultado(s.resultado)}]` : '')
+    + `: ${resumenDeSeguimiento(s.tipo, s.descripcion, 160) || 'sin texto capturado'}`,
+  ).join(' | ')
+  /* `>=` y no `>`: con exactamente `tope` filas no se sabe si hay más, y
+     suponer que no las hay es justo la afirmación que no se puede hacer. */
+  return cuerpo + (segs.length >= tope
+    ? ` — son los ${tope} MÁS RECIENTES, no la bitácora entera: el total no se `
+      + `consultó, así que NO afirmes cuántos seguimientos tiene esta cuenta.`
+    : ' — son todos los que tiene.')
+}
+
 export interface SolicitudLeida {
   enviado: boolean | null
   url: string | null
