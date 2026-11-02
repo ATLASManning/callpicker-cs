@@ -79,6 +79,54 @@ export default function CustomSelect({ value, onChange, options, className = '',
   const selected = options.find(o => getValue(o) === value)
   const selectedLabel = selected ? getLabel(selected) : (placeholder ?? '')
 
+  /* ── Cuánto mide el menú y hacia dónde abre ────────────────────────────────
+   *
+   * Con el `maxHeight` fijo en 260px, una lista de nueve opciones enseñaba
+   * SIETE. Un renglón mide 35.5px medidos en el navegador, así que entraban
+   * 7.3 y las dos últimas quedaban bajo el borde — y la barra de
+   * desplazamiento de Chrome es un overlay que sólo se dibuja al mover la
+   * rueda, de modo que no había NINGUNA señal de que hubiera más. Así se
+   * escondió «Solicitud de cancelación» el 2 nov 2026, recién desplegada: la
+   * opción estaba, y quien la pidió no la encontró.
+   *
+   * Hacen falta las tres cosas, porque ninguna basta sola:
+   *   · el techo sube a 460px —trece renglones— para que un catálogo normal
+   *     entre entero;
+   *   · la barra se declara visible, para cuando de todos modos haya que
+   *     recortar: el combo de clientes de Tickets trae cientos de opciones y
+   *     ningún techo razonable las muestra todas;
+   *   · y el menú se mide contra el hueco REAL. Subir el techo a ciegas manda
+   *     el menú fuera de la pantalla cuando el combo está al pie de la página
+   *     —comprobado: 180px de alto y el borde 161px por debajo del borde de la
+   *     ventana—, y eso sería cambiar un recorte silencioso por otro.
+   *
+   * Cuando abajo no cabe y arriba hay más sitio, abre HACIA ARRIBA. Es lo que
+   * hace un <select> nativo, y es lo único que deja ver las nueve en un combo
+   * que está al final de un formulario largo.
+   *
+   * A los combos con buscador NO se les sube el techo: ahí la caja de búsqueda
+   * ya avisa de que la lista es más larga que lo que se ve, y el render está
+   * recortado a 200 de todas formas. Lo único que les cambia es que se ajustan
+   * al hueco disponible, que sólo puede mejorar.
+   */
+  const TECHO = searchable ? 260 : 460
+  const [menu, setMenu] = useState({ alto: TECHO, arriba: false })
+  useEffect(() => {
+    if (!open || !ref.current) return
+    const caja = ref.current.getBoundingClientRect()
+    const huecoAbajo = window.innerHeight - caja.bottom - 12
+    const huecoArriba = caja.top - 12
+    const arriba = huecoAbajo < Math.min(TECHO, 220) && huecoArriba > huecoAbajo
+    setMenu({
+      // El suelo de 160px es para el caso sin salida —ventana diminuta, el
+      // combo a media altura—: por debajo el menú deja de ser usable, y un
+      // absoluto que se sale alarga el scroll del documento, así que la opción
+      // sigue siendo alcanzable.
+      alto: Math.max(160, Math.min(TECHO, arriba ? huecoArriba : huecoAbajo)),
+      arriba,
+    })
+  }, [open, TECHO])
+
   return (
     // El 100% inline sólo se aplica cuando el llamador no define un ancho propio:
     // un `style` en línea gana sobre cualquier clase de Tailwind, así que dejarlo
@@ -122,15 +170,20 @@ export default function CustomSelect({ value, onChange, options, className = '',
 
       {open && (
         <div
-          className="absolute left-0 right-0 mt-1 rounded-lg border overflow-y-auto"
+          className={`absolute left-0 right-0 rounded-lg border overflow-y-auto ${menu.arriba ? 'mb-1' : 'mt-1'}`}
           style={{
-            top: '100%',
+            ...(menu.arriba ? { bottom: '100%' } : { top: '100%' }),
             zIndex: 100,
             background: '#ffffff',
             borderColor: '#DFE8EF',
             boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-            maxHeight: '260px',
+            maxHeight: menu.alto + 'px',
             minWidth: searchable ? 240 : undefined,
+            // Que la barra SE VEA cuando la lista no entra: sin esto Chrome la
+            // dibuja como overlay y sólo al girar la rueda. Un recorte que no
+            // se anuncia es lo que hizo falta arreglar aquí.
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#C3D2DF #ffffff',
           }}
         >
           {searchable && (
