@@ -68,7 +68,20 @@ TABLAS = [
     'cuentas', 'usuarios', 'seguimientos', 'anexos',   # las de datos de cliente
     'chat_mensajes', 'enriquecimiento_decisores',      # las vacias, que no se
     'oportunidades', 'solicitudes_acceso', 'tickets',  # pueden medir leyendo
+    # Las del aviso del 31 oct 2026. OJO con el veredicto en estas cuatro:
+    # hoy `anon` no tiene GRANT sobre ellas, asi que el 42501 lo da el
+    # PERMISO y no prueba que tengan RLS — un INSERT contesta igual en los
+    # dos casos. Quien zanja es el catalogo (`rowsecurity` en pg_tables),
+    # via scripts/migracion-rls-2026-11-03.sql. Estan aqui para que el dia
+    # que alguien les conceda SELECT la sonda ya las este mirando.
+    'uso_dashboard', 'wa_conversaciones', 'wa_mensajes', 'wa_senales',
 ]
+
+
+# Tablas donde `anon` NO tiene GRANT. En estas el 42501 lo puede dar el
+# permiso en vez del RLS, asi que «CERRADO» seria una afirmacion sin medir:
+# se dice que no concluye. Sale de `revisa-rls.py`, que las lista aparte.
+SIN_GRANT = {'uso_dashboard', 'wa_conversaciones', 'wa_mensajes', 'wa_senales'}
 
 
 def intenta(tabla):
@@ -81,6 +94,8 @@ def intenta(tabla):
             return u'*** ESCRIBIO', u'HTTP %s — hay que borrar esa fila A MANO' % r.status
     except urllib.error.HTTPError as e:
         cuerpo = e.read().decode('utf-8', 'replace')
+        if '42501' in cuerpo and tabla in SIN_GRANT:
+            return u'NO CONCLUYE', u'42501 · puede ser el GRANT, no el RLS'
         if '42501' in cuerpo:
             return u'CERRADO', u'42501 · RLS rechaza el alta'
         if '23502' in cuerpo or '23503' in cuerpo or '23505' in cuerpo:
@@ -117,6 +132,11 @@ if dudosas:
           % len(dudosas))
     print(u'      cerradas: %s' % u', '.join(dudosas))
     sys.exit(1)
-print(u'  Las %d tablas rechazan el alta con 42501: RLS las cubre tambien para'
-      % len(TABLAS))
+print(u'  %d tabla(s) rechazan el alta con 42501: RLS las cubre tambien para'
+      % (len(TABLAS) - len(SIN_GRANT)))
 print(u'  escritura, y lo dice Postgres con su propio codigo de error.')
+print(u'\n  Las otras %d NO quedan comprobadas: %s.' % (len(SIN_GRANT),
+      u', '.join(sorted(SIN_GRANT))))
+print(u'  Contestan el mismo 42501 porque `anon` no tiene GRANT, y ese error')
+print(u'  sale igual con RLS y sin el. Se zanjan con el catalogo:')
+print(u'  scripts/migracion-rls-2026-11-03.sql')

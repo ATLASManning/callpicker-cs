@@ -90,6 +90,33 @@ def cuantas(tabla, llave):
         return None
 
 
+def motivo_rechazo(tabla, llave):
+    """POR QUE dice que no. `42501` = permiso denegado: lo cierra el GRANT.
+
+    Importa la diferencia. Esta sonda daba por «protegida» toda tabla que no
+    contestara filas, y ahi caben DOS cosas que no son la misma:
+
+      · 200 con lista vacia -> hay RLS (o no hay politicas). Cerrada de verdad.
+      · 42501 / 401         -> `anon` no tiene GRANT sobre la tabla. La cierra
+                               el permiso, y el RLS puede estar APAGADO: desde
+                               fuera no hay forma de distinguirlo, porque un
+                               INSERT tambien contesta 42501 en los dos casos.
+
+    El 31 oct 2026 Supabase volvio a avisar de `rls_disabled_in_public` con
+    las dos sondas en verde: las cuatro candidatas estaban en este segundo
+    cajon y la sonda las llamaba «protegidas». Decir «no se puede comprobar
+    desde fuera» es el veredicto honesto; «protegida» era una afirmacion que
+    no se habia medido.
+    """
+    st, cuerpo, _ = pide('/rest/v1/%s?select=*' % tabla, llave,
+                         {'Prefer': 'count=exact', 'Range': '0-0'})
+    try:
+        codigo = (json.loads(cuerpo) or {}).get('code') or u''
+    except (ValueError, AttributeError):
+        codigo = u''
+    return st, codigo
+
+
 def tablas_publicadas():
     """La raiz de PostgREST lista el esquema. Pide llave SECRETA."""
     st, cuerpo, _ = pide('/rest/v1/', SERVICE)
@@ -115,14 +142,18 @@ if tablas is None:
     sys.exit(2)
 print(u'  PostgREST publica %d objeto(s) del esquema `public`\n' % len(tablas))
 
-abiertas, protegidas, vacias, raras = [], [], [], []
+abiertas, protegidas, vacias, raras, sin_grant = [], [], [], [], []
 for t in tablas:
     con_secreta = cuantas(t, SERVICE)
     con_publica = cuantas(t, ANON)
     if con_secreta is None:
         raras.append((t, u'la llave secreta tampoco la lee'))
     elif con_publica is None:
-        protegidas.append((t, con_secreta, u'rechaza'))
+        st_a, cod = motivo_rechazo(t, ANON)
+        if cod == '42501' or st_a in (401, 403):
+            sin_grant.append((t, con_secreta, st_a, cod))
+        else:
+            raras.append((t, u'rechaza con HTTP %s / %s' % (st_a, cod or u'sin codigo')))
     elif con_secreta == 0:
         # Una tabla vacia no prueba nada en ningun sentido: se dice aparte.
         vacias.append(t)
@@ -137,6 +168,9 @@ for t, s, p in sorted(abiertas, key=lambda x: -x[1]):
     print(u'  %-30s %9s %9s   *** ABIERTA' % (t[:30], u'{:,}'.format(s), u'{:,}'.format(p)))
 for t, s, como in sorted(protegidas, key=lambda x: -(x[1] or 0)):
     print(u'  %-30s %9s %9s   protegida' % (t[:30], u'{:,}'.format(s), como))
+for t, s, st_a, cod in sorted(sin_grant, key=lambda x: -(x[1] or 0)):
+    print(u'  %-30s %9s %9s   RLS NO COMPROBABLE — la cierra el GRANT'
+          % (t[:30], u'{:,}'.format(s), cod or st_a))
 for t in vacias:
     print(u'  %-30s %9s %9s   vacia — no concluye' % (t[:30], 0, 0))
 for t, por in raras:
@@ -151,11 +185,18 @@ if abiertas:
     print(u'      el tablero: la llave publicable viaja en el bundle.')
 else:
     print(u'  Ninguna tabla con datos contesta filas a la llave publica.')
-print(u'  %d protegida(s) · %d vacia(s) · %d sin clasificar'
-      % (len(protegidas), len(vacias), len(raras)))
+print(u'  %d protegida(s) · %d sin GRANT · %d vacia(s) · %d sin clasificar'
+      % (len(protegidas), len(sin_grant), len(vacias), len(raras)))
 if vacias:
     print(u'  OJO: las vacias NO estan comprobadas. Una tabla sin filas contesta')
     print(u'       lo mismo con RLS y sin el; se revisan en el panel.')
+if sin_grant:
+    print(u'  OJO: las %d «sin GRANT» TAMPOCO estan comprobadas, y son las que' % len(sin_grant))
+    print(u'       el aviso de Supabase marca. Que `anon` no tenga permiso las')
+    print(u'       cierra HOY; si alguien le concede SELECT y el RLS esta')
+    print(u'       apagado, quedan abiertas de par en par. Se resuelven con el')
+    print(u'       catalogo —`rowsecurity` en pg_tables—, no desde fuera:')
+    print(u'       scripts/migracion-rls-2026-11-03.sql')
 
 if '--sql' in sys.argv and abiertas:
     destino = os.path.join(RAIZ, 'scripts', 'migracion-rls.sql')
