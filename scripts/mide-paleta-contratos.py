@@ -40,6 +40,7 @@ u"""La paleta de Cuentas → Contratos, CALCULADA contra el fondo real.
        python scripts/mide-paleta-contratos.py
 """
 import io
+import math
 import sys
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
@@ -100,10 +101,25 @@ PLATA_500 = '#A8BACB'
 # sentido en una pastilla cuyo texto ES la etiqueta del color; aquí el texto es
 # una CIFRA y lo que se quiere es que se lea.
 #
-# Así que una sola tinta oscura para los tres rellenos claros, elegida por
-# descenso y **sin ir al filo**: `#1A2631` da los 4.5 justos (4.58) y `#172230`
-# deja margen. El rojo sigue siendo el único con letra clara.
+# ── Y LA QUINTA: LA PALETA DE ESTADO SE RETIRA (4 nov 2026) ─────────────────
+#
+# Dirección, al ver la pantalla ya con la paleta del documento: «los colores de
+# la gráfica llévalos a azul oscuro y gris claro».
+#
+# DOS COLORES NO PINTAN CUATRO SERIES: «azul oscuro» y «gris claro» son los
+# EXTREMOS, y los dos pasos de en medio se interpolan EN OKLab —mezclar en RGB
+# atraviesa tonos que no están en la paleta—. Los extremos no se inventan:
+# `#10355D` es el `--navy` del documento, el mismo de los títulos y de las
+# cabeceras de tabla, y `#B9C4D0` es el gris que `sin_estatus` ya tenía, así
+# que la ausencia de captura conserva exactamente su color.
+#
+# Y la tinta ahora VOLTEA a mitad de rampa, que con la paleta de estado no
+# pasaba: allí sólo uno de los cuatro llevaba letra clara y aquí son dos y dos.
+ESTATUS = [u'firmado', u'en proceso', u'no firmado', u'sin estatus']
+RAMPA = ['#10355D', '#476283', '#7E92A9', '#B9C4D0']
 TINTA_RELLENO = '#172230'
+TINTAS = ['#FFFFFF', '#FFFFFF', TINTA_RELLENO, TINTA_RELLENO]
+MIN_DE_ADY = 10.0   # separación OKLab entre pasos que se TOCAN
 
 MIN_TEXTO = 4.5
 MIN_TEXTO_GRANDE = 3.0   # >=24px, o >=19px en negrita (WCAG 1.4.3)
@@ -127,6 +143,24 @@ def lum(h):
 def contraste(a, b):
     la, lb = lum(a), lum(b)
     return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def oklab(h):
+    r, g, b = (lineal(c) for c in hx(h))
+    l = 0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b
+    m = 0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b
+    s = 0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b
+    l_, m_, s_ = (x ** (1.0 / 3.0) if x > 0 else -((-x) ** (1.0 / 3.0)) for x in (l, m, s))
+    return (0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_,
+            1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+            0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_)
+
+
+def dist(a, b):
+    u"""Separación perceptual en OKLab (×100). Dos rellenos que se tocan tienen
+       que separarse al menos MIN_DE_ADY; en RGB esa distancia miente."""
+    pa, pb = oklab(a), oklab(b)
+    return 100.0 * math.sqrt(sum((pa[i] - pb[i]) ** 2 for i in range(3)))
 
 
 def sobre(capa, alfa, fondo):
@@ -228,28 +262,55 @@ print(u'\n  Y el --muted del documento, que por esto NO se adopta:')
 print(u'         %-34s %s sobre %s  %6.2f:1  *** pide 4.5'
       % (u'--muted del documento', TX_BAJO_VIEJO, ZEBRA, contraste(TX_BAJO_VIEJO, ZEBRA)))
 
-print(u'\n  ════ 5 · LA TINTA SOBRE CADA RELLENO DE ESTATUS ═════════════════')
-print(u'\n  Son las cifras de 10.5px en NEGRITA que van dentro de cada segmento')
-print(u'  de la gráfica: texto normal, 4.5:1. El relleno es sólido, así que el')
-print(u'  zebra no lo altera.\n')
-for etq, fill, tinta in ((u'firmado', '#0ca30c', TINTA_RELLENO),
-                         (u'en proceso', '#fab219', TINTA_RELLENO),
-                         (u'no firmado', '#d03b3b', BLANCO),
-                         (u'sin estatus', '#B9C4D0', TINTA_RELLENO)):
-    mide(u'%s' % etq, tinta, fill)
-print(u'\n  Lo que había antes, y que llevaba ahí desde que se escribió la')
-print(u'  gráfica (el comentario afirmaba 4.2:1 para el primero):')
-for etq, fill in ((u'firmado con TX_ALTO', '#0ca30c'), (u'en proceso con TX_ALTO', '#fab219'),
-                  (u'sin estatus con TX_ALTO', '#B9C4D0')):
-    r = contraste(TX_ALTO, fill)
-    print(u'         %-34s %6.2f:1  %s' % (etq, r, u'ok' if r >= MIN_TEXTO else u'*** por debajo de AA'))
-print(u'\n  Y los rellenos COMO OBJETO sobre las dos filas. Dos no llegan a 3:1')
-print(u'  a propósito y por eso el color NUNCA identifica solo: cada segmento')
-print(u'  lleva su cifra escrita y la leyenda su etiqueta y su total.\n')
-for etq, fill in ((u'firmado', '#0ca30c'), (u'en proceso', '#fab219'),
-                  (u'no firmado', '#d03b3b'), (u'sin estatus', '#B9C4D0')):
-    print(u'         %-20s blanco %5.2f:1   zebra %5.2f:1'
-          % (etq, contraste(fill, BLANCO), contraste(fill, ZEBRA)))
+print(u'\n  ════ 5 · LA RAMPA DE LAS BARRAS, DE MARINO A GRIS CLARO ═════════')
+print(u'\n  4 nov 2026, pedido por dirección: «los colores de la gráfica llévalos')
+print(u'  a azul oscuro y gris claro». Son CUATRO estatus, así que esos dos son')
+print(u'  los EXTREMOS y los pasos de en medio se interpolan en OKLab.\n')
+print(u'    %-14s %s  %s  %s  %s' % ((u'rampa',) + tuple(RAMPA)))
+print(u'    %-14s %s' % (u'estatus', u'  '.join(u'%-7s' % e[:7] for e in ESTATUS)))
+
+print(u'\n  a) SEPARACIÓN ENTRE PASOS ADYACENTES (OKLab, mínimo %.0f)' % MIN_DE_ADY)
+print(u'     Es lo que importa: se tocan con 2px de fondo entre medias.\n')
+for i in range(len(RAMPA) - 1):
+    d = dist(RAMPA[i], RAMPA[i + 1])
+    ok = d >= MIN_DE_ADY
+    print(u'    %s %s → %s   ΔE %5.1f' % (u'ok  ' if ok else u'FALLA', RAMPA[i], RAMPA[i + 1], d))
+    if not ok:
+        fallos.append(u'los pasos %s y %s se confunden (ΔE %.1f)' % (RAMPA[i], RAMPA[i + 1], d))
+
+print(u'\n  b) LUMINANCIA MONÓTONA — es una escala ORDENADA; si sube y baja,')
+print(u'     deja de leerse como escala.\n')
+luces = [lum(c) for c in RAMPA]
+mono = all(luces[i] < luces[i + 1] for i in range(len(luces) - 1))
+print(u'    %s  %s' % (u'ok  ' if mono else u'FALLA',
+                       u'  '.join(u'%.4f' % l for l in luces)))
+if not mono:
+    fallos.append(u'la rampa no es monótona')
+
+print(u'\n  c) LA TINTA, QUE SE VOLTEA A MITAD DE RAMPA. El punto donde voltea')
+print(u'     se MIDE: poner blanco en los cuatro deja dos cifras ilegibles.\n')
+for etq, fill, tinta in zip(ESTATUS, RAMPA, TINTAS):
+    r = mide(u'%s' % etq, tinta, fill)
+    otra = TINTA_RELLENO if tinta == BLANCO else BLANCO
+    print(u'         (la otra opción, %s, daría %5.2f:1)' % (otra, contraste(otra, fill)))
+
+print(u'\n  d) LOS RELLENOS COMO OBJETO sobre las dos filas. Los dos últimos no')
+print(u'     llegan a 3:1 — antes NO llegaban el ámbar (1.83) y el gris (1.77),')
+print(u'     así que esta rampa pasa UN paso más que la que sustituye. El color')
+print(u'     NUNCA identifica solo: cada segmento lleva su cifra y la leyenda su')
+print(u'     etiqueta y su total.\n')
+for etq, fill in zip(ESTATUS, RAMPA):
+    a, b = contraste(fill, BLANCO), contraste(fill, ZEBRA)
+    print(u'         %-12s %s  blanco %5.2f:1   zebra %5.2f:1   %s'
+          % (etq, fill, a, b,
+             u'ok' if min(a, b) >= MIN_OBJETO else u'bajo 3:1 — lo sostiene la cifra'))
+
+print(u'\n  e) EL ARO DE LA LEYENDA. El de antes era `--line`, que mide 1.24:1')
+print(u'     contra el blanco: un aro que no contrasta no delimita nada, y con')
+print(u'     una rampa que acaba en gris claro los dos últimos cuadros se')
+print(u'     deshacían contra la tarjeta.\n')
+mide(u'aro nuevo (la tinta tenue)', TX_BAJO, BLANCO, MIN_OBJETO, u'objeto gráfico')
+print(u'         (el viejo, %s, medía %5.2f:1)' % (LINE, contraste(LINE, BLANCO)))
 
 print(u'\n  ════ 6 · LOS DOS FILETES, DECLARADOS COMO DECORACIÓN ════════════')
 print(u'\n  El documento subraya cada h2 con 3px de cian y marca los párrafos')

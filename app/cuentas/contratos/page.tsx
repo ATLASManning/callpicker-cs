@@ -93,26 +93,43 @@ const HERO_PILL = '#E5F1FA'   // 5.19:1
 const HERO_BORDE = 'rgba(255,255,255,0.60)'
 
 /**
- * Los colores de las BARRAS de estatus. Son la paleta de estado —
- * bueno / aviso / crítico— validada como conjunto, no tonos elegidos a ojo:
- * mi primera propuesta (#A4262C contra #8A5200) la tumbó el validador con
- * ΔE 2.9 en deuteranopia y 11.1 incluso con visión normal, o sea dos barras
- * que nadie distingue.
+ * LOS COLORES DE LAS BARRAS: una rampa de azul marino a gris claro.
  *
- * `#fab219` queda por debajo de 3:1 contra el fondo blanco A PROPÓSITO, y por
- * eso **el color nunca va solo**: cada segmento lleva su cifra escrita y la
- * leyenda su etiqueta. Si algún día se quita el número, hay que cambiar el
- * tono, no confiar en el amarillo.
+ * 4 nov 2026, pedido por dirección después de ver la pantalla con la paleta
+ * del documento: «los colores de la gráfica llévalos a azul oscuro y gris
+ * claro». Antes eran la paleta de estado —verde, ámbar, rojo, gris—.
  *
- * `sin_estatus` NO lleva color de estado: es una AUSENCIA de captura, no un
- * estado. Va en gris, que es lo que el resto de la página usa para los huecos.
- * Los textos siguen vistiendo TX_* y ROJO_TX / AMBAR_TX: el color de serie no
- * se usa nunca para letra.
+ * ── DOS COLORES NO PINTAN CUATRO SERIES ───────────────────────────────────
+ * Hay cuatro estatus, así que «azul oscuro y gris claro» son los EXTREMOS y
+ * los dos pasos de en medio se interpolan **en OKLab** — mezclar en RGB
+ * atraviesa tonos que no están en la paleta. Los extremos no son inventados:
+ * `#10355D` es el `--navy` del documento, el mismo de los títulos y de las
+ * cabeceras de tabla, y `#B9C4D0` es el gris que `sin_estatus` ya tenía, así
+ * que la ausencia de captura conserva exactamente su color.
+ *
+ * ── MEDIDO, Y SALE MEJOR QUE LA PALETA QUE SUSTITUYE ──────────────────────
+ * Separación OKLab entre pasos ADYACENTES —que es lo que importa, porque se
+ * tocan con 2px de fondo entre medias—: **16.4, 16.5 y 16.5**, contra el
+ * mínimo de 10. Y la luminancia es monótona, que es lo que hace que se lea
+ * como una escala y no como cuatro colores sueltos.
+ *
+ * Contra las dos filas (blanco y zebra): 12.43/11.64 · 6.28/5.88 · 3.20/2.99
+ * · 1.77/1.66. Los dos últimos quedan por debajo de 3:1, igual que antes
+ * quedaban el ámbar (1.83) y el gris (1.77) — o sea que esta rampa pasa UN
+ * paso más que la anterior. **El color nunca va solo**: cada segmento lleva
+ * su cifra escrita y la leyenda su etiqueta y su total. Si algún día se quita
+ * el número, hay que cambiar la rampa, no confiar en el gris.
+ *
+ * ── LO QUE SE PIERDE, DICHO ───────────────────────────────────────────────
+ * `no_firmado` deja de ser rojo, así que ya no salta por color: en una rampa
+ * ordenada es el tercer paso, un gris medio. La alarma de esta pantalla sigue
+ * existiendo fuera de la gráfica —las cajas de «ya vencidos» y los «venció
+ * hace N días» de la tabla siguen en rojo—, que es donde de verdad se mira.
  */
 const COLOR_ESTADO: Record<EstadoContrato, string> = {
-  firmado:     '#0ca30c',
-  en_proceso:  '#fab219',
-  no_firmado:  '#d03b3b',
+  firmado:     '#10355D',
+  en_proceso:  '#476283',
+  no_firmado:  '#7E92A9',
   sin_estatus: '#B9C4D0',
 }
 /** Orden FIJO. Nunca se recalcula por tamaño: si un filtro cambia el reparto,
@@ -121,37 +138,40 @@ const ORDEN_ESTADO: EstadoContrato[] =
   ['firmado', 'en_proceso', 'no_firmado', 'sin_estatus']
 
 /**
- * LA TINTA QUE VA ENCIMA DE CADA RELLENO — y un defecto que ya estaba.
+ * LA TINTA QUE VA ENCIMA DE CADA RELLENO.
  *
- * Esto era un mapa de cuatro tonos TECLEADO A MANO, y su comentario afirmaba
- * «firmado #0ca30c → TX_ALTO 4.2:1 ✓». **Son 4.13:1**, por debajo del 4.5 de
- * AA, en las cifras de 10.5px en negrita que van dentro de cada segmento de la
- * gráfica. Llevaba así desde que se escribió. Salió al medir la paleta nueva,
- * no al mirar la pantalla: el verde se ve bien y se lee mal.
+ * En una rampa que va de oscuro a claro la letra tiene que VOLTEARSE a mitad
+ * de camino, y el punto donde voltea se mide, no se estima. Las cifras de
+ * 10.5px en negrita que van dentro de cada segmento, contra su propio paso:
  *
- * Ahora son DOS valores, no cuatro, y los dos están calculados por descenso en
- * `scripts/mide-paleta-contratos.py`:
+ *   firmado     #10355D  → blanco   12.43:1   (#172230 1.29 ✗)
+ *   en_proceso  #476283  → blanco    6.28:1   (#172230 2.56 ✗)
+ *   no_firmado  #7E92A9  → #172230   5.02:1   (blanco  3.20 ✗)
+ *   sin_estatus #B9C4D0  → #172230   9.08:1   (blanco  1.77 ✗)
  *
- *   firmado     #0ca30c  → #172230  4.79:1   (TX_ALTO 4.13 ✗, blanco 3.35 ✗)
- *   en_proceso  #fab219  → #172230  8.75:1   (blanco 1.83 ✗)
- *   sin_estatus #B9C4D0  → #172230  9.08:1   (blanco 1.77 ✗)
- *   no_firmado  #d03b3b  → blanco   4.80:1   (cualquier tinta oscura ✗)
+ * O sea que voltea entre el segundo y el tercer paso, y en ese tercero
+ * NINGUNA de las dos opciones es holgada: el blanco da 3.20 y la tinta 5.02.
+ * Poner blanco en los cuatro —que es lo que sale a ojo con una rampa azul—
+ * deja las dos últimas cifras ilegibles.
  *
- * NO se usa `textoSobreSolido()` de `lib/contraste.ts`: esa función se para en
- * cuanto alcanza 4.5 para CONSERVAR el color del relleno, y devuelve `#64470A`
- * sobre el ámbar y `#4A4E53` sobre el gris —4.68 y 4.74— donde esta tinta da
- * 8.75 y 9.08. Conservar el tono tiene sentido en una pastilla cuyo texto ES
- * la etiqueta del color; aquí el texto es una CIFRA y lo único que se le pide
- * es que se lea.
+ * ── EL DEFECTO QUE ESTO ARRASTRABA, Y QUE YA NO EXISTE ────────────────────
+ * Hasta hoy esto era un mapa TECLEADO A MANO cuyo comentario afirmaba
+ * «firmado #0ca30c → TX_ALTO 4.2:1 ✓». Eran **4.13:1**, bajo AA, desde que se
+ * escribió la gráfica. No se veía mirando —el verde se veía bien y se leía
+ * mal—: salió de medir. La paleta de estado ya no está, pero la lección sí:
+ * un mapa de tintas escrito a mano deja de ser espejo de sus rellenos en
+ * cuanto alguien cambia uno. [[atlas-dashboard-contrast-architecture]]
  *
- * Y `#172230` en vez del `#1A2631` que sale justo (4.58): el mínimo al filo se
- * cae con el primer tono que alguien añada. [[atlas-dashboard-contrast-architecture]]
+ * NO se usa `textoSobreSolido()` de `lib/contraste.ts`: se para en cuanto
+ * alcanza 4.5 para CONSERVAR el color del relleno, que tiene sentido en una
+ * pastilla cuyo texto ES la etiqueta del color. Aquí el texto es una CIFRA y
+ * lo único que se le pide es que se lea.
  */
 const TINTA_RELLENO = '#172230'
 const TINTA_ESTADO: Record<EstadoContrato, string> = {
-  firmado:     TINTA_RELLENO,
-  en_proceso:  TINTA_RELLENO,
-  no_firmado:  '#FFFFFF',
+  firmado:     '#FFFFFF',
+  en_proceso:  '#FFFFFF',
+  no_firmado:  TINTA_RELLENO,
   sin_estatus: TINTA_RELLENO,
 }
 
@@ -740,9 +760,15 @@ export default function ContratosPage() {
               <span key={e} style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12 }}>
                 <span style={{ width: 11, height: 11, borderRadius: 3, flexShrink: 0,
                                background: COLOR_ESTADO[e],
-                               /* Aro del color del fondo: el `#fab219` y el gris
-                                  se pierden contra el blanco sin un borde. */
-                               boxShadow: `0 0 0 1px ${LINEA}` }} />
+                               /* El aro pasa de `LINEA` a `TX_BAJO`. El de
+                                  antes medía 1.24:1 contra el blanco: un aro
+                                  que no contrasta no delimita nada, y con una
+                                  rampa que acaba en gris claro los dos últimos
+                                  cuadros se deshacían contra la tarjeta. Éste
+                                  mide 4.83 y es un tono de LETRA, no un paso
+                                  de la rampa, para que no se lea como si
+                                  significara algo. */
+                               boxShadow: `0 0 0 1px ${TX_BAJO}` }} />
                 <span style={{ color: TX_MED }}>{ETIQUETA_ESTADO[e]}</span>
                 <strong style={{ color: TX_ALTO, fontVariantNumeric: 'tabular-nums' }}>
                   {porEstadoBase[e]}
