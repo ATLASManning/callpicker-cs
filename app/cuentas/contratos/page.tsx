@@ -18,11 +18,11 @@
  * 3. NO pinta el color de la hoja como si fuera un estado: el mismo estatus
  *    aparece en negro, azul y rojo.
  *
- * La página es clara y sin `.cp-card`: letra oscura sobre fondo claro.
+ * La página es clara y sin `.cp-card`, con UNA isla oscura: el hero. Dentro
+ * del hero, letra clara; fuera, letra oscura.
  * [[atlas-dashboard-contrast-architecture]]
  */
 import { useEffect, useMemo, useState } from 'react'
-import PageHeader from '@/components/PageHeader'
 import SoloEnCliente from '@/components/charts/SoloEnCliente'
 import {
   DIMENSIONES, ETIQUETA_ESTADO, valorDimension,
@@ -30,15 +30,67 @@ import {
   type EstadoContrato,
 } from '@/lib/contratos-norm'
 
-const MARINO = '#10355D'
-const CIAN   = '#39ABD8'
-const LINEA  = '#DFE8EF'
-const LAVADO = '#F5F8FB'
-const TX_ALTO = '#202E3B'
+/* ── LA PALETA, DEL DOCUMENTO Y CON TRES CORRECCIONES MEDIDAS ──────────────
+ *
+ * 4 nov 2026. Dirección pidió aplicar a esta pantalla el formato de color del
+ * «Customer Success Operating System». Los hex NO salen de la captura: salen
+ * del `:root` y de las reglas del propio documento, que es la fuente —
+ * `public/docs/Callpicker_Customer_Success_Operating_System.html`.
+ *
+ * La mitad clara ya estaba aquí. Lo que el documento añade es la que FALTABA:
+ * un hero de fondo oscuro, cabeceras de tabla en marino con letra blanca y
+ * filas alternas. Eso INVIERTE el fondo de cada token de texto que cae encima,
+ * que es la clase de cambio que costó once rondas en este repo.
+ *
+ * Todo lo de abajo está medido en `scripts/mide-paleta-contratos.py`, que sale
+ * con 1 si algún par baja de su mínimo. El documento es la fuente de los
+ * TONOS, no una autoridad sobre el contraste: tiene tres pares que no alcanzan
+ * AA y aquí van corregidos, cada uno con su número.
+ */
+const MARINO = '#10355D'   // --navy
+/* `--navy2 #082742` NO se declara: es el fondo de la barra lateral del
+   documento y aquí no hay barra lateral. Una constante de paleta sin uso es la
+   mitad de las «paletas gemelas» que ya costaron una ronda. */
+const AZUL   = '#1D6CAA'   // --blue: el acento sobre fondo CLARO (5.56:1)
+const CIAN   = '#39ABD8'   // --cyan: el filete. Sobre blanco mide 2.63:1 y es
+                           // DECORACIÓN — subraya un título que ya va en
+                           // marino a 12.43:1. Nunca distingue nada por sí.
+const LINEA  = '#DFE8EF'   // --line
+const LAVADO = '#F5F8FB'   // --wash
+const TX_ALTO = '#202E3B'  // --ink
 const TX_MED  = '#3D4B5C'
+/* `--muted #6A7889` del documento NO se adopta: mide 4.51:1 sobre blanco
+   —justo— y **4.22:1 sobre la fila alterna**, que es el fondo nuevo. Se queda
+   la tinta que ya tenía la página: 4.83 y 4.52. Una medición caduca cuando
+   cambia el fondo, y no avisa. */
 const TX_BAJO = '#667384'
 const ROJO_TX = '#A4262C'
 const AMBAR_TX = '#8A5200'
+const PLATA  = '#A8BACB'   // sólo sobre marino (6.25:1). Sobre blanco, 1.99.
+const ZEBRA  = '#F4F8FB'   // `tbody tr:nth-child(even)` del documento
+const SOMBRA = '0 13px 32px #1C3F5810'   // la de `.document`
+const MISION = '#EFF7FC'   // el fondo de `.mission`
+
+/* EL HERO. El documento acaba su degradado en `#247BA6`, y contra ese tono
+   fallan sus PROPIOS tokens: el rótulo mide 3.57:1, el párrafo 3.72, el texto
+   de las pastillas 4.10 y el cian del titular 2.95 — por debajo incluso del
+   3:1 de texto grande. En el documento no salta porque su hero es enorme y la
+   esquina clara queda detrás del aro decorativo; en una pantalla de trabajo el
+   texto cae justo ahí. `#1F6A90` es el mismo tono oscurecido por descenso
+   hasta que los CINCO pasan (ΔE 5.6: sigue siendo el mismo azul).
+
+   **UN DEGRADADO SE MIDE POR SU EXTREMO QUE APRIETA**, que aquí es el claro.
+   Medido sólo contra el oscuro da 14.03:1 y una esquina ilegible. */
+const HERO = 'linear-gradient(127deg,#0B2D4D,#15537F 72%,#1F6A90)'
+const HERO_TAG  = '#B3E8FF'   // 4.51:1 sobre el extremo claro
+const HERO_CIAN = '#8AD7F8'   // 3.73:1 — titular de 44px, mínimo 3:1
+const HERO_LEAD = '#D7E7F2'   // 4.71:1
+const HERO_PILL = '#E5F1FA'   // 5.19:1
+/* El borde de las pastillas del documento es blanco al 30%, que compuesto
+   sobre el degradado da 1.70:1. Al 60% da 3.22:1 en el extremo claro y 5.98
+   en el oscuro. Un borde translúcido NO es blanco: se compone con lo que haya
+   debajo, y ahí es donde se mide. */
+const HERO_BORDE = 'rgba(255,255,255,0.60)'
 
 /**
  * Los colores de las BARRAS de estatus. Son la paleta de estado —
@@ -69,26 +121,38 @@ const ORDEN_ESTADO: EstadoContrato[] =
   ['firmado', 'en_proceso', 'no_firmado', 'sin_estatus']
 
 /**
- * LA TINTA QUE VA ENCIMA DE CADA COLOR, MEDIDA — no elegida.
+ * LA TINTA QUE VA ENCIMA DE CADA RELLENO — y un defecto que ya estaba.
  *
- * Los cuatro tonos de estado no admiten la misma letra: blanco sobre
- * `#0ca30c` da 3.3:1 y sobre `#fab219` da 1.8:1, que a 10px no se lee. Los
- * contrastes contra cada fondo real, calculados uno por uno:
+ * Esto era un mapa de cuatro tonos TECLEADO A MANO, y su comentario afirmaba
+ * «firmado #0ca30c → TX_ALTO 4.2:1 ✓». **Son 4.13:1**, por debajo del 4.5 de
+ * AA, en las cifras de 10.5px en negrita que van dentro de cada segmento de la
+ * gráfica. Llevaba así desde que se escribió. Salió al medir la paleta nueva,
+ * no al mirar la pantalla: el verde se ve bien y se lee mal.
  *
- *   firmado     #0ca30c  → TX_ALTO 4.2:1 ✓   (blanco 3.3:1 ✗)
- *   en_proceso  #fab219  → TX_ALTO 7.5:1 ✓   (blanco 1.8:1 ✗)
- *   no_firmado  #d03b3b  → blanco  4.8:1 ✓   (TX_ALTO 2.9:1 ✗)
- *   sin_estatus #B9C4D0  → TX_ALTO 7.8:1 ✓
+ * Ahora son DOS valores, no cuatro, y los dos están calculados por descenso en
+ * `scripts/mide-paleta-contratos.py`:
  *
- * O sea que el rojo es el único que lleva letra clara. Un `color: '#FFF'`
- * uniforme para los cuatro —que es lo que sale a ojo— deja dos segmentos
- * ilegibles. [[atlas-dashboard-contrast-architecture]]
+ *   firmado     #0ca30c  → #172230  4.79:1   (TX_ALTO 4.13 ✗, blanco 3.35 ✗)
+ *   en_proceso  #fab219  → #172230  8.75:1   (blanco 1.83 ✗)
+ *   sin_estatus #B9C4D0  → #172230  9.08:1   (blanco 1.77 ✗)
+ *   no_firmado  #d03b3b  → blanco   4.80:1   (cualquier tinta oscura ✗)
+ *
+ * NO se usa `textoSobreSolido()` de `lib/contraste.ts`: esa función se para en
+ * cuanto alcanza 4.5 para CONSERVAR el color del relleno, y devuelve `#64470A`
+ * sobre el ámbar y `#4A4E53` sobre el gris —4.68 y 4.74— donde esta tinta da
+ * 8.75 y 9.08. Conservar el tono tiene sentido en una pastilla cuyo texto ES
+ * la etiqueta del color; aquí el texto es una CIFRA y lo único que se le pide
+ * es que se lea.
+ *
+ * Y `#172230` en vez del `#1A2631` que sale justo (4.58): el mínimo al filo se
+ * cae con el primer tono que alguien añada. [[atlas-dashboard-contrast-architecture]]
  */
+const TINTA_RELLENO = '#172230'
 const TINTA_ESTADO: Record<EstadoContrato, string> = {
-  firmado:     TX_ALTO,
-  en_proceso:  TX_ALTO,
+  firmado:     TINTA_RELLENO,
+  en_proceso:  TINTA_RELLENO,
   no_firmado:  '#FFFFFF',
-  sin_estatus: TX_ALTO,
+  sin_estatus: TINTA_RELLENO,
 }
 
 type Ventana = '' | 'vencidos' | 'en30' | 'en90' | 'mas90' | 'sinFecha' | 'libre'
@@ -398,23 +462,25 @@ export default function ContratosPage() {
 
   if (falla) {
     return (
-      <div style={{ padding: 32 }}>
-        <PageHeader title="Contratos" subtitle="Cuentas · contratos con clientes" />
-        <div style={{ margin: '24px 0', padding: 16, borderRadius: 12,
-                      background: '#FEF2F2', border: '1px solid #FECACA', color: ROJO_TX }}>
-          <strong>No se pudo cargar.</strong> {falla}
-          <p style={{ fontSize: 12, marginTop: 6, color: TX_MED }}>
-            Esto es un fallo de lectura, no un resultado: no significa que no haya contratos.
-          </p>
+      <div style={{ minHeight: '100%' }}>
+        <Hero lead="Conciliación de la hoja de contratos con la cartera de Customer Success." />
+        <div style={{ padding: '24px 32px' }}>
+          <div style={{ padding: 16, borderRadius: 12, background: '#FEF2F2',
+                        border: '1px solid #FECACA', color: ROJO_TX }}>
+            <strong>No se pudo cargar.</strong> {falla}
+            <p style={{ fontSize: 12, marginTop: 6, color: TX_MED }}>
+              Esto es un fallo de lectura, no un resultado: no significa que no haya contratos.
+            </p>
+          </div>
         </div>
       </div>
     )
   }
   if (!d) {
     return (
-      <div style={{ padding: 32 }}>
-        <PageHeader title="Contratos" subtitle="Cuentas · contratos con clientes" />
-        <p style={{ color: TX_BAJO, marginTop: 24 }}>Cargando contratos…</p>
+      <div style={{ minHeight: '100%' }}>
+        <Hero lead="Conciliación de la hoja de contratos con la cartera de Customer Success." />
+        <p style={{ color: TX_BAJO, padding: '24px 32px' }}>Cargando contratos…</p>
       </div>
     )
   }
@@ -423,17 +489,26 @@ export default function ContratosPage() {
 
   return (
     <div style={{ minHeight: '100%' }}>
-      <PageHeader
-        title="Contratos"
-        subtitle={`${m.total} contratos · ${m.porEstado.firmado ?? 0} firmados · `
-                + `${m.enCartera} cruzan con la cartera y ${m.fueraDeCartera} no · `
-                + `hoja del ${fechaCorta(m.generado.slice(0, 10))}`}
+      {/* ═══ EL HERO DEL DOCUMENTO ════════════════════════════════════════
+          Las pastillas no son decoración: llevan las cuatro cifras que antes
+          iban apiladas en el subtítulo de `PageHeader`, separadas una por
+          una. Y la fecha de la hoja va SIEMPRE, porque es la que dice de
+          cuándo es todo lo demás. */}
+      <Hero
+        lead={'Conciliación de la hoja de contratos con la cartera de Customer Success: '
+            + 'qué está firmado, qué vence y qué cuenta TOP no tiene contrato.'}
+        pastillas={[
+          `${m.total} contratos`,
+          `${m.porEstado.firmado ?? 0} firmados`,
+          `${m.enCartera} cruzan con la cartera · ${m.fueraDeCartera} no`,
+          `Hoja del ${fechaCorta(m.generado.slice(0, 10))}`,
+        ]}
       />
 
       {/* ═══ LA BARRA DE FILTROS ══════════════════════════════════════════ */}
       <div style={{ padding: '20px 32px 0' }}>
         <div style={{ borderRadius: 14, border: `1px solid ${LINEA}`, background: '#FFFFFF',
-                      padding: '14px 16px' }}>
+                      boxShadow: SOMBRA, padding: '14px 16px' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
             {/* El buscador va ARRIBA porque manda sobre toda la pantalla, no
                 sólo sobre la tabla donde vivía antes. */}
@@ -501,7 +576,8 @@ export default function ContratosPage() {
       {/* ═══ LA VENTANA DE VENCIMIENTOS ═══════════════════════════════════ */}
       <div style={{ padding: '18px 32px 0' }}>
         <div style={{ borderRadius: 14, border: `1px solid ${vencen.vencidos.length ? '#FECACA' : LINEA}`,
-                      background: vencen.vencidos.length ? '#FFF7F7' : LAVADO, padding: 18 }}>
+                      background: vencen.vencidos.length ? '#FFF7F7' : LAVADO,
+                      boxShadow: SOMBRA, padding: 18 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
             <Caja n={vencen.vencidos.length} label="YA VENCIDOS"      color={ROJO_TX} />
             <Caja n={vencen.en30.length}     label="VENCEN EN 30 DÍAS" color={AMBAR_TX} />
@@ -526,13 +602,16 @@ export default function ContratosPage() {
 
           {/* EL CIERRE, ESCRITO. Las seis cajas son excluyentes y cubren todo:
               si algún día dejaran de sumar, aquí se vería en vez de pasar
-              inadvertido. [[feedback-tablas-deben-cerrar]] */}
-          <p style={{ fontSize: 11.5, color: sumaCajas === base.length ? TX_BAJO : ROJO_TX,
-                      marginTop: 8, fontWeight: sumaCajas === base.length ? 400 : 700 }}>
-            {sumaCajas === base.length
-              ? <>Las seis cajas suman {sumaCajas} de {base.length}: ningún contrato se queda sin cajón.</>
-              : <>Las seis cajas suman {sumaCajas} y deberían sumar {base.length}. Hay un fallo de reparto.</>}
-          </p>
+              inadvertido. [[feedback-tablas-deben-cerrar]]
+              Pasa a la caja `.mission` del documento: iba en el gris tenue de
+              una nota al margen, y es lo contrario de una nota al margen. */}
+          <div style={{ marginTop: 12 }}>
+            <Cierre ok={sumaCajas === base.length}>
+              {sumaCajas === base.length
+                ? <>Las seis cajas suman {sumaCajas} de {base.length}: ningún contrato se queda sin cajón.</>
+                : <>Las seis cajas suman {sumaCajas} y deberían sumar {base.length}. Hay un fallo de reparto.</>}
+            </Cierre>
+          </div>
 
           {vencen.vencidos.length > 0 && (
             <div style={{ marginTop: 14 }}>
@@ -563,10 +642,9 @@ export default function ContratosPage() {
 
       {/* ═══ LAS TOP SIN CONTRATO ═════════════════════════════════════════ */}
       <div style={{ padding: '18px 32px 0' }}>
-        <div style={{ borderRadius: 14, border: `1px solid ${LINEA}`, background: '#FFFFFF', padding: 18 }}>
-          <h3 style={{ fontSize: 14, fontWeight: 800, color: TX_ALTO, marginBottom: 4 }}>
-            Cuentas TOP y su contrato
-          </h3>
+        <div style={{ borderRadius: 14, border: `1px solid ${LINEA}`, background: '#FFFFFF',
+                      boxShadow: SOMBRA, padding: 18 }}>
+          <Titulo>Cuentas TOP y su contrato</Titulo>
           <p style={{ fontSize: 12.5, color: TX_MED, lineHeight: 1.65, marginBottom: 12 }}>
             De las <strong>{m.topTotal} cuentas TOP</strong> de la cartera,{' '}
             <strong style={{ color: MARINO }}>{m.topConContrato} tienen contrato firmado</strong> y{' '}
@@ -591,19 +669,27 @@ export default function ContratosPage() {
           )}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', fontSize: 12.5, borderCollapse: 'collapse' }}>
+              {/* La cabecera va en MARINO con letra BLANCA (12.43:1), que es la
+                  regla `th{background:var(--navy);color:white}` del documento.
+                  Al invertir el fondo, el `TX_BAJO` que tenía antes mediría
+                  2.76:1 — se ve bien y no se lee. */}
               <thead>
-                <tr style={{ background: LAVADO }}>
+                <tr style={{ background: MARINO }}>
                   {['Cuenta', 'Consec.', 'Asesor', 'Estado', 'Facturación'].map(h => (
                     <th key={h} style={{ textAlign: h === 'Facturación' ? 'right' : 'left',
-                                         padding: '8px 10px', color: TX_BAJO, fontWeight: 700,
+                                         padding: '9px 10px', color: '#FFFFFF', fontWeight: 750,
                                          fontSize: 11, textTransform: 'uppercase',
-                                         borderBottom: `1px solid ${LINEA}` }}>{h}</th>
+                                         letterSpacing: '0.03em' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {d.topSinContrato.map((t, i) => (
-                  <tr key={i} style={{ borderBottom: `1px solid ${LINEA}` }}>
+                  /* Filas alternas, `tbody tr:nth-child(even)` del documento.
+                     Las cinco tintas que caen encima están medidas contra el
+                     zebra, no contra el blanco que había antes. */
+                  <tr key={i} style={{ borderBottom: `1px solid ${LINEA}`,
+                                       background: i % 2 ? ZEBRA : '#FFFFFF' }}>
                     <td style={{ padding: '8px 10px', fontWeight: 600, color: TX_ALTO }}>{t.empresa}</td>
                     <td style={{ padding: '8px 10px', color: TX_MED }}>{t.consecutivo ?? '—'}</td>
                     <td style={{ padding: '8px 10px', color: TX_MED }}>{t.asesor ?? 'sin asesor'}</td>
@@ -620,19 +706,20 @@ export default function ContratosPage() {
 
       {/* ═══ LA GRÁFICA, CON SELECTOR DE DIMENSIÓN ════════════════════════ */}
       <div style={{ padding: '18px 32px 0' }}>
-        <div style={{ borderRadius: 14, border: `1px solid ${LINEA}`, background: '#FFFFFF', padding: 18 }}>
+        <div style={{ borderRadius: 14, border: `1px solid ${LINEA}`, background: '#FFFFFF',
+                      boxShadow: SOMBRA, padding: 18 }}>
+          {/* El filete de cian va a lo ANCHO de la tarjeta, como `.document h2`:
+              el selector baja a su propio renglón en vez de partirlo. */}
+          <Titulo>
+            {dim === 'estado'
+              ? 'Reparto por estatus de firma'
+              : `Estatus de firma por ${(DIMENSIONES.find(x => x.id === dim)?.label ?? '').toLowerCase()}`}
+          </Titulo>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center',
                         justifyContent: 'space-between', marginBottom: 14 }}>
-            <div>
-              <h3 style={{ fontSize: 14, fontWeight: 800, color: TX_ALTO }}>
-                {dim === 'estado'
-                  ? 'Reparto por estatus de firma'
-                  : `Estatus de firma por ${(DIMENSIONES.find(x => x.id === dim)?.label ?? '').toLowerCase()}`}
-              </h3>
-              <p style={{ fontSize: 11.5, color: TX_BAJO, marginTop: 2 }}>
-                Cada barra es el total de ese grupo, partida por estatus.
-              </p>
-            </div>
+            <p style={{ fontSize: 11.5, color: TX_BAJO }}>
+              Cada barra es el total de ese grupo, partida por estatus.
+            </p>
             <select value={dim} onChange={e => setDim(e.target.value as Dimension)}
                     aria-label="Partir la gráfica por"
                     style={{ fontSize: 12.5, padding: '6px 10px', borderRadius: 8,
@@ -718,12 +805,10 @@ export default function ContratosPage() {
 
           {/* EL REPARTO CIERRA, Y SE DICE — en los dos sentidos: los grupos
               suman el total Y los segmentos suman cada grupo. */}
-          <p style={{ fontSize: 11.5, color: TX_BAJO, marginTop: 12, lineHeight: 1.6,
-                      borderTop: `1px solid ${LINEA}`, paddingTop: 10 }}>
+          <div style={{ marginTop: 14 }} />
+          <Cierre ok={sumaCruce === base.length}>
             {cruce.length} grupos y {ORDEN_ESTADO.length} estatus suman{' '}
-            <strong style={{ color: sumaCruce === base.length ? TX_MED : ROJO_TX }}>
-              {sumaCruce} de {base.length}
-            </strong>{' '}
+            <strong>{sumaCruce} de {base.length}</strong>{' '}
             contratos: ninguno se queda fuera del reparto ni se cuenta dos veces.
             {dim === 'estado' && (
               <> Partido por estatus cada barra es de un solo color, que es lo correcto: el eje y el
@@ -739,21 +824,28 @@ export default function ContratosPage() {
               una. Pasa el cursor para leer el valor completo. Agrupar esto pide decidir un catálogo
               de sectores, que es de dirección.</>
             )}
-          </p>
+          </Cierre>
         </div>
       </div>
 
       {/* ═══ LA LISTA DE TODOS ════════════════════════════════════════════ */}
       <div style={{ padding: '18px 32px 32px' }}>
         <div style={{ borderRadius: 14, border: `1px solid ${LINEA}`, background: '#FFFFFF',
-                      overflow: 'hidden' }}>
-          <div style={{ padding: 16, display: 'flex', flexWrap: 'wrap', gap: 12,
-                        alignItems: 'center', justifyContent: 'space-between',
-                        borderBottom: `1px solid ${LINEA}` }}>
+                      boxShadow: SOMBRA, overflow: 'hidden' }}>
+          {/* Este título lleva el filete de cian como los otros dos, aunque
+              debajo venga la banda marino de la cabecera: sin él, de los tres
+              títulos de la pantalla habría dos subrayados y uno no, que es
+              exactamente la clase de inconsistencia que luego nadie sabe si
+              significa algo. */}
+          <div style={{ padding: '16px 16px 9px', margin: '0 0 0', display: 'flex',
+                        flexWrap: 'wrap', gap: 12, alignItems: 'baseline',
+                        justifyContent: 'space-between',
+                        borderBottom: `3px solid ${CIAN}` }}>
             {/* El buscador ya NO vive aquí: vive en la barra de arriba, que
                 manda sobre toda la pantalla. Dos buscadores en la misma página
                 es la forma más rápida de que dos cifras no cuadren. */}
-            <h3 style={{ fontSize: 14, fontWeight: 800, color: TX_ALTO }}>
+            <h3 style={{ fontSize: 17, fontWeight: 800, color: MARINO,
+                         letterSpacing: '-0.025em' }}>
               {hayFiltro
                 ? `Contratos filtrados (${lista.length} de ${m.total})`
                 : `Todos los contratos (${lista.length})`}
@@ -770,7 +862,7 @@ export default function ContratosPage() {
               {orden.campo !== ORDEN_INICIAL.campo || orden.dir !== ORDEN_INICIAL.dir ? (
                 <> · <button onClick={() => setOrden(ORDEN_INICIAL)}
                              style={{ background: 'none', border: 'none', padding: 0,
-                                      font: 'inherit', color: '#1D6CAA', fontWeight: 700,
+                                      font: 'inherit', color: AZUL, fontWeight: 700,
                                       cursor: 'pointer', textDecoration: 'underline' }}>
                   volver al orden de salida
                 </button></>
@@ -779,8 +871,15 @@ export default function ContratosPage() {
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', fontSize: 12.5, borderCollapse: 'collapse' }}>
+              {/* LA CABECERA PASA A MARINO, y con ella se invierte el fondo de
+                  los nueve botones. Lo que había —`activa ? MARINO : TX_BAJO`—
+                  mediría 1.00:1 y 2.76:1 sobre este fondo: el título de la
+                  columna ordenada desaparecería del todo. Ahora la activa va en
+                  blanco (12.43:1) y la inactiva en plata (6.25:1), y la flecha
+                  en el cian claro del documento (7.79:1).
+                  [[atlas-dashboard-contrast-architecture]] */}
               <thead>
-                <tr style={{ background: LAVADO }}>
+                <tr style={{ background: MARINO }}>
                   {COLUMNAS.map(col => {
                     const activa = orden.campo === col.id
                     return (
@@ -791,8 +890,13 @@ export default function ContratosPage() {
                          teclado. */
                       <th key={col.id} scope="col"
                           aria-sort={activa ? (orden.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                          style={{ textAlign: 'left', padding: 0,
-                                   borderBottom: `1px solid ${LINEA}`, whiteSpace: 'nowrap' }}>
+                          style={{ textAlign: 'left', padding: 0, whiteSpace: 'nowrap',
+                                   /* La columna activa se tiñe además con un
+                                      blanco al 10% sobre el marino: el color de
+                                      la letra y la flecha ya la marcan, y el
+                                      tinte la marca también cuando la mirada va
+                                      por las filas y no por la cabecera. */
+                                   background: activa ? 'rgba(255,255,255,0.10)' : 'transparent' }}>
                         <button
                           onClick={() => ordenaPor(col.id)}
                           title={`Ordenar por ${col.label.toLowerCase()} — ${col.ayuda}`}
@@ -800,17 +904,26 @@ export default function ContratosPage() {
                             display: 'flex', alignItems: 'center', gap: 4, width: '100%',
                             padding: '8px 10px', background: 'none', border: 'none',
                             cursor: 'pointer', font: 'inherit', textAlign: 'left',
-                            /* La columna activa en MARINO y la inactiva en el
-                               gris de siempre: el triángulo solo no basta —son
-                               8 píxeles— y el color solo tampoco, porque es
-                               una diferencia de tono. Van los dos. */
-                            color: activa ? MARINO : TX_BAJO,
-                            fontWeight: 700, fontSize: 11, textTransform: 'uppercase',
-                            letterSpacing: '0.02em',
+                            /* La columna activa en BLANCO y la inactiva en
+                               plata: el triángulo solo no basta —son 8
+                               píxeles— y el color solo tampoco, porque es una
+                               diferencia de tono. Van los dos, y ahora
+                               también el tinte del <th>. */
+                            color: activa ? '#FFFFFF' : PLATA,
+                            fontWeight: activa ? 800 : 700,
+                            fontSize: 11, textTransform: 'uppercase',
+                            letterSpacing: '0.03em',
                           }}>
                           {col.label}
-                          <span aria-hidden="true" style={{ fontSize: 9, opacity: activa ? 1 : 0.35 }}>
-                            {activa ? (orden.dir === 'asc' ? '▲' : '▼') : '▲'}
+                          {/* La flecha de la columna activa va en el cian claro
+                              del documento, que mide 7.79:1 sobre el marino. La
+                              inactiva NO se pinta con opacidad —eso la mezcla
+                              con el fondo y deja de medir—: va en plata, que ya
+                              está medida, y lo que la distingue es el relleno
+                              del triángulo. */}
+                          <span aria-hidden="true"
+                                style={{ fontSize: 9, color: activa ? HERO_CIAN : PLATA }}>
+                            {activa ? (orden.dir === 'asc' ? '▲' : '▼') : '▵'}
                           </span>
                         </button>
                       </th>
@@ -819,13 +932,101 @@ export default function ContratosPage() {
                 </tr>
               </thead>
               <tbody>
-                {lista.map((c, i) => <Fila key={i} c={c} />)}
+                {lista.map((c, i) => <Fila key={i} c={c} par={i % 2 === 1} />)}
               </tbody>
             </table>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * EL HERO DEL DOCUMENTO, con el contenido de esta pantalla.
+ *
+ * Sustituye a `PageHeader` SÓLO aquí. `PageHeader` lo comparte todo el
+ * tablero y sus dos ramas están medidas contra las superficies donde viven;
+ * meterle un degradado para una pantalla sería arrastrar veinte que nadie ha
+ * mirado. [[atlas-dashboard-contrast-architecture]]
+ *
+ * Las piezas son las del documento: el rótulo en versales con mucho
+ * interletraje, el titular con la segunda línea en cian, el párrafo de entrada
+ * y las pastillas de contorno. Y el aro decorativo de la esquina, que es
+ * `.hero:after` — `#FFFFFF21` y dos sombras al 3% y 2%: no comunica nada, no
+ * tiene por qué medir.
+ */
+function Hero({ pastillas, lead }: { pastillas?: string[]; lead: string }) {
+  return (
+    <header style={{ background: HERO, color: '#FFFFFF', position: 'relative',
+                     overflow: 'hidden', padding: '40px 32px 36px' }}>
+      <div aria-hidden="true"
+           style={{ position: 'absolute', width: 430, height: 430, right: -130, top: -175,
+                    border: '1px solid #FFFFFF21', borderRadius: '50%',
+                    boxShadow: '0 0 0 70px #FFFFFF09, 0 0 0 145px #FFFFFF06',
+                    pointerEvents: 'none' }} />
+      <div style={{ position: 'relative', maxWidth: 820 }}>
+        <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.17em',
+                    textTransform: 'uppercase', color: HERO_TAG }}>
+          Callpicker / Customer Success
+        </p>
+        <h1 style={{ fontSize: 44, lineHeight: 1.06, letterSpacing: '-0.04em',
+                     fontWeight: 850, margin: '14px 0 12px' }}>
+          Contratos<br /><span style={{ color: HERO_CIAN }}>con clientes</span>
+        </h1>
+        <p style={{ color: HERO_LEAD, fontSize: 13.5, lineHeight: 1.55, maxWidth: 640 }}>
+          {lead}
+        </p>
+        {pastillas && pastillas.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 }}>
+            {pastillas.map(t => (
+              <span key={t} style={{ border: `1px solid ${HERO_BORDE}`, borderRadius: 30,
+                                     padding: '5px 13px', fontSize: 11.5, color: HERO_PILL }}>
+                {t}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </header>
+  )
+}
+
+/**
+ * El título de una tarjeta, con el filete de cian del documento (`.document h2`).
+ *
+ * El filete mide 2.63:1 sobre blanco y es DECORACIÓN: el título que subraya va
+ * en marino a 12.43:1 y no hay nada que el filete distinga por sí solo. Queda
+ * dicho aquí porque si algún día fuera lo único que separara dos cosas, esa
+ * cifra dejaría de valer.
+ */
+function Titulo({ children, pie }: { children: React.ReactNode; pie?: React.ReactNode }) {
+  return (
+    <div style={{ borderBottom: `3px solid ${CIAN}`, paddingBottom: 9, marginBottom: 14 }}>
+      <h3 style={{ fontSize: 17, fontWeight: 800, color: MARINO,
+                   letterSpacing: '-0.025em' }}>{children}</h3>
+      {pie && <p style={{ fontSize: 11.5, color: TX_BAJO, marginTop: 3 }}>{pie}</p>}
+    </div>
+  )
+}
+
+/**
+ * La caja de cierre, con el estilo `.mission` del documento: fondo `#EFF7FC`,
+ * filete azul de 5px a la izquierda y letra marino (11.47:1).
+ *
+ * Aquí viven los asertos de reparto, que es lo que de verdad hay que leer en
+ * esta pantalla: antes iban en gris tenue al pie de la tarjeta, del mismo tono
+ * que una nota al margen. Si el reparto NO cierra, la caja se pone en rojo.
+ */
+function Cierre({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+  return (
+    <p style={{ fontSize: 12, lineHeight: 1.6, padding: '11px 14px', borderRadius: 8,
+                background: ok ? MISION : '#FFF7F7',
+                borderLeft: `5px solid ${ok ? AZUL : ROJO_TX}`,
+                color: ok ? MARINO : ROJO_TX,
+                fontWeight: ok ? 600 : 800 }}>
+      {children}
+    </p>
   )
 }
 
@@ -884,7 +1085,15 @@ function Pastilla({ texto, fuerte }: { texto: string; fuerte?: boolean }) {
   )
 }
 
-function Fila({ c }: { c: ContratoCruzado }) {
+/**
+ * Una fila de la lista. `par` la tiñe con el `#F4F8FB` del documento.
+ *
+ * Las SEIS tintas que caen aquí —alta, media, tenue, rojo, ámbar y el azul del
+ * enlace— están medidas contra ese tinte y no contra el blanco que había antes:
+ * la más apretada es la tenue, 4.52:1. El `--muted #6A7889` del propio
+ * documento se quedó fuera por esto, con 4.22:1.
+ */
+function Fila({ c, par }: { c: ContratoCruzado; par: boolean }) {
   const vence = c.diasParaVencer === null
     ? (c.sinVencimiento
         ? <span style={{ color: TX_BAJO }}>sin vencimiento</span>
@@ -896,7 +1105,7 @@ function Fila({ c }: { c: ContratoCruzado }) {
         : <span style={{ color: TX_MED }}>en {c.diasParaVencer} d</span>
 
   return (
-    <tr style={{ borderBottom: `1px solid ${LINEA}` }}>
+    <tr style={{ borderBottom: `1px solid ${LINEA}`, background: par ? ZEBRA : '#FFFFFF' }}>
       <td style={{ padding: '8px 10px', color: TX_ALTO }}>
         <span style={{ fontWeight: 600 }}>{c.cuenta}</span>
         {c.esTop && <> <Pastilla texto="TOP" fuerte /></>}
@@ -916,7 +1125,7 @@ function Fila({ c }: { c: ContratoCruzado }) {
       <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
         {c.gdoc && /^https?:\/\//.test(c.gdoc)
           ? <a href={c.gdoc} target="_blank" rel="noopener noreferrer"
-               style={{ color: '#1D6CAA', fontWeight: 600 }}>ver</a>
+               style={{ color: AZUL, fontWeight: 600 }}>ver</a>
           : <span style={{ color: TX_BAJO }}>—</span>}
       </td>
     </tr>
