@@ -25,8 +25,9 @@ import { useEffect, useMemo, useState } from 'react'
 import PageHeader from '@/components/PageHeader'
 import SoloEnCliente from '@/components/charts/SoloEnCliente'
 import {
-  DIMENSIONES, ETIQUETA_ESTADO, repartir,
+  DIMENSIONES, ETIQUETA_ESTADO, valorDimension,
   type Dimension, type RespuestaContratos, type ContratoCruzado,
+  type EstadoContrato,
 } from '@/lib/contratos-norm'
 
 const MARINO = '#10355D'
@@ -39,9 +40,94 @@ const TX_BAJO = '#667384'
 const ROJO_TX = '#A4262C'
 const AMBAR_TX = '#8A5200'
 
+/**
+ * Los colores de las BARRAS de estatus. Son la paleta de estado —
+ * bueno / aviso / crítico— validada como conjunto, no tonos elegidos a ojo:
+ * mi primera propuesta (#A4262C contra #8A5200) la tumbó el validador con
+ * ΔE 2.9 en deuteranopia y 11.1 incluso con visión normal, o sea dos barras
+ * que nadie distingue.
+ *
+ * `#fab219` queda por debajo de 3:1 contra el fondo blanco A PROPÓSITO, y por
+ * eso **el color nunca va solo**: cada segmento lleva su cifra escrita y la
+ * leyenda su etiqueta. Si algún día se quita el número, hay que cambiar el
+ * tono, no confiar en el amarillo.
+ *
+ * `sin_estatus` NO lleva color de estado: es una AUSENCIA de captura, no un
+ * estado. Va en gris, que es lo que el resto de la página usa para los huecos.
+ * Los textos siguen vistiendo TX_* y ROJO_TX / AMBAR_TX: el color de serie no
+ * se usa nunca para letra.
+ */
+const COLOR_ESTADO: Record<EstadoContrato, string> = {
+  firmado:     '#0ca30c',
+  en_proceso:  '#fab219',
+  no_firmado:  '#d03b3b',
+  sin_estatus: '#B9C4D0',
+}
+/** Orden FIJO. Nunca se recalcula por tamaño: si un filtro cambia el reparto,
+ *  los colores no pueden bailar de categoría. */
+const ORDEN_ESTADO: EstadoContrato[] =
+  ['firmado', 'en_proceso', 'no_firmado', 'sin_estatus']
+
+/**
+ * LA TINTA QUE VA ENCIMA DE CADA COLOR, MEDIDA — no elegida.
+ *
+ * Los cuatro tonos de estado no admiten la misma letra: blanco sobre
+ * `#0ca30c` da 3.3:1 y sobre `#fab219` da 1.8:1, que a 10px no se lee. Los
+ * contrastes contra cada fondo real, calculados uno por uno:
+ *
+ *   firmado     #0ca30c  → TX_ALTO 4.2:1 ✓   (blanco 3.3:1 ✗)
+ *   en_proceso  #fab219  → TX_ALTO 7.5:1 ✓   (blanco 1.8:1 ✗)
+ *   no_firmado  #d03b3b  → blanco  4.8:1 ✓   (TX_ALTO 2.9:1 ✗)
+ *   sin_estatus #B9C4D0  → TX_ALTO 7.8:1 ✓
+ *
+ * O sea que el rojo es el único que lleva letra clara. Un `color: '#FFF'`
+ * uniforme para los cuatro —que es lo que sale a ojo— deja dos segmentos
+ * ilegibles. [[atlas-dashboard-contrast-architecture]]
+ */
+const TINTA_ESTADO: Record<EstadoContrato, string> = {
+  firmado:     TX_ALTO,
+  en_proceso:  TX_ALTO,
+  no_firmado:  '#FFFFFF',
+  sin_estatus: TX_ALTO,
+}
+
+type Ventana = '' | 'vencidos' | 'en30' | 'en90' | 'mas90' | 'sinFecha' | 'libre'
+const VENTANAS: { id: Ventana; label: string }[] = [
+  { id: '',         label: 'Cualquier vencimiento' },
+  { id: 'vencidos', label: 'Ya vencidos' },
+  { id: 'en30',     label: 'Vencen en 30 días' },
+  { id: 'en90',     label: 'Entre 31 y 90 días' },
+  { id: 'mas90',    label: 'A más de 90 días' },
+  { id: 'libre',    label: 'Sin vencimiento (plazo libre)' },
+  { id: 'sinFecha', label: 'No se sabe (sin fecha ni plazo libre)' },
+]
+
 const pesos = (n: number | null) =>
   n === null || n === undefined ? '—'
     : new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
+
+/**
+ * EN QUÉ CAJÓN DE VENCIMIENTO CAE UN CONTRATO — una sola función.
+ *
+ * Antes la ventana de arriba y el filtro contaban por su cuenta con los mismos
+ * `if` escritos dos veces, y además **no cerraban**: estaban «vencidos»,
+ * «30 días» y «31–90», y los que vencen a MÁS de 90 días no aparecían en
+ * ninguna caja. Con 18 contratos con fecha y 13 ya vencidos el hueco no salta
+ * a la vista, pero las cajas sumaban menos que el total y nada lo decía.
+ *
+ * Ahora cada contrato cae en exactamente UNO de los seis cajones, así que la
+ * suma es el total por construcción y el assert de abajo lo comprueba.
+ * [[feedback-tablas-deben-cerrar]]
+ */
+type Cajon = Exclude<Ventana, ''>
+function cajonVence(c: ContratoCruzado): Cajon {
+  const dv = c.diasParaVencer
+  if (dv === null) return c.sinVencimiento ? 'libre' : 'sinFecha'
+  if (dv < 0)  return 'vencidos'
+  if (dv <= 30) return 'en30'
+  if (dv <= 90) return 'en90'
+  return 'mas90'
+}
 
 /** «2026-10-24» → «24 oct 2026». Sin `toISOString`: ya viene anclada. */
 function fechaCorta(iso: string | null): string {
@@ -53,9 +139,16 @@ function fechaCorta(iso: string | null): string {
 export default function ContratosPage() {
   const [d, setD] = useState<RespuestaContratos | null>(null)
   const [falla, setFalla] = useState<string | null>(null)
-  const [dim, setDim] = useState<Dimension>('estado')
+  /* Arranca en VENDEDOR, no en estatus: partido por estatus el cruce es
+     degenerado —cada barra de un solo color— y lo que la gráfica aporta es
+     justo el cruce. La dimensión sigue siendo elegible. */
+  const [dim, setDim] = useState<Dimension>('vendedor')
   const [soloCartera, setSoloCartera] = useState(false)
   const [busca, setBusca] = useState('')
+  const [fEstado, setFEstado] = useState<EstadoContrato | ''>('')
+  const [fVendedor, setFVendedor] = useState('')
+  const [fPlazo, setFPlazo] = useState('')
+  const [fVentana, setFVentana] = useState<Ventana>('')
 
   useEffect(() => {
     fetch('/api/contratos')
@@ -78,41 +171,141 @@ export default function ContratosPage() {
       .catch(e => setFalla(String(e.message ?? e)))
   }, [])
 
+  const todos = d?.contratos ?? []
+
+  /* LOS DESPLEGABLES SE DERIVAN DEL DATO, NUNCA SE ESCRIBEN A MANO. Una lista
+     tecleada se queda coja en cuanto la hoja trae un vendedor nuevo, y el
+     filtro que falta no avisa: simplemente no se puede elegir.
+     [[feedback-fuente-unica-cuentas]] */
+  const opciones = useMemo(() => ({
+    vendedores: [...new Set(todos.map(c => c.vendedor?.trim()).filter(Boolean))]
+      .sort((a, b) => (a as string).localeCompare(b as string, 'es')) as string[],
+    plazos: [...new Set(todos.map(c => c.plazo?.trim()).filter(Boolean))]
+      .sort((a, b) => (a as string).localeCompare(b as string, 'es')) as string[],
+  }), [todos])
+
+  /**
+   * EL FILTRO ES DE LA PÁGINA, NO DE LA TABLA.
+   *
+   * Antes el buscador vivía dentro de la tarjeta de la lista y sólo la movía:
+   * escribías «Finsus» y arriba seguían las cajas de vencimiento y la gráfica
+   * de los 60. Dos cifras distintas en la misma pantalla sin decir que miraban
+   * poblaciones distintas. Ahora todo lo de abajo cuelga de aquí, y el
+   * renglón de «mostrando N de M» dice siempre sobre cuántos se está contando.
+   */
+  /**
+   * El predicado, con un `omite` para poder contar sin un filtro concreto.
+   *
+   * Lo necesita el desplegable de estatus: si sus cifras se contaran sobre el
+   * resultado YA filtrado, al elegir «Firmado» las otras tres opciones dirían
+   * «(0)» y parecería que no existen. Y si se contaran sobre los 60 de la hoja,
+   * dirían 42 mientras la pantalla enseña 9. Las dos lecturas son falsas: la
+   * cifra correcta es «cuántos habría si cambio ESTE filtro y dejo los demás».
+   * [[feedback-metricas-derivadas-origen]]
+   */
+  const pasa = (c: ContratoCruzado, omite?: 'estado') => {
+    if (soloCartera && !c.enCartera) return false
+    if (omite !== 'estado' && fEstado && c.estado !== fEstado) return false
+    if (fVendedor && (c.vendedor?.trim() ?? '') !== fVendedor) return false
+    if (fPlazo && (c.plazo?.trim() ?? '') !== fPlazo) return false
+    /* Las ventanas son los mismos seis cajones de arriba: `libre` y `sinFecha`
+       NO son la misma cosa, que es la regla del módulo.
+       [[feedback-cero-sin-medicion]] */
+    if (fVentana && fVentana !== cajonVence(c)) return false
+    const q = busca.trim().toLowerCase()
+    if (!q) return true
+    /* Se busca en TODO lo que una persona teclearía para encontrar un
+       contrato, no sólo en el nombre: el estatus tal cual lo escribió la
+       hoja, quién lo vendió, quién lo firmó y la nota —ahí vive «lo tiene
+       Toño en digital», que es como el equipo se refiere a varios—. */
+    return [
+      c.cuenta, c.empresaCartera, c.consecutivo, c.cid, c.vendedor,
+      c.estatusHoja, c.firmante, c.solicitante, c.emailFirmante,
+      c.plazo, c.nota, c.contenido, c.asesor,
+    ].some(v => (v ?? '').toString().toLowerCase().includes(q))
+  }
+
   const base = useMemo(
-    () => (d?.contratos ?? []).filter(c => !soloCartera || c.enCartera),
-    [d, soloCartera],
+    () => todos.filter(c => pasa(c)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todos, soloCartera, busca, fEstado, fVendedor, fPlazo, fVentana],
   )
 
+  /** Lo que diría cada opción de estatus si se eligiera, con los demás filtros puestos. */
+  const porEstadoHoja = useMemo(() => {
+    const r: Record<EstadoContrato, number> =
+      { firmado: 0, en_proceso: 0, no_firmado: 0, sin_estatus: 0 }
+    for (const c of todos) if (pasa(c, 'estado')) r[c.estado] += 1
+    return r
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todos, soloCartera, busca, fVendedor, fPlazo, fVentana])
+
+  const hayFiltro = !!(busca.trim() || fEstado || fVendedor || fPlazo || fVentana || soloCartera)
+  const limpiar = () => {
+    setBusca(''); setFEstado(''); setFVendedor(''); setFPlazo('')
+    setFVentana(''); setSoloCartera(false)
+  }
+
   const lista = useMemo(() => {
-    const q = busca.trim().toLowerCase()
-    const xs = q
-      ? base.filter(c =>
-          c.cuenta.toLowerCase().includes(q) ||
-          (c.empresaCartera ?? '').toLowerCase().includes(q) ||
-          (c.consecutivo ?? '').toLowerCase().includes(q) ||
-          (c.cid ?? '').includes(q))
-      : base
     /* Los que vencen primero arriba; los que no tienen fecha, al final — no
        mezclados entre medias como si vencieran en el año 0. */
-    return [...xs].sort((a, b) => {
+    return [...base].sort((a, b) => {
       if (a.diasParaVencer === null && b.diasParaVencer === null) return a.cuenta.localeCompare(b.cuenta, 'es')
       if (a.diasParaVencer === null) return 1
       if (b.diasParaVencer === null) return -1
       return a.diasParaVencer - b.diasParaVencer
     })
-  }, [base, busca])
-
-  const vencen = useMemo(() => {
-    const con = base.filter(c => c.diasParaVencer !== null)
-    return {
-      vencidos: con.filter(c => (c.diasParaVencer as number) < 0),
-      en30:  con.filter(c => (c.diasParaVencer as number) >= 0 && (c.diasParaVencer as number) <= 30),
-      en90:  con.filter(c => (c.diasParaVencer as number) > 30 && (c.diasParaVencer as number) <= 90),
-    }
   }, [base])
 
-  const reparto = useMemo(() => (d ? repartir(base, dim) : []), [d, base, dim])
-  const maxN = Math.max(1, ...reparto.map(r => r.n))
+  /* Las seis cajas, desde `cajonVence` para que sean las mismas que el filtro
+     y para que SUMEN el total. Se cuentan sobre `base`, o sea sobre lo
+     filtrado: si no, al escribir «Finsus» abajo quedarían arriba las cifras de
+     los 60 y serían dos poblaciones distintas en la misma pantalla. */
+  const vencen = useMemo(() => {
+    const c0: Record<Cajon, ContratoCruzado[]> =
+      { vencidos: [], en30: [], en90: [], mas90: [], libre: [], sinFecha: [] }
+    for (const c of base) c0[cajonVence(c)].push(c)
+    return c0
+  }, [base])
+  const sumaCajas = (Object.keys(vencen) as Cajon[]).reduce((s, k) => s + vencen[k].length, 0)
+
+  /**
+   * EL CRUCE: la dimensión elegida × el estatus de firma.
+   *
+   * La gráfica anterior sólo decía CUÁNTOS contratos tiene cada vendedor, que
+   * es el dato que ya se ve en la tabla. Lo que no se veía en ninguna parte es
+   * **cuántos de ésos están firmados** — que es la pregunta del módulo: no
+   * importa que José Galván tenga 24 contratos si cuatro siguen en proceso.
+   * Por eso cada barra se parte por estatus en lugar de ser maciza.
+   *
+   * El reparto cierra en los DOS sentidos: cada contrato aporta exactamente un
+   * segmento, así que la suma de todos los segmentos es el total filtrado. El
+   * assert de abajo lo publica en vez de confiar en ello.
+   */
+  const cruce = useMemo(() => {
+    const m = new Map<string, Record<EstadoContrato, number>>()
+    for (const c of base) {
+      const k = valorDimension(c, dim)
+      let r = m.get(k)
+      if (!r) { r = { firmado: 0, en_proceso: 0, no_firmado: 0, sin_estatus: 0 }; m.set(k, r) }
+      r[c.estado] += 1
+    }
+    return [...m.entries()]
+      .map(([clave, por]) => ({ clave, por, n: ORDEN_ESTADO.reduce((s, e) => s + por[e], 0) }))
+      .sort((a, b) => b.n - a.n || a.clave.localeCompare(b.clave, 'es'))
+  }, [base, dim])
+
+  const maxN = Math.max(1, ...cruce.map(r => r.n))
+  const sumaCruce = cruce.reduce((s, r) => s + r.n, 0)
+  /* La leyenda lleva CIFRA, no sólo color: la regla es que el color nunca
+     identifica solo, y menos el `#fab219`, que contra blanco queda por debajo
+     de 3:1 a propósito. */
+  const porEstadoBase = useMemo(() => {
+    const r: Record<EstadoContrato, number> =
+      { firmado: 0, en_proceso: 0, no_firmado: 0, sin_estatus: 0 }
+    for (const c of base) r[c.estado] += 1
+    return r
+  }, [base])
 
   if (falla) {
     return (
@@ -148,28 +341,108 @@ export default function ContratosPage() {
                 + `hoja del ${fechaCorta(m.generado.slice(0, 10))}`}
       />
 
-      {/* ═══ LA VENTANA DE VENCIMIENTOS ═══════════════════════════════════ */}
+      {/* ═══ LA BARRA DE FILTROS ══════════════════════════════════════════ */}
       <div style={{ padding: '20px 32px 0' }}>
+        <div style={{ borderRadius: 14, border: `1px solid ${LINEA}`, background: '#FFFFFF',
+                      padding: '14px 16px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+            {/* El buscador va ARRIBA porque manda sobre toda la pantalla, no
+                sólo sobre la tabla donde vivía antes. */}
+            <input value={busca} onChange={e => setBusca(e.target.value)}
+                   placeholder="Buscar: cuenta, consecutivo, CID, vendedor, firmante, nota…"
+                   aria-label="Buscar contratos"
+                   style={{ fontSize: 12.5, padding: '8px 11px', borderRadius: 8, flex: '1 1 320px',
+                            minWidth: 240, border: `1px solid ${LINEA}`, color: TX_ALTO,
+                            background: '#FFF' }} />
+
+            <Selector label="Estatus" valor={fEstado}
+                      onChange={v => setFEstado(v as EstadoContrato | '')}
+                      opciones={[{ v: '', t: 'Cualquier estatus' },
+                                 ...ORDEN_ESTADO.map(e => ({
+                                   v: e, t: `${ETIQUETA_ESTADO[e]} (${porEstadoHoja[e]})`,
+                                 }))]} />
+
+            <Selector label="Vendedor" valor={fVendedor} onChange={setFVendedor}
+                      opciones={[{ v: '', t: 'Cualquier vendedor' },
+                                 ...opciones.vendedores.map(x => ({ v: x, t: x }))]} />
+
+            <Selector label="Plazo" valor={fPlazo} onChange={setFPlazo}
+                      opciones={[{ v: '', t: 'Cualquier plazo' },
+                                 ...opciones.plazos.map(x => ({ v: x, t: x }))]} />
+
+            <Selector label="Vencimiento" valor={fVentana}
+                      onChange={v => setFVentana(v as Ventana)}
+                      opciones={VENTANAS.map(x => ({ v: x.id, t: x.label }))} />
+
+            <label style={{ fontSize: 12, color: TX_MED, display: 'flex', gap: 6,
+                            alignItems: 'center', whiteSpace: 'nowrap' }}>
+              <input type="checkbox" checked={soloCartera}
+                     onChange={e => setSoloCartera(e.target.checked)} />
+              sólo los que cruzan con la cartera
+            </label>
+          </div>
+
+          {/* QUÉ POBLACIÓN SE ESTÁ MIRANDO, SIEMPRE ESCRITO. Sin este renglón,
+              una pantalla filtrada y una sin filtrar se ven igual y las cifras
+              de arriba parecen el total. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'baseline',
+                        marginTop: 11, paddingTop: 11, borderTop: `1px solid ${LINEA}` }}>
+            <p style={{ fontSize: 12, color: hayFiltro ? TX_ALTO : TX_BAJO }}>
+              {hayFiltro
+                ? <>Todo lo de abajo cuenta sobre <strong>{base.length} de {m.total}</strong> contratos.</>
+                : <>Todo lo de abajo cuenta sobre los <strong>{m.total}</strong> contratos de la hoja.</>}
+            </p>
+            {hayFiltro && (
+              <button onClick={limpiar}
+                      style={{ fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 999,
+                               border: `1px solid ${LINEA}`, background: LAVADO, color: TX_MED,
+                               cursor: 'pointer' }}>
+                Quitar los filtros
+              </button>
+            )}
+            {hayFiltro && base.length === 0 && (
+              <p style={{ fontSize: 12, color: AMBAR_TX, fontWeight: 700 }}>
+                Ningún contrato cumple esos filtros — no es que no haya contratos.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ═══ LA VENTANA DE VENCIMIENTOS ═══════════════════════════════════ */}
+      <div style={{ padding: '18px 32px 0' }}>
         <div style={{ borderRadius: 14, border: `1px solid ${vencen.vencidos.length ? '#FECACA' : LINEA}`,
                       background: vencen.vencidos.length ? '#FFF7F7' : LAVADO, padding: 18 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, alignItems: 'flex-start' }}>
             <Caja n={vencen.vencidos.length} label="YA VENCIDOS"      color={ROJO_TX} />
             <Caja n={vencen.en30.length}     label="VENCEN EN 30 DÍAS" color={AMBAR_TX} />
             <Caja n={vencen.en90.length}     label="ENTRE 31 Y 90 DÍAS" color={MARINO} />
-            <Caja n={m.sinVencimiento}       label="SIN VENCIMIENTO"   color={TX_BAJO}
+            <Caja n={vencen.mas90.length}    label="A MÁS DE 90 DÍAS"  color={MARINO} />
+            <Caja n={vencen.libre.length}    label="SIN VENCIMIENTO"   color={TX_BAJO}
                   pie="plazo «libre»" />
-            <Caja n={m.noMedibles}           label="NO SE SABE"        color={TX_BAJO}
+            <Caja n={vencen.sinFecha.length} label="NO SE SABE"        color={TX_BAJO}
                   pie="ni fecha ni plazo libre" />
           </div>
 
           {/* La frase que impide la lectura cómoda. */}
           <p style={{ fontSize: 12, color: TX_MED, lineHeight: 1.65, marginTop: 14,
                       borderTop: `1px solid ${LINEA}`, paddingTop: 12 }}>
-            Los vencimientos se cuentan <strong>sólo sobre los {m.conFin} contratos que traen
-            fecha de término</strong>. Otros {m.sinVencimiento} tienen plazo «libre», que no vence
-            por definición. Y <strong>{m.noMedibles} no traen ni fecha ni plazo libre</strong>: de
-            ésos no se sabe cuándo vencen, que no es lo mismo que decir que no vencen. Se arregla
-            capturando la fecha en la hoja de origen.
+            Los vencimientos se cuentan <strong>sólo sobre los{' '}
+            {vencen.vencidos.length + vencen.en30.length + vencen.en90.length + vencen.mas90.length}{' '}
+            contratos que traen fecha de término</strong>. Otros {vencen.libre.length} tienen plazo
+            «libre», que no vence por definición. Y <strong>{vencen.sinFecha.length} no traen ni
+            fecha ni plazo libre</strong>: de ésos no se sabe cuándo vencen, que no es lo mismo que
+            decir que no vencen. Se arregla capturando la fecha en la hoja de origen.
+          </p>
+
+          {/* EL CIERRE, ESCRITO. Las seis cajas son excluyentes y cubren todo:
+              si algún día dejaran de sumar, aquí se vería en vez de pasar
+              inadvertido. [[feedback-tablas-deben-cerrar]] */}
+          <p style={{ fontSize: 11.5, color: sumaCajas === base.length ? TX_BAJO : ROJO_TX,
+                      marginTop: 8, fontWeight: sumaCajas === base.length ? 400 : 700 }}>
+            {sumaCajas === base.length
+              ? <>Las seis cajas suman {sumaCajas} de {base.length}: ningún contrato se queda sin cajón.</>
+              : <>Las seis cajas suman {sumaCajas} y deberían sumar {base.length}. Hay un fallo de reparto.</>}
           </p>
 
           {vencen.vencidos.length > 0 && (
@@ -212,6 +485,21 @@ export default function ContratosPage() {
             desde la cartera y no desde la hoja: mirando sólo los contratos nunca se vería a quien
             no tiene ninguno.
           </p>
+
+          {/* ESTE CUADRO NO SE FILTRA, Y SE DICE. Sale de la CARTERA, no de la
+              hoja: filtrarlo por «vendedor» o por «plazo» es imposible —una
+              cuenta sin contrato no tiene ni vendedor ni plazo que filtrar— y
+              dejarlo mudo mientras el resto de la pantalla sí responde haría
+              que pareciera que no reacciona por un fallo. */}
+          {hayFiltro && (
+            <p style={{ fontSize: 12, color: AMBAR_TX, lineHeight: 1.6, marginBottom: 12,
+                        padding: '8px 11px', borderRadius: 8, background: '#FFFBEB',
+                        border: '1px solid #FDE68A' }}>
+              <strong>Este cuadro NO responde a los filtros de arriba</strong>, y no es un fallo:
+              estas cuentas no tienen contrato, así que no tienen vendedor, plazo ni vencimiento
+              que filtrar. Se cuenta siempre sobre las {m.topTotal} cuentas TOP de la cartera.
+            </p>
+          )}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', fontSize: 12.5, borderCollapse: 'collapse' }}>
               <thead>
@@ -246,31 +534,53 @@ export default function ContratosPage() {
         <div style={{ borderRadius: 14, border: `1px solid ${LINEA}`, background: '#FFFFFF', padding: 18 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center',
                         justifyContent: 'space-between', marginBottom: 14 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 800, color: TX_ALTO }}>Reparto de contratos</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              <select value={dim} onChange={e => setDim(e.target.value as Dimension)}
-                      style={{ fontSize: 12.5, padding: '6px 10px', borderRadius: 8,
-                               border: `1px solid ${LINEA}`, color: TX_ALTO, background: '#FFF' }}>
-                {DIMENSIONES.map(x => (
-                  <option key={x.id} value={x.id}>
-                    {x.label}{x.soloCartera ? ' (sólo cartera)' : ''}
-                  </option>
-                ))}
-              </select>
-              <label style={{ fontSize: 12, color: TX_MED, display: 'flex', gap: 6, alignItems: 'center' }}>
-                <input type="checkbox" checked={soloCartera}
-                       onChange={e => setSoloCartera(e.target.checked)} />
-                sólo los que cruzan con la cartera
-              </label>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 800, color: TX_ALTO }}>
+                {dim === 'estado'
+                  ? 'Reparto por estatus de firma'
+                  : `Estatus de firma por ${(DIMENSIONES.find(x => x.id === dim)?.label ?? '').toLowerCase()}`}
+              </h3>
+              <p style={{ fontSize: 11.5, color: TX_BAJO, marginTop: 2 }}>
+                Cada barra es el total de ese grupo, partida por estatus.
+              </p>
             </div>
+            <select value={dim} onChange={e => setDim(e.target.value as Dimension)}
+                    aria-label="Partir la gráfica por"
+                    style={{ fontSize: 12.5, padding: '6px 10px', borderRadius: 8,
+                             border: `1px solid ${LINEA}`, color: TX_ALTO, background: '#FFF' }}>
+              {DIMENSIONES.map(x => (
+                <option key={x.id} value={x.id}>
+                  {x.label}{x.soloCartera ? ' (sólo cartera)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* LA LEYENDA, CON CIFRA. Va ARRIBA de las barras porque hay que saber
+              qué significa cada color antes de leerlas, no después. */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: 14,
+                        paddingBottom: 12, borderBottom: `1px solid ${LINEA}` }}>
+            {ORDEN_ESTADO.map(e => (
+              <span key={e} style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12 }}>
+                <span style={{ width: 11, height: 11, borderRadius: 3, flexShrink: 0,
+                               background: COLOR_ESTADO[e],
+                               /* Aro del color del fondo: el `#fab219` y el gris
+                                  se pierden contra el blanco sin un borde. */
+                               boxShadow: `0 0 0 1px ${LINEA}` }} />
+                <span style={{ color: TX_MED }}>{ETIQUETA_ESTADO[e]}</span>
+                <strong style={{ color: TX_ALTO, fontVariantNumeric: 'tabular-nums' }}>
+                  {porEstadoBase[e]}
+                </strong>
+              </span>
+            ))}
           </div>
 
           <SoloEnCliente>
-            <div style={{ display: 'grid', gap: 9 }}>
-              {reparto.map(r => (
+            <div style={{ display: 'grid', gap: 11 }}>
+              {cruce.map(r => (
                 <div key={r.clave}>
                   <div style={{ display: 'flex', justifyContent: 'space-between',
-                                fontSize: 12.5, marginBottom: 3, gap: 12 }}>
+                                fontSize: 12.5, marginBottom: 4, gap: 12 }}>
                     {/* `cuentas.giro` es TEXTO LIBRE y hay valores de más de
                         ochenta caracteres («Correduría / Despacho de Seguros
                         Independiente - Ramos: Auto, Vida, GMM…»). Se recorta
@@ -281,30 +591,58 @@ export default function ContratosPage() {
                     <span style={{ color: TX_ALTO, fontWeight: 600, overflow: 'hidden',
                                    textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                           title={r.clave}>{r.clave}</span>
-                    <span style={{ color: TX_MED, fontVariantNumeric: 'tabular-nums' }}>
-                      {r.n} · {Math.round((r.n / base.length) * 100)}%
+                    <span style={{ color: TX_MED, fontVariantNumeric: 'tabular-nums',
+                                   whiteSpace: 'nowrap' }}>
+                      {r.n} · {Math.round((r.n / Math.max(1, base.length)) * 100)}%
                     </span>
                   </div>
-                  <div style={{ height: 10, borderRadius: 999, background: LAVADO, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: 999,
-                                  width: `${(r.n / maxN) * 100}%`,
-                                  background: r.clave.startsWith('fuera de la cartera') ? TX_BAJO
-                                            : r.clave.includes('sin ') ? '#B9C4D0' : MARINO }} />
+                  {/* Las barras se dibujan con divs, no con recharts: una
+                      apilada horizontal es exactamente esto y recharts en esta
+                      página obligaría a envolver y a vigilar el SSR sin ganar
+                      nada. [[recharts-nunca-en-servidor]] */}
+                  <div style={{ display: 'flex', gap: 2, height: 18, width: `${(r.n / maxN) * 100}%` }}>
+                    {ORDEN_ESTADO.filter(e => r.por[e] > 0).map(e => (
+                      <div key={e}
+                           title={`${ETIQUETA_ESTADO[e]} · ${r.por[e]} de ${r.n}`}
+                           style={{ flex: `${r.por[e]} 1 0`, borderRadius: 4,
+                                    background: COLOR_ESTADO[e], minWidth: 3,
+                                    display: 'flex', alignItems: 'center',
+                                    justifyContent: 'center', overflow: 'hidden' }}>
+                        {/* La cifra sólo se escribe cuando el segmento es lo
+                            bastante ancho para que entre: un número cortado a
+                            la mitad miente más que no ponerlo. El umbral es la
+                            parte del raíl que ocupa el segmento. */}
+                        {(r.por[e] / maxN) >= 0.035 && (
+                          <span style={{ fontSize: 10.5, fontWeight: 800,
+                                         color: TINTA_ESTADO[e],
+                                         fontVariantNumeric: 'tabular-nums' }}>
+                            {r.por[e]}
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
           </SoloEnCliente>
 
-          {/* EL REPARTO CIERRA, Y SE DICE. */}
+          {/* EL REPARTO CIERRA, Y SE DICE — en los dos sentidos: los grupos
+              suman el total Y los segmentos suman cada grupo. */}
           <p style={{ fontSize: 11.5, color: TX_BAJO, marginTop: 12, lineHeight: 1.6,
                       borderTop: `1px solid ${LINEA}`, paddingTop: 10 }}>
-            Las {reparto.length} partes suman{' '}
-            <strong style={{ color: TX_MED }}>{reparto.reduce((s, r) => s + r.n, 0)} de {base.length}</strong>{' '}
-            contratos: ninguno se queda fuera del reparto.
+            {cruce.length} grupos y {ORDEN_ESTADO.length} estatus suman{' '}
+            <strong style={{ color: sumaCruce === base.length ? TX_MED : ROJO_TX }}>
+              {sumaCruce} de {base.length}
+            </strong>{' '}
+            contratos: ninguno se queda fuera del reparto ni se cuenta dos veces.
+            {dim === 'estado' && (
+              <> Partido por estatus cada barra es de un solo color, que es lo correcto: el eje y el
+              color dicen lo mismo. Elige otra dimensión para ver el cruce.</>
+            )}
             {DIMENSIONES.find(x => x.id === dim)?.soloCartera && !soloCartera && (
-              <> Esta dimensión sale de la cartera, así que los {m.fueraDeCartera} contratos que no
-              cruzan van en su propio cubo en vez de desaparecer.</>
+              <> Esta dimensión sale de la cartera, así que los contratos que no cruzan van en su
+              propio cubo en vez de desaparecer.</>
             )}
             {dim === 'giro' && (
               <> El giro se captura como <strong>texto libre</strong> en la ficha de cada cuenta, no
@@ -323,13 +661,17 @@ export default function ContratosPage() {
           <div style={{ padding: 16, display: 'flex', flexWrap: 'wrap', gap: 12,
                         alignItems: 'center', justifyContent: 'space-between',
                         borderBottom: `1px solid ${LINEA}` }}>
+            {/* El buscador ya NO vive aquí: vive en la barra de arriba, que
+                manda sobre toda la pantalla. Dos buscadores en la misma página
+                es la forma más rápida de que dos cifras no cuadren. */}
             <h3 style={{ fontSize: 14, fontWeight: 800, color: TX_ALTO }}>
-              Todos los contratos ({lista.length})
+              {hayFiltro
+                ? `Contratos filtrados (${lista.length} de ${m.total})`
+                : `Todos los contratos (${lista.length})`}
             </h3>
-            <input value={busca} onChange={e => setBusca(e.target.value)}
-                   placeholder="Buscar por cuenta, consecutivo o CID…"
-                   style={{ fontSize: 12.5, padding: '7px 11px', borderRadius: 8, minWidth: 260,
-                            border: `1px solid ${LINEA}`, color: TX_ALTO }} />
+            <p style={{ fontSize: 11.5, color: TX_BAJO }}>
+              ordenados por lo que vence antes
+            </p>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', fontSize: 12.5, borderCollapse: 'collapse' }}>
@@ -353,6 +695,39 @@ export default function ContratosPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * Un desplegable de filtro con su etiqueta visible.
+ *
+ * La etiqueta NO es decorativa: con cinco selectores en una fila, uno que sólo
+ * dice «Cualquier plazo» obliga a adivinar qué filtra, y en cuanto hay algo
+ * elegido —«12 meses»— deja de decir de qué es. Se marca además con el borde
+ * cuando está activo, para que a simple vista se vea CUÁNTOS filtros hay
+ * puestos sin leerlos uno por uno.
+ */
+function Selector({ label, valor, onChange, opciones }: {
+  label: string
+  valor: string
+  onChange: (v: string) => void
+  opciones: { v: string; t: string }[]
+}) {
+  const activo = valor !== ''
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.04em',
+                     color: activo ? MARINO : TX_BAJO, textTransform: 'uppercase' }}>
+        {label}
+      </span>
+      <select value={valor} onChange={e => onChange(e.target.value)}
+              style={{ fontSize: 12.5, padding: '6px 9px', borderRadius: 8, maxWidth: 220,
+                       border: `1px solid ${activo ? MARINO : LINEA}`,
+                       background: activo ? '#F2F7FC' : '#FFF',
+                       color: TX_ALTO, fontWeight: activo ? 700 : 400 }}>
+        {opciones.map(o => <option key={o.v} value={o.v}>{o.t}</option>)}
+      </select>
+    </label>
   )
 }
 
