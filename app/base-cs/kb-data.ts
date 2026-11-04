@@ -32,6 +32,11 @@ export interface Articulo {
   apis?:          ApiItem[]
   subtitulos?:    { titulo: string; items: string[] }[]
   bloques?:       Bloque[]
+  /** Pinta la tabla de planes base de ese esquema. El dato NO vive en este
+   *  archivo: sale de `data/planes-pago.json` vía `lib/planes-pago.ts`. Un
+   *  catálogo de precios y ligas de cobro copiado a mano deja de ser un
+   *  espejo del origen en la primera actualización que alguien olvide. */
+  planesPago?:    'bolsa' | 'extension'
 }
 
 export interface Categoria {
@@ -43,6 +48,55 @@ export interface Categoria {
 
 // ─────────────────────────────────────────────────────────────────────────────
 export const KB: Categoria[] = [
+
+  // ── PLANES Y PAGOS ──────────────────────────────────────────────────────
+  /* Va EL PRIMERO a propósito: es lo que más se busca con un cliente al
+     teléfono, y es lo único de toda la Base que se copia y se pega fuera.
+     Los dos artículos NO llevan su tabla escrita aquí — la leen de
+     `data/planes-pago.json`, que produce `scripts/gen-planes-pago.py` desde
+     el libro «Planes 2.0». Teclear treinta ligas de cobro a mano y pretender
+     que siguen al día es exactamente como se rompe esto.
+     [[feedback-verificar-antes-asegurar]] */
+  {
+    id: 'planes-pago', label: 'Planes y pagos', color: '#1D6CAA',
+    articulos: [
+      {
+        id: 'planes-pago-bolsa',
+        titulo: 'Planes base de Bolsa de Minutos — precios y ligas de pago',
+        descripcion: 'Los planes de bolsa con su mensualidad, su anualidad, el Plan ID con el '
+                   + 'que se dan de alta, la liga de cobro y el folleto. Salen del libro «Planes '
+                   + '2.0» de comercial, hoja «Links Planes Base».',
+        ubicacion: 'Google Sheet «Planes 2.0» de comercial',
+        utilidad: 'Mandar al cliente la liga correcta sin pedirla por interno, y saber el Plan ID '
+                + 'antes de dar de alta.',
+        planesPago: 'bolsa',
+        consideraciones: [
+          { texto: 'La anualidad es la promo 14x12: el importe anual es exactamente doce '
+                 + 'mensualidades y cubre CATORCE meses de servicio. Lo que se gana son dos '
+                 + 'meses, no un descuento sobre el importe.', tipo: 'info' },
+          { texto: 'Nunca armes una liga de pago copiando otra y cambiándole el final: todas '
+                 + 'tienen la misma forma y por eso es fácil. Una liga inventada cobra otro '
+                 + 'plan o no cobra nada, y el cliente se entera en su estado de cuenta.',
+            tipo: 'error' },
+          { texto: 'La hoja no dice si los precios llevan IVA. No lo afirmes en ninguno de los '
+                 + 'dos sentidos.', tipo: 'warning' },
+        ],
+      },
+      {
+        id: 'planes-pago-extension',
+        titulo: 'Planes base por Extensión — precios y ligas de pago',
+        descripcion: 'Los planes que se cobran por número de extensiones en vez de por bolsa de '
+                   + 'minutos, con su liga de cobro mensual y anual.',
+        ubicacion: 'Google Sheet «Planes 2.0» de comercial',
+        planesPago: 'extension',
+        consideraciones: [
+          { texto: 'Los planes de Conmutador IP y el de Callcenter NO están aquí y NO llevan '
+                 + 'liga de pago: se piden a comercial. Que no tengan liga no significa que no '
+                 + 'existan.', tipo: 'warning' },
+        ],
+      },
+    ],
+  },
 
   // ── MINUTOS ─────────────────────────────────────────────────────────────
   {

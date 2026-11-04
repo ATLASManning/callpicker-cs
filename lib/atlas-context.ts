@@ -18,6 +18,7 @@ import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
 import { REPORTE_S26_OCT_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
+import { seccionesPlanesPago } from './planes-pago'
 import { MARCO_SUMMARY } from './marco-atlas'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 import { LECTURA_LIBRE } from './dueno'
@@ -965,6 +966,15 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   const glos = seccionesGlosario(pregunta)
   sections.push(...glos.secciones)
   modulos.push(...glos.modulos)
+
+  /* Planes base y sus ligas de pago. Va DESPUÉS del glosario y por capas, por
+     la misma razón: el mapa y la prohibición siempre, las 30 ligas sólo cuando
+     la pregunta las pide. Y va aquí y no en el glosario porque es lo único de
+     la Base de Conocimiento que se copia y se le pega a un cliente: una liga
+     mal recordada cobra otra cosa. Ver lib/planes-pago.ts. */
+  const pagos = seccionesPlanesPago(pregunta)
+  sections.push(...pagos.secciones)
+  modulos.push(...pagos.modulos)
 
   const sep = '\n\n────────────────────────────────\n\n'
   return { text: sections.join(sep), modulos }

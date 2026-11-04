@@ -8,9 +8,13 @@ import {
   ChevronDown, ChevronUp, Search,
   ShieldCheck, Puzzle, Globe, FileText, LifeBuoy,
   // `Heart` se fue con la categoría de bienvenida: era su único uso.
-  ExternalLink, Cpu, BookMarked, Download, Eye, EyeOff,
+  ExternalLink, Cpu, BookMarked, Download, Eye, EyeOff, CreditCard,
 } from 'lucide-react'
 import { KB, type Categoria, type Articulo } from './kb-data'
+import {
+  PLANES_BOLSA, PLANES_EXTENSION, META_PLANES, nombrePlan, explicaAnualidad,
+  type PlanPago,
+} from '@/lib/planes-pago'
 import GlosarioTecnico from '@/components/GlosarioTecnico'
 import TelefonosIP from '@/components/TelefonosIP'
 import { TELEFONOS_COMPATIBLES } from '@/lib/telefonos-ip'
@@ -88,6 +92,7 @@ const CAT_ICONS: Record<string, React.ElementType> = {
   cobertura:      Globe,
   soporte:        LifeBuoy,
   'asistente-virtual':  Cpu,
+  'planes-pago':  CreditCard,
 }
 
 /* ── El orden de las categorías ───────────────────────────────────────────
@@ -105,7 +110,7 @@ const CAT_ICONS: Record<string, React.ElementType> = {
 const GRUPOS: { titulo: string; categorias: string[] }[] = [
   // 1 · Lo primero que se pregunta en una llamada, y lo único que el asesor no
   //     puede improvisar: son cifras y reglas de cobro.
-  { titulo: 'Su plan y sus números',   categorias: ['minutos', 'extensiones', 'lineas', 'cobertura'] },
+  { titulo: 'Su plan y sus números',   categorias: ['planes-pago', 'minutos', 'extensiones', 'lineas', 'cobertura'] },
   // 2 · La segunda pregunta: «¿por qué no se asignó esa llamada?». Las tres son
   //     un solo recorrido —DID → horario → menú → grupo/fila → extensión— que
   //     el alfabeto tenía partido en tres sitios.
@@ -182,7 +187,22 @@ function textoDeArticulo(a: Articulo): string {
   for (const t of a.tarificacion ?? [])   p.push(t.tipo, t.destino ?? '', t.regla)
   for (const s of a.subtitulos ?? [])     p.push(s.titulo, ...s.items)
   for (const b of a.bloques ?? [])        p.push(b.titulo ?? '', b.texto ?? '', ...(b.items ?? []))
+  /* La tabla de planes NO vive en el artículo, así que sin esto buscar «400
+     minutos», «Emprendedor» o un Plan ID devolvía «Sin resultados» con la
+     respuesta a dos renglones — que es el fallo 1 de este mismo índice,
+     repetido. Se indexa el nombre, la etiqueta comercial y los dos Plan ID;
+     las LIGAS no, porque nadie busca un contrato tecleando su URL y meterlas
+     ensuciaría cada búsqueda con treinta cadenas idénticas. */
+  for (const pl of planesDe(a))
+    p.push(nombrePlan(pl), pl.etiquetaHoja ?? '', pl.planIdMensual ?? '', pl.planIdAnual ?? '')
   return normaliza(p.join(' · '))
+}
+
+/** Los planes que le tocan a un artículo, o ninguno. */
+function planesDe(a: Articulo): PlanPago[] {
+  if (a.planesPago === 'bolsa') return PLANES_BOLSA
+  if (a.planesPago === 'extension') return PLANES_EXTENSION
+  return []
 }
 
 const INDICE = new Map<string, string>()
@@ -230,6 +250,167 @@ function Consideracion({ texto, tipo }: { texto: string; tipo?: string }) {
   )
 }
 
+/* Los tonos de AMBER y RED que SÍ se pueden usar como letra sobre la tarjeta
+   blanca. Los crudos dan 3.2:1 y 4.0:1 y valen para un relleno, no para texto
+   de 12-13px. Se calculan una vez. [[atlas-dashboard-contrast-architecture]] */
+const AMBER_TX = tonoSobreFondo(AMBER, PANEL, 4.5)
+const RED_TX   = tonoSobreFondo(RED,   PANEL, 4.5)
+
+const pesosMXN = (n: number | null): string =>
+  n === null || n === undefined
+    ? '—'
+    : new Intl.NumberFormat('es-MX',
+        { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
+
+/**
+ * La tabla de planes base con sus ligas de cobro.
+ *
+ * ── LO QUE ESTA TABLA SE NIEGA A HACER ───────────────────────────────────
+ *
+ * 1. NO escribe «—» donde falta una liga. Un guion se lee como «no aplica», y
+ *    lo que pasa es que la hoja no la trae: va con esas palabras y en ámbar.
+ *    [[feedback-cero-sin-medicion]]
+ * 2. NO acorta la URL en el `href`. El botón enseña «Liga de pago» porque la
+ *    URL cruda no cabe, pero el enlace lleva la cadena completa y el `title`
+ *    la muestra entera: quien quiera verificarla antes de mandarla, puede.
+ * 3. NO esconde los avisos del generador. Si el origen se contradice —hay una
+ *    columna rotulada «VyC 5000» que en realidad es la de 6000— se dice aquí,
+ *    junto a la fila, y no sólo en la consola de quien regeneró el archivo.
+ */
+function CeldaPago({ precio, planId, liga, periodo }: {
+  precio: number | null; planId: string | null; liga: string | null; periodo: string
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <span style={{ fontSize: 14, fontWeight: 700, color: TX, fontVariantNumeric: 'tabular-nums' }}>
+        {precio === null
+          ? <span style={{ color: AMBER_TX, fontWeight: 600, fontSize: 12.5 }}>sin precio publicado</span>
+          : pesosMXN(precio)}
+      </span>
+      <span style={{ fontSize: 11.5, color: TX_MID }}>
+        {planId ? <>Plan ID <strong>{planId}</strong></> : <span style={{ color: AMBER_TX }}>sin Plan ID</span>}
+      </span>
+      {liga
+        ? <a href={liga} target="_blank" rel="noopener noreferrer" title={liga}
+             style={{ ...ACCION_BASE, background: `${ACCENT}12`, color: tonoSobreClaro(ACCENT, 0.07),
+                      border: `1px solid ${ACCENT}30`, width: 'fit-content' }}>
+            <ExternalLink size={11} /> Liga {periodo}
+          </a>
+        : <span style={{ fontSize: 11.5, fontWeight: 700, color: AMBER_TX }}>
+            sin liga de pago en la hoja
+          </span>}
+    </div>
+  )
+}
+
+function TablaPlanesPago({ planes }: { planes: PlanPago[] }) {
+  /* Un aviso se pega a la tabla donde sale el plan que nombra. Los que no
+     casan con ninguno NO se tiran: se pintan igual, porque un aviso perdido
+     es exactamente el fallo del que avisa. */
+  /* El generador escribe «CE con grabación 200» y «VyC 6000 minutos»: a veces
+     la unidad va y a veces no, así que se busca el prefijo y se exige que lo
+     siguiente NO sea un dígito — si no, «CE 60» casaría con «CE 600». */
+  const nombra = (a: string, p: PlanPago) => {
+    const i = a.indexOf(`«${p.familia} ${p.cantidad}`)
+    return i >= 0 && !/\d/.test(a.charAt(i + `«${p.familia} ${p.cantidad}`.length))
+  }
+  const todos = PLANES_BOLSA.concat(PLANES_EXTENSION)
+  const mios  = META_PLANES.avisos.filter(a => planes.some(p => nombra(a, p)))
+  const nadie = META_PLANES.avisos.filter(a => !todos.some(p => nombra(a, p)))
+  const avisos = Array.from(new Set(mios.concat(nadie)))
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: TX_MID, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+        Planes y ligas de pago ({planes.length})
+      </p>
+
+      {avisos.length > 0 && (
+        <div style={{ marginBottom: 12, padding: '10px 13px', borderRadius: 8,
+                      background: `${AMBER}12`, border: `1px solid ${AMBER}35` }}>
+          <p style={{ fontSize: 12, fontWeight: 800, color: AMBER_TX, marginBottom: 5 }}>
+            {avisos.length === 1 ? 'El documento se contradice en un punto' : `El documento se contradice en ${avisos.length} puntos`}
+          </p>
+          {avisos.map((a, i) => (
+            <p key={i} style={{ fontSize: 12.5, color: TX_MID, lineHeight: 1.6 }}>{a}</p>
+          ))}
+        </div>
+      )}
+
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              {['Plan', 'Pago mensual', 'Pago anual (14×12)', 'Folleto'].map(h => (
+                <th key={h} style={{ textAlign: 'left', padding: '8px 12px', fontSize: 11,
+                                     fontWeight: 800, letterSpacing: '0.06em', color: TX_MID,
+                                     textTransform: 'uppercase', borderBottom: `1px solid ${BORDER}`,
+                                     whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {planes.map((p, i) => (
+              <tr key={p.id} style={{ background: i % 2 === 0 ? 'transparent' : '#F0F7FF' }}>
+                <td style={{ padding: '11px 12px', borderBottom: `1px solid ${BORDER}`, verticalAlign: 'top' }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: TX }}>{nombrePlan(p)}</p>
+                  {/* Los DOS nombres conviven: marketing dice «Emprendedor» y
+                      la hoja de ligas dice «CE 200». Quedarse con uno deja al
+                      asesor sin la palabra que su cliente acaba de oír. */}
+                  {p.etiquetaHoja && (
+                    <p style={{ fontSize: 11.5, color: TX_MID, marginTop: 2 }}>
+                      en la hoja de precios: «{p.etiquetaHoja}»
+                    </p>
+                  )}
+                  {explicaAnualidad(p) && (
+                    <p style={{ fontSize: 11, color: TX_MID, marginTop: 3, lineHeight: 1.5 }}>
+                      {explicaAnualidad(p)}
+                    </p>
+                  )}
+                </td>
+                <td style={{ padding: '11px 12px', borderBottom: `1px solid ${BORDER}`, verticalAlign: 'top' }}>
+                  <CeldaPago precio={p.mensualidad} planId={p.planIdMensual} liga={p.ligaMensual} periodo="mensual" />
+                </td>
+                <td style={{ padding: '11px 12px', borderBottom: `1px solid ${BORDER}`, verticalAlign: 'top' }}>
+                  <CeldaPago precio={p.anualidad} planId={p.planIdAnual} liga={p.ligaAnual} periodo="anual" />
+                </td>
+                <td style={{ padding: '11px 12px', borderBottom: `1px solid ${BORDER}`, verticalAlign: 'top' }}>
+                  {p.folleto
+                    ? <a href={p.folleto} target="_blank" rel="noopener noreferrer" title={p.folleto}
+                         style={{ ...ACCION_BASE, background: '#F0F7FF', color: TX_MID,
+                                  border: `1px solid ${BORDER}` }}>
+                        <FileText size={11} /> PDF
+                      </a>
+                    : <span style={{ fontSize: 11.5, color: AMBER_TX }}>sin folleto</span>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* DE DÓNDE SALE Y QUÉ NO CUBRE. Sin esto, «30 planes» se lee como
+          «todo el catálogo», y los siete de IP y Callcenter desaparecerían
+          sin que nadie lo note. [[feedback-tablas-deben-cerrar]] */}
+      <p style={{ fontSize: 11.5, color: TX_MID, lineHeight: 1.65, marginTop: 10,
+                  paddingTop: 10, borderTop: `1px solid ${BORDER}` }}>
+        Origen: Google Sheet <strong>«Planes 2.0»</strong>, hoja «{META_PLANES.hojaLigas}», cruzada
+        con «{META_PLANES.hojaPrecios}» <strong>por la liga de pago</strong> —nunca por el nombre,
+        que las dos hojas escriben distinto—. Corte del <strong>{META_PLANES.generado}</strong>.{' '}
+        {META_PLANES.total} planes con liga de cobro en total: {META_PLANES.bolsa} de bolsa de
+        minutos y {META_PLANES.extension} por extensión.{' '}
+        <strong style={{ color: RED_TX }}>La liga nunca se arma copiando otra y cambiándole el
+        final</strong>: todas tienen la misma forma y una inventada cobra otro plan.{' '}
+        {META_PLANES.fueraDeEstaHoja.length > 0 && (
+          <>Fuera de esta hoja, y <em>sin</em> liga de pago —existen, pero se piden a comercial—:{' '}
+          {META_PLANES.fueraDeEstaHoja.join(', ')}.{' '}</>
+        )}
+        La hoja no dice si los precios llevan IVA.
+      </p>
+    </div>
+  )
+}
+
 // ── Tarjeta de artículo ───────────────────────────────────────────────────────
 function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor: string; defaultOpen?: boolean }) {
   /* `catColor` crudo vale para iconos, bordes y rellenos —objetos gráficos—
@@ -247,7 +428,8 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
      puede mostrarlo sin salir de la Base de Conocimiento. */
   const [verDoc, setVerDoc] = useState(false)
   const hasExtra = !!(art.tarificacion || art.funcionamiento || art.consideraciones ||
-    art.modalidades || art.acciones || art.graficas || art.apis || art.subtitulos || art.utilidad || art.bloques)
+    art.modalidades || art.acciones || art.graficas || art.apis || art.subtitulos || art.utilidad ||
+    art.bloques || art.planesPago)
   /** ¿Hay fila de acciones que pintar debajo del título? 24 de los 88
    *  artículos traen PDF, y unos pocos enlace externo. */
   const hayAcciones = !!(art.pdfUrl || art.linkUrl)
@@ -402,6 +584,9 @@ function ArticuloCard({ art, catColor, defaultOpen }: { art: Articulo; catColor:
       {/* Contenido expandido */}
       {open && (
         <div style={{ padding: '0 20px 20px', borderTop: `1px solid ${BORDER}` }}>
+
+          {/* Planes base con su liga de pago */}
+          {art.planesPago && <TablaPlanesPago planes={planesDe(art)} />}
 
           {/* Tarificación */}
           {art.tarificacion && (
