@@ -1,43 +1,60 @@
 /**
- * CORTE DE CUENTAS **TOP** QUE ESTÁN EN **CHURN CONFIRMADO**. SOLO LECTURA.
+ * CORTE DE CUENTAS **TOP** QUE ESTÉN BAJO **CHURN CONFIRMADO**. SOLO LECTURA.
  *
  * Instrucción de dirección (4 nov 2026): en cada actualización de Churn hay que
  * sacar este corte y pasar a Dormidas las que aparezcan con churn confirmado.
- * Esto saca el corte. **No escribe nada**: la escritura va aparte y después de
- * corroborar, por las razones de abajo.
+ * Esto saca el corte. **No escribe en `cuentas`.**
  *
- * ────────────────────────────────────────────────────────────────────────────
- * POR QUÉ ESTE CORTE SE TOMA **ANTES** DE MOVER NADA, Y SE GUARDA
+ * ──────────────────────────────────────────────────────────────────────────────
+ * QUÉ ES «CUENTA TOP» AQUÍ, Y NO ES EL TOP POR MRR
  *
- * `topDeCartera()` deriva el TOP de las 25 cuentas de mayor MRR **entre las que
- * están en `estado` activo o en_riesgo**. En cuanto una cuenta pasa a
- * `hibernacion` SALE de esa población, y el TOP se recalcula sobre las que
- * quedan: suben 25 cuentas distintas. O sea que **ejecutar la decisión destruye
- * la evidencia que la justificaba**, y el corte deja de ser reproducible.
- * Por eso se saca primero y se deja escrito. [[feedback-verificar-antes-asegurar]]
+ * Aclaración de dirección: **«cuentas TOP» son las del apartado Cuentas
+ * Activas**, las que marca el filtro TOP de esa pantalla —
+ * `isTopCustomer(consecutivo)`, «venía en la lista Top Customer», derivado del
+ * CONSECUTIVO (F1-F46, D1-D38, C1-C43, más las enumeradas).
  *
- * TODO SE DERIVA DE LAS FUNCIONES DEL REPO —`topDeCartera`, `mapaFacturacion`,
- * `NOMBRES_CHURN_GRC`, `NOMBRES_CANCELACION`— y no de una copia de sus reglas:
- * un espejo tecleado a mano deja de ser espejo. [[feedback-fuente-unica-cuentas]]
+ * La primera versión usaba `topDeCartera()`, que son **las 25 de mayor MRR**.
+ * Son dos poblaciones distintas y ninguna avisa de que no es la otra. Ahora se
+ * importa `isTopCustomer` de `lib/cuenta-top.ts`: la MISMA función que usa la
+ * pantalla, no una copia. [[feedback-fuente-unica-cuentas]]
  *
- * ────────────────────────────────────────────────────────────────────────────
+ * ──────────────────────────────────────────────────────────────────────────────
+ * LO PRIMERO QUE HAY QUE SABER: ACTIVAS YA LAS EXCLUYE
+ *
+ * `app/cuentas/page.tsx` filtra `.filter(c => !vaEnDormidas(c))`, y
+ * `vaEnDormidas` es `churn_confirmado || cancelacion_reportada ||
+ * estadoKey === '4'`. O sea que **una cuenta con churn confirmado NO está en
+ * Activas**: ya salió de ahí y ya se ve en Dormidas, por la regla de dirección
+ * del 9 sep 2026, SIN tocar `cuentas.estado`.
+ *
+ * Por eso este corte mide las dos cosas por separado:
+ *
+ *   A) lo que la PANTALLA de Activas enseña hoy  → debe ser CERO siempre, y si
+ *      no lo es, el filtro está roto. Es un control, no un hallazgo.
+ *   B) lo que la COLUMNA `estado` todavía dice   → aquí sí puede haber trabajo:
+ *      cuentas con `estado` activo/en_riesgo que ya son churn confirmado. No
+ *      se ven en Activas, pero la columna miente y de ella cuelgan el MRR de la
+ *      cartera viva, los conteos por asesor, las alertas y `topDeCartera()`.
+ *
+ * ──────────────────────────────────────────────────────────────────────────────
  * LAS DOS PUERTAS, Y POR QUÉ NO VALEN LO MISMO
  *
- *  · `churn_grc`     → el nombre aparece con movimiento «Churn confirmado» en
- *                      GRC-AAA-2026. `NOMBRES_CHURN_GRC` ya le quita el MES
- *                      VIVO (regla de José Manuel, 20 sep 2026) y las
- *                      reactivadas. Aun así, el label CRUDO de Zoho está
- *                      medido como mayoritariamente falso —Zoho marca «Churn
- *                      confirmado» todo contrato que aún no factura, lo que
- *                      incluye al que paga tarde— y **el residuo sobre el
- *                      conjunto YA filtrado no se ha medido nunca**.
- *                      Ver `prediccion/docs/01-inventario.md`.
- *  · `cancelacion`   → la cuenta aparece en una cancelación confirmada de
- *                      Churn > Análisis DATA. Esa la escribe una persona.
+ *  · `churn_grc`   → el nombre aparece con movimiento «Churn confirmado» en
+ *                    GRC-AAA-2026. `NOMBRES_CHURN_GRC` ya le quita el MES VIVO
+ *                    (regla de José Manuel, 20 sep 2026) y las reactivadas.
+ *                    Aun así el label CRUDO de Zoho está medido como
+ *                    mayoritariamente falso —marca «Churn confirmado» todo
+ *                    contrato que aún no factura, lo que incluye al que paga
+ *                    tarde— y **el residuo sobre el conjunto ya filtrado no se
+ *                    ha medido nunca**. Ver `prediccion/docs/01-inventario.md`.
+ *  · `cancelacion` → la cuenta aparece en una cancelación confirmada de
+ *                    Churn > Análisis DATA. Ésa la escribe una persona.
  *
- * Por eso el corte las SEPARA y dice cuántas puertas sustentan cada cuenta.
- * Una cuenta con las DOS es una baja sustentada; una con sólo `churn_grc` es
- * una cuenta que hay que mirar antes de apagarla. [[polak-grupo-no-es-churn]]
+ * Una cuenta con las DOS es una baja sustentada. Una con sólo `churn_grc` hay
+ * que corroborarla antes de apagarla. [[polak-grupo-no-es-churn]]
+ *
+ * NINGUNA CUENTA SE BORRA. Una baja es `estado = 'hibernacion'`.
+ * [[feedback-conciliacion-churn]]
  *
  * USO
  *     node scripts/corte-top-churn-confirmado.mjs
@@ -79,141 +96,139 @@ config({ path: path.join(RAIZ, '.env.local'), quiet: true })
 
 const fact = await jiti.import(path.join(RAIZ, 'lib/facturacion-cuenta.ts'))
 const eleg = await jiti.import(path.join(RAIZ, 'lib/elegibilidad.ts'))
+const topm = await jiti.import(path.join(RAIZ, 'lib/cuenta-top.ts'))
 const sb   = await jiti.import(path.join(RAIZ, 'lib/supabase.ts'))
 
-const { mapaFacturacion, importeDeCuenta, topDeCartera, N_TOP } = fact
+const { mapaFacturacion, importeDeCuenta } = fact
 const { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } = eleg
+const { isTopCustomer, TOP_RANGES } = topm
 
 const pesos = n => '$' + Math.round(n).toLocaleString('es-MX')
 
 const mapa = await mapaFacturacion()
 if (mapa.falla) {
-  /* Un mapa vacío haría que TODAS las cuentas midieran $0 y el TOP saliera
-     por orden arbitrario. Eso no se publica como corte. */
+  /* Un mapa vacío haría que TODAS las cuentas midieran $0. Eso no se publica. */
   console.log(`\n  *** EL MAPA DE FACTURACIÓN NO CARGÓ: ${mapa.falla}`)
-  console.log('  Sin MRR no hay TOP. NO se saca el corte.\n')
+  console.log('  Sin MRR el corte no puede ordenar ni cifrar. NO se saca.\n')
   process.exit(2)
 }
-console.log(`\n  CORTE · CUENTAS TOP EN CHURN CONFIRMADO`)
+
+console.log('\n  CORTE · CUENTAS TOP BAJO CHURN CONFIRMADO')
 console.log('  ' + '='.repeat(72))
 console.log(`  MRR del mapa: mes ${mapa.mes} · ${mapa.porCid.size} CIDs`)
+console.log(`  TOP = filtro del apartado Cuentas (consecutivo): `
+  + Object.entries(TOP_RANGES).map(([p, n]) => `${p}1-${p}${n}`).join(', ') + ' + enumeradas')
 console.log(`  GRC «Churn confirmado» (sin mes vivo ni reactivadas): ${NOMBRES_CHURN_GRC.size} nombres`)
 console.log(`  Cancelaciones confirmadas (Análisis DATA): ${NOMBRES_CANCELACION.size} nombres`)
 
 const { data, error } = await sb.supabaseAdmin
   .from('cuentas')
   .select('id, cid, consecutivo, empresa, asesor, estado, facturacion, health_score')
-  .in('estado', ['activo', 'en_riesgo'])
+  .limit(2000)
 if (error || !data) {
   console.log(`\n  *** no pude leer \`cuentas\`: ${error?.message ?? 'sin datos'}`)
   process.exit(2)
 }
 
-const top = await topDeCartera(mapa)
-console.log(`  Población TOP: ${top.size} de ${data.length} cuentas vivas (N_TOP = ${N_TOP})`)
-if (top.size === 0) {
-  console.log('\n  *** el TOP salió VACÍO. `topDeCartera` devuelve vacío sin cachear')
-  console.log('  cuando no pudo leer. Eso NO es «ninguna cuenta es grande».\n')
-  process.exit(2)
-}
+/* `getEstadoKey` de la pantalla: '4' es Dormido. Se replica SÓLO la parte que
+   decide dormida —estado hibernacion/cancelado— porque la otra rama ('0' por
+   facturación 0) no es churn y aquí confundiría «sin importe» con «de baja». */
+const esDormidaPorEstado = c => c.estado === 'hibernacion' || c.estado === 'cancelado'
 
 const filas = data.map(c => {
   const n = normalizarNombre(c.empresa)
   return {
     cons: c.consecutivo, empresa: String(c.empresa ?? ''), asesor: c.asesor ?? '—',
     estado: c.estado, mrr: importeDeCuenta(c, mapa).mrr,
-    esTop: top.has(String(c.id)),
+    esTop: isTopCustomer(c.consecutivo),
     grc: NOMBRES_CHURN_GRC.has(n),
     cancel: NOMBRES_CANCELACION.has(n),
+    dormidaPorEstado: esDormidaPorEstado(c),
   }
-}).filter(f => f.grc || f.cancel)
+})
 
-const alcance = SOLO_TOP ? filas.filter(f => f.esTop) : filas
-alcance.sort((a, b) => b.mrr - a.mrr)
+const marcadas = filas.filter(f => f.grc || f.cancel)
+const ambito   = SOLO_TOP ? marcadas.filter(f => f.esTop) : marcadas
+ambito.sort((a, b) => b.mrr - a.mrr)
 
-const dos  = alcance.filter(f => f.grc && f.cancel)
-const soloG = alcance.filter(f => f.grc && !f.cancel)
-const soloC = alcance.filter(f => !f.grc && f.cancel)
+console.log(`  cuentas leídas: ${filas.length} · TOP: ${filas.filter(f => f.esTop).length}`)
 
-console.log(`\n  ── ${SOLO_TOP ? 'SÓLO CUENTAS TOP' : 'TODA LA CARTERA VIVA'} ──`)
-console.log(`  cuentas vivas con churn confirmado y/o cancelación: ${alcance.length}`)
-console.log(`  MRR que saldría de la cartera viva: ${pesos(alcance.reduce((s, f) => s + f.mrr, 0))}\n`)
+/* ── A · CONTROL: lo que la PANTALLA de Activas enseña ───────────────────── */
+console.log('\n  ' + '-'.repeat(72))
+console.log('  A · CONTROL — ¿alguna de éstas se VE hoy en Cuentas Activas?\n')
+const enPantalla = ambito.filter(f => !f.dormidaPorEstado)
+console.log('  Activas filtra `!vaEnDormidas(c)`, y `churn_confirmado` es una de sus')
+console.log('  tres condiciones, así que la respuesta correcta es NINGUNA. Si sale')
+console.log('  alguna, el filtro de la pantalla está roto — eso es el hallazgo.')
+console.log(`\n  → ${enPantalla.length === 0
+  ? 'NINGUNA. El filtro de Activas hace su trabajo.'
+  : `*** ${enPantalla.length} SE VEN EN ACTIVAS. Revisar \`vaEnDormidas\`.`}`)
+
+/* ── B · DONDE SÍ PUEDE HABER TRABAJO: la columna `estado` ───────────────── */
+console.log('\n  ' + '-'.repeat(72))
+console.log('  B · LA COLUMNA `estado` — aquí es donde puede quedar trabajo\n')
+const estadoMiente = ambito.filter(f => !f.dormidaPorEstado)
+const yaMovidas    = ambito.filter(f => f.dormidaPorEstado)
+console.log(`  ya con estado hibernacion/cancelado : ${yaMovidas.length}`)
+console.log(`  con estado todavía activo/en_riesgo : ${estadoMiente.length}`
+  + (estadoMiente.length ? '   ← candidatas' : ''))
+if (estadoMiente.length) {
+  console.log(`  MRR que saldría de la cartera viva  : ${pesos(estadoMiente.reduce((s, f) => s + f.mrr, 0))}`)
+}
 
 const tabla = (etq, xs, nota) => {
-  console.log(`  ${etq} — ${xs.length} cuenta(s) · ${pesos(xs.reduce((s, f) => s + f.mrr, 0))}`)
+  console.log(`\n  ${etq} — ${xs.length} cuenta(s) · ${pesos(xs.reduce((s, f) => s + f.mrr, 0))}`)
   console.log(`    ${nota}`)
-  if (!xs.length) { console.log('    (ninguna)\n'); return }
-  console.log('    %s %s %s %s %s'.replace(/%s/g, () => '')
-    + 'CONS  EMPRESA                             ASESOR      ESTADO       MRR  TOP')
+  if (!xs.length) { console.log('    (ninguna)'); return }
+  console.log('    CONS  EMPRESA                             ASESOR      ESTADO           MRR')
   for (const f of xs) {
     console.log(`    ${String(f.cons ?? '—').padEnd(5)} ${f.empresa.slice(0, 35).padEnd(35)} `
-      + `${String(f.asesor).slice(0, 11).padEnd(11)} ${String(f.estado).padEnd(9)} `
-      + `${pesos(f.mrr).padStart(9)}  ${f.esTop ? 'TOP' : ''}`)
+      + `${String(f.asesor).slice(0, 11).padEnd(11)} ${String(f.estado).padEnd(11)} `
+      + `${pesos(f.mrr).padStart(9)}`)
   }
-  console.log('')
 }
 
-tabla('① LAS DOS PUERTAS (GRC + Análisis DATA)', dos,
-  'Baja SUSTENTADA por dos fuentes independientes. Estas se pueden mover.')
-tabla('② SÓLO Análisis DATA', soloC,
+tabla('① LAS DOS PUERTAS (GRC + Análisis DATA)',
+  estadoMiente.filter(f => f.grc && f.cancel),
+  'Baja SUSTENTADA por dos fuentes independientes. Éstas se pueden mover.')
+tabla('② SÓLO Análisis DATA',
+  estadoMiente.filter(f => !f.grc && f.cancel),
   'La cancelación la escribió una persona en el reporte semanal. Fuente fuerte.')
-tabla('③ SÓLO el label del GRC', soloG,
-  '⚠️ AQUÍ ESTÁ EL RIESGO. Zoho marca «Churn confirmado» todo contrato que aún '
-  + 'no factura.\n    Hay que corroborar una por una ANTES de apagarlas.')
+tabla('③ SÓLO el label del GRC',
+  estadoMiente.filter(f => f.grc && !f.cancel),
+  '⚠️ AQUÍ ESTÁ EL RIESGO. Corroborar una por una ANTES de apagarlas.')
 
-/* CONTROL: UN CERO AQUÍ SÓLO VALE SI SE SABE CUÁNTAS HAY EN TOTAL.
-   Si el corte sale vacío puede ser que la cartera esté limpia… o que el cruce
-   por nombre no cruce nada. Se cuenta sobre TODOS los estados: las que ya están
-   en `hibernacion`/`cancelado` son el trabajo YA hecho, y su existencia prueba
-   que el cruce funciona. [[feedback-cero-sin-medicion]] [[feedback-probar-al-reves]] */
-console.log('  ' + '-'.repeat(72))
-const { data: todos } = await sb.supabaseAdmin
-  .from('cuentas')
-  .select('consecutivo, empresa, estado')
-  .limit(2000)
-if (todos) {
-  const marcadas = todos.filter(c => {
-    const n = normalizarNombre(c.empresa)
-    return NOMBRES_CHURN_GRC.has(n) || NOMBRES_CANCELACION.has(n)
-  })
-  const porEstado = {}
-  for (const c of marcadas) porEstado[c.estado ?? '?'] = (porEstado[c.estado ?? '?'] ?? 0) + 1
-  console.log(`\n  CONTROL · cuentas de la cartera marcadas por alguna de las dos puertas,`)
-  console.log(`  en CUALQUIER estado: ${marcadas.length} de ${todos.length}`)
-  for (const [e, n] of Object.entries(porEstado).sort((a, b) => b[1] - a[1])) {
-    console.log(`      ${String(e).padEnd(12)} ${String(n).padStart(4)}`
-      + (e === 'hibernacion' || e === 'cancelado' ? '   ← ya movidas' : ''))
-  }
-  if (marcadas.length === 0) {
-    console.log('\n  *** NI UNA SOLA en ningún estado. Eso NO es «la cartera está limpia»:')
-    console.log('  es que el cruce por nombre no está cruzando. NO concluyas un cero.')
-  } else if (alcance.length === 0) {
-    console.log('\n  El cruce SÍ funciona (hay cuentas marcadas), así que el cero de arriba')
-    console.log('  es un cero MEDIDO: el trabajo ya estaba hecho en cortes anteriores.')
-  }
+/* ── CONTROL DEL CERO ────────────────────────────────────────────────────── */
+console.log('\n  ' + '-'.repeat(72))
+console.log('  CONTROL DEL CERO — un cero sin medición no es un cero\n')
+console.log(`  cuentas marcadas por alguna puerta, en CUALQUIER estado: ${marcadas.length} de ${filas.length}`)
+const porEstado = {}
+for (const f of marcadas) porEstado[f.estado ?? '?'] = (porEstado[f.estado ?? '?'] ?? 0) + 1
+for (const [e, n] of Object.entries(porEstado).sort((a, b) => b[1] - a[1])) {
+  console.log(`      ${String(e).padEnd(12)} ${String(n).padStart(4)}`
+    + (e === 'hibernacion' || e === 'cancelado' ? '   ← ya movidas' : ''))
+}
+console.log(`      de ésas, TOP: ${marcadas.filter(f => f.esTop).length}`)
+if (marcadas.length === 0) {
+  console.log('\n  *** NI UNA SOLA en ningún estado. Eso NO es «la cartera está limpia»:')
+  console.log('  es que el cruce por nombre no está cruzando. NO concluyas un cero.')
+} else if (estadoMiente.length === 0) {
+  console.log('\n  El cruce SÍ funciona, así que el cero de arriba es un cero MEDIDO:')
+  console.log('  el trabajo ya estaba hecho en cortes anteriores.')
 }
 
-console.log('\n  LO QUE YA PASA HOY, SIN TOCAR NADA:')
-console.log('  estas cuentas YA SE VEN en Dormidas. `app/cuentas/dormidas/page.tsx`')
-console.log('  filtra por `churn_confirmado || cancelacion_reportada` además de por')
-console.log('  `estado`, por la regla de dirección del 9 sep 2026. Lo que falta es')
-console.log('  que SALGAN de Activas, y eso sí cambia el MRR de la cartera viva,')
-console.log('  los conteos por asesor, las alertas y la población del TOP.')
-console.log('\n  NINGUNA CUENTA SE BORRA. Una baja es pasar a `hibernacion`.')
-console.log('  [[feedback-conciliacion-churn]]')
-
-/* El corte se GUARDA porque deja de ser reproducible en cuanto se ejecute:
-   al mover una cuenta a `hibernacion`, el TOP se recalcula sobre las que
-   quedan. Sin este archivo no habría con qué justificar la decisión después. */
+/* El corte se GUARDA: es la evidencia de la decisión, y una vez ejecutada la
+   cuenta ya no está donde el corte la vio. */
 const salida = path.join(RAIZ, 'data', 'cortes-top-churn')
 fs.mkdirSync(salida, { recursive: true })
-const sello = `${mapa.mes}`.replace(/[^\w-]/g, '_')
+const sello = `${mapa.mes}`.replace(/[^\w-]/g, '_') + (SOLO_TOP ? '' : '-todas')
 const destino = path.join(salida, `top-churn-${sello}.json`)
 fs.writeFileSync(destino, JSON.stringify({
-  mes: mapa.mes, n_top: N_TOP, poblacion_top: top.size, cuentas_vivas: data.length,
+  mes: mapa.mes, solo_top: SOLO_TOP, cuentas_leidas: filas.length,
+  top_ranges: TOP_RANGES,
   grc_nombres: NOMBRES_CHURN_GRC.size, cancel_nombres: NOMBRES_CANCELACION.size,
-  solo_top: SOLO_TOP,
-  dos_puertas: dos, solo_analisis_data: soloC, solo_label_grc: soloG,
+  marcadas_total: marcadas.length, se_ven_en_activas: enPantalla.length,
+  ya_movidas: yaMovidas.length,
+  candidatas: estadoMiente,
 }, null, 2), 'utf8')
-console.log(`\n  corte guardado en data/cortes-top-churn/top-churn-${sello}.json`)
-console.log('  (es la evidencia: el TOP cambia en cuanto se mueva una cuenta)\n')
+console.log(`\n  corte guardado en data/cortes-top-churn/top-churn-${sello}.json\n`)

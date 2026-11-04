@@ -1,12 +1,16 @@
 {
   "mes": "Octubre",
-  "n_top": 25,
-  "poblacion_top": 25,
-  "cuentas_vivas": 194,
+  "solo_top": true,
+  "cuentas_leidas": 224,
+  "top_ranges": {
+    "F": 46,
+    "D": 38,
+    "C": 43
+  },
   "grc_nombres": 474,
   "cancel_nombres": 93,
-  "solo_top": true,
-  "dos_puertas": [],
-  "solo_analisis_data": [],
-  "solo_label_grc": []
+  "marcadas_total": 26,
+  "se_ven_en_activas": 0,
+  "ya_movidas": 5,
+  "candidatas": []
 }

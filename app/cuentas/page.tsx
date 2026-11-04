@@ -14,6 +14,7 @@ import CustomSelect, { type SelectOption } from '@/components/CustomSelect'
 import type { Cuenta, Asesor, Semaforo } from '@/lib/types'
 import { getSemaforoCuenta, formatMXN } from '@/lib/types'
 import { tonoSobreClaro } from '@/lib/contraste'
+import { isTopCustomer } from '@/lib/cuenta-top'
 
 const ASESORES: Asesor[] = ['Fátima', 'Dan', 'Erick']
 // SIN opción 'inactivo' a propósito. Esta pantalla excluye por diseño las
@@ -30,32 +31,10 @@ const SEMAFOROS: Array<{ value: Semaforo; label: string }> = [
   { value: 'verde',    label: 'Verde'    },
 ]
 
-/**
- * Rangos del concentrado original "Top Customer.xlsx": los consecutivos se
- * asignaron en bloque (F1-F46, D1-D38, C1-C43) al importar ese Excel, así que
- * el rango equivale a "venía en la lista Top Customer".
- */
-const TOP_RANGES: Record<string, number> = { F: 46, D: 38, C: 43 }
-
-/**
- * Cuentas TOP dadas de alta DESPUÉS de aquel concentrado.
- *
- * El rango por sí solo no puede expresarlas: una cuenta nueva siempre recibe un
- * consecutivo por encima del bloque (TATSA es D59) y quedaría fuera de TOP para
- * siempre. Ampliar el rango tampoco sirve — subir D a 59 marcaría como TOP a
- * D39-D58, que no lo son. Por eso van enumeradas, con su razón.
- */
-const TOP_EXTRA: Record<string, string> = {
-  D59: 'TATSA — alta 9 sep 2026 por instrucción de dirección. Cuenta TOP: 8 sitios con Callpicker, 11 DIDs, red de 10 puntos comerciales.',
-}
-
-function isTopCustomer(consecutivo: string | null): boolean {
-  if (!consecutivo) return false
-  if (TOP_EXTRA[consecutivo]) return true
-  const prefix = consecutivo[0]
-  const num = parseInt(consecutivo.slice(1), 10)
-  return !!TOP_RANGES[prefix] && num >= 1 && num <= TOP_RANGES[prefix]
-}
+/* `TOP_RANGES`, `TOP_EXTRA` e `isTopCustomer` VIVÍAN AQUÍ como locales, así que
+   nada fuera de esta pantalla podía preguntar si una cuenta es TOP sin
+   reescribir la regla. Están en `lib/cuenta-top.ts` y se importan arriba: el
+   corte de Churn usa la MISMA función, no una copia. [[feedback-fuente-unica-cuentas]] */
 
 type DataWarning = 'FALTA_TC' | 'FALTA_HS' | null
 
