@@ -1,45 +1,39 @@
 -- ════════════════════════════════════════════════════════════════════════
--- RLS · SEGUNDA RONDA (3 nov 2026)
+-- RLS · SEGUNDA RONDA (3 nov 2026) — CERRADA SIN TOCAR NADA
 --
--- Supabase volvio a avisar «Table publicly accessible — Row-Level Security
--- is not enabled», con fecha 31 oct 2026, DESPUES de la ronda del 21 oct.
--- El aviso sigue sin decir que tabla.
+-- Supabase aviso «Table publicly accessible — Row-Level Security is not
+-- enabled», con fecha 31 oct 2026, DESPUES de la ronda del 21 oct. Este
+-- archivo nacio proponiendo cuatro `ALTER TABLE`. **El catalogo los
+-- desmintio**: no hacia falta ninguno. Se conserva el diagnostico, que es
+-- lo reutilizable, y se deja escrito el resultado para que la proxima vez
+-- se empiece por aqui y no por la hipotesis.
 --
--- POR QUE LAS SONDAS NO LA ENCONTRARON, que es la leccion de esta ronda:
--- `revisa-rls.py` y `revisa-rls-escritura.py` dieron las dos verde. Miden
--- desde fuera con la llave publica, y desde fuera hay un caso que NO se
--- puede distinguir:
+-- LO QUE DEVOLVIO EL CATALOGO (3 nov 2026, SQL Editor del proyecto):
 --
---     · tabla con RLS puesto           -> 200 con lista vacia
---     · tabla SIN GRANT para `anon`    -> 401 / 42501
+--   · pg_tables con rowsecurity IS FALSE ......... CERO filas.
+--     Las 25 tablas de `public` tienen RLS puesto, `uso_dashboard` y las
+--     tres `wa_*` incluidas. Mi hipotesis era que esas cuatro lo tenian
+--     apagado: era FALSA.
+--   · pg_policies hacia `public` / `anon` ........ CERO filas.
+--     La trampa de octubre (`service_role_all` al rol `public`) no se ha
+--     repetido. Ningun DROP POLICY que hacer.
 --
--- En el segundo caso la puerta la cierra el PERMISO, no el RLS, y el RLS
--- puede estar apagado. El INSERT tampoco desempata: contesta 42501 en los
--- dos casos. La sonda llamaba «protegidas» a esas tablas — una afirmacion
--- que nunca se habia medido. Ya no: ahora las separa y dice
--- «RLS NO COMPROBABLE — la cierra el GRANT».
+-- POR QUE LA SONDA NO PODIA SABERLO, que sigue siendo la leccion:
+-- `uso_dashboard` y las `wa_*` contestan 401/42501 porque `anon` no tiene
+-- GRANT sobre ellas. Ese error sale IGUAL con RLS puesto y sin el, y el
+-- INSERT tampoco desempata. Desde fuera ese caso es indecidible — por eso
+-- las sondas ahora dicen «RLS NO COMPROBABLE — la cierra el GRANT» y «NO
+-- CONCLUYE» en vez de «protegida». Decian que si y no lo habian medido.
 --
--- Medido el 3 nov 2026, son SEIS objetos, y dos son vistas (las vistas no
--- llevan RLS, asi que quedan fuera):
---
---     uso_dashboard          4,551 filas   <- la grande
---     wa_conversaciones          1 fila
---     wa_mensajes                1 fila
---     wa_senales                 0 filas
---     vista_riesgo                          (vista — no aplica)
---     vista_semaforo_asesor                 (vista — no aplica)
---
--- POR QUE ESTO NO ROMPE EL TABLERO: `uso_dashboard` la tocan SOLO rutas de
--- servidor con `supabaseAdmin` (llave secreta, que ignora RLS) —
--- app/api/analytics/uso/route.ts y app/api/analytics/pageview/route.ts — y
--- las tres `wa_*` no aparecen en una sola linea del repo: las escribe un
--- proceso externo, tambien con la llave secreta.
+-- Y OJO CON EL AVISO: el correo es un DIGESTO SEMANAL y trae fecha de
+-- corte («Issues as of 31 Oct»). No es el estado de hoy. Lo que decide es
+-- Advisors en el panel, o estas dos consultas.
 -- ════════════════════════════════════════════════════════════════════════
 
 
--- ── 1 · EL DIAGNOSTICO QUE DESDE FUERA NO SE PUEDE HACER ────────────────
--- Correr ESTO PRIMERO y leerlo. Es la unica fuente que dice de verdad
--- quien tiene RLS apagado. Lo que salga aqui es lo que marca el aviso.
+-- ── 1 · QUIEN TIENE RLS APAGADO ─────────────────────────────────────────
+-- La unica fuente que lo dice. Correr SIEMPRE esto primero: es lo que
+-- marca el aviso, y desde fuera no se puede averiguar.
 SELECT tablename, rowsecurity
   FROM pg_tables
  WHERE schemaname = 'public'
@@ -47,13 +41,10 @@ SELECT tablename, rowsecurity
  ORDER BY tablename;
 
 
--- ── 2 · LA TRAMPA DEL 21 DE OCTUBRE, QUE HAY QUE VOLVER A MIRAR ─────────
--- Una politica EXISTE aunque RLS este apagado; ahi simplemente no se
--- aplica. Al encender RLS se ACTIVA: el aviso de Supabase se calla y la
--- puerta sigue abierta — el peor de los dos mundos, porque ahora ademas
--- parece arreglado. En octubre era `service_role_all` concedida al rol
--- `public`, con cmd = ALL y qual = true.
---
+-- ── 2 · LA TRAMPA DEL 21 DE OCTUBRE ─────────────────────────────────────
+-- Una politica EXISTE aunque RLS este apagado; ahi no se aplica. Al
+-- encender RLS se ACTIVA: el aviso se calla y la puerta sigue abierta — el
+-- peor de los dos mundos, porque ahora ademas parece arreglado.
 -- CUALQUIER fila que salga aqui es una politica abierta a todo el mundo,
 -- tenga el nombre que tenga. Mirarla ANTES de activar nada.
 SELECT tablename, policyname, cmd, roles, qual
@@ -63,20 +54,35 @@ SELECT tablename, policyname, cmd, roles, qual
  ORDER BY tablename, policyname;
 
 
--- ── 3 · CERRAR ──────────────────────────────────────────────────────────
--- Si el paso 1 saca mas tablas que estas cuatro, anadirlas aqui: la lista
--- la manda el catalogo, no esta copia. Y si el paso 2 saco alguna fila,
--- resolverla primero con DROP POLICY, o activar RLS no cerrara nada.
-ALTER TABLE public."uso_dashboard"     ENABLE ROW LEVEL SECURITY;  -- 4,551 filas
-ALTER TABLE public."wa_conversaciones" ENABLE ROW LEVEL SECURITY;  -- 1 fila
-ALTER TABLE public."wa_mensajes"       ENABLE ROW LEVEL SECURITY;  -- 1 fila
-ALTER TABLE public."wa_senales"        ENABLE ROW LEVEL SECURITY;  -- vacia
+-- ── 3 · CERRAR — NO HIZO FALTA EN ESTA RONDA ────────────────────────────
+-- Quedan comentados a proposito. Si el paso 1 vuelve a sacar filas, la
+-- lista la manda ESE resultado, no esta copia; y si el paso 2 saca alguna,
+-- se resuelve con DROP POLICY primero o activar RLS no cerrara nada.
+--
+-- ALTER TABLE public."uso_dashboard"     ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public."wa_conversaciones" ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public."wa_mensajes"       ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public."wa_senales"        ENABLE ROW LEVEL SECURITY;
 
 
--- ── 4 · COMPROBAR, EN ESTE ORDEN ────────────────────────────────────────
--- a) Aqui mismo: el paso 1 tiene que salir VACIO.
--- b) Y desde fuera, que es lo que de verdad cierra el asunto:
---      python scripts/revisa-rls.py
---      python scripts/revisa-rls-escritura.py
---    Las cuatro tienen que pasar de «RLS NO COMPROBABLE» a «protegida».
--- c) Que el tablero sigue vivo: abrir /dashboard y el modulo de uso.
+-- ── 4 · «RLS PUESTO Y CERO POLITICAS» NO ES UN FALLO AQUI ───────────────
+-- El catalogo muestra 8 tablas con RLS y ninguna politica, o sea negar
+-- todo. Eso es lo que se quiere, y esta comprobado en el repo, no supuesto:
+--
+--   · `lib/supabase.ts` exporta un cliente anonimo (`supabase`) que **no
+--     importa NADIE**: cero coincidencias de `import { supabase }`.
+--   · Todo consulta con `supabaseAdmin`, que usa la llave secreta e ignora
+--     RLS por diseno.
+--   · Empirico: `uso_dashboard` lleva 4,551 filas y las dos rutas de
+--     analitica siguen escribiendo.
+--
+-- O sea: NO hay que crear politicas `authenticated` «por si acaso». Una
+-- politica de mas es exactamente como empezo la fuga de octubre. El dia
+-- que una pantalla lea desde el navegador, se le escribe la suya entonces.
+
+
+-- ── 5 · COMPROBAR DESDE FUERA ───────────────────────────────────────────
+--   python scripts/revisa-rls.py
+--   python scripts/revisa-rls-escritura.py
+-- Las cuatro sin GRANT seguiran diciendo «no concluye», y eso es correcto:
+-- quien las zanja es el paso 1.
