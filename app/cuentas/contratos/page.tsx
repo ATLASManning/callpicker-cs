@@ -102,6 +102,76 @@ const VENTANAS: { id: Ventana; label: string }[] = [
   { id: 'sinFecha', label: 'No se sabe (sin fecha ni plazo libre)' },
 ]
 
+/* ── EL ORDEN DE LA TABLA ──────────────────────────────────────────────────
+ *
+ * TRES COLUMNAS NO SE ORDENAN COMO TEXTO, Y SON LAS TRES QUE MÁS SE MIRAN.
+ *
+ * 1. **Consecutivo.** «C18», «C3», «C9» en alfabético salen C18, C3, C9: el
+ *    18 antes que el 3. Y el consecutivo no es una etiqueta cualquiera —su
+ *    prefijo marca al asesor—, así que se ordena primero por la letra y
+ *    después por el número de verdad. [[altas-cuentas]]
+ * 2. **Plazo.** Los valores son «12 meses», «18 meses», «24 meses», «36
+ *    meses», «6 meses», «3 parcialidades» y «libre». Alfabético da 12, 18,
+ *    24, 3, 36, 6 — que no es ningún orden. Se ordena por MESES, y lo que no
+ *    se mide en meses («libre», «parcialidades») va detrás, junto, en vez de
+ *    colarse entre el 24 y el 36 fingiendo una duración que no tiene.
+ * 3. **Estatus.** Alfabéticamente «En proceso» va antes que «Firmado» y «Sin
+ *    estatus» antes que los dos. El orden que significa algo es el de
+ *    `ORDEN_ESTADO`, que es el mismo de la gráfica: lo cerrado primero y la
+ *    ausencia de captura al final.
+ *
+ * Las fechas sí se ordenan como texto porque vienen en ISO, donde el orden
+ * alfabético ES el cronológico. Si algún día llegaran en dd/mm/aaaa, esto
+ * dejaría de ser cierto en silencio.
+ */
+type CampoOrden = 'cuenta' | 'consecutivo' | 'estado' | 'plazo'
+                | 'inicio' | 'fin' | 'vence' | 'asesor' | 'doc'
+
+const MESES_DE_PLAZO = /^(\d+)\s*mes/i
+
+const COLUMNAS: {
+  id: CampoOrden
+  label: string
+  /** `null` = el dato FALTA, y por eso va siempre al final. No es un extremo. */
+  valor: (c: ContratoCruzado) => string | number | null
+  ayuda: string
+}[] = [
+  { id: 'cuenta', label: 'Cuenta', ayuda: 'alfabético',
+    valor: c => c.cuenta },
+  { id: 'consecutivo', label: 'Consec.', ayuda: 'por asesor y número',
+    valor: c => {
+      const v = (c.consecutivo ?? '').trim()
+      if (!v) return null
+      const m = v.match(/^([A-Za-z]*)(\d+)/)
+      return m ? `${m[1].toUpperCase()}${m[2].padStart(6, '0')}` : v.toUpperCase()
+    } },
+  { id: 'estado', label: 'Estatus', ayuda: 'firmado primero, sin captura al final',
+    valor: c => ORDEN_ESTADO.indexOf(c.estado) },
+  { id: 'plazo', label: 'Plazo', ayuda: 'por meses; «libre» y parcialidades al final',
+    valor: c => {
+      const v = (c.plazo ?? '').trim()
+      if (!v) return null
+      const m = v.match(MESES_DE_PLAZO)
+      /* El `1e6 +` manda lo que no se mide en meses detrás de cualquier plazo
+         real, sin inventarle una duración. */
+      return m ? Number(m[1]) : 1e6 + v.charCodeAt(0)
+    } },
+  { id: 'inicio', label: 'Inicio', ayuda: 'cronológico', valor: c => c.inicio },
+  { id: 'fin',    label: 'Fin',    ayuda: 'cronológico', valor: c => c.fin },
+  { id: 'vence',  label: 'Vence',  ayuda: 'lo que vence antes, arriba',
+    valor: c => c.diasParaVencer },
+  { id: 'asesor', label: 'Asesor', ayuda: 'alfabético',
+    valor: c => c.asesor?.trim() || null },
+  { id: 'doc',    label: 'Doc.',   ayuda: 'primero los que no tienen documento',
+    /* Ordena por el HUECO, que es lo que se busca aquí: quién no tiene el
+       contrato subido. Por eso 0 = sin documento. */
+    valor: c => (c.gdoc && /^https?:\/\//.test(c.gdoc) ? 1 : 0) },
+]
+
+/** El orden de salida: lo que vence antes, arriba. Es el que ya tenía. */
+const ORDEN_INICIAL: { campo: CampoOrden; dir: 'asc' | 'desc' } =
+  { campo: 'vence', dir: 'asc' }
+
 const pesos = (n: number | null) =>
   n === null || n === undefined ? '—'
     : new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(n)
@@ -149,6 +219,13 @@ export default function ContratosPage() {
   const [fVendedor, setFVendedor] = useState('')
   const [fPlazo, setFPlazo] = useState('')
   const [fVentana, setFVentana] = useState<Ventana>('')
+  const [orden, setOrden] = useState(ORDEN_INICIAL)
+
+  /** Un clic ordena por esa columna; otro clic en la MISMA la invierte. */
+  const ordenaPor = (campo: CampoOrden) =>
+    setOrden(o => o.campo === campo
+      ? { campo, dir: o.dir === 'asc' ? 'desc' : 'asc' }
+      : { campo, dir: 'asc' })
 
   useEffect(() => {
     fetch('/api/contratos')
@@ -247,15 +324,27 @@ export default function ContratosPage() {
   }
 
   const lista = useMemo(() => {
-    /* Los que vencen primero arriba; los que no tienen fecha, al final — no
-       mezclados entre medias como si vencieran en el año 0. */
+    const col = COLUMNAS.find(c => c.id === orden.campo) ?? COLUMNAS[6]
+    const signo = orden.dir === 'asc' ? 1 : -1
     return [...base].sort((a, b) => {
-      if (a.diasParaVencer === null && b.diasParaVencer === null) return a.cuenta.localeCompare(b.cuenta, 'es')
-      if (a.diasParaVencer === null) return 1
-      if (b.diasParaVencer === null) return -1
-      return a.diasParaVencer - b.diasParaVencer
+      const va = col.valor(a)
+      const vb = col.valor(b)
+      /* LOS HUECOS SIEMPRE AL FINAL, EN LOS DOS SENTIDOS. Si el `null` se
+         ordenara con el resto, al pedir «fin» descendente los 42 contratos sin
+         fecha encabezarían la tabla como si fueran los que vencen más tarde.
+         Un dato que falta no es un valor extremo. [[feedback-cero-sin-medicion]] */
+      if (va === null && vb === null) return a.cuenta.localeCompare(b.cuenta, 'es')
+      if (va === null) return 1
+      if (vb === null) return -1
+      const d = typeof va === 'number' && typeof vb === 'number'
+        ? va - vb
+        : String(va).localeCompare(String(vb), 'es', { numeric: true })
+      /* Empate resuelto por nombre, SIEMPRE ascendente: si el desempate
+         también se invirtiera, dos clics en «Estatus» reordenarían a los 42
+         firmados entre sí sin que nada lo explique. */
+      return d !== 0 ? d * signo : a.cuenta.localeCompare(b.cuenta, 'es')
     })
-  }, [base])
+  }, [base, orden])
 
   /* Las seis cajas, desde `cajonVence` para que sean las mismas que el filtro
      y para que SUMEN el total. Se cuentan sobre `base`, o sea sobre lo
@@ -669,22 +758,64 @@ export default function ContratosPage() {
                 ? `Contratos filtrados (${lista.length} de ${m.total})`
                 : `Todos los contratos (${lista.length})`}
             </h3>
+            {/* EL SUBTÍTULO DICE EL ORDEN VIGENTE, NO EL DE FÁBRICA. Decía
+                «ordenados por lo que vence antes» siempre; en cuanto se puede
+                reordenar, esa frase se vuelve falsa en el primer clic. */}
             <p style={{ fontSize: 11.5, color: TX_BAJO }}>
-              ordenados por lo que vence antes
+              ordenados por <strong style={{ color: TX_MED }}>
+                {(COLUMNAS.find(c => c.id === orden.campo) ?? COLUMNAS[6]).label.toLowerCase()}
+              </strong>
+              {orden.dir === 'asc' ? ' ascendente' : ' descendente'}
+              {' · '}{(COLUMNAS.find(c => c.id === orden.campo) ?? COLUMNAS[6]).ayuda}
+              {orden.campo !== ORDEN_INICIAL.campo || orden.dir !== ORDEN_INICIAL.dir ? (
+                <> · <button onClick={() => setOrden(ORDEN_INICIAL)}
+                             style={{ background: 'none', border: 'none', padding: 0,
+                                      font: 'inherit', color: '#1D6CAA', fontWeight: 700,
+                                      cursor: 'pointer', textDecoration: 'underline' }}>
+                  volver al orden de salida
+                </button></>
+              ) : null}
             </p>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', fontSize: 12.5, borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: LAVADO }}>
-                  {['Cuenta', 'Consec.', 'Estatus', 'Plazo', 'Inicio', 'Fin', 'Vence', 'Asesor', 'Doc.']
-                    .map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: TX_BAJO,
-                                           fontWeight: 700, fontSize: 11, textTransform: 'uppercase',
-                                           borderBottom: `1px solid ${LINEA}`, whiteSpace: 'nowrap' }}>
-                        {h}
+                  {COLUMNAS.map(col => {
+                    const activa = orden.campo === col.id
+                    return (
+                      /* `aria-sort` en el <th> y un <button> dentro: es lo que
+                         hace que un lector de pantalla anuncie «ordenable» y
+                         diga en qué sentido está. Un <th> con `onClick` se
+                         oye como un encabezado mudo y no se alcanza con el
+                         teclado. */
+                      <th key={col.id} scope="col"
+                          aria-sort={activa ? (orden.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                          style={{ textAlign: 'left', padding: 0,
+                                   borderBottom: `1px solid ${LINEA}`, whiteSpace: 'nowrap' }}>
+                        <button
+                          onClick={() => ordenaPor(col.id)}
+                          title={`Ordenar por ${col.label.toLowerCase()} — ${col.ayuda}`}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 4, width: '100%',
+                            padding: '8px 10px', background: 'none', border: 'none',
+                            cursor: 'pointer', font: 'inherit', textAlign: 'left',
+                            /* La columna activa en MARINO y la inactiva en el
+                               gris de siempre: el triángulo solo no basta —son
+                               8 píxeles— y el color solo tampoco, porque es
+                               una diferencia de tono. Van los dos. */
+                            color: activa ? MARINO : TX_BAJO,
+                            fontWeight: 700, fontSize: 11, textTransform: 'uppercase',
+                            letterSpacing: '0.02em',
+                          }}>
+                          {col.label}
+                          <span aria-hidden="true" style={{ fontSize: 9, opacity: activa ? 1 : 0.35 }}>
+                            {activa ? (orden.dir === 'asc' ? '▲' : '▼') : '▲'}
+                          </span>
+                        </button>
                       </th>
-                    ))}
+                    )
+                  })}
                 </tr>
               </thead>
               <tbody>
