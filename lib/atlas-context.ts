@@ -15,7 +15,7 @@ import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { esConElCliente, etiquetaTipo } from './reuniones-tipo'
 import { lineaSeguimientosKAM } from './seguimiento-tipos'
 import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
-import { REPORTE_S26_OCT_2026 } from '@/app/churn/reporte-actual'
+import { REPORTE_S27_OCT_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
 import { seccionesPlanesPago } from './planes-pago'
@@ -775,7 +775,7 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   modulos.push('churn-grc')
 
   // Corte vigente de Gross Revenue Churn — misma fuente que renderiza el módulo.
-  const rep = REPORTE_S26_OCT_2026
+  const rep = REPORTE_S27_OCT_2026
   if (rep.grc) {
     const evo = rep.grc.evolucion
       .map(e => `${e.mes} ${e.pct}%${e.anterior !== undefined ? ` (ant. ${e.anterior}%)` : ''}`)
@@ -835,10 +835,12 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     /* UN CORTE QUE NO MIDE DOWNGRADES NO ES UN CORTE CON CERO DOWNGRADES.
        Sin esto, la rama de abajo le decía a Atlas «lista COMPLETA y CERRADA de
        0 clientes por $0 — no hay un cliente número 1», que es afirmar que no
-       hubo ninguno. La semana 26 sólo dice «no hay downgrades significativos en
-       la semana»: un juicio, sin cifra, y sobre la semana en vez del mes,
-       cuando la 25 reportó cuatro por $6,038.00 en ese mismo octubre.
-       [[feedback-cero-sin-medicion]] [[feedback-contexto-ia-sin-huecos]] */
+       hubo ninguno. Pasó con la semana 26 de octubre 2026, que decía «no hay
+       downgrades significativos en la semana»: un juicio, sin cifra, y sobre la
+       SEMANA en vez del mes, cuando otro corte del mismo mes sí los reportaba.
+       La rama es general: se activa con cualquier corte que no los mida, y no
+       se teclean aquí las cifras de ninguno. [[feedback-cero-sin-medicion]]
+       [[feedback-contexto-ia-sin-huecos]] */
     const downsNoReportados =
       rep.downgradeTotalReal === undefined && rep.downgrades.length === 0
     const cierreDowns = downsNoReportados

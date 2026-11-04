@@ -26,6 +26,25 @@ import path from 'node:path'
    no como `createJiti`, así que se coge del default. */
 const crear = jitiPkg.createJiti ?? jitiPkg
 const RAIZ = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
+/* EL ALIAS `@/` TAMBIÉN EN EL CARGADOR DE NODE, no sólo en jiti.
+   Este comprobador llevaba roto desde que `lib/planes-pago.ts` añadió
+   `import crudo from '@/data/planes-pago.json'`: la opción `alias` de jiti no
+   alcanza a un `.json`, que acaba en el `require` de Node, y reventaba con
+   MODULE_NOT_FOUND antes de comprobar nada. Un verificador que no arranca no es
+   un verificador que aprueba. [[feedback-verificar-antes-asegurar]]
+
+   Se parchea el resolvedor en vez de este import concreto para que cubra la
+   CLASE entera: cualquier `@/…` que aparezca mañana en la cadena del contexto.
+   [[feedback-proactividad-jose-manuel]] */
+const { default: Module } = await import('node:module')
+const resolverOriginal = Module._resolveFilename
+Module._resolveFilename = function (pedido, ...resto) {
+  if (typeof pedido === 'string' && pedido.startsWith('@/')) {
+    pedido = path.join(RAIZ, pedido.slice(2))
+  }
+  return resolverOriginal.call(this, pedido, ...resto)
+}
+
 const jiti = crear(fileURLToPath(import.meta.url), {
   alias: { '@': RAIZ },
   interopDefault: true,
@@ -68,13 +87,57 @@ const PROHIBIDO = [
    'cierra la lista de downgrades sin que el corte la haya medido'],
 ]
 
-/* Y lo que SÍ tiene que estar cuando el corte no los cuantifica. */
-const EXIGIDO = [
+/* QUÉ SE EXIGE DEPENDE DEL CORTE, y por eso se lee del corte en vez de
+   escribirse fijo. Este comprobador nació con la semana 26, que NO medía los
+   downgrades, y exigía la frase «EL CORTE NO LOS CUANTIFICA» siempre. En
+   cuanto llegó un corte que SÍ los mide (semana 27), el verificador se puso
+   rojo por hacer lo correcto: estaba comprobando el corte de entonces, no la
+   regla. La regla es que el bloque diga LO QUE EL CORTE SABE y calle lo que
+   no, y eso tiene dos caras. [[feedback-verificar-antes-asegurar]]
+
+   Se usa EXACTAMENTE la misma condición que `atlas-context.ts`, no una copia
+   tecleada: un espejo a mano deja de ser espejo. */
+const corte = await jiti.import(path.join(RAIZ, 'app/churn/reporte-actual.ts'))
+const REP = Object.values(corte).find(v => v && typeof v === 'object' && 'periodo' in v)
+if (!REP) {
+  console.log('  *** no encuentro el corte vigente en app/churn/reporte-actual.ts')
+  process.exit(1)
+}
+const SIN_MEDIR = REP.downgradeTotalReal === undefined && REP.downgrades.length === 0
+const CUBO = REP.downgrades
+  .filter(d => d.cliente.trimStart().startsWith('+'))
+  .reduce((s, d) => s + d.perdida, 0)
+
+/* Cuando el corte NO los mide: que lo diga y que prohíba el cero. */
+const EXIGIDO_SIN_MEDIR = [
   [/EL CORTE NO LOS CUANTIFICA/i,
    'decir con palabras que el corte no mide los downgrades'],
   [/NO respondas que hubo cero/i,
    'prohibirle al modelo contestar un cero'],
 ]
+
+/* Cuando SÍ los mide: que aparezca el total declarado y, si hay cubo de
+   cierre, que diga que ese dinero NO tiene nombre. Publicar un top como si
+   fuera el mes entero es el mismo error al revés. [[feedback-tablas-deben-cerrar]] */
+const TOTAL_TAL_CUAL = (REP.downgradeTotalReal ?? 0).toLocaleString('es-MX')
+const EXIGIDO_MEDIDO = [
+  /* El importe se compara FORMATEADO IGUAL que lo escribe `atlas-context.ts`
+     —`toLocaleString('es-MX')`, sin redondear—. Redondearlo aquí buscaba
+     «$31,188» en un bloque que dice «$31,187.97» y daba un rojo falso. */
+  [new RegExp('el corte declara \\$' + TOTAL_TAL_CUAL.replace(/[.]/g, '\\.'), 'i'),
+   `publicar el total declarado de downgrades ($${TOTAL_TAL_CUAL})`],
+  ...(CUBO > 0 ? [[
+    /NO tienen nombre en el corte: no los atribuyas a nadie/i,
+    'avisar de que el dinero del cubo de cierre no tiene nombre',
+  ]] : []),
+]
+
+const EXIGIDO = SIN_MEDIR ? EXIGIDO_SIN_MEDIR : EXIGIDO_MEDIDO
+console.log(`\n  corte vigente: ${REP.periodo} · downgrades `
+  + (SIN_MEDIR
+     ? 'NO medidos → se exige que el hueco esté DICHO'
+     : `medidos ($${(REP.downgradeTotalReal ?? 0).toLocaleString('es-MX')}), `
+       + `cubo $${CUBO.toLocaleString('es-MX')} → se exige total y aviso de cubo`))
 
 const RX_BLOQUE = /CHURN — CORTE VIGENTE[\s\S]*?(?=\n[A-ZÁÉÍÓÚÑ][^\n]{0,60}:\n|$)/
 
@@ -99,6 +162,25 @@ if (cazados === 0) {
 if (EXIGIDO.some(([rx]) => rx.test(TEXTO_VIEJO))) {
   console.log('  *** un patrón EXIGIDO ya pasaba con el texto viejo: no prueba nada.')
   process.exit(1)
+}
+
+/* SEGUNDO CONTROL NEGATIVO, para la rama de corte MEDIDO. Es el fallo que le
+   toca a esa rama: publicar el TOP como si fuera el mes entero, sin el total
+   declarado y sin decir que el resto no tiene nombre. Si los patrones de
+   `EXIGIDO_MEDIDO` pasaran con esto, no comprobarían nada.
+   [[feedback-probar-al-reves]] [[feedback-tablas-deben-cerrar]] */
+const TEXTO_TOP_COMO_MES =
+  'CHURN — CORTE VIGENTE (apartado Churn > ' + REP.periodo + ', al ' + REP.fecha + '):\n' +
+  '  Downgrades de ' + REP.periodo + ' — lista COMPLETA y CERRADA de 6 clientes.\n'
+if (!SIN_MEDIR) {
+  const pasan = EXIGIDO.filter(([rx]) => rx.test(TEXTO_TOP_COMO_MES)).length
+  if (pasan > 0) {
+    console.log(`  *** ${pasan} patrón(es) EXIGIDO pasan con el top publicado como el mes: no prueban nada.`)
+    process.exit(1)
+  }
+  const caza = PROHIBIDO.some(([rx]) => rx.test(TEXTO_TOP_COMO_MES))
+  console.log(`  control negativo (corte medido): los EXIGIDO rechazan el top-como-mes`
+    + (caza ? ' y un PROHIBIDO lo caza' : ''))
 }
 console.log('  control negativo ok · los patrones saben fallar')
 
@@ -140,7 +222,9 @@ for (const [etq, sesion] of SESIONES) {
   if (!cancel) fallos++
 
   const ok = PROHIBIDO.every(([rx]) => !rx.test(bloque)) && EXIGIDO.every(([rx]) => rx.test(bloque))
-  if (ok) console.log('  ok · el bloque dice lo que no sabe, en vez de un cero')
+  if (ok) console.log(SIN_MEDIR
+    ? '  ok · el bloque dice lo que no sabe, en vez de un cero'
+    : '  ok · el bloque publica el total del corte y marca el dinero sin nombre')
 }
 
 /* Y SE DICE SI LAS DOS SESIONES RECIBIERON DE VERDAD COSAS DISTINTAS. Con
@@ -157,7 +241,11 @@ console.log(tamanos.size === 1
 
 console.log('')
 if (fallos) {
-  console.log(`  *** ${fallos} problema(s). El modelo leería un cero que nadie midió.`)
+  console.log(`  *** ${fallos} problema(s). ` + (SIN_MEDIR
+    ? 'El modelo leería un cero que nadie midió.'
+    : 'El modelo leería el top como si fuera el mes entero.'))
   process.exit(1)
 }
-console.log('  Las dos sesiones reciben el hueco DICHO, no un cero.\n')
+console.log(SIN_MEDIR
+  ? '  Las dos sesiones reciben el hueco DICHO, no un cero.\n'
+  : '  Las dos sesiones reciben el total del corte y el aviso del cubo.\n')
