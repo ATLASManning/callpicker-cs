@@ -36,8 +36,8 @@ import { FilaApilada, ChartLegend, Segmentado } from '@/components/charts/primit
 import { useAsesorCompartido } from '@/lib/dash-filtros'
 import {
   BANDA, ORDEN_BANDA, BANDA_TRAMA, type Banda,
-  TX, FUENTE, MINIMOS, MOTION, CIAN, NAVY, BORDE, TABULAR,
-  ASESOR, SILVER, mxn, mxnCompacto,
+  TX, FUENTE, MINIMOS, MOTION, ACENTO, SUPERFICIE, BORDE, TABULAR,
+  ASESOR, mxn, mxnCompacto,
 } from '@/lib/chart-theme'
 
 export interface FilaSalud {
@@ -241,7 +241,7 @@ export default function SaludCarteraChart({ filas }: { filas: FilaSalud[] }) {
 
       {descuadre && (
         <p style={{ marginBottom: 8 }}>
-          <span style={{ background: 'transparent', color: CIAN[400], fontSize: FUENTE.etiqueta }}>
+          <span style={{ background: 'transparent', color: ACENTO, fontSize: FUENTE.etiqueta }}>
             Las bandas no cierran — {descuadre}. No te fíes de esta tarjeta hasta que cuadre.
           </span>
         </p>
@@ -253,7 +253,7 @@ export default function SaludCarteraChart({ filas }: { filas: FilaSalud[] }) {
           <div key={g.k}>
             <FilaApilada
               titulo={g.titulo}
-              acento={g.k === TODA ? TX.hi : (ASESOR[g.k] ?? SILVER[500])}
+              acento={g.k === TODA ? TX.hi : (ASESOR[g.k] ?? TX.low)}
               segmentos={segmentos(g)}
               total={escala === 'pct' ? Math.max(g.total, 1) : maxTotal}
               formato={fmt}
@@ -315,10 +315,10 @@ export default function SaludCarteraChart({ filas }: { filas: FilaSalud[] }) {
               <span key={m} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '5px 10px', borderRadius: 8,
-                background: 'rgba(57,171,216,0.10)', border: `1px solid rgba(57,171,216,0.35)`,
+                background: SUPERFICIE.aviso, border: `1px solid ${ACENTO}`,
                 color: TX.mid, fontSize: FUENTE.etiqueta,
               }}>
-                <span style={{ background: 'transparent', color: CIAN[400], fontWeight: 800, ...TABULAR }}>{n}</span>
+                <span style={{ background: 'transparent', color: ACENTO, fontWeight: 800, ...TABULAR }}>{n}</span>
                 {m}
               </span>
             ))}
@@ -330,7 +330,7 @@ export default function SaludCarteraChart({ filas }: { filas: FilaSalud[] }) {
       {detalle && sel && (
         <div className="dash-anima" style={{
           marginTop: 16, padding: 16, borderRadius: 12,
-          background: NAVY[900], border: `1px solid ${CIAN[500]}`,
+          background: SUPERFICIE.cebra, border: `1px solid ${ACENTO}`,
           animation: `dash-entra-y ${MOTION.normal}ms ${MOTION.ease} both`,
         }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
@@ -367,7 +367,7 @@ export default function SaludCarteraChart({ filas }: { filas: FilaSalud[] }) {
                   <tr key={f.id}>
                     <td style={{ padding: '6px 8px', borderBottom: `1px solid ${BORDE}` }}>
                       <Link href={`/cuentas/${f.id}`} className="hover:underline">
-                        <span style={{ background: 'transparent', color: CIAN[400], fontWeight: 700 }}>
+                        <span style={{ background: 'transparent', color: ACENTO, fontWeight: 700 }}>
                           {f.empresa}
                         </span>
                       </Link>
@@ -400,7 +400,7 @@ export default function SaludCarteraChart({ filas }: { filas: FilaSalud[] }) {
           {detalle.cuentas.length > 12 && (
             <button type="button" className="dash-foco" onClick={() => setVerTodas(v => !v)}
               style={{ marginTop: 10, background: 'transparent', border: 'none', cursor: 'pointer',
-                       color: CIAN[400], fontSize: FUENTE.etiqueta, fontWeight: 700,
+                       color: ACENTO, fontSize: FUENTE.etiqueta, fontWeight: 700,
                        minHeight: MINIMOS.areaClic, padding: 0 }}>
               {verTodas ? 'Ver sólo las 12 de más dinero' : `Ver las ${detalle.cuentas.length}`}
             </button>

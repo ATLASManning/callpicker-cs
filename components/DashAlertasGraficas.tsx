@@ -58,20 +58,20 @@ import { useAsesorCompartido } from '@/lib/dash-filtros'
 
 /* Todo sale del tema. Antes eran literales de este archivo y por eso el
    validador no los veía. */
-const PANEL  = TEMA.NAVY[700]
+const PANEL  = TEMA.SUPERFICIE.tarjeta
 const BORDER = TEMA.BORDE
 const TX_HI  = TEMA.TX.hi
 const TX_MID = TEMA.TX.mid
-const TX_LOW = TEMA.TX.low   /* plata-300: 7.65:1 sobre la tarjeta */
+const TX_LOW = TEMA.TX.low   /* 4.83:1 sobre la tarjeta blanca */
 
-/** AVISO: lo que antes iba en ámbar o rojo. La paleta cerrada no tiene ni uno
- *  ni otro, y el naranja es precisamente el color de alerta que fijó
- *  dirección. 6.25:1 sobre la tarjeta. */
-const AVISO = TEMA.CIAN[400]
+/** AVISO: lo que antes iba en ámbar o rojo. La paleta cerrada no tiene ni
+ *  uno ni otro. Era `CIAN[400]`, que sobre la tarjeta BLANCA mide 1.50:1;
+ *  desde el 4 nov 2026 es el acento azul, 5.56:1. */
+const AVISO = TEMA.ACENTO
 
-/** Todo texto de color va en un `<span>` que declara su propio `background`:
- *  `globals.css` fuerza a blanco cualquiera que no lo haga, y esto es una
- *  isla oscura. */
+/** El `background` de cada span era el escape de `.cp-card`. Esta tarjeta
+ *  ya no la lleva (4 nov 2026), pero se conserva: no estorba y el
+ *  detector lo cuenta como seguro. */
 const C = (color: string, extra: React.CSSProperties = {}): React.CSSProperties =>
   ({ color, background: 'transparent', ...extra })
 
@@ -118,12 +118,14 @@ const C = (color: string, extra: React.CSSProperties = {}): React.CSSProperties 
    distinguen cuando se separan 3.7.
    ══════════════════════════════════════════════════════════════════════════ */
 
-/** Las tres bandas, de menor a mayor riesgo. Separación medida: 11.1. */
-const BANDA_COLOR: Record<string, string> = {
-  bajo:  TEMA.SILVER[300],   /* 7.65:1 sobre la tarjeta */
-  medio: '#95CAE4',          /* 7.01:1 — interpolación OKLab plata→cian */
-  alto:  TEMA.CIAN[500],   /* 4.73:1 */
-}
+/** Las tres bandas, de menor a mayor riesgo.
+ *
+ *  ESTO ERA UNA PALETA GEMELA. Este mapa repetia a mano los tres tonos que
+ *  `TEMA.BANDA` ya declaraba, con el `#95CAE4` del medio escrito suelto. Al
+ *  voltear el modulo a claro, el tema se corrigio y esta copia se habria
+ *  quedado con los tonos de marino SIN QUE FALLARA NADA: tres rellenos
+ *  entre 1.24 y 2.63:1 sobre la tarjeta blanca. Ahora apunta al tema. */
+const BANDA_COLOR: Record<string, string> = TEMA.BANDA
 const BANDA_TITULO: Record<string, string> = {
   bajo:  'En orden o con oportunidad',
   medio: 'Falta información',
@@ -141,13 +143,21 @@ const ORDEN_BANDA = ['bajo', 'medio', 'alto']
 const BANDA_TRAMA: Record<string, boolean> = { bajo: false, medio: false, alto: true }
 
 const COLOR_ASESOR: Record<string, string> = TEMA.ASESOR
+/* Las tres clases son CATEGORICAS y se apilan: salen de los mismos tres
+   pasos medidos que las bandas (3.03 · 7.02 · 15.23:1 sobre blanco). Las
+   de antes eran cian, blanco y plata: sobre la tarjeta blanca median
+   2.63, 1.07 y 1.99:1 — dos de las tres, invisibles. */
 const COLOR_CLASE: Record<string, string> = {
-  riesgo:   TEMA.CIAN[500],
-  entrega:  TEMA.WHITE.soft,
-  analisis: TEMA.SILVER[500],
+  riesgo:   TEMA.BANDA.alto,
+  entrega:  TEMA.BANDA.bajo,
+  analisis: TEMA.BANDA.medio,
 }
-const GRIS  = TEMA.SILVER[500]
-const VERDE = TEMA.CIAN[400]   /* lo que antes era «bien» ahora es acento */
+/* El respaldo de un nombre que no este en el mapa. NO puede coincidir con
+   ningun color de serie: cuando valia SILVER[500] era exactamente el tono
+   de Fatima, y Erick --que no estaba en el mapa-- se pintaba igual que
+   ella. Un respaldo que se confunde con un dato es peor que no tenerlo. */
+const GRIS  = TEMA.TX.low
+const VERDE = TEMA.ACENTO
 
 const pesos = (n: number) => TEMA.mxn(n)
 const miles = (n: number) => TEMA.mxnCompacto(n)
@@ -452,12 +462,12 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
 
   const tooltip = {
     contentStyle: {
-      background: TEMA.NAVY[900], border: `1px solid ${BORDER}`,
+      background: TEMA.SUPERFICIE.tarjeta, border: `1px solid ${BORDER}`,
       borderRadius: 10, fontSize: TEMA.FUENTE.cuerpo,
     },
     labelStyle: { color: TX_HI, fontWeight: 700 },
     itemStyle: { color: TX_HI },
-    cursor: { fill: 'rgba(255,255,255,0.05)' },
+    cursor: { fill: 'rgba(16,53,93,0.06)' },
   }
 
   /** Devuelve los combos a su estado inicial. Lo llama el botón «restablecer»
@@ -583,7 +593,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
   )
 
   const Aviso = datos.falla ? (
-    <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.3)',
+    <div style={{ background: '#FFF7F7', border: `1px solid ${TEMA.ROJO_AVISO}`,
                   borderRadius: 10, padding: '9px 13px', marginBottom: 14 }}>
       <span style={C(AVISO, { fontSize: 11.5 })}>
         Una fuente no cargó, y eso cambia lo que se puede afirmar: {datos.falla}
@@ -680,7 +690,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
               <pattern id={TEMA.TRAMAS.alto} width="6" height="6"
                 patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                 <rect width="6" height="6" fill={BANDA_COLOR.alto} />
-                <line x1="0" y1="0" x2="0" y2="6" stroke={TEMA.NAVY[900]}
+                <line x1="0" y1="0" x2="0" y2="6" stroke={TEMA.SUPERFICIE.tarjeta}
                   strokeWidth="2" opacity="0.42" />
               </pattern>
             </defs>
@@ -759,7 +769,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
             8/8. Un control de desplazamiento sobre nueve categorías es teatro. */}
         <div role="group" aria-label="Forma de la columna"
              style={{ display: 'flex', gap: 2, marginBottom: 10,
-                      background: 'rgba(255,255,255,0.05)', borderRadius: 8,
+                      background: TEMA.SUPERFICIE.cebra, borderRadius: 8,
                       padding: 2, width: 'fit-content' }}>
           {([['apilado', 'Apilado'], ['agrupado', 'Agrupado'], ['pct', '100%']] as const)
             .map(([k, etq]) => (
@@ -769,8 +779,8 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                 padding: '5px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
                 fontSize: TEMA.FUENTE.etiqueta, fontWeight: 650,
                 minHeight: TEMA.MINIMOS.areaClic,
-                background: modoG2 === k ? TEMA.CIAN[500] : 'transparent',
-                color: modoG2 === k ? TEMA.NAVY[900] : TX_MID,
+                background: modoG2 === k ? TEMA.ACENTO : 'transparent',
+                color: modoG2 === k ? TEMA.SUPERFICIE.tarjeta : TX_MID,
                 transition: `background ${TEMA.MOTION.rapido}ms`,
               }}>{etq}</button>
           ))}
@@ -861,19 +871,19 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                     La marca vertical es la META implícita, el 100%. */}
                 <div style={{ flex: 1, height: 14, borderRadius: 4, overflow: 'hidden',
                               display: 'flex', position: 'relative',
-                              background: 'rgba(255,255,255,0.05)' }}>
-                  <div style={{ width: `${100 - pct}%`, background: TEMA.WHITE.soft }} />
+                              background: TEMA.SUPERFICIE.cebra }}>
+                  <div style={{ width: `${100 - pct}%`, background: TEMA.BANDA.bajo }} />
                   {/* Hueco de 2px: el ojo separa mejor por el hueco que por
                       el borde. */}
                   <div style={{ width: 2, background: PANEL, flexShrink: 0 }} />
                   <div style={{
                     width: `${pct}%`,
                     background: pct > 50
-                      ? `repeating-linear-gradient(45deg, ${TEMA.CIAN[500]} 0 3px, rgba(8,39,66,0.42) 3px 5px)`
+                      ? `repeating-linear-gradient(45deg, ${TEMA.BANDA.alto} 0 3px, rgba(255,255,255,0.55) 3px 5px)`
                       : GRIS,
                   }} />
                 </div>
-                <span style={C(pct > 50 ? TEMA.CIAN[400] : TX_MID,
+                <span style={C(pct > 50 ? TEMA.ACENTO : TX_MID,
                                { fontSize: TEMA.FUENTE.cuerpo, width: 112, textAlign: 'right',
                                  flexShrink: 0, fontVariantNumeric: 'tabular-nums' })}>
                   {f.nSin} sin dato
@@ -884,7 +894,7 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
                     sabe. La primera versión ponía «$1.78M +9», y un «+9»
                     pegado a una cifra en millones se lee como nueve millones.
                     Un símbolo que ya significa «al menos» no se malinterpreta. */}
-                <span style={C(medible ? TX_HI : TEMA.CIAN[400],
+                <span style={C(medible ? TX_HI : TEMA.ACENTO,
                                { fontSize: TEMA.FUENTE.valor, fontWeight: 750, width: 98,
                                  textAlign: 'right', flexShrink: 0,
                                  fontVariantNumeric: 'tabular-nums' })}
@@ -903,9 +913,9 @@ export default function DashAlertasGraficas({ datos }: { datos: PayloadTablero }
 
         <div style={{ marginTop: 10, display: 'flex', gap: 14, flexWrap: 'wrap',
                       alignItems: 'baseline' }}>
-          <Pastilla color={TEMA.WHITE.soft} texto="con dato" />
+          <Pastilla color={TEMA.BANDA.bajo} texto="con dato" />
           <Pastilla color={GRIS} texto="sin dato" />
-          <Pastilla color={TEMA.CIAN[500]} trama texto="le falta a más de la mitad" />
+          <Pastilla color={TEMA.BANDA.alto} trama texto="le falta a más de la mitad" />
           {/* NO hay sparkline de tendencia, y es a propósito: el payload trae
               UN corte, no seis periodos. Dibujar una línea de tendencia con un
               solo punto sería inventarse el dato. Cuando la fuente traiga
@@ -992,7 +1002,7 @@ function Pastilla({ color, texto, trama }: {
       <span style={{
         width: 11, height: 11, borderRadius: 2, flexShrink: 0,
         background: trama
-          ? `repeating-linear-gradient(45deg, ${color} 0 3px, rgba(8,39,66,0.42) 3px 5px)`
+          ? `repeating-linear-gradient(45deg, ${color} 0 3px, rgba(255,255,255,0.55) 3px 5px)`
           : color,
       }} />
       <span style={C(TX_MID, { fontSize: TEMA.FUENTE.etiqueta })}>{texto}</span>

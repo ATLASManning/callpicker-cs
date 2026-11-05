@@ -59,6 +59,54 @@ def sin_comentarios(txt):
     """
     return RX_COMENTARIO.sub(lambda m: re.sub(r'[^\n]', ' ', m.group(0)), txt)
 RX_CONST = re.compile(r"""(?:const|let|var)\s+([A-Z][A-Z0-9_]*)\s*=\s*['"]([^'"]+)['"]""")
+
+# ── UNA SUPERFICIE DECLARADA EN OTRO ARCHIVO (4 nov 2026) ─────────────────
+# Punto ciego encontrado al extraer la paleta de Contratos a `lib/paleta-cs.ts`:
+# `HeroModulo.tsx` pinta `background: HERO`, y `HERO` es el degradado marino
+# que vive en ESE otro archivo. `RX_CONST` solo mira el archivo que se esta
+# revisando, asi que la constante no se resolvia, el degradado no contaba como
+# superficie oscura, y el blanco del titular salia acusado.
+#
+# No es una excepcion para dos archivos: es la clase «la superficie la declara
+# un modulo de paleta», que va a repetirse cada vez que se extraiga una. Se
+# resuelve leyendo los `export const` del modulo importado — solo de `@/lib/`,
+# que es donde viven las paletas, y solo literales de cadena.
+RX_IMPORT_LIB = re.compile(
+    r"""import\s*\{([^}]*)\}\s*from\s*['"]@/(lib/[A-Za-z0-9_\-/]+)['"]""")
+RX_EXPORT_CONST = re.compile(
+    r"""export\s+const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*['"]([^'"]+)['"]""")
+_CACHE_LIB = {}
+
+
+def consts_importadas(txt):
+    """Los `export const` de cadena que este archivo importa de `@/lib/...`."""
+    fuera = {}
+    for m in RX_IMPORT_LIB.finditer(txt):
+        nombres = set()
+        for trozo in m.group(1).split(','):
+            trozo = trozo.strip()
+            if not trozo:
+                continue
+            # `A as B` -> el nombre local es B.
+            partes = trozo.split()
+            nombres.add(partes[-1])
+        modulo = m.group(2)
+        if modulo not in _CACHE_LIB:
+            _CACHE_LIB[modulo] = {}
+            for ext in ('.ts', '.tsx'):
+                ruta = os.path.join(RAIZ, modulo.replace('/', os.sep) + ext)
+                if os.path.exists(ruta):
+                    try:
+                        src = io.open(ruta, encoding='utf-8').read()
+                    except IOError:
+                        break
+                    _CACHE_LIB[modulo] = dict(RX_EXPORT_CONST.findall(src))
+                    break
+        for n, v in _CACHE_LIB[modulo].items():
+            if n in nombres:
+                fuera[n] = v
+    return fuera
+
 # El punto en la mirada-atras no sobra: sin el, el `cat.color : BORDER` de un
 # ternario dentro de un template —`border: \`1px solid ${query ? cat.color :
 # BORDER}\`\`— se lee como una declaracion `color: BORDER` y acusa al buscador
@@ -219,7 +267,8 @@ def pares_medibles(txt):
        acabo.
     """
     limpio = sin_comentarios(txt)
-    consts = {n: v for n, v in RX_CONST.findall(limpio)}
+    consts = consts_importadas(limpio)
+    consts.update({n: v for n, v in RX_CONST.findall(limpio)})
 
     def resuelve(lit, nombre):
         if lit:
@@ -335,7 +384,8 @@ def padre_declarado(txt):
 def analiza(txt):
     """Devuelve (tiene_oscuro, tiene_claro, [(nombre_o_valor, rgb)] claros)."""
     limpio = sin_comentarios(txt)
-    consts = {n: v for n, v in RX_CONST.findall(limpio)}
+    consts = consts_importadas(limpio)
+    consts.update({n: v for n, v in RX_CONST.findall(limpio)})
 
     def resuelve(lit, nombre):
         if lit:
@@ -432,6 +482,15 @@ CASOS_MUDOS = [
      "export default function P() {\n"
      "  return <div style={{ background: `linear-gradient(135deg, ${NAVY} 0%, #0F2040 100%)` }}>\n"
      "    <span style={{ color: '#FFFFFF' }}>hola</span></div>\n}\n"),
+    # LA SUPERFICIE LA DECLARA UN MODULO DE PALETA. Resuelve `HERO` leyendo
+    # los `export const` de `lib/paleta-cs.ts`, que es un archivo REAL: si
+    # alguien le quita el degradado o le cambia el nombre, este caso falla y
+    # avisa, en vez de que el detector se quede mudo.
+    ('degradado oscuro importado de @/lib/paleta-cs',
+     "import { HERO } from '@/lib/paleta-cs'\n"
+     "export default function P() {\n"
+     "  return <header style={{ background: HERO }}>\n"
+     "    <h1 style={{ color: '#FFFFFF' }}>hola</h1></header>\n}\n"),
     # El caso de GlosarioTecnico: el fondo oscuro solo aparece en una rama de
     # un ternario. Sin leer las ramas, el archivo se acusaba por el blanco que
     # va encima de ese mismo fondo.
@@ -447,6 +506,18 @@ CASOS_MUDOS = [
      "/* @contraste-padre: vive dentro del degradado marino de AsesorCard */\n"
      "export default function P() { return <p style={{ color: '#FFFFFF' }}>x</p> }\n"),
 ]
+
+# CONTROL NEGATIVO del resolutor de constantes importadas. `LAVADO` es el
+# lavado CLARO de la misma paleta de la que sale `HERO`. Si el detector se
+# limitara a CALLAR ante cualquier constante importada que no sepa resolver
+# —que es como se rompen estas cosas—, este caso se le escaparia y estaria
+# apagado sin que fallara nada. Tiene que resolverla y cazarla.
+CASOS_CAZA.append(
+    ('constante CLARA importada de @/lib/paleta-cs con letra blanca',
+     "import { LAVADO } from '@/lib/paleta-cs'\n"
+     "export default function P() {\n"
+     "  return <div style={{ background: LAVADO }}>\n"
+     "    <span style={{ color: '#FFFFFF' }}>hola</span></div>\n}\n"))
 
 # Los dos casos MEDIBLES, que no dependen de ninguna heuristica del arbol.
 CASOS_MEDIBLE_CAZA = [

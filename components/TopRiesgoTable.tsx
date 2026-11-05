@@ -3,34 +3,49 @@ import Link from 'next/link'
 import { AlertTriangle, ArrowUpRight } from 'lucide-react'
 import type { Cuenta } from '@/lib/types'
 import { getSemaforoCuenta, ASESOR_CONFIG, configAsesor, formatMXN } from '@/lib/types'
-import SemaforoBadge from './SemaforoBadge'
-import HealthScoreRing from './HealthScoreRing'
+import { textoSobreSolido } from '@/lib/contraste'
 import * as TEMA from '@/lib/chart-theme'
 
-/* ── Modo oscuro = el tema del Dashboard (12 oct 2026) ─────────────────────
-   Era la paleta propia de `DashMetricasSection` —cian, rojo, verde—, que
-   dirección retiró de la portada. Ahora sale de `lib/chart-theme.ts`: el
-   riesgo va de plata a naranja en las MISMAS tres bandas que la salud de la
-   cartera, y el asesor lleva su color del tema. El modo claro no cambia. */
+/* ── UNA SOLA PALETA (4 nov 2026) ──────────────────────────
+   Esta tabla tenia DOS: una clara —azules y rojos de Tailwind— y una oscura
+   con los tokens del tema, elegidas por una prop `dark`. Al pasar el
+   Dashboard a isla clara la rama oscura se quedo SIN UN SOLO CONSUMIDOR
+   (`app/page.tsx` es el unico que monta esta tabla), y dos paletas
+   equivalentes lado a lado en un archivo son la trampa documentada: alguien
+   corrige una y la otra se queda vieja sin que falle nada.
+
+   Asi que la prop se fue y queda una. Los tonos son los del tema, medidos
+   contra la tarjeta BLANCA. Lo que se cayo al unificar:
+
+       #A8BACB (texto apagado)  1.99:1  ->  TX.low      4.83:1
+       #F97316 (muchos tickets) 2.80:1  ->  AMBAR_AVISO 6.39:1
+       #EF4444 (fallas)         3.76:1  ->  ROJO_AVISO  7.26:1
+       #22C55E (health bueno)   2.28:1  ->  BANDA.bajo  3.03:1 (objeto grafico)
+       #EAB308 (health medio)   1.75:1  ->  BANDA.medio 7.02:1
+
+   Ninguno de esos cinco llegaba a AA sobre blanco, y NO los introdujo este
+   cambio: estaban en la rama clara desde antes.
+   [[feedback-verificar-antes-asegurar]]
+*/
 const D = {
   border:   TEMA.BORDE,
   txHi:     TEMA.TX.hi,
   txMid:    TEMA.TX.mid,
   txLow:    TEMA.TX.low,
-  rowAlt:   'rgba(255,255,255,0.03)',
-  rowHover: 'rgba(255,255,255,0.06)',
-  enlace:   TEMA.CIAN[400],
-  th:       'rgba(255,255,255,0.04)',
+  rowAlt:   TEMA.SUPERFICIE.cebra,
+  rowHover: TEMA.SUPERFICIE.aviso,
+  enlace:   TEMA.ACENTO,
+  th:       TEMA.SUPERFICIE.cebra,
 }
 
-/** La banda del semáforo con el color del tema, para el modo oscuro. */
-function bandaOscura(semaforo: string): { color: string; etiqueta: string } {
-  if (semaforo === 'inactivo') return { color: TEMA.SILVER[500], etiqueta: 'Inactiva' }
+/** La banda del semaforo con el color del tema. */
+function bandaDeSemaforo(semaforo: string): { color: string; etiqueta: string } {
+  if (semaforo === 'inactivo') return { color: TEMA.TX.low, etiqueta: 'Inactiva' }
   const b = (TEMA.BANDA_DE_SEMAFORO as Record<string, TEMA.Banda>)[semaforo] ?? 'medio'
   return { color: TEMA.BANDA[b], etiqueta: TEMA.BANDA_SEMAFORO_ETIQUETA[b].split(' · ')[0] }
 }
 
-interface Props { cuentas: Cuenta[]; dark?: boolean }
+interface Props { cuentas: Cuenta[] }
 
 function fmtFecha(iso: string | null | undefined) {
   if (!iso) return '—'
@@ -43,10 +58,9 @@ function fmtFecha(iso: string | null | undefined) {
    número que lleva `dias` es la ANTIGÜEDAD de la cuenta —así ordena arriba, que
    es donde debe ir—, pero escribirlo como «1694d» se leería como un contacto de
    hace cuatro años. Son 42 de las 192 cuentas vivas. */
-function DiasCell({ dias, nunca, dark }: { dias: number; nunca?: boolean; dark: boolean }) {
-  const color = dark
-    ? (nunca || dias > 30 ? TEMA.CIAN[400] : dias > 14 ? TEMA.BANDA.medio : D.txMid)
-    : (nunca || dias > 30 ? '#EF4444' : dias > 14 ? '#F97316' : '#3D4B5C')
+function DiasCell({ dias, nunca }: { dias: number; nunca?: boolean }) {
+  const color = nunca || dias > 30 ? TEMA.ROJO_AVISO
+    : dias > 14 ? TEMA.AMBAR_AVISO : D.txMid
   const weight = nunca || dias > 14 ? 700 : 500
   return (
     <span style={{ fontSize: 12, fontWeight: weight, color }}
@@ -56,17 +70,17 @@ function DiasCell({ dias, nunca, dark }: { dias: number; nunca?: boolean; dark: 
   )
 }
 
-function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
+function TicketsCell({ cuenta }: { cuenta: Cuenta }) {
   const zt = cuenta.zoho_tickets
   if (!zt || zt.total === 0) {
-    return <span style={{ fontSize: 12, color: dark ? D.txLow : '#A8BACB' }}>—</span>
+    return <span style={{ fontSize: 12, color: D.txLow }}>—</span>
   }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         <span style={{
           fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-          color: zt.total > 10 ? (dark ? TEMA.CIAN[400] : '#F97316') : dark ? D.txHi : '#082742',
+          color: zt.total > 10 ? TEMA.AMBAR_AVISO : D.txHi,
         }}>
           {zt.total}
         </span>
@@ -74,9 +88,9 @@ function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 3,
             padding: '2px 7px', borderRadius: 99,
-            background: dark ? 'rgba(57,171,216,0.12)' : 'rgba(239,68,68,0.12)',
-            color: dark ? TEMA.CIAN[400] : '#EF4444', fontSize: 11, fontWeight: 700,
-            border: dark ? '1px solid rgba(57,171,216,0.35)' : '1px solid rgba(239,68,68,0.25)',
+            background: TEMA.ROJO_AVISO_FONDO,
+            color: TEMA.ROJO_AVISO, fontSize: 11, fontWeight: 700,
+            border: `1px solid ${TEMA.ROJO_AVISO}`,
             whiteSpace: 'nowrap',
           }}>
             <AlertTriangle size={8} /> {zt.fallas} falla{zt.fallas > 1 ? 's' : ''}
@@ -84,7 +98,7 @@ function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
         )}
       </div>
       {zt.ultima && (
-        <span style={{ fontSize: 10, color: dark ? D.txLow : '#A8BACB', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 10, color: D.txLow, whiteSpace: 'nowrap' }}>
           Últ: {fmtFecha(zt.ultima)}
         </span>
       )}
@@ -92,10 +106,10 @@ function TicketsCell({ cuenta, dark }: { cuenta: Cuenta; dark: boolean }) {
   )
 }
 
-export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
+export default function TopRiesgoTable({ cuentas }: Props) {
   if (cuentas.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '32px 0', color: dark ? D.txLow : '#A8BACB', fontSize: 14 }}>
+      <div style={{ textAlign: 'center', padding: '32px 0', color: D.txLow, fontSize: 14 }}>
         No hay cuentas en riesgo — ¡excelente estado de cartera!
       </div>
     )
@@ -103,20 +117,20 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
 
   const thStyle: React.CSSProperties = {
     padding: '10px 14px', textAlign: 'left',
-    fontSize: dark ? 12 : 10, fontWeight: 700,
+    fontSize: 12, fontWeight: 700,
     textTransform: 'uppercase', letterSpacing: '0.07em',
-    color: dark ? D.txLow : '#3D4B5C',
-    background: dark ? D.th : '#F0F7FF',
-    borderBottom: dark ? `1px solid ${D.border}` : '1px solid #A8BACB',
+    color: D.txLow,
+    background: D.th,
+    borderBottom: `1px solid ${D.border}`,
     whiteSpace: 'nowrap',
   }
 
   const tdStyle: React.CSSProperties = {
     padding: '12px 14px',
-    borderBottom: dark ? `1px solid rgba(255,255,255,0.04)` : '1px solid #E0EDFF',
+    borderBottom: `1px solid ${D.border}`,
     fontSize: 13,
     verticalAlign: 'middle',
-    color: dark ? D.txMid : '#334155',
+    color: D.txMid,
   }
 
   return (
@@ -148,26 +162,26 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
             // 'inactivo' se contempla explícitamente: sin este caso caía en el
             // `else` y una cuenta cancelada mostraba su Health Score en ROJO,
             // es decir "riesgo alto" — cuando ya no hay riesgo, hay baja.
-            const banda = bandaOscura(semaforo)
-            const hsColor = dark ? banda.color
-              : semaforo === 'inactivo' ? '#3D4B5C'
-              : ['verde','azul'].includes(semaforo) ? '#22C55E'
-              : semaforo === 'amarillo' ? '#EAB308' : '#EF4444'
-            const colorAsesor = dark ? (TEMA.ASESOR[c.asesor] ?? TEMA.SILVER[500]) : ac.color
-            const rowBg = dark
-              ? (idx % 2 === 0 ? 'transparent' : D.rowAlt)
-              : 'transparent'
+            const banda = bandaDeSemaforo(semaforo)
+            /* La cifra del Health Score va en el color de SU BANDA, que son
+               los tres pasos ya medidos. Los cuatro tonos de antes —verde,
+               ambar y rojo de Tailwind— median entre 1.75 y 3.76:1. */
+            const hsColor = banda.color
+            /* El respaldo NO puede ser un color de serie: cuando valia
+               SILVER[500] coincidia con el tono de una asesora. */
+            const colorAsesor = TEMA.ASESOR[c.asesor] ?? TEMA.TX.low
+            const rowBg = idx % 2 === 0 ? 'transparent' : D.rowAlt
 
             return (
               <tr key={c.id}
                 style={{ background: rowBg }}
-                onMouseEnter={e => { if (dark) (e.currentTarget as HTMLTableRowElement).style.background = D.rowHover }}
-                onMouseLeave={e => { if (dark) (e.currentTarget as HTMLTableRowElement).style.background = rowBg }}
+                onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = D.rowHover }}
+                onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = rowBg }}
               >
                 <td style={tdStyle}>
                   <span style={{
                     fontFamily: 'monospace', fontSize: 11, fontWeight: 700,
-                    color: dark ? D.enlace : '#0057FF',
+                    color: D.enlace,
                   }}>
                     {c.consecutivo}
                   </span>
@@ -178,7 +192,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                     style={{
                       fontSize: 13, fontWeight: 600, display: 'block',
                       lineHeight: 1.3, textDecoration: 'none',
-                      color: dark ? D.txHi : '#082742',
+                      color: D.txHi,
                     }}
                     className="hover:underline"
                   >
@@ -188,7 +202,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                     <span style={{
                       fontSize: 11, display: 'block',
                       maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      color: dark ? D.txLow : '#A8BACB',
+                      color: D.txLow,
                     }}>
                       {c.giro}
                     </span>
@@ -201,12 +215,18 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                       width: 20, height: 20, borderRadius: '50%',
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: 10, fontWeight: 700, flexShrink: 0,
-                      background: dark ? colorAsesor : `${ac.color}25`,
-                      color: dark ? TEMA.NAVY[900] : ac.color,
+                      /* Relleno SOLIDO con el color del asesor: la letra NO
+                         se pone por costumbre. `textoSobreSolido` devuelve
+                         blanco si el blanco pasa y, si no, el propio tono
+                         oscurecido. Hace falta: el asesor mas claro mide
+                         3.03:1 con blanco encima — vale de relleno y NO de
+                         letra. [[atlas-dashboard-contrast-architecture]] */
+                      background: colorAsesor,
+                      color: textoSobreSolido(colorAsesor),
                     }}>
                       {ac.initial}
                     </span>
-                    <span style={{ fontSize: 12, color: dark ? D.txMid : '#202E3B' }}>
+                    <span style={{ fontSize: 12, color: D.txMid }}>
                       {c.asesor}
                     </span>
                   </span>
@@ -215,7 +235,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                 <td style={tdStyle}>
                   <span style={{
                     fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
-                    color: dark ? D.txHi : '#082742',
+                    color: D.txHi,
                   }}>
                     {formatMXN(c.facturacion)}
                   </span>
@@ -223,13 +243,11 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
 
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {/* El anillo trae su propio arcoíris; en oscuro basta la cifra
-                        en el color de su banda. */}
-                    {!dark && (
-                      <HealthScoreRing score={c.health_score} size={34} strokeWidth={4} showLabel={false} estado={c.estado} />
-                    )}
+                    {/* El anillo traia su propio arcoiris, que es otra escala
+                        de riesgo al lado de la del tema: dos codigos para lo
+                        mismo. Queda la cifra en el color de su banda. */}
                     <span style={{
-                      fontSize: dark ? 15 : 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                      fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                       color: hsColor, background: 'transparent',
                     }}>
                       {c.health_score}
@@ -238,22 +256,20 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                 </td>
 
                 <td style={tdStyle}>
-                  {dark ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-                                   background: 'transparent', color: D.txMid, fontSize: 12 }}>
-                      <i aria-hidden style={{ width: 9, height: 9, borderRadius: 2,
-                                              background: banda.color, display: 'inline-block' }} />
-                      {banda.etiqueta}
-                    </span>
-                  ) : <SemaforoBadge semaforo={semaforo} size="sm" />}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
+                                 background: 'transparent', color: D.txMid, fontSize: 12 }}>
+                    <i aria-hidden style={{ width: 9, height: 9, borderRadius: 2,
+                                            background: banda.color, display: 'inline-block' }} />
+                    {banda.etiqueta}
+                  </span>
                 </td>
 
                 <td style={tdStyle}>
-                  <DiasCell dias={c.dias_sin_actividad} nunca={c.dias_sin_contacto == null} dark={dark} />
+                  <DiasCell dias={c.dias_sin_actividad} nunca={c.dias_sin_contacto == null} />
                 </td>
 
                 <td style={tdStyle}>
-                  <TicketsCell cuenta={c} dark={dark} />
+                  <TicketsCell cuenta={c} />
                 </td>
 
                 <td style={tdStyle}>
@@ -261,7 +277,7 @@ export default function TopRiesgoTable({ cuentas, dark = false }: Props) {
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: 2,
                       fontSize: 12, fontWeight: 600, textDecoration: 'none',
-                      color: dark ? D.enlace : '#0057FF',
+                      color: D.enlace,
                     }}
                     className="hover:underline"
                   >

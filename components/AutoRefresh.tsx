@@ -9,6 +9,10 @@ import { useRouter } from 'next/navigation'
 import { RefreshCw } from 'lucide-react'
 import { HERO_LEAD } from '@/lib/paleta-cs'
 
+/* @contraste-padre: el degradado marino de HeroModulo, que lo monta en su
+   esquina; HERO_LEAD sale de la misma paleta y mide 4.71:1 contra el extremo
+   CLARO de ese degradado. Sólo se usa con la prop `sobreOscuro`. */
+
 interface Props {
   intervalMs?: number   // default 300_000 = 5 min
   showIndicator?: boolean

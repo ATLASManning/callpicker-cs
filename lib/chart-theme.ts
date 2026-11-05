@@ -11,20 +11,56 @@
  * Las cifras de los comentarios salen de ahí.
  */
 
-/* ── La paleta cerrada, tal como la fijó dirección ────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+ * EL DASHBOARD ES ISLA CLARA DESDE EL 4 NOV 2026 — LEER ESTO ANTES DE TOCAR
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Hasta esa fecha este módulo pintaba TARJETAS OSCURAS sobre página clara, y
+ * toda la paleta de abajo estaba medida contra marino. Dirección pidió el
+ * formato de Contratos «en toda la ventana del apartado, no sólo en el
+ * título», así que las tarjetas son BLANCAS y la tinta es OSCURA.
+ *
+ * LO QUE ESO ROMPIÓ, Y POR QUÉ NO FUE UN CAMBIO DE TOKENS DE SITIO
+ * (medido con `scripts/mide-paleta-dashboard-claro.py`, sección 2):
+ *
+ *     asesor Dan    = WHITE.soft  #F5F8FB sobre blanco →  1.07:1  invisible
+ *     asesor Fátima = SILVER[500] #A8BACB sobre blanco →  1.99:1  invisible
+ *     acento        = CIAN[500]   #39ABD8 sobre blanco →  2.63:1  ni 3:1
+ *     banda bajo    = SILVER[300] #DFE8EF sobre blanco →  1.24:1  invisible
+ *
+ * Y los tintes `rgba(255,255,255,0.0X)` de hover y cebra: sobre una tarjeta
+ * blanca componen BLANCO. No oscurecen nada, no falla nada, y la fila deja de
+ * marcarse. Por eso los realces ahora son hex declarados (`SUPERFICIE.cebra`),
+ * no tintes. [[atlas-dashboard-contrast-architecture]]
+ *
+ * LAS SUPERFICIES Y LA TINTA SALEN DE `lib/paleta-cs.ts`, que es la paleta de
+ * Contratos. NO se declara aquí un juego paralelo: eso sería «paletas
+ * gemelas» otra vez, y la próxima corrección entraría en una y no en la otra
+ * sin que fallara nada.
+ */
+
+/* ── La familia cerrada, tal como la fijó dirección ───────────────────────
+ * Estos cuatro bloques siguen siendo los COLORES de la paleta —no cambian de
+ * valor—, pero ya no describen la superficie del módulo. El fondo de la
+ * tarjeta se pide por `SUPERFICIE`, no por `NAVY[700]`: un nombre que diga
+ * «navy» y valga blanco es la trampa del `ORANGE` que valía cian.
+ */
 export const NAVY = {
-  900: '#082742',   // fondo del apartado      — `--navy2` del documento
-  700: '#10355D',   // superficie de tarjeta   — `--navy`
-  500: '#1D6CAA',   // bordes activos y acento sobre CLARO — `--blue`
+  900: '#082742',   // `--navy2` — el tono más oscuro de la familia
+  700: '#10355D',   // `--navy`  — titulares sobre claro, 12.43:1
+  500: '#1D6CAA',   // `--blue`  — EL ACENTO sobre claro, 5.56:1
 } as const
 
 /* La familia plata se reencuadra sobre los grises AZULADOS del documento:
    un gris neutro al lado de este marino se ve verdoso. */
 export const SILVER = {
-  300: '#DFE8EF',   // 12.27:1 sobre navy-900 · 10.02:1 sobre navy-700 — texto ok
-  500: '#A8BACB',   // 7.65:1 / 6.25:1 — texto ok, y relleno holgado
-  700: '#6A7889',   // 3.38:1 / 2.76:1 — NI para objeto. Solo bordes y rejilla.
+  300: '#DFE8EF',   // `--line`. Sobre BLANCO mide 1.24:1: sólo separadores.
+  500: '#A8BACB',   // 1.99:1 sobre blanco — NO es texto ni relleno aquí.
+  700: '#6A7889',   // 4.23:1 sobre el lavado — NO llega. Ver `TX.low`.
 } as const
+/* OJO: los tres medían de sobra sobre marino y NINGUNO sirve de texto sobre
+   blanco. Quedan porque la familia es la misma y porque el tooltip —que
+   sigue siendo oscuro— sí los usa. Para tinta sobre claro está `TX`. */
 
 /**
  * EL ACENTO ES CIAN, NO NARANJA — y la constante se llama como lo que vale.
@@ -35,60 +71,100 @@ export const SILVER = {
  * naranja y escribe un `rgba(255,122,26,…)` al lado sin que falle nada.
  */
 export const CIAN = {
-  500: '#39ABD8',   // 5.79:1 / 4.73:1 — acento principal, texto ok
-  400: '#8AD7F8',   // 9.54:1 / 7.79:1 — hover. Es el titular del hero.
-  700: '#1D6CAA',   // 5.56:1 sobre BLANCO — el acento de las islas claras
+  500: '#39ABD8',   // 2.63:1 sobre BLANCO — NO vale ni como relleno aquí.
+  400: '#8AD7F8',   // 1.50:1 sobre blanco — sólo dentro del tooltip oscuro.
+  700: '#1D6CAA',   // 5.56:1 sobre BLANCO — ÉSTE es el acento del módulo.
 } as const
 
 export const WHITE = {
-  pure: '#FFFFFF',  // 15.23:1 / 12.43:1
-  soft: '#F5F8FB',  // 14.29:1 / 11.66:1
+  pure: '#FFFFFF',  // la superficie de la tarjeta
+  soft: '#F5F8FB',  // `--wash`, la página
 } as const
 
-/* ── Texto: qué token vale para qué ───────────────────────────────────────── */
+/* ── LAS SUPERFICIES ──────────────────────────────────────────────────────
+ * Se piden por aquí y no por `NAVY[700]`. Los cuatro valores son los de
+ * `lib/paleta-cs.ts`, que es lo que pinta Contratos: el encargo es que las
+ * dos pantallas se vean igual, y dos juegos de superficies «equivalentes»
+ * se desincronizan a la primera corrección.
+ */
+export const SUPERFICIE = {
+  /** El lavado de la página, detrás de las tarjetas. */
+  pagina:  '#F5F8FB',
+  /** La tarjeta. Es la superficie contra la que se mide TODO lo demás. */
+  tarjeta: '#FFFFFF',
+  /** Fila alterna de tabla. HEX DECLARADO, no un tinte: un `rgba` blanco
+   *  sobre blanco no oscurece nada y la cebra desaparece sin fallar. */
+  cebra:   '#F4F8FB',
+  /** Recuadro de aviso. SÓLO admite titular marino o azul: el secundario
+   *  encima mide 4.45:1 y no llega. Medido, no supuesto. */
+  aviso:   '#EFF7FC',
+} as const
+
+/* ── Texto: qué token vale para qué ───────────────────────────────────────
+ * Los tres niveles son los de `lib/paleta-cs.ts`. Están medidos contra las
+ * TRES superficies de texto corrido —tarjeta, página y cebra—, porque en
+ * esta pantalla conviven y un tono que valga en una y no en otra cae de
+ * lado sin que nadie lo toque.
+ */
 export const TX = {
-  /** Valores clave y títulos. */
-  hi:  WHITE.pure,
-  /** Cuerpo. */
-  mid: WHITE.soft,
-  /** Secundario, ejes, etiquetas. Es el MÁS BAJO que aún pasa 4.5:1. */
-  low: SILVER[300],
+  /** Títulos y cifras clave. Marino: 12.43 / 11.66 / 11.64:1. */
+  hi:  NAVY[700],
+  /** Cuerpo. `--ink` aclarado: 8.90 / 8.35 / 8.34:1. */
+  mid: '#3D4B5C',
+  /** Secundario, ejes, etiquetas: 4.83 / 4.53 / 4.52:1. Es el más bajo que
+   *  pasa AA en las tres, así que por debajo NO hay nada. */
+  low: '#667384',
 } as const
 
 /**
- * `SILVER[500]` NO es un token de texto: mide 4.41:1 sobre la tarjeta y se
- * queda a nueve centésimas de AA. Se deja fuera de `TX` a propósito para que
- * no se use por descuido. Para texto apagado, `TX.low`.
+ * NO USAR `SILVER[700]` (#6A7889) DE TEXTO. Es el que este módulo usaba
+ * cuando era oscuro y sobre el lavado de la página mide 4.23:1 — no llega.
+ * Era un fallo que YA ESTABA; voltear el módulo sólo lo puso a la vista.
  */
 
-/* ── Rejilla y bordes ─────────────────────────────────────────────────────── */
-export const GRID = 'rgba(223,232,239,0.10)'   // plata al 10%, como pide el encargo
-export const BORDE = 'rgba(223,232,239,0.15)'  // plata al 15%
-export const BORDE_SUAVE = 'rgba(223,232,239,0.08)'  // separadores internos
-export const FOCO = CIAN[500]                  // anillo de foco, siempre el acento
-
-/* ── LA PÁGINA ES CLARA Y LAS TARJETAS SON ISLAS OSCURAS ──────────────────
- * Esto no es una decisión del rediseño: es la arquitectura del tablero, y
- * todo lo de arriba son tokens para DENTRO de la tarjeta. En el Dashboard
- * convive lo uno con lo otro —rótulos que cuelgan de la página, chips de
- * aviso sobre la página, y paneles oscuros—, así que cada cosa se mide
- * contra SU fondo real. Medir contra un fondo supuesto es exactamente lo
- * que costó nueve rondas del mismo bug.
+/**
+ * LA ÚNICA SUPERFICIE OSCURA QUE QUEDA: EL TOOLTIP.
+ *
+ * Es convención de la casa que el tooltip sea oscuro —uno claro sobre una
+ * tarjeta clara se confunde con la tarjeta—, así que dentro de él la tinta
+ * es la contraria y hace falta un juego propio.
+ *
+ * ESTO NO ES UN LUJO: `ChartTooltip` pintaba su título con `TX.hi`, y al
+ * voltear el módulo `TX.hi` pasó a valer MARINO. Sobre `NAVY[900]` eso mide
+ * **1.40:1** — el título del tooltip, invisible. Es la Variante B del bug de
+ * este tablero: un panel oscuro usando tokens cuyo valor correcto dependía
+ * de que la superficie fuese otra. [[atlas-dashboard-contrast-architecture]]
+ *
+ * Un panel oscuro NUNCA debe usar `TX`. Usa esto.
  */
-export const PAGINA = '#F5F8FB'          // el claro del tablero — `--wash`
-export const TARJETA_CLARA = WHITE.pure  // un chip o una isla clara
-export const TX_PAGINA = {
-  /** Títulos sobre la página clara. El marino del documento: 11.63:1. */
-  hi:  NAVY[700],
-  /** Cuerpo: `--ink`, 13.86:1 sobre blanco. */
-  mid: '#202E3B',
-  /** Rótulos y texto apagado: `--muted`, 4.56:1 sobre blanco. Es el MÁS
-   *  bajo que pasa AA ahí, así que por debajo no hay nada. */
-  low: '#6A7889',
+export const TX_OSCURO = {
+  hi:  '#FFFFFF',   // 15.23:1 sobre NAVY[900]
+  mid: '#F5F8FB',   // 14.29:1
+  low: '#DFE8EF',   // 12.27:1
 } as const
 
-/** La línea del documento (`--line`). Bordes y separadores sobre claro. */
-export const LINEA_CLARA = '#DFE8EF'
+/* ── Rejilla y bordes ─────────────────────────────────────────────────────
+ * Sobre claro se tiñe con MARINO. Teñir con blanco no oscurece nada.
+ */
+export const GRID = 'rgba(16,53,93,0.10)'        // marino al 10%
+export const BORDE = '#DFE8EF'                   // `--line`, 1.24:1 — separador
+export const BORDE_SUAVE = 'rgba(16,53,93,0.07)' // separadores internos
+export const FOCO = CIAN[700]                    // anillo de foco, el acento claro
+
+/* ── TODA LA PANTALLA ES CLARA: YA NO HAY DOS JUEGOS ──────────────────────
+ * Mientras el módulo tuvo tarjetas oscuras hacían falta dos escalas de
+ * tinta —una para dentro de la tarjeta y otra para los rótulos que colgaban
+ * de la página—, y elegir mal entre las dos fue el bug de nueve rondas.
+ * Ahora la tarjeta y la página son las dos claras, así que la escala es UNA:
+ * `TX`. Estos alias se quedan apuntando ahí para no romper los consumidores
+ * que ya los nombran, pero NO son un segundo juego: valen lo mismo.
+ */
+export const PAGINA = SUPERFICIE.pagina
+export const TARJETA_CLARA = SUPERFICIE.tarjeta
+export const TX_PAGINA = TX
+
+/** La línea del documento (`--line`). Bordes y separadores. */
+export const LINEA_CLARA = BORDE
 
 /**
  * EL ACENTO NO ES UNO, SON DOS, Y SE ELIGEN POR EL FONDO.
@@ -100,12 +176,38 @@ export const LINEA_CLARA = '#DFE8EF'
  *   cian-700 (#1D6CAA) sobre blanco              →  5.56:1  ✓
  *
  * O sea que el cian vivo es un acento de fondo OSCURO y no vale ni como
- * borde en la página clara. Ahí el acento es el 700, que es `--blue`. Escribirlo aquí es
- * más barato que volver a medirlo: la primera versión de los chips de aviso
- * de la portada usaba el 500 de borde y se quedaba en 2.61.
+ * borde en la página clara. Ahí el acento es el 700, que es `--blue`.
+ *
+ * DESDE QUE EL MÓDULO ES CLARO, EL ACENTO ES UNO SOLO: el 700. El cian vivo
+ * sobrevive en un único sitio —dentro del tooltip, que sigue siendo oscuro
+ * por convención de la casa— y para eso está `ACENTO_SOBRE_OSCURO`.
  */
-export const ACENTO = CIAN[500]        // sobre tarjeta oscura
-export const ACENTO_CLARO = CIAN[700]  // sobre página o chip claro
+export const ACENTO = CIAN[700]              // #1D6CAA · 5.56:1 sobre la tarjeta
+export const ACENTO_CLARO = CIAN[700]        // alias: ya no hay dos
+export const ACENTO_SOBRE_OSCURO = CIAN[500] // SÓLO dentro del tooltip
+
+/**
+ * EL ÚNICO COLOR DE FUERA DE LA FAMILIA, y está acotado a una cosa.
+ *
+ * El panel de «una fuente no respondió» iba en `rgba(248,113,113,…)` — un
+ * rojo Tailwind escrito suelto que ningún validador veía. Sobre la tarjeta
+ * blanca ese rojo claro mide 2.77:1 y el aviso que dice que los datos no son
+ * de fiar se leería peor que los datos.
+ *
+ * Es el mismo rojo que ya usa Contratos (`ROJO_TX` de `lib/paleta-cs.ts`), no
+ * uno nuevo: un segundo rojo en el tablero es otra paleta gemela.
+ */
+export const ROJO_AVISO = '#A4262C'       // 7.26:1 sobre blanco · 6.88 sobre su fondo
+export const ROJO_AVISO_FONDO = '#FFF7F7'
+
+/**
+ * El ámbar de «ojo con esto», también el de Contratos (`AMBAR_TX`).
+ *
+ * Sustituye al `#F97316` que llevaba la tabla de menor Health Score, que
+ * sobre blanco mide 2.80:1. El naranja-500 de Tailwind es un acento de fondo
+ * OSCURO; sobre claro hace falta bajar hasta aquí.
+ */
+export const AMBAR_AVISO = '#8A5200'      // 6.39:1 sobre blanco · 5.98 sobre la cebra
 
 /* ── EL TRILEMA DEL COLOR, Y POR QUÉ LA FORMA CAMBIA ───────────────────────
  *
@@ -135,14 +237,19 @@ export const ACENTO_CLARO = CIAN[700]  // sobre página o chip claro
  * mutua: son un indicador de posición en una lista ya ordenada y etiquetada.
  * Lo que sí se les exige, y cumplen, es verse sobre la tarjeta (≥3:1).
  */
+/* LA ESCALA SE INVIRTIÓ AL PASAR A CLARO, y conviene saberlo: sobre marino
+   el riesgo alto era el tono CLARO (el cian), porque sobre oscuro lo que
+   destaca es lo claro. Sobre blanco el riesgo alto es el tono OSCURO. Es lo
+   correcto —más tinta, más peso— pero quien recuerde la pantalla vieja va a
+   leerlo al revés el primer día. Las siete llevan etiqueta directa. */
 export const TIRA_RIESGO: readonly string[] = [
-  '#DFE8EF',  // en_orden         10.02:1
-  '#C7DEEC',  // oportunidad       8.93:1
-  '#AFD4E8',  // hay_que_mostrarle 7.94:1
-  '#95CAE4',  // sin_auditar       7.01:1
-  '#7BC0E0',  // no_la_vemos       6.19:1
-  '#5EB6DC',  // apagandose        5.45:1
-  '#39ABD8',  // se_va             4.73:1
+  '#339ECF',  // en_orden           3.03:1 sobre la tarjeta
+  '#2B88B6',  // oportunidad        3.96:1
+  '#23749D',  // hay_que_mostrarle  5.18:1
+  '#1C5F85',  // sin_auditar        6.94:1
+  '#154C6E',  // no_la_vemos        9.17:1
+  '#0E3957',  // apagandose        12.06:1
+  '#082742',  // se_va             15.23:1
 ]
 
 /** El orden de riesgo del catálogo, de menor a mayor. Es el orden de las filas. */
@@ -186,9 +293,9 @@ export function acentoDeSituacion(situacion: string): string {
  * a aprenderse dos códigos.
  */
 export const BANDA = {
-  bajo:  SILVER[300],   // 10.02:1 sobre la tarjeta
-  medio: '#95CAE4',     //  7.01:1 — el centro de la tira
-  alto:  CIAN[500],     //  4.73:1
+  bajo:  '#339ECF',   //  3.03:1 sobre la tarjeta blanca
+  medio: '#195C93',   //  7.02:1
+  alto:  '#082742',   // 15.23:1 — el riesgo alto es el que más tinta lleva
 } as const
 
 export type Banda = keyof typeof BANDA
@@ -227,14 +334,31 @@ export const BANDA_SEMAFORO_ETIQUETA: Record<Banda, string> = {
 }
 
 /* ── Asesores: CATEGÓRICO, no ordenado ────────────────────────────────────
- * El par más apretado se separa 12.2 en OKLab — holgado.
- * `SILVER[500]` ahora SÍ pasa como texto (6.25:1), al revés que en la paleta
- * anterior, donde se quedaba en 4.41:1.
+ *
+ * UN BUG QUE ESTE MAPA TENÍA Y QUE NO FALLABA. Antes listaba a Claudia, Dan
+ * y Fátima. Erick sustituyó a Claudia el 15 oct 2026 y NO entró aquí; el
+ * consumidor hace `COLOR_ASESOR[a] ?? GRIS` y ese gris de respaldo era
+ * `SILVER[500]`… el mismo tono que ya tenía Fátima. **Dos de los tres
+ * asesores se pintaban IGUAL en la barra apilada**, sin que fallara nada y
+ * sin que la leyenda lo dijera. Se ve en la captura del 4 nov 2026.
+ *
+ * Los nombres son los de `ASESOR_CONFIG` (`lib/types.ts`), que es la fuente
+ * única, y están LOS CUATRO para que nadie caiga al respaldo. Se escriben
+ * aquí en vez de importarlos porque `tailwind.config.ts` importa este
+ * archivo y arrastrar `lib/types.ts` a la configuración de Tailwind es
+ * pedir un ciclo; a cambio, `mide-paleta-dashboard-claro.py` lee LOS DOS
+ * archivos y falla si las dos listas dejan de coincidir.
+ *
+ * Los tonos NO se eligieron: salen de repartir la familia útil sobre blanco
+ * en cuatro pasos. Par más apretado, 13.2 en OKLab — holgado sobre el 10.
+ * El orden es el de `ASESOR_CONFIG` y no el de la vista: si fuera el de la
+ * vista, filtrar un asesor repintaría a los que quedan.
  */
 export const ASESOR: Record<string, string> = {
-  Claudia: CIAN[500],
-  Dan:     WHITE.soft,
-  'Fátima': SILVER[500],
+  'Fátima': '#339ECF',   //  3.03:1 sobre la tarjeta
+  Dan:      '#23749D',   //  5.18:1
+  Erick:    '#154C6E',   //  9.17:1
+  Claudia:  '#082742',   // 15.23:1 — sin cartera, pero sale en el histórico
 }
 
 /* ── Tramas SVG: no depender solo del color ───────────────────────────────
@@ -351,10 +475,10 @@ export function pct(n: number, dec = 1): string {
  * bundle sin ganar nada.
  */
 export const EJE_COMUN = {
-  stroke: SILVER[700],
+  stroke: BORDE,
   tick: { fill: TX.low, fontSize: FUENTE.eje },
   tickLine: false,
-  axisLine: { stroke: 'rgba(223,232,239,0.18)' },
+  axisLine: { stroke: 'rgba(16,53,93,0.18)' },
 } as const
 
 /**
@@ -364,15 +488,27 @@ export const EJE_COMUN = {
  * serie — que aquí es un relleno de barra y sobre la tarjeta no se lee. Es un
  * error que ya costó una ronda en este repo.
  */
+/**
+ * EL TOOLTIP SIGUE SIENDO OSCURO, A PROPÓSITO — y por eso NO usa `TX`.
+ *
+ * Es la convención de la casa (`#0A1628` en los demás módulos): un tooltip
+ * claro sobre una tarjeta clara se confunde con la tarjeta, y recharts arma
+ * su contenido con `<p>` y `<span>` que heredan de donde caen.
+ *
+ * Lo que NO se puede hacer es dejarle los tokens del módulo: `TX.hi` ahora
+ * es MARINO y sobre `NAVY[900]` mediría 1.4:1 — ilegible. Los tres estilos
+ * van con blanco explícito, que es lo que corresponde a ese fondo, y el
+ * acento de dentro es el cian vivo, que ahí sí mide (5.79:1).
+ */
 export const TOOLTIP = {
   contentStyle: {
     background: NAVY[900],
-    border: `1px solid ${BORDE}`,
+    border: '1px solid rgba(255,255,255,0.15)',
     borderRadius: 12,
     padding: '10px 14px',
     fontSize: FUENTE.cuerpo,
-    boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
+    boxShadow: '0 12px 32px rgba(8,39,66,0.35)',
   },
-  labelStyle: { color: TX.hi, fontWeight: 800, marginBottom: 6 },
-  itemStyle:  { color: TX.mid },
+  labelStyle: { color: TX_OSCURO.hi, fontWeight: 800, marginBottom: 6 },
+  itemStyle:  { color: TX_OSCURO.mid },
 } as const

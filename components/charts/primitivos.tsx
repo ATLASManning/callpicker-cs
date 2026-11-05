@@ -12,7 +12,7 @@
  */
 import { useId, useState } from 'react'
 import {
-  NAVY, BORDE, TX, SILVER, CIAN, FUENTE, MOTION, MINIMOS, TABULAR,
+  NAVY, BORDE, TX, TX_OSCURO, SUPERFICIE, ACENTO, FUENTE, MOTION, MINIMOS, TABULAR,
 } from '@/lib/chart-theme'
 
 /* ── Tramas ───────────────────────────────────────────────────────────────
@@ -25,7 +25,10 @@ export function TramaRayas({ id, color }: { id: string; color: string }) {
         <pattern id={id} width="6" height="6" patternUnits="userSpaceOnUse"
           patternTransform="rotate(45)">
           <rect width="6" height="6" fill={color} />
-          <line x1="0" y1="0" x2="0" y2="6" stroke={NAVY[900]} strokeWidth="2"
+          {/* La raya de la trama va CLARA: el relleno que lleva trama es la banda
+              alta, que ahora es el tono mas OSCURO. Marino sobre marino no se
+              ve, y la trama existe para sobrevivir al gris y al daltonismo. */}
+          <line x1="0" y1="0" x2="0" y2="6" stroke="#FFFFFF" strokeWidth="2"
             opacity="0.42" />
         </pattern>
       </defs>
@@ -53,16 +56,21 @@ export function ChartTooltip({ titulo, lineas, pie }: {
 }) {
   return (
     <div style={{
-      background: NAVY[900], border: `1px solid ${BORDE}`, borderRadius: 12,
+      /* EL TOOLTIP SIGUE SIENDO OSCURO a proposito: uno claro sobre una
+         tarjeta clara se confunde con la tarjeta. Por eso su tinta es
+         `TX_OSCURO` y NO `TX`: al voltear el modulo, `TX.hi` paso a valer
+         marino y aqui habria medido 1.40:1 -- el titulo, invisible. */
+      background: NAVY[900], border: '1px solid rgba(255,255,255,0.15)',
+      borderRadius: 12,
       padding: '10px 14px', fontSize: FUENTE.cuerpo, minWidth: 190,
-      boxShadow: '0 12px 32px rgba(0,0,0,0.45)', pointerEvents: 'none',
+      boxShadow: '0 12px 32px rgba(8,39,66,0.35)', pointerEvents: 'none',
     }}>
-      <p style={{ color: TX.hi, fontWeight: 800, marginBottom: 8 }}>{titulo}</p>
+      <p style={{ color: TX_OSCURO.hi, fontWeight: 800, marginBottom: 8 }}>{titulo}</p>
       {lineas.map(l => (
         <div key={l.etiqueta} style={{
           display: 'flex', justifyContent: 'space-between', gap: 20, marginBottom: 4,
         }}>
-          <span style={{ background: 'transparent', color: TX.low, display: 'flex',
+          <span style={{ background: 'transparent', color: TX_OSCURO.low, display: 'flex',
             alignItems: 'center', gap: 6 }}>
             {l.color && (
               <i style={{
@@ -72,10 +80,10 @@ export function ChartTooltip({ titulo, lineas, pie }: {
             )}
             {l.etiqueta}
           </span>
-          <span style={{ background: 'transparent', color: TX.hi, fontWeight: 700, ...TABULAR }}>
+          <span style={{ background: 'transparent', color: TX_OSCURO.hi, fontWeight: 700, ...TABULAR }}>
             {l.valor}
             {l.delta && (
-              <em style={{ color: TX.low, fontStyle: 'normal', fontWeight: 500, marginLeft: 6 }}>
+              <em style={{ color: TX_OSCURO.low, fontStyle: 'normal', fontWeight: 500, marginLeft: 6 }}>
                 {l.delta}
               </em>
             )}
@@ -83,7 +91,7 @@ export function ChartTooltip({ titulo, lineas, pie }: {
         </div>
       ))}
       {pie && (
-        <p style={{ color: TX.low, fontSize: 12, marginTop: 8, lineHeight: 1.5 }}>{pie}</p>
+        <p style={{ color: TX_OSCURO.low, fontSize: 12, marginTop: 8, lineHeight: 1.5 }}>{pie}</p>
       )}
     </div>
   )
@@ -122,7 +130,7 @@ export function ChartLegend({ items, apagados, onAlternar, nota }: {
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   padding: '4px 2px', minHeight: MINIMOS.areaClic,
-                  fontSize: FUENTE.etiqueta, color: off ? SILVER[500] : TX.mid,
+                  fontSize: FUENTE.etiqueta, color: off ? TX.low : TX.mid,
                   textDecoration: off ? 'line-through' : 'none',
                   transition: `color ${MOTION.rapido}ms`,
                 }}
@@ -130,7 +138,7 @@ export function ChartLegend({ items, apagados, onAlternar, nota }: {
                 <i aria-hidden style={{
                   width: 11, height: 11, borderRadius: 3, flexShrink: 0,
                   background: off ? 'transparent' : fondoConTrama(it.color, !!it.trama),
-                  border: off ? `1px solid ${SILVER[500]}` : 'none',
+                  border: off ? `1px solid ${BORDE}` : 'none',
                 }} />
                 {it.label}
               </button>
@@ -158,8 +166,8 @@ export function ChipsFiltro({ filtros, onQuitar, onLimpiar }: {
         <span key={`${f.dim}-${f.valor}`} style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           padding: '4px 6px 4px 10px', borderRadius: 999,
-          background: 'rgba(57,171,216,0.16)', border: `1px solid ${CIAN[500]}`,
-          fontSize: FUENTE.etiqueta, color: CIAN[400], fontWeight: 650,
+          background: SUPERFICIE.aviso, border: `1px solid ${ACENTO}`,
+          fontSize: FUENTE.etiqueta, color: ACENTO, fontWeight: 650,
         }}>
           {f.etiqueta}
           <button
@@ -170,7 +178,7 @@ export function ChipsFiltro({ filtros, onQuitar, onLimpiar }: {
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: 18, height: 18, borderRadius: 999, border: 'none',
-              background: 'rgba(57,171,216,0.22)', color: CIAN[400],
+              background: 'rgba(29,108,170,0.14)', color: ACENTO,
               cursor: 'pointer', fontSize: 12, lineHeight: 1,
             }}
           >×</button>
@@ -245,7 +253,7 @@ export function FilaApilada({
         style={{
           flex: 1, display: 'flex', alignItems: 'center',
           height: MINIMOS.altoBarra, minWidth: 0,
-          background: 'rgba(255,255,255,0.04)', borderRadius: 6, overflow: 'hidden',
+          background: SUPERFICIE.cebra, borderRadius: 6, overflow: 'hidden',
         }}
         role="img"
         aria-labelledby={idT}
@@ -319,7 +327,7 @@ export function Segmentado({ etiqueta, opciones, valor, onCambio }: {
       <span style={{ background: 'transparent', color: TX.low, fontSize: 12 }}>{etiqueta}</span>
       <div role="group" aria-label={etiqueta} style={{
         display: 'flex', gap: 2, padding: 2, borderRadius: 9,
-        background: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDE}`,
+        background: SUPERFICIE.cebra, border: `1px solid ${BORDE}`,
       }}>
         {opciones.map(([v, l]) => {
           const on = v === valor
@@ -329,8 +337,8 @@ export function Segmentado({ etiqueta, opciones, valor, onCambio }: {
               style={{
                 padding: '5px 12px', borderRadius: 7, border: 'none', cursor: 'pointer',
                 minHeight: MINIMOS.areaClic, fontSize: FUENTE.etiqueta, fontWeight: 700,
-                background: on ? CIAN[500] : 'transparent',
-                color: on ? NAVY[900] : TX.mid,
+                background: on ? ACENTO : 'transparent',
+                color: on ? SUPERFICIE.tarjeta : TX.mid,
                 transition: `background ${MOTION.rapido}ms, color ${MOTION.rapido}ms`,
               }}>{l}</button>
           )

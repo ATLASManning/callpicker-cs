@@ -435,13 +435,14 @@ export default async function DashboardPage() {
       <CandidatoA data={candidatos} />
 
       {/* ══ §10 Las diez de menor Health Score ═════════════════════════════
-          Panel oscuro SIN `cp-card`, a propósito: esa clase pinta de blanco
-          todo `<span>` sin fondo declarado y la tabla colorea días, fallas y
-          bandas así. El título ya no dice «en riesgo»: el riesgo lo decide el
-          motor de alertas (ver la salud de la cartera), y estas diez salen del
-          Health Score, que no es lo mismo. */}
+          Panel SIN `cp-card`, a propósito, y ahora además CLARO: el módulo
+          entero pasó a isla clara el 4 nov 2026. `TopRiesgoTable` ya tenía
+          modo claro —es la misma tabla de `/cuentas`—, así que se le quita
+          el `dark` en vez de teñirla aquí. El título ya no dice «en riesgo»:
+          el riesgo lo decide el motor de alertas (ver la salud de la
+          cartera), y estas diez salen del Health Score, que no es lo mismo. */}
       <div className="px-6 pb-5" style={{ maxWidth: TEMA.ANCHO_MAX, margin: '0 auto' }}>
-        <div style={{ background: TEMA.NAVY[700], border: `1px solid ${TEMA.BORDE}`,
+        <div style={{ background: TEMA.SUPERFICIE.tarjeta, border: `1px solid ${TEMA.BORDE}`,
                       borderRadius: TEMA.RADIO, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '16px 20px 12px', borderBottom: `1px solid ${TEMA.BORDE}` }}>
@@ -453,20 +454,20 @@ export default async function DashboardPage() {
                 Con sus tickets de Zoho Desk · el riesgo lo marca el motor, arriba en la salud de la cartera
               </p>
             </div>
-            <Link href="/cuentas" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.CIAN[400],
+            <Link href="/cuentas" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.ACENTO,
                                            fontWeight: 700, textDecoration: 'none' }}
               className="hover:underline flex items-center gap-1">
               Ver todas <ArrowUpRight size={13} />
             </Link>
           </div>
-          <TopRiesgoTable cuentas={topRiesgo} dark />
+          <TopRiesgoTable cuentas={topRiesgo} />
           {topRiesgoTix > 0 && (
             <div style={{ padding: '10px 20px', borderTop: `1px solid ${TEMA.BORDE}`,
                           fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.low,
                           display: 'flex', alignItems: 'center', gap: 6 }}>
               <Ticket size={13} /> Entre las diez: {topRiesgoTix} tickets
               {topRiesgoFallas > 0 && (
-                <span style={{ color: TEMA.CIAN[400], fontWeight: 700 }}>· {topRiesgoFallas} fallas</span>
+                <span style={{ color: TEMA.ACENTO, fontWeight: 700 }}>· {topRiesgoFallas} fallas</span>
               )}
             </div>
           )}
@@ -480,10 +481,10 @@ export default async function DashboardPage() {
           universo va escrito al lado de cada cifra. */}
       <div className="px-6 mb-5" style={{ maxWidth: TEMA.ANCHO_MAX, margin: '0 auto 20px' }}>
         <div className="flex flex-wrap items-center gap-x-8 gap-y-2"
-          style={{ background: TEMA.NAVY[900], border: `1px solid ${TEMA.BORDE}`,
+          style={{ background: TEMA.SUPERFICIE.tarjeta, border: `1px solid ${TEMA.BORDE}`,
                    borderRadius: 12, padding: '12px 20px' }}>
           <div className="flex items-center gap-2">
-            <Ticket size={15} style={{ color: TEMA.CIAN[400] }} />
+            <Ticket size={15} style={{ color: TEMA.ACENTO }} />
             <span style={{ fontSize: TEMA.FUENTE.cuerpo, fontWeight: 800, color: TEMA.TX.hi }}>Tickets Zoho Desk</span>
             <span style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.low }}>
               · último ticket abierto el {fmtSelloMx(globalTickets.ultima)} (hora de México)
@@ -497,20 +498,24 @@ export default async function DashboardPage() {
               en el archivo{globalTickets.internos > 0 && `, ${globalTickets.internos} de ellos internos`}
             </span>
             <span style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.TX.low }}>
-              <span style={{ fontSize: TEMA.FUENTE.valor, fontWeight: 800, color: TEMA.CIAN[400] }}>
+              <span style={{ fontSize: TEMA.FUENTE.valor, fontWeight: 800, color: TEMA.ACENTO }}>
                 {globalTickets.fallas.toLocaleString('es-MX')}
               </span>{' '}
               fallas en el archivo
             </span>
-            <Link href="/tickets" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.CIAN[400],
+            <Link href="/tickets" style={{ fontSize: TEMA.FUENTE.etiqueta, color: TEMA.ACENTO,
                                            fontWeight: 700, textDecoration: 'none' }}
               className="hover:underline flex items-center gap-1">
               Ver todos <ArrowUpRight size={13} />
             </Link>
             <a href="https://ayuda.callpicker.com/" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg"
+              /* Relleno sólido: blanco sobre #1D6CAA mide 5.56:1. El cian
+                 vivo que había antes sólo admite letra oscura y sobre la
+                 tarjeta clara ni siquiera llega a 3:1 como objeto. */
               style={{ padding: '6px 12px', fontSize: TEMA.FUENTE.etiqueta, fontWeight: 800,
-                       background: TEMA.CIAN[500], color: TEMA.NAVY[900], textDecoration: 'none' }}>
+                       background: TEMA.ACENTO, color: TEMA.SUPERFICIE.tarjeta,
+                       textDecoration: 'none' }}>
               <LifeBuoy size={14} /> Centro de Ayuda
             </a>
           </div>

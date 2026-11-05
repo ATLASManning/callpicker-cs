@@ -26,7 +26,7 @@ import * as TEMA from '@/lib/chart-theme'
    en plata, y el NOMBRE del tipo va siempre escrito en el chip. `TIPO_CFG`
    conserva sus colores en `lib/candidato-a.ts`; aquí no se leen. */
 const BLINDAR: ReadonlySet<TipoCandidatura> = new Set<TipoCandidatura>(['estabilizar', 'reactivacion', 'blindaje'])
-const colorTipo = (t: TipoCandidatura) => BLINDAR.has(t) ? TEMA.CIAN[400] : TEMA.SILVER[300]
+const colorTipo = (t: TipoCandidatura) => BLINDAR.has(t) ? TEMA.ACENTO : TEMA.TX.mid
 
 const CERTEZA_CFG: Record<string, { label: string; color: string }> = {
   alta:  { label: 'Evidencia alta',  color: TEMA.TX.hi },
@@ -34,7 +34,10 @@ const CERTEZA_CFG: Record<string, { label: string; color: string }> = {
   baja:  { label: 'Evidencia baja',  color: TEMA.TX.low },
 }
 
-/** Todo texto de color lleva `background`: dentro de `.cp-card`, globals.css
+/** El `background` en cada span era el escape de `.cp-card`, que este
+ *  componente ya no lleva (4 nov 2026, el modulo paso a isla clara). Se
+ *  conserva porque no estorba y el detector lo cuenta como seguro.
+ *  Historico: dentro de `.cp-card`, globals.css
  *  pinta de blanco cualquier `<span>` que no lo declare. */
 const C = (color: string): React.CSSProperties => ({ color, background: 'transparent' })
 
@@ -85,7 +88,7 @@ export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
 
   return (
     <div className="px-6 pb-5" style={{ maxWidth: TEMA.ANCHO_MAX, margin: '0 auto' }}>
-    <div className="cp-card space-y-4" style={{ background: TEMA.NAVY[700],
+    <div className="space-y-4" style={{ background: TEMA.SUPERFICIE.tarjeta,
          border: `1px solid ${TEMA.BORDE}`, borderRadius: TEMA.RADIO, padding: 20 }}>
       <div className="flex items-baseline justify-between flex-wrap gap-2">
         <div>
@@ -159,12 +162,12 @@ export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
           const abierto = abierta === d.id
           return (
             <div key={d.id} className="rounded-lg overflow-hidden"
-                 style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${TEMA.BORDE}`,
+                 style={{ background: TEMA.SUPERFICIE.cebra, border: `1px solid ${TEMA.BORDE}`,
                           borderLeft: `3px solid ${col}` }}>
               <button onClick={() => setAbierta(abierto ? null : d.id)}
                       className="w-full text-left px-3 py-2.5 hover:bg-surface/40 transition-colors">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-xs font-bold" style={C(TEMA.CIAN[400])}>{d.consecutivo}</span>
+                  <span className="font-mono text-xs font-bold" style={C(TEMA.ACENTO)}>{d.consecutivo}</span>
                   <span className="text-sm font-semibold" style={C(TEMA.TX.hi)}>{d.empresa}</span>
                   <span className="text-xs" style={C(TEMA.TX.low)}>{d.asesor}</span>
                   <span className="text-xs px-1.5 py-0.5 rounded font-bold"
@@ -203,7 +206,7 @@ export default function CandidatoA({ data }: { data: ResultadoCandidato[] }) {
                           <span className="text-[11px] uppercase tracking-wide" style={C(TEMA.TX.low)}>{cc.label}</span>
                           {c.requiereVoBo && (
                             <span className="text-[11px] px-1.5 rounded font-bold"
-                                  style={{ background: 'rgba(57,171,216,0.15)', color: TEMA.CIAN[400] }}>
+                                  style={{ background: TEMA.SUPERFICIE.aviso, color: TEMA.ACENTO }}>
                               requiere VoBo de Dirección
                             </span>
                           )}

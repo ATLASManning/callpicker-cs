@@ -29,7 +29,7 @@ function AnilloHealth({ valor }: { valor: number }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, justifyContent: 'flex-end',
                    width: '100%' }}>
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden style={{ flexShrink: 0 }}>
-        <circle cx="12" cy="12" r={R} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
+        <circle cx="12" cy="12" r={R} fill="none" stroke="rgba(16,53,93,0.12)" strokeWidth="3" />
         <circle cx="12" cy="12" r={R} fill="none" stroke={color} strokeWidth="3"
           strokeDasharray={`${(v / 100) * C} ${C}`} strokeLinecap="round"
           transform="rotate(-90 12 12)" />
@@ -40,13 +40,12 @@ function AnilloHealth({ valor }: { valor: number }) {
   )
 }
 
-/* @contraste-padre: el fondo oscuro lo pinta ChartCard, que envuelve todo el
-   componente con `cp-card` y `background: NAVY[700]`. Antes el envoltorio con
-   fondo vivía aquí; al pasar a la tarjeta compartida, este archivo se quedó
-   declarando letra clara sin superficie propia. */
+/* @contraste-padre: el fondo lo pinta ChartCard, que envuelve todo el
+   componente. Desde el 4 nov 2026 esa tarjeta es BLANCA y ya no lleva
+   `cp-card`, asi que aqui la letra es OSCURA y sale de `TEMA.TX`. */
 
 /* ── Paleta — igual que DashMetricasSection (sección contigua) ──────────── */
-const PANEL   = TEMA.NAVY[700]
+const PANEL   = TEMA.SUPERFICIE.tarjeta
 const BORDER  = TEMA.BORDE
 const TX_HI   = TEMA.TX.hi
 const TX_MID  = TEMA.TX.mid
@@ -301,7 +300,7 @@ export default function TopCuentasVersatil({ data }: Props) {
             style={{
               width: '100%', maxWidth: 340, padding: '7px 12px', borderRadius: 8,
               fontSize: TEMA.FUENTE.cuerpo, color: TEMA.TX.hi,
-              background: 'rgba(255,255,255,0.06)', border: `1px solid ${TEMA.BORDE}`,
+              background: TEMA.SUPERFICIE.cebra, border: `1px solid ${TEMA.BORDE}`,
               outline: 'none',
             }}
           />
@@ -317,7 +316,7 @@ export default function TopCuentasVersatil({ data }: Props) {
           <>
             {apinado && (
               <p style={{
-                fontSize: TEMA.FUENTE.cuerpo, color: TEMA.CIAN[400],
+                fontSize: TEMA.FUENTE.cuerpo, color: TEMA.ACENTO,
                 marginBottom: 10, lineHeight: 1.55, fontWeight: 600,
               }}>
                 Los valores están apiñados —el rango es menos del 15% de la mediana— así que
@@ -369,7 +368,7 @@ export default function TopCuentasVersatil({ data }: Props) {
                       {apinado && (
                         <i aria-hidden style={{
                           position: 'absolute', left: 0, top: 0, bottom: 0, width: 1,
-                          background: TEMA.SILVER[700],
+                          background: TEMA.BORDE,
                         }} />
                       )}
                       <i aria-hidden style={{
@@ -419,8 +418,8 @@ export default function TopCuentasVersatil({ data }: Props) {
                       onMouseEnter={() => setSobre(r.id)}
                       onMouseLeave={() => setSobre(null)}
                       style={{
-                        borderBottom: '1px solid rgba(255,255,255,0.04)',
-                        background: sobre === r.id ? 'rgba(57,171,216,0.10)' : 'transparent',
+                        borderBottom: `1px solid ${TEMA.BORDE}`,
+                        background: sobre === r.id ? TEMA.SUPERFICIE.aviso : 'transparent',
                         transition: `background ${TEMA.MOTION.rapido}ms`,
                       }}>
                       <td style={{ padding: '7px 10px', color: TX_LOW }}>{i + 1}</td>

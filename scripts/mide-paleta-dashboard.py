@@ -612,9 +612,48 @@ if malos:
 else:
     print(u'    los %d tokens coinciden con el tema al carácter.' % len(ESPEJO))
 
+# ── ¿SIGUE SIENDO ESTE EL MÓDULO QUE MIDE? ──────────────────────────────────
+#
+# Este script mide la paleta contra la TARJETA MARINO. El 4 nov 2026 el
+# Dashboard paso a isla CLARA por encargo de direccion, y entonces todo lo de
+# abajo deja de ser una receta y pasa a ser historia: pegar estos tonos en el
+# tema devolveria rellenos de entre 1.07 y 2.63:1 sobre una tarjeta blanca.
+#
+# Un script que receta la paleta equivocada con el mismo aplomo que la buena es
+# peor que no tenerlo. Lo comprueba leyendo el tema, no la fecha.
+import io as _io
+import os as _os
+_RUTA_TEMA = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))),
+                           'lib', 'chart-theme.ts')
+try:
+    _ES_CLARO = "tarjeta: '#FFFFFF'" in _io.open(_RUTA_TEMA, encoding='utf-8').read()
+except IOError:
+    _ES_CLARO = False
+
+if _ES_CLARO:
+    print(u'''
+  ═══════════════════════════════════════════════════════════
+  *** ESTO ES HISTORIA, NO UNA RECETA ***
+
+  `lib/chart-theme.ts` declara `SUPERFICIE.tarjeta` en BLANCO: el
+  Dashboard es isla CLARA desde el 4 nov 2026. Los tonos de abajo
+  estan medidos contra la tarjeta MARINO y sobre blanco miden
+  entre 1.07 y 2.63:1 — invisibles.
+
+  NO LOS PEGUES EN EL TEMA. El medidor vigente es:
+
+      python -I scripts/mide-paleta-dashboard-claro.py
+
+  Lo de abajo se conserva porque documenta de donde salio la
+  familia cerrada y el trilema de las siete situaciones, que
+  siguen valiendo.
+  ═══════════════════════════════════════════════════════════''')
+
 # ── Veredicto ───────────────────────────────────────────────────────────────
 print(u'\n  ═══════════════════════════════════════════════════════════')
-print(u'  LA PALETA, para pegar en lib/chart-theme.ts:\n')
+print(u'  LA PALETA %s:\n'
+      % (u'(HISTORICA — ver el aviso de arriba)' if _ES_CLARO
+         else u', para pegar en lib/chart-theme.ts'))
 print(u"    RIESGO: %s" % u', '.join(u"'%s'" % c for c in PASOS))
 print(u"    TRAMA EN: %s" % (u', '.join(necesitan_trama) or u'ninguno'))
 print(u"    ASESOR: %s" % u', '.join(u"'%s'" % c for c in CAT))

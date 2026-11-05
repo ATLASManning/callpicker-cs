@@ -5,17 +5,25 @@
  * Encabezado con título, subtítulo, ayuda y menú de acciones; modo foco a
  * pantalla completa; estados de carga, vacío y error; y los atajos F / Esc / R.
  *
- * ── POR QUÉ USA `cp-card` ─────────────────────────────────────────────────
- * `globals.css` ya tiene toda la cascada que un fondo OSCURO necesita: fuerza
- * el texto a blanco en los descendientes y reescribe los tokens de superficie.
- * La clase NO impone fondo, así que la tarjeta pone el suyo (navy-700) y hereda
- * el resto. Montar un tema oscuro paralelo sería reabrir la clase de bug que
- * costó nueve rondas en este repo.
+ * ── POR QUÉ YA NO LLEVA `cp-card` (4 nov 2026) ───────────────────────────
+ * La llevaba mientras la tarjeta era OSCURA: esa clase fuerza a BLANCO el
+ * texto de sus descendientes, que es justo lo que un fondo marino necesita.
+ *
+ * Al pasar la tarjeta a BLANCA la clase se vuelve exactamente lo contrario de
+ * lo que hace falta: blanco sobre blanco en el título, el subtítulo, el
+ * insight y cada `<p>` de dentro — la Variante A del bug de contraste de este
+ * tablero, el caso que sólo se lee seleccionando el texto. Quitarla no es
+ * cosmética: es la condición para que esta tarjeta sea legible.
+ * [[atlas-dashboard-contrast-architecture]]
+ *
+ * Y con ella se va su secuela: los `<span style={{background:'transparent'}}>`
+ * que había que poner para salvar un color de la cascada ya no hacen falta.
+ * Se dejan donde no estorban, pero el color ya no depende de ellos.
  */
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { HelpCircle, Maximize2, X, RotateCcw, Download } from 'lucide-react'
 import {
-  NAVY, BORDE, TX, FOCO, FUENTE, RADIO, MOTION, CIAN,
+  SUPERFICIE, BORDE, TX, FOCO, FUENTE, RADIO, MOTION, ACENTO,
 } from '@/lib/chart-theme'
 
 interface Props {
@@ -84,20 +92,19 @@ export default function ChartCard({
   const marco: React.CSSProperties = foco
     ? {
         position: 'fixed', inset: 16, zIndex: 60, overflow: 'auto',
-        background: NAVY[900], borderRadius: RADIO,
+        background: SUPERFICIE.tarjeta, borderRadius: RADIO,
         border: `1px solid ${BORDE}`,
-        boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
+        boxShadow: '0 32px 80px rgba(16,53,93,0.28)',
       }
     : {
-        background: NAVY[700], borderRadius: RADIO,
+        background: SUPERFICIE.tarjeta, borderRadius: RADIO,
         border: `1px solid ${BORDE}`,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+        boxShadow: '0 13px 32px rgba(28,63,88,0.06)',
       }
 
   return (
     <section
       ref={ref}
-      className="cp-card"
       style={{ ...marco, transition: `all ${MOTION.normal}ms ${MOTION.ease}` }}
       aria-label={titulo}
       tabIndex={-1}
@@ -123,19 +130,16 @@ export default function ChartCard({
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 24, height: 24, borderRadius: 999, flexShrink: 0,
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                color: verAyuda ? CIAN[500] : TX.low,
+                color: verAyuda ? ACENTO : TX.low,
               }}
             >
               <HelpCircle size={15} />
             </button>
           </div>
-          {/* EL COLOR VA EN UN <span> CON `background`, NO EN EL <p>.
-              `globals.css` tiene `.cp-card p { color:#fff !important }` y un
-              `!important` de hoja le gana al color en línea: el subtítulo
-              saldría blanco y el insight perdería su naranja, que es
-              justamente lo que lo hace visible. El selector mira la subcadena
-              «background» en el atributo `style`, así que declararlo —aunque
-              sea transparente— saca al span de la regla. */}
+          {/* El `<span>` con `background` era el escape de la cascada de
+              `.cp-card`, que ya no aplica a esta tarjeta. Se queda porque no
+              estorba y porque el detector lo cuenta como seguro, pero el
+              color del subtítulo ya NO depende de él. */}
           {subtitulo && (
             <p style={{ marginTop: 4 }}>
               <span style={{ background: 'transparent', color: TX.low,
@@ -167,7 +171,7 @@ export default function ChartCard({
       {verAyuda && (
         <p id={idAyuda} style={{
           margin: 0, padding: '10px 20px', fontSize: FUENTE.cuerpo,
-          color: TX.mid, background: 'rgba(255,255,255,0.04)',
+          color: TX.mid, background: SUPERFICIE.cebra,
           borderBottom: `1px solid ${BORDE}`, lineHeight: 1.6,
         }}>{ayuda}</p>
       )}
@@ -179,7 +183,7 @@ export default function ChartCard({
           margin: 0, padding: '10px 20px', lineHeight: 1.55,
           borderBottom: `1px solid ${BORDE}`,
         }}>
-          <span style={{ background: 'transparent', color: CIAN[400],
+          <span style={{ background: 'transparent', color: ACENTO,
                          fontSize: FUENTE.cuerpo, fontWeight: 650 }}>{insight}</span>
         </p>
       )}
@@ -209,11 +213,11 @@ function BotonAccion({ etiqueta, onClick, children }: {
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         width: 30, height: 30, borderRadius: 8,
-        background: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDE}`,
+        background: SUPERFICIE.cebra, border: `1px solid ${BORDE}`,
         color: TX.low, cursor: 'pointer',
         transition: `color ${MOTION.rapido}ms, background ${MOTION.rapido}ms`,
       }}
-      onMouseEnter={e => { e.currentTarget.style.color = CIAN[400] }}
+      onMouseEnter={e => { e.currentTarget.style.color = ACENTO }}
       onMouseLeave={e => { e.currentTarget.style.color = TX.low }}
     >{children}</button>
   )
@@ -229,8 +233,12 @@ function Esqueleto() {
       {[82, 64, 71, 48, 55, 38].map((w, i) => (
         <div key={i} style={{
           height: 20, width: `${w}%`, borderRadius: 6, marginBottom: 12,
-          background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 25%, '
-            + 'rgba(255,255,255,0.10) 37%, rgba(255,255,255,0.05) 63%)',
+          /* El brillo se hace con MARINO translúcido, no con blanco: sobre
+             una tarjeta blanca un `rgba(255,255,255,…)` compone blanco y el
+             esqueleto se vuelve invisible — un «cargando» que no se ve se
+             lee como una tarjeta vacía. */
+          background: 'linear-gradient(90deg, rgba(16,53,93,0.06) 25%, '
+            + 'rgba(16,53,93,0.12) 37%, rgba(16,53,93,0.06) 63%)',
           backgroundSize: '400% 100%',
           animation: 'dash-brillo 1.4s ease-in-out infinite',
           animationDelay: `${i * 90}ms`,
@@ -253,7 +261,7 @@ function Error({ texto, onReintentar }: { texto: string; onReintentar?: () => vo
   return (
     <div role="alert" style={{ padding: '20px 0', textAlign: 'center' }}>
       <p style={{ lineHeight: 1.6 }}>
-        <span style={{ background: 'transparent', color: CIAN[400],
+        <span style={{ background: 'transparent', color: ACENTO,
                        fontSize: FUENTE.cuerpo }}>{texto}</span>
       </p>
       {onReintentar && (
@@ -264,7 +272,10 @@ function Error({ texto, onReintentar }: { texto: string; onReintentar?: () => vo
           style={{
             marginTop: 12, padding: '7px 16px', borderRadius: 8,
             fontSize: FUENTE.cuerpo, fontWeight: 700,
-            background: CIAN[500], color: NAVY[900],
+            /* Relleno sólido: la letra se ELIGE midiendo, no por costumbre.
+               Blanco sobre #1D6CAA mide 5.56:1. El cian vivo que había antes
+               sólo admite letra oscura, y aquí la tarjeta es clara. */
+            background: ACENTO, color: SUPERFICIE.tarjeta,
             border: 'none', cursor: 'pointer',
           }}
         >Reintentar</button>

@@ -7,13 +7,15 @@
  * Va pegada arriba (`sticky`) para que se vea mientras se recorre la página, y
  * sólo aparece cuando hay algo filtrado: una franja vacía es ruido.
  *
- * Es una isla OSCURA sobre la página clara, así que usa `cp-card` y los tokens
- * de tarjeta. Ver [[atlas-dashboard-contrast-architecture]].
+ * DEJÓ DE SER ISLA OSCURA el 4 nov 2026, con el resto del módulo. Y con ella
+ * se fue la clase `cp-card`: sobre un fondo BLANCO esa clase fuerza a blanco
+ * el rótulo y los chips, que es blanco sobre blanco — la Variante A del bug
+ * de contraste de este tablero. Ver [[atlas-dashboard-contrast-architecture]].
  */
 import { Filter } from 'lucide-react'
 import { useDashFiltros } from '@/lib/dash-filtros'
 import { ChipsFiltro } from '@/components/charts/primitivos'
-import { NAVY, BORDE, TX, FUENTE, ANCHO_MAX } from '@/lib/chart-theme'
+import { SUPERFICIE, BORDE, TX, FUENTE, ANCHO_MAX } from '@/lib/chart-theme'
 
 export default function BarraFiltros() {
   const { filtros, quitar, limpiar } = useDashFiltros()
@@ -23,11 +25,11 @@ export default function BarraFiltros() {
       position: 'sticky', top: 8, zIndex: 40, marginBottom: 12,
       maxWidth: ANCHO_MAX, marginLeft: 'auto', marginRight: 'auto',
     }}>
-      <div className="cp-card" role="status" aria-live="polite" style={{
+      <div role="status" aria-live="polite" style={{
         display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
         padding: '10px 16px', borderRadius: 12,
-        background: NAVY[900], border: `1px solid ${BORDE}`,
-        boxShadow: '0 8px 24px rgba(8,39,66,0.35)',
+        background: SUPERFICIE.tarjeta, border: `1px solid ${BORDE}`,
+        boxShadow: '0 8px 24px rgba(16,53,93,0.10)',
       }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
                        background: 'transparent', color: TX.low,
