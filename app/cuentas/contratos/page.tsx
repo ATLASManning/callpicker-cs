@@ -47,50 +47,15 @@ import {
  * TONOS, no una autoridad sobre el contraste: tiene tres pares que no alcanzan
  * AA y aquí van corregidos, cada uno con su número.
  */
-const MARINO = '#10355D'   // --navy
-/* `--navy2 #082742` NO se declara: es el fondo de la barra lateral del
-   documento y aquí no hay barra lateral. Una constante de paleta sin uso es la
-   mitad de las «paletas gemelas» que ya costaron una ronda. */
-const AZUL   = '#1D6CAA'   // --blue: el acento sobre fondo CLARO (5.56:1)
-const CIAN   = '#39ABD8'   // --cyan: el filete. Sobre blanco mide 2.63:1 y es
-                           // DECORACIÓN — subraya un título que ya va en
-                           // marino a 12.43:1. Nunca distingue nada por sí.
-const LINEA  = '#DFE8EF'   // --line
-const LAVADO = '#F5F8FB'   // --wash
-const TX_ALTO = '#202E3B'  // --ink
-const TX_MED  = '#3D4B5C'
-/* `--muted #6A7889` del documento NO se adopta: mide 4.51:1 sobre blanco
-   —justo— y **4.22:1 sobre la fila alterna**, que es el fondo nuevo. Se queda
-   la tinta que ya tenía la página: 4.83 y 4.52. Una medición caduca cuando
-   cambia el fondo, y no avisa. */
-const TX_BAJO = '#667384'
-const ROJO_TX = '#A4262C'
-const AMBAR_TX = '#8A5200'
-const PLATA  = '#A8BACB'   // sólo sobre marino (6.25:1). Sobre blanco, 1.99.
-const ZEBRA  = '#F4F8FB'   // `tbody tr:nth-child(even)` del documento
-const SOMBRA = '0 13px 32px #1C3F5810'   // la de `.document`
-const MISION = '#EFF7FC'   // el fondo de `.mission`
-
-/* EL HERO. El documento acaba su degradado en `#247BA6`, y contra ese tono
-   fallan sus PROPIOS tokens: el rótulo mide 3.57:1, el párrafo 3.72, el texto
-   de las pastillas 4.10 y el cian del titular 2.95 — por debajo incluso del
-   3:1 de texto grande. En el documento no salta porque su hero es enorme y la
-   esquina clara queda detrás del aro decorativo; en una pantalla de trabajo el
-   texto cae justo ahí. `#1F6A90` es el mismo tono oscurecido por descenso
-   hasta que los CINCO pasan (ΔE 5.6: sigue siendo el mismo azul).
-
-   **UN DEGRADADO SE MIDE POR SU EXTREMO QUE APRIETA**, que aquí es el claro.
-   Medido sólo contra el oscuro da 14.03:1 y una esquina ilegible. */
-const HERO = 'linear-gradient(127deg,#0B2D4D,#15537F 72%,#1F6A90)'
-const HERO_TAG  = '#B3E8FF'   // 4.51:1 sobre el extremo claro
-const HERO_CIAN = '#8AD7F8'   // 3.73:1 — titular de 44px, mínimo 3:1
-const HERO_LEAD = '#D7E7F2'   // 4.71:1
-const HERO_PILL = '#E5F1FA'   // 5.19:1
-/* El borde de las pastillas del documento es blanco al 30%, que compuesto
-   sobre el degradado da 1.70:1. Al 60% da 3.22:1 en el extremo claro y 5.98
-   en el oscuro. Un borde translúcido NO es blanco: se compone con lo que haya
-   debajo, y ahí es donde se mide. */
-const HERO_BORDE = 'rgba(255,255,255,0.60)'
+/* LA PALETA YA NO VIVE AQUI. Estaba declarada en este archivo, asi que la
+   segunda pantalla que quisiera este formato tenia que copiarla —paletas
+   gemelas—. Vive en `lib/paleta-cs.ts` con cada medicion al lado, y el hero
+   es `components/HeroModulo.tsx`. [[atlas-dashboard-contrast-architecture]] */
+import {
+  MARINO, AZUL, CIAN, LINEA, LAVADO, TX_ALTO, TX_MED, TX_BAJO,
+  ROJO_TX, AMBAR_TX, PLATA, ZEBRA, SOMBRA, MISION, HERO_CIAN,
+} from '@/lib/paleta-cs'
+import HeroModulo from '@/components/HeroModulo'
 
 /**
  * LOS COLORES DE LAS BARRAS: una rampa de azul marino a gris claro.
@@ -483,7 +448,8 @@ export default function ContratosPage() {
   if (falla) {
     return (
       <div style={{ minHeight: '100%' }}>
-        <Hero lead="Conciliación de la hoja de contratos con la cartera de Customer Success." />
+        <HeroModulo titulo="Contratos" tituloCian="con clientes"
+                    lead="Conciliación de la hoja de contratos con la cartera de Customer Success." />
         <div style={{ padding: '24px 32px' }}>
           <div style={{ padding: 16, borderRadius: 12, background: '#FEF2F2',
                         border: '1px solid #FECACA', color: ROJO_TX }}>
@@ -499,7 +465,8 @@ export default function ContratosPage() {
   if (!d) {
     return (
       <div style={{ minHeight: '100%' }}>
-        <Hero lead="Conciliación de la hoja de contratos con la cartera de Customer Success." />
+        <HeroModulo titulo="Contratos" tituloCian="con clientes"
+                    lead="Conciliación de la hoja de contratos con la cartera de Customer Success." />
         <p style={{ color: TX_BAJO, padding: '24px 32px' }}>Cargando contratos…</p>
       </div>
     )
@@ -514,7 +481,8 @@ export default function ContratosPage() {
           iban apiladas en el subtítulo de `PageHeader`, separadas una por
           una. Y la fecha de la hoja va SIEMPRE, porque es la que dice de
           cuándo es todo lo demás. */}
-      <Hero
+      <HeroModulo
+      titulo="Contratos" tituloCian="con clientes"
         lead={'Conciliación de la hoja de contratos con la cartera de Customer Success: '
             + 'qué está firmado, qué vence y qué cuenta TOP no tiene contrato.'}
         pastillas={[
@@ -982,41 +950,6 @@ export default function ContratosPage() {
  * `.hero:after` — `#FFFFFF21` y dos sombras al 3% y 2%: no comunica nada, no
  * tiene por qué medir.
  */
-function Hero({ pastillas, lead }: { pastillas?: string[]; lead: string }) {
-  return (
-    <header style={{ background: HERO, color: '#FFFFFF', position: 'relative',
-                     overflow: 'hidden', padding: '40px 32px 36px' }}>
-      <div aria-hidden="true"
-           style={{ position: 'absolute', width: 430, height: 430, right: -130, top: -175,
-                    border: '1px solid #FFFFFF21', borderRadius: '50%',
-                    boxShadow: '0 0 0 70px #FFFFFF09, 0 0 0 145px #FFFFFF06',
-                    pointerEvents: 'none' }} />
-      <div style={{ position: 'relative', maxWidth: 820 }}>
-        <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.17em',
-                    textTransform: 'uppercase', color: HERO_TAG }}>
-          Callpicker / Customer Success
-        </p>
-        <h1 style={{ fontSize: 44, lineHeight: 1.06, letterSpacing: '-0.04em',
-                     fontWeight: 850, margin: '14px 0 12px' }}>
-          Contratos<br /><span style={{ color: HERO_CIAN }}>con clientes</span>
-        </h1>
-        <p style={{ color: HERO_LEAD, fontSize: 13.5, lineHeight: 1.55, maxWidth: 640 }}>
-          {lead}
-        </p>
-        {pastillas && pastillas.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20 }}>
-            {pastillas.map(t => (
-              <span key={t} style={{ border: `1px solid ${HERO_BORDE}`, borderRadius: 30,
-                                     padding: '5px 13px', fontSize: 11.5, color: HERO_PILL }}>
-                {t}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </header>
-  )
-}
 
 /**
  * El título de una tarjeta, con el filete de cian del documento (`.document h2`).

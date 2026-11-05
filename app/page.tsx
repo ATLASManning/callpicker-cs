@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import {
   CalendarDays, AlertCircle, Ticket, LifeBuoy, ArrowUpRight,
 } from 'lucide-react'
-import PageHeader from '@/components/PageHeader'
+import HeroModulo from '@/components/HeroModulo'
 import SaludCarteraChart, { type FilaSalud } from '@/components/charts/SaludCarteraChart'
 import BarraFiltros from '@/components/charts/BarraFiltros'
 import { DashFiltrosProvider } from '@/lib/dash-filtros'
@@ -25,7 +25,7 @@ import { riesgoPorCuenta, CATALOGO } from '@/lib/alertas'
 import { veredictosDeCartera } from '@/lib/alertas-estado'
 import { proyectaTablero } from '@/lib/alertas-tablero'
 import { getKPIs, getCuentas, getAdopcionProductoAll, type AdopcionRow } from '@/lib/supabase'
-import { type Cuenta } from '@/lib/types'
+import { type Cuenta, formatMXN } from '@/lib/types'
 import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
 import Link from 'next/link'
 import { COBERTURA } from '@/lib/tickets-norm'
@@ -303,12 +303,34 @@ export default async function DashboardPage() {
     <div className="min-h-screen">
       <AutoRefresh intervalMs={300_000} showIndicator={false} />
 
-      <PageHeader
-        title="Dashboard Customer Success"
-        subtitle={hoyEnPalabras()}
-        actions={
+      {/* ── LA CABECERA DEL OPERATING SYSTEM ──────────────────────────────
+          Encargo de dirección (4 nov 2026): el mismo formato que Contratos.
+          Es `components/HeroModulo.tsx`, compartido — no una copia del
+          degradado y sus seis tokens medidos.
+
+          LAS PASTILLAS SALEN DE `kpis`, QUE YA ESTÁ CALCULADO, y ninguna se
+          escribe a mano. La del dinero DECLARA SU COBERTURA: `facturacionTotal`
+          suma `?? 0`, así que una cuenta sin cifra en ninguna fuente entra como
+          cero; decir el importe a secas lo leería como si cubriera las `total`.
+          Por eso va «de N de M cuentas», y cuando las cubre todas esa coletilla
+          desaparece en vez de afirmar un `N/N` redundante.
+          [[feedback-kpi-con-fuente]] [[feedback-cero-sin-medicion]] */}
+      <HeroModulo
+        titulo="Dashboard"
+        tituloCian="Customer Success"
+        lead={'En qué estado está la cartera hoy y de quién es cada parte: quién factura, '
+            + 'quién está en riesgo y qué cuentas siguen sin ficha.'}
+        pastillas={[
+          `${kpis.total} cuentas en cartera viva`,
+          kpis.conImporte === kpis.total
+            ? `${formatMXN(kpis.facturacionTotal)} al mes`
+            : `${formatMXN(kpis.facturacionTotal)} al mes · de ${kpis.conImporte} de ${kpis.total} cuentas`,
+          `${kpis.saludables} saludables · ${kpis.enRiesgo} en riesgo`,
+          hoyEnPalabras(),
+        ]}
+        acciones={
           <div className="flex items-center gap-3">
-            <AutoRefresh intervalMs={300_000} showIndicator />
+            <AutoRefresh intervalMs={300_000} showIndicator sobreOscuro />
             <Link href="/reuniones" className="cp-btn cp-btn-primary">
               <CalendarDays size={14} /> Reuniones
             </Link>

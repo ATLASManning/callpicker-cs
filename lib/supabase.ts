@@ -302,6 +302,13 @@ export async function getKPIs(filtro?: { asesor?: string }) {
   } catch { /* sin GRC: se queda lo que haya */ }
   const total = cuentas.length
   const facturacionTotal = cuentas.reduce((s, c) => s + (c.facturacion ?? 0), 0)
+  /* SOBRE CUÁNTAS CUENTAS ESTÁ HECHA ESA SUMA. `facturacionTotal` suma
+     `?? 0`, así que una cuenta sin cifra en ninguna fuente entra como cero y
+     el total se lee como si cubriera a las `total`. No las cubre. Sin este
+     conteo no hay forma de decir con palabras lo que falta, y un importe que
+     no declara su cobertura es el mismo defecto que un cero sin medición.
+     [[feedback-cero-sin-medicion]] [[feedback-tablas-deben-cerrar]] */
+  const conImporte = cuentas.filter(c => (c.facturacion ?? 0) > 0).length
   const enRiesgo = cuentas.filter(c => c.health_score < 40).length
   const facturacionRiesgo = cuentas
     .filter(c => c.health_score < 40)
@@ -310,7 +317,7 @@ export async function getKPIs(filtro?: { asesor?: string }) {
   const faltaTC = cuentas.filter(c => c.notas?.includes('[FALTA_TC]')).length
   const faltaHS = cuentas.filter(c => c.notas?.includes('[FALTA_HS]')).length
 
-  return { total, facturacionTotal, enRiesgo, facturacionRiesgo, saludables, faltaTC, faltaHS }
+  return { total, facturacionTotal, conImporte, enRiesgo, facturacionRiesgo, saludables, faltaTC, faltaHS }
 }
 
 export async function getSemaforoByAsesor(): Promise<SemaforoAsesor[]> {

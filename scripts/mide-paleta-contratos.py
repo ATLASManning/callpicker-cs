@@ -330,6 +330,76 @@ print(u'\n  ════ 7 · LA CAJA DE CIERRE (.mission del documento) ══�
 mide(u'marino sobre #EFF7FC', NAVY, '#EFF7FC')
 mide(u'filete izquierdo (azul)', BLUE, '#EFF7FC', MIN_OBJETO, u'objeto gráfico')
 
+# ── 8 · EL ESPEJO CONTRA `lib/paleta-cs.ts` ─────────────────────────────────
+#
+# La paleta dejó de vivir dentro de la pantalla de Contratos: ahora es
+# `lib/paleta-cs.ts`, compartida con el Dashboard. Este medidor tenía los hex
+# TECLEADOS, así que a partir de aquí son DOS copias del mismo valor — y un
+# espejo tecleado a mano deja de ser espejo en cuanto alguien corrige uno.
+# Se leen del archivo y se exige que coincidan. [[feedback-verificar-antes-asegurar]]
+import os
+import re
+
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PALETA = os.path.join(RAIZ, 'lib', 'paleta-cs.ts')
+
+print(u'\n  ════ 8 · ESPEJO CONTRA lib/paleta-cs.ts ═════════════════════════\n')
+try:
+    fuente = io.open(PALETA, encoding='utf-8').read()
+except IOError:
+    print(u'    FALLA  no pude leer lib/paleta-cs.ts — no se puede comparar')
+    fallos.append(u'lib/paleta-cs.ts ilegible')
+    fuente = u''
+
+if fuente:
+    # `export const X = '#hex'` / `= 'linear-gradient(...)'`
+    declara = dict(re.findall(r"export const (\w+)\s*=\s*'([^']+)'", fuente))
+    ESPEJO = [
+        ('MARINO', NAVY), ('AZUL', BLUE), ('CIAN', CYAN), ('LINEA', LINE),
+        ('LAVADO', WASH), ('TX_ALTO', TX_ALTO), ('TX_MED', TX_MED),
+        ('TX_BAJO', TX_BAJO), ('ROJO_TX', ROJO_TX), ('AMBAR_TX', AMBAR_TX),
+        ('PLATA', PLATA_500), ('ZEBRA', ZEBRA),
+        ('HERO_TAG', TAG), ('HERO_CIAN', TITULO2), ('HERO_LEAD', LEAD),
+        ('HERO_PILL', PILL_TX),
+    ]
+    for nombre, medido in ESPEJO:
+        real = declara.get(nombre)
+        ok = real is not None and real.upper() == medido.upper()
+        print(u'    %s  %-12s medido %s · declara %s'
+              % (u'ok  ' if ok else u'FALLA', nombre, medido, real or u'(no existe)'))
+        if not ok:
+            fallos.append(u'%s: se mide %s y lib/paleta-cs.ts declara %s'
+                          % (nombre, medido, real or u'nada'))
+    # El degradado: que su extremo claro sea el CORREGIDO y no el del documento.
+    grad = declara.get('HERO', u'')
+    ok = HERO_CLARO.lower() in grad.lower()
+    print(u'    %s  %-12s el degradado acaba en %s'
+          % (u'ok  ' if ok else u'FALLA', 'HERO', HERO_CLARO))
+    if not ok:
+        fallos.append(u'HERO: el degradado de lib/paleta-cs.ts no acaba en %s (es «%s»)'
+                      % (HERO_CLARO, grad))
+
+# ── 9 · EL INDICADOR DE AUTOREFRESH SOBRE EL HERO ───────────────────────────
+#
+# El hero del Dashboard lleva en la esquina el indicador de `AutoRefresh`, que
+# se pintaba con la clase `text-textLow`. Esa clase vale `#6A7889` —tinta
+# OSCURA— y sólo se vuelve blanco translúcido DENTRO de una `.cp-card`, por
+# `globals.css:84`. El hero es un `<header>` con degradado propio, no una
+# `.cp-card`: la clase se queda en su valor oscuro.
+#
+# Es la Variante B del bug de este tablero —un panel oscuro usando tokens cuyo
+# valor correcto depende de que algo más los sobreescriba— y se vería
+# exactamente como las ocho rondas anteriores: texto que sólo se lee
+# seleccionándolo. [[atlas-dashboard-contrast-architecture]]
+print(u'\n  ════ 9 · EL INDICADOR DEL HERO (AutoRefresh) ════════════════════\n')
+print(u'  lo que HABRÍA pasado dejando `text-textLow` sobre el degradado:\n')
+for etq, fondo in ((u'extremo CLARO (el que aprieta)', HERO_CLARO),
+                   (u'extremo oscuro', HERO_OSCURO)):
+    print(u'         #6A7889 sobre %-32s %6.2f:1' % (etq, contraste('#6A7889', fondo)))
+print(u'\n  corregido a HERO_LEAD, el token ya medido del párrafo del hero:\n')
+mide(u'indicador sobre el extremo claro', LEAD, HERO_CLARO)
+mide(u'indicador sobre el extremo oscuro', LEAD, HERO_OSCURO)
+
 print(u'\n  ─────────────────────────────────────────────────────────────────')
 if fallos:
     print(u'\n  %d PAR(ES) NO ALCANZAN:\n' % len(fallos))
