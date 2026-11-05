@@ -12,14 +12,23 @@ import {
   motivoRechazo, etiquetaFormato, pesoLegible, type Tema, type Anexo,
 } from '@/lib/anexos'
 
-/** Cuenta seleccionable. El vínculo es por id; el nombre no es llave. */
-type CuentaOpcion = { id: string; consecutivo: string | null; cid: string | null; empresa: string; asesor: string | null }
+/** Cuenta seleccionable. El vínculo viaja en `valor`; el nombre no es llave. */
+type OpcionCuenta = {
+  valor: string; cuentaId: string | null; cid: string | null
+  empresa: string; consecutivo: string | null; asesor: string | null; enCartera: boolean
+}
+type MetaCatalogo = {
+  enCartera: number; soloFacturacion: number; total: number
+  deduplicados: number; nombresEnConflicto: number; cortesLeidos: boolean
+}
 
-const vacio = () => ({ cuenta_id: '', nombre_documento: '', tema: '' as Tema | '', notas: '' })
+const vacio = () => ({ cuenta_valor: '', nombre_documento: '', tema: '' as Tema | '', notas: '' })
 
 export default function AnexosPage() {
   const [anexos, setAnexos]   = useState<Anexo[]>([])
-  const [cuentas, setCuentas] = useState<CuentaOpcion[]>([])
+  const [cuentas, setCuentas] = useState<OpcionCuenta[]>([])
+  const [catalogoMeta, setCatalogoMeta] = useState<MetaCatalogo | null>(null)
+  const [catalogoAviso, setCatalogoAviso] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [tablaExiste, setTablaExiste] = useState<boolean | null>(null)
   const [cuentasError, setCuentasError] = useState(false)
@@ -66,22 +75,22 @@ export default function AnexosPage() {
 
   useEffect(() => { cargar() }, [cargar])
 
+  /* ── El catálogo: cartera CS **más** el padrón de facturación ────────────
+     Antes esto pedía `/api/cuentas`, que son las 224 de la cartera. Callpicker
+     factura a 2,726, y a 2,556 de ellas no se les podía colgar un documento
+     —ProMujer, con convenio hasta 2028, entre ellas—. Ahora la lista la arma
+     `lib/catalogo-cuentas.ts`, que une las dos fuentes sin duplicar CIDs. */
   useEffect(() => {
     let cancelado = false
     setCuentasError(false)
-    fetch('/api/cuentas')
+    fetch('/api/catalogo-cuentas')
       .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
-      .then((rows: unknown) => {
+      .then((j: { opciones?: OpcionCuenta[]; meta?: MetaCatalogo; aviso?: string | null }) => {
         if (cancelado) return
-        if (!Array.isArray(rows)) throw new Error('respuesta inesperada')
-        setCuentas((rows as Record<string, unknown>[])
-          .map(c => ({
-            id: String(c.id), consecutivo: (c.consecutivo as string) ?? null,
-            cid: (c.cid as string) ?? null, empresa: String(c.empresa ?? ''),
-            asesor: (c.asesor as string) ?? null,
-          }))
-          .filter(c => c.id && c.empresa)
-          .sort((a, b) => a.empresa.localeCompare(b.empresa, 'es')))
+        if (!Array.isArray(j.opciones)) throw new Error('respuesta inesperada')
+        setCuentas(j.opciones)
+        setCatalogoMeta(j.meta ?? null)
+        setCatalogoAviso(j.aviso ?? null)
       })
       // Sin catálogo no se puede elegir cliente, y el cliente es obligatorio:
       // decirlo en pantalla en vez de dejar un combo vacío sin explicación.
@@ -103,7 +112,7 @@ export default function AnexosPage() {
   }
 
   async function guardar() {
-    if (!form.cuenta_id)            return setError('Elige el cliente al que pertenece el documento.')
+    if (!form.cuenta_valor)         return setError('Elige el cliente al que pertenece el documento.')
     if (!form.nombre_documento.trim()) return setError('Escribe el nombre del documento.')
     if (!form.tema)                 return setError('Elige el tema del documento.')
     if (!archivo)                   return setError('Adjunta un archivo Word, Excel, PDF o HTML.')
@@ -114,7 +123,7 @@ export default function AnexosPage() {
     setError(null)
     try {
       const fd = new FormData()
-      fd.append('cuenta_id', form.cuenta_id)
+      fd.append('cuenta_valor', form.cuenta_valor)
       fd.append('nombre_documento', form.nombre_documento.trim())
       fd.append('tema', form.tema)
       fd.append('notas', form.notas.trim())
@@ -317,11 +326,24 @@ export default function AnexosPage() {
                           style={{ background: c.bg, color: c.fgCard, border: `1px solid ${c.fg}40` }}>
                           {ETIQUETA_TEMA[a.tema]}
                         </span>
-                        <Link href={`/cuentas/${a.cuenta_id}`}
-                          className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
-                          style={{ background: 'rgba(5,150,105,0.1)', color: '#059669', border: '1px solid rgba(5,150,105,0.2)' }}>
-                          <Building2 size={9} />{a.empresa ?? 'sin nombre'}{a.cid ? ` · ${a.cid}` : ''}
-                        </Link>
+                        {/* Sólo las de la cartera tienen ficha. Una cuenta de
+                            facturación no tiene `/cuentas/<id>`, y enlazarla
+                            igual mandaría a `/cuentas/null`: se pinta la misma
+                            pastilla sin enlace, diciendo por qué. */}
+                        {a.cuenta_id ? (
+                          <Link href={`/cuentas/${a.cuenta_id}`}
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
+                            style={{ background: 'rgba(5,150,105,0.1)', color: '#059669', border: '1px solid rgba(5,150,105,0.2)' }}>
+                            <Building2 size={9} />{a.empresa ?? 'sin nombre'}{a.cid ? ` · ${a.cid}` : ''}
+                          </Link>
+                        ) : (
+                          <span
+                            title="Cliente de facturación: no está en la cartera CS, así que no tiene ficha."
+                            className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
+                            style={{ background: 'rgba(16,53,93,0.10)', color: '#A8BACB', border: '1px solid rgba(168,186,203,0.25)' }}>
+                            <Building2 size={9} />{a.empresa ?? 'sin nombre'}{a.cid ? ` · ${a.cid}` : ''} · sin ficha
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm font-semibold truncate" style={{ color: '#fff' }}>
                         {a.nombre_documento}
@@ -372,21 +394,46 @@ export default function AnexosPage() {
                 <label className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: '#059669' }}>
                   <Building2 size={12} /> Cliente <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                {/* Por cuenta, no por nombre escrito. Un texto libre no vincula
-                    nada: es la lección que dejó el módulo de Reuniones. */}
+                {/* Por cuenta o por CID, nunca por nombre escrito. Un texto
+                    libre no vincula nada: es la lección que dejó el módulo de
+                    Reuniones. El `valor` dice CUÁL de las dos llaves es. */}
                 <CustomSelect
-                  value={form.cuenta_id} searchable
+                  value={form.cuenta_valor} searchable
                   placeholder="Busca y selecciona el cliente…"
                   wrapperClassName="w-full" className="cp-select w-full"
-                  style={{ borderColor: form.cuenta_id ? undefined : '#fca5a5' }}
-                  onChange={v => setForm(p => ({ ...p, cuenta_id: v }))}
+                  style={{ borderColor: form.cuenta_valor ? undefined : '#fca5a5' }}
+                  onChange={v => setForm(p => ({ ...p, cuenta_valor: v }))}
                   options={[
                     { value: '', label: '— Selecciona un cliente —' },
                     ...cuentas.map(c => ({
-                      value: c.id,
-                      label: `${c.consecutivo ?? 's/c'} · ${c.empresa}${c.asesor ? ` · ${c.asesor}` : ''}`,
+                      value: c.valor,
+                      /* Las de fuera de cartera se rotulan: no tienen
+                         consecutivo ni asesor, y sin decirlo parecerían una
+                         cuenta mal capturada. El CID va en la etiqueta porque
+                         es lo único por lo que se puede buscar. */
+                      label: c.enCartera
+                        ? `${c.consecutivo ?? 's/c'} · ${c.empresa}${c.asesor ? ` · ${c.asesor}` : ''}`
+                        : `${c.empresa} · CID ${c.cid} · facturación (fuera de cartera CS)`,
                     })),
                   ]} />
+                {/* El color va en un <span> con `background`, no en el <p>:
+                    dentro de `.cp-card` el texto de los descendientes se fuerza
+                    a BLANCO y un color puesto en el párrafo se pierde.
+                    [[atlas-dashboard-contrast-architecture]] */}
+                {catalogoMeta && (
+                  <p className="text-[11px] mt-1">
+                    <span style={{ background: 'transparent', color: '#667384' }}>
+                      {catalogoMeta.enCartera.toLocaleString('es-MX')} de la cartera CS
+                      {' · '}{catalogoMeta.soloFacturacion.toLocaleString('es-MX')} sólo en facturación
+                      {' · '}{catalogoMeta.total.toLocaleString('es-MX')} en total
+                    </span>
+                  </p>
+                )}
+                {catalogoAviso && (
+                  <p className="text-[11px] mt-1">
+                    <span style={{ background: 'transparent', color: '#8A5200' }}>{catalogoAviso}</span>
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -22,11 +22,21 @@ type Reunion = {
   empresa?: string | null
   cuenta_id?: string | null
   cid?: string | null
+  /** Lo que elige el combo: `cuenta:<uuid>` o `cid:<cid>`. Sólo del
+   *  formulario — el servidor lo parte y guarda las columnas de arriba. */
+  cuenta_valor?: string | null
   creado_en: string
 }
 
-/** Cuenta seleccionable para vincular una reunión de cliente. */
-type CuentaOpcion = { id: string; consecutivo: string | null; cid: string | null; empresa: string; asesor: string | null }
+/** Cuenta seleccionable: la cartera CS **y** el padrón de facturación. */
+type OpcionCuenta = {
+  valor: string; cuentaId: string | null; cid: string | null
+  empresa: string; consecutivo: string | null; asesor: string | null; enCartera: boolean
+}
+type MetaCatalogo = {
+  enCartera: number; soloFacturacion: number; total: number
+  deduplicados: number; nombresEnConflicto: number; cortesLeidos: boolean
+}
 
 /* Los tonos son para la TARJETA OSCURA, que es donde se pintan estas
    pastillas. Iban con la paleta de página y tres de los cinco no se leían:
@@ -55,7 +65,7 @@ const hoy = () => hoyLocal()
 const emptyForm = (): Omit<Reunion, 'id' | 'creado_en'> => ({
   fecha: hoy(), tipo: 'junta_semanal',
   titulo: '', participantes: '', resumen: '', acuerdos: '', proximos_pasos: '', empresa: '',
-  cuenta_id: null, cid: null,
+  cuenta_id: null, cid: null, cuenta_valor: null,
 })
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -135,7 +145,9 @@ export default function ReunionesPage() {
   const [mesActivo,    setMesActivo]    = useState(() => hoy().slice(0, 7))
   const [tableExists,  setTableExists]  = useState<boolean | null>(null)
   const [migrated,     setMigrated]     = useState(false)
-  const [cuentas,      setCuentas]      = useState<CuentaOpcion[]>([])
+  const [cuentas,      setCuentas]      = useState<OpcionCuenta[]>([])
+  const [catalogoMeta, setCatalogoMeta] = useState<MetaCatalogo | null>(null)
+  const [catalogoAviso, setCatalogoAviso] = useState<string | null>(null)
   const [cuentasCargando, setCuentasCargando] = useState(false)
   const [cuentasError, setCuentasError] = useState(false)
   const [saveError,    setSaveError]    = useState<string | null>(null)
@@ -162,30 +174,31 @@ export default function ReunionesPage() {
 
   useEffect(() => { loadFromServer() }, [loadFromServer])
 
-  /* ── Catálogo de cuentas para el selector de reuniones de cliente ──
+  /* ── Catálogo de cuentas para el selector ─────────────────────────────
      Se cargan las vivas y las dormidas: una reunión puede ser justamente
-     la de recuperación de una cuenta dormida. */
+     la de recuperación de una cuenta dormida.
+
+     Y desde el 5 nov 2026, TAMBIÉN las que sólo están en facturación. Antes
+     esto pedía `/api/cuentas` —las 224 de la cartera— y una reunión con un
+     cliente fuera de ella no se podía registrar: el combo no lo ofrecía y la
+     cuenta es obligatoria en cuatro de los cinco tipos. Son 2,556 clientes,
+     y el catálogo pasa de 224 a 2,780.
+     La unión la hace `lib/catalogo-cuentas.ts`. */
   useEffect(() => {
     let cancelado = false
     setCuentasCargando(true)
     setCuentasError(false)
-    fetch('/api/cuentas')
+    fetch('/api/catalogo-cuentas')
       .then(r => {
         if (!r.ok) throw new Error(String(r.status))
         return r.json()
       })
-      .then((rows: unknown) => {
+      .then((j: { opciones?: OpcionCuenta[]; meta?: MetaCatalogo; aviso?: string | null }) => {
         if (cancelado) return
-        if (!Array.isArray(rows)) throw new Error('respuesta inesperada')
-        const arr = (rows as Record<string, unknown>[])
-          .map(c => ({
-            id: String(c.id), consecutivo: (c.consecutivo as string) ?? null,
-            cid: (c.cid as string) ?? null, empresa: String(c.empresa ?? ''),
-            asesor: (c.asesor as string) ?? null,
-          }))
-          .filter(c => c.id && c.empresa)
-          .sort((a, b) => a.empresa.localeCompare(b.empresa, 'es'))
-        setCuentas(arr)
+        if (!Array.isArray(j.opciones)) throw new Error('respuesta inesperada')
+        setCuentas(j.opciones)
+        setCatalogoMeta(j.meta ?? null)
+        setCatalogoAviso(j.aviso ?? null)
       })
       /* Antes esto se tragaba el fallo con un comentario que decía «el
          guardado lo bloquea». Ahora la cuenta es obligatoria en cuatro de los
@@ -260,7 +273,7 @@ export default function ReunionesPage() {
       return
     }
     // Se exige la CUENTA, no un nombre escrito: un texto libre no vincula nada.
-    if (exigeCuenta(form.tipo) && !form.cuenta_id) {
+    if (exigeCuenta(form.tipo) && !form.cuenta_valor) {
       setSaveError(`Falta la cuenta. Es obligatoria en ${TIPOS[form.tipo].label}; `
         + 'sólo las de One To One se guardan sin ella.')
       return
@@ -454,7 +467,7 @@ export default function ReunionesPage() {
                     const tipo = v as TipoReunion
                     return llevaCuenta(tipo)
                       ? { ...p, tipo }
-                      : { ...p, tipo, cuenta_id: null, cid: null, empresa: '' }
+                      : { ...p, tipo, cuenta_id: null, cid: null, empresa: '', cuenta_valor: null }
                   })}
                   className="cp-select w-full"
                   options={Object.entries(TIPOS).map(([k, v]) => ({ value: k, label: v.label }))} />
@@ -483,17 +496,21 @@ export default function ReunionesPage() {
                     texto libre y no vinculaba nada: "Neruc", "Grupo NERUC" y
                     "Neruc Sede Central" son la misma cuenta y no cruzaban. */}
                 <CustomSelect
-                  value={form.cuenta_id ?? ''}
+                  value={form.cuenta_valor ?? ''}
                   searchable
                   placeholder={cuentasCargando ? 'Cargando cuentas…' : 'Busca y selecciona la cuenta…'}
                   wrapperClassName="w-full"
                   className="cp-select w-full"
-                  style={{ borderColor: form.cuenta_id ? undefined : '#fca5a5' }}
+                  style={{ borderColor: form.cuenta_valor ? undefined : '#fca5a5' }}
                   onChange={v => {
-                    const c = cuentas.find(x => x.id === v)
+                    const c = cuentas.find(x => x.valor === v)
                     setForm(p => ({
                       ...p,
-                      cuenta_id: v || null,
+                      cuenta_valor: v || null,
+                      /* `cuenta_id` sólo existe para las de cartera. En las de
+                         facturación va null a propósito: el amarre es el CID,
+                         y poner ahí cualquier cosa rompería la llave foránea. */
+                      cuenta_id: c?.cuentaId ?? null,
                       cid: c?.cid ?? null,
                       empresa: c?.empresa ?? '',
                     }))
@@ -501,18 +518,50 @@ export default function ReunionesPage() {
                   options={[
                     { value: '', label: '— Selecciona una cuenta —' },
                     ...cuentas.map(c => ({
-                      value: c.id,
-                      label: `${c.consecutivo ?? 's/c'} · ${c.empresa}${c.asesor ? ` · ${c.asesor}` : ''}`,
+                      value: c.valor,
+                      label: c.enCartera
+                        ? `${c.consecutivo ?? 's/c'} · ${c.empresa}${c.asesor ? ` · ${c.asesor}` : ''}`
+                        : `${c.empresa} · CID ${c.cid} · facturación (fuera de cartera CS)`,
                     })),
                   ]} />
+                {/* El color va en un <span> que declara `background`, no en el
+                    <p>: esta tarjeta es `.cp-card` y esa clase fuerza a BLANCO
+                    el texto de sus descendientes, así que un color puesto en
+                    el párrafo se pierde y queda blanco sobre blanco. Es el
+                    escape que el repo ya usa.
+                    [[atlas-dashboard-contrast-architecture]] */}
+                {catalogoMeta && (
+                  <p className="text-[10px] mt-1">
+                    <span style={{ background: 'transparent', color: '#A8BACB' }}>
+                      {catalogoMeta.enCartera.toLocaleString('es-MX')} de la cartera CS ·{' '}
+                      {catalogoMeta.soloFacturacion.toLocaleString('es-MX')} sólo en facturación ·{' '}
+                      {catalogoMeta.total.toLocaleString('es-MX')} en total
+                    </span>
+                  </p>
+                )}
+                {catalogoAviso && (
+                  <p className="text-[10px] mt-1">
+                    <span style={{ background: 'transparent', color: '#fbbf24' }}>{catalogoAviso}</span>
+                  </p>
+                )}
+                {/* Se pregunta por `cuenta_valor`, NO por `cuenta_id`: una
+                    cuenta de facturación se elige igual pero no tiene uuid, y
+                    mirar el uuid diría «falta la cuenta» con una ya elegida —
+                    el usuario buscaría un error que no existe. Lo que cambia
+                    con ella es lo que se promete abajo: sin ficha no hay
+                    Health Score que alimentar, y prometerlo sería mentir. */}
                 <p className="text-[10px] mt-1"
-                   style={{ color: form.cuenta_id ? '#A8BACB' : '#ef4444' }}>
-                  {form.cuenta_id
-                    ? `Vinculada a ${form.empresa}${form.cid ? ` · CID ${form.cid}` : ''}. ${
-                        form.tipo === 'cliente'
-                          ? 'Contará en el relacionamiento y en el Health Score de la cuenta.'
-                          : 'Aparecerá en la ficha de la cuenta como reunión interna. No suma al relacionamiento, que mide haber hablado CON el cliente.'}`
-                    : 'Obligatorio: sin cuenta vinculada la reunión no aparece en la ficha de nadie.'}
+                   style={{ color: form.cuenta_valor ? '#A8BACB' : '#ef4444' }}>
+                  {!form.cuenta_valor
+                    ? 'Obligatorio: sin cuenta vinculada la reunión no aparece en la ficha de nadie.'
+                    : form.cuenta_id
+                      ? `Vinculada a ${form.empresa}${form.cid ? ` · CID ${form.cid}` : ''}. ${
+                          form.tipo === 'cliente'
+                            ? 'Contará en el relacionamiento y en el Health Score de la cuenta.'
+                            : 'Aparecerá en la ficha de la cuenta como reunión interna. No suma al relacionamiento, que mide haber hablado CON el cliente.'}`
+                      : `Vinculada a ${form.empresa} · CID ${form.cid} — cliente de facturación, `
+                        + 'fuera de la cartera CS. Queda amarrada por su CID, pero NO tiene ficha, '
+                        + 'así que no alimenta relacionamiento ni Health Score.'}
                 </p>
               </div>
             )}

@@ -83,6 +83,31 @@ export const CANDADO_VERSION = '2026-10-15.3-lectura-libre-escritura-propia'
  */
 export const LECTURA_LIBRE = true
 
+/* ── LA SEGUNDA CONSTANTE: LAS CUENTAS QUE NO TIENEN DUEÑO ─────────────────
+ *
+ * La política de arriba reparte entre carteras: «sus propias cuentas asignadas
+ * no las de los otros asesores». Eso supone que toda cuenta es de ALGUIEN, y
+ * resulta que no: la cartera CS lleva 224 cuentas y Callpicker factura a
+ * 2,726. ProMujer —convenio firmado hasta 2028, $4,983 de MRR— no está en la
+ * cartera, así que no es «de otro asesor»: no es de nadie.
+ *
+ * Con el candado tal cual, esas cuentas quedaban fuera de Reuniones y Anexos
+ * por omisión, no por decisión. Instrucción de dirección (José Manuel, 5 nov
+ * 2026): «En el apartado de Reuniones y Anexos permite el ingreso de
+ * información de todas las cuentas».
+ *
+ * Así que un asesor SÍ puede escribir sobre una cuenta fuera de cartera. No
+ * debilita el candado: lo que éste protege es que nadie escriba en la cuenta
+ * de OTRO asesor —«un rastro falso en la bitácora de una cuenta hace responder
+ * al asesor suplantado por una gestión que no hizo»—, y en una cuenta sin
+ * asesor no hay a quién suplantar.
+ *
+ * Lo que NO cambia: la firma la sigue poniendo la sesión, no el cuerpo; y una
+ * cuenta que SÍ está en la cartera sigue siendo sólo de su asesor. Poner esto
+ * en `false` cierra la captura a administración sin tocar nada más.
+ */
+export const ESCRITURA_FUERA_DE_CARTERA = true
+
 export interface Sesion {
   rol: string
   /** `usuarios.asesor_nombre`, ya decodificado. Cadena vacía si no trae. */

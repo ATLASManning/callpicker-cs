@@ -5,8 +5,9 @@ import {
 } from '@/lib/anexos'
 import {
   sesionDe, acotaLectura, exigeDuenoDeCuenta, cuentaIdsDeAsesor,
-  MENSAJE_SIN_CARTERA,
+  MENSAJE_SIN_CARTERA, ESCRITURA_FUERA_DE_CARTERA,
 } from '@/lib/dueno'
+import { interpretaValor, catalogoCuentas } from '@/lib/catalogo-cuentas'
 
 export const dynamic = 'force-dynamic'
 // La subida lee el archivo completo en memoria; el runtime Edge no sirve.
@@ -84,12 +85,21 @@ export async function POST(req: NextRequest) {
   }
 
   const archivo  = form.get('archivo')
-  const cuentaId = String(form.get('cuenta_id') ?? '').trim()
   const nombreDoc = String(form.get('nombre_documento') ?? '').trim()
   const tema     = String(form.get('tema') ?? '').trim()
   const notas    = String(form.get('notas') ?? '').trim()
 
-  if (!cuentaId) {
+  /* LA CUENTA PUEDE SER DE DOS CLASES, y el formulario dice CUÁL en vez de
+     dejar que el servidor lo adivine por la forma del texto:
+       · `cuenta:<uuid>` — está en la cartera CS, se amarra por FK.
+       · `cid:<cid>`     — sólo existe en el padrón de facturación.
+     Se sigue aceptando `cuenta_id` suelto para no romper nada que ya lo
+     mande; se interpreta como de cartera, que es lo que siempre fue. */
+  const bruto = String(form.get('cuenta_valor') ?? '').trim()
+    || (form.get('cuenta_id') ? `cuenta:${String(form.get('cuenta_id')).trim()}` : '')
+  const elegida = interpretaValor(bruto)
+
+  if (!elegida) {
     return NextResponse.json(
       { error: 'cuenta_requerida', mensaje: 'Elige el cliente al que pertenece el documento.' },
       { status: 400 })
@@ -97,9 +107,21 @@ export async function POST(req: NextRequest) {
 
   /* El dueño se comprueba antes de SUBIR, no sólo antes de insertar la fila:
      sin esto un asesor colgaba un documento de una cuenta de otra cartera, y el
-     objeto quedaba en el bucket aunque la fila fallara después. */
-  const corta = await exigeDuenoDeCuenta(req.headers, cuentaId, 'escritura')
-  if (corta) return corta
+     objeto quedaba en el bucket aunque la fila fallara después.
+
+     Sobre una cuenta FUERA de cartera no hay dueño a quien suplantar, así que
+     la comprobación no aplica; la decisión vive en `ESCRITURA_FUERA_DE_CARTERA`
+     y no aquí, para que no haya que deducirla leyendo este `if`. */
+  if (elegida.cuentaId) {
+    const corta = await exigeDuenoDeCuenta(req.headers, elegida.cuentaId, 'escritura')
+    if (corta) return corta
+  } else if (!ESCRITURA_FUERA_DE_CARTERA) {
+    return NextResponse.json({
+      error: 'fuera_de_cartera_cerrado',
+      mensaje: 'La captura sobre cuentas fuera de la cartera CS está cerrada. '
+             + 'Ver ESCRITURA_FUERA_DE_CARTERA en lib/dueno.ts.',
+    }, { status: 403 })
+  }
 
   if (!nombreDoc) {
     return NextResponse.json(
@@ -120,27 +142,65 @@ export async function POST(req: NextRequest) {
   const malo = motivoRechazo(archivo.name, archivo.type, archivo.size)
   if (malo) return NextResponse.json({ error: 'archivo_rechazado', mensaje: malo }, { status: 400 })
 
-  /* LA CUENTA SE VERIFICA CONTRA LA BASE, no se cree lo que mandó el cliente.
-     Sin esto, un `cuenta_id` inventado crearía un anexo colgando de una cuenta
-     inexistente — y la FK lo rechazaría con un error de Postgres que nadie
-     sabría leer. Además de aquí salen `cid` y `empresa`, que son copia de lo
-     que la cuenta dice HOY, no de lo que el formulario afirme. */
-  const { data: cuenta, error: errCuenta } = await supabaseAdmin
-    .from('cuentas')
-    .select('id, cid, empresa')
-    .eq('id', cuentaId)
-    .maybeSingle()
-  if (errCuenta) return NextResponse.json({ error: errCuenta.message }, { status: 500 })
-  if (!cuenta) {
-    return NextResponse.json(
-      { error: 'cuenta_inexistente', mensaje: 'Esa cuenta no existe en la cartera.' },
-      { status: 400 })
+  /* LA CUENTA SE VERIFICA CONTRA SU FUENTE, no se cree lo que mandó el
+     cliente. Sin esto, un `cuenta_id` inventado crearía un anexo colgando de
+     una cuenta inexistente —y la FK lo rechazaría con un error de Postgres que
+     nadie sabría leer—, y un CID inventado colgaría el documento de un cliente
+     que no existe, donde nadie lo volvería a encontrar. De aquí salen también
+     `cid` y `empresa`: copia de lo que la fuente dice HOY, no de lo que el
+     formulario afirme. */
+  let cuentaIdFinal: string | null = null
+  let cidFinal: string | null = null
+  let empresaFinal: string | null = null
+
+  if (elegida.cuentaId) {
+    const { data: cuenta, error: errCuenta } = await supabaseAdmin
+      .from('cuentas')
+      .select('id, cid, empresa')
+      .eq('id', elegida.cuentaId)
+      .maybeSingle()
+    if (errCuenta) return NextResponse.json({ error: errCuenta.message }, { status: 500 })
+    if (!cuenta) {
+      return NextResponse.json(
+        { error: 'cuenta_inexistente', mensaje: 'Esa cuenta no existe en la cartera.' },
+        { status: 400 })
+    }
+    cuentaIdFinal = cuenta.id
+    cidFinal = cuenta.cid ?? null
+    empresaFinal = cuenta.empresa ?? null
+  } else {
+    let cat
+    try {
+      cat = await catalogoCuentas()
+    } catch (e: unknown) {
+      /* Si el catálogo no se puede leer NO se da por bueno el CID: eso sería
+         aceptar cualquier cosa justo cuando se perdió la forma de comprobarla.
+         Falla cerrado. [[feedback-verificar-antes-asegurar]] */
+      return NextResponse.json({
+        error: 'catalogo_no_disponible',
+        mensaje: 'No se pudo comprobar el cliente contra el padrón de facturación, '
+               + `así que el documento no se guardó: ${String(e)}`,
+      }, { status: 503 })
+    }
+    const op = cat.opciones.find(o => !o.enCartera && o.cid === elegida.cid)
+    if (!op) {
+      return NextResponse.json({
+        error: 'cliente_inexistente',
+        mensaje: `El CID ${elegida.cid} no aparece en el padrón de facturación `
+               + '(data/cortes-facturacion.xlsx).',
+      }, { status: 400 })
+    }
+    cidFinal = op.cid
+    empresaFinal = op.empresa
   }
 
   /* El tipo que se guarda es el NORMALIZADO: un .html que el navegador no
      supo tipar se almacenaria con '' y la descarga saldria como binario. */
   const tipo = mimeEfectivo(archivo.name, archivo.type)
-  const ruta = rutaEnBucket(cuentaId, archivo.name, Date.now())
+  /* La carpeta del bucket se nombra con la llave que SÍ hay. Un cliente fuera
+     de cartera no tiene uuid, y dejar que caiga en `undefined/` juntaría los
+     documentos de todos ellos en una sola carpeta. */
+  const ruta = rutaEnBucket(cuentaIdFinal ?? `cid-${cidFinal}`, archivo.name, Date.now())
   const bytes = Buffer.from(await archivo.arrayBuffer())
 
   const { error: errSubida } = await supabaseAdmin.storage
@@ -163,9 +223,9 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabaseAdmin
     .from('anexos')
     .insert({
-      cuenta_id: cuenta.id,
-      cid: cuenta.cid ?? null,
-      empresa: cuenta.empresa ?? null,
+      cuenta_id: cuentaIdFinal,
+      cid: cidFinal,
+      empresa: empresaFinal,
       nombre_documento: nombreDoc,
       tema,
       archivo_nombre: archivo.name,
