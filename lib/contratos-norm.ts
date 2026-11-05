@@ -51,6 +51,20 @@ export interface Contrato {
   /** El color de la celda en la hoja. Se guarda y NO se interpreta: el mismo
    *  estatus aparece en negro, azul y rojo, así que no es una dimensión. */
   colorHoja:     string | null
+  /**
+   * EL DOCUMENTO QUE SOSTIENE ESTA FILA CUANDO **NO VIENE DE LA HOJA**.
+   *
+   * La hoja de Dirección llega con semanas de retraso: un convenio firmado
+   * que nos llega por correo existe de verdad antes de que ella lo traiga, y
+   * mientras el módulo diría que el contrato venció. Esas filas las pone
+   * `data/contratos-addenda.json` vía `scripts/aplica-addenda-contratos.py`.
+   *
+   * Va en el tipo —y la pantalla lo pinta— porque una fila que no está en la
+   * hoja y se ve idéntica a las 60 que sí están es una mentira de procedencia:
+   * quien la lea no puede saber qué fuente la respalda. `undefined` en las
+   * filas de la hoja, que son la mayoría.
+   */
+  origenLocal?:  string | null
 }
 
 /** Lo que añade `/api/contratos` al cruzar con la cartera. */

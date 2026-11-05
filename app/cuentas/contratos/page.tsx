@@ -1071,6 +1071,15 @@ function Fila({ c, par }: { c: ContratoCruzado; par: boolean }) {
         {!c.enCartera && (
           <div style={{ fontSize: 11, color: TX_BAJO, marginTop: 2 }}>fuera de la cartera CS</div>
         )}
+        {/* La procedencia, cuando la fila NO viene de la hoja de Dirección.
+            Sin esto una fila nuestra se ve exactamente igual que las 60 de la
+            hoja y nadie puede saber qué documento la respalda. Reusa la tinta
+            tenue ya medida contra la cebra (4.52:1): no se introduce color. */}
+        {c.origenLocal && (
+          <div style={{ fontSize: 11, color: TX_BAJO, marginTop: 2 }}>
+            no está en la hoja · {c.origenLocal}
+          </div>
+        )}
       </td>
       <td style={{ padding: '8px 10px', color: TX_MED, whiteSpace: 'nowrap' }}>{c.consecutivo ?? '—'}</td>
       <td style={{ padding: '8px 10px', color: c.estado === 'firmado' ? TX_ALTO : AMBAR_TX }}>

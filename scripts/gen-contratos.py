@@ -183,6 +183,26 @@ def main():
     print(u'  NO MEDIBLES ............ %3d   (ni fecha ni «libre»)' % meta['noMedibles'])
     print(u'  con CID ................ %3d' % meta['conCid'])
     print(u'\n  escrito %s' % DESTINO)
+
+    # ── LA CAPA LOCAL SE VUELVE A APLICAR AQUI ────────────────────────────
+    # Lo que acabamos de escribir es la hoja de Direccion TAL CUAL, y la hoja
+    # llega con semanas de retraso: un convenio que nos llego por correo existe
+    # antes de que ella lo traiga. Esas filas viven en `data/contratos-addenda
+    # .json` y si no se reaplicaran aqui, esta corrida las acabaria de borrar
+    # —sin error, sin aviso y sin que nadie lo note hasta que un cliente
+    # pregunte por su contrato—. Se lanza en otro proceso para que un fallo de
+    # la capa no deje a medias el archivo de la hoja, que ya esta escrito.
+    print(u'\n  ── capa local ──')
+    r = subprocess.run([sys.executable, '-I',
+                        os.path.join(RAIZ, 'scripts', 'aplica-addenda-contratos.py')],
+                       capture_output=True)
+    sys.stdout.write(r.stdout.decode('utf-8', 'replace'))
+    if r.returncode != 0:
+        print(u'\n  *** LA CAPA LOCAL NO SE APLICO. `data/contratos.json` tiene')
+        print(u'      la hoja pero le FALTAN los contratos de la capa. Arregla')
+        print(u'      lo de arriba y corre:')
+        print(u'          python -I scripts/aplica-addenda-contratos.py')
+        return 1
     return 0
 
 

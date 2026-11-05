@@ -1,0 +1,58 @@
+{
+ "_comentario": [
+  "CONTRATOS QUE TENEMOS DOCUMENTADOS Y LA HOJA DE DIRECCION TODAVIA NO TRAE.",
+  "",
+  "`data/contratos.json` se GENERA desde el export de la hoja de Direccion, asi",
+  "que todo lo que se escriba ahi a mano desaparece en la siguiente carga, sin",
+  "aviso y sin dejar rastro. Este archivo es la capa que sobrevive: lo aplica",
+  "`scripts/aplica-addenda-contratos.py`, y `gen-contratos.py` lo vuelve a",
+  "aplicar al final de cada carga.",
+  "",
+  "DOS REGLAS QUE NO SE NEGOCIAN:",
+  "",
+  "1. AQUI SOLO VA LO QUE UN HUMANO LEYO EN EL DOCUMENTO. Los campos derivados",
+  "   —estado, plazoLibre, finMedible, sinVencimiento— los calcula el script con",
+  "   las MISMAS funciones del generador. Si se pudieran teclear aqui, esta capa",
+  "   podria decir «firmado» de un estatus que el generador lee distinto, y el",
+  "   modulo contaria dos cosas para la misma fila. El script RECHAZA el archivo",
+  "   si aparece un campo derivado. [[feedback-verificar-antes-asegurar]]",
+  "",
+  "2. LAS FECHAS VAN EN EL FORMATO DE LA HOJA («1-nov-2026»), no en ISO, por lo",
+  "   mismo: las convierte `fecha()` del generador y no un segundo parser.",
+  "",
+  "CUANDO LA HOJA SE PONGA AL DIA: el script detecta que ya trae la fila —misma",
+  "cuenta, mismo inicio, mismo contenido— y en vez de duplicarla GRITA que esta",
+  "entrada ya se puede borrar. Una capa que no sabe retirarse acaba publicando",
+  "el mismo contrato dos veces."
+ ],
+ "addenda": [
+  {
+   "origenLocal": "Convenio Modificatorio 3 Callpicker 2026.pdf — firmado 1 nov 2026",
+   "comoLlego": "Correo «[## 118302 ##] Propuesta renovación 2 años», reenviado por José Daniel Martínez Loyola el 4 nov 2026 «para nuestra documentación»; José Antonio del Río confirma el 4 nov 2026 que el convenio quedó firmado por todas las partes.",
+   "capturado": "2026-11-05",
+   "noVieneEnElDocumento": [
+    "vendedor — el convenio no lo dice. NO se arrastra el «Fátima» del Addendum 2: eso seria inventar.",
+    "solicitud — el convenio no trae fecha de solicitud.",
+    "emailFirmante — el convenio no trae el correo de Nino Gonjilashvili.",
+    "gdoc — lo que tenemos es un PDF, no un documento de Drive. Un PDF de cliente NO se copia a `public/`."
+   ],
+   "fila": {
+    "cuenta": "ProMujer",
+    "cid": "144195",
+    "vendedor": null,
+    "solicitud": null,
+    "estatusHoja": "firmado digitalmente",
+    "plazo": "24 meses",
+    "inicio": "1-nov-2026",
+    "fin": "31-oct-2028",
+    "contenido": "Addendum 3",
+    "solicitante": "Denise Grimaldo",
+    "firmante": "Nino Gonjilashvili Gonjilashvili",
+    "emailFirmante": null,
+    "gdoc": null,
+    "firma": "1-nov-2026",
+    "nota": "Addendum 3 · renovación a 24 meses. Cláusula tercera: $4,983.00 + IVA $797.28 = $5,780.28 mensuales, FIJOS los dos años, sin incrementos. OJO con la cláusula séptima: ProMujer puede darlo por terminado en cualquier momento, sin responsabilidad alguna y sin acreditar causa — los 24 meses NO son plazo forzoso para el cliente. Firman Nino Gonjilashvili Gonjilashvili (ProMujer) y José Antonio del Río Garibay (Callpicker); testigos Lucino Alberto Luz Cruz y José Daniel Martínez Loyola. El firmante cambió: los dos addenda anteriores los firmó Jaime Alberto Díaz Limón. Capturado del convenio, no de la hoja de Dirección."
+   }
+  }
+ ]
+}

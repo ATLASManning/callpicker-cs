@@ -2,17 +2,17 @@
  "meta": {
   "origen": "contratos.html",
   "generado": "2026-10-24T18:38:12",
-  "total": 60,
+  "total": 61,
   "porEstado": {
-   "firmado": 42,
+   "firmado": 43,
    "sin_estatus": 11,
    "en_proceso": 6,
    "no_firmado": 1
   },
-  "conFin": 18,
+  "conFin": 19,
   "sinVencimiento": 15,
   "noMedibles": 27,
-  "conCid": 51
+  "conCid": 52
  },
  "contratos": [
   {
@@ -1394,6 +1394,30 @@
    "firma": "5-oct-2022",
    "nota": "lo tiene Toño en digital",
    "colorHoja": null
+  },
+  {
+   "cuenta": "ProMujer",
+   "cid": "144195",
+   "vendedor": null,
+   "solicitud": null,
+   "estatusHoja": "firmado digitalmente",
+   "estado": "firmado",
+   "plazo": "24 meses",
+   "plazoLibre": false,
+   "inicio": "2026-11-01",
+   "fin": "2028-10-31",
+   "finMedible": true,
+   "sinVencimiento": false,
+   "vigencia": null,
+   "contenido": "Addendum 3",
+   "solicitante": "Denise Grimaldo",
+   "firmante": "Nino Gonjilashvili Gonjilashvili",
+   "emailFirmante": null,
+   "gdoc": null,
+   "firma": "1-nov-2026",
+   "nota": "Addendum 3 · renovación a 24 meses. Cláusula tercera: $4,983.00 + IVA $797.28 = $5,780.28 mensuales, FIJOS los dos años, sin incrementos. OJO con la cláusula séptima: ProMujer puede darlo por terminado en cualquier momento, sin responsabilidad alguna y sin acreditar causa — los 24 meses NO son plazo forzoso para el cliente. Firman Nino Gonjilashvili Gonjilashvili (ProMujer) y José Antonio del Río Garibay (Callpicker); testigos Lucino Alberto Luz Cruz y José Daniel Martínez Loyola. El firmante cambió: los dos addenda anteriores los firmó Jaime Alberto Díaz Limón. Capturado del convenio, no de la hoja de Dirección.",
+   "colorHoja": null,
+   "origenLocal": "Convenio Modificatorio 3 Callpicker 2026.pdf — firmado 1 nov 2026"
   }
  ]
 }
