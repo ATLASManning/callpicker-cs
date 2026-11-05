@@ -204,8 +204,11 @@ def aplica(filas, addenda, gen, callado=False):
            % (fila['inicio'] or u'sin inicio', fila['fin'] or u'sin fin',
               fila['plazo'], fila['estado']))
         di(u'      procedencia: %s' % fila['origenLocal'])
-        for hueco in entrada.get('noVieneEnElDocumento', []):
-            di(u'      vacio a proposito: %s' % hueco)
+        for dato in entrada.get('deLaHerramienta', []):
+            di(u'      de la herramienta: %s' % dato)
+        for hueco in (entrada.get('sigueVacioTrasBarrerLaHerramienta')
+                      or entrada.get('noVieneEnElDocumento') or []):
+            di(u'      sigue vacio: %s' % hueco)
 
     return anadidas, al_dia, retiradas
 
