@@ -16,7 +16,9 @@ import { leerLlamadas, colaDeRiesgo } from '@/lib/llamadas-cuenta'
 import { getCidsDeAsesor } from '@/lib/supabase'
 import { LLAMADAS, LLAMADAS_META } from '@/app/cuentas/llamadas-data'
 import CuentaLlamadasPanel, { LlamadasSinLectura } from '@/components/CuentaLlamadasPanel'
-import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
+// Sin `getOportunidades` ni `getTickets`: sus tablas están vacías y nadie
+// escribe en ellas (ver la nota del Promise.all más abajo).
+import { getCuentaById, normalizeCuentaId, getSeguimientos, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
 import { getSemaforoCuenta, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
 import EstadoCuentaBadge from '@/components/EstadoCuentaBadge'
@@ -119,7 +121,7 @@ export default async function CuentaDetailPage({ params }: Props) {
    * confirmando que la cuenta existe y quién es, que es precisamente el dato—.
    *
    * Va AQUÍ y no junto a `canEdit` porque desde este punto la página pide
-   * seguimientos, oportunidades, tickets, historial, llamadas y adopción: con
+   * seguimientos, reuniones, anexos, llamadas, cortes y adopción: con
    * la consulta cerrada, comprobarlo al final sería traer todo eso para después
    * no pintarlo. */
   if (!puedeConsultar(sesionDe(headers()), cuenta.asesor)) notFound()
@@ -130,12 +132,24 @@ export default async function CuentaDetailPage({ params }: Props) {
   /* `getHealthHistorial` salió de aquí con el panel que lo pintaba (6 nov
      2026). Dejar la consulta habría costado una ida a Supabase por cada ficha
      para un dato que ya no se dibuja — el trabajo invisible que nadie acaba
-     notando porque no rompe nada. */
-  const [seguimientos, oportunidades, tickets, actividades, revisionesAdopcion, enriquecido,
+     notando porque no rompe nada.
+
+     `getOportunidades` y `getTickets` salieron el mismo día y por la misma
+     razón, pero con un motivo más fuerte: SUS TABLAS ESTÁN VACÍAS Y NADIE
+     ESCRIBE EN ELLAS. Medido, no supuesto — `oportunidades` 0 filas,
+     `tickets` 0 filas sobre las 224 cuentas, y ni `upsertOportunidad` ni
+     `addTicket` tienen una sola llamada en todo el repo. Eran dos consultas
+     por ficha que sólo podían devolver `[]`.
+
+     Los tickets de verdad son los de Zoho y ya están abajo, en
+     `CuentaTicketsPanel` (ver `lib/tickets-norm.ts`): la tabla de Supabase
+     quedó superada, no retirada. El panel viejo, además, se titulaba
+     «Tickets» igual que el de Zoho, así que si algún día se hubiera llenado
+     la ficha habría enseñado dos secciones con el mismo nombre y cifras
+     distintas. */
+  const [seguimientos, actividades, revisionesAdopcion, enriquecido,
          reunionesCuenta, relacion, anexosCuenta, veredictoRes] = await Promise.all([
     getSeguimientos(cuentaUUID),
-    getOportunidades(cuentaUUID),
-    getTickets(cuentaUUID),
     getActividadesByCuenta(cuentaUUID),
     getConteoAdopcion(cuentaUUID),
     // Datos generales enriquecidos — información adicional, nunca sustituye
@@ -679,8 +693,10 @@ export default async function CuentaDetailPage({ params }: Props) {
               retiró es la vista, no el dato. Si algún día la tabla se llena de
               verdad, el panel se recupera del historial de git. */}
 
-          {/* Oportunidades */}
-          {(cuenta.upsell_producto || cuenta.crossell_producto || oportunidades.length > 0) && (
+          {/* Oportunidades — sólo de las columnas de `cuentas`.
+              La lista de la tabla `oportunidades` salió de aquí: 0 filas y
+              ningún escritor, así que su `.map` nunca pintó nada. */}
+          {(cuenta.upsell_producto || cuenta.crossell_producto) && (
             <div className="cp-card">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide">Oportunidades</h3>
@@ -703,52 +719,15 @@ export default async function CuentaDetailPage({ params }: Props) {
                   </div>
                 )}
               </div>
-              {oportunidades.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {oportunidades.map(o => (
-                    <div key={o.id} className="flex items-center justify-between text-xs border-t border-border pt-2">
-                      <span className="text-textMid">{o.producto}</span>
-                      <div className="flex items-center gap-2">
-                        {o.valor_estimado && <span className="text-textHi font-medium">{formatMXN(o.valor_estimado)}</span>}
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium
-                          ${o.estado === 'ganada' ? 'bg-verde/10 text-verde' :
-                            o.estado === 'en_proceso' ? 'bg-cp/10 text-cp' :
-                            'bg-surface text-textLow'}`}>
-                          {o.estado}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
-          {/* Tickets abiertos */}
-          {tickets.length > 0 && (
-            <div className="cp-card">
-              <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide mb-3">Tickets</h3>
-              <div className="space-y-2">
-                {tickets.map(t => (
-                  <div key={t.id} className="flex items-center justify-between p-3 bg-surface rounded-lg border border-border">
-                    <div>
-                      <p className="text-sm font-medium text-textHi">{t.titulo}</p>
-                      <p className="text-xs text-textLow">{t.tipo} · {t.dias_abierto}d abierto</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {t.reincidente && <span className="text-[10px] text-rojo border border-rojo/30 px-1.5 py-0.5 rounded">Reincidente</span>}
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium
-                        ${t.prioridad === 'critica' ? 'bg-rojo/10 text-rojo' :
-                          t.prioridad === 'alta' ? 'bg-naranja/10 text-naranja' :
-                          'bg-amarillo/10 text-amarillo'}`}>
-                        {t.prioridad}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* El panel «Tickets» de la tabla de Supabase se retiró el 6 nov
+              2026. No se pierde nada visible: nunca pudo pintarse —la tabla
+              tiene 0 filas y ningún escritor— y los tickets reales son los de
+              Zoho Desk, que esta misma ficha enseña más abajo en
+              `CuentaTicketsPanel`. Se recupera del historial de git si algún
+              día la tabla llega a usarse. */}
 
           {/* Relacionamiento y reuniones — alimenta score_relacional (15% del HS) */}
           <CuentaRelacionPanel

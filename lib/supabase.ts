@@ -494,7 +494,23 @@ export async function addSeguimiento(s: Omit<Seguimiento, 'id' | 'created_at'>):
   return data as Seguimiento
 }
 
-// ── Oportunidades ────────────────────────────────────────────────────────────
+/* ── Oportunidades y Tickets · DOS TABLAS ABANDONADAS ───────────────────────
+ *
+ * MEDIDO EL 6 NOV 2026, no supuesto: `oportunidades` y `tickets` tienen CERO
+ * filas sobre las 224 cuentas de la cartera, y `upsertOportunidad` / `addTicket`
+ * —los únicos escritores— no tienen una sola llamada en todo el repo. Nunca se
+ * llenaron porque nunca hubo por dónde llenarlas.
+ *
+ * Los tickets de verdad vienen de Zoho Desk por archivo, no de aquí: ver
+ * `lib/tickets-norm.ts` y `lib/cuenta-data.ts`. Esta tabla quedó SUPERADA por
+ * esa fuente, no retirada a propósito, y por eso siguió costando una consulta
+ * por ficha hasta que se quitó.
+ *
+ * Las cuatro funciones se dejan escritas —no estorban y borrarlas obligaría a
+ * reescribirlas si algún día se decide usar las tablas—, pero NINGUNA TIENE
+ * CONSUMIDORES. Antes de construir sobre una de ellas: la tabla está vacía, así
+ * que lo que devuelva será `[]`, y una pantalla que lo pinte enseñará un hueco.
+ * [[feedback-verificar-antes-asegurar]] */
 
 export async function getOportunidades(cuentaId: string): Promise<Oportunidad[]> {
   const { data, error } = await supabaseAdmin
@@ -516,7 +532,7 @@ export async function upsertOportunidad(o: Partial<Oportunidad>): Promise<Oportu
   return data as Oportunidad
 }
 
-// ── Tickets ──────────────────────────────────────────────────────────────────
+// ── Tickets (Supabase · tabla vacía, ver la nota de arriba) ──────────────────
 
 export async function getTickets(cuentaId: string): Promise<Ticket[]> {
   const { data, error } = await supabaseAdmin
