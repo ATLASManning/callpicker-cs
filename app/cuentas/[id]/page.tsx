@@ -16,7 +16,7 @@ import { leerLlamadas, colaDeRiesgo } from '@/lib/llamadas-cuenta'
 import { getCidsDeAsesor } from '@/lib/supabase'
 import { LLAMADAS, LLAMADAS_META } from '@/app/cuentas/llamadas-data'
 import CuentaLlamadasPanel, { LlamadasSinLectura } from '@/components/CuentaLlamadasPanel'
-import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getHealthHistorial, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
+import { getCuentaById, normalizeCuentaId, getSeguimientos, getOportunidades, getTickets, getActividadesByCuenta, getConteoAdopcion } from '@/lib/supabase'
 import { getSemaforoCuenta, formatMXN, SEMAFORO_CONFIG } from '@/lib/types'
 import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
 import EstadoCuentaBadge from '@/components/EstadoCuentaBadge'
@@ -33,8 +33,11 @@ import AsesorBadge from '@/components/AsesorBadge'
 import HealthScoreDiagnostico from '@/components/HealthScoreDiagnostico'
 import SeguimientoForm from '@/components/SeguimientoForm'
 import SeguimientoStatusSelect from '@/components/SeguimientoStatusSelect'
-import HealthHistorialChart from '@/components/charts/HealthHistorialChart'
-import SoloEnCliente, { ReservaGrafica } from '@/components/charts/SoloEnCliente'
+/* `HealthHistorialChart` y `SoloEnCliente` se fueron con el panel «Evolución
+   Health Score» (6 nov 2026): era la ÚNICA gráfica de esta ficha, así que la
+   página ya no renderiza recharts y no necesita la envoltura de cliente.
+   Si alguien vuelve a meter una gráfica aquí, tiene que volver a envolverla.
+   [[recharts-nunca-en-servidor]] */
 import AdopcionProducto from '@/components/AdopcionProducto'
 import RadarCuenta from '@/components/RadarCuenta'
 import CuentaInfoEditor from '@/components/CuentaInfoEditor'
@@ -124,12 +127,15 @@ export default async function CuentaDetailPage({ params }: Props) {
   // Usar el UUID real para las demás queries
   const cuentaUUID = cuenta.id
 
-  const [seguimientos, oportunidades, tickets, historial, actividades, revisionesAdopcion, enriquecido,
+  /* `getHealthHistorial` salió de aquí con el panel que lo pintaba (6 nov
+     2026). Dejar la consulta habría costado una ida a Supabase por cada ficha
+     para un dato que ya no se dibuja — el trabajo invisible que nadie acaba
+     notando porque no rompe nada. */
+  const [seguimientos, oportunidades, tickets, actividades, revisionesAdopcion, enriquecido,
          reunionesCuenta, relacion, anexosCuenta, veredictoRes] = await Promise.all([
     getSeguimientos(cuentaUUID),
     getOportunidades(cuentaUUID),
     getTickets(cuentaUUID),
-    getHealthHistorial(cuentaUUID),
     getActividadesByCuenta(cuentaUUID),
     getConteoAdopcion(cuentaUUID),
     // Datos generales enriquecidos — información adicional, nunca sustituye
@@ -654,18 +660,24 @@ export default async function CuentaDetailPage({ params }: Props) {
           <RadarCuenta cuentaId={String(cuenta.id)} asesor={cuenta.asesor ?? ''} canEdit={canEdit} />
         </div>
 
-        {/* CENTER + RIGHT — Seguimientos + Oportunidades + Historial */}
+        {/* CENTER + RIGHT — Seguimientos + Oportunidades */}
         <div className="xl:col-span-2 space-y-5">
 
-          {/* Historial Health Score */}
-          {historial.length > 0 && (
-            <div className="cp-card">
-              <h3 className="text-xs font-semibold text-textMid uppercase tracking-wide mb-3">Evolución Health Score</h3>
-              <SoloEnCliente reserva={<ReservaGrafica alto={180} />}>
-                  <HealthHistorialChart data={historial} />
-                </SoloEnCliente>
-            </div>
-          )}
+          {/* ── «EVOLUCIÓN HEALTH SCORE» SE RETIRÓ (6 nov 2026) ──────────────
+              Instrucción de dirección: «no tiene ningún valor o apoyo a todo lo
+              que se encuentra sobre la cuenta y solo ensucia la vista y
+              confunde».
+
+              Y el dato le daba la razón: `health_score_historial` tiene OCHO
+              filas de ocho cuentas —una tabla que se creó y nunca se llenó—,
+              así que el panel salía en un puñado de fichas y con UN punto. Una
+              gráfica de evolución con un punto no muestra evolución: muestra
+              que no hay con qué compararla, y ocupa el mismo sitio que algo
+              que sí informaría.
+
+              EL HISTORIAL SE SIGUE GRABANDO (ver `lib/supabase.ts`): lo que se
+              retiró es la vista, no el dato. Si algún día la tabla se llena de
+              verdad, el panel se recupera del historial de git. */}
 
           {/* Oportunidades */}
           {(cuenta.upsell_producto || cuenta.crossell_producto || oportunidades.length > 0) && (

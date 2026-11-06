@@ -538,7 +538,19 @@ export async function addTicket(t: Omit<Ticket, 'id' | 'created_at' | 'updated_a
   return data as Ticket
 }
 
-// ── Health Score Snapshot ─────────────────────────────────────────────────────
+/* ── Health Score Snapshot ──────────────────────────────────────────────────
+ *
+ * EL HISTORIAL SE SIGUE GRABANDO AUNQUE YA NADIE LO PINTE. El panel «Evolución
+ * Health Score» de la ficha se retiró el 6 nov 2026 por instrucción de
+ * dirección, y el dato le daba la razón: la tabla tiene OCHO filas de ocho
+ * cuentas —se creó y nunca se llenó—, así que la gráfica salía en un puñado de
+ * fichas y con UN punto. Una evolución de un punto no es una evolución.
+ *
+ * `saveHealthSnapshot` se queda porque dejar de grabar es lo único que NO se
+ * puede deshacer: el día que haya que volver a mirarlo, el historial tiene que
+ * existir. `getHealthHistorial` se queda como su pareja de lectura, hoy sin
+ * ningún consumidor — es deliberado, no un olvido.
+ */
 
 export async function saveHealthSnapshot(cuentaId: string, cuenta: Cuenta) {
   await supabaseAdmin.from('health_score_historial').insert({
