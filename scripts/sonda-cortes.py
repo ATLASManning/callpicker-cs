@@ -55,7 +55,7 @@ def del_archivo():
     ws = wb[wb.sheetnames[0]]
     it = ws.iter_rows(values_only=True)
     cab = [str(c).strip() if c is not None else '' for c in next(it)]
-    n, cids = 0, set()
+    n, cids, meses = 0, set(), set()
     for r in it:
         if all(v is None or str(v).strip() == '' for v in r):
             continue
@@ -64,8 +64,38 @@ def del_archivo():
         c = str(fila.get('CID') or '').strip()
         if c:
             cids.add(c)
+        # El mes se SACA del archivo, no se teclea — ver la nota de abajo.
+        f = fila.get('Fecha de corte')
+        m = (f.strftime('%Y-%m') if hasattr(f, 'strftime')
+             else str(f or '').strip()[:7])
+        if len(m) == 7 and m[4] == '-' and m[:4].isdigit():
+            meses.add(m)
     wb.close()
-    return {'filas': n, 'cids': len(cids), 'columnas': len(cab)}
+    return {'filas': n, 'cids': len(cids), 'columnas': len(cab),
+            'meses': meses, 'mesUltimo': max(meses) if meses else None}
+
+
+def juzga_meses(meses_archivo, by_mes):
+    u"""Que la API sirva TODOS los meses que el archivo declara.
+
+    Devuelve una lista de (ok, titulo, detalle). Esta aparte del cuerpo de la
+    sonda para poder probarla AL REVES: con lo que NO debe pasar. Una regla
+    solo queda probada cuando se le ensena lo que tiene que rechazar.
+    [[feedback-probar-al-reves]]
+    """
+    ult = max(meses_archivo) if meses_archivo else None
+    if not ult:
+        return [(False, u'el archivo no declara ningun mes de corte legible '
+                        u'(columna «Fecha de corte»)', u'')]
+    faltan = sorted(m for m in meses_archivo if m not in by_mes)
+    detalle = (u'faltan: %s' % u', '.join(faltan)) if faltan else (
+        u'los %d meses del archivo coinciden' % len(meses_archivo))
+    return [
+        (ult in by_mes,
+         u'la API sirve el mes mas nuevo del archivo (%s)' % ult,
+         u'byMes trae %d cubos: %s' % (len(by_mes), u', '.join(sorted(by_mes)))),
+        (not faltan, u'la API no pierde ningun mes del archivo', detalle),
+    ]
 
 
 esp = del_archivo()
@@ -74,9 +104,38 @@ print(u'  el archivo dice: %s filas · %s CIDs · %d columnas'
 
 if args.autoprueba:
     assert esp['filas'] > 0, 'no leyo ninguna fila'
-    assert esp['filas'] != 21567, 'esta leyendo el corte anterior'
     assert esp['columnas'] == 39, 'cambio el numero de columnas'
-    print(u'\n  autoprueba: el lector distingue el corte nuevo.')
+    # El lector tiene que SACAR los meses del archivo. Antes aqui habia un
+    # `filas != 21567` tecleado: solo cazaba un corte viejo concreto y se
+    # quedaba obsoleto en cuanto cambiaba el numero.
+    assert esp['meses'], 'no leyo ningun mes de la columna «Fecha de corte»'
+    assert esp['mesUltimo'] == max(esp['meses']), 'el mes mas nuevo no es el maximo'
+
+    # ── AL REVES: lo que NO debe pasar ────────────────────────────────────
+    todos = {m: {'count': 1} for m in esp['meses']}
+    assert all(ok for ok, _, _ in juzga_meses(esp['meses'], todos)), \
+        'con todos los meses servidos deberia pasar y no pasa'
+
+    sin_ultimo = dict(todos)
+    sin_ultimo.pop(esp['mesUltimo'])
+    r = juzga_meses(esp['meses'], sin_ultimo)
+    assert not r[0][0], 'NO detecto que falte el mes mas nuevo (%s)' % esp['mesUltimo']
+    assert not r[1][0], 'NO detecto que la API pierda un mes'
+
+    falta_uno_viejo = dict(todos)
+    falta_uno_viejo.pop(min(esp['meses']))
+    r = juzga_meses(esp['meses'], falta_uno_viejo)
+    assert r[0][0], 'se queja del mes nuevo cuando el que falta es uno viejo'
+    assert not r[1][0], 'NO detecto que falte un mes ANTERIOR — el informe es ' \
+                        'acumulativo: perder un mes viejo es igual de grave'
+
+    assert not juzga_meses(set(), todos)[0][0], \
+        'un archivo sin meses legibles deberia fallar y da por bueno'
+
+    print(u'\n  autoprueba: el lector saca %d mes(es) del archivo (ultimo %s),'
+          % (len(esp['meses']), esp['mesUltimo']))
+    print(u'  y la regla de meses RECHAZA que falte el nuevo, que falte uno viejo')
+    print(u'  y que el archivo no declare ninguno.')
     sys.exit(0)
 
 
@@ -150,11 +209,22 @@ for clave in ('byMes', 'zonas'):
         print(u'        %s: %d cubos · %s'
               % (clave, len(cubo), u', '.join(sorted(cubo.keys())[:6])))
 
-# El mes nuevo tiene que estar: es lo unico que distingue este corte.
+# EL MES NUEVO TIENE QUE ESTAR: es lo unico que distingue este corte.
+#
+# Esta comprobacion estuvo TECLEADA A '2026-10' hasta el 6 nov 2026, y por eso
+# seguia diciendo «ok» con el corte de noviembre cargado: lo que comprobaba era
+# que siguiera existiendo octubre, que existe siempre porque el informe es
+# ACUMULATIVO. O sea, se cumplia sola. Un verificador que concluye exito por
+# defecto es peor que no tenerlo. Ahora el mes se saca del ARCHIVO —el maximo
+# de su columna «Fecha de corte»— y se exige que la API lo sirva, asi que la
+# comprobacion se mueve sola en cada carga y no hay que acordarse de editarla.
+#
+# La regla vive en `juzga_meses` y la usan LOS DOS —la sonda y su autoprueba—,
+# para que no haya dos versiones de lo mismo que puedan separarse.
 bm = d.get('byMes') if isinstance(d, dict) else None
 if isinstance(bm, dict):
-    exige('2026-10' in bm or any('10' in k and '2026' in k for k in bm),
-          u'aparece el mes de octubre 2026, que es lo que trajo este corte')
+    for ok, titulo, detalle in juzga_meses(esp['meses'], bm):
+        exige(ok, titulo, detalle)
 
 print()
 if fallos:
