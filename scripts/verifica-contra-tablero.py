@@ -49,28 +49,47 @@ CENT = 0.005
 # Y lo que NO se hace nunca: mover estos numeros para que cuadren con lo que el
 # repo calcula. Eso es hacer que la prueba le de la razon al codigo y deja de
 # comprobar nada. Se copian del tablero o no se tocan.
-FECHA_TRANSCRIPCION = '2 nov 2026'
+FECHA_TRANSCRIPCION = '6 nov 2026'
 
-# ── TRANSCRIPCION DEL TABLERO (2 nov 2026) ──────────────────────────────────
-# Copiada de la captura que mando direccion el 2 nov 2026, con octubre ya
-# cerrado. Octubre deja de ser el mes desbocado del corte anterior: 52.2% ->
-# 7.9%, porque 317 contratos marcados «Churn confirmado» facturaron.
+# ── TRANSCRIPCION DEL TABLERO (6 nov 2026) ──────────────────────────────────
+# Copiada de la captura que mando Jose Manuel el 6 nov 2026. Trae YA NOVIEMBRE,
+# que la del 2 nov no tenia, y mueve tres meses respecto de aquella:
+#
+#   · Junio downgrade 81,817.81 -> 84,212.81 (+2,395.00). Es la reclasificacion
+#     de TROQUELADOS MODULARES de «Churn mensual» a «Downgrade», la misma que
+#     salio en el corte de Churn de hoy. El GRC no cuenta el churn mensual y SI
+#     cuenta el downgrade, asi que la perdida REAL de junio baja lo mismo que
+#     sube la contada. [[grc-fuente-zoho]]
+#   · Octubre churn 351,054.00 -> 301,885.55 (-49,168.45). Clavado con el
+#     -$49,168.45 que midio `concilia-grc-export.py` hoy: 27 clientes marcados
+#     «Churn confirmado» llegaron facturando. CUARTA vez que un mes «cerrado»
+#     se corrige a la baja.
+#   · Las bases suben +169.00 en casi todos los meses, +2,564.00 en julio,
+#     +2,856.00 en octubre y +26,763.00 en septiembre. Eso NO es ruido de
+#     transcripcion: es el export reescribiendo meses cerrados, que es
+#     justamente por lo que esta prueba existe.
+#
+# NOVIEMBRE ENTRA AQUI PERO NO SE PUBLICA. El tablero lo imprime con seis dias
+# de vida y churn $0; `esMesVivo` sigue excluyendo octubre. Esta transcripcion
+# es la REFERENCIA, no lo que publicamos: que noviembre aparezca aqui y falte
+# en `data/grc-zoho.json` es un hallazgo correcto, no un fallo que tapar.
 #   mes: (MRR inicio, Churn, Downgrade, Perdida, GRC mensual %, GRC acum %)
 TABLERO = [
-    (u'Enero',      4650270.89,  74083.11, 20848.01,   94931.12, 2.0,  2.0),
-    (u'Febrero',    4696946.10,  65589.19, 34216.37,   99805.56, 2.1,  4.2),
-    (u'Marzo',      4777660.30,  82546.00, 25734.97,  108280.97, 2.3,  6.4),
-    (u'Abril',      4857421.51,  58214.06, 26413.59,   84627.65, 1.7,  8.2),
-    (u'Mayo',       5076566.09,  32586.00, 42283.26,   74869.26, 1.5,  9.6),
-    (u'Junio',      5106393.12,  87260.00, 81817.81,  169077.81, 3.3, 13.0),
-    (u'Julio',      4943969.29,  69086.46, 25281.75,   94368.21, 1.9, 14.9),
-    (u'Agosto',     5014888.60,  53199.28, 49851.84,  103051.12, 2.1, 16.9),
-    (u'Septiembre', 4955923.62,  68872.96, 55726.08,  124599.04, 2.5, 19.4),
-    (u'Octubre',    4914429.57, 351054.00, 37083.82,  388137.82, 7.9, 27.3),
+    (u'Enero',      4650439.89,  74083.11, 20848.01,   94931.12, 2.0,  2.0),
+    (u'Febrero',    4697115.10,  65589.19, 34216.37,   99805.56, 2.1,  4.2),
+    (u'Marzo',      4777829.30,  82546.00, 25734.97,  108280.97, 2.3,  6.4),
+    (u'Abril',      4857590.51,  58214.06, 26413.59,   84627.65, 1.7,  8.2),
+    (u'Mayo',       5076735.09,  32586.00, 42283.26,   74869.26, 1.5,  9.6),
+    (u'Junio',      5106562.12,  87260.00, 84212.81,  171472.81, 3.4, 13.0),
+    (u'Julio',      4946533.29,  69086.46, 25281.75,   94368.21, 1.9, 14.9),
+    (u'Agosto',     5015057.60,  53199.28, 49851.84,  103051.12, 2.1, 17.0),
+    (u'Septiembre', 4982686.62,  68872.96, 55726.08,  124599.04, 2.5, 19.5),
+    (u'Octubre',    4917285.57, 301885.55, 37083.82,  338969.37, 6.9, 26.4),
+    (u'Noviembre',  4724025.77,      0.00, 21568.27,   21568.27, 0.5, 26.8),
 ]
 # La fila «Resumen amplio» que el propio tablero imprime al pie.
-RESUMEN = {'mrr': 48994469.09, 'churn': 942491.06,
-           'down': 399257.50, 'perdida': 1341748.56, 'grc': 2.7}
+RESUMEN = {'mrr': 53751860.86, 'churn': 893322.61,
+           'down': 423220.77, 'perdida': 1316543.38, 'grc': 2.4}
 
 fallos = []
 
@@ -91,7 +110,7 @@ print(u'\n  1 · LA TRANSCRIPCIÓN, contra el «Resumen amplio» del propio tabl
 for k, i in ((u'mrr', 1), (u'churn', 2), (u'down', 3), (u'perdida', 4)):
     s = sum(f[i] for f in TABLERO)
     exige(abs(s - RESUMEN[k]) < CENT,
-          u'las 10 filas suman el resumen en «%s»' % k,
+          u'las %d filas suman el resumen en «%s»' % (len(TABLERO), k),
           u'%s contra %s que imprime el tablero' % (mx(s), mx(RESUMEN[k])))
 
 # El % del resumen se RECONSTRUYE, no se espeja.
