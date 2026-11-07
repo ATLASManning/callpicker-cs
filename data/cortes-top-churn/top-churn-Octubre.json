@@ -9,9 +9,9 @@
   },
   "grc_nombres": 474,
   "cancel_nombres": 93,
-  "marcadas_total": 26,
+  "marcadas_total": 31,
   "se_ven_en_activas": 0,
-  "ya_movidas": 5,
+  "ya_movidas": 9,
   "ya_movidas_detalle": [
     {
       "cons": "F2",
@@ -22,6 +22,19 @@
       "esTop": true,
       "grc": true,
       "cancel": false,
+      "dir": false,
+      "dormidaPorEstado": true
+    },
+    {
+      "cons": "D7",
+      "empresa": "Jason de Mexico",
+      "asesor": "Dan",
+      "estado": "hibernacion",
+      "mrr": 17225,
+      "esTop": true,
+      "grc": false,
+      "cancel": false,
+      "dir": true,
       "dormidaPorEstado": true
     },
     {
@@ -33,6 +46,7 @@
       "esTop": true,
       "grc": true,
       "cancel": false,
+      "dir": false,
       "dormidaPorEstado": true
     },
     {
@@ -44,6 +58,31 @@
       "esTop": true,
       "grc": true,
       "cancel": true,
+      "dir": false,
+      "dormidaPorEstado": true
+    },
+    {
+      "cons": "D22",
+      "empresa": "KOMBITEC",
+      "asesor": "Dan",
+      "estado": "hibernacion",
+      "mrr": 8663,
+      "esTop": true,
+      "grc": false,
+      "cancel": false,
+      "dir": true,
+      "dormidaPorEstado": true
+    },
+    {
+      "cons": "C29",
+      "empresa": "Biolaboratorio Sadat",
+      "asesor": "Erick",
+      "estado": "hibernacion",
+      "mrr": 6666,
+      "esTop": true,
+      "grc": false,
+      "cancel": false,
+      "dir": true,
       "dormidaPorEstado": true
     },
     {
@@ -55,6 +94,19 @@
       "esTop": true,
       "grc": true,
       "cancel": true,
+      "dir": false,
+      "dormidaPorEstado": true
+    },
+    {
+      "cons": "D15",
+      "empresa": "SOBERANI",
+      "asesor": "Erick",
+      "estado": "hibernacion",
+      "mrr": 5235,
+      "esTop": true,
+      "grc": false,
+      "cancel": false,
+      "dir": true,
       "dormidaPorEstado": true
     },
     {
@@ -66,6 +118,7 @@
       "esTop": true,
       "grc": true,
       "cancel": true,
+      "dir": false,
       "dormidaPorEstado": true
     }
   ],

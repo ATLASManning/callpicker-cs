@@ -100,7 +100,8 @@ const topm = await jiti.import(path.join(RAIZ, 'lib/cuenta-top.ts'))
 const sb   = await jiti.import(path.join(RAIZ, 'lib/supabase.ts'))
 
 const { mapaFacturacion, importeDeCuenta } = fact
-const { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION } = eleg
+const { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION,
+        esChurnConfirmadoDireccion } = eleg
 const { isTopCustomer, TOP_RANGES } = topm
 
 const pesos = n => '$' + Math.round(n).toLocaleString('es-MX')
@@ -143,11 +144,16 @@ const filas = data.map(c => {
     esTop: isTopCustomer(c.consecutivo),
     grc: NOMBRES_CHURN_GRC.has(n),
     cancel: NOMBRES_CANCELACION.has(n),
+    /* TERCERA PUERTA: la declaración de dirección. Sin ella este corte
+       —que existe para contestar «¿cuáles cuentas TOP están en churn
+       confirmado?»— se dejaba fuera a las que dirección declaró mientras su
+       mes sigue vivo en el GRC, que son justamente las más recientes. */
+    dir: esChurnConfirmadoDireccion(c),
     dormidaPorEstado: esDormidaPorEstado(c),
   }
 })
 
-const marcadas = filas.filter(f => f.grc || f.cancel)
+const marcadas = filas.filter(f => f.grc || f.cancel || f.dir)
 const ambito   = SOLO_TOP ? marcadas.filter(f => f.esTop) : marcadas
 ambito.sort((a, b) => b.mrr - a.mrr)
 
@@ -184,12 +190,13 @@ const tabla = (etq, xs, nota) => {
      ①②③ la puerta se deduce del título, pero en ⓿ no, y sin ella «está en
      churn confirmado» no dice si lo sustenta una persona o sólo el label del
      GRC —que está medido como mayoritariamente falso en crudo. */
-  console.log('    CONS  EMPRESA                             ASESOR      ESTADO       PUERTA        MRR')
+  console.log('    CONS  EMPRESA                             ASESOR      ESTADO       PUERTA                   MRR')
   for (const f of xs) {
-    const puerta = f.grc && f.cancel ? 'GRC+DATA' : f.cancel ? 'DATA' : 'GRC'
+    const puerta = [f.grc && 'GRC', f.cancel && 'DATA', f.dir && 'DIRECCIÓN']
+      .filter(Boolean).join('+') || '—'
     console.log(`    ${String(f.cons ?? '—').padEnd(5)} ${f.empresa.slice(0, 35).padEnd(35)} `
       + `${String(f.asesor).slice(0, 11).padEnd(11)} ${String(f.estado).padEnd(12)} `
-      + `${puerta.padEnd(9)} ${pesos(f.mrr).padStart(9)}`)
+      + `${puerta.padEnd(20)} ${pesos(f.mrr).padStart(9)}`)
   }
 }
 
@@ -213,6 +220,17 @@ tabla('② SÓLO Análisis DATA',
 tabla('③ SÓLO el label del GRC',
   estadoMiente.filter(f => f.grc && !f.cancel),
   '⚠️ AQUÍ ESTÁ EL RIESGO. Corroborar una por una ANTES de apagarlas.')
+/* ④ CIERRA EL CUBO. Sin esta tabla, una cuenta declarada SÓLO por dirección y
+   todavía con estado activo no caía en ①②③ y desaparecía del corte sin que
+   ningún total avisara. [[feedback-tablas-deben-cerrar]] */
+tabla('④ SÓLO la declaración de dirección',
+  estadoMiente.filter(f => f.dir && !f.grc && !f.cancel),
+  'Declarada por dirección y con `estado` todavía activo: falta pasarla a Dormidas.')
+const sinTabla = estadoMiente.filter(f => !f.grc && !f.cancel && !f.dir)
+if (sinTabla.length) {
+  console.log(`\n  *** ${sinTabla.length} candidata(s) NO cayeron en ninguna tabla.`)
+  console.log('  El cubo no cierra: hay una puerta que el corte no está nombrando.')
+}
 
 /* ── CONTROL DEL CERO ────────────────────────────────────────────────────── */
 console.log('\n  ' + '-'.repeat(72))
