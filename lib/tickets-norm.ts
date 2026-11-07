@@ -31,11 +31,14 @@
  *      canal: 'Asistencia (voz)' es dos datos en una cadena. Se parten en
  *      `tipo` y `canal`.
  *
- *   5. 37 cadenas de propietario para 18 personas: 'Mario H.' (648) y 'Mario
- *      Hernández' (6) eran dos barras. Filtrar por una perdía los de la otra.
- *      OJO al fundirlas: 'José Antonio R.' y 'José Manuel L.' son DOS personas,
- *      así que la clave es nombre + inicial del apellido, nunca el nombre solo.
- *      Igual que Dan D. y Daniel M., que también son dos.
+ *   5. 37 cadenas de propietario para un puñado de personas: 'Mario H.' (648) y
+ *      'Mario Hernández' (6) eran dos barras. Filtrar por una perdía los de la
+ *      otra. OJO al fundirlas: 'José Antonio R.' y 'José Manuel L.' son DOS
+ *      personas, así que la clave es nombre + inicial del apellido, nunca el
+ *      nombre solo. Igual que Dan D. y Daniel M., que también son dos.
+ *      (Cuántos grupos salen HOY lo mide revisa-tickets-invariantes.py, que es
+ *      quien lo cuenta de verdad: al corte del 6 nov 2026, 37 -> 21. No se
+ *      teclea aquí un número que el dato puede mover sin avisar.)
  *
  *   6. El CID 1 (Callpicker, Digitum, Callpicker pruebas — 175 tickets) era el
  *      SEGUNDO emisor de todo el archivo, por encima de cualquier cliente real,
@@ -203,7 +206,8 @@ function normSubcategoria(s: string): string {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   Propietarios: 37 cadenas -> 18 personas + 1 cola
+   Propietarios: 37 cadenas -> unos 20 grupos (personas + 1 cola + los que
+   Zoho capturó sin nombre). El conteo exacto lo da el verificador.
 
    La clave es NOMBRE + INICIAL DEL APELLIDO, nunca el nombre solo:
    'José Antonio R.' y 'José Manuel L.' son dos personas, y con el nombre
@@ -266,6 +270,26 @@ function construirPropietarios(filas: TicketRaw[]): Map<string, string> {
       if (v.length > mejor.length || (v.length === mejor.length && n > mejorN)) {
         mejor = v; mejorN = n
       }
+    }
+    /* UNA CADENA QUE ES SOLO UNA INICIAL NO ES UN NOMBRE, y pintarla tal cual
+       la convierte en un agente que no existe. Apareció en el corte del 6 nov
+       2026: Zoho capturó `G.` en un folio (ticket 1119960000026757016, abierto
+       y cerrado en 48 segundos), y en la gráfica de propietarios salía una
+       barra «G.» junto a las de las personas reales.
+
+       No se funde con nadie —y esto es lo importante—: hay TRES propietarios
+       con apellido G. (Alexis G. 933, Fátima G. 392, Enrique G. 65), así que
+       la inicial no decide cuál es. Adivinar sería regalarle a uno el trabajo
+       de otro; el grupo se queda aparte, como manda la regla de arriba.
+
+       Lo único que cambia es el RÓTULO: se nombra la ausencia con palabras en
+       vez de disfrazarla de persona, y se conserva la cadena cruda para poder
+       rastrearla hasta Zoho. El grupo sigue contando, así que las particiones
+       cierran igual. [[feedback-contexto-ia-sin-huecos]] */
+    const soloInicial = clave(mejor).split(' ').filter(Boolean)
+    if (soloInicial.length === 1 && soloInicial[0].length === 1) {
+      canon.set(k, `Sin nombre («${mejor}»)`)
+      continue
     }
     canon.set(k, mejor)
   }
