@@ -21,6 +21,7 @@ export const LIMITE_SEMANAL = 4
 
 export type CodigoBloqueo =
   | 'churn_grc'
+  | 'churn_direccion'
   | 'cancelacion'
   | 'dormida'
   | 'estado_no_activo'
@@ -32,6 +33,7 @@ export type CodigoBloqueo =
 
 export const MSG: Record<CodigoBloqueo, string> = {
   churn_grc:            'Actividad bloqueada: la cuenta se encuentra en Churn > GRC - AAA - 2026.',
+  churn_direccion:      'Actividad bloqueada: dirección declaró la cuenta en Churn confirmado.',
   cancelacion:          'Actividad bloqueada: la cuenta aparece como cancelada en Churn > Análisis DATA.',
   dormida:              'Actividad bloqueada: la cuenta tiene estatus Dormida.',
   estado_no_activo:     'Actividad bloqueada: la cuenta no tiene estatus activo.',
@@ -66,6 +68,73 @@ const EXCLUSIONES_SAC: Array<{ nombre: string; cid?: string; razon: string }> = 
     razon:  '15 Sep 2026 · José Manuel, dirección: no es cuenta TOP y su facturación es un paquete de 400 minutos que paga de forma ANUAL. El ritual SAC está armado sobre el ciclo mensual —corte, consumo, seguimiento—; en una cuenta con un solo momento comercial al año esa cadencia genera tareas sin sustento. Se retira del SAC SIN cancelarla ni borrarla: sigue activa, sigue en la cartera de Claudia y sigue midiéndose. Revisar en la renovación anual.',
   },
 ]
+
+/**
+ * CHURN CONFIRMADO POR INSTRUCCIÓN DE DIRECCIÓN.
+ *
+ * POR QUÉ EXISTE ESTA LISTA Y NO BASTA CON EL GRC
+ *
+ * `churn_confirmado` no es una columna: se DERIVA de `NOMBRES_CHURN_GRC`, y ese
+ * set excluye a propósito el MES VIVO (`GRC_MES_EN_CURSO`) porque el label crudo
+ * de Zoho marca «Churn confirmado» todo contrato que aún no factura, incluido el
+ * que paga tarde. Mientras el mes no cierra, la fuente NO PUEDE declararla.
+ *
+ * Pero dirección sí puede, y cuando lo hace esa decisión tiene que vivir en
+ * algún lado. Sin esta lista, la cuenta se pasa a Dormidas a mano y ahí se
+ * etiqueta «Hibernación»: el motivo REAL se pierde, que es exactamente contra
+ * lo que avisa el comentario de `getMotivo` en `app/cuentas/dormidas/page.tsx`.
+ *
+ * NO se mete en `NOMBRES_CHURN_GRC`: ese set significa «lo que dice el GRC», y
+ * meterle nombres que el GRC no declaró lo volvería mentiroso sobre sí mismo.
+ * Por eso código propio —`churn_direccion`— con su propio mensaje.
+ *
+ * ESTO NO DA DE BAJA NADA. Mover la cuenta a Dormidas es escribir
+ * `estado = 'hibernacion'` (ver `scripts/pasa-a-dormidas.mjs`); esta lista sólo
+ * hace que se VEA con su motivo correcto. Ninguna cuenta se borra.
+ * [[feedback-conciliacion-churn]]
+ *
+ * Cuando el GRC cierre el mes y la declare por su cuenta, la entrada se puede
+ * retirar: el motivo lo sostendrá ya la fuente. Mientras tanto, se queda.
+ */
+const CHURN_CONFIRMADO_DIRECCION: Array<{ nombre: string; cid?: string; razon: string }> = [
+  {
+    nombre: 'Jason de Mexico', cid: '135582',
+    razon:  '6 Nov 2026 · José Manuel, dirección: churn confirmado del corte de octubre. Se pasa a Dormidas por instrucción directa, con octubre todavía como mes vivo en el GRC — por eso la fuente aún no la declara.',
+  },
+  {
+    nombre: 'IMAGEN DENTAL AMT', cid: '97886',
+    razon:  '6 Nov 2026 · José Manuel, dirección: churn confirmado del corte de octubre. Misma instrucción. Única de las cinco que NO es cuenta TOP (consecutivo Z18).',
+  },
+  {
+    nombre: 'KOMBITEC', cid: '42184',
+    razon:  '6 Nov 2026 · José Manuel, dirección: churn confirmado del corte de octubre. Misma instrucción.',
+  },
+  {
+    nombre: 'Biolaboratorio Sadat', cid: '98635',
+    razon:  '6 Nov 2026 · José Manuel, dirección: churn confirmado del corte de octubre. Misma instrucción.',
+  },
+  {
+    nombre: 'SOBERANI', cid: '178523',
+    razon:  '6 Nov 2026 · José Manuel, dirección: churn confirmado del corte de octubre. Misma instrucción.',
+  },
+]
+
+const NOMBRES_CHURN_DIRECCION: Set<string> = new Set(
+  CHURN_CONFIRMADO_DIRECCION.map(e => normalizarNombre(e.nombre))
+)
+
+const CIDS_CHURN_DIRECCION: Set<string> = new Set(
+  CHURN_CONFIRMADO_DIRECCION.map(e => String(e.cid ?? '').trim()).filter(Boolean)
+)
+
+/** ¿Dirección declaró esta cuenta en Churn confirmado? CID primero, nombre después. */
+export function esChurnConfirmadoDireccion(
+  c: { cid?: string | number | null; empresa?: string | null },
+): boolean {
+  const cid = c.cid === null || c.cid === undefined ? '' : String(c.cid).trim()
+  if (cid && CIDS_CHURN_DIRECCION.has(cid)) return true
+  return NOMBRES_CHURN_DIRECCION.has(normalizarNombre(c.empresa))
+}
 
 const NOMBRES_EXCLUSION_MANUAL: Set<string> = new Set(
   EXCLUSIONES_SAC.map(e => normalizarNombre(e.nombre))
@@ -323,6 +392,10 @@ export function bloqueoComercialDeCuenta(
   else if (estado === 'hibernacion')            codigos.push('dormida')
   else if (estado !== 'activo' && estado !== 'en_riesgo') codigos.push('estado_no_activo')
   if (NOMBRES_CHURN_GRC.has(n))   codigos.push('churn_grc')
+  /* La declaración de dirección pesa igual que la del GRC, pero se dice con su
+     propio código: afirmar «aparece en GRC-AAA-2026» de una cuenta que el GRC
+     todavía no declara sería falso, y ese mensaje lo lee un asesor. */
+  if (esChurnConfirmadoDireccion(c)) codigos.push('churn_direccion')
   if (NOMBRES_CANCELACION.has(n)) codigos.push('cancelacion')
 
   return {

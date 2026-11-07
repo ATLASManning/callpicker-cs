@@ -1,0 +1,71 @@
+[
+  {
+    "mes_mapa": "Octubre",
+    "nombres_pedidos": [
+      "Jason de Mexico",
+      "IMAGEN DENTAL AMT",
+      "KOMBITEC",
+      "Biolaboratorio Sadat",
+      "SOBERANI"
+    ],
+    "movidas": [
+      {
+        "id": "6b98a1cf-62a4-4b46-a58d-bcbb12b01622",
+        "cid": "135582",
+        "consecutivo": "D7",
+        "empresa": "Jason de Mexico",
+        "asesor": "Dan",
+        "estado_antes": "en_riesgo",
+        "estado_despues": "hibernacion",
+        "mrr": 17225,
+        "top": true
+      },
+      {
+        "id": "cbeabf59-3e7e-46cb-af17-c63d8d6e881f",
+        "cid": "97886",
+        "consecutivo": "Z18",
+        "empresa": "IMAGEN DENTAL AMT",
+        "asesor": "Fátima",
+        "estado_antes": "en_riesgo",
+        "estado_despues": "hibernacion",
+        "mrr": 5131.77,
+        "top": false
+      },
+      {
+        "id": "f385377b-17be-47aa-9938-d748f5000598",
+        "cid": "42184",
+        "consecutivo": "D22",
+        "empresa": "KOMBITEC",
+        "asesor": "Dan",
+        "estado_antes": "activo",
+        "estado_despues": "hibernacion",
+        "mrr": 8663,
+        "top": true
+      },
+      {
+        "id": "b0d2082a-26b0-4212-9973-657336bcf1b7",
+        "cid": "98635",
+        "consecutivo": "C29",
+        "empresa": "Biolaboratorio Sadat",
+        "asesor": "Erick",
+        "estado_antes": "activo",
+        "estado_despues": "hibernacion",
+        "mrr": 6666,
+        "top": true
+      },
+      {
+        "id": "670b6f56-377e-4d87-9130-0831a9f1355a",
+        "cid": "178523",
+        "consecutivo": "D15",
+        "empresa": "SOBERANI",
+        "asesor": "Erick",
+        "estado_antes": "en_riesgo",
+        "estado_despues": "hibernacion",
+        "mrr": 5235,
+        "top": true
+      }
+    ],
+    "ya_estaban": [],
+    "fallos": []
+  }
+]

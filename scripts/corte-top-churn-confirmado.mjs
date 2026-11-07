@@ -180,13 +180,29 @@ const tabla = (etq, xs, nota) => {
   console.log(`\n  ${etq} — ${xs.length} cuenta(s) · ${pesos(xs.reduce((s, f) => s + f.mrr, 0))}`)
   console.log(`    ${nota}`)
   if (!xs.length) { console.log('    (ninguna)'); return }
-  console.log('    CONS  EMPRESA                             ASESOR      ESTADO           MRR')
+  /* La columna PUERTA va en TODAS las tablas, no sólo en las candidatas. En
+     ①②③ la puerta se deduce del título, pero en ⓿ no, y sin ella «está en
+     churn confirmado» no dice si lo sustenta una persona o sólo el label del
+     GRC —que está medido como mayoritariamente falso en crudo. */
+  console.log('    CONS  EMPRESA                             ASESOR      ESTADO       PUERTA        MRR')
   for (const f of xs) {
+    const puerta = f.grc && f.cancel ? 'GRC+DATA' : f.cancel ? 'DATA' : 'GRC'
     console.log(`    ${String(f.cons ?? '—').padEnd(5)} ${f.empresa.slice(0, 35).padEnd(35)} `
-      + `${String(f.asesor).slice(0, 11).padEnd(11)} ${String(f.estado).padEnd(11)} `
-      + `${pesos(f.mrr).padStart(9)}`)
+      + `${String(f.asesor).slice(0, 11).padEnd(11)} ${String(f.estado).padEnd(12)} `
+      + `${puerta.padEnd(9)} ${pesos(f.mrr).padStart(9)}`)
   }
 }
+
+/* EL TRABAJO YA HECHO TAMBIÉN SE LISTA, Y NO ES DECORACIÓN.
+   La primera versión imprimía «ya con estado hibernacion/cancelado: 5» y ahí
+   se quedaba. Cuando dirección pregunta «¿cuáles cuentas TOP están en churn
+   confirmado?», la respuesta COMPLETA son éstas —las que ya se apagaron— más
+   las candidatas. Un corte que sólo enseña lo pendiente contesta «ninguna» a
+   una pregunta cuya respuesta real son cinco nombres.
+   [[feedback-cero-sin-medicion]] */
+tabla('⓿ YA EN DORMIDAS (trabajo hecho en cortes anteriores)',
+  yaMovidas,
+  'Éstas YA están apagadas. Son la respuesta a «cuáles son», no un pendiente.')
 
 tabla('① LAS DOS PUERTAS (GRC + Análisis DATA)',
   estadoMiente.filter(f => f.grc && f.cancel),
@@ -229,6 +245,9 @@ fs.writeFileSync(destino, JSON.stringify({
   grc_nombres: NOMBRES_CHURN_GRC.size, cancel_nombres: NOMBRES_CANCELACION.size,
   marcadas_total: marcadas.length, se_ven_en_activas: enPantalla.length,
   ya_movidas: yaMovidas.length,
+  /* Las ya movidas se guardan COMPLETAS, no sólo contadas: son la respuesta a
+     «cuáles cuentas TOP están en churn confirmado» y el JSON es la evidencia. */
+  ya_movidas_detalle: yaMovidas,
   candidatas: estadoMiente,
 }, null, 2), 'utf8')
 console.log(`\n  corte guardado en data/cortes-top-churn/top-churn-${sello}.json\n`)

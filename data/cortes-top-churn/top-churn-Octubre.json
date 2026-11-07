@@ -12,5 +12,62 @@
   "marcadas_total": 26,
   "se_ven_en_activas": 0,
   "ya_movidas": 5,
+  "ya_movidas_detalle": [
+    {
+      "cons": "F2",
+      "empresa": "Global Digital",
+      "asesor": "Fátima",
+      "estado": "hibernacion",
+      "mrr": 34430,
+      "esTop": true,
+      "grc": true,
+      "cancel": false,
+      "dormidaPorEstado": true
+    },
+    {
+      "cons": "C16",
+      "empresa": "Travelling",
+      "asesor": "Erick",
+      "estado": "hibernacion",
+      "mrr": 12823,
+      "esTop": true,
+      "grc": true,
+      "cancel": false,
+      "dormidaPorEstado": true
+    },
+    {
+      "cons": "C28",
+      "empresa": "Bliss crédito libre",
+      "asesor": "Erick",
+      "estado": "cancelado",
+      "mrr": 10091,
+      "esTop": true,
+      "grc": true,
+      "cancel": true,
+      "dormidaPorEstado": true
+    },
+    {
+      "cons": "C32",
+      "empresa": "Mas Suites",
+      "asesor": "Erick",
+      "estado": "hibernacion",
+      "mrr": 5573,
+      "esTop": true,
+      "grc": true,
+      "cancel": true,
+      "dormidaPorEstado": true
+    },
+    {
+      "cons": "C33",
+      "empresa": "Centro Mexicano de Psicologia Integrativa CEMEPI",
+      "asesor": "Erick",
+      "estado": "hibernacion",
+      "mrr": 2651,
+      "esTop": true,
+      "grc": true,
+      "cancel": true,
+      "dormidaPorEstado": true
+    }
+  ],
   "candidatas": []
 }

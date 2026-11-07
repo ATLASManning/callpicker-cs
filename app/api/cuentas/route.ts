@@ -70,7 +70,13 @@ export async function GET(req: NextRequest) {
         // `churn_confirmado` es TRUE aunque `estado` siga diciendo activo: las
         // fuentes de Churn mandan sobre la columna, que se desactualiza (fue
         // la causa del incidente del 24-ago-2026).
-        churn_confirmado:     bloqueo.codigos.includes('churn_grc'),
+        // `churn_direccion` cuenta IGUAL que `churn_grc`: es una cuenta que
+        // dirección declaró en churn mientras el GRC todavía tiene su mes como
+        // mes vivo y no puede declararla. Si sólo se mirara `churn_grc`, la
+        // cuenta caería a Dormidas etiquetada «Hibernación» y el motivo real se
+        // perdería. Ver CHURN_CONFIRMADO_DIRECCION en lib/elegibilidad.ts.
+        churn_confirmado:     bloqueo.codigos.includes('churn_grc')
+                              || bloqueo.codigos.includes('churn_direccion'),
         cancelacion_reportada: bloqueo.codigos.includes('cancelacion'),
         bloqueo_sac:          bloqueo.bloqueada,
         bloqueo_motivos:      bloqueo.motivos,
