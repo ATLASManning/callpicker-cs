@@ -166,15 +166,23 @@ export const GRC_MES_EN_CURSO: string | null = 'Octubre'
  * El 2-nov-2026 octubre ya es mes vencido y el tablero lo publica como un mes
  * normal (7.9%). La tentación es rotar `GRC_MES_EN_CURSO` a `null` y darlo por
  * cerrado. **Se midió antes de hacerlo y la medición lo desaconseja**, con
- * `scripts/mide-cierre-de-mes-grc.py Octubre`:
+ * `scripts/mide-cierre-de-mes-grc.py Octubre`. Vuelto a medir con el corte del
+ * 6-nov-2026:
  *
- *   · 246 filas de octubre traen «Churn confirmado»
- *   · sólo 15 cruzan con una cuenta de la cartera — las únicas cotejables
- *   · **las 15 están VIVAS** (activo o en_riesgo). Ninguna de baja ni dormida.
+ *   · 219 filas de octubre traen «Churn confirmado» (eran 246 el 2 nov)
+ *   · sólo 13 cruzan con una cuenta de la cartera — las únicas cotejables
+ *   · **las 13 están VIVAS** (activo o en_riesgo). Ninguna de baja ni dormida.
  *
- * O sea: rotar captura CERO bajas reales y mete 15 cuentas vivas a
+ * O sea: rotar captura CERO bajas reales y mete 13 cuentas vivas a
  * `NOMBRES_CHURN_GRC`, donde Atlas diría de ellas «aparece como Churn
  * confirmado». El coste es seguro y el beneficio es nulo.
+ *
+ * LA TENDENCIA VA EN LA DIRECCIÓN BUENA PERO NO HA LLEGADO: en cuatro días el
+ * churn de octubre bajó de 246 a 219 filas y las cotejables de 15 a 13, o sea
+ * que la cobranza sigue entrando. Lo que NO ha pasado todavía es que una sola
+ * de las cotejables se convierta en baja de verdad — sigue siendo 13 de 13
+ * vivas. El criterio para rotar no es que el churn baje: es que aparezca una
+ * baja real que el cierre venga a capturar.
  *
  * Esto NO dice que octubre esté en curso —no lo está—: dice que su churn no ha
  * madurado. Es lo que el rótulo de la tabla tiene que decir, y por eso dejó de
@@ -185,11 +193,11 @@ export const GRC_MES_EN_CURSO: string | null = 'Octubre'
  * esto se rota y `GRC_RESUMEN_CERRADOS.hasta` pasa a 'Octubre'.
  */
 export const GRC_MES_SIN_MADURAR = {
-  medido:        '2026-11-02',
+  medido:        '2026-11-06',
   guion:         'scripts/mide-cierre-de-mes-grc.py',
-  filasChurn:    246,
-  cotejables:    15,
-  cotejablesVivas: 15,
+  filasChurn:    219,
+  cotejables:    13,
+  cotejablesVivas: 13,
 }
 
 /**
@@ -288,25 +296,33 @@ export const GRC_REEXPRESION_2026_09_20 = {
  * Desde el 2 nov lo comprueba `scripts/verifica-resumen-cerrados.py`, que lo
  * recalcula desde `aaa-grc-data.ts` + `GRC_BASE_MRR` leyendo las reglas de
  * clasificación del propio `GrcAaaSection.tsx`. CORRERLO AL CARGAR.
+ *
+ * TERCERA VEZ, y esta vez el verificador la cazó el mismo día (6 nov 2026): el
+ * export movió a TROQUELADOS MODULARES de «Churn mensual» $4,790 (junio) a
+ * «Downgrade» $2,395. El GRC no cuenta el churn mensual y SÍ el downgrade, así
+ * que la pérdida real del mes BAJA $2,395 y la contada por el GRC SUBE $2,395.
+ * Un mismo movimiento reclasificado empuja las dos cifras en sentidos
+ * contrarios: por eso ninguna de las dos se deduce de la otra.
  */
 export const GRC_RESUMEN_CERRADOS = {
   hasta:     'Septiembre',
   base:      44080039.52,
   churn:       591437.06,
-  downgrade:   362173.68,
-  perdida:     953610.74,
-  pct:               2.16,
+  downgrade:   364568.68,
+  perdida:     956005.74,
+  pct:               2.17,
 }
 
 /**
  * El fraude / reestructura queda FUERA del Gross Revenue Churn: la pérdida
- * real del periodo enero–septiembre es $1,329,439.73 —los tres churns más el
+ * real del periodo enero–septiembre es $1,327,044.73 —los tres churns más el
  * downgrade—, sin los $457,271.65 de fraude-reestructura de los mismos nueve
  * meses. Se reporta por separado.
  *
  * Las dos cifras las imprime `scripts/verifica-resumen-cerrados.py` y hay que
- * releerlas en CADA carga: han pasado por $2,151,751.56 / $244,432.68 y por
- * $1,349,098.73 / $457,271.65 antes de éstas. El grueso del fraude-reestructura
- * sigue siendo una sola fila: GTC - Oleksei, febrero, $189,440.
+ * releerlas en CADA carga: han pasado por $2,151,751.56 / $244,432.68, por
+ * $1,349,098.73 / $457,271.65 y por $1,329,439.73 / $457,271.65 antes de éstas.
+ * El grueso del fraude-reestructura sigue siendo una sola fila: GTC - Oleksei,
+ * febrero, $189,440.
  */
 export const GRC_EXCLUYE_FRAUDE = true
