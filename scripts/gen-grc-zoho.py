@@ -706,6 +706,27 @@ META = {
 }
 
 os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
+
+# ── EL RESPALDO SE GUARDA ANTES DE SOBRESCRIBIR ─────────────────────────────
+# `concilia-grc-zoho.py` EXIGE el json anterior para decir quien cambio y por
+# cuanto, y la tabla PUB de `verifica-grc.py` no se toca hasta que ese delta
+# cierre. Pero este generador sobrescribia sin guardar copia, asi que el
+# respaldo habia que rescatarlo de git — y si la corrida anterior no se hubiera
+# committeado, no habria de donde. Una disciplina que depende de un archivo que
+# nadie crea se salta sola el dia que estorba. [[feedback-verificar-antes-asegurar]]
+#
+# No se pisa un respaldo existente: si ya hay uno de hoy es el del estado
+# BUENO anterior, y rehacerlo guardaria el resultado de una corrida intermedia.
+if os.path.exists(SALIDA):
+    _sello = __import__('datetime').date.today().isoformat()
+    _bak = os.path.join(os.path.dirname(SALIDA), 'grc-zoho.%s.bak.json' % _sello)
+    if os.path.exists(_bak):
+        print('respaldo de hoy ya existe, no se pisa: %s' % os.path.basename(_bak))
+    else:
+        import shutil
+        shutil.copy2(SALIDA, _bak)
+        print('respaldo -> %s' % os.path.basename(_bak))
+
 with io.open(SALIDA, 'w', encoding='utf-8') as fh:
     json.dump({'meta': META, 'serie': serie, 'detallePerdida': detalleSerie,
                'reactivaciones': [{'mes': m, 'monto': v} for m, v in REACTIVACIONES],

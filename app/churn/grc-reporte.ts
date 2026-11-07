@@ -39,21 +39,52 @@
  *
  * Regenerar junto con aaa-grc-data.ts, del MISMO archivo.
  */
+/* YA NO SE TECLEA: lo calcula `scripts/mide-base-mrr.py` del export
+   institucional y lo imprime listo para pegar (`--ts`). El comentario de arriba
+   decía desde hace semanas que «sale del export institucional», pero ningún
+   guion lo sacaba — se copiaba a mano, y un espejo tecleado a mano deja de ser
+   espejo en cuanto la fuente se mueve. Aquí la fuente se mueve CADA SEMANA.
+
+   Se CALCULA del archivo, no se copia del tablero. Que coincida al centavo con
+   la transcripción de `verifica-contra-tablero.py` —que sí viene del tablero—
+   es una comprobación de verdad; si se copiara de ahí, aquella pasaría por
+   construcción. [[feedback-metricas-derivadas-origen]] */
 export const GRC_BASE_MRR: Record<string, number> = {
-  Enero:      4650270.89,
-  Febrero:    4696946.10,
-  Marzo:      4777660.30,
-  Abril:      4857421.51,
-  Mayo:       5076566.09,
-  Junio:      5106393.12,
-  Julio:      4943969.29,
-  Agosto:     5014888.60,
-  Septiembre: 4955923.62,
+  Enero:      4650439.89,
+  Febrero:    4697115.10,
+  Marzo:      4777829.30,
+  Abril:      4857590.51,
+  Mayo:       5076735.09,
+  Junio:      5106562.12,
+  Julio:      4946533.29,
+  Agosto:     5015057.60,
+  Septiembre: 4982686.62,
   /* Al centavo, nunca redondeado. Lo escribí una vez como 4886743 y lo cazó
      `verifica-contra-tablero.py`: un denominador redondeado da un porcentaje
      que no es el del tablero. */
-  Octubre:    4914429.57,
+  Octubre:    4917285.57,
+  /* Noviembre entra al DENOMINADOR, que es sólo la base del mes. No implica
+     que el módulo publique noviembre: eso lo decide `GRC_MES_EN_CURSO`, que
+     sigue en Octubre. Una base de más no inventa pérdida; una base de menos
+     sí inventa un porcentaje. */
+  Noviembre:  4724025.77,
 }
+
+/**
+ * REEXPRESIÓN DEL 6-NOV-2026 — del export institucional `CRF.xlsx`.
+ *
+ * Se movieron los DIEZ meses: SIETE de ellos +$169.00 exactos (Ene, Feb, Mar,
+ * Abr, May, Jun y Ago) y tres más — Julio +$2,564.00, Octubre +$2,856.00 y
+ * Septiembre +$26,763.00. Más Noviembre, que no existía.
+ * Total de la base: $53,751,860.86.
+ *
+ * El mismo +$169.00 en siete meses distintos NO es redondeo, pero de dónde
+ * sale NO ESTÁ MEDIDO y aquí no se inventa. Queda anotado por si vuelve a
+ * aparecer: un importe idéntico repetido en meses cerrados es la firma de una
+ * fila retroactiva, y conviene cazarla antes de que se vuelva costumbre.
+ *
+ * Las bases anteriores quedan abajo, en la reexpresión del 2-nov.
+ */
 
 /**
  * REEXPRESIÓN DEL 2-NOV-2026 — las bases que había antes del export
@@ -306,7 +337,11 @@ export const GRC_REEXPRESION_2026_09_20 = {
  */
 export const GRC_RESUMEN_CERRADOS = {
   hasta:     'Septiembre',
-  base:      44080039.52,
+  /* +$30,510.00 el 6 nov 2026, que es EXACTAMENTE la suma de los deltas de
+     base de Ene-Sep del export CRF: siete meses a +$169.00, Julio +$2,564.00 y
+     Septiembre +$26,763.00. Lo cazó `verifica-resumen-cerrados.py` el mismo
+     día — CUARTA vez que esta constante escrita a mano se queda atrás. */
+  base:      44110549.52,
   churn:       591437.06,
   downgrade:   364568.68,
   perdida:     956005.74,
