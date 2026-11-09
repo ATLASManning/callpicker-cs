@@ -53,6 +53,34 @@ function diaSemana(iso) {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
 }
 const esFinDeSemana = iso => [0, 6].includes(diaSemana(iso))
+/**
+ * UN IMPORTE SIN SU ORIGEN NO ES UN IMPORTE.
+ *
+ * `importeDeCuenta` tiene tres orígenes y NO valen lo mismo:
+ *   · `grc`      — el MRR institucional. Es el bueno.
+ *   · `cuentas`  — la columna `facturacion` guardada en la ficha. Es un
+ *                  respaldo: se usa cuando el GRC ya no trae la cuenta (porque
+ *                  se fue), y NO es la cifra institucional.
+ *   · `sin_dato` — no hay importe en ninguna fuente. Eso es NO MEDIBLE y se
+ *                  escribe con palabras, nunca como «$0». [[feedback-cero-sin-medicion]]
+ *
+ * Pintar los tres iguales mezcla la cifra institucional con un respaldo y con
+ * una ausencia, que es justo lo que no debe pasar. [[feedback-fuente-unica-cuentas]]
+ */
+function importeTxt(x) {
+  if (!x || x.origenMrr === 'sin_dato') return '<span class="nomed">sin medir</span>'
+  if (x.origenMrr === 'cuentas') {
+    return `${pesos(x.mrr)} <span class="chip ficha" title="De la columna guardada en la ficha, `
+      + `no del GRC: la cuenta ya no aparece en el export institucional.">ficha</span>`
+  }
+  return pesos(x.mrr)
+}
+/** La misma marca, en texto plano: las sugerencias no llevan HTML. */
+function importePlano(x) {
+  if (!x || x.origenMrr === 'sin_dato') return 'sin importe medible'
+  if (x.origenMrr === 'cuentas') return `${pesos(x.mrr)} (de la ficha, no del GRC)`
+  return pesos(x.mrr)
+}
 function duracion(seg) {
   if (seg === null || seg === undefined || !Number.isFinite(seg)) return '—'
   if (seg < 60) return `${Math.round(seg)}s`
@@ -107,6 +135,20 @@ const ESTADO_COLOR = {
 const estados = Object.entries(D.cartera.porEstado).sort((a, b) => b[1] - a[1])
 const maxEstado = Math.max(1, ...estados.map(x => x[1]))
 
+/* Desglose del MRR por origen: la cifra institucional y el respaldo de la
+   ficha no se suman a ciegas en un solo número grande. */
+const mrrDeGrc = D.cartera.cuentas.filter(c => c.origenMrr === 'grc')
+  .reduce((s, c) => s + c.mrr, 0)
+const mrrDeFicha = D.cartera.cuentas.filter(c => c.origenMrr === 'cuentas')
+  .reduce((s, c) => s + c.mrr, 0)
+
+/* ── CHURN ──────────────────────────────────────────────────────────────── */
+const CH = D.churn ?? { cuentas: [], perdidoGrc: 0, solicitudes: [], control: {} }
+const chSinImporteGrc = CH.cuentas.filter(c => !c.perdidoGrc)
+const chUltimoMrr = chSinImporteGrc.filter(c => c.origenMrr !== 'sin_dato')
+  .reduce((s, c) => s + c.mrr, 0)
+const porDireccion = CH.cuentas.filter(c => c.puertas.includes('DIRECCIÓN'))
+
 /* ── SUGERENCIAS: se CALCULAN, no se escriben ───────────────────────────── */
 const sug = []
 
@@ -157,7 +199,7 @@ if (mayor) {
   sug.push({
     titulo: `Primero ${mayor.consecutivo} ${mayor.empresa}: es su mayor exposición`,
     prioridad: 'alta',
-    porque: `${pesos(mayor.mrr)} de MRR${mayor.top ? ', cuenta TOP' : ''}, Health Score `
+    porque: `${importePlano(mayor)} de MRR${mayor.top ? ', cuenta TOP' : ''}, Health Score `
       + `${mayor.hs ?? '—'}, y ${mayor.alertas.length} alerta(s) abierta(s): `
       + mayor.alertas.map(a => a.tipo).join(', ') + '.'
       + (cuentasTocadas.has(mayor.consecutivo)
@@ -181,7 +223,7 @@ if (mayor) {
       prioridad: 'alta',
       porque: `La más vieja es ${peor.consecutivo} ${peor.empresa}, ${peor.dias} días `
         + `(último contacto ${peor.ultimoContacto}). Entre las ${p.length} suman ${pesos(mrrP)} `
-        + `de MRR medible`
+        + `de MRR medible (GRC y ficha mezclados: el desglose está en la tabla)`
         + (sinMedir ? `, y ${sinMedir} no tienen importe medible` : '')
         + (tops.length ? `. Hay ${tops.length} TOP en la lista: `
             + tops.map(x => `${x.consecutivo} ${x.empresa} (${x.dias} d)`).join(', ') + '.' : '.')
@@ -210,6 +252,22 @@ if (mayor) {
         + 'ni para defender la cuenta cuando alguien pregunte.',
     })
   }
+}
+
+/* 4.5 · churn sin aviso escrito. Es un hallazgo sobre el REGISTRO, no sobre su
+   trabajo, y así se redacta: una baja sin solicitud capturada no prueba que no
+   hubiera señales — prueba que nadie las escribió. */
+if (CH.cuentas.length && CH.solicitudes.length === 0) {
+  sug.push({
+    titulo: `Capturar la solicitud de cancelación: las ${CH.cuentas.length} bajas se fueron sin aviso escrito`,
+    prioridad: 'alta',
+    porque: `Su cartera acumula ${CH.cuentas.length} cuentas en churn confirmado `
+      + `(${pesos(CH.perdidoGrc)} medidos por el GRC) y CERO solicitudes de cancelación `
+      + `registradas en toda su historia. No prueba que no hubiera señales: prueba que `
+      + `no quedaron escritas, y sin ese registro no hay nada que revisar para evitar la siguiente.`,
+    accion: 'El formato de Seguimiento KAM · Solicitud de cancelación es el único lugar '
+      + 'donde esa señal queda amarrada a la cuenta antes de que se vaya.',
+  })
 }
 
 /* 5 · higiene de datos, por tipo de alerta */
@@ -362,6 +420,11 @@ const html = `<!doctype html>
   .chip { display:inline-block; border:1px solid var(--borde); border-radius:99px;
           padding:1px 8px; font-size:11.5px; color:var(--tinta-2); margin:2px 4px 2px 0; }
   .top { border-color:var(--serie); color:var(--serie); font-weight:600; }
+  /* «sin medir» y «ficha» NO son adornos: marcan que la cifra de al lado no es
+     la institucional, o que no existe. Van en tinta apagada y en cursiva para
+     que nadie los lea como un importe más. */
+  .nomed { color:var(--tinta-3); font-style:italic; }
+  .chip.ficha { font-style:italic; }
   details { margin-top:10px; }
   summary { cursor:pointer; color:var(--tinta-2); font-size:13px; }
   .sg { border-left:4px solid var(--eje); padding:2px 0 2px 14px; margin:0 0 18px; }
@@ -398,6 +461,19 @@ const html = `<!doctype html>
       <li><b>Sin contacto registrado:</b> ${D.sinContacto.nunca.length} cuentas no tienen
           ni un contacto escrito. Eso es <b>falta de medición</b>, no «nunca se atendió», y
           va en su propio bloque, separado de las que sí tienen fecha.</li>
+      <li><b>Dos relojes distintos:</b> la actividad —visitas y capturas— es de la
+          ventana ${esc(D.ventana.desde)} a ${esc(D.ventana.hasta)}. El riesgo, el churn
+          y los días sin contacto son <b>foto del día en que se generó</b>
+          (${esc(D.generado.slice(0, 10))}), porque así se preguntó: cuáles están en riesgo
+          <i>en este momento</i>. No se mezclan.</li>
+      <li><b>Churn:</b> el GRC no guarda asesor, así que el churn de la empresa
+          <b>no se puede repartir por persona</b>. Lo que sí se mide es cuáles de las
+          cuentas que hoy trae en cartera están en churn confirmado — ${CH.cuentas.length} —
+          y eso no es ni «su churn del año» ni «el churn».</li>
+      <li><b>Importes:</b> un monto marcado <span class="chip ficha">ficha</span> sale de
+          la columna guardada en la cuenta, no del GRC; se usa cuando la cuenta ya no
+          aparece en el export institucional. Lo que dice <span class="nomed">sin medir</span>
+          no existe en ninguna fuente, y no es cero.</li>
       <li><b>Navegación:</b> el registro <code>uso_dashboard</code> empieza el
           ${esc(D.ventana.usoEmpiezaEl ?? '—')}. En la ventana hubo
           ${miles(D.navegacion.control.visitasDeTodos)} visitas de
@@ -411,7 +487,8 @@ const html = `<!doctype html>
       <span class="k">cuentas en cartera</span></div>
     <div class="tile"><span class="n">${pesos(D.cartera.mrrMedible)}</span>
       <span class="k">MRR medible</span>
-      <div class="nota">${D.cartera.sinMrrMedible} cuenta(s) sin importe medible</div></div>
+      <div class="nota">${pesos(mrrDeGrc)} del GRC · ${pesos(mrrDeFicha)} de la ficha ·
+        ${D.cartera.sinMrrMedible} cuenta(s) sin importe medible</div></div>
     <div class="tile"><span class="n">${miles(D.navegacion.visitas)}</span>
       <span class="k">visitas en la semana</span>
       <div class="nota">${D.navegacion.porCuenta.length} cuenta(s) distinta(s) abierta(s)</div></div>
@@ -520,7 +597,7 @@ const html = `<!doctype html>
     ${[...D.riesgo].sort((a, b) => (b.alertas.length - a.alertas.length) || (b.mrr - a.mrr))
       .slice(0, 15).map(r => `<tr>
       <td><b>${esc(r.consecutivo)}</b> ${esc(r.empresa)}${r.top ? ' <span class="chip top">TOP</span>' : ''}</td>
-      <td class="num">${r.origenMrr === 'sin_dato' ? '<span title="sin importe medible">sin medir</span>' : pesos(r.mrr)}</td>
+      <td class="num">${importeTxt(r)}</td>
       <td class="num">${r.hs ?? '—'}</td>
       <td><span class="punto" style="background:${ESTADO_COLOR[r.estado] ?? 'var(--eje)'}"></span>${esc(r.estado)}</td>
       <td>${r.alertas.map(a => `<span class="chip">${esc(a.tipo)}</span>`).join('')}</td></tr>`).join('')}
@@ -538,7 +615,7 @@ const html = `<!doctype html>
     ${D.sinContacto.pasados.map(s => `<tr>
       <td><b>${esc(s.consecutivo)}</b> ${esc(s.empresa)}${s.top ? ' <span class="chip top">TOP</span>' : ''}</td>
       <td class="num">${s.dias}</td><td>${esc(s.ultimoContacto)}</td>
-      <td class="num">${s.origenMrr === 'sin_dato' ? 'sin medir' : pesos(s.mrr)}</td>
+      <td class="num">${importeTxt(s)}</td>
       <td><span class="punto" style="background:${ESTADO_COLOR[s.estado] ?? 'var(--eje)'}"></span>${esc(s.estado)}</td></tr>`).join('')}
     </tbody></table>
   </div>
@@ -554,10 +631,70 @@ const html = `<!doctype html>
       <table><thead><tr><th>Cuenta</th><th class="num">MRR</th><th>Estado</th></tr></thead><tbody>
       ${[...D.sinContacto.nunca].sort((a, b) => b.mrr - a.mrr).map(s => `<tr>
         <td><b>${esc(s.consecutivo)}</b> ${esc(s.empresa)}${s.top ? ' <span class="chip top">TOP</span>' : ''}</td>
-        <td class="num">${s.origenMrr === 'sin_dato' ? 'sin medir' : pesos(s.mrr)}</td>
+        <td class="num">${importeTxt(s)}</td>
         <td><span class="punto" style="background:${ESTADO_COLOR[s.estado] ?? 'var(--eje)'}"></span>${esc(s.estado)}</td></tr>`).join('')}
       </tbody></table>
     </details>
+  </div>
+
+  <h2>Churn de su cartera</h2>
+  <div class="card">
+    <h3>${CH.cuentas.length} cuenta(s) de su cartera están en churn confirmado</h3>
+    <p class="sub" style="margin:0 0 12px">
+      <b>${pesos(CH.perdidoGrc)}</b> de pérdida medida por el GRC, más
+      ${chSinImporteGrc.length} cuenta(s) que el GRC todavía no registra como baja
+      — su último importe conocido suma ${pesos(chUltimoMrr)}, que
+      <b>no es lo mismo</b> que pérdida reconocida y por eso va separado.
+      El mes vivo (<b>${esc(CH.mesVivoExcluido ?? 'ninguno')}</b>) NO cuenta: el mes en
+      curso son clientes que tardan en pagar, no bajas.
+    </p>
+    <table><thead><tr><th>Cuenta</th><th>Por dónde entró</th><th>Mes del GRC</th>
+      <th class="num">Pérdida GRC</th><th class="num">Último MRR</th><th>Estado</th></tr></thead><tbody>
+    ${CH.cuentas.map(c => `<tr>
+      <td><b>${esc(c.consecutivo)}</b> ${esc(c.empresa)}${c.top ? ' <span class="chip top">TOP</span>' : ''}</td>
+      <td>${c.puertas.map(p => `<span class="chip">${esc(p)}</span>`).join('')}</td>
+      <td>${c.mesesGrc.length ? esc(c.mesesGrc.join(', ')) : '<span class="nomed">no está en el GRC</span>'}</td>
+      <td class="num">${c.perdidoGrc ? pesos(c.perdidoGrc) : '<span class="nomed">sin importe</span>'}</td>
+      <td class="num">${importeTxt(c)}</td>
+      <td><span class="punto" style="background:${ESTADO_COLOR[c.estado] ?? 'var(--eje)'}"></span>${esc(c.estado)}</td></tr>`).join('')}
+    </tbody></table>
+    <p class="sub" style="margin:12px 0 0">
+      <b>Las tres puertas no son lo mismo.</b> <b>GRC</b> es el export institucional y es
+      la única que trae pesos. <b>DATA</b> son las cancelaciones confirmadas en Análisis
+      DATA, que confirman la baja pero no dicen cuánto. <b>DIRECCIÓN</b> es la lista que
+      dirección declaró y que ninguna fuente trae todavía${porDireccion.length
+        ? ` — ${porDireccion.map(c => `${esc(c.consecutivo)} ${esc(c.empresa)}`).join(' y ')}
+            ${porDireccion.length > 1 ? 'entraron' : 'entró'} por ahí, y por eso
+            ${porDireccion.length > 1 ? 'sus pérdidas aún no aparecen' : 'su pérdida aún no aparece'}
+            en el GRC` : ''}.
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>Lo que estas ${CH.cuentas.length} cuentas NO son: el churn de la empresa</h3>
+    <p class="sub">
+      El GRC <b>no tiene columna de asesor</b>. Lo único que se puede cruzar es el nombre
+      contra las cuentas que siguen en el sistema, y de los
+      <b>${miles(CH.control.nombresChurnGrc)}</b> nombres con «Churn confirmado» del año,
+      sólo <b>${miles(CH.control.cruzanConUnaCuenta)}</b> cruzan con alguna cuenta;
+      <b>${miles(CH.control.noCruzanConNingunaCuenta)}</b> no cruzan con ninguna y no se le
+      pueden atribuir a nadie. Así que esto es «el churn que toca su cartera de hoy»,
+      no «su churn del año» ni mucho menos «el churn».
+    </p>
+    <p class="sub" style="margin-top:8px">
+      Solicitudes de cancelación registradas en su cartera, en toda su historia:
+      <b>${CH.solicitudes.length}</b>.
+      ${CH.solicitudes.length === 0
+        ? 'Ninguna de las ' + CH.cuentas.length + ' bajas tuvo un aviso escrito antes de irse. '
+          + 'Eso no prueba que no hubiera señales: prueba que no quedaron registradas.'
+        : ''}
+    </p>
+    ${CH.solicitudes.length ? `<table><thead><tr><th>Fecha</th><th>Cuenta</th>
+      <th class="num">MRR</th><th>Qué dice</th></tr></thead><tbody>
+    ${CH.solicitudes.map(s => `<tr><td>${esc(s.fecha)}</td>
+      <td><b>${esc(s.consecutivo)}</b> ${esc(s.empresa)}</td>
+      <td class="num">${importeTxt(s)}</td><td>${esc(s.descripcion)}…</td></tr>`).join('')}
+    </tbody></table>` : ''}
   </div>
 
   <h2>Sugerencias que debe atender</h2>

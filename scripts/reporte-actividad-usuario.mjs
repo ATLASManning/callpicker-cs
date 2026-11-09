@@ -116,14 +116,28 @@ const CORTE_CONTACTO = num('--sin-contacto', 60)
 
 if (!CORREO) {
   console.log('\n  Falta el correo.')
-  console.log('  node scripts/reporte-actividad-usuario.mjs <correo> [--dias 7] [--sin-contacto 60]\n')
+  console.log('  node scripts/reporte-actividad-usuario.mjs <correo> [--dias 7] '
+    + '[--hasta AAAA-MM-DD] [--sin-contacto 60]\n')
   process.exit(2)
 }
 
 /* ── LA VENTANA, ANCLADA A MÉXICO ─────────────────────────────────────────
-   Vercel corre en UTC y `toISOString()` daría un día corrido. [[feedback-fechas-zona-mexico]] */
-const HOY = hoyEnMexico()
-const ahora = ahoraEnMexico()
+   Vercel corre en UTC y `toISOString()` daría un día corrido. [[feedback-fechas-zona-mexico]]
+
+   `--hasta` FIJA el cierre de la ventana. Sin él, la ventana termina HOY y se
+   corre sola: volver a correr el mismo reporte al día siguiente —para añadirle
+   un bloque, por ejemplo— devolvía OTRA semana con las mismas palabras encima.
+   Un reporte que cambia de periodo sin decirlo es un reporte falso. */
+const iHasta = args.indexOf('--hasta')
+const HASTA_PEDIDO = iHasta >= 0 ? String(args[iHasta + 1] ?? '').trim() : ''
+if (HASTA_PEDIDO && !/^\d{4}-\d{2}-\d{2}$/.test(HASTA_PEDIDO)) {
+  console.log(`\n  --hasta «${HASTA_PEDIDO}» no es una fecha AAAA-MM-DD. No adivino la ventana.\n`)
+  process.exit(2)
+}
+const HOY = HASTA_PEDIDO || hoyEnMexico()
+const ahora = HASTA_PEDIDO
+  ? new Date(Number(HOY.slice(0, 4)), Number(HOY.slice(5, 7)) - 1, Number(HOY.slice(8, 10)))
+  : ahoraEnMexico()
 const desde = new Date(ahora)
 desde.setDate(desde.getDate() - (DIAS - 1))
 const DESDE = [desde.getFullYear(),
@@ -394,6 +408,119 @@ pasados.sort((a, b) => b.dias - a.dias)
 console.log(`\n  SIN CONTACTO > ${CORTE_CONTACTO} días: ${pasados.length}`)
 console.log(`  SIN NINGÚN CONTACTO REGISTRADO (no medible): ${nunca.length}`)
 
+/* ── 7 · CHURN ───────────────────────────────────────────────────────────────
+ * El churn de su cartera NO se cuenta de una sola fuente: son TRES puertas que
+ * dicen lo mismo por caminos distintos, y una cuenta puede entrar por más de
+ * una. [[regla-churn-mes-vencido]] [[churn-confirmado-direccion]]
+ *
+ *   · GRC      — `AAA_GRC_2026`, movimiento «Churn confirmado». El MES VIVO
+ *                (`GRC_MES_EN_CURSO`) NO cuenta: el mes en curso son clientes
+ *                que tardan en pagar, no bajas.
+ *   · DATA     — cancelaciones confirmadas en Churn > Análisis DATA.
+ *   · DIRECCIÓN— la lista que dirección declaró y que ninguna fuente trae.
+ *
+ * LO QUE AQUÍ **NO** SE PUEDE MEDIR, Y SE DICE EN VEZ DE INVENTARLO:
+ * el GRC no tiene columna de asesor. Una cuenta que se fue y ya no está en
+ * `cuentas` no se le puede atribuir a nadie, y ésas son la mayoría del churn
+ * del año. Por eso este bloque mide UNA cosa concreta —el churn que toca SU
+ * cartera de hoy— y publica, al lado, cuántos nombres del GRC no cruzan con
+ * ninguna cuenta del sistema, para que nadie lea «su churn» como «el churn».
+ */
+const eleg  = await jiti.import(path.join(RAIZ, 'lib/elegibilidad.ts'))
+const grcD  = await jiti.import(path.join(RAIZ, 'app/churn/aaa-grc-data.ts'))
+const grcR  = await jiti.import(path.join(RAIZ, 'app/churn/grc-reporte.ts'))
+const { normalizarNombre, NOMBRES_CHURN_GRC, NOMBRES_CANCELACION,
+        esChurnConfirmadoDireccion, REACTIVADAS_FUERA_DEL_CHURN } = eleg
+const { AAA_GRC_2026 } = grcD
+const MES_VIVO = grcR.GRC_MES_EN_CURSO ?? null
+
+/* El detalle del GRC por nombre: mes y pesos perdidos. Se recorre en el mismo
+   orden del archivo, así que un nombre que aparece en dos meses conserva los
+   dos — una cuenta puede caer, volver y volver a caer. */
+const grcPorNombre = new Map()
+let filasChurnGrc = 0
+for (const mes of AAA_GRC_2026) {
+  const esVivo = MES_VIVO && String(mes.mes).toLowerCase() === String(MES_VIVO).toLowerCase()
+  for (const r of mes.clientes) {
+    if (!String(r.movimiento ?? '').includes('Churn confirmado')) continue
+    const n = normalizarNombre(r.cliente)
+    if (!n) continue
+    filasChurnGrc++
+    if (!grcPorNombre.has(n)) grcPorNombre.set(n, [])
+    grcPorNombre.get(n).push({
+      mes: mes.mes, perdido: Number(r.perdido) || 0, clas: r.clas,
+      /* Un mes vivo se mide igual, pero se marca: NO es baja todavía. */
+      mesVivo: Boolean(esVivo),
+      reactivada: REACTIVADAS_FUERA_DEL_CHURN.has(n),
+    })
+  }
+}
+
+const churn = []
+for (const c of conImporte) {
+  const n = normalizarNombre(c.empresa)
+  const enGrcTodos = grcPorNombre.get(n) ?? []
+  /* El mes vivo y las reactivadas se separan: están en el archivo pero NO son
+     baja. Mezclarlas infla el churn de la persona con cuentas que facturan. */
+  const enGrc = enGrcTodos.filter(x => !x.mesVivo && !x.reactivada)
+  const puertas = []
+  if (NOMBRES_CHURN_GRC.has(n)) puertas.push('GRC')
+  if (NOMBRES_CANCELACION.has(n)) puertas.push('DATA')
+  if (esChurnConfirmadoDireccion(c)) puertas.push('DIRECCIÓN')
+  if (!puertas.length) continue
+  churn.push({
+    consecutivo: c.consecutivo, empresa: c.empresa, estado: c.estado,
+    cid: c.cid ?? null, top: c.top,
+    mrr: c.mrr, origenMrr: c.origenMrr,
+    puertas,
+    /* Pesos: los del GRC, que es la única puerta que trae importe. Las otras
+       dos confirman la baja pero NO dicen cuánto, y eso se marca. */
+    perdidoGrc: enGrc.reduce((s, x) => s + x.perdido, 0),
+    mesesGrc: enGrc.map(x => x.mes),
+    soloEnMesVivo: enGrc.length === 0 && enGrcTodos.some(x => x.mesVivo),
+    reactivada: enGrcTodos.some(x => x.reactivada),
+  })
+}
+churn.sort((a, b) => (b.perdidoGrc - a.perdidoGrc) || (b.mrr - a.mrr))
+
+/* CONTROL: ¿cuánto del churn del GRC NO cruza con ninguna cuenta del sistema?
+   Sin esto, «9 bajas en su cartera» se lee como si el churn fueran 9. */
+const nombresEnCuentas = new Set((todas ?? []).map(c => normalizarNombre(c.empresa)).filter(Boolean))
+let grcSinCuenta = 0, grcConCuenta = 0
+for (const n of NOMBRES_CHURN_GRC) {
+  if (nombresEnCuentas.has(n)) grcConCuenta++; else grcSinCuenta++
+}
+
+/* Solicitudes de cancelación vivas en su cartera: churn que todavía NO pasó. */
+const idsCartera = new Set(conImporte.map(c => c.id))
+const solicitudes = []
+for (const s of segs ?? []) {
+  if (!idsCartera.has(s.cuenta_id)) continue
+  if (String(s.tipo ?? '') !== 'solicitud_cancelacion') continue
+  const c = porId.get(s.cuenta_id)
+  const ci = conImporte.find(x => x.id === s.cuenta_id)
+  solicitudes.push({
+    fecha: String(s.fecha ?? s.created_at ?? '').slice(0, 10),
+    consecutivo: c?.consecutivo ?? '—', empresa: c?.empresa ?? '(sin nombre)',
+    estado: c?.estado ?? null, mrr: ci?.mrr ?? 0, origenMrr: ci?.origenMrr ?? 'sin_dato',
+    descripcion: String(s.descripcion ?? '').slice(0, 300),
+  })
+}
+solicitudes.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+
+const perdidoTotal = churn.reduce((s, c) => s + c.perdidoGrc, 0)
+console.log(`\n  CHURN en su cartera: ${churn.length} cuenta(s)`)
+console.log(`  pérdida medida por el GRC: $${Math.round(perdidoTotal).toLocaleString('es-MX')}`)
+console.log(`  (mes vivo excluido: ${MES_VIVO ?? 'ninguno'})`)
+console.log(`  control — nombres en «Churn confirmado» del GRC: ${NOMBRES_CHURN_GRC.size}`
+  + ` · cruzan con una cuenta del sistema: ${grcConCuenta} · NO cruzan: ${grcSinCuenta}`)
+console.log(`  solicitudes de cancelación registradas en su cartera: ${solicitudes.length}`)
+for (const c of churn) {
+  console.log(`      ${String(c.consecutivo).padEnd(5)} ${String(c.empresa).slice(0, 34).padEnd(35)}`
+    + ` ${c.puertas.join('+').padEnd(18)} $${Math.round(c.perdidoGrc).toLocaleString('es-MX').padStart(9)}`
+    + `  ${c.estado}`)
+}
+
 /* ── SALIDA ──────────────────────────────────────────────────────────────── */
 const salida = {
   generado: new Date().toISOString(),
@@ -436,6 +563,22 @@ const salida = {
   reunionesNoAtribuibles: true,
   riesgo,
   sinContacto: { corte: CORTE_CONTACTO, pasados, nunca },
+  churn: {
+    cuentas: churn,
+    perdidoGrc: perdidoTotal,
+    mesVivoExcluido: MES_VIVO,
+    solicitudes,
+    /* El control va PEGADO al dato, no en una nota al pie: «9 bajas en su
+       cartera» y «el churn son 9» son cosas distintas y el lector que sólo ve
+       la primera cifra se queda con la segunda. */
+    control: {
+      nombresChurnGrc: NOMBRES_CHURN_GRC.size,
+      cruzanConUnaCuenta: grcConCuenta,
+      noCruzanConNingunaCuenta: grcSinCuenta,
+      filasChurnConfirmadoEnElArchivo: filasChurnGrc,
+      elGrcNoTieneColumnaDeAsesor: true,
+    },
+  },
 }
 
 const dir = path.join(RAIZ, 'data', 'reportes-actividad')
