@@ -69,3 +69,9 @@ public/workbox-*.js
 public/workbox-*.js.map
 public/fallback-*.js
 scripts/.ultimo-despliegue.json
+
+# Reportes de actividad POR PERSONA. Son medición regenerable —el guion la
+# vuelve a sacar de Supabase cuando se pida— y a la vez evaluación de una
+# persona con nombre y apellido cruzada con MRR de clientes. Nada de eso gana
+# algo por vivir en el historial del repo, y un historial no se borra.
+data/reportes-actividad/
