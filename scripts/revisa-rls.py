@@ -74,10 +74,11 @@ def pide(ruta, llave, cabeceras=None):
         return 0, str(e), {}
 
 
-def cuantas(tabla, llave):
+def cuantas(tabla, llave, esquema='public'):
     """Cuantas filas ve ESTA llave. `None` si la peticion no contesta datos."""
     st, cuerpo, cab = pide('/rest/v1/%s?select=*' % tabla, llave,
-                           {'Prefer': 'count=exact', 'Range': '0-0'})
+                           {'Prefer': 'count=exact', 'Range': '0-0',
+                            'Accept-Profile': esquema})
     if st not in (200, 206):
         return None
     rango = cab.get('Content-Range', '')
@@ -90,7 +91,7 @@ def cuantas(tabla, llave):
         return None
 
 
-def motivo_rechazo(tabla, llave):
+def motivo_rechazo(tabla, llave, esquema='public'):
     """POR QUE dice que no. `42501` = permiso denegado: lo cierra el GRANT.
 
     Importa la diferencia. Esta sonda daba por «protegida» toda tabla que no
@@ -109,7 +110,8 @@ def motivo_rechazo(tabla, llave):
     no se habia medido.
     """
     st, cuerpo, _ = pide('/rest/v1/%s?select=*' % tabla, llave,
-                         {'Prefer': 'count=exact', 'Range': '0-0'})
+                         {'Prefer': 'count=exact', 'Range': '0-0',
+                          'Accept-Profile': esquema})
     try:
         codigo = (json.loads(cuerpo) or {}).get('code') or u''
     except (ValueError, AttributeError):
@@ -117,9 +119,60 @@ def motivo_rechazo(tabla, llave):
     return st, codigo
 
 
-def tablas_publicadas():
-    """La raiz de PostgREST lista el esquema. Pide llave SECRETA."""
-    st, cuerpo, _ = pide('/rest/v1/', SERVICE)
+def esquemas_expuestos():
+    u"""QUE ESQUEMAS publica PostgREST. No se asume `public`.
+
+    EL PUNTO CIEGO QUE ESTO CIERRA (10 nov 2026). Durante tres rondas esta
+    sonda pidio `/rest/v1/` SIN cabecera de esquema, o sea el de por defecto, y
+    la consulta del catalogo filtraba `schemaname = 'public'`. Las dos miraban
+    el mismo sitio. El 8 nov Supabase marco CUATRO objetos de `prediccion`
+    —expuesto a mano el 7 oct para que la API lo viera— y ninguna de las dos
+    podia haberlos visto NUNCA: no es que dijeran que estaban bien, es que no
+    existian para ellas. Es el mismo error de octubre con otra ropa: un
+    verificador que concluye sobre lo que no mira.
+    [[feedback-verificar-antes-asegurar]] [[feedback-barrer-la-herramienta]]
+
+    COMO SE DESCUBREN, sin adivinar: se pide un esquema que no existe y
+    PostgREST contesta `PGRST106` enumerando los que si. La lista sale de la
+    base, no de una constante tecleada aqui — que es justo lo que la dejaria
+    desactualizada el dia que alguien exponga otro.
+    """
+    st, cuerpo, _ = pide('/rest/v1/', SERVICE,
+                         {'Accept-Profile': '__no_existe_este_esquema__'})
+    try:
+        doc = json.loads(cuerpo) or {}
+    except ValueError:
+        doc = {}
+    # SOLO el `hint`. La primera version concatenaba `message` + `hint` y partia
+    # por el PRIMER ':', que es el de «Invalid schema: __no_existe__». El primer
+    # nombre de la lista se quedaba pegado a esa frase, se descartaba por
+    # contener espacios, y la sonda devolvia la lista SIN `public`: habria dado
+    # luz verde sobre las 25 tablas del esquema principal sin mirar ninguna.
+    pista = doc.get('hint') or u''
+    out = []
+    if 'exposed' in pista and ':' in pista:
+        crudo = pista.split('exposed', 1)[1].split(':', 1)[-1]
+        out = [s.strip().strip('.').strip('"').strip("'")
+               for s in crudo.replace('\n', ' ').split(',')]
+        out = [n for n in out if n and ' ' not in n]
+
+    # CONTROL NEGATIVO del parser, no del servidor. `public` es el esquema por
+    # defecto de PostgREST y se acaba de comprobar que responde sin cabecera; si
+    # no sale en la lista parseada, lo que esta mal es ESTE codigo. Antes de
+    # eso, una lista incompleta se veia exactamente igual que una correcta.
+    if out:
+        st_def, _, _ = pide('/rest/v1/', SERVICE)
+        if st_def == 200 and 'public' not in out:
+            return None, (u'el parser devolvio %s pero `public` responde: la lista '
+                          u'esta incompleta y no se usa' % u', '.join(out))
+        return out, None
+    # Sin la lista NO se inventa una: se dice que no se pudo y se para.
+    return None, u'HTTP %s · %s' % (st, (pista or doc.get('message') or u'')[:140])
+
+
+def objetos_de(esquema):
+    u"""Los objetos que PostgREST publica de UN esquema. Pide llave SECRETA."""
+    st, cuerpo, _ = pide('/rest/v1/', SERVICE, {'Accept-Profile': esquema})
     if st != 200:
         return None, st
     try:
@@ -135,46 +188,59 @@ print(u'\n  RLS — ¿QUE LEE LA LLAVE PUBLICA?')
 print(u'  ' + u'=' * 72)
 print(u'  proyecto: %s' % URL.replace('https://', '').split('.')[0])
 
-tablas, st = tablas_publicadas()
-if tablas is None:
-    print(u'  *** no pude listar el esquema (HTTP %s). Sin la lista no se puede' % st)
-    print(u'      concluir NADA — y «no pude mirar» NO es «no hay nada expuesto».')
+esquemas, falla = esquemas_expuestos()
+if esquemas is None:
+    print(u'  *** no pude averiguar que esquemas expone PostgREST (%s).' % falla)
+    print(u'      Sin esa lista no se puede concluir NADA: mirar solo `public`')
+    print(u'      es como se nos escapo `prediccion` tres rondas seguidas.')
     sys.exit(2)
-print(u'  PostgREST publica %d objeto(s) del esquema `public`\n' % len(tablas))
+# `graphql_public` no tiene tablas de datos: es el endpoint de GraphQL.
+mirar = [e for e in esquemas if e != 'graphql_public']
+print(u'  esquemas expuestos: %s' % u', '.join(esquemas))
+print(u'  se revisan: %s\n' % u', '.join(mirar))
 
 abiertas, protegidas, vacias, raras, sin_grant = [], [], [], [], []
-for t in tablas:
-    con_secreta = cuantas(t, SERVICE)
-    con_publica = cuantas(t, ANON)
-    if con_secreta is None:
-        raras.append((t, u'la llave secreta tampoco la lee'))
-    elif con_publica is None:
-        st_a, cod = motivo_rechazo(t, ANON)
-        if cod == '42501' or st_a in (401, 403):
-            sin_grant.append((t, con_secreta, st_a, cod))
+total_objetos = 0
+for esq in mirar:
+    tablas, st = objetos_de(esq)
+    if tablas is None:
+        raras.append((u'%s.*' % esq, u'no pude listar el esquema (HTTP %s)' % st))
+        continue
+    total_objetos += len(tablas)
+    for t in tablas:
+        etq = u'%s.%s' % (esq, t)
+        con_secreta = cuantas(t, SERVICE, esq)
+        con_publica = cuantas(t, ANON, esq)
+        if con_secreta is None:
+            raras.append((etq, u'la llave secreta tampoco la lee'))
+        elif con_publica is None:
+            st_a, cod = motivo_rechazo(t, ANON, esq)
+            if cod == '42501' or st_a in (401, 403):
+                sin_grant.append((etq, con_secreta, st_a, cod))
+            else:
+                raras.append((etq, u'rechaza con HTTP %s / %s' % (st_a, cod or u'sin codigo')))
+        elif con_secreta == 0:
+            # Una tabla vacia no prueba nada en ningun sentido: se dice aparte.
+            vacias.append(etq)
+        elif con_publica > 0:
+            abiertas.append((etq, con_secreta, con_publica))
         else:
-            raras.append((t, u'rechaza con HTTP %s / %s' % (st_a, cod or u'sin codigo')))
-    elif con_secreta == 0:
-        # Una tabla vacia no prueba nada en ningun sentido: se dice aparte.
-        vacias.append(t)
-    elif con_publica > 0:
-        abiertas.append((t, con_secreta, con_publica))
-    else:
-        protegidas.append((t, con_secreta, u'0 filas'))
+            protegidas.append((etq, con_secreta, u'0 filas'))
+print(u'  PostgREST publica %d objeto(s) en total\n' % total_objetos)
 
-print(u'  %-30s %9s %9s   %s' % (u'TABLA', u'SECRETA', u'PUBLICA', u'VEREDICTO'))
-print(u'  ' + u'-' * 72)
+print(u'  %-38s %9s %9s   %s' % (u'OBJETO', u'SECRETA', u'PUBLICA', u'VEREDICTO'))
+print(u'  ' + u'-' * 78)
 for t, s, p in sorted(abiertas, key=lambda x: -x[1]):
-    print(u'  %-30s %9s %9s   *** ABIERTA' % (t[:30], u'{:,}'.format(s), u'{:,}'.format(p)))
+    print(u'  %-38s %9s %9s   *** ABIERTO' % (t[:38], u'{:,}'.format(s), u'{:,}'.format(p)))
 for t, s, como in sorted(protegidas, key=lambda x: -(x[1] or 0)):
-    print(u'  %-30s %9s %9s   protegida' % (t[:30], u'{:,}'.format(s), como))
+    print(u'  %-38s %9s %9s   protegido' % (t[:38], u'{:,}'.format(s), como))
 for t, s, st_a, cod in sorted(sin_grant, key=lambda x: -(x[1] or 0)):
-    print(u'  %-30s %9s %9s   RLS NO COMPROBABLE — la cierra el GRANT'
-          % (t[:30], u'{:,}'.format(s), cod or st_a))
+    print(u'  %-38s %9s %9s   RLS NO COMPROBABLE — la cierra el GRANT'
+          % (t[:38], u'{:,}'.format(s), cod or st_a))
 for t in vacias:
-    print(u'  %-30s %9s %9s   vacia — no concluye' % (t[:30], 0, 0))
+    print(u'  %-38s %9s %9s   vacio — no concluye' % (t[:38], 0, 0))
 for t, por in raras:
-    print(u'  %-30s %9s %9s   %s' % (t[:30], u'?', u'?', por))
+    print(u'  %-38s %9s %9s   %s' % (t[:38], u'?', u'?', por))
 
 print()
 print(u'  ' + u'=' * 72)
@@ -195,8 +261,14 @@ if sin_grant:
     print(u'       el aviso de Supabase marca. Que `anon` no tenga permiso las')
     print(u'       cierra HOY; si alguien le concede SELECT y el RLS esta')
     print(u'       apagado, quedan abiertas de par en par. Se resuelven con el')
-    print(u'       catalogo —`rowsecurity` en pg_tables—, no desde fuera:')
-    print(u'       scripts/migracion-rls-2026-11-03.sql')
+    print(u'       catalogo —`relrowsecurity` en pg_class—, no desde fuera:')
+    print(u'         public      -> scripts/migracion-rls-2026-11-03.sql')
+    print(u'         prediccion  -> scripts/migracion-rls-prediccion-2026-11-10.sql')
+    print(u'       Y OJO con el rol `authenticated`: esta sonda usa la llave')
+    print(u'       PUBLICABLE, que es `anon`. Un objeto con SELECT concedido a')
+    print(u'       `authenticated` sale aqui como «la cierra el GRANT» y lo lee')
+    print(u'       cualquiera que pueda darse de alta. Eso lo dice 1.c del SQL')
+    print(u'       de arriba, y si el alta esta abierta, /auth/v1/settings.')
 
 if '--sql' in sys.argv and abiertas:
     destino = os.path.join(RAIZ, 'scripts', 'migracion-rls.sql')
