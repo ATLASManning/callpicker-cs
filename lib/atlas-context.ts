@@ -15,7 +15,7 @@ import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { esConElCliente, etiquetaTipo } from './reuniones-tipo'
 import { lineaSeguimientosKAM } from './seguimiento-tipos'
 import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
-import { REPORTE_S27_OCT_2026 } from '@/app/churn/reporte-actual'
+import { REPORTE_S28_OCT_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
 import { seccionesPlanesPago } from './planes-pago'
@@ -775,7 +775,7 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   modulos.push('churn-grc')
 
   // Corte vigente de Gross Revenue Churn — misma fuente que renderiza el módulo.
-  const rep = REPORTE_S27_OCT_2026
+  const rep = REPORTE_S28_OCT_2026
   if (rep.grc) {
     const evo = rep.grc.evolucion
       .map(e => `${e.mes} ${e.pct}%${e.anterior !== undefined ? ` (ant. ${e.anterior}%)` : ''}`)
@@ -899,18 +899,44 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     const cuboCancel = rep.cancelados
       .filter(c => c.cliente.trimStart().startsWith('+'))
       .reduce((s, c) => s + c.mrr, 0)
+    /* UN BLOQUE QUE EL CORTE NO TRAE NO ES UN CERO, Y TAMPOCO ES SILENCIO.
+       Las cancelaciones se escribían SIN CONDICIÓN, así que un corte que no las
+       publica —la semana 28 es el primero— le metía a Atlas «Cancelados $0 en 0
+       cuentas». Octubre llevaba $75,295.50 en VEINTE bajas según la semana 27,
+       con Jason de México (cuenta TOP) dentro: ese «$0» no es un redondeo, es
+       lo contrario del dato, y el modelo lo habría contestado con la misma
+       seguridad que una cifra buena.
+       Y los suspendidos tenían el problema simétrico: su línea desaparecía del
+       bloque cuando el corte no los trae, y una ausencia callada se rellena con
+       invención. Las dos se dicen ahora CON PALABRAS.
+       [[feedback-cero-sin-medicion]] [[feedback-contexto-ia-sin-huecos]] */
+    const cancelNoReportados =
+      rep.canceladosCasosReal === undefined && rep.cancelados.length === 0
+    const suspNoReportados =
+      rep.suspendidosTotalReal === undefined && (rep.suspendidos ?? []).length === 0
     const fueraDetalle = [
       rep.suspendidosTotalReal !== undefined
-        ? `Suspendidos (soft + hard) ${rep.suspendidosCuentasReal ?? '—'} cuentas ($${rep.suspendidosTotalReal.toLocaleString('es-MX')})` : '',
+        ? `Suspendidos (soft + hard) ${rep.suspendidosCuentasReal ?? '—'} cuentas ($${rep.suspendidosTotalReal.toLocaleString('es-MX')})`
+        : suspNoReportados
+        ? `Suspendidos (soft + hard): ESTE CORTE NO LOS PUBLICA. No hay importe ni conteo. NO `
+          + `contestes cero ni digas que se liberaron: di que este corte no los trae y remite a la `
+          + `nota del corte`
+        : '',
       rep.desactivadosTotalReal !== undefined
         ? `Hard suspend del mes cerrado ${rep.desactivadosCuentasReal ?? '—'} cuentas ($${rep.desactivadosTotalReal.toLocaleString('es-MX')})` : '',
-      `Cancelados $${cancelMonto.toLocaleString('es-MX')} en `
-        + `${rep.canceladosCasosReal ?? cancelConNombre.length} cuentas`
-        + (cancelSinNombre > 0 || (rep.canceladosCasosReal ?? 0) > cancelConNombre.length
-          ? `, de las que sólo ${cancelConNombre.length} tienen NOMBRE en el corte`
-            + (cuboCancel > 0 ? ` (las demás van agrupadas en $${cuboCancel.toLocaleString('es-MX')})` : '')
-            + `. NO inventes los nombres que faltan ni los completes con clientes de otros meses`
-          : ''),
+      cancelNoReportados
+        ? `Cancelaciones: ESTE CORTE NO LAS PUBLICA. No hay importe, ni conteo, ni lista. NO `
+          + `respondas que hubo cero, ni un importe de cero, ni que la lista está completa: di que `
+          + `este corte no las trae. Cortes anteriores del mismo mes SÍ las reportaron, así que un `
+          + `cero sería falso; la última lectura completa está en la nota del corte y en el selector `
+          + `de periodos, no la inventes ni la estimes`
+        : `Cancelados $${cancelMonto.toLocaleString('es-MX')} en `
+          + `${rep.canceladosCasosReal ?? cancelConNombre.length} cuentas`
+          + (cancelSinNombre > 0 || (rep.canceladosCasosReal ?? 0) > cancelConNombre.length
+            ? `, de las que sólo ${cancelConNombre.length} tienen NOMBRE en el corte`
+              + (cuboCancel > 0 ? ` (las demás van agrupadas en $${cuboCancel.toLocaleString('es-MX')})` : '')
+              + `. NO inventes los nombres que faltan ni los completes con clientes de otros meses`
+            : ''),
     ].filter(Boolean).join(' · ')
     const antigTotal = (rep.antiguedadSaldos ?? []).reduce((s, a) => s + a.monto, 0)
 

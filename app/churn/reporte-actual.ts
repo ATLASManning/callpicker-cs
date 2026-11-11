@@ -9,338 +9,289 @@
 import type { ChurnReporte } from './tipos'
 
 /* ═══════════════════════════════════════════════════════════════════════
-   REPORTE SEMANAL — SEMANA 27 · AVANCE DE OCTUBRE
-   Al 4 de noviembre de 2026. Remitente: Valeria Zepeda Hernández (equipo Data).
+   REPORTE SEMANAL — SEMANA 28 · SEGUIMIENTO DE OCTUBRE
+   Cuerpo fechado al 10 de noviembre de 2026; recibido el miércoles 11, que es
+   la fecha que anunció la semana 27. Remitente: Valeria Zepeda Hernández
+   (equipo Data).
 
-   MAPEO, el mismo que fijó el corte de la semana 24 — el rótulo manda:
+   ESTE CORTE TRAE TRES BLOQUES Y LE FALTAN TRES. Es la primera vez que llega
+   así, y por eso hay dos cosas que NO se pueden hacer:
+
+     TRAE ..... porcentajes de churn (septiembre, octubre y acumulado, los tres
+                reexpresados), cartera por cobrar por antigüedad (172 clientes,
+                $208,994.05) y downgrades (3 clientes, $8,330.00) con su
+                desglose por producto.
+     NO TRAE .. cancelaciones, soft / hard suspend y top de clientes activos.
+                Los tres los publicaba la semana 27. Un bloque ausente NO es un
+                cero: se publica «no reportado». Octubre tuvo $75,295.50 en
+                veinte bajas según la semana 27, así que un «$0» en esa tarjeta
+                se leería como que el mes no perdió a nadie.
+                [[feedback-cero-sin-medicion]]
+
+   Y POR ESO HIZO FALTA TOCAR LA PANTALLA. La tarjeta de en medio es un ternario:
+   con `cancelados` vacío se cambiaba sola a «Suspendidos / Inactivos», que en
+   este corte TAMBIÉN está vacío — iba a publicar «$0 · 0 cuentas pausadas».
+   Ahora `canceladoNoReportado` y `suspendidoNoReportado` cubren la clase entera,
+   igual que ya hacían `pendienteNoReportado` y `downgradeNoReportado`.
+
+   MAPEO, el mismo que fijó la semana 24 — el rótulo manda:
      · «Cartera por Cobrar» por antigüedad .......... pendientes + antiguedadSaldos
-     · «Cancelaciones» .............................. cancelados (+ cubo de cierre)
      · «Downgrades» ................................. downgrades + downgradeArticulos
-     · «Resumen Soft / Hard Suspend» ................ suspendidos
-     · «Top 5 · Clientes Activos» ................... NINGUNO — va en la nota,
-       porque la cartera activa es lo que SÍ factura y el bloque de pendientes
-       la rotularía «riesgo inmediato». [[feedback-kpi-con-fuente]]
+     · «Cancelaciones» .............................. NO VIENE → cancelados: []
+     · «Soft / Hard Suspend» ........................ NO VIENE → sin bloque
+     · «Top de clientes activos» .................... NO VIENE
 
-   CONCILIADO CON `scripts/concilia-churn-s27.py`. Cierra TODO lo interno:
-     · soft + hard suspend suman $50,199.34 y 33 clientes ✓
-     · los cinco tramos de cartera suman $268,705.50 y 208 clientes ✓
-     · las 11 cancelaciones detalladas suman $60,471.50 y son el 80.3% de los
-       $75,295.50 declarados — el % se reconstruye DIVIDIENDO, no se copia ✓
-     · el top 6 de downgrades suma $23,417.97 y los seis productos $38,225.97 ✓
-     · el acumulado sale de sumar: 19.4% + 7.4% = 26.8% ✓
+   CONCILIADO CON `scripts/concilia-churn-s28.py` (control negativo probado:
+   con un conteo mal sale en rojo y con código 1). Cierra TODO lo interno:
+     · los cinco tramos de cartera suman $208,994.05 y 172 clientes ✓
+     · los downgrades por cliente suman $8,330.00 y son 3 ✓
+     · los downgrades por producto suman $8,330.00 y afectan a 3 ✓
+     · bruto == neto: este corte NO netea ningún upsell dentro de los 3 casos,
+       al contrario que la semana 27 ($38,225.97 bruto vs $31,187.97 neto) ✓
+     · el acumulado se reconstruye SUMANDO: 19.4% + 6.5% = 25.9% ✓
+     · y POR PRIMERA VEZ los % de reducción se reconstruyen DIVIDIENDO, contra
+       las bases de MRR del GRC, que el correo no publica ✓
 
-   TRES TABLAS NO CIERRAN SOLAS Y LLEVAN CUBO:
-     · cancelaciones — 20 clientes por $75,295.50, de los que se detallan 11.
-       Cubo de 9 clientes por $14,824.00.
-     · downgrades — 14 clientes por $31,187.97, de los que se detallan 6.
-       Cubo de 8 clientes por $7,770.00.
-     · top de activos — cinco de $61,381.01 sobre una cartera activa de
-       $120,148.01, el 51.1%. El resto, $58,767.00, no se desglosa y el corte no
-       dice cuántos clientes son.
-
-   VUELVEN LOS DOWNGRADES. La semana 26 no los midió —decía «no significativos»
-   sin cifra— y este corte sí los cuantifica: $31,187.97 en 14 clientes. Queda
-   contestado lo que marcamos la semana pasada.
-
-   AGOSTO (2.1%) NO VIENE EN ESTE CORTE: lo trae la serie de los cortes 25 y 26.
-   Se conserva en la evolución porque es la misma serie institucional y el mismo
-   remitente, pero NO es dato de esta semana. Septiembre y octubre sí.
-
-   Y OJO CON EL 7.4% DE OCTUBRE: sigue siendo mes vivo y ya es la TERCERA lectura
-   a la baja (22.1% → 12.4% → 7.4%). [[regla-churn-mes-vencido]]
+   EL CORREO SE CONTRADICE CON SU PROPIO TÍTULO: se llama «Seguimiento Cierre de
+   Octubre» y en el cuerpo marca octubre «MES CORRIENDO · NO DEFINITIVO», igual
+   que el acumulado. No es el cierre. Aquí manda el cuerpo, que es donde está la
+   advertencia. [[regla-churn-mes-vencido]]
 
    ESTO NO DA DE BAJA A NADIE. Es un reporte de Data: no mueve `cuentas`. Una
    baja se autoriza y se registra pasando la cuenta a Dormida, nunca borrándola.
    [[feedback-conciliacion-churn]]
    ═══════════════════════════════════════════════════════════════════════ */
-export const REPORTE_S27_OCT_2026: ChurnReporte = {
-  id:      's27-octubre-2026',
-  periodo: 'Semana 27 · Oct 2026',
-  fecha:   '04/11/2026',
-  notas:   'Gross Revenue Churn · Semana 27. Al 4 de noviembre del 2026. Avance del mes: Top 5 de '
-         + 'clientes activos sobre una cartera de $120,148.01, resumen de soft y hard suspend —33 '
-         + 'clientes, $50,199.34—, 20 cancelaciones por $75,295.50 de las que se detallan 11, 14 '
-         + 'downgrades por $31,187.97 con su desglose por producto, y la cartera por cobrar por '
-         + 'antigüedad: 208 clientes, $268,705.50. Octubre BAJA de 12.4% a 7.4% —tercera lectura a '
-         + 'la baja— y sigue marcado MES CORRIENDO y NO DEFINITIVO; el acumulado del año baja con '
-         + 'él, de 31.8% a 26.8%. VUELVEN los downgrades, que la semana 26 no midió. El propio corte '
-         + 'declara un descuadre de $3,614.10 en la tabla de cartera. Próxima revisión: miércoles 11 '
-         + 'de noviembre.',
-  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 11 de noviembre.',
+export const REPORTE_S28_OCT_2026: ChurnReporte = {
+  id:      's28-octubre-2026',
+  periodo: 'Semana 28 · Oct 2026',
+  fecha:   '10/11/2026',
+  notas:   'Gross Revenue Churn · Semana 28. Cuerpo al 10 de noviembre del 2026, recibido el 11. '
+         + 'Seguimiento del cierre de octubre con TRES bloques: los porcentajes —septiembre baja de '
+         + '2.5% a 2.4%, octubre de 7.4% a 6.5% y el acumulado del año de 26.8% a 25.9%, los dos '
+         + 'últimos marcados NO DEFINITIVOS—, la cartera por cobrar por antigüedad (172 clientes, '
+         + '$208,994.05, que cae 22.2% desde la semana 27) y los downgrades (3 clientes, $8,330.00). '
+         + 'LE FALTAN TRES BLOQUES que la semana 27 sí traía: cancelaciones, soft/hard suspend y top '
+         + 'de clientes activos; se publican como NO REPORTADO, no como cero. El 94.3% de la cartera '
+         + 'está concentrado en el tramo de 16 a 30 días, a UN tramo del que antecede a la '
+         + 'suspensión. El propio corte avisa de que el monto mayor de downgrades que muestra el '
+         + 'tablero no son downgrades sino upsells tomados antes de la fecha de corte, y lo '
+         + 'corroboramos contra el GRC con nombre y apellido. Próxima revisión: miércoles 18 de '
+         + 'noviembre.',
+  notaRemitente: 'Valeria Zepeda Hernández — Equipo Data. Próxima revisión: miércoles 18 de noviembre.',
 
   grc: {
-    /* Agosto NO viene en este corte: se conserva de la serie de los cortes 25 y
-       26, misma fuente y mismo remitente. Septiembre y octubre sí son de aquí.
-       Septiembre va SIN `anterior` porque este corte no lo reexpresa: sigue en
-       2.5% desde la semana 26, y marcar un cambio que no hubo sería falso. */
+    /* Agosto NO viene en este corte: se conserva de la serie de las semanas 25 y
+       26, misma fuente y mismo remitente. Septiembre y octubre sí son de aquí, y
+       los DOS vienen reexpresados — septiembre por primera vez desde la semana
+       26, así que esta vez sí lleva `anterior`. */
     evolucion: [
       { mes: 'Agosto',     pct: 2.1 },
-      { mes: 'Septiembre', pct: 2.5 },
-      { mes: 'Octubre',    pct: 7.4, anterior: 12.4 },
+      { mes: 'Septiembre', pct: 2.4, anterior: 2.5 },
+      { mes: 'Octubre',    pct: 6.5, anterior: 7.4 },
     ],
-    acumulado: 26.8,
-    anterior:  31.8,
+    acumulado: 25.9,
+    anterior:  26.8,
     acumuladoEtiqueta: '2026 acumulado hasta octubre · NO DEFINITIVO',
     notaClave:
-      'Avance de octubre. El mes BAJA de 12.4% a 7.4% y el acumulado del año baja con él, de 31.8% a '
-      + '26.8%, LAS DOS MARCADAS NO DEFINITIVAS por el propio reporte. Octubre lleva $75,295.50 en '
-      + 'veinte cancelaciones, $31,187.97 en catorce downgrades y 33 clientes suspendidos por '
-      + '$50,199.34. La cartera por cobrar CAE casi a la mitad: $268,705.50 en 208 clientes contra '
-      + '$497,941.00 en 363 hace seis días — la cobranza funcionó. La cartera activa del mes son '
-      + '$120,148.01. Los downgrades VUELVEN a venir cuantificados después de que la semana 26 no '
-      + 'los midiera.',
+      'Seguimiento de octubre. El mes BAJA de 7.4% a 6.5% —CUARTA lectura a la baja— y el acumulado '
+      + 'del año baja con él, de 26.8% a 25.9%, LAS DOS MARCADAS NO DEFINITIVAS por el propio '
+      + 'reporte. Septiembre también se reexpresa, de 2.5% a 2.4%. La cartera por cobrar sigue '
+      + 'cediendo: $208,994.05 en 172 clientes contra $268,705.50 en 208 hace una semana (−22.2% y '
+      + '−36 cuentas), pero el 94.3% está parado en el tramo de 16 a 30 días. Los downgrades del mes '
+      + 'se reexpresan A LA BAJA: $8,330.00 en 3 clientes contra $31,187.97 en 14 de la semana 27, y '
+      + 'el corte explica por qué. ESTE CORTE NO PUBLICA cancelaciones, suspendidos ni top de '
+      + 'activos: la última lectura completa de cancelaciones de octubre sigue siendo la de la '
+      + 'semana 27, $75,295.50 en veinte clientes.',
     notaEspecial:
-      '✅ TERCERA LECTURA A LA BAJA DEL MES VIVO, Y SIGUE EL GUION. Octubre pasa de 12.4% a 7.4%: una '
-      + 'caída de 5.0 puntos, el 40.3% de la lectura anterior. El recorrido completo del mes es '
-      + '22.1% → 12.4% → 7.4%, el mismo que hizo septiembre (23.6% → 6.9% → 3.14% → 2.6% → 2.5%). '
-      + 'SIGUE SIENDO MES CORRIENDO: el 7.4% tampoco es el cierre. El mes vivo NO mide bajas, mide '
-      + 'retraso de cobranza, y se recupera con pagos. [[regla-churn-mes-vencido]] '
-      + '📌 EL ACUMULADO BAJA, Y ESO ES CORRECTO: 19.4% (hasta septiembre) + 7.4% (octubre) = 26.8%, '
-      + 'exactamente lo declarado, con la MISMA base 19.4% que ya usaba la semana 26. Como el '
-      + 'acumulado se construye SUMANDO el mes vivo, hereda entero su desinflado: de 31.8% a 26.8% '
-      + 'sin que se haya recuperado ni una sola cuenta — sólo cambió la lectura de octubre. '
-      + '✔️ VUELVEN LOS DOWNGRADES, Y ERA LO QUE PEDIMOS. La semana 26 decía «no hay downgrades '
-      + 'significativos en la semana» —un juicio sin cifra— y lo marcamos como no medido. Este corte '
-      + 'trae $31,187.97 en 14 clientes con desglose por producto. Queda contestado. '
-      + '💰 LA COBRANZA FUNCIONÓ: la cartera por cobrar cae de $497,941.00 en 363 clientes a '
-      + '$268,705.50 en 208 (−46.0% en dinero, −155 cuentas) y el tramo de 1 a 7 días se vacía por '
-      + 'completo: $307,946.40 en 218 cuentas pasa a $0.00 en cero. Ese dinero no desapareció: '
-      + 'envejeció un tramo. El de 8 a 15 días sube de $88,958.84 en 56 cuentas a $208,046.71 en '
-      + '145. Es la misma ola de facturación una semana más vieja, y buena parte se cobró. '
-      + '⚠️ PERO EL TRAMO DE MÁS DE 30 DÍAS SE DUPLICA: $5,099.00 en 7 clientes pasa a $11,138.45 en '
-      + '17 (+118.4% en dinero, +143% en cuentas). Es el tramo que históricamente antecede a la '
-      + 'suspensión, y es el ÚNICO que empeora en un corte donde todo lo demás de cobranza mejora. '
-      + 'Esas 17 cuentas son la lista de llamadas de esta semana. '
-      + '🔻 LOS SUSPENDIDOS BAJAN EN CUENTAS PERO CASI NO EN DINERO: de 63 clientes y $58,121.84 a 33 '
-      + 'y $50,199.34 (−47.6% en cuentas, −13.6% en dinero). O sea que el promedio por cuenta casi se '
-      + 'duplica, de $922.57 a $1,521.19: se liberaron las cuentas pequeñas y quedaron las grandes. '
-      + 'Sin baja autorizada NO son churn, pero el saldo atascado ahora está en menos manos y vale '
-      + 'más cada una. '
-      + '🏆 TOP 5 DE CLIENTES ACTIVOS, sobre una cartera de $120,148.01: ATP Sofom $14,848.97 (27 '
-      + 'meses, marcada TOP) · ABRL Sistemas & Proyectos $14,665.00 (83) · SW Sapien $13,668.02 (49) '
-      + '· Grupo Rizo $9,211.00 (26) · Imagen Dental AMT $8,988.02 (56). Los cinco suman $61,381.01, '
-      + 'el 51.1%: los otros $58,767.00 no se desglosan y el corte NO dice cuántos clientes son. '
-      + '🔁 Y POR PRIMERA VEZ EL TOP DE ACTIVOS REPITE NOMBRES: tres de los cinco —ATP Sofom, ABRL y '
-      + 'SW Sapien— ya estaban en la semana 26. Llevábamos tres cortes seguidos con quince nombres y '
-      + 'cero repeticiones, y lo marcamos dos semanas seguidas como señal de que la consulta cambiaba '
-      + 'de población. Esto es una mejora real. Pero la cartera activa CAE un 42.0% al mismo tiempo '
-      + '($206,983.42 → $120,148.01), así que la pregunta por la población sigue abierta, sólo que '
-      + 'ahora en la otra dirección: hay que saber si eso es caída de facturación o cambio de '
-      + 'consulta. '
-      + '💀 UNA CUENTA TOP SE VA, Y ES LA MAYOR BAJA DEL MES: Jason de México, $17,225.00 de MRR y 43 '
-      + 'meses de relación, marcada TOP por el corte. Pesa el 22.9% de TODO lo cancelado en octubre. '
-      + 'La semana 24 ya publicaba su motivo: MIGRACIÓN A OTRO PROVEEDOR. No es una cuenta que se '
-      + 'apaga por poco uso: es una que alguien más se llevó, y a una cuenta TOP eso se le escala. '
-      + '[[feedback-conciliacion-churn]] '
-      + '⏳ TRES BAJAS PASAN DE CINCO AÑOS: KOMBITEC 73 meses, enMazatlan 73 y WhatsHome 71. Son 217 '
-      + 'meses de relación acumulada —dieciocho años entre tres cuentas— que salen en un solo mes. '
-      + 'enMazatlan se iba «Sin Respuesta» según la semana 26: a un cliente de seis años no se le deja '
-      + 'ir sin que nadie lo localice. '
-      + '🆕 Y CINCO BAJAS NO LLEGAN A LOS OCHO MESES: ZD · The Palms (3), ZD · Grupo Gira (5), Grupo '
-      + 'Turístico Rumbo (6), SOBERANI (8) y UAXI Tecnología (8). El mes pierde por los dos extremos '
-      + 'a la vez: las relaciones muy largas y las que nunca arrancaron. Las jóvenes suman $18,434.00, '
-      + 'el 24.5% de lo cancelado. '
-      + '📉 PORTALIA PIERDE EL 82.8% DE LO QUE FACTURABA: $9,754.97, el mayor downgrade del mes y el '
-      + '31.3% de todo el ingreso perdido por reducción. Es la misma reducción que ya publicaba la '
-      + 'semana 24, al centavo. Una cuenta que se queda con el 17% de su contrato está más cerca de '
-      + 'una baja que de un cliente activo, y hay que tratarla como tal. '
+      '📉 CUARTA LECTURA A LA BAJA DEL MES, Y EL GUION NO CAMBIA. Octubre pasa de 7.4% a 6.5%: 0.9 '
+      + 'puntos, el 12.2% de la lectura anterior. El recorrido completo del mes es 22.1% → 12.4% → '
+      + '7.4% → 6.5%, el mismo que hizo septiembre. Y SEPTIEMBRE SIGUE MOVIÉNDOSE: 2.5% → 2.4%, que '
+      + 'es su SEXTA lectura (23.6% → 6.9% → 3.14% → 2.6% → 2.5% → 2.4%). El mes vivo NO mide bajas, '
+      + 'mide retraso de cobranza, y se recupera con pagos. [[regla-churn-mes-vencido]] '
+      + '📌 EL ACUMULADO BAJA Y ES CORRECTO: 19.4% (hasta septiembre) + 6.5% (octubre) = 25.9%, '
+      + 'exactamente lo declarado, con la MISMA base 19.4% que ya usaban las semanas 26 y 27. Como '
+      + 'se construye SUMANDO el mes vivo, hereda entero su desinflado sin que se recupere una sola '
+      + 'cuenta. '
+      + '💰 LA COBRANZA SIGUE FUNCIONANDO, PERO LA OLA SE MOVIÓ UN TRAMO. La cartera por cobrar cae '
+      + 'de $268,705.50 en 208 clientes a $208,994.05 en 172 (−22.2%, −36 cuentas). Y el movimiento '
+      + 'interno es el mismo patrón de la semana pasada, una semana más viejo: el tramo de 8 a 15 '
+      + 'días se VACÍA ($208,046.71 en 145 cuentas pasa a $714.00 en 2) y el de 16 a 30 se dispara '
+      + '($43,568.34 en 41 cuentas pasa a $196,991.05 en 153). Ese dinero no desapareció: envejeció. '
+      + '⚠️ Y AHÍ ESTÁ EL RIESGO DE LA SEMANA: el 94.3% de toda la cartera por cobrar —$196,991.05 en '
+      + '153 clientes— está parado en 16 a 30 días, o sea a UN SOLO TRAMO del de más de 30 días, que '
+      + 'es el que históricamente antecede a la suspensión. Si esa ola envejece sin cobrarse, el '
+      + 'tramo que hoy vale $10,770.00 se multiplica por veinte. Esos 153 clientes son la lista de '
+      + 'cobranza de esta semana, y es la cifra más accionable del corte. '
+      + '✅ LO ÚNICO QUE MEJORA EN TÉRMINOS ABSOLUTOS ES EL TRAMO PELIGROSO: más de 30 días baja de '
+      + '$11,138.45 en 17 clientes a $10,770.00 en 16. Es la primera vez en tres cortes que no '
+      + 'empeora. Pequeño, pero va en la dirección correcta. '
+      + '🔻 LOS DOWNGRADES DEL MES SE REEXPRESAN A LA BAJA, DE $31,187.97 A $8,330.00. Tres clientes: '
+      + 'Onilog pierde $3,538.00 (56%) al quitar Agente CP Chat, Grupo Guía $2,400.00 (30%) al '
+      + 'reducir el paquete Min VyC, y Grupo SPH $2,392.00 (71%) al quitar Agente CP Chat. Por '
+      + 'producto: Agente CP Chat $5,930.00 en 2 clientes y paquete Min VyC $2,400.00 en 1. Las dos '
+      + 'tablas suman lo mismo, así que este corte no netea ningún upsell dentro de los tres casos. '
+      + '🥇 Y POR PRIMERA VEZ LOS PORCENTAJES DE REDUCCIÓN SE PUEDEN VERIFICAR. La semana 27 tuvo que '
+      + 'citarlos como venían porque el correo no publica la facturación anterior. Esta vez los tres '
+      + 'casos están en el GRC —fuente independiente— CON su base de MRR, y los tres reconstruyen '
+      + 'dividiendo: Onilog 6,317 → 2,779 da 56.0%, Grupo Guía 7,989 → 5,589 da 30.0%, Grupo SPH '
+      + '3,371 → 979 da 70.96%. Los importes casan al centavo y mrrIni − mrrFin es exactamente la '
+      + 'pérdida en los tres. Queda contestada la observación ⑥ de la semana 27, al menos para '
+      + 'estos tres. [[feedback-metricas-derivadas-origen]] '
       + '\n\n━━ OBSERVACIONES DE CUSTOMER SUCCESS ━━ '
-      + 'Lo que sigue lo detectamos NOSOTROS al conciliar el corte contra sus propias tablas y contra '
-      + 'los TRES cortes anteriores del mismo mes, con `scripts/concilia-churn-s27.py`. No corrige '
-      + 'ninguna cifra publicada. '
-      + '① EL DESCUADRE QUE EL PROPIO CORTE DECLARA ES UN TOTAL ARRASTRADO, NO UN RENGLÓN PERDIDO. El '
-      + 'corte avisa que el documento fuente reporta $272,319.60 para la cartera mientras los 208 '
-      + 'renglones suman $268,705.50, y que la diferencia de $3,614.10 no se identificó «tras '
-      + 'revisión línea por línea». Pues bien: $272,319.60 es, AL CENTAVO, el total de cartera por '
-      + 'cobrar que publicó la SEMANA 25 —la semana 26 lo cita literal: «contra $272,319.60 en 173 '
-      + 'hace seis días»—. No falta un renglón: hay una celda de total que se quedó con la cifra de '
-      + 'hace dos semanas. Publicamos la suma de los 208 renglones, que es lo que cierra, y hay que '
-      + 'pedir que lo corrijan en el origen. [[feedback-metricas-derivadas-origen]] '
-      + '② EL MISMO OCTUBRE LLEVA CUATRO LECTURAS QUE NO SE PARECEN, Y ESTA ES LA PRIMERA COMPLETA. '
-      + 'Cancelaciones del mes según cada corte: semana 24, 11 clientes por $35,127.00 · semana 25, 2 '
-      + 'por $6,708.50 · semana 26, 11 por $20,234.00 · semana 27, 20 por $75,295.50. Lo conciliamos '
-      + 'nombre por nombre contra los bloques ya archivados y la unión de los cuatro cortes son '
-      + 'EXACTAMENTE 20 nombres distintos: los mismos 20 que declara este corte, y los nueve que '
-      + 'repiten vienen al mismo importe al centavo. Nombres verdaderamente nuevos sólo hay dos, '
-      + 'SOBERANI y ZD · The Palms. O sea que la cifra no creció: la semana 25 y la semana 26 '
-      + 'publicaron una REBANADA del mes y la rotularon «las cancelaciones del mes». La semana 26 '
-      + 'declaró $20,234.00 cuando la semana 24 ya había publicado $35,127.00 de ese mismo octubre, '
-      + 'con Jason de México dentro. ESTE corte es el acumulado real del mes, y los anteriores no se '
-      + 'comparan entre sí. '
-      + '③ EL CUBO DE CANCELACIONES COINCIDE EN CONTEO CON LOS NOMBRES VIEJOS, PERO NO EN DINERO. El '
-      + 'cubo son 9 clientes por $14,824.00. Bajo el corte de importe de este top ($2,355.00) quedan '
-      + 'exactamente 9 nombres ya publicados por cortes anteriores —ENCAMINO Chat, TP DIGITAL, '
-      + 'Quality Orbi, LUNAH ECO-RESORTS, FOBE, Avezado Abogados Penales, Schimer, Cole Majzner '
-      + 'arquitectos y Annova Logistics—, pero esos nueve sumaban $7,092.00. Faltan $7,732.00. El '
-      + 'conteo cuadra y el importe no, así que NO son los mismos nueve o alguno se reexpresó: por '
-      + 'eso la pantalla publica el cubo tal como lo declara el corte y NO nombra a esos nueve. '
-      + 'Coincide el número, no la cifra. [[feedback-verificar-antes-asegurar]] '
-      + '④ LOS DOWNGRADES DEL MES BAJAN DE DINERO MIENTRAS SUBEN DE CASOS. La semana 24 publicaba '
-      + '$31,620.33 en 10 casos; esta trae $31,187.97 en 14. El detalle, en cambio, SUBE: el top pasa '
-      + 'de $18,717.97 en 4 casos a $23,417.97 en 6, y el incremento de $4,700.00 son exactamente '
-      + 'Hotel Real de Minas ($2,490.00) y Proseso Consultores ($2,210.00) — los otros cuatro repiten '
-      + 'importe al centavo. Todo el movimiento está en el cubo, que se encoge de $12,902.36 en 6 '
-      + 'casos a $7,770.00 en 8: más casos y menos dinero sin desglosar. Puede ser upsell neteado en '
-      + 'esas cuentas, pero el corte no lo dice. Hay que pedir el desglose. '
-      + '⑤ LAS DOS TABLAS DE DOWNGRADE NO SE SUMAN NI SE COMPARAN 1:1, Y EL CORTE LO ADVIERTE. Los '
-      + 'productos son impacto BRUTO —sólo renglones de «Quita» y «Reduce»— y suman $38,225.97, '
-      + 'contra $31,187.97 de pérdida NETA por cliente. La diferencia de $7,038.00 son los productos '
-      + 'AÑADIDOS en el mismo evento. Sumar las dos tablas contaría dos veces. '
-      + '⑥ LOS PORCENTAJES DE REDUCCIÓN NO SE PUEDEN VERIFICAR. Para reconstruir el 82.8% de Portalia '
-      + 'o el 64.4% de TUNALI TEC haría falta su facturación ANTERIOR, y el corte no la publica. Se '
-      + 'citan como vienen. Las bases implícitas que salen de dividir (Portalia ≈ $11,781, TUNALI ≈ '
-      + '$8,391) son DERIVADAS NUESTRAS y por eso no se publican como dato. '
-      + '[[feedback-metricas-derivadas-origen]] '
-      + '⑦ «POR VENCER» SIGUE SIENDO UN HUECO DE REGISTRO CON NOMBRE DE TRAMO, y el corte lo repite: '
-      + 'agrupa a los clientes «de la tabla de cartera sin fecha de corte registrada aún». Son '
-      + '$5,952.00 en 5 clientes, el 2.2% de la cartera —cayó desde $21,138.41 en 6 clientes—. Esas 5 '
-      + 'cuentas necesitan fecha de corte en el sistema. En cambio «1 a 7 días = $0.00 en 0 clientes» '
-      + 'SÍ es un cero medido: hay tramo, hay importe y hay conteo. No es lo mismo que un hueco. '
+      + 'Lo que sigue lo detectamos NOSOTROS al conciliar el corte contra sus propias tablas, contra '
+      + 'los cuatro cortes anteriores del mismo mes y contra el GRC, con '
+      + '`scripts/concilia-churn-s28.py`. No corrige ninguna cifra publicada. '
+      + '① LA CAÍDA DE LOS DOWNGRADES ES UNA CORRECCIÓN, NO UNA REBANADA — Y LO PODEMOS PROBAR CON UN '
+      + 'NOMBRE. El corte avisa de que «en el dashboard se ve un mayor monto en downgrades, pero no '
+      + 'lo son: son clientes que hicieron upsell antes de su fecha de corte». Eso, dicho así, es '
+      + 'una afirmación suya. Pues bien: CORPORATIVO GRUPO FUNERARIO SAN JAVIER, que la semana 27 '
+      + 'publicó como downgrade de $1,959.00 con «44.4% de reducción», en el GRC aparece como «Upsell '
+      + 'por confirmar» con MRR de $2,450.00 a $4,409.00. O sea que no bajó: SUBIÓ un 80%. La '
+      + 'explicación del corte está corroborada por una segunda fuente y sobre una cuenta concreta. '
+      + 'Es exactamente lo contrario de lo que pasó con las cancelaciones en la semana 27, donde la '
+      + 'cifra pequeña SÍ era una rebanada. No se puede aplicar el mismo reflejo a los dos casos. '
+      + '② GRUPO GUÍA ESTÁ REEXPRESADO Y LA SEMANA 27 ERA LA EQUIVOCADA. La semana 27 publicó '
+      + '$1,600.00 con 25% de reducción; este corte dice $2,400.00 con 30%, y el GRC dice $2,400.00 '
+      + 'con MRR de $7,989.00 a $5,589.00. Dos fuentes contra una: la cifra correcta es $2,400.00. '
+      + 'No es palabra contra palabra. '
+      + '③ LOS OTROS CUATRO NOMBRES DEL TOP DE LA SEMANA 27 TAMPOCO SE SOSTIENEN COMO DOWNGRADES. En '
+      + 'el GRC, Portalia, TUNALI TEC, Hotel Real de Minas y Proseso Consultores aparecen las cuatro '
+      + 'como «Por confirmar (corte de datos)» —no como Downgrade— y con importes que no se parecen a '
+      + 'los publicados: Portalia $2,029.00 contra los $9,754.97 de la semana 27, TUNALI $2,990.00 '
+      + 'contra $5,404.00, Proseso $519.00 contra $2,210.00. Las cuatro tienen la misma firma: MRR '
+      + 'fin en cero y pérdida igual al MRR inicio, que es justo el perfil de una cuenta pillada a '
+      + 'medio ciclo de facturación. Los $9,754.97 de Portalia —«el mayor downgrade del mes», el '
+      + '31.3% del total— no están corroborados por ninguna otra fuente. '
+      + '④ EL ACUMULADO NO PROPAGA LA REVISIÓN DE SEPTIEMBRE, Y SON 0.1 PUNTOS SIN DECLARAR. '
+      + 'Septiembre baja de 2.5% a 2.4%, pero la base de meses anteriores se queda clavada en 19.4% '
+      + 'en las dos lecturas (26.8 − 7.4 = 19.4 y 25.9 − 6.5 = 19.4). Propagando la revisión, el '
+      + 'acumulado tendría que ser 25.8%, no 25.9%. Publicamos el 25.9% que declara el corte y lo '
+      + 'preguntamos: puede ser redondeo de cifras sin redondear, o puede ser que la revisión del mes '
+      + 'no haya llegado al acumulado. [[feedback-metricas-derivadas-origen]] '
+      + '⑤ EL GRC VE TRECE DOWNGRADES MÁS QUE EL CORREO, Y UNO ES MAYOR QUE TODOS LOS DEL CORREO. El '
+      + 'export del repo lista 16 filas con movimiento «Downgrade» por $21,568.27; los tres del '
+      + 'correo están dentro al centavo y los otros trece suman $13,238.27, con Mi Hospedaje Travel '
+      + 'a la cabeza ($4,095.00, más que Onilog). PERO ESO NO ES UN HALLAZGO TODAVÍA: el export del '
+      + 'repo tiene mes vivo NOVIEMBRE y el correo habla de octubre, y el GRC no trae periodo por '
+      + 'fila. No se puede afirmar que al correo le falten trece del mes. Se pregunta. '
+      + '⑥ NINGUNO DE LOS DOWNGRADES TOCA LA CARTERA CS, Y ES UN CERO DÉBIL. Las 16 filas del GRC '
+      + 'salen con `enCartera: false`, y los tres del correo tampoco están en la cartera —ni Onilog, '
+      + 'ni Grupo Guía, ni Grupo SPH, comprobado con `busca-cuenta.py`—. Grupo SPH sí existe en '
+      + 'Activaciones 2.0 (ID 174954, vendedor Monse). Pero NINGUNA de las 16 filas trae CID, así que '
+      + 'el cruce es por nombre y por nombre se mezclan cuentas: esto NO autoriza a decir «no nos '
+      + 'afecta». Lo que sí se puede decir es que el impacto es institucional y que de los tres, '
+      + 'Grupo Guía es el que duele —90 meses de relación y $203,899.48 facturados según el GRC—. '
+      + '[[grc-fuente-zoho]] [[dids-fuente]] '
+      + '⑦ EL CORREO SE CONTRADICE CON SU PROPIO TÍTULO. Se llama «Seguimiento Cierre de Octubre» y '
+      + 'el cuerpo marca octubre «MES CORRIENDO · NO DEFINITIVO» y el acumulado «NO DEFINITIVO». No '
+      + 'es un cierre. Publicamos lo que dice el cuerpo, que es donde está la advertencia, y el '
+      + 'rótulo de la tarjeta lo dice. La cuarta lectura a la baja de un mes vivo tampoco es el '
+      + 'cierre del mes. [[regla-churn-mes-vencido]] '
+      + '⑧ TRES BLOQUES AUSENTES, Y UNO DE ELLOS IBA A PUBLICAR UN CERO FALSO. Este corte no trae '
+      + 'cancelaciones, ni soft/hard suspend, ni top de activos. La tarjeta de en medio de la '
+      + 'pantalla se cambiaba sola a «Suspendidos / Inactivos» cuando no hay cancelaciones, y como '
+      + 'aquí tampoco hay suspendidos iba a decir «$0 · 0 cuentas pausadas»: un cero sobre un bloque '
+      + 'que nadie midió, tapando además que faltan las cancelaciones. Arreglado para la clase '
+      + 'entera, no para esta semana. La última lectura completa de cancelaciones de octubre sigue '
+      + 'siendo la de la semana 27: $75,295.50 en veinte clientes, con Jason de México dentro. '
       + '[[feedback-cero-sin-medicion]] '
-      + '⑧ LA CARTERA POR COBRAR Y LOS SUSPENDIDOS NO SE SUMAN. Una cuenta está suspendida PORQUE no '
-      + 'pagó, así que su saldo ya está dentro de los $268,705.50. Sumar los $50,199.34 encima daría '
-      + '$318,904.84 de exposición, contando dos veces el mismo dinero. El corte no publica el cruce, '
-      + 'así que no se puede cuantificar el solape: se citan por separado. '
-      + '⑨ EL HARD SUSPEND SIGUE PESANDO MÁS POR CUENTA QUE EL SOFT, Y SE INVIRTIÓ RESPECTO A LA '
-      + 'SEMANA 26. Soft: 21 clientes, $29,852.00, promedio $1,421.52 y 10.7 días. Hard: 12 '
-      + 'clientes, $20,347.34, promedio $1,695.61 y 21.7 días. La semana 26 tenía el promedio del '
-      + 'soft POR ENCIMA del hard ($1,041.45 contra $773.96); ahora es al revés. Las cuentas que '
-      + 'llegan a hard suspend ya no son las más pequeñas, y siguen llevando el doble de días '
-      + 'paradas. Doce cuentas grandes a 21.7 días de impago es donde está el riesgo, no en el '
-      + 'volumen. '
-      + '⑩ LO QUE SÍ CUADRA, al centavo: soft + hard contra su total ($50,199.34) y sus 33 clientes; '
-      + 'los cinco tramos de cartera contra $268,705.50 y sus 208 clientes; las 11 cancelaciones '
-      + 'detalladas contra $60,471.50 y contra el 80.3% declarado —reconstruido dividiendo, no '
-      + 'copiado—; el top 6 de downgrades contra $23,417.97; los seis productos contra $38,225.97; y '
-      + 'el acumulado del año contra la suma 19.4% + 7.4%. '
-      + '⑪ LO QUE NO SE PUEDE RECONSTRUIR: el correo no publica la base de MRR de cada mes, así que '
-      + '2.1%, 2.5% y 7.4% se citan como vienen y no se verifican dividiendo. Tampoco publica el '
-      + 'acumulado histórico facturado de las cuentas canceladas, así que el valor de vida de lo '
-      + 'perdido no se conoce: los $75,295.50 son MRR, no lo que esos veinte clientes dejaron de '
-      + 'facturar en toda su relación. Y agosto (2.1%) no viene en este corte: se conserva de la '
-      + 'serie de las semanas 25 y 26. [[feedback-metricas-derivadas-origen]]',
+      + '⑨ «POR VENCER» SIGUE SIENDO UN HUECO DE REGISTRO CON NOMBRE DE TRAMO, y el corte lo repite '
+      + 'literal: agrupa a los clientes «sin fecha de corte registrada aún». Son $519.00 en 1 solo '
+      + 'cliente, el 0.2% de la cartera, y baja desde $5,952.00 en 5 — así que el registro se está '
+      + 'limpiando. En cambio «1 a 7 días = $0.00 en 0 clientes» SÍ es un cero medido: hay tramo, '
+      + 'importe y conteo. No se comparan los «Por vencer» de dos cortes entre sí: el rótulo ha '
+      + 'significado tres cosas distintas en tres semanas. '
+      + '⑩ LO QUE SÍ CUADRA, al centavo: los cinco tramos contra $208,994.05 y sus 172 clientes; los '
+      + 'downgrades por cliente contra $8,330.00 y sus 3; los downgrades por producto contra el mismo '
+      + '$8,330.00 y los mismos 3; el acumulado contra la suma 19.4% + 6.5%; y los tres porcentajes '
+      + 'de reducción contra las bases de MRR del GRC. '
+      + '⑪ LO QUE NO SE PUEDE RECONSTRUIR: el correo no publica la base de MRR mensual, así que 2.1%, '
+      + '2.4% y 6.5% se citan como vienen. Agosto (2.1%) no viene en este corte: se conserva de la '
+      + 'serie de las semanas 25 y 26. Y no se publica el cruce entre cartera por cobrar y '
+      + 'suspendidos —que este corte ni trae—, así que el solape no se puede cuantificar.',
   },
 
   /* ── CARTERA POR COBRAR ─────────────────────────────────────────────────
-     Lo que de verdad está pendiente de cobro, y por eso ocupa el bloque que la
-     pantalla rotula «Pendiente de Facturar». El corte no da detalle por
-     cliente: sólo los cinco tramos. 208 clientes, $268,705.50 ✓
+     172 clientes, $208,994.05 ✓. El corte no da detalle por cliente: sólo los
+     cinco tramos. Este corte NO declara descuadre contra el documento fuente,
+     al contrario que la semana 27 (que arrastraba un total de dos semanas
+     antes).
 
-     EL TOTAL ES LA SUMA DE LOS RENGLONES, no los $272,319.60 que el propio
-     corte dice que reporta el documento fuente: esa cifra es, al centavo, la
-     cartera de la semana 25 — un total arrastrado. Ver la observación ① de la
-     nota. [[feedback-tablas-deben-cerrar]]
+     LA OLA SE MOVIÓ UN TRAMO: el de 8 a 15 días se vació y el de 16 a 30 se
+     disparó. El 94.3% de la cartera está a UN tramo del que antecede a la
+     suspensión, y eso es lo más accionable que trae el corte.
 
      «Por vencer» NO es deuda joven: el propio corte aclara que son los clientes
      SIN FECHA DE CORTE REGISTRADA. Es un hueco de registro, y así se rotula. */
-  pendientesTotalReal:   268705.50,
-  pendientesCuentasReal: 208,
-  /* Esto es SALDO VENCIDO, no la cartera activa. La activa del mismo corte son
-     $120,148.01 (ver el Top 5 en la nota). Atlas lo rotulaba «Cartera en
-     Activo» por omisión. */
-  pendientesEtiqueta: 'Cartera POR COBRAR (saldo vencido, NO la cartera activa — la activa del corte son $120,148.01)',
+  pendientesTotalReal:   208994.05,
+  pendientesCuentasReal: 172,
+  /* Esto es SALDO VENCIDO, no la cartera activa. Y a diferencia de la semana 27,
+     este corte NO publica la cartera activa —no trae top de activos—, así que
+     aquí no hay con qué contrastarlo: se dice que no viene. */
+  pendientesEtiqueta: 'Cartera POR COBRAR (saldo vencido). Este corte NO publica la cartera activa, así que no hay cifra con la que contrastarla — la de la semana 27 eran $120,148.01',
   pendientes: [
-    { cliente: 'Por vencer — 5 clientes. OJO: el corte aclara que agrupa a los clientes «sin fecha de corte registrada aún». NO es deuda todavía no vencida: es un HUECO DE REGISTRO. Esas 5 cuentas necesitan fecha de corte en el sistema.', monto: 5952.00, mesesActivo: 0, ultimaFactura: '—' },
-    { cliente: '1 a 7 días vencido — 0 clientes. ESTE SÍ ES UN CERO MEDIDO: hay tramo, importe y conteo. Se vació por completo desde los $307,946.40 en 218 cuentas de hace seis días — ese dinero se cobró o envejeció al tramo siguiente.', monto: 0.00, mesesActivo: 0, ultimaFactura: '—' },
-    { cliente: '8 a 15 días vencido — 145 clientes. El 77.4% de la cartera por cobrar. Sube desde $88,958.84 en 56 cuentas: es la ola de facturación de la semana pasada, un tramo más vieja.', monto: 208046.71, mesesActivo: 0, ultimaFactura: '—' },
-    { cliente: '16 a 30 días vencido — 41 clientes. El último tramo antes del que antecede a la suspensión. Baja desde $74,798.35 en 76 cuentas.', monto: 43568.34, mesesActivo: 0, ultimaFactura: '—' },
-    { cliente: '⚠️ Más de 30 días — 17 clientes. SE DUPLICA: hace seis días eran $5,099.00 en 7 clientes. Es el ÚNICO tramo que empeora en un corte donde toda la cobranza mejora, y es el que históricamente antecede a la suspensión. Estas 17 cuentas son la lista de llamadas de la semana.', monto: 11138.45, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: 'Por vencer — 1 cliente. OJO: el corte aclara que agrupa a los clientes «sin fecha de corte registrada aún». NO es deuda todavía no vencida: es un HUECO DE REGISTRO. Baja desde $5,952.00 en 5 clientes, así que el registro se está limpiando. Esa cuenta necesita fecha de corte en el sistema.', monto: 519.00, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: '1 a 7 días vencido — 0 clientes. ESTE SÍ ES UN CERO MEDIDO: hay tramo, importe y conteo. Segunda semana seguida vacío, lo que indica que la facturación nueva del periodo todavía no entra a este tramo.', monto: 0.00, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: '8 a 15 días vencido — 2 clientes. SE VACÍA: hace una semana eran $208,046.71 en 145 cuentas, el 77.4% de la cartera. Ese dinero no se cobró todo — envejeció al tramo siguiente.', monto: 714.00, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: '⚠️ 16 a 30 días vencido — 153 clientes. EL 94.3% DE TODA LA CARTERA POR COBRAR. Se dispara desde $43,568.34 en 41 cuentas: es la ola de la semana pasada, un tramo más vieja. Está a UN SOLO TRAMO del que antecede a la suspensión. Estos 153 clientes son la lista de cobranza de la semana.', monto: 196991.05, mesesActivo: 0, ultimaFactura: '—' },
+    { cliente: 'Más de 30 días — 16 clientes. POR PRIMERA VEZ EN TRES CORTES NO EMPEORA: baja desde $11,138.45 en 17 clientes. Sigue siendo el tramo que antecede a la suspensión, y si la ola de 16-30 días envejece sin cobrarse se multiplica por veinte.', monto: 10770.00, mesesActivo: 0, ultimaFactura: '—' },
   ],
 
   antiguedadSaldos: [
-    { rango: 'Por vencer (sin fecha de corte)', monto:   5952.00 },
+    { rango: 'Por vencer (sin fecha de corte)', monto:    519.00 },
     { rango: '1 – 7 días vencido',              monto:      0.00 },
-    { rango: '8 – 15 días vencido',             monto: 208046.71 },
-    { rango: '16 – 30 días vencido',            monto:  43568.34 },
-    { rango: 'Más de 30 días',                  monto:  11138.45 },
+    { rango: '8 – 15 días vencido',             monto:    714.00 },
+    { rango: '16 – 30 días vencido',            monto: 196991.05 },
+    { rango: 'Más de 30 días',                  monto:  10770.00 },
   ],
 
-  /* ── LAS CANCELACIONES DE OCTUBRE ───────────────────────────────────────
-     El corte declara $75,295.50 en VEINTE clientes y detalla las ONCE mayores,
-     que suman $60,471.50 ✓ — el 80.3% declarado, reconstruido dividiendo. La
-     última fila es el cubo de cierre: sin ella la tabla publicaría once bajas
-     donde hay veinte. [[feedback-tablas-deben-cerrar]]
+  /* ── CANCELACIONES: NO VIENEN EN ESTE CORTE ─────────────────────────────
+     La lista va VACÍA y NO se declara `canceladosCasosReal`, que es lo que
+     dispara el «no reportado» del render. No es cero: octubre tuvo $75,295.50
+     en veinte bajas según la semana 27 —con Jason de México, cuenta TOP,
+     dentro—, y ésa sigue siendo la última lectura completa del mes.
+     [[feedback-cero-sin-medicion]] */
+  cancelados: [],
 
-     ES LA PRIMERA LECTURA COMPLETA DEL MES: la unión de los cuatro cortes de
-     octubre son exactamente estos 20 nombres, y los nueve que repiten vienen al
-     mismo importe. Ver la observación ② de la nota.
+  /* ── DOWNGRADES DE OCTUBRE · REEXPRESADOS A LA BAJA ─────────────────────
+     $8,330.00 en 3 clientes, contra $31,187.97 en 14 de la semana 27. Las dos
+     tablas del corte suman lo mismo ✓, así que no hay upsell neteado dentro de
+     estos tres casos — al contrario que en la semana 27.
 
-     Los motivos no vienen en ESTE corte; los que se citan los publicó la semana
-     24 o la 26 para la misma cuenta y el mismo importe, y así se dice.
+     ES UNA CORRECCIÓN, NO UNA REBANADA, y está probado con un nombre: San
+     Javier, publicado entonces como downgrade de $1,959.00, es «Upsell por
+     confirmar» en el GRC con MRR de $2,450.00 a $4,409.00. Ver la observación ①.
 
-     `acumulado` va en 0 porque el corte NO publica el histórico facturado: es
-     «no reportado», no «cero». [[feedback-cero-sin-medicion]] */
-  canceladosCasosReal: 20,
-  cancelados: [
-    { cliente: '🔴 Jason de México — CUENTA TOP. La mayor baja del mes: el 22.9% de todo lo cancelado en octubre, con 43 meses de relación. La semana 24 publicaba el motivo: MIGRACIÓN A OTRO PROVEEDOR. No se apagó por poco uso — se la llevó alguien más, y a una cuenta TOP eso se escala. Acumulado histórico no publicado por el corte.', mrr: 17225.00, mesesActivo: 43, acumulado: 0 },
-    { cliente: 'KOMBITEC — 73 meses, más de seis años. La semana 24 publicaba el motivo: MIGRACIÓN A OTRO PROVEEDOR. Con Jason de México son el 34.2% de lo cancelado del mes y las dos se fueron con la competencia. Acumulado no publicado.', mrr: 8539.00, mesesActivo: 73, acumulado: 0 },
-    { cliente: 'Biolaboratorio Sadat — 56 meses (4 años y 8 meses). La semana 26 publicaba el motivo: «Sin Respuesta» — se perdió por falta de contacto, no por fallo de servicio. Eso es trabajo de SAC. Acumulado no publicado.', mrr: 7184.00, mesesActivo: 56, acumulado: 0 },
-    { cliente: 'SOBERANI — 8 meses. NOMBRE NUEVO: ninguno de los tres cortes anteriores de octubre la traía. El corte no publica el motivo. Acumulado no publicado.', mrr: 5235.00, mesesActivo: 8, acumulado: 0 },
-    { cliente: 'Grupo Turístico Rumbo S de RL de CV — 6 meses. VUELVE: la semana 25 la reportaba y la semana 26 la perdió de vista; lo marcamos entonces como pregunta abierta. Aquí está, al mismo importe. No se había recuperado: se había caído del top por importe. Acumulado no publicado.', mrr: 4349.00, mesesActivo: 6, acumulado: 0 },
-    { cliente: 'UAXI Tecnología — 8 meses. La semana 26 publicaba el motivo: «Limitaciones del servicio», el único motivo de PRODUCTO de ese corte. Es el que hay que llevar a Producto con nombre y apellido. Acumulado no publicado.', mrr: 4041.00, mesesActivo: 8, acumulado: 0 },
-    { cliente: 'enMazatlan — 73 MESES, seis años y un mes. La semana 26 publicaba el motivo: «Sin Respuesta». A un cliente de seis años no se le deja ir sin que nadie lo localice. Acumulado no publicado.', mrr: 3480.00, mesesActivo: 73, acumulado: 0 },
-    { cliente: 'WhatsHome — 71 meses. La semana 24 publicaba el motivo: Restructuración. Tercera cuenta de más de cinco años que sale en el mes. Acumulado no publicado.', mrr: 3250.00, mesesActivo: 71, acumulado: 0 },
-    { cliente: 'ZD · The Palms — 3 MESES, la salida más temprana del corte. NOMBRE NUEVO. El corte no publica el motivo, y a los tres meses eso es justo lo que hay que saber. Acumulado no publicado.', mrr: 2454.00, mesesActivo: 3, acumulado: 0 },
-    { cliente: 'PSI División Latinoamérica — 21 meses. VUELVE, igual que Grupo Turístico Rumbo: la reportaba la semana 25, la semana 26 la perdió de vista y aquí está al mismo importe. Acumulado no publicado.', mrr: 2359.50, mesesActivo: 21, acumulado: 0 },
-    { cliente: 'ZD · Grupo Gira — 5 meses. La semana 26 publicaba el motivo: «Finalización de contrato con el cliente» — el contrato tenía fin, no es un fallo de servicio. Segunda cuenta «ZD ·» del mes. Acumulado no publicado.', mrr: 2355.00, mesesActivo: 5, acumulado: 0 },
-    { cliente: '+ Resto de cancelaciones del mes — 9 clientes que el corte NO desglosa. Esta fila existe para que la tabla cuadre con los $75,295.50 declarados en 20 clientes: el top detalla $60,471.50, el 80.3%. OJO: bajo el corte de $2,355.00 quedan exactamente 9 nombres ya publicados por cortes anteriores, pero sumaban $7,092.00 y el cubo vale $14,824.00 — coincide el conteo, no la cifra, así que NO se nombran. Faltan $7,732.00 por explicar.', mrr: 14824.00, mesesActivo: 0, acumulado: 0 },
-  ],
-
-  /* ── DOWNGRADES DE OCTUBRE ──────────────────────────────────────────────
-     VUELVEN A MEDIRSE. La semana 26 decía «no hay downgrades significativos»
-     sin cifra y lo marcamos como no medido; este corte trae $31,187.97 en 14
-     clientes y detalla los 6 mayores, que suman $23,417.97 ✓ — el 75.1%.
-
-     Los cuatro primeros repiten AL CENTAVO los que publicó la semana 24, y el
-     incremento del top ($4,700.00) son exactamente Hotel Real de Minas y
-     Proseso Consultores. Pero el total del mes BAJA de $31,620.33 a $31,187.97
-     mientras los casos suben de 10 a 14: todo el movimiento está en el cubo.
-     Ver la observación ④ de la nota.
-
-     Los % de reducción se citan COMO VIENEN: reconstruirlos exigiría la
-     facturación anterior de cada cuenta y el corte no la publica.
+     LOS % SÍ SE PUEDEN VERIFICAR ESTA VEZ: las bases de MRR salen del GRC, no
+     del correo, y los tres reconstruyen dividiendo. Las cifras de `mrrIni`,
+     `mrrFin` y el acumulado facturado que se citan en las notas vienen del GRC
+     y se dice de dónde salen — el correo no publica ninguna de las tres.
      [[feedback-metricas-derivadas-origen]] */
-  downgradeTotalReal: 31187.97,
-  downgradeCasosReal: 14,
+  downgradeTotalReal: 8330.00,
+  downgradeCasosReal: 3,
   downgrades: [
-    { cliente: '🔴 Portalia — TOP', perdida: 9754.97, nota: 'PIERDE EL 82.8% DE LO QUE FACTURABA, y es el 31.3% de todo el ingreso perdido por reducción del mes. Mismo importe al centavo que publicó la semana 24, donde el movimiento era doble: quita Extension VyC y recorta el paquete de minutos de Voicebot de $3,000 a $1,000. Una cuenta que se queda con el 17% de su contrato está más cerca de una baja que de un cliente activo.' },
-    { cliente: 'TUNALI TEC', perdida: 5404.00, nota: '64.4% de reducción. Mismo importe que la semana 24, que detallaba el movimiento: quita DiD Nacional y paquete Min VyC, pero AÑADE Agente CP Chat. Es el caso que explica por qué la tabla de productos (bruta, $38,225.97) no cuadra con el total neto ($31,187.97).' },
-    { cliente: 'Hotel Real de Minas San Miguel de Allende', perdida: 2490.00, nota: '48% de reducción. ENTRA NUEVO al top: no estaba en la semana 24. Con Proseso Consultores son los $4,700.00 que explican todo el aumento del detalle.' },
-    { cliente: 'Proseso Consultores', perdida: 2210.00, nota: '81% de reducción — el segundo porcentaje más alto del corte después de Portalia. ENTRA NUEVO al top. Un 81% menos es churn silencioso: la cuenta sigue viva y ya casi no factura.' },
-    { cliente: 'Corporativo Grupo Funerario San Javier', perdida: 1959.00, nota: '44.4% de reducción. Mismo importe que la semana 24, que detallaba: quita el paquete Min VyC.' },
-    { cliente: 'Grupo Guía', perdida: 1600.00, nota: '25% de reducción, la menor del top. Mismo importe que la semana 24, que detallaba: reduce DiD Nacional y paquete Min VyC.' },
-    { cliente: '+ Resto de los downgrades de octubre', perdida: 7770.00, nota: '⚠ CUBO DE CIERRE. Son 14 los casos del mes y el corte sólo detalla los 6 mayores ($23,417.97, el 75.1%). Sin esta fila el top se leería como todo el downgrade de octubre. OJO: este cubo se ENCOGIÓ respecto a la semana 24, que publicaba $12,902.36 en 6 casos — más casos y menos dinero sin desglosar. Hay que pedir el desglose.' },
+    { cliente: 'Onilog', perdida: 3538.00, nota: 'QUITA Agente CP Chat. 56% de reducción, y esta vez se RECONSTRUYE: el GRC le da MRR de $6,317.00 a $2,779.00, o sea $3,538.00 de pérdida —el mismo importe del correo al centavo— y 3538/6317 = 56.0%. 57 meses de relación y $161,941.00 facturados según el GRC (el correo no publica ninguno de los dos). NO está en la cartera CS.' },
+    { cliente: '🔴 Grupo Guía', perdida: 2400.00, nota: 'REDUCE el paquete Min VyC. 30% de reducción, reconstruido: el GRC le da MRR de $7,989.00 a $5,589.00 y 2400/7989 = 30.0%. OJO, ESTÁ REEXPRESADO: la semana 27 publicó $1,600.00 con 25%, y entre este corte y el GRC son dos fuentes contra una — la cifra buena es $2,400.00. Es el caso que más duele de los tres: 90 MESES de relación, siete años y medio, y $203,899.48 facturados según el GRC. NO está en la cartera CS, así que el impacto es institucional y no hay asesor asignado que lo defienda.' },
+    { cliente: 'Grupo SPH', perdida: 2392.00, nota: 'QUITA Agente CP Chat. 71% de reducción —la mayor del corte—, reconstruida: el GRC le da MRR de $3,371.00 a $979.00 y 2392/3371 = 70.96%. Se queda con el 29% de lo que facturaba, y eso está más cerca de una baja que de un cliente activo. Sólo 14 meses de relación y $42,410.00 facturados (GRC). NO está en la cartera CS, pero SÍ existe en Activaciones 2.0: ID 174954, vendedor Monse.' },
   ],
 
-  /* Impacto BRUTO por producto: lo que se quitó o redujo en cada caso, SIN
-     netear los upsells de la misma cuenta. Suma $38,225.97 ✓ contra los
-     $31,187.97 de pérdida neta, y el propio corte advierte que no coinciden
-     1:1 — la diferencia de $7,038.00 son los productos AÑADIDOS en el mismo
-     evento. NO se suman las dos tablas. [[feedback-tablas-deben-cerrar]]
+  /* Las dos tablas del corte suman lo mismo, $8,330.00 ✓, así que este corte
+     NO netea upsells dentro de los tres casos. La semana 27 tenía que advertir
+     lo contrario ($38,225.97 bruto contra $31,187.97 neto) y esa advertencia NO
+     se hereda: es una diferencia de forma entre cortes.
 
-     `vecesAfectado` SÍ viene en este corte. Los nombres de cliente por artículo
-     NO: la columna lo dice con palabras en vez de quedarse vacía.
+     `vecesAfectado` viene en el corte. Los nombres por artículo NO se publican
+     en la tabla de productos, pero aquí sí se pueden decir: con tres casos y
+     dos productos, el cruce con la tabla por cliente es único.
      [[feedback-contexto-ia-sin-huecos]] */
   downgradeArticulos: [
-    { articulo: 'paquete Min VyC — $18,664.00',        vecesAfectado: 9, clientes: ['El artículo más golpeado del mes: 9 de los 14 casos y el 48.8% del impacto bruto. (El corte no desglosa los clientes por artículo.)'] },
-    { articulo: 'Extension VyC — $12,400.97',          vecesAfectado: 3, clientes: ['Sólo 3 casos pero el segundo importe del mes: Portalia se lleva la mayor parte. (El corte no desglosa los clientes por artículo.)'] },
-    { articulo: 'paquete Min CE — $3,239.00',          vecesAfectado: 2, clientes: ['(El corte no desglosa los clientes por artículo.)'] },
-    { articulo: 'paquete Min Voicebot — $2,000.00',    vecesAfectado: 1, clientes: ['Un solo caso, el mismo importe que publicó la semana 24: Portalia, de $3,000 a $1,000. (El corte no desglosa los clientes por artículo.)'] },
-    { articulo: 'DiD Nacional — $1,796.00',            vecesAfectado: 5, clientes: ['El segundo más repetido y el de menor importe por caso: $359.20 de media. (El corte no desglosa los clientes por artículo.)'] },
-    { articulo: 'DiD Internacional — $126.00',         vecesAfectado: 1, clientes: ['El menor impacto del corte y la primera vez que aparece este artículo. (El corte no desglosa los clientes por artículo.)'] },
+    { articulo: 'Agente CP Chat — $5,930.00',   vecesAfectado: 2, clientes: ['Onilog ($3,538.00) y Grupo SPH ($2,392.00), los dos lo QUITAN. Es el 71.2% del impacto del corte, y es un artículo que no aparecía en la tabla de productos de la semana 27 — ahí sólo salía como producto AÑADIDO por TUNALI TEC.'] },
+    { articulo: 'paquete Min VyC — $2,400.00',  vecesAfectado: 1, clientes: ['Grupo Guía, que lo REDUCE. Era el artículo más golpeado de la semana 27 (9 de 14 casos, $18,664.00) y aquí queda en uno solo.'] },
   ],
 
-  /* ── SOFT / HARD SUSPEND DE OCTUBRE ─────────────────────────────────────
-     33 clientes, $50,199.34 ✓. El corte da los dos estatus agregados, con su
-     promedio de días pendientes; no desglosa por cliente.
-
-     SE INVIRTIÓ LA RELACIÓN DE LA SEMANA 26: entonces el soft pesaba más por
-     cuenta que el hard ($1,041.45 contra $773.96); ahora es al revés. Ver la
-     observación ⑨ de la nota. */
-  suspendidosTotalReal:   50199.34,
-  suspendidosCuentasReal: 33,
-  suspendidos: [
-    { cliente: 'Soft Suspend — 21 clientes · 10.7 días promedio pendientes de pago · $1,421.52 por cuenta. Es donde todavía se puede cobrar sin cortar servicio, y lleva la MITAD de días paradas que el hard. Bajó desde 35 clientes hace seis días.', importe: 29852.00, mesesActivo: 0, estado: 'Suspendido' },
-    { cliente: 'Hard Suspend — 12 clientes · 21.7 días promedio pendientes de pago · $1,695.61 por cuenta. Servicio activo con restricciones: sin baja autorizada NO es churn. AHORA PESAN MÁS POR CUENTA QUE EL SOFT —la semana 26 era al revés—: doce cuentas grandes a 21.7 días de impago es donde está el riesgo.', importe: 20347.34, mesesActivo: 0, estado: 'Suspendido' },
-  ],
+  /* ── SOFT / HARD SUSPEND: NO VIENEN EN ESTE CORTE ───────────────────────
+     Sin bloque y sin `suspendidosTotalReal`, que es lo que dispara el «no
+     reportado». La semana 27 publicaba 33 clientes por $50,199.34; que este
+     corte no los traiga NO significa que se hayan liberado.
+     [[feedback-cero-sin-medicion]] */
 }
