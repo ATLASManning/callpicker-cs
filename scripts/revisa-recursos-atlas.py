@@ -79,6 +79,43 @@ def main():
     if not dids:
         fallos.append(u'dids')
 
+    # ── Y QUE EL ENLACE NO SALGA SOLO ──────────────────────────────────────
+    #
+    # 10 nov 2026, encargo de direccion: cuando a Atlas le pregunten por
+    # numeracion o DIDs, el enlace va EN LA RESPUESTA y con la aclaracion de
+    # que NO se comparte con el cliente.
+    #
+    # Antes el prompt decia «si quien pregunta va a compartirlo, adviertelo —
+    # con una cuenta de fuera no abre». Dos fallos en una linea: la advertencia
+    # era CONDICIONAL —no se da si nadie anuncia que va a reenviarlo, que es
+    # justo cuando hace falta— y la razon era TECNICA, asi que un enlace que
+    # si abriera quedaba implicitamente permitido. La ficha de kb-data.ts si lo
+    # dice bien («NO se le comparte el enlace al cliente») y Atlas la recibe,
+    # pero tener el dato no es decirlo: el mismo fallo de los 31 recursos.
+    #
+    # Se comprueba el PROMPT, no la ficha, porque lo que gobierna la conducta
+    # es el prompt. Que el dato este en el contexto ya se comprobo arriba.
+    manda_advertir = 'SIEMPRE SALE CON SU ADVERTENCIA' in ruta
+    no_condicional = 'No esperes a que te pregunten si se puede compartir' in ruta
+    print(u'  %-34s %s' % (u'el prompt obliga la advertencia',
+                           u'si' if manda_advertir else u'*** NO: daria el enlace pelado'))
+    print(u'  %-34s %s' % (u'  y NO la deja condicional',
+                           u'si' if no_condicional else u'*** NO: solo advierte si se lo anuncian'))
+    if not manda_advertir:
+        fallos.append(u'dids-advertencia')
+    if not no_condicional:
+        fallos.append(u'dids-condicional')
+
+    # Control NEGATIVO: la redaccion vieja NO debe seguir viva. Si alguien
+    # reintroduce «con una cuenta de fuera no abre» como RAZON, vuelve el
+    # agujero aunque la linea nueva siga ahi — y los dos textos conviviendo se
+    # leen como que basta con lo tecnico. [[feedback-probar-al-reves]]
+    vieja = 'Si quien pregunta va a compartirlo con un cliente' in ruta
+    print(u'  %-34s %s' % (u'  sin la redaccion condicional vieja',
+                           u'si' if not vieja else u'*** NO: volvio el texto de octubre'))
+    if vieja:
+        fallos.append(u'dids-texto-viejo')
+
     # ── EL DOCUMENTO MARCO, QUE ES OTRO RECURSO Y FALLABA IGUAL ────────────
     #
     # Direccion pregunto DOS VECES por «el mensaje de la direccion» y las dos
