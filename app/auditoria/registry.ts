@@ -102,6 +102,17 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
      de llamadas sin contestar NO es una falla —van todas a un agente
      virtual— y su MRR real es $1,078, no los $38,123 de la ficha. */
   { id: 'system-ooapas',     nombre: 'Grupo System OOAPAS (Estradata)',     consecutivos: ['D2']  },
+  // ── Erick ─────────────────────────────────────────────────────────────────
+  //    (El bloque rotulado «Claudia» de arriba también es cartera de Erick
+  //     desde el 15 oct 2026; el rótulo se dejó como estaba para no mezclar
+  //     este cambio con ese. Ver [[erick-sustituye-a-claudia]].)
+  /* El apagón de entrantes del 30 oct: 76 llamadas en cuatro días hábiles y UNA
+     atendida. Pero el hallazgo que el ticket no traía es estructural y anterior:
+     la ruta «Disponible» recibió 334 llamadas en el año y perdió las 334 — el
+     46.1% de todas las pérdidas de 2026 en un solo destino, ya perdiendo desde
+     agosto. Descontándola, la caída real de los agentes en octubre fue 9.8%, no
+     el 25.7% del indicador. El cliente ya cuestionó por escrito la continuidad. */
+  { id: 'abrl',            nombre: 'ABRL Sistemas & Proyectos',       consecutivos: ['C11'] },
   /* ── Sin cuenta en cartera ─────────────────────────────────────────────────
      `consecutivos: []` NO es un olvido. Son auditorias de cuentas que nunca
      entraron a `cuentas` y por tanto no tienen consecutivo ni KAM: se vendieron

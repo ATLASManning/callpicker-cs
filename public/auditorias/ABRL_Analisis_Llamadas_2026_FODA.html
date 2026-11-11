@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang='es-MX'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>ABRL · Análisis de llamadas 2026 y FODA · Callpicker</title>
+<style>
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#eef0f3;color:#15181d;
+ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+ font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.page{max-width:1000px;margin:0 auto;background:#fff;padding:44px 48px 56px;
+ box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.kick{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:#5f6773;margin:0 0 6px;font-weight:600}
+h1{font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:33px;line-height:1.2;margin:0 0 14px;letter-spacing:-.01em}
+h2{font-family:Georgia,serif;font-weight:400;font-size:23px;margin:0 0 4px;letter-spacing:-.005em}
+h3{font-size:15px;font-weight:600;margin:0 0 8px}
+p{margin:11px 0 0}
+.lead{font-size:17px;line-height:1.52;color:#2b303a;margin:0 0 4px}
+.sec{margin-top:46px;padding-top:4px}
+.sec.brk{border-top:1px solid #e4e7eb;padding-top:34px}
+b.k{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.bar{background:#fdf6ec;border:1px solid #f0dcbd;border-left:4px solid #b07213;
+ padding:12px 16px;border-radius:3px;margin:0 0 26px;font-size:13.5px;color:#6b4d12}
+.bar b{color:#4a3509}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-top:20px}
+.card{background:#f8f9fb;border:1px solid #e4e7eb;border-radius:4px;padding:14px 15px}
+.card .l{font-size:11.5px;color:#5f6773;display:block;line-height:1.35;min-height:30px}
+.card .v{font-family:Georgia,serif;font-size:27px;display:block;margin:3px 0 2px;
+ font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.card .s{font-size:11.5px;color:#5f6773;display:block;line-height:1.4}
+.ok{color:#2e7d57}.bad{color:#c23b32}.warn{color:#b07213}.s1c{color:#2d6a9f}
+.ch{margin:20px 0 0}
+.cv{display:block;overflow:visible}
+.cv .tk{font-size:11px;fill:#5f6773}
+.cv .tk-sm{font-size:9.5px;fill:#90969f}
+.cv .tk-b{font-size:11.5px;fill:#15181d;font-weight:600}
+.cv .tk-pct{font-size:10.5px;fill:#2d6a9f}
+.cv .lbl{font-size:10.5px;fill:#5f6773;font-weight:600}
+.cv .lbl-bad{font-size:10.5px;fill:#c23b32;font-weight:700}
+.cv .lbl-pct{font-size:10px;fill:#92231c;font-weight:700}
+.cv .lbl-in{font-size:9.5px;fill:#fff;font-weight:700}
+.cv .note-svg{font-size:10.5px;fill:#8a919b}
+.leg{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font-size:12px;color:#5f6773}
+.leg span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:11px;height:11px;border-radius:2px;display:inline-block;flex:none}
+.note{font-size:12px;color:#5f6773;margin-top:10px;line-height:1.5}
+.call{background:#fdf1f0;border-left:4px solid #c23b32;padding:14px 18px;margin-top:20px;border-radius:3px}
+.call p{margin:8px 0 0}.call p:first-child{margin-top:0}
+.tw{overflow-x:auto;margin-top:20px;border:1px solid #e4e7eb;border-radius:4px}
+.t{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+.t th,.t td{text-align:right;padding:6px 10px;border-bottom:1px solid #eceef1;white-space:nowrap}
+.t th:first-child,.t td:first-child{text-align:left}
+.t th{background:#f8f9fb;color:#5f6773;font-weight:600;font-size:11.5px;position:sticky;top:0}
+.t tbody tr:last-child td{border-bottom:none}
+.t tr.hi td{background:#fdf1f0;font-weight:600}
+.foda{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+.q{border:1px solid #e4e7eb;border-radius:4px;padding:16px 18px;background:#fcfcfd}
+.q ul{margin:0;padding-left:17px;font-size:13px;line-height:1.55}
+.q li{margin-bottom:7px}
+.q li:last-child{margin-bottom:0}
+.q.f{border-top:3px solid #2e7d57}.q.f h3{color:#2e7d57}
+.q.o{border-top:3px solid #2d6a9f}.q.o h3{color:#2d6a9f}
+.q.d{border-top:3px solid #b07213}.q.d h3{color:#b07213}
+.q.a{border-top:3px solid #c23b32}.q.a h3{color:#c23b32}
+ol.steps{margin:20px 0 0;padding:0;list-style:none;counter-reset:s}
+ol.steps li{counter-increment:s;position:relative;padding-left:40px;margin-bottom:15px;line-height:1.55}
+ol.steps li:before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;
+ border-radius:50%;background:#f8f9fb;border:1px solid #d9dde3;display:flex;align-items:center;
+ justify-content:center;font-size:12px;font-weight:600;color:#5f6773}
+.meth{margin-top:46px;border-top:1px solid #e4e7eb;padding-top:26px}
+.meth ul{font-size:12.5px;color:#4a515c;line-height:1.6;padding-left:18px;margin:12px 0 0}
+.meth li{margin-bottom:8px}
+.foot{margin-top:38px;padding-top:18px;border-top:1px solid #e4e7eb;font-size:11.5px;color:#8a919b}
+@media (max-width:760px){
+ .page{padding:26px 18px 36px}h1{font-size:26px}.lead{font-size:15.5px}
+ .foda{grid-template-columns:1fr}.sec{margin-top:34px}
+}
+@media print{
+ body{background:#fff}.page{box-shadow:none;max-width:none;padding:0 0 20px}
+ .sec,.q,.call,.ch{break-inside:avoid;page-break-inside:avoid}
+ h2{break-after:avoid}.bar{break-inside:avoid}
+ .tw{overflow:visible;max-height:none}.t th{position:static}
+}
+</style>
+</head>
+<body>
+<div class='page'>
+<p class='kick'>ABRL Sistemas &amp; Proyectos · CID 26654 · VyC Callcenter · 35 extensiones</p>
+<h1>Lo que dicen sus llamadas, no lo que dice el ticket</h1>
+<p class='lead'>Análisis de <b class='k'>5,127</b> llamadas entrantes y <b class='k'>6,961</b> salientes del
+1 de enero al 9 de noviembre de 2026. El dato que manda la conversación: entre el 30 de octubre y el
+4 de noviembre entraron <b class='k'>76</b> llamadas y solo <b class='k'>1</b> fue atendida.</p>
+<p class='note' style='margin-bottom:22px'>Satisfacción al Cliente (SAC) · Callpicker · 9 de noviembre de 2026</p>
+
+<div class='bar'><b>Documento interno.</b> Las secciones de FODA, lectura comercial y guion de la llamada
+contienen estrategia de retención y no deben compartirse con el cliente. Para enviar algo a ABRL se requiere
+una versión sin esas tres secciones.</div>
+
+<section class='sec' id='resumen'>
+<h2>Los seis números de la cuenta</h2>
+<div class='cards'>
+<div class='card'><span class='l'>Entrantes atendidas</span><span class='v ok'>81.2%</span><span class='s'>4,164 de 5,127 · ene–nov 2026</span></div>
+<div class='card'><span class='l'>Entrantes sin contestar</span><span class='v bad'>14.1%</span><span class='s'>725 llamadas perdidas en el año</span></div>
+<div class='card'><span class='l'>Conexión saliente</span><span class='v ok'>78.9%</span><span class='s'>5,489 conectadas · estable todo el año</span></div>
+<div class='card'><span class='l'>Consumo del plan en octubre</span><span class='v bad'>9.8%</span><span class='s'>39,461 minutos sin usar de 43,750</span></div>
+<div class='card'><span class='l'>Caída de entrantes por día</span><span class='v bad'>-60.4%</span><span class='s'>de 32.6 a 12.9 por día · ene vs oct</span></div>
+<div class='card'><span class='l'>Extensiones sin uso en octubre</span><span class='v warn'>12</span><span class='s'>23 con tráfico de 35 contratadas</span></div>
+</div>
+<p class='note'><b>Cómo leer las métricas.</b> Sin contestar = la llamada entró y ninguna extensión la tomó.
+Las resueltas por el menú (IVR) no cuentan como falla. Los porcentajes de entrantes nunca se suman con los
+de marcación saliente: son dos métricas distintas y se miden aparte.</p>
+</section>
+
+<section class='sec brk' id='apagon'>
+<p class='kick'>Hallazgo 1 · el más grave</p>
+<h2>El apagón de entrantes del 30 de octubre</h2>
+<p>El 29 de octubre la cuenta cerró un día normal: <b class='k'>19</b> llamadas, <b class='k'>17</b> atendidas,
+<b class='k'>5.3</b>% sin contestar. Al día siguiente entraron <b class='k'>17</b> llamadas y se perdieron
+<b class='k'>17</b>: el cien por ciento. El patrón se repitió hasta el 4 de noviembre.</p>
+<div class='ch'><svg viewBox='0 0 940 300' width='100%' height='auto' role='img' aria-label='Llamadas entrantes por día del 20 de octubre al 9 de noviembre de 2026, separadas en atendidas, resueltas por el menú y sin contestar' preserveAspectRatio='xMinYMin meet' class='cv'><line x1='46' x2='926' y1='252.0' y2='252.0' stroke='#e4e7eb'/><text x='38.0' y='252.0' text-anchor='end' class='tk' dominant-baseline='middle'>0</text><line x1='46' x2='926' y1='195.5' y2='195.5' stroke='#e4e7eb'/><text x='38.0' y='195.5' text-anchor='end' class='tk' dominant-baseline='middle'>10</text><line x1='46' x2='926' y1='139.0' y2='139.0' stroke='#e4e7eb'/><text x='38.0' y='139.0' text-anchor='end' class='tk' dominant-baseline='middle'>20</text><line x1='46' x2='926' y1='82.5' y2='82.5' stroke='#e4e7eb'/><text x='38.0' y='82.5' text-anchor='end' class='tk' dominant-baseline='middle'>30</text><line x1='46' x2='926' y1='26.0' y2='26.0' stroke='#e4e7eb'/><text x='38.0' y='26.0' text-anchor='end' class='tk' dominant-baseline='middle'>40</text><rect x='55.3' y='206.8' width='33.1' height='45.2' fill='#2e7d57'/><rect x='55.3' y='178.6' width='33.1' height='28.2' fill='#c23b32'/><text x='71.9' y='268.0' text-anchor='middle' class='tk'>20/10</text><rect x='107.1' y='201.2' width='33.1' height='50.8' fill='#2e7d57'/><rect x='107.1' y='189.8' width='33.1' height='11.3' fill='#c23b32'/><text x='123.6' y='268.0' text-anchor='middle' class='tk'>21/10</text><rect x='158.8' y='155.9' width='33.1' height='96.1' fill='#2e7d57'/><rect x='158.8' y='116.4' width='33.1' height='39.5' fill='#c23b32'/><text x='175.4' y='268.0' text-anchor='middle' class='tk'>22/10</text><rect x='210.6' y='212.4' width='33.1' height='39.6' fill='#2e7d57'/><rect x='210.6' y='189.8' width='33.1' height='22.6' fill='#c23b32'/><text x='227.2' y='268.0' text-anchor='middle' class='tk'>23/10</text><rect x='262.4' y='161.6' width='33.1' height='90.4' fill='#2e7d57'/><rect x='262.4' y='150.3' width='33.1' height='11.3' fill='#c23b32'/><text x='278.9' y='268.0' text-anchor='middle' class='tk'>26/10</text><rect x='314.1' y='206.8' width='33.1' height='45.2' fill='#2e7d57'/><rect x='314.1' y='201.2' width='33.1' height='5.7' fill='#c7ccd4'/><rect x='314.1' y='195.5' width='33.1' height='5.7' fill='#c23b32'/><text x='330.7' y='268.0' text-anchor='middle' class='tk'>27/10</text><rect x='365.9' y='218.1' width='33.1' height='33.9' fill='#2e7d57'/><rect x='365.9' y='212.4' width='33.1' height='5.7' fill='#c7ccd4'/><rect x='365.9' y='206.8' width='33.1' height='5.6' fill='#c23b32'/><text x='382.5' y='268.0' text-anchor='middle' class='tk'>28/10</text><rect x='417.7' y='155.9' width='33.1' height='96.1' fill='#2e7d57'/><rect x='417.7' y='150.3' width='33.1' height='5.6' fill='#c7ccd4'/><rect x='417.7' y='144.7' width='33.1' height='5.7' fill='#c23b32'/><text x='434.2' y='268.0' text-anchor='middle' class='tk'>29/10</text><rect x='469.4' y='155.9' width='33.1' height='96.1' fill='#c23b32'/><text x='486.0' y='268.0' text-anchor='middle' class='tk'>30/10</text><text x='486.0' y='149.9' text-anchor='middle' class='lbl-bad'>100%</text><rect x='521.2' y='246.3' width='33.1' height='5.7' fill='#c23b32'/><text x='537.8' y='268.0' text-anchor='middle' class='tk'>31/10</text><text x='537.8' y='240.3' text-anchor='middle' class='lbl-bad'>100%</text><rect x='573.0' y='184.2' width='33.1' height='67.8' fill='#c23b32'/><text x='589.5' y='268.0' text-anchor='middle' class='tk'>2/11</text><text x='589.5' y='178.2' text-anchor='middle' class='lbl-bad'>100%</text><rect x='624.7' y='246.3' width='33.1' height='5.7' fill='#2e7d57'/><rect x='624.7' y='82.5' width='33.1' height='163.8' fill='#c23b32'/><text x='641.3' y='268.0' text-anchor='middle' class='tk'>3/11</text><text x='641.3' y='76.5' text-anchor='middle' class='lbl-bad'>97%</text><rect x='676.5' y='240.7' width='33.1' height='11.3' fill='#c7ccd4'/><rect x='676.5' y='161.6' width='33.1' height='79.1' fill='#c23b32'/><text x='693.1' y='268.0' text-anchor='middle' class='tk'>4/11</text><text x='693.1' y='155.6' text-anchor='middle' class='lbl-bad'>88%</text><rect x='728.3' y='178.6' width='33.1' height='73.4' fill='#2e7d57'/><rect x='728.3' y='37.3' width='33.1' height='141.2' fill='#c23b32'/><text x='744.8' y='268.0' text-anchor='middle' class='tk'>5/11</text><text x='744.8' y='31.3' text-anchor='middle' class='lbl-bad'>66%</text><rect x='780.0' y='116.4' width='33.1' height='135.6' fill='#2e7d57'/><rect x='780.0' y='99.4' width='33.1' height='17.0' fill='#c23b32'/><text x='796.6' y='268.0' text-anchor='middle' class='tk'>6/11</text><rect x='831.8' y='235.1' width='33.1' height='16.9' fill='#2e7d57'/><rect x='831.8' y='223.8' width='33.1' height='11.3' fill='#c23b32'/><text x='848.4' y='268.0' text-anchor='middle' class='tk'>7/11</text><rect x='883.6' y='189.8' width='33.1' height='62.2' fill='#2e7d57'/><rect x='883.6' y='178.6' width='33.1' height='11.3' fill='#c7ccd4'/><rect x='883.6' y='155.9' width='33.1' height='22.6' fill='#c23b32'/><text x='900.1' y='268.0' text-anchor='middle' class='tk'>9/11</text><line x1='460.1' x2='460.1' y1='12' y2='252' stroke='#8a919b' stroke-width='1.5' stroke-dasharray='5 4'/><text x='466.1' y='21.0' text-anchor='start' class='note-svg'>29 oct · actualización del servidor SIP</text><line x1='46' x2='926' y1='252' y2='252' stroke='#5f6773'/></svg></div>
+<div class='leg'>
+<span><i class='sw' style='background:#2e7d57'></i>Atendidas por un agente</span>
+<span><i class='sw' style='background:#c7ccd4'></i>Resueltas por el menú</span>
+<span><i class='sw' style='background:#c23b32'></i>Sin contestar</span></div>
+<p>En la ventana del 30 de octubre al 5 de noviembre entraron <b class='k'>114</b> llamadas de
+<b class='k'>38</b> números distintos. Se perdieron <b class='k'>98</b>, el <b class='k'>86.0</b>%.
+Toda esa semana la operación entrante produjo <b class='k'>104</b> minutos de conversación. El servicio
+recuperó su nivel el 6 de noviembre, con <b class='k'>11.1</b>% sin contestar.</p>
+<div class='call'>
+<p><b>La asimetría es la prueba técnica.</b> En esos mismos días las llamadas salientes no se movieron:
+<b class='k'>76.2</b>% de conexión sobre <b class='k'>168</b> marcaciones, contra
+<b class='k'>78.9</b>% del resto del año. Un problema del lado del cliente habría degradado las dos
+direcciones. Solo cayó la recepción.</p>
+<p><b>El segundo indicio:</b> <b class='k'>96.6</b>% de las llamadas perdidas
+del año murieron con cero minutos registrados. No hay abandono por espera. Hay corte.</p>
+</div>
+<p class='note'>El archivo no trae campo de causa raíz. La atribución al cambio del servidor SIP del 29 de
+octubre se sostiene por la coincidencia exacta de fechas, por el contraste con las salientes y por lo que
+documenta el ticket #119317, no por un dato de causa.</p>
+</section>
+
+<section class='sec brk' id='ruta'>
+<p class='kick'>Hallazgo 2 · el estructural</p>
+<h2>Una ruta que nunca contestó una sola llamada</h2>
+<p>El destino configurado como <b>Disponible</b> recibió <b class='k'>334</b> llamadas en 2026 y perdió las
+<b class='k'>334</b>. Ninguna fue atendida, ninguna generó un minuto. Esa sola ruta explica el
+<b class='k'>46.1</b>% de todas las llamadas perdidas del año.</p>
+<div class='ch'><svg viewBox='0 0 940 270' width='100%' height='auto' role='img' aria-label='Llamadas perdidas por mes y cuántas de ellas cayeron en la ruta Disponible' preserveAspectRatio='xMinYMin meet' class='cv'><line x1='44' x2='926' y1='230.0' y2='230.0' stroke='#e4e7eb'/><text x='36.0' y='230.0' text-anchor='end' class='tk' dominant-baseline='middle'>0</text><line x1='44' x2='926' y1='180.5' y2='180.5' stroke='#e4e7eb'/><text x='36.0' y='180.5' text-anchor='end' class='tk' dominant-baseline='middle'>25</text><line x1='44' x2='926' y1='131.0' y2='131.0' stroke='#e4e7eb'/><text x='36.0' y='131.0' text-anchor='end' class='tk' dominant-baseline='middle'>50</text><line x1='44' x2='926' y1='81.5' y2='81.5' stroke='#e4e7eb'/><text x='36.0' y='81.5' text-anchor='end' class='tk' dominant-baseline='middle'>75</text><line x1='44' x2='926' y1='32.0' y2='32.0' stroke='#e4e7eb'/><text x='36.0' y='32.0' text-anchor='end' class='tk' dominant-baseline='middle'>100</text><rect x='60.0' y='37.9' width='48.1' height='192.1' fill='#c7ccd4'/><rect x='73.0' y='150.8' width='22.1' height='79.2' fill='#c23b32'/><text x='84.1' y='163.8' text-anchor='middle' class='lbl-in'>40</text><text x='84.1' y='30.9' text-anchor='middle' class='lbl'>9.9%</text><text x='84.1' y='246.0' text-anchor='middle' class='tk'>Ene</text><rect x='140.2' y='105.3' width='48.1' height='124.7' fill='#c7ccd4'/><rect x='153.2' y='158.7' width='22.1' height='71.3' fill='#c23b32'/><text x='164.3' y='171.7' text-anchor='middle' class='lbl-in'>36</text><text x='164.3' y='98.3' text-anchor='middle' class='lbl'>12.2%</text><text x='164.3' y='246.0' text-anchor='middle' class='tk'>Feb</text><rect x='220.4' y='91.4' width='48.1' height='138.6' fill='#c7ccd4'/><rect x='233.4' y='172.6' width='22.1' height='57.4' fill='#c23b32'/><text x='244.5' y='185.6' text-anchor='middle' class='lbl-in'>29</text><text x='244.5' y='84.4' text-anchor='middle' class='lbl'>12.6%</text><text x='244.5' y='246.0' text-anchor='middle' class='tk'>Mar</text><rect x='300.6' y='97.3' width='48.1' height='132.7' fill='#c7ccd4'/><rect x='313.6' y='190.4' width='22.1' height='39.6' fill='#c23b32'/><text x='324.6' y='203.4' text-anchor='middle' class='lbl-in'>20</text><text x='324.6' y='90.3' text-anchor='middle' class='lbl'>13.6%</text><text x='324.6' y='246.0' text-anchor='middle' class='tk'>Abr</text><rect x='380.8' y='117.1' width='48.1' height='112.9' fill='#c7ccd4'/><rect x='393.8' y='190.4' width='22.1' height='39.6' fill='#c23b32'/><text x='404.8' y='203.4' text-anchor='middle' class='lbl-in'>20</text><text x='404.8' y='110.1' text-anchor='middle' class='lbl'>12.4%</text><text x='404.8' y='246.0' text-anchor='middle' class='tk'>May</text><rect x='460.9' y='178.5' width='48.1' height='51.5' fill='#c7ccd4'/><rect x='473.9' y='222.1' width='22.1' height='7.9' fill='#c23b32'/><text x='485.0' y='235.1' text-anchor='middle' class='lbl-in'>4</text><text x='485.0' y='171.5' text-anchor='middle' class='lbl'>5.4%</text><text x='485.0' y='246.0' text-anchor='middle' class='tk'>Jun</text><rect x='541.1' y='162.7' width='48.1' height='67.3' fill='#c7ccd4'/><rect x='554.1' y='216.1' width='22.1' height='13.9' fill='#c23b32'/><text x='565.2' y='229.1' text-anchor='middle' class='lbl-in'>7</text><text x='565.2' y='155.7' text-anchor='middle' class='lbl'>9.9%</text><text x='565.2' y='246.0' text-anchor='middle' class='tk'>Jul</text><rect x='621.3' y='87.4' width='48.1' height='142.6' fill='#c7ccd4'/><rect x='634.3' y='162.7' width='22.1' height='67.3' fill='#c23b32'/><text x='645.4' y='175.7' text-anchor='middle' class='lbl-in'>34</text><text x='645.4' y='80.4' text-anchor='middle' class='lbl'>15.9%</text><text x='645.4' y='246.0' text-anchor='middle' class='tk'>Ago</text><rect x='701.5' y='103.3' width='48.1' height='126.7' fill='#c7ccd4'/><rect x='714.5' y='180.5' width='22.1' height='49.5' fill='#c23b32'/><text x='725.5' y='193.5' text-anchor='middle' class='lbl-in'>25</text><text x='725.5' y='96.3' text-anchor='middle' class='lbl'>17.5%</text><text x='725.5' y='246.0' text-anchor='middle' class='tk'>Sep</text><rect x='781.7' y='59.7' width='48.1' height='170.3' fill='#c7ccd4'/><rect x='794.7' y='113.2' width='22.1' height='116.8' fill='#c23b32'/><text x='805.7' y='126.2' text-anchor='middle' class='lbl-in'>59</text><text x='805.7' y='52.7' text-anchor='middle' class='lbl'>25.7%</text><text x='805.7' y='246.0' text-anchor='middle' class='tk'>Oct</text><rect x='861.9' y='53.8' width='48.1' height='176.2' fill='#c7ccd4'/><rect x='874.8' y='111.2' width='22.1' height='118.8' fill='#c23b32'/><text x='885.9' y='124.2' text-anchor='middle' class='lbl-in'>60</text><text x='885.9' y='46.8' text-anchor='middle' class='lbl'>61.4%</text><text x='885.9' y='246.0' text-anchor='middle' class='tk'>Nov 1-9</text><line x1='44' x2='926' y1='230' y2='230' stroke='#5f6773'/></svg></div>
+<div class='leg'>
+<span><i class='sw' style='background:#c7ccd4'></i>Perdidas del mes</span>
+<span><i class='sw' style='background:#c23b32'></i>De ellas, ruta Disponible</span>
+<span style='color:#8a919b'>El % sobre cada barra es la tasa de entrantes sin contestar del mes</span></div>
+<p>Esto cambia la lectura del indicador. En octubre la cuenta cerró con <b class='k'>25.7</b>% sin
+contestar, pero si se descuenta esa ruta la caída real de los agentes fue de <b class='k'>9.8</b>%. El problema no es
+la gente del cliente: es a dónde se mandan las llamadas y qué pasa cuando ninguna extensión está alcanzable.</p>
+<p><b>Y no empezó el 29 de octubre.</b> Esa ruta perdió <b class='k'>34</b> llamadas en agosto y
+<b class='k'>25</b> en septiembre, antes de llegar a <b class='k'>59</b> en octubre y
+<b class='k'>60</b> en los primeros nueve días de noviembre. Cuando Edgar Sosa dice que estas situaciones
+son recurrentes, el archivo le da la razón.</p>
+</section>
+
+<section class='sec brk' id='tendencia'>
+<p class='kick'>Hallazgo 3 · el comercial</p>
+<h2>La cuenta se vacía sola desde enero</h2>
+<div class='ch'><svg viewBox='0 0 940 270' width='100%' height='auto' role='img' aria-label='Llamadas entrantes y salientes por mes de 2026' preserveAspectRatio='xMinYMin meet' class='cv'><line x1='50' x2='926' y1='224.0' y2='224.0' stroke='#e4e7eb'/><text x='42.0' y='224.0' text-anchor='end' class='tk' dominant-baseline='middle'>0</text><line x1='50' x2='926' y1='172.5' y2='172.5' stroke='#e4e7eb'/><text x='42.0' y='172.5' text-anchor='end' class='tk' dominant-baseline='middle'>500</text><line x1='50' x2='926' y1='121.0' y2='121.0' stroke='#e4e7eb'/><text x='42.0' y='121.0' text-anchor='end' class='tk' dominant-baseline='middle'>1,000</text><line x1='50' x2='926' y1='69.5' y2='69.5' stroke='#e4e7eb'/><text x='42.0' y='69.5' text-anchor='end' class='tk' dominant-baseline='middle'>1,500</text><line x1='50' x2='926' y1='18.0' y2='18.0' stroke='#e4e7eb'/><text x='42.0' y='18.0' text-anchor='end' class='tk' dominant-baseline='middle'>2,000</text><rect x='60.7' y='123.3' width='27.1' height='100.7' fill='#2d6a9f'/><rect x='91.8' y='85.6' width='27.1' height='138.4' fill='#8fb8d8'/><text x='89.8' y='240.0' text-anchor='middle' class='tk'>Ene</text><text x='89.8' y='254.0' text-anchor='middle' class='tk-sm'>32.6 / día</text><rect x='140.4' y='170.6' width='27.1' height='53.4' fill='#2d6a9f'/><rect x='171.5' y='163.7' width='27.1' height='60.3' fill='#8fb8d8'/><text x='169.5' y='240.0' text-anchor='middle' class='tk'>Feb</text><text x='169.5' y='254.0' text-anchor='middle' class='tk-sm'>19.9 / día</text><rect x='220.0' y='166.7' width='27.1' height='57.3' fill='#2d6a9f'/><rect x='251.1' y='140.4' width='27.1' height='83.6' fill='#8fb8d8'/><text x='249.1' y='240.0' text-anchor='middle' class='tk'>Mar</text><text x='249.1' y='254.0' text-anchor='middle' class='tk-sm'>20.6 / día</text><rect x='299.7' y='173.2' width='27.1' height='50.8' fill='#2d6a9f'/><rect x='330.7' y='145.0' width='27.1' height='79.0' fill='#8fb8d8'/><text x='328.7' y='240.0' text-anchor='middle' class='tk'>Abr</text><text x='328.7' y='254.0' text-anchor='middle' class='tk-sm'>19.0 / día</text><rect x='379.3' y='176.7' width='27.1' height='47.3' fill='#2d6a9f'/><rect x='410.4' y='153.3' width='27.1' height='70.7' fill='#8fb8d8'/><text x='408.4' y='240.0' text-anchor='middle' class='tk'>May</text><text x='408.4' y='254.0' text-anchor='middle' class='tk-sm'>17.7 / día</text><rect x='458.9' y='174.8' width='27.1' height='49.2' fill='#2d6a9f'/><rect x='490.0' y='167.3' width='27.1' height='56.7' fill='#8fb8d8'/><text x='488.0' y='240.0' text-anchor='middle' class='tk'>Jun</text><text x='488.0' y='254.0' text-anchor='middle' class='tk-sm'>17.7 / día</text><rect x='538.6' y='188.5' width='27.1' height='35.5' fill='#2d6a9f'/><rect x='569.6' y='170.2' width='27.1' height='53.8' fill='#8fb8d8'/><text x='567.6' y='240.0' text-anchor='middle' class='tk'>Jul</text><text x='567.6' y='254.0' text-anchor='middle' class='tk-sm'>12.3 / día</text><rect x='618.2' y='177.2' width='27.1' height='46.8' fill='#2d6a9f'/><rect x='649.3' y='170.0' width='27.1' height='54.0' fill='#8fb8d8'/><text x='647.3' y='240.0' text-anchor='middle' class='tk'>Ago</text><text x='647.3' y='254.0' text-anchor='middle' class='tk-sm'>16.2 / día</text><rect x='697.8' y='186.3' width='27.1' height='37.7' fill='#2d6a9f'/><rect x='728.9' y='170.6' width='27.1' height='53.4' fill='#8fb8d8'/><text x='726.9' y='240.0' text-anchor='middle' class='tk'>Sep</text><text x='726.9' y='254.0' text-anchor='middle' class='tk-sm'>13.6 / día</text><rect x='777.5' y='189.5' width='27.1' height='34.5' fill='#2d6a9f'/><rect x='808.5' y='172.3' width='27.1' height='51.7' fill='#8fb8d8'/><text x='806.5' y='240.0' text-anchor='middle' class='tk'>Oct</text><text x='806.5' y='254.0' text-anchor='middle' class='tk-sm'>12.9 / día</text><rect x='857.1' y='209.1' width='27.1' height='14.9' fill='#2d6a9f'/><rect x='888.2' y='208.4' width='27.1' height='15.6' fill='#8fb8d8'/><text x='886.2' y='240.0' text-anchor='middle' class='tk'>Nov 1-9</text><text x='886.2' y='254.0' text-anchor='middle' class='tk-sm'>20.7 / día</text><line x1='50' x2='926' y1='224' y2='224' stroke='#5f6773'/></svg></div>
+<div class='leg'>
+<span><i class='sw' style='background:#2d6a9f'></i>Entrantes</span>
+<span><i class='sw' style='background:#8fb8d8'></i>Salientes</span>
+<span style='color:#8a919b'>Bajo cada mes, el promedio de entrantes por día con tráfico</span></div>
+<p>Las entrantes por día pasaron de <b class='k'>32.6</b> en enero a <b class='k'>12.9</b> en octubre,
+un <b class='k'>-60.4</b>%. Las salientes cayeron
+<b class='k'>-56.2</b>% y los minutos totales
+<b class='k'>-68.9</b>%. La demanda también se encogió: de
+<b class='k'>187</b> números distintos que llamaron en enero a <b class='k'>97</b> en octubre.</p>
+<p>El plan es de <b class='k'>43,750</b> minutos al mes. En enero la cuenta usó <b class='k'>31.6</b>%; en octubre,
+<b class='k'>9.8</b>%. Con un MRR de $<b class='k'>12,603</b>, el minuto efectivamente usado en octubre salió a
+$<b class='k'>2.94</b>. Es exactamente el cálculo que hará su área de finanzas cuando revise el contrato.</p>
+<p><b>Cuidado con un espejismo:</b> noviembre promedia <b class='k'>20.7</b> entrantes por día, más que
+octubre. No es demanda que regresa. Es la misma gente marcando otra vez porque no entra: en el apagón,
+<b class='k'>38</b> números generaron <b class='k'>114</b> intentos.</p>
+</section>
+
+<section class='sec brk' id='dias'>
+<p class='kick'>Hallazgo 4 · cobertura</p>
+<h2>El fin de semana está abierto al público y cerrado por dentro</h2>
+<div class='ch'><svg viewBox='0 0 940 250' width='100%' height='auto' role='img' aria-label='Porcentaje de llamadas entrantes sin contestar por día de la semana' preserveAspectRatio='xMinYMin meet' class='cv'><line x1='96.0' x2='96.0' y1='12' y2='232' stroke='#e4e7eb'/><text x='96.0' y='245.0' text-anchor='middle' class='tk'>0%</text><line x1='277.0' x2='277.0' y1='12' y2='232' stroke='#e4e7eb'/><text x='277.0' y='245.0' text-anchor='middle' class='tk'>20%</text><line x1='458.0' x2='458.0' y1='12' y2='232' stroke='#e4e7eb'/><text x='458.0' y='245.0' text-anchor='middle' class='tk'>40%</text><line x1='639.0' x2='639.0' y1='12' y2='232' stroke='#e4e7eb'/><text x='639.0' y='245.0' text-anchor='middle' class='tk'>60%</text><line x1='820.0' x2='820.0' y1='12' y2='232' stroke='#e4e7eb'/><text x='820.0' y='245.0' text-anchor='middle' class='tk'>80%</text><rect x='96.0' y='18.6' width='126.7' height='18.2' fill='#2d6a9f'/><text x='86.0' y='27.7' text-anchor='end' class='tk-b' dominant-baseline='middle'>Lunes</text><text x='230.7' y='27.7' text-anchor='start' class='tk' dominant-baseline='middle'>14.0%  ·  129 de 922</text><rect x='96.0' y='50.0' width='76.9' height='18.2' fill='#2d6a9f'/><text x='86.0' y='59.1' text-anchor='end' class='tk-b' dominant-baseline='middle'>Martes</text><text x='180.9' y='59.1' text-anchor='start' class='tk' dominant-baseline='middle'>8.5%  ·  84 de 990</text><rect x='96.0' y='81.5' width='82.4' height='18.2' fill='#2d6a9f'/><text x='86.0' y='90.6' text-anchor='end' class='tk-b' dominant-baseline='middle'>Miércoles</text><text x='186.4' y='90.6' text-anchor='start' class='tk' dominant-baseline='middle'>9.1%  ·  82 de 899</text><rect x='96.0' y='112.9' width='112.2' height='18.2' fill='#2d6a9f'/><text x='86.0' y='122.0' text-anchor='end' class='tk-b' dominant-baseline='middle'>Jueves</text><text x='216.2' y='122.0' text-anchor='start' class='tk' dominant-baseline='middle'>12.4%  ·  115 de 927</text><rect x='96.0' y='144.3' width='104.1' height='18.2' fill='#2d6a9f'/><text x='86.0' y='153.4' text-anchor='end' class='tk-b' dominant-baseline='middle'>Viernes</text><text x='208.1' y='153.4' text-anchor='start' class='tk' dominant-baseline='middle'>11.5%  ·  109 de 951</text><rect x='96.0' y='175.7' width='282.4' height='18.2' fill='#92231c'/><text x='86.0' y='184.9' text-anchor='end' class='tk-b' dominant-baseline='middle'>Sábado</text><text x='386.4' y='184.9' text-anchor='start' class='tk' dominant-baseline='middle'>31.2%  ·  87 de 279</text><rect x='96.0' y='207.2' width='422.6' height='18.2' fill='#92231c'/><text x='86.0' y='216.3' text-anchor='end' class='tk-b' dominant-baseline='middle'>Domingo</text><text x='526.6' y='216.3' text-anchor='start' class='tk' dominant-baseline='middle'>46.7%  ·  21 de 45</text></svg></div>
+<p>El sábado pierde <b class='k'>31.2</b>% de <b class='k'>279</b> llamadas y el domingo
+<b class='k'>46.7</b>%, contra <b class='k'>9.1</b>% del miércoles. Pero el sábado sí tiene
+gente: hay agentes que atienden decenas de llamadas ese día. De las pérdidas del sábado,
+<b class='k'>61</b> cayeron en la ruta Disponible. Otra vez: enrutamiento, no personas.</p>
+<p>El lunes es el peor día hábil con <b class='k'>14.0</b>%, el patrón clásico de acumulación de lo que
+no se atendió el fin de semana. Los agregados por día excluyen los días del apagón (30 oct – 5 nov) para que
+el incidente no contamine el patrón normal de la operación.</p>
+</section>
+
+<section class='sec brk' id='horas'>
+<p class='kick'>Hallazgo 5 · bordes de jornada</p>
+<h2>La jornada aguanta; los bordes no</h2>
+<div class='ch'><svg viewBox='0 0 940 300' width='100%' height='auto' role='img' aria-label='Llamadas entrantes por hora del día y porcentaje sin contestar en cada hora' preserveAspectRatio='xMinYMin meet' class='cv'><line x1='46' x2='888' y1='248.0' y2='248.0' stroke='#e4e7eb'/><text x='38.0' y='248.0' text-anchor='end' class='tk' dominant-baseline='middle'>0</text><line x1='46' x2='888' y1='191.0' y2='191.0' stroke='#e4e7eb'/><text x='38.0' y='191.0' text-anchor='end' class='tk' dominant-baseline='middle'>200</text><line x1='46' x2='888' y1='134.0' y2='134.0' stroke='#e4e7eb'/><text x='38.0' y='134.0' text-anchor='end' class='tk' dominant-baseline='middle'>400</text><line x1='46' x2='888' y1='77.0' y2='77.0' stroke='#e4e7eb'/><text x='38.0' y='77.0' text-anchor='end' class='tk' dominant-baseline='middle'>600</text><line x1='46' x2='888' y1='20.0' y2='20.0' stroke='#e4e7eb'/><text x='38.0' y='20.0' text-anchor='end' class='tk' dominant-baseline='middle'>800</text><text x='896.0' y='248.0' text-anchor='start' class='tk-pct' dominant-baseline='middle'>0%</text><text x='896.0' y='172.0' text-anchor='start' class='tk-pct' dominant-baseline='middle'>50%</text><text x='896.0' y='96.0' text-anchor='start' class='tk-pct' dominant-baseline='middle'>100%</text><text x='896.0' y='20.0' text-anchor='start' class='tk-pct' dominant-baseline='middle'>150%</text><rect x='56.0' y='239.7' width='32.6' height='8.3' fill='#c7ccd4'/><text x='72.3' y='264.0' text-anchor='middle' class='tk'>7</text><rect x='108.6' y='167.6' width='32.6' height='80.4' fill='#c7ccd4'/><text x='124.9' y='264.0' text-anchor='middle' class='tk'>8</text><rect x='161.2' y='126.6' width='32.6' height='121.4' fill='#c7ccd4'/><text x='177.6' y='264.0' text-anchor='middle' class='tk'>9</text><rect x='213.9' y='102.1' width='32.6' height='145.9' fill='#c7ccd4'/><text x='230.2' y='264.0' text-anchor='middle' class='tk'>10</text><rect x='266.5' y='85.3' width='32.6' height='162.7' fill='#c7ccd4'/><text x='282.8' y='264.0' text-anchor='middle' class='tk'>11</text><rect x='319.1' y='88.4' width='32.6' height='159.6' fill='#c7ccd4'/><text x='335.4' y='264.0' text-anchor='middle' class='tk'>12</text><rect x='371.7' y='122.6' width='32.6' height='125.4' fill='#c7ccd4'/><text x='388.1' y='264.0' text-anchor='middle' class='tk'>13</text><rect x='424.4' y='120.3' width='32.6' height='127.7' fill='#c7ccd4'/><text x='440.7' y='264.0' text-anchor='middle' class='tk'>14</text><rect x='477.0' y='107.8' width='32.6' height='140.2' fill='#c7ccd4'/><text x='493.3' y='264.0' text-anchor='middle' class='tk'>15</text><rect x='529.6' y='97.5' width='32.6' height='150.5' fill='#c7ccd4'/><text x='545.9' y='264.0' text-anchor='middle' class='tk'>16</text><rect x='582.2' y='133.1' width='32.6' height='114.9' fill='#c7ccd4'/><text x='598.6' y='264.0' text-anchor='middle' class='tk'>17</text><rect x='634.9' y='199.6' width='32.6' height='48.4' fill='#c7ccd4'/><text x='651.2' y='264.0' text-anchor='middle' class='tk'>18</text><rect x='687.5' y='224.1' width='32.6' height='23.9' fill='#c7ccd4'/><text x='703.8' y='264.0' text-anchor='middle' class='tk'>19</text><rect x='740.1' y='237.2' width='32.6' height='10.8' fill='#c7ccd4'/><text x='756.4' y='264.0' text-anchor='middle' class='tk'>20</text><rect x='792.7' y='242.9' width='32.6' height='5.1' fill='#c7ccd4'/><text x='809.1' y='264.0' text-anchor='middle' class='tk'>21</text><rect x='845.4' y='245.4' width='32.6' height='2.6' fill='#c7ccd4'/><text x='861.7' y='264.0' text-anchor='middle' class='tk'>22</text><polyline fill='none' stroke='#2d6a9f' stroke-width='2.2' points='72.3,143.1 124.9,224.9 177.6,231.9 230.2,235.8 282.8,235.2 335.4,229.8 388.1,223.1 440.7,230.4 493.3,235.7 545.9,229.3 598.6,229.5 651.2,225.7 703.8,188.3 756.4,200.0 809.1,197.4 861.7,129.7'/><circle cx='72.3' cy='143.1' r='3.4' fill='#92231c'/><text x='72.3' y='134.1' text-anchor='middle' class='lbl-pct'>69%</text><circle cx='124.9' cy='224.9' r='3.4' fill='#2d6a9f'/><circle cx='177.6' cy='231.9' r='3.4' fill='#2d6a9f'/><circle cx='230.2' cy='235.8' r='3.4' fill='#2d6a9f'/><circle cx='282.8' cy='235.2' r='3.4' fill='#2d6a9f'/><text x='282.8' y='226.2' text-anchor='middle' class='lbl-pct'>8%</text><circle cx='335.4' cy='229.8' r='3.4' fill='#2d6a9f'/><circle cx='388.1' cy='223.1' r='3.4' fill='#2d6a9f'/><text x='388.1' y='214.1' text-anchor='middle' class='lbl-pct'>16%</text><circle cx='440.7' cy='230.4' r='3.4' fill='#2d6a9f'/><circle cx='493.3' cy='235.7' r='3.4' fill='#2d6a9f'/><circle cx='545.9' cy='229.3' r='3.4' fill='#2d6a9f'/><circle cx='598.6' cy='229.5' r='3.4' fill='#2d6a9f'/><circle cx='651.2' cy='225.7' r='3.4' fill='#2d6a9f'/><circle cx='703.8' cy='188.3' r='3.4' fill='#92231c'/><text x='703.8' y='179.3' text-anchor='middle' class='lbl-pct'>39%</text><circle cx='756.4' cy='200.0' r='3.4' fill='#92231c'/><text x='756.4' y='191.0' text-anchor='middle' class='lbl-pct'>32%</text><circle cx='809.1' cy='197.4' r='3.4' fill='#92231c'/><text x='809.1' y='188.4' text-anchor='middle' class='lbl-pct'>33%</text><circle cx='861.7' cy='129.7' r='3.4' fill='#92231c'/><text x='861.7' y='120.7' text-anchor='middle' class='lbl-pct'>78%</text><line x1='46' x2='888' y1='248' y2='248' stroke='#5f6773'/><text x='467.0' y='286.0' text-anchor='middle' class='note-svg'>hora del día (tal como viene en el archivo, sin zona horaria)</text></svg></div>
+<div class='leg'>
+<span><i class='sw' style='background:#c7ccd4'></i>Llamadas entrantes (eje izquierdo)</span>
+<span><i class='sw' style='background:#2d6a9f'></i>% sin contestar (eje derecho)</span></div>
+<p>Entre las 8 y las 18 horas la pérdida agregada es de <b class='k'>11.3</b>%. Fuera de esa franja sube a
+<b class='k'>44.2</b>% sobre <b class='k'>181</b> llamadas. Las 7 de la mañana pierden
+<b class='k'>69.0</b>% y las 19 horas <b class='k'>39.3</b>%.</p>
+<p>Dentro de la jornada hay un valle real a las <b>13 horas</b>, con <b class='k'>16.4</b>% de pérdida frente a
+<b class='k'>8.4</b>% a las 11: la hora de comida no tiene relevo.</p>
+</section>
+
+<section class='sec brk' id='destinos'>
+<p class='kick'>Hallazgo 6 · desempeño</p>
+<h2>Los agentes contestan. El sistema pierde.</h2>
+<p>Las extensiones con nombre propio tienen tasas de pérdida de un dígito. El top 5 concentra el
+<b class='k'>55.0</b>% de las entrantes atendidas, lo que es eficiencia y a la vez riesgo de
+dependencia. Los nombres son los que configuró el cliente; el archivo no dice qué hay detrás de cada uno,
+así que no se clasifica ninguno.</p>
+<div class='tw'><table class='t'><thead><tr><th>Destino</th><th>Entrantes</th><th>Atendidas</th><th>Sin contestar</th><th>% sin contestar</th><th>Min. entr.</th><th>Salientes</th><th>Conectadas</th><th>% conexión</th></tr></thead><tbody><tr><td>Gimena Chan</td><td>554</td><td>538</td><td>16</td><td>2.9%</td><td>4,008</td><td>604</td><td>483</td><td>80.0%</td></tr><tr><td>Arturo Herrera</td><td>520</td><td>504</td><td>16</td><td>3.1%</td><td>4,563</td><td>704</td><td>570</td><td>81.0%</td></tr><tr><td>Roger Ku</td><td>515</td><td>505</td><td>10</td><td>1.9%</td><td>4,243</td><td>764</td><td>584</td><td>76.4%</td></tr><tr><td>Christian Aguayo</td><td>408</td><td>393</td><td>15</td><td>3.7%</td><td>3,274</td><td>353</td><td>270</td><td>76.5%</td></tr><tr><td>Mauricio Rodriguez</td><td>366</td><td>349</td><td>17</td><td>4.6%</td><td>4,563</td><td>416</td><td>317</td><td>76.2%</td></tr><tr class='hi'><td>Disponible</td><td>334</td><td>0</td><td>334</td><td>100.0%</td><td>0</td><td>0</td><td>0</td><td>—</td></tr><tr><td>Braulio Wade</td><td>310</td><td>293</td><td>17</td><td>5.5%</td><td>2,582</td><td>143</td><td>115</td><td>80.4%</td></tr><tr><td>(sin destino registrado)</td><td>308</td><td>0</td><td>70</td><td>22.7%</td><td>0</td><td>0</td><td>0</td><td>—</td></tr><tr><td>Noemi Salda√±a</td><td>250</td><td>242</td><td>8</td><td>3.2%</td><td>1,592</td><td>417</td><td>355</td><td>85.1%</td></tr><tr><td>Enger Canul</td><td>248</td><td>232</td><td>16</td><td>6.5%</td><td>2,375</td><td>555</td><td>427</td><td>76.9%</td></tr><tr><td>Diana Garcia</td><td>214</td><td>199</td><td>15</td><td>7.0%</td><td>1,267</td><td>603</td><td>501</td><td>83.1%</td></tr><tr><td>Leydi Lopez</td><td>169</td><td>154</td><td>15</td><td>8.9%</td><td>2,330</td><td>218</td><td>163</td><td>74.8%</td></tr><tr><td>Luis Ruiz</td><td>160</td><td>143</td><td>17</td><td>10.6%</td><td>2,327</td><td>58</td><td>44</td><td>75.9%</td></tr><tr><td>Angel Noh</td><td>143</td><td>135</td><td>8</td><td>5.6%</td><td>386</td><td>217</td><td>144</td><td>66.4%</td></tr><tr><td>Estephania Tello</td><td>116</td><td>112</td><td>4</td><td>3.4%</td><td>1,453</td><td>271</td><td>221</td><td>81.5%</td></tr><tr><td>Shirley Mulato</td><td>77</td><td>61</td><td>16</td><td>20.8%</td><td>636</td><td>227</td><td>173</td><td>76.2%</td></tr><tr><td>Wilson Tuz</td><td>76</td><td>73</td><td>3</td><td>3.9%</td><td>290</td><td>124</td><td>85</td><td>68.5%</td></tr><tr><td>Omar Zamacona</td><td>54</td><td>42</td><td>12</td><td>22.2%</td><td>751</td><td>117</td><td>91</td><td>77.8%</td></tr><tr class='hi'><td>Antonio Gonzalez</td><td>53</td><td>32</td><td>21</td><td>39.6%</td><td>167</td><td>114</td><td>89</td><td>78.1%</td></tr><tr class='hi'><td>Carlos Mayo</td><td>45</td><td>11</td><td>34</td><td>75.6%</td><td>141</td><td>119</td><td>97</td><td>81.5%</td></tr><tr class='hi'><td>Geiely Cordova</td><td>36</td><td>9</td><td>27</td><td>75.0%</td><td>160</td><td>56</td><td>49</td><td>87.5%</td></tr><tr><td>Kristina Berny</td><td>35</td><td>29</td><td>6</td><td>17.1%</td><td>65</td><td>0</td><td>0</td><td>—</td></tr><tr><td>Angel Ake</td><td>25</td><td>24</td><td>1</td><td>4.0%</td><td>447</td><td>72</td><td>49</td><td>68.1%</td></tr><tr><td>Cesar Kanxoc</td><td>23</td><td>23</td><td>0</td><td>0.0%</td><td>236</td><td>97</td><td>80</td><td>82.5%</td></tr><tr class='hi'><td>Armando Sanchez</td><td>22</td><td>15</td><td>7</td><td>31.8%</td><td>281</td><td>66</td><td>58</td><td>87.9%</td></tr><tr><td>Mariana Nava</td><td>15</td><td>12</td><td>3</td><td>20.0%</td><td>147</td><td>228</td><td>194</td><td>85.1%</td></tr><tr class='hi'><td>Luis Ojeda</td><td>11</td><td>3</td><td>8</td><td>72.7%</td><td>65</td><td>18</td><td>12</td><td>66.7%</td></tr><tr class='hi'><td>Guardia</td><td>10</td><td>7</td><td>3</td><td>30.0%</td><td>27</td><td>0</td><td>0</td><td>—</td></tr><tr><td>Andrea Ku</td><td>10</td><td>10</td><td>0</td><td>0.0%</td><td>181</td><td>62</td><td>54</td><td>87.1%</td></tr><tr><td>Marcos Caamal</td><td>9</td><td>9</td><td>0</td><td>0.0%</td><td>83</td><td>224</td><td>166</td><td>74.1%</td></tr><tr><td>Noami Salda√±a</td><td>6</td><td>5</td><td>1</td><td>16.7%</td><td>30</td><td>52</td><td>48</td><td>92.3%</td></tr><tr class='hi'><td>Leo Contreras</td><td>4</td><td>0</td><td>4</td><td>100.0%</td><td>0</td><td>0</td><td>0</td><td>—</td></tr><tr class='hi'><td>Ana Arias</td><td>1</td><td>0</td><td>1</td><td>100.0%</td><td>0</td><td>0</td><td>0</td><td>—</td></tr><tr><td>Anthony Avila</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>62</td><td>50</td><td>80.6%</td></tr></tbody></table></div>
+<p class='note'>Ordenado por volumen de entrantes. Las filas resaltadas son destinos que pierden más de una
+de cada cuatro llamadas que reciben.</p>
+</section>
+
+<section class='sec brk' id='demanda'>
+<p class='kick'>Hallazgo 7 · recuperable</p>
+<h2>La demanda insiste, y eso se puede recuperar</h2>
+<p>Hubo <b class='k'>468</b> llamadas que son un reintento dentro de las 24 horas siguientes a una llamada
+perdida del mismo número. De esas, <b class='k'>261</b> sí lograron ser atendidas y <b class='k'>195</b> se
+volvieron a perder.</p>
+<p><b class='k'>200</b> números distintos perdieron al menos una llamada en el año. De ellos,
+<b class='k'>84</b> perdieron tres o más y suman <b class='k'>576</b> llamadas perdidas. Esa es una lista
+concreta, no una abstracción: son contactos identificables a los que se les puede devolver la llamada.</p>
+</section>
+
+<section class='sec brk' id='foda'>
+<h2>FODA de la cuenta</h2>
+<p>Interno es lo que controlan Callpicker y el cliente sobre el servicio. Externo es lo que decide el mercado
+y el comité de compras de ABRL.</p>
+<div class='foda'>
+<div class='q f'><h3>Fortalezas</h3><ul>
+<li>El equipo del cliente contesta: los destinos con nombre propio pierden entre 2% y 10%, y en jornada la pérdida agregada es de 11.3%.</li>
+<li>Siete años de relación continua, pagos al corriente y sin incidencias de cobranza.</li>
+<li>La operación saliente no se ha roto en todo el año: 78.9% de conexión, incluso durante el incidente.</li>
+<li>Base de contactos madura y recurrente: 804 números marcados, 346 de ellos cinco o más veces, que concentran 87% del tráfico saliente.</li>
+<li>El cliente es desarrollador de software con VPN propia: hay interlocutor técnico capaz de evaluar una respuesta de arquitectura, no solo una disculpa.</li>
+</ul></div>
+<div class='q o'><h3>Oportunidades</h3><ul>
+<li>El cliente ya pidió por escrito plan de prevención, monitoreo de salud del servicio y protocolo de comunicación ante cambios. Eso es la especificación de un servicio gestionado que hoy no paga.</li>
+<li>Cero de seis módulos en siete años. IA de voz, IA de chat, integración por API y pago automático siguen sin tocar, y cada uno sube el costo de salida.</li>
+<li>12 extensiones contratadas sin tráfico en octubre y 39,461 minutos ociosos: espacio para un rightsizing honesto que compre credibilidad en lugar de perder el contrato completo.</li>
+<li>84 números con tres o más llamadas perdidas: una campaña de devolución medible que el cliente puede atribuir a la intervención.</li>
+<li>Edgar Sosa, de Infraestructura y Sistemas, ya está involucrado y es el decisor técnico natural para validar la solución.</li>
+</ul></div>
+<div class='q d'><h3>Debilidades</h3><ul>
+<li>La ruta Disponible lleva 334 llamadas perdidas en el año, el 46.1% del total, sin haber contestado una sola. Es un defecto de diseño que nadie revisó en meses.</li>
+<li>El apagón de entrantes duró cuatro días hábiles y se detectó porque el cliente reclamó, no porque Callpicker lo viera.</li>
+<li>El diagnóstico inicial señaló la infraestructura del cliente. El contraste entrantes contra salientes ya apuntaba al lado de la recepción.</li>
+<li>No hubo notificación previa de un cambio en el servidor SIP que modificó el tamaño de los paquetes.</li>
+<li>Expediente vacío: sin reuniones vinculadas, sin documentos anexos y con observaciones del KAM en blanco hasta el 6 de noviembre. No hay evidencia capturada para defender la cuenta.</li>
+<li>Concentración operativa: cinco extensiones absorben 55.0% de las entrantes atendidas.</li>
+</ul></div>
+<div class='q a'><h3>Amenazas</h3><ul>
+<li>El cliente ya cuestionó por escrito la continuidad de Callpicker como proveedor. El riesgo está declarado, no inferido.</li>
+<li>Costo de salida bajo: un solo servicio, cero módulos y uso al 9.8% del plan. Nada técnico lo retiene.</li>
+<li>La caída de consumo es sostenida, no un bache: -60.4% en entrantes por día y -48.1% en números únicos entre enero y octubre.</li>
+<li>El cliente puede verificar por sí mismo que el patrón viene de agosto. Si la conversación se plantea como un incidente aislado, la pierde quien lo diga.</li>
+<li>Reincidencia percibida más ausencia de monitoreo propio: cualquier caída nueva, por menor que sea, dispara la cancelación.</li>
+<li>Ya hay quejas internas en ABRL por el servicio, según el propio contacto. El desgaste no está solo en el área de sistemas.</li>
+</ul></div>
+</div>
+</section>
+
+<section class='sec brk' id='guion'>
+<h2>Qué llevar a la llamada</h2>
+<p>El reflejo natural es ir a defender. Los datos permiten algo mejor: llegar con el diagnóstico que el
+cliente no tiene y quedarse con la agenda.</p>
+<ol class='steps'>
+<li><b>Abrir reconociendo con número, no con adjetivo.</b> Del 30 de octubre al 4 de noviembre entraron
+76 llamadas a su operación y una fue atendida. Decirlo primero, antes de que lo diga
+él, cambia quién controla la conversación.</li>
+<li><b>Cerrar el tema de la culpa con la asimetría.</b> Sus salientes nunca se degradaron:
+76.2% de conexión durante el incidente contra 78.9% histórico.
+Eso descarta su infraestructura como causa y corrige el diagnóstico inicial sin discutirlo.</li>
+<li><b>Entregarle el hallazgo que no conoce.</b> La ruta Disponible lleva 334 llamadas
+perdidas en el año y jamás contestó una. Es un defecto de enrutamiento reparable esta semana, y es valor que
+se le regala en la misma llamada donde se le pide confianza.</li>
+<li><b>Darle la razón donde la tiene.</b> Dijo que es recurrente. La ruta perdió
+34 llamadas en agosto, 25 en septiembre y
+59 en octubre. Confirmarlo con el dato vale más que cualquier compromiso genérico.</li>
+<li><b>Convertir su propia petición en el siguiente paso.</b> Pidió prevención, monitoreo y protocolo de
+aviso. Llevar las tres con fecha, responsable y forma de verificarlo, no como promesa sino como entregable.</li>
+<li><b>Dejar la campaña de recuperación sobre la mesa.</b> 84 números perdieron tres o más
+llamadas. Ofrecer la lista es demostrar que el proveedor cuida su negocio, no su factura.</li>
+<li><b>No abrir la conversación de rightsizing en esta llamada.</b> Usa 9.8% de su plan y
+eso tarde o temprano llega a finanzas, pero tocarlo hoy convierte una reparación de confianza en una
+negociación de precio. Va después de que el servicio esté estable y documentado.</li>
+</ol>
+<p class='note'><b>Riesgo asumido de esta estrategia:</b> reconocer con números expone la magnitud real del
+apagón, que el cliente quizá no había cuantificado. Se asume a propósito. Si lo descubre después y por su
+cuenta, el costo es la cuenta completa.</p>
+</section>
+
+<section class='meth' id='metodo'>
+<h3>Cómo se midió y qué no se puede afirmar con estos datos</h3>
+<ul>
+<li><b>Fuente.</b> Dos archivos de detalle de llamadas de la cuenta CID 26654: 5,127 registros de
+entrantes y 6,961 de salientes, del 1 de enero al 9 de noviembre de 2026. Los datos de plan,
+facturación y antigüedad vienen del expediente de la cuenta, no de los archivos de llamadas.</li>
+<li><b>Definiciones.</b> Sin contestar es el desenlace <i>Lost</i>: entró la llamada y ninguna extensión la
+tomó. Atendida es <i>Redirected</i>. El menú es <i>Self_service</i> y no cuenta como falla. En salientes,
+conectada es <i>Redirected</i>.</li>
+<li><b>Los agregados por día de la semana y por hora excluyen</b> del 30 de octubre al 5 de noviembre, para
+que el apagón no contamine el patrón normal. Las secciones del incidente sí los incluyen.</li>
+<li><b>No hay campo de causa.</b> El archivo no dice por qué se perdió una llamada. La atribución al cambio
+del servidor SIP del 29 de octubre se sostiene por la coincidencia exacta de fechas, por el contraste con las
+salientes y por lo que documenta el ticket #119317. No por un dato de causa raíz.</li>
+<li><b>No se puede convertir a pesos.</b> Las 725 llamadas perdidas no tienen valor económico
+asignable sin información de ABRL sobre el valor de un contacto. Cualquier cifra en dinero aquí sería
+inventada.</li>
+<li><b>Registros sin número Callpicker asociado:</b> 157 en entrantes y 197
+en salientes. Tienen desenlaces peores que el promedio y pueden sesgar ligeramente los agregados globales.</li>
+<li><b>Noviembre es mes incompleto</b> (1 al 9). Todas sus comparaciones se hacen por llamadas por día, no
+por totales del mes.</li>
+<li><b>Diferencia con el tablero ATLAS.</b> La ficha reporta 4,400 entrantes al 14 de septiembre; estos
+archivos dan 4,457. La diferencia de 57 registros, 1.3%, probablemente viene del corte de la ventana. No se
+ajustó ninguna cifra para igualarlas.</li>
+<li><b>Horas sin zona horaria.</b> El archivo no la trae; las horas se leen tal como vienen.</li>
+<li><b>Extensiones activas.</b> 32 destinos distintos aparecen con tráfico en todo el año, pero solo 23 en
+octubre y un promedio de 23.4 por mes. El conteo de 12 sin uso es contra el mes de octubre, no contra el año.</li>
+</ul>
+</section>
+
+<p class='foot'>Análisis de llamadas entrantes y salientes de Callpicker · cuenta ABRL Sistemas &amp;
+Proyectos (CID 26654) · periodo 1 ene – 9 nov 2026 · elaborado para Satisfacción al Cliente (SAC) ·
+documento interno, no distribuir al cliente.</p>
+</div>
+</body>
+</html>
