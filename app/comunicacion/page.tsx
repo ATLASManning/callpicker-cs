@@ -39,7 +39,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import PageHeader from '@/components/PageHeader'
-import { ExternalLink, Search, MessageSquare, Info, PhoneCall, Ticket, Mail, MessageCircle } from 'lucide-react'
+import { ExternalLink, Search, MessageSquare, Info } from 'lucide-react'
 
 /* La liga vive en `lib/comunicaciones-liga.ts`, NO aquí: un archivo de página
    no puede tener exports con nombre —`next build` lo rechaza aunque `tsc` lo
@@ -181,29 +181,13 @@ export default function ComunicacionPage() {
           </div>
         </div>
 
-        {/* ── Qué vas a encontrar ─────────────────────────────────────── */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
-          {[
-            { Icono: Ticket,        t: 'Tickets',  d: 'con su estado real, abiertos incluidos' },
-            { Icono: PhoneCall,     t: 'Llamadas', d: 'duración, resultado y qué se habló' },
-            { Icono: Mail,          t: 'Correos',  d: 'asunto y direcciones de ambos lados' },
-            { Icono: MessageCircle, t: 'WhatsApp', d: 'por bandeja, con su conteo' },
-          ].map(({ Icono, t, d }) => (
-            <div
-              key={t}
-              style={{
-                flex: '1 1 220px', background: '#fff', border: `1px solid ${BORDE}`,
-                borderRadius: 10, padding: '12px 14px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
-                <Icono size={15} color={AZUL} />
-                <span style={{ background: 'transparent', color: INK, fontSize: 13, fontWeight: 700 }}>{t}</span>
-              </div>
-              <div style={{ fontSize: 11.5, color: INK_M, lineHeight: 1.55 }}>{d}</div>
-            </div>
-          ))}
-        </div>
+        {/* LAS CUATRO TARJETAS DE CANAL SE QUITARON (instrucción, 12 nov 2026):
+            «sólo van a confundir a quien los vea». Y tenía razón — describían
+            lo que el conector trae, en una pantalla cuyo trabajo es LLEVARTE
+            ahí. Lo que se va a ver son los detalles de la comunicación entre
+            el cliente y Callpicker, y eso se ve al abrirlo, no se resume de
+            antemano. El inventario de canales sigue, donde sí sirve, en el
+            artículo de la Base de Conocimiento. */}
 
         {/* ── Cartera ─────────────────────────────────────────────────── */}
         <div style={{ background: '#fff', border: `1px solid ${BORDE}`, borderRadius: 12, overflow: 'hidden' }}>
