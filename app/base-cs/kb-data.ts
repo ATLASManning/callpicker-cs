@@ -49,6 +49,72 @@ export interface Categoria {
 // ─────────────────────────────────────────────────────────────────────────────
 export const KB: Categoria[] = [
 
+  // ── REGISTRO DE COMUNICACIONES ──────────────────────────────────────────
+  /* Entra a la Base porque es la respuesta a la pregunta que más se hace con
+     un cliente al teléfono —«¿qué ha pasado con esta cuenta?»— y hasta ahora
+     no tenía respuesta en el tablero: había que abrir Zoho Desk por un lado,
+     el reporte de llamadas por otro, y el correo por un tercero.
+     El artículo dice también lo que el registro NO resuelve, porque un asesor
+     que cree que ahí está todo deja de preguntar donde sí está. */
+  {
+    id: 'comunicaciones', label: 'Registro de Comunicaciones', color: '#2696F1',
+    articulos: [
+      {
+        id: 'registro-comunicaciones',
+        badge: 'nuevo',
+        linkUrl: 'https://n8n-gtc.connectors.callpicker.com/webhook/com-contexto',
+        linkLabel: 'Abrir el Registro de comunicaciones',
+        titulo: 'Registro de comunicaciones del cliente — los cuatro canales en una línea de tiempo',
+        descripcion:
+          'La conversación completa con una cuenta, ordenada por fecha y mezclando los cuatro canales: tickets de Zoho Desk, llamadas, correos y WhatsApp. Se consulta desde el apartado Comunicación del tablero, que arma la liga de cada cuenta, o buscando directamente por correo, teléfono de 10 dígitos, CID o ID de Zoho.',
+        ubicacion: 'Tablero → Comunicación. Cada cuenta trae su botón «Ver comunicaciones».',
+        utilidad:
+          'Es lo único que contesta «¿qué ha pasado con este cliente?» sin abrir tres sistemas. Antes de llamar a una cuenta, mirarlo evita la peor llamada posible: la que empieza preguntando algo que el cliente ya reportó por ticket hace dos semanas.',
+        subtitulos: [
+          {
+            titulo: 'Qué trae que el tablero NO tiene por ningún otro lado',
+            items: [
+              'TICKETS CON SU ESTADO REAL, abiertos y pendientes incluidos. La fuente semanal del apartado Tickets sólo exporta CERRADOS —7,914 de 7,916 filas traen fecha de cierre— así que «cuántos tiene abiertos» no se puede responder desde el tablero. Aquí sí.',
+              'EL ANÁLISIS DE CADA LLAMADA: qué necesitaba el cliente, qué se resolvió, cuál es el siguiente paso, qué se hizo bien y qué se pudo hacer mejor. El apartado Análisis de Llamadas trae VOLUMEN —cuántas entraron y salieron—, no contenido.',
+              'EL CANAL DE CORREO, con asunto y las direcciones de ambos lados. No existe en ninguna otra pantalla.',
+              'WHATSAPP POR BANDEJA, con el número de mensajes de cada conversación.',
+              'ES VIVO: muestra lo de hoy. Las fuentes del tablero son un corte semanal.',
+            ],
+          },
+          {
+            titulo: 'Qué NO trae, para no quedarse esperando',
+            items: [
+              'EL CONTENIDO de las conversaciones no está en la ficha: «7 intervenciones» es un CONTEO, no una transcripción. Para leerla hay que entrar al enlace de su sistema.',
+              'Las grabaciones se escuchan en su sistema por enlace; no se descargan al tablero.',
+              'El «Riesgo de cancelación %» que aparece bajo una llamada es la etiqueta que un modelo le puso A ESA LLAMADA. NO es el Health Score de la cuenta y no se promedia con nada: dos llamadas malas seguidas no son una cuenta en riesgo, y una buena no la salva.',
+            ],
+          },
+          {
+            titulo: 'Cómo entrar',
+            items: [
+              'Con tu cuenta de Google de Callpicker (@callpicker.com). Si te pide iniciar sesión, es eso.',
+              'Desde el apartado Comunicación: filtra tu cartera y pulsa «Ver comunicaciones» en la cuenta.',
+              'O busca directo por correo, teléfono de 10 dígitos, CID o ID de Zoho — sirve también para quien NO está en cartera, como un prospecto o un número que llamó.',
+              'Una cuenta sin CID no se puede consultar. Eso no significa que no tenga comunicaciones: significa que no sabemos preguntarle.',
+            ],
+          },
+        ],
+        consideraciones: [
+          {
+            tipo: 'warning',
+            texto:
+              'ATLAS NO PUEDE LEER ESTE REGISTRO. No tiene credencial para abrirlo, así que sobre el contenido de las comunicaciones no sabe nada y tiene instrucción de decirlo en vez de suponerlo. Si le preguntas por las llamadas o los tickets abiertos de una cuenta, te va a dar la liga — no un resumen. Un resumen sería inventado.',
+          },
+          {
+            tipo: 'info',
+            texto:
+              'Traer estos datos al tablero —alertas por tickets abiertos, columnas de último contacto en cartera, contexto para Atlas— está pendiente de una credencial de servicio para el conector. Mientras no exista, se consulta en su fuente y no se copia a medias.',
+          },
+        ],
+      },
+    ],
+  },
+
   // ── PLANES Y PAGOS ──────────────────────────────────────────────────────
   /* Va EL PRIMERO a propósito: es lo que más se busca con un cliente al
      teléfono, y es lo único de toda la Base que se copia y se pega fuera.

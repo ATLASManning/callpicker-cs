@@ -22,6 +22,7 @@ import { seccionesPlanesPago } from './planes-pago'
 import { MARCO_SUMMARY } from './marco-atlas'
 import { CLIENTES_CANCELADOS } from './churn-cancelados-data'
 import { LECTURA_LIBRE } from './dueno'
+import { ligaConector } from './comunicaciones-liga'
 
 // ── Pre-cómputo en carga de módulo (estático) ─────────────────────────────────
 const TICKETS = TICKETS_NORM
@@ -334,6 +335,16 @@ ${cortesTxt}
   Módulos SIN activar: ${modOff.join(', ') || 'ninguno'}
   Upsell/Cross marcado en CRM: ${c.upsell_producto ?? '—'} / ${c.crossell_producto ?? '—'}
   SOPORTE (leer completo antes de opinar de la salud de la cuenta): ${sop.frase}
+  REGISTRO DE COMUNICACIONES de esta cuenta: ${c.cid
+    ? `${ligaConector(String(c.cid))}
+    NO PUEDES LEER ESE REGISTRO. No tienes credencial para abrirlo, así que NO SABES qué dice.
+    Nunca respondas que la cuenta «no tiene comunicaciones», «no ha llamado», «no tiene tickets
+    abiertos» ni «lleva N días sin contacto» apoyándote en esto: no lo has visto. Lo que SÍ debes
+    hacer es entregar esa liga y decir qué va a encontrar ahí: tickets con su estado REAL —abiertos
+    incluidos, que es lo que el tablero no mide—, llamadas con duración, resultado y el análisis de
+    lo que se habló, correos con asunto y direcciones, y WhatsApp por bandeja. Se abre con su
+    sesión de Google de Callpicker, en el apartado Comunicación del tablero.`
+    : 'esta cuenta NO tiene CID, así que no hay forma de consultarla en el registro. Eso NO significa que no tenga comunicaciones: significa que no sabemos preguntarle.'}
   Actividades SAC (HISTÓRICO, el generador se retiró el 8 oct 2026 — no se piden más): ${acts.length ? `${acts.length} registradas, ${actsComp} completadas; última semana ${acts[0].semana_inicio}` : 'ninguna quedó registrada'}
   Seguimientos KAM: ${segsTexto}
   Radar de Cuenta: ${radarN}/12 preguntas respondidas
@@ -986,6 +997,54 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     Object.entries(porPeriodo).map(([p, cs]) => `  ${p}: ${cs.join(', ')}`).join('\n')
   )
   modulos.push('churn-cancelados')
+
+  /* ── REGISTRO DE COMUNICACIONES (apartado «Comunicación») ────────────────
+   *
+   * Este bloque es raro a propósito: la mayor parte de lo que le decimos a
+   * Atlas es un dato. Esto es lo contrario — es decirle EXACTAMENTE QUÉ NO
+   * SABE, para que no lo rellene.
+   *
+   * Atlas no puede abrir el conector: necesita una credencial de servicio que
+   * todavía no existe, y sin ella el webhook devuelve la pantalla de login con
+   * HTTP 200. Si sólo le dijéramos «existe un registro de comunicaciones»,
+   * tendríamos a un modelo que sabe que el dato existe, no lo tiene, y
+   * contesta igual: así fue como, al cerrarle el candado de cartera en
+   * octubre, se inventó lo que no podía ver. [[auditoria-acceso-oct2026]]
+   *
+   * Entonces el bloque hace dos cosas, y las dos importan: le prohíbe
+   * responder sobre el CONTENIDO, y le da lo único que sí puede entregar con
+   * verdad — la liga correcta y qué va a encontrar al abrirla. */
+  sections.push(
+    `REGISTRO DE COMUNICACIONES — apartado «Comunicación» del tablero\n` +
+    `  QUÉ ES: la línea de tiempo completa de cada cuenta en CUATRO canales —tickets,\n` +
+    `  llamadas, correos y WhatsApp—, servida por el conector com-contexto. Trae cosas\n` +
+    `  que NINGUNA otra fuente del tablero tiene: el estado REAL de los tickets (los\n` +
+    `  ABIERTOS incluidos, que la fuente semanal no mide porque sólo exporta cerrados),\n` +
+    `  el análisis de cada llamada (qué pedía el cliente, qué se resolvió, siguiente\n` +
+    `  paso) y el canal de correo, que no existe en el tablero.\n` +
+    `\n` +
+    `  NO PUEDES LEERLO. No tienes credencial para abrirlo. Esto NO es una limitación\n` +
+    `  menor que puedas rodear razonando: significa que sobre el CONTENIDO de las\n` +
+    `  comunicaciones NO SABES NADA.\n` +
+    `\n` +
+    `  PROHIBIDO, siempre, aunque la pregunta empuje hacia ahí:\n` +
+    `    · decir que una cuenta «no tiene comunicaciones», «no ha llamado», «no\n` +
+    `      responde» o «no tiene tickets abiertos»;\n` +
+    `    · contar cuántos tickets, llamadas o correos tiene alguien;\n` +
+    `    · resumir, citar o caracterizar lo que se habló en una llamada;\n` +
+    `    · afirmar cuándo fue el último contacto apoyándote en este registro.\n` +
+    `  Si no lo sabes por OTRA fuente de este contexto, la respuesta correcta es que no\n` +
+    `  lo sabes y que ahí se consulta. Un «no tiene» inventado manda a un asesor a\n` +
+    `  llamarle a un cliente que lleva tres tickets esperando.\n` +
+    `\n` +
+    `  LO QUE SÍ DEBES HACER: entregar la liga de la cuenta y decir qué encontrará.\n` +
+    `  La liga se arma con el CID: ${ligaConector('<CID>')}\n` +
+    `  Cada dossier de cuenta de este contexto ya trae la suya armada. Se abre con la\n` +
+    `  sesión de Google de Callpicker de quien pregunta, en una pestaña.\n` +
+    `  Una cuenta SIN CID no se puede consultar, y eso tampoco es «no tiene\n` +
+    `  comunicaciones»: es que no sabemos preguntarle.`
+  )
+  modulos.push('comunicaciones-registro')
 
   // Diccionario técnico-comercial. Se inyecta por capas según la pregunta: el
   // mapa y las reglas de conducta siempre, las fichas completas solo de los
