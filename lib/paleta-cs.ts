@@ -48,7 +48,22 @@ export const MISION = '#EFF7FC'   // el fondo de `.mission`
 
    **UN DEGRADADO SE MIDE POR SU EXTREMO QUE APRIETA**, que aquí es el claro.
    Medido sólo contra el oscuro da 14.03:1 y una esquina ilegible. */
-export const HERO = 'linear-gradient(127deg,#0B2D4D,#15537F 72%,#1F6A90)'
+/* LOS TOPES VIVEN UNA SOLA VEZ.
+   El menú lateral lleva el MISMO degradado girado (instrucción de dirección,
+   12 nov 2026): una columna alta necesita que el recorrido sea vertical, o el
+   127° deja casi toda la barra en un solo tono. Escribir los tres topes otra
+   vez en el menú sería el patrón de «paletas gemelas» — alguien corrige uno y
+   el otro se queda con la medición vieja SIN QUE FALLE NADA.
+   Como los topes son los mismos, **las cinco mediciones de abajo valen para
+   los dos**: cambiar el ÁNGULO mueve dónde aparece cada tono, no cuáles son. */
+const HERO_TOPES = '#0B2D4D,#15537F 72%,#1F6A90'
+
+export const HERO = `linear-gradient(127deg,${HERO_TOPES})`
+
+/* EL MENÚ LATERAL. Vertical y con el extremo claro ABAJO, donde está el
+   bloque del usuario; el grueso de los apartados cae sobre la mitad oscura.
+   Lo mide `scripts/mide-paleta-sidebar.py`, que lee estos topes de aquí. */
+export const SIDEBAR = `linear-gradient(177deg,${HERO_TOPES})`
 export const HERO_TAG  = '#B3E8FF'   // 4.51:1 sobre el extremo claro
 export const HERO_CIAN = '#8AD7F8'   // 3.73:1 — titular de 44px, mínimo 3:1
 export const HERO_LEAD = '#D7E7F2'   // 4.71:1

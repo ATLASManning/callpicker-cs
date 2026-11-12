@@ -14,19 +14,61 @@ import LogoCallpicker from '@/components/LogoCallpicker'
 import type { SessionPayload } from '@/lib/auth'
 import { esAdminDelTablero, puedeVerUsoDashboard } from '@/lib/auth'
 
-// ── Navy oscuro profundo ──────────────────────────────────────────────────────
-const SB   = '#0D1829'
-const SB_D = 'rgba(255,255,255,0.07)'
-const SB_H = 'rgba(255,255,255,0.12)'
-const SB_A = 'rgba(255,255,255,0.18)'
-const TX   = '#FFFFFF'
+/* ── EL DEGRADADO DEL HERO, TAMBIÉN EN EL ÍNDICE ──────────────────────────────
+ *
+ * Instrucción de dirección (12 nov 2026): el índice de apartados deja el marino
+ * plano y lleva el color del hero, con los círculos corporativos y el texto en
+ * blanco brillante.
+ *
+ * ESTO NO ES «CAMBIAR UN FONDO». El marino plano era `#0D1829`, casi negro; el
+ * degradado termina en `#1F6A90`, mucho más claro. Toda medición hecha contra
+ * el marino CADUCA, y no avisa — es lo mismo que pasó cuando `.cp-card` pasó de
+ * `#0D1829` a `#082742` y un alfa que medía bien cayó a 4.41 sin que nadie
+ * tocara una línea. [[atlas-dashboard-contrast-architecture]]
+ *
+ * Medido con `scripts/mide-paleta-sidebar.py` contra el extremo CLARO, que es
+ * el que aprieta: **OCHO colores de este archivo dejaban de servir**.
+ *
+ *   blanco al 50%  4.62 → 2.71      rol admin   #60A5FA  5.52 → 2.34
+ *   blanco al 55%  5.25 → 2.97      rol asesor  #34D399  7.30 → 3.10
+ *   blanco al 60%  5.98 → 3.22      rol viewer  #FBBF24  8.40 → 3.57
+ *   blanco al 75%  8.47 → 4.14      rol perfil. #A855F7  3.55 → 1.51
+ *
+ * El morado de Perfilamiento YA FALLABA sobre el marino (3.55 < 4.5): la
+ * medición lo destapó de paso.
+ *
+ * QUÉ SE HIZO, Y POR QUÉ NO SE «ACLARARON» LOS CUATRO COLORES DE ROL:
+ * derivarlos hacia el blanco los deja en pasteles al filo (4.50–4.55) que ya no
+ * se distinguen entre sí. El color del rol se muda al CÍRCULO del avatar, que
+ * es un relleno SÓLIDO —ahí el color se ve entero— y la letra de encima la
+ * elige `textoSobreSolido()`. El rótulo del rol pasa a texto claro medido.
+ *
+ * Los blancos translúcidos que quedan son FONDOS y BORDES, no texto: un tinte
+ * no se mide como letra.
+ */
+import { SIDEBAR, HERO_PILL, HERO_LEAD, HERO_BORDE } from '@/lib/paleta-cs'
+import { textoSobreSolido } from '@/lib/contraste'
+
+const SB   = SIDEBAR
+const SB_D = 'rgba(255,255,255,0.10)'   // borde; no es texto
+const SB_H = 'rgba(255,255,255,0.14)'   // hover; no es texto
+const SB_A = 'rgba(255,255,255,0.22)'   // activo; no es texto
+const TX   = '#FFFFFF'                  // 14.03 / 5.96 — el blanco brillante
 const TX_M = '#FFFFFF'
 const IC_A = '#FFFFFF'
 const IC   = '#FFFFFF'
+/* Secundarios: ya NO son blancos translúcidos. Son los tonos del hero, que
+   están medidos contra ESTE degradado. */
+const TX_SEC   = HERO_PILL   // 12.22 / 5.19
+const TX_SEC_2 = HERO_LEAD   // 11.09 / 4.71
+
+/* EL AVATAR DEL ROL. El color del rol es ahora un relleno SÓLIDO, y la letra de
+   encima la calcula `textoSobreSolido()` contra ESE relleno — no se teclea. */
+const ARO_BORDE  = '1px solid #FFFFFF21'
+const ARO_SOMBRA = '0 0 0 70px #FFFFFF09, 0 0 0 145px #FFFFFF06'
 
 // ── Definición de nav ─────────────────────────────────────────────────────────
 import { puedeVerModulo, definicionRol } from '@/lib/permisos'
-import { TX_TENUE } from '@/lib/contraste'
 
 type NavItem   = { href: string; label: string; icon: React.ElementType }
 type NavGroup  = { group: string; icon: React.ElementType; children: NavItem[] }
@@ -203,7 +245,7 @@ function NavLink({ href, label, icon: Icon, indent = false }: NavItem & { indent
       <Icon size={indent ? 13 : 16} style={{ color: active ? IC_A : IC, flexShrink: 0 }} />
       <span className="flex-1 truncate">{label}</span>
       {active && !indent && (
-        <ChevronRight size={13} style={{ color: 'rgba(255,255,255,0.5)' }} />
+        <ChevronRight size={13} style={{ color: TX_SEC }} />
       )}
     </Link>
   )
@@ -240,16 +282,23 @@ function NavGroupItem({ group, icon: Icon, children }: NavGroup) {
         <Icon size={16} style={{ color: anyActive ? IC_A : IC, flexShrink: 0 }} />
         <span className="flex-1 text-left truncate">{group}</span>
 
-        {/* Badge con conteo de hijos */}
+        {/* Badge con conteo de hijos.
+            EL FONDO DEL BADGE ERA BLANCO AL 15%, y eso ACLARA el degradado: su
+            tinte compuesto sobre el extremo claro da #4080A0, donde ni el blanco
+            puro alcanza 4.5 (mide 4.10). Un fondo translúcido claro sobre un
+            fondo ya medio-claro deja sin margen a la letra de encima. Se
+            invierte: el velo es NEGRO, oscurece el sitio y el blanco vuelve a
+            medir. Es el mismo razonamiento que el borde de las pastillas del
+            hero — un translúcido se mide por lo que resulta, no por su hex. */}
         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-          style={{ background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.75)' }}>
+          style={{ background: 'rgba(0,0,0,0.25)', color: '#FFFFFF' }}>
           {children.length}
         </span>
 
         <ChevronDown
           size={13}
           style={{
-            color: TX_TENUE,
+            color: TX_SEC_2,
             transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
             transition: 'transform 200ms',
             marginLeft: 4,
@@ -340,7 +389,40 @@ export default function Sidebar() {
     // fijo dentro de <main>, y sin esto pintaría por encima del menú — un
     // elemento posicionado gana a uno de flujo normal aunque esté en z-index 0.
     <aside className="w-60 flex-shrink-0 flex flex-col h-full"
-      style={{ background: SB, borderRight: `1px solid ${SB_D}`, position: 'relative', zIndex: 20 }}>
+      style={{
+        background: SB,
+        borderRight: `1px solid ${SB_D}`,
+        position: 'relative',
+        zIndex: 20,
+        /* Los aros se salen de la columna a propósito; sin esto asomarían por
+           encima del contenido de <main>. */
+        overflow: 'hidden',
+      }}>
+
+      {/* ── LOS AROS CORPORATIVOS ─────────────────────────────────────────
+          El mismo recurso del hero (`components/HeroModulo.tsx`): un aro de
+          1px y dos anillos más hechos con `box-shadow` de radio creciente, con
+          alfas de 0x09 y 0x06 — tan tenues que no compiten con el texto.
+
+          `zIndex: 0` Y el contenido en `zIndex: 1` NO SON DECORACIÓN DEL
+          CÓDIGO: un elemento posicionado le gana a uno de flujo normal aunque
+          los dos estén en z-index 0, así que sin esto los aros taparían el
+          menú. Es la misma razón por la que esta barra lleva `zIndex: 20`
+          contra la aurora del Dashboard.
+
+          `pointerEvents: 'none'` para que no se coman un clic del menú. */}
+      <div aria-hidden="true"
+        style={{
+          position: 'absolute', width: 300, height: 300, right: -135, top: 54,
+          border: ARO_BORDE, borderRadius: '50%', boxShadow: ARO_SOMBRA,
+          pointerEvents: 'none', zIndex: 0,
+        }} />
+      <div aria-hidden="true"
+        style={{
+          position: 'absolute', width: 210, height: 210, left: -115, bottom: 96,
+          border: ARO_BORDE, borderRadius: '50%', boxShadow: ARO_SOMBRA,
+          pointerEvents: 'none', zIndex: 0,
+        }} />
 
       {/* ── Logotipo ──────────────────────────────────────────────────────
           El vector oficial de la marca sustituye al icono de teléfono y al
@@ -353,18 +435,20 @@ export default function Sidebar() {
 
           «Customer Success» se queda debajo: el logotipo dice de quién es la
           herramienta, el rótulo dice cuál es. */}
-      <div className="px-5 py-5" style={{ borderBottom: `1px solid ${SB_D}` }}>
+      <div className="px-5 py-5"
+        style={{ borderBottom: `1px solid ${SB_D}`, position: 'relative', zIndex: 1 }}>
         <div style={{ color: '#FFFFFF' }}>
           <LogoCallpicker alto={21} />
           <p className="text-[10px] font-semibold tracking-widest uppercase mt-1.5"
-            style={{ color: 'rgba(255,255,255,0.55)' }}>
+            style={{ color: TX_SEC }}>
             Customer Success
           </p>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto"
+        style={{ position: 'relative', zIndex: 1 }}>
         {navFiltered.map((entry) =>
           isGroup(entry)
             ? <NavGroupItem key={entry.group} {...entry} />
@@ -391,34 +475,43 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer: usuario + logout */}
-      <div className="px-3 py-3" style={{ borderTop: `1px solid ${SB_D}` }}>
+      <div className="px-3 py-3"
+        style={{ borderTop: `1px solid ${SB_D}`, position: 'relative', zIndex: 1 }}>
         {me && (
           <div className="flex items-center gap-2 mb-2 px-1">
+            {/* EL COLOR DEL ROL VIVE AQUÍ, EN EL RELLENO.
+                Los cuatro colores de rol son tonos pensados para fondo oscuro y
+                sobre el extremo claro del degradado se caen todos (2.34, 3.10,
+                3.57 y 1.51). Aclararlos los convierte en pasteles al filo que ya
+                no se distinguen entre sí, así que el color se muda al círculo
+                —donde es RELLENO y se ve entero— y el icono de encima lo elige
+                `textoSobreSolido()` contra ese relleno. El rótulo del rol pasa a
+                texto claro medido. */}
             <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,0.18)' }}>
-              <RolIcon size={13} style={{ color: '#fff' }} />
+              style={{ background: rolColor, border: `1px solid ${HERO_BORDE}` }}>
+              <RolIcon size={13} style={{ color: textoSobreSolido(rolColor) }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold truncate" style={{ color: '#fff' }}>{me.nombre}</p>
-              <p className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                <span style={{ color: rolColor, fontWeight: 700 }}>{rolLabel}</span>
+              <p className="text-xs font-semibold truncate" style={{ color: TX }}>{me.nombre}</p>
+              <p className="text-[10px] truncate" style={{ color: TX_SEC_2 }}>
+                <span style={{ color: TX, fontWeight: 700 }}>{rolLabel}</span>
                 {me.asesor_nombre ? ` · ${me.asesor_nombre}` : ''}
               </p>
             </div>
             <button onClick={logout} title="Cerrar sesión"
               className="flex-shrink-0 p-1.5 rounded-lg transition-colors"
-              style={{ color: 'rgba(255,255,255,0.6)' }}
+              style={{ color: TX_SEC }}
               onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}>
+              onMouseLeave={e => (e.currentTarget.style.color = TX_SEC)}>
               <LogOut size={14} />
             </button>
           </div>
         )}
         <div className="flex items-center gap-2 px-1">
           <Link href="/settings" className="p-1.5 rounded-lg transition-colors"
-            style={{ color: 'rgba(255,255,255,0.5)' }}
+            style={{ color: TX_SEC }}
             onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}>
+            onMouseLeave={e => (e.currentTarget.style.color = TX_SEC)}>
             <Settings size={13} />
           </Link>
         </div>
