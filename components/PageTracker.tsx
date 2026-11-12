@@ -16,6 +16,7 @@ const SECTION_MAP: Array<[string, string]> = [
   ['/chat',              'Atlas IA'],
   ['/auditoria',         'Auditoría Cuentas'],
   ['/churn',             'Churn'],
+  ['/comunicacion',      'Comunicación'],
   ['/facturacion',       'Facturación'],
   ['/customer-tenure',   'Customer Tenure'],
   ['/reuniones',         'Reuniones'],

@@ -8,6 +8,7 @@ import {
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt, Paperclip, FileSignature,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
   Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox, BellRing,
+  Headphones,
 } from 'lucide-react'
 import LogoCallpicker from '@/components/LogoCallpicker'
 import type { SessionPayload } from '@/lib/auth'
@@ -82,6 +83,17 @@ const NAV_ENTRADAS: NavEntry[] = [
   },
   { href: '/churn',           label: 'Churn',             icon: TrendingDown },
   { href: '/callpicker-chat', label: 'Callpicker Chat',   icon: MessageCircle },
+  // ── Comunicación ─────────────────────────────────────────────────────────
+  // Entrada propia y no hija de «Cuentas»: lo que se consulta aquí es la
+  // conversación con el cliente —tickets, llamadas, correos y WhatsApp en una
+  // sola línea de tiempo—, no un estado de la cartera. Se llama «Comunicación»
+  // a secas, como lo pidió dirección.
+  //
+  // El icono es `Headphones` y no `MessageSquare` ni `MessageCircle` porque
+  // esos dos ya están tomados en esta misma barra por «Atlas IA» y por
+  // «Callpicker Chat». Tres globos de diálogo distintos en un menú de veinte
+  // renglones no distinguen nada.
+  { href: '/comunicacion',    label: 'Comunicación',      icon: Headphones },
   { href: '/buzon',           label: 'Buzón del Cliente', icon: Inbox },
   {
     group: 'Facturación',
