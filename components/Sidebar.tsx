@@ -8,7 +8,7 @@ import {
   CalendarDays, ClipboardList, TrendingDown, Ticket, Receipt, Paperclip, FileSignature,
   Clock, ChevronDown, Zap, Library, LogOut, ShieldCheck, UserCheck, Eye,
   Archive, BarChart2, Target, MessageCircle, PhoneCall, Inbox, BellRing,
-  Headphones,
+  Headphones, ArrowDownRight,
 } from 'lucide-react'
 import LogoCallpicker from '@/components/LogoCallpicker'
 import type { SessionPayload } from '@/lib/auth'
@@ -171,6 +171,17 @@ const NAV_ENTRADAS: NavEntry[] = [
        con tilde donde la busca un lector, no donde la deja un `sort` ASCII. */
     children: [
       { href: '/cuentas',           label: 'Activas',   icon: Users         },
+      /* «Activas con Downgrade» cae AQUÍ sola: dirección la pidió entre
+         «Activas» y «Auditoría» (13 nov 2026) y ésa es exactamente su casilla
+         alfabética — «Activas» < «Activas con Downgrade» < «Auditoría». No hay
+         que tocar el orden, que es justo lo que protege la regla de arriba.
+
+         El icono es `ArrowDownRight` y NO `TrendingDown`, que es el que ya
+         lleva «Churn» en esta misma barra. Mismo criterio que la nota de
+         «Comunicación» de arriba: dos iconos iguales en un menú de veinte
+         renglones no distinguen nada — y aquí además confundirían justo lo que
+         esta pantalla separa, porque un downgrade NO es un churn. */
+      { href: '/cuentas/downgrade', label: 'Activas con Downgrade', icon: ArrowDownRight },
       { href: '/auditoria',         label: 'Auditoría', icon: ClipboardList },
       { href: '/cuentas/contratos', label: 'Contratos', icon: FileSignature },
       { href: '/cuentas/dormidas',  label: 'Dormidas',  icon: Archive       },
