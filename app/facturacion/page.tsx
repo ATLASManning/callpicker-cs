@@ -131,7 +131,12 @@ type Grupo = {
   objetivoVsReal?: number | null; cumple?: boolean | null; cumpleSiTodoFueraReal?: boolean
 }
 type Fila = {
-  cliente: string; clasif: string | null; facturas: number; meses: number
+  cliente: string; clasif: string | null
+  /** Lo que el export dice de verdad cuando dirección reclasificó la cuenta y
+   *  Zoho todavía no. Sólo viene en las filas que movió la capa
+   *  `data/grc-reclasificaciones.json`. Ver `FilaGRC` en app/api/grc/route.ts. */
+  clasifExport?: string | null
+  facturas: number; meses: number
   acumulado: number; mrrIni: number; mrrFin: number; ganado: number
   movimiento: string | null; perdida: number; fraude: number; rango: string | null
   consecutivo: string | null; asesor: string | null; cid: string | null
@@ -906,7 +911,35 @@ const COLUMNAS: ColDet[] = [
       </span>
     ),
   },
-  { h: 'clasificacion_cliente', k: 'clasif' },
+  {
+    /* CUANDO EL VALOR NO ES EL DEL EXPORT, SE DICE AHÍ MISMO.
+     *
+     * Esta tabla se presenta como «el archivo que compartiste, completo, con
+     * los títulos tal como vienen en él». Dirección reclasifica cuentas antes
+     * de que Zoho se entere —`data/grc-reclasificaciones.json`—, y publicar
+     * ese valor nuestro bajo un encabezado que promete ser de Zoho convierte
+     * la promesa de la tarjeta en mentira, sin que nada falle.
+     *
+     * Así que la celda enseña las dos: la vigente y, en tenue, la que el
+     * export sigue trayendo. La columna no se renombra: el encabezado es el
+     * del archivo y ése es justo el punto. [[feedback-contexto-ia-sin-huecos]] */
+    h: 'clasificacion_cliente', k: 'clasif',
+    celda: f => (f.clasifExport && f.clasifExport !== f.clasif ? (
+      <span style={{ background: 'transparent' }}>
+        <span style={{ background: 'transparent', color: TXT_HI, fontWeight: 700 }}>
+          {f.clasif}
+        </span>
+        <span style={{ background: 'transparent', color: TENUE, marginLeft: 5 }}
+          title={`Dirección la reclasificó. El export de Zoho todavía la trae como ${f.clasifExport}.`}>
+          · export: {f.clasifExport}
+        </span>
+      </span>
+    ) : f.clasif ? (
+      String(f.clasif)
+    ) : (
+      <span style={{ background: 'transparent', color: TENUE }}>—</span>
+    )),
+  },
   { h: 'Facturas_2026', k: 'facturas', num: true },
   {
     h: 'Meses Activo', k: 'meses', num: true,
@@ -974,7 +1007,12 @@ const COLUMNAS: ColDet[] = [
   },
 ]
 
-const CSV_CAB = [...COLUMNAS.map(c => c.h), 'Consecutivo', 'CID']
+/* La última columna NO es del export: es el export. Cuando dirección
+ * reclasificó una cuenta, `clasificacion_cliente` lleva el valor vigente y
+ * esta columna lleva el que Zoho sigue publicando, para que quien concilie la
+ * descarga contra la fuente institucional vea los dos y no un descuadre. */
+const CSV_CAB = [...COLUMNAS.map(c => c.h), 'Consecutivo', 'CID',
+  'clasificacion_cliente (lo que trae el export)']
 const LS_COLS = 'grc.detalle.columnas'
 
 function descargaCsv(filas: Fila[], mes: string) {
@@ -987,7 +1025,8 @@ function descargaCsv(filas: Fila[], mes: string) {
    * haya columnas ocultas: lo que se esconde es la vista, no el dato. */
   const lineas = [CSV_CAB.join(',')]
   for (const f of filas) {
-    lineas.push([...COLUMNAS.map(c => f[c.k]), f.consecutivo, f.cid].map(esc).join(','))
+    lineas.push([...COLUMNAS.map(c => f[c.k]), f.consecutivo, f.cid,
+      f.clasifExport ?? f.clasif].map(esc).join(','))
   }
   // BOM para que Excel abra los acentos bien en Windows.
   const blob = new Blob(['﻿' + lineas.join('\r\n')], { type: 'text/csv;charset=utf-8' })

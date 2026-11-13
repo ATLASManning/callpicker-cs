@@ -34,6 +34,15 @@ export const maxDuration = 30
 export interface FilaGRC {
   cliente: string
   clasif: string | null
+  /** LO QUE EL EXPORT DICE DE VERDAD, cuando dirección reclasificó la cuenta y
+   *  Zoho todavía no. Sólo viene en las filas que la capa
+   *  `data/grc-reclasificaciones.json` movió; en el resto, `clasif` YA es lo
+   *  que trae el export y este campo no existe.
+   *
+   *  Existe para no mentir sobre la fuente: el Detalle del export se presenta
+   *  como «el archivo tal cual», así que donde el valor es nuestro hay que
+   *  poder decirlo al lado. Lo aplica `scripts/aplica-reclasificacion-grc.py`. */
+  clasifExport?: string | null
   facturas: number
   meses: number
   acumulado: number

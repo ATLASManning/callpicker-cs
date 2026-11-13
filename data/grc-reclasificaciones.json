@@ -1,0 +1,61 @@
+{
+ "_lee_esto_primero": [
+  "CUENTAS QUE DIRECCION RECLASIFICO Y EL EXPORT DE ZOHO TODAVIA NO.",
+  "",
+  "`clasificacion_cliente` es una columna del GRC, o sea de Zoho, y",
+  "`data/grc-zoho.json` se GENERA desde ese export: lo que se teclee ahi a mano",
+  "desaparece en la siguiente carga, sin aviso. Esta es la capa que sobrevive.",
+  "La aplica `scripts/aplica-reclasificacion-grc.py`, y `gen-grc-zoho.py` la",
+  "vuelve a aplicar al final de cada carga.",
+  "",
+  "ESTO NO ES UNA BAJA NI UNA DORMIDA. Reclasificar cambia el TAMANO con que se",
+  "lee la cuenta, no su vida: el `estado` no se toca, la cuenta sigue en la",
+  "cartera de su asesor y sigue facturando. Pasar a Dormidas es escribir",
+  "`estado = 'hibernacion'` con `scripts/pasa-a-dormidas.mjs`, que es otra cosa",
+  "y necesita su propia autorizacion. [[feedback-conciliacion-churn]]",
+  "",
+  "LAS CUATRO REGLAS:",
+  "",
+  "1. SE DECLARA EL VALOR DE ORIGEN (`de`). Si el export trae un TERCER valor",
+  "   —ni `de` ni `a`— el guion se NIEGA a aplicar: alguien movio la cuenta en",
+  "   Zoho y esa decision no la hemos visto. Sobrescribirla a ciegas seria",
+  "   pisar un dato institucional sin leerlo.",
+  "",
+  "2. SE CRUZA POR CID Y SE COMPRUEBA EL NOMBRE. El CID es la llave; el nombre",
+  "   es el testigo. Un CID que cambia de dueno reclasificaria a otra empresa y",
+  "   nadie se enteraria. [[dids-fuente]]",
+  "",
+  "3. LA CAPA SABE RETIRARSE. Cuando Zoho se ponga al dia y el export ya traiga",
+  "   `a`, el guion lo GRITA y dice que la entrada se puede borrar. Una capa que",
+  "   no sabe retirarse acaba tapando a su propia fuente para siempre.",
+  "",
+  "4. NO SE MIENTE SOBRE EL EXPORT. La fila guarda `clasifExport` con lo que",
+  "   Zoho dice de verdad, y la pantalla lo ensena al lado. El Detalle del",
+  "   export promete ser «el archivo tal cual»: un valor nuestro ahi, sin",
+  "   rotular, convertiria esa promesa en falsa.",
+  "",
+  "Y la correccion de fondo va en Zoho: mientras siga diciendo AAA, cualquiera",
+  "que mire la fuente institucional —sin pasar por el tablero— vera AAA."
+ ],
+ "reclasificaciones": [
+  {
+   "cid": "167954",
+   "cliente": "Grupo System ooapas",
+   "consecutivo": "D2",
+   "asesor": "Dan",
+   "de": "AAA",
+   "a": "A",
+   "fecha": "2026-11-13",
+   "quien": "José Manuel, dirección — a petición de Dan Domínguez por Slack",
+   "razon": "Dan pidió pasarla a Dormidas: la cuenta alterna del cliente (Estradata) se canceló y sus números se portaron, y Oapas quedó sólo como respaldo de información, sin uso sostenido de minutos. Dirección NO la pasa a Dormidas —«al final sí existe»— y la reclasifica: deja de ser AAA y pasa a Tipo A. Sigue activa, sigue en la cartera de Dan y sigue facturando su plan base.",
+   "medido": [
+    "El GRC le da $1,078.00 de MRR inicio, y la ficha lo confirma al peso: Visibilidad y Control 400 minutos $979 + renta del número 4431132200 $99. Los $1,250 que cita Dan son esa misma cifra CON IVA ($1,078 × 1.16 = $1,250.48). El institucional es el del GRC, sin IVA.",
+    "Contra las otras AAA del corte de noviembre: 219 clientes AAA, mediana $9,702 de MRR inicio, primer cuartil $6,245. Con $1,078 esta cuenta es la SEGUNDA MÁS PEQUEÑA de las 219 — sólo Pitahaya ($195) está por debajo.",
+    "Contra las A: 1,020 clientes, de $359 a $7,989, mediana $1,596. $1,078 cae dentro de la banda, por encima del 14% de ellas. Tipo A es donde le toca.",
+    "`cuentas.facturacion` dice $38,123 y eso NO es lo que factura: `lib/facturacion-cuenta.ts` ya la resuelve a $1,078 desde el GRC por CID. La cifra vieja es la que hacía inexplicable una cuenta de $38,000 con consumo cero."
+   ],
+   "ojo": "La fila trae movimiento «Por confirmar (corte de datos)» y pérdida $1,078 en el mes vivo. Eso es el ruido del mes sin cerrar, no una baja, y esta capa NO lo toca: sólo mueve la clasificación."
+  }
+ ],
+ "_retiradas_porque_el_export_ya_las_trae": []
+}

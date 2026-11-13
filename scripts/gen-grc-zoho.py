@@ -42,7 +42,7 @@
 
    Uso:  python scripts/gen-grc-zoho.py "C:/ruta/Septiembre.xlsx"
 """
-import sys, io, os, re, json, unicodedata, collections, urllib.request
+import sys, io, os, re, json, subprocess, unicodedata, collections, urllib.request
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 import openpyxl
 
@@ -777,3 +777,28 @@ for r in porRango:
              'OK' if r['cumple'] else 'SE PASA') + ('' if r['cumpleSiTodoFueraReal'] else '  (se pasaria si lo sin verificar fuera real)'))
 print()
 print('escrito %s (%.0f KB)' % (SALIDA, os.path.getsize(SALIDA) / 1024))
+
+# ── LA CAPA DE RECLASIFICACIONES SE VUELVE A APLICAR AQUI ────────────────────
+# Lo que acabamos de escribir es el export de Zoho TAL CUAL, y Zoho llega
+# tarde: una cuenta que direccion reclasifico el jueves sigue saliendo con su
+# clasificacion vieja en el corte del viernes. Esas decisiones viven en
+# `data/grc-reclasificaciones.json`, y si no se reaplicaran aqui esta corrida
+# las acabaria de borrar — sin error y sin que nadie lo note hasta que el
+# tablero vuelva a llamar AAA a una cuenta de $1,078.
+#
+# En otro proceso, para que un fallo de la capa no deje a medias el archivo
+# del export, que ya esta escrito y es valido por si solo.
+print()
+print('  == capa de reclasificaciones ==')
+_r = subprocess.run([sys.executable, '-I',
+                     os.path.join(RAIZ, 'scripts', 'aplica-reclasificacion-grc.py')],
+                    capture_output=True)
+sys.stdout.write(_r.stdout.decode('utf-8', 'replace'))
+if _r.returncode != 0:
+    sys.stdout.write(_r.stderr.decode('utf-8', 'replace'))
+    print()
+    print('  *** LA CAPA NO SE APLICO. `data/grc-zoho.json` trae el export pero')
+    print('      le FALTAN las reclasificaciones de direccion. Arregla lo de')
+    print('      arriba y corre:')
+    print('          python -I scripts/aplica-reclasificacion-grc.py')
+    raise SystemExit(1)
