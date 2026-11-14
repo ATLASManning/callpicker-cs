@@ -1,67 +1,102 @@
 {
-  "_lee_esto_primero": [
-    "Correcciones que tiene que hacer el equipo EN LA HOJA DE ORIGEN, no aquí.",
-    "Parchear el .xlsx del repo no sirve: el siguiente export lo sobreescribe.",
-    "`scripts/revisa-correcciones.py` comprueba cada una contra el archivo de",
-    "D:\\Archivos y dice si ya quedó. `carga-semanal.py` lo corre al final, así",
-    "que es imposible hacer la carga del viernes sin ver el estado.",
-    "Cuando una salga CORREGIDA, se quita de aquí."
-  ],
-  "_quitadas_porque_ya_quedaron": [
-    "act-189992-anio      · «Año» de GRUPO CGBS (189992) ya trae 2026 · 6 nov 2026",
-    "act-189867-corchete  · el ID 189867 ya existe sin el corchete  · 6 nov 2026"
-  ],
-  "pendientes": [
-    {
-      "id": "act-190131-ayudate-borrada",
-      "fuente": "Tablero de Activaciones 2.0.xlsx",
-      "detectada": "2026-11-06",
-      "comprometida": "2026-11-13",
-      "captura": "Cecilia",
-      "que_pasa": "SE BORRÓ UNA ACTIVACIÓN PAGADA DE UN CLIENTE QUE SÍ FACTURA. El export del 6 nov 2026 ya no trae el ID 190131. Leído del archivo anterior (el que guarda git, celda por celda): Cliente «cp190131», Tipo «pagada», 1er Pago 478, Fecha 1er Pago 2-oct-2026, Mes 1er Pago «October», Año 2026, Tamaño «micro», Estatus 3, 29 días de activación. Ese CID no es un registro basura: en el Informe de Cortes aparece como «Ayudate LTA», plan «Paquete CP Chat», $478 de monto, corte del 2 nov 2026 — el importe coincide al peso con el 1er Pago. Comprobado además que NINGUNA fila del archivo nuevo contiene «Ayudate», así que no se recapturó con su nombre real ni con otro ID: se perdió. EFECTO: una activación de OCTUBRE por $478 deja de contarse —y octubre es un mes ya publicado, así que la cifra cambia hacia atrás—, y el tablero de Activaciones dirá que ese cliente nunca se activó mientras facturación lo cobra.",
-      "que_se_espera": "DEVOLVER la fila del ID 190131 a la hoja, con su Tipo «pagada», su 1er Pago de 478 y su Fecha 1er Pago del 2-oct-2026 — y esta vez con el nombre REAL del cliente, «Ayudate LTA» (es el que usa facturación), en vez del marcador «cp190131». SE ENTIENDE POR QUÉ SE BORRÓ: la fila venía casi vacía —sin Cliente de verdad, sin Ejecutivo, sin Vendedor, sin Giro, sin Clasificación—, así que leída sola parece basura. Pero el arreglo de una fila incompleta es COMPLETARLA, no quitarla: un nombre sin capturar se corrige en cualquier momento, una activación borrada se pierde. Lo que falta por capturar ahí es Ejecutivo y Vendedor, que es lo que permite atribuirla. OJO, ES UN PATRÓN: quedan 6 clientes más con nombre-marcador «cpNNNNNN» en la hoja (180878, 163487, 161697, 138904, 138406 — los cinco «pagada» — y 145868, demo). Ninguno cruza por nombre con nada. Hay que nombrarlos, no borrarlos. NOTA SOBRE LA COMPROBACIÓN: sólo vigila que la fila vuelva y siga marcada «pagada», que es la parte irreversible. Si al devolverla se decide marcarla «convertida» porque hubo demo antes, avisar para ajustar la comprobación — no es que esté mal, es que esta regla no lo sabe.",
-      "comprobacion": {
-        "tipo": "campos_iguales",
-        "columna_id": "ID",
-        "esperado": [
-          {
-            "valor_id": "190131",
-            "columna": "Tipo",
-            "debe_ser": "pagada"
-          }
-        ]
-      }
-    },
-    {
-      "id": "act-cristal-duplicado",
-      "fuente": "Tablero de Activaciones 2.0.xlsx",
-      "detectada": "2026-09-25",
-      "comprometida": "2026-10-31",
-      "resuelta_por_direccion": "2026-10-24",
-      "captura": "Cecilia",
-      "que_pasa": "«CRISTAL SERVICIOS» (ID 189977, $519, pagada, 14-sep) y «Servicios Cristal» (ID 189867, $0, demo) son UN SOLO CLIENTE — confirmado por dirección el 24 oct 2026. Hoy la hoja los trae con nombres distintos, así que cruzan como dos.",
-      "que_se_espera": "NO borrar ninguna de las dos filas. Un demo que se convierte en cliente NO es un duplicado: es el patrón normal de esta hoja, y hay 23 clientes más así (MEGAVIAL, Métrica Móvil, EURO STERN...). Borrar el demo perdería que hubo demo, su fecha y su ejecutiva. Se unifican con DOS cambios: (1) poner el MISMO nombre en las dos filas — dejar «CRISTAL SERVICIOS» también en el ID 189867, para que crucen como un solo cliente; (2) cambiar el Tipo del ID 189977 de «pagada» a «convertida», que es como esta hoja marca un demo que acabó pagando (320 filas ya lo usan).",
-      "comprobacion": {
-        "tipo": "campos_iguales",
-        "columna_id": "ID",
-        "esperado": [
-          {
-            "valor_id": "189867",
-            "columna": "Cliente",
-            "debe_ser": "CRISTAL SERVICIOS"
-          },
-          {
-            "valor_id": "189977",
-            "columna": "Cliente",
-            "debe_ser": "CRISTAL SERVICIOS"
-          },
-          {
-            "valor_id": "189977",
-            "columna": "Tipo",
-            "debe_ser": "convertida"
-          }
-        ]
-      }
-    }
-  ]
+ "_lee_esto_primero": [
+  "Correcciones que tiene que hacer el equipo EN LA HOJA DE ORIGEN, no aquí.",
+  "Parchear el .xlsx del repo no sirve: el siguiente export lo sobreescribe.",
+  "`scripts/revisa-correcciones.py` comprueba cada una contra el archivo de",
+  "D:\\Archivos y dice si ya quedó. `carga-semanal.py` lo corre al final, así",
+  "que es imposible hacer la carga del viernes sin ver el estado.",
+  "Cuando una salga CORREGIDA, se quita de aquí."
+ ],
+ "_quitadas_porque_ya_quedaron": [
+  "act-189992-anio      · «Año» de GRUPO CGBS (189992) ya trae 2026 · 6 nov 2026",
+  "act-189867-corchete  · el ID 189867 ya existe sin el corchete  · 6 nov 2026"
+ ],
+ "pendientes": [
+  {
+   "id": "act-190131-ayudate-borrada",
+   "fuente": "Tablero de Activaciones 2.0.xlsx",
+   "detectada": "2026-11-06",
+   "comprometida": "2026-11-13",
+   "captura": "Cecilia",
+   "que_pasa": "SE BORRÓ UNA ACTIVACIÓN PAGADA DE UN CLIENTE QUE SÍ FACTURA. El export del 6 nov 2026 ya no trae el ID 190131. Leído del archivo anterior (el que guarda git, celda por celda): Cliente «cp190131», Tipo «pagada», 1er Pago 478, Fecha 1er Pago 2-oct-2026, Mes 1er Pago «October», Año 2026, Tamaño «micro», Estatus 3, 29 días de activación. Ese CID no es un registro basura: en el Informe de Cortes aparece como «Ayudate LTA», plan «Paquete CP Chat», $478 de monto, corte del 2 nov 2026 — el importe coincide al peso con el 1er Pago. Comprobado además que NINGUNA fila del archivo nuevo contiene «Ayudate», así que no se recapturó con su nombre real ni con otro ID: se perdió. EFECTO: una activación de OCTUBRE por $478 deja de contarse —y octubre es un mes ya publicado, así que la cifra cambia hacia atrás—, y el tablero de Activaciones dirá que ese cliente nunca se activó mientras facturación lo cobra.",
+   "que_se_espera": "DEVOLVER la fila del ID 190131 a la hoja, con su Tipo «pagada», su 1er Pago de 478 y su Fecha 1er Pago del 2-oct-2026 — y esta vez con el nombre REAL del cliente, «Ayudate LTA» (es el que usa facturación), en vez del marcador «cp190131». SE ENTIENDE POR QUÉ SE BORRÓ: la fila venía casi vacía —sin Cliente de verdad, sin Ejecutivo, sin Vendedor, sin Giro, sin Clasificación—, así que leída sola parece basura. Pero el arreglo de una fila incompleta es COMPLETARLA, no quitarla: un nombre sin capturar se corrige en cualquier momento, una activación borrada se pierde. Lo que falta por capturar ahí es Ejecutivo y Vendedor, que es lo que permite atribuirla. OJO, ES UN PATRÓN: quedan 6 clientes más con nombre-marcador «cpNNNNNN» en la hoja (180878, 163487, 161697, 138904, 138406 — los cinco «pagada» — y 145868, demo). Ninguno cruza por nombre con nada. Hay que nombrarlos, no borrarlos. NOTA SOBRE LA COMPROBACIÓN: sólo vigila que la fila vuelva y siga marcada «pagada», que es la parte irreversible. Si al devolverla se decide marcarla «convertida» porque hubo demo antes, avisar para ajustar la comprobación — no es que esté mal, es que esta regla no lo sabe.",
+   "comprobacion": {
+    "tipo": "campos_iguales",
+    "columna_id": "ID",
+    "esperado": [
+     {
+      "valor_id": "190131",
+      "columna": "Tipo",
+      "debe_ser": "pagada"
+     }
+    ]
+   }
+  },
+  {
+   "id": "act-cristal-duplicado",
+   "fuente": "Tablero de Activaciones 2.0.xlsx",
+   "detectada": "2026-09-25",
+   "comprometida": "2026-10-31",
+   "resuelta_por_direccion": "2026-10-24",
+   "captura": "Cecilia",
+   "que_pasa": "«CRISTAL SERVICIOS» (ID 189977, $519, pagada, 14-sep) y «Servicios Cristal» (ID 189867, $0, demo) son UN SOLO CLIENTE — confirmado por dirección el 24 oct 2026. Hoy la hoja los trae con nombres distintos, así que cruzan como dos.",
+   "que_se_espera": "NO borrar ninguna de las dos filas. Un demo que se convierte en cliente NO es un duplicado: es el patrón normal de esta hoja, y hay 23 clientes más así (MEGAVIAL, Métrica Móvil, EURO STERN...). Borrar el demo perdería que hubo demo, su fecha y su ejecutiva. Se unifican con DOS cambios: (1) poner el MISMO nombre en las dos filas — dejar «CRISTAL SERVICIOS» también en el ID 189867, para que crucen como un solo cliente; (2) cambiar el Tipo del ID 189977 de «pagada» a «convertida», que es como esta hoja marca un demo que acabó pagando (320 filas ya lo usan).",
+   "comprobacion": {
+    "tipo": "campos_iguales",
+    "columna_id": "ID",
+    "esperado": [
+     {
+      "valor_id": "189867",
+      "columna": "Cliente",
+      "debe_ser": "CRISTAL SERVICIOS"
+     },
+     {
+      "valor_id": "189977",
+      "columna": "Cliente",
+      "debe_ser": "CRISTAL SERVICIOS"
+     },
+     {
+      "valor_id": "189977",
+      "columna": "Tipo",
+      "debe_ser": "convertida"
+     }
+    ]
+   }
+  },
+  {
+   "id": "act-190521-cid-sobrescrito",
+   "fuente": "Tablero de Activaciones 2.0.xlsx",
+   "detectada": "2026-11-13",
+   "comprometida": "2026-11-20",
+   "captura": "Pepe Toño",
+   "que_pasa": "SE ESCRIBIÓ UNA NOTA ENCIMA DEL CID. En el corte del 13 nov 2026 la fila de «IT SOLUCIONES OAXACA» trae en la celda ID el texto «Cuenta demo, suspendida.» en vez del número. En el corte del 6 nov esa misma fila tenía ID 190521. No se perdió dinero —es un demo sin 1er pago— pero SÍ se perdió el identificador: con un ID que es una frase, esa cuenta no cruza con facturación, ni con DIDs, ni con la cartera, y el tablero la pinta igual porque el filtro sólo exige que ID y Cliente no estén vacíos. Hasta este corte el comparador lo leía como una RENUMERACIÓN —aparece una clave nueva, desaparece la vieja, mismo cliente— y lo archivaba como limpieza; ya no: `diff-activaciones.py` mide `id_no_numerico` en los dos archivos y lo separa en su propia categoría.",
+   "que_se_espera": "DEVOLVER el número 190521 a la celda ID, y poner «Cuenta demo, suspendida.» donde van las notas, no donde va la llave. El estatus de la cuenta ya se captura en sus columnas (Tipo = demo, Estatus = 5): la nota no añade nada que la hoja no diga, y a cambio destruye el único campo que permite cruzarla. OJO, NO ES EL ÚNICO: la fila de «Balerytodo» lleva «N/A» en el ID desde el corte del 18 sep 2026 por lo menos —se revisaron los ocho cortes que guarda git y en todos está igual—. Ahí la pregunta es otra: si ese demo llegó a tener cuenta, hay un CID que poner; si nunca la tuvo, «N/A» es honesto y lo que hay que arreglar es que el tablero distinga «sin CID» de «CID destruido».",
+   "comprobacion": {
+    "tipo": "id_exacto",
+    "columna_id": "ID",
+    "debe_existir": "190521",
+    "no_debe_existir": "Cuenta demo, suspendida."
+   }
+  },
+  {
+   "id": "act-marcadores-cpnnnnnn",
+   "fuente": "Tablero de Activaciones 2.0.xlsx",
+   "detectada": "2026-11-13",
+   "comprometida": "2026-11-27",
+   "captura": "Cecilia, Enrique, Ricardo",
+   "que_pasa": "OCHO FILAS TIENEN POR NOMBRE DE CLIENTE SU PROPIO CID. Son «cpNNNNNN»: el hueco que dejó quien capturó, con el número puesto para que la fila exista. Siete son `pagada` con importe. Esto NO es cosmético: el 6 nov 2026 el export borró el ID 190131 —«cp190131», $478, pagada, octubre— porque leído solo parecía un registro de prueba, y era «Ayudate LTA», que factura. Un nombre-marcador es una fila que PARECE basura y no lo es, así que invita a borrarla. Cruzados los ocho CID contra `data/cortes-facturacion.xlsx` con `scripts/mira-marcadores-activaciones.py`: cp163487 es «Vorecol EN» —Visibilidad y Control 400 minutos, $979, el importe coincide al peso con su 1er pago, y lleva 11 cortes facturando—; cp180878 sigue facturando $489 pero en facturación TAMBIÉN se llama «cp180878», o sea que el marcador se propagó; los otros seis no cruzan con ningún corte —cp138406, cp138904, cp145868 (demo), cp161697, y los DOS NUEVOS de este corte, cp190665 ($209, Ricardo, 10 nov) y cp190674 ($2,059, Cecilia, 11 nov)—. Que no crucen no quiere decir que no existan: los cortes son un snapshot y los dos de noviembre son posteriores al último corte cargado.",
+   "que_se_espera": "PONER EL NOMBRE REAL DEL CLIENTE en las ocho filas, y de paso el Ejecutivo y el Vendedor donde falten (cp180878, cp190665 y cp190674 están sin Vendedor). NINGUNA SE BORRA: el arreglo de una fila incompleta es completarla. Para cp163487 el nombre ya está medido y es «Vorecol EN», así que esa se puede corregir hoy y es la que comprueba esta regla. Para los dos de noviembre hay que preguntárselo a quien los capturó, que los activó esta misma semana. Y cp180878 pide una segunda corrección fuera de esta hoja: su nombre también está mal en facturación.",
+   "comprobacion": {
+    "tipo": "campos_iguales",
+    "columna_id": "ID",
+    "esperado": [
+     {
+      "valor_id": "163487",
+      "columna": "Cliente",
+      "debe_ser": "Vorecol EN"
+     }
+    ]
+   }
+  }
+ ]
 }

@@ -190,12 +190,20 @@ for f in filas_v:
 # archivo. Esto lo archivaba como arreglo de numeracion y se comia la
 # conversion de un demo en cliente que paga, que es justo lo que SAC quiere
 # ver. El error del 9 oct era inflar el mes; este es deflactarlo.
-renum, segundo, negocio = [], [], []
+#
+# Y NI SIQUIERA ESO BASTA SI EL «ID NUEVO» NO ES UN NUMERO. El corte del 13 nov
+# 2026 trajo la fila de IT SOLUCIONES OAXACA con «Cuenta demo, suspendida.» en
+# la celda del ID: desde aqui se veia igual que una renumeracion —aparece una
+# clave nueva, desaparece la vieja, mismo cliente— y se archivaba como limpieza.
+# No lo es: el CID 190521 se PERDIO. Va a su propia categoria.
+renum, segundo, negocio, rotos = [], [], [], []
 for kk in nuevos:
     f = idx_n[kk][0]
     previos = norms_v.get(norm(f.get('Cliente')), [])
     vivos = [p for p in previos if p in idx_n]      # el ID viejo sigue en el archivo
-    if not previos:
+    if not str(kk).isdigit():
+        rotos.append((kk, f, [p for p in previos if p not in idx_n]))
+    elif not previos:
         negocio.append((kk, f, previos))
     elif len(vivos) < len(previos):
         renum.append((kk, f, [p for p in previos if p not in idx_n]))
@@ -203,6 +211,15 @@ for kk in nuevos:
         segundo.append((kk, f, vivos))
 
 print(u'\n      de los %d IDs nuevos:' % len(nuevos))
+if rotos:
+    print(u'        %d NO SON UN ID — alguien escribio texto sobre el CID' % len(rotos))
+    for kk, f, previos in rotos:
+        print(u'          «%s»' % str(kk)[:44])
+        print(u'            %-28s  el CID que se perdio: %s'
+              % (str(f.get('Cliente') or '')[:28],
+                 ', '.join(previos[:3]) if previos else u'no se sabe'))
+        print(u'            NO es una renumeracion: no hay numero nuevo que ocupe')
+        print(u'            el lugar del viejo. Hay que devolverlo en la hoja.')
 print(u'        %d son renumeraciones — el ID viejo YA NO esta (limpieza)' % len(renum))
 for kk, f, previos in renum:
     print(u'          %-10s %-28s antes %s'
@@ -323,6 +340,21 @@ def anomalias(filas, cab):
     a['filas'] = len(filas)
     a['anio_1899'] = sum(1 for f in filas if str(f.get('Año') or '').strip() == '1899')
     a['sin_id'] = sum(1 for f in filas if not clave(f))
+    # UN ID QUE NO ES UN NUMERO NO ES UN ID.
+    #
+    # El corte del 13 nov 2026 trajo una fila cuya celda de ID decia «Cuenta
+    # demo, suspendida.»: alguien escribio una nota encima del CID y el 190521
+    # desaparecio como identificador. Y esto se le colaba a TODO el guion:
+    # `sin_id` no lo ve —la celda no esta vacia—, el filtro del modulo tampoco,
+    # asi que la fila se pinta con una frase por ID; y el diff lo leia como un
+    # ID nuevo mas el viejo desaparecido, que es justo la forma de una
+    # renumeracion. La fila quedaba archivada como limpieza.
+    #
+    # Se mide aparte porque el remedio es distinto: no es dedupicar ni
+    # completar, es DEVOLVER EL CID, y sin el esa cuenta no cruza con ninguna
+    # otra fuente. [[dids-fuente]]
+    a['id_no_numerico'] = sum(1 for f in filas
+                              if clave(f) and not clave(f).isdigit())
     a['sin_cliente'] = sum(1 for f in filas
                            if not str(f.get('Cliente') or '').strip())
     ids = [clave(f) for f in filas if clave(f)]
@@ -341,7 +373,8 @@ av, an = anomalias(filas_v, cab_v), anomalias(filas_n, cab_n)
 print(u'\n  ── CALIDAD DEL DATO, en los DOS archivos ─────────────────────')
 print(u'      %-26s %8s %8s %8s' % (u'anomalía', u'en uso', u'nuevo', u'delta'))
 peor = []
-for k in ('anio_1899', 'sin_id', 'sin_cliente', 'ids_dup', 'nombre_sucio', 'pago_texto'):
+for k in ('anio_1899', 'sin_id', 'id_no_numerico', 'sin_cliente', 'ids_dup',
+          'nombre_sucio', 'pago_texto'):
     if k not in av and k not in an:
         continue
     x, y = av.get(k, 0), an.get(k, 0)
@@ -391,6 +424,32 @@ if dup_mismo_n or dup_distinto_n:
     for k, fs in dup_distinto_n[:8]:
         print(u'            %-10s %s' % (k, u' | '.join(
             str(f.get('Cliente') or '')[:28] for f in fs)))
+
+# Un ID que no es un numero NO se resume en un contador: hay que poder ir a
+# buscarlo, porque el remedio es devolver el CID y para eso hace falta saber de
+# quien era la fila.
+malos_n = [f for f in filas_n if clave(f) and not clave(f).isdigit()]
+malos_v = set(clave(f) for f in filas_v if clave(f) and not clave(f).isdigit())
+if malos_n:
+    print()
+    print(u'      ID(s) que NO son un numero en el archivo NUEVO:')
+    for f in malos_n[:10]:
+        viejo = clave(f) in malos_v
+        print(u'        «%s»%s' % (str(clave(f))[:46],
+                                   u'   (ya venia asi)' if viejo else u'   NUEVO'))
+        print(u'          cliente %-34s tipo %-11s 1er pago %s'
+              % (str(f.get('Cliente') or u'—')[:34],
+                 str(f.get('Tipo') or u'—'), f.get('1er Pago')))
+        print(u'          Esa fila se PINTA (ID y Cliente no estan vacios) pero')
+        print(u'          su CID se perdio: no cruza con facturacion, ni con DIDs,')
+        print(u'          ni con la cartera. Hay que devolver el numero en la hoja.')
+        if viejo:
+            # Uno que lleva semanas asi no es el mismo aviso que uno que
+            # aparecio hoy: puede ser un demo que nunca llego a tener cuenta,
+            # y entonces no hay numero que devolver sino una pregunta que
+            # hacer. Decirlo evita pedir lo mismo todas las semanas.
+            print(u'          Lleva asi desde antes de este corte: antes de pedir el')
+            print(u'          numero, preguntar si esa cuenta llego a existir.')
 
 # El conteo crudo deja de fallar por si solo: lo que falla es el caso que pierde
 # dato. `peor` conserva el resto de anomalias.
