@@ -49,24 +49,37 @@
    la transcripción de `verifica-contra-tablero.py` —que sí viene del tablero—
    es una comprobación de verdad; si se copiara de ahí, aquella pasaría por
    construcción. [[feedback-metricas-derivadas-origen]] */
+/* Recalculada del export institucional `GRF.xlsx` el 16 nov 2026 con
+   `mide-base-mrr.py --ts`. Se movieron DIEZ de los once meses: Abril
+   −$1,476.00, Mayo −$1,469.00, Junio −$1,154.99, Julio −$1,476.00, Agosto
+   +$2,242.94, Septiembre +$2,306.54, Octubre +$4,233.28 y Noviembre
+   +$6,279.28; Enero, Febrero y Marzo no se movieron.
+   Al centavo, nunca redondeado: lo escribí una vez como 4886743 y lo cazó
+   `verifica-contra-tablero.py` — un denominador redondeado da un porcentaje
+   que no es el del tablero. */
 export const GRC_BASE_MRR: Record<string, number> = {
   Enero:      4650439.89,
   Febrero:    4697115.10,
   Marzo:      4777829.30,
+  Abril:      4856114.51,
+  Mayo:       5075266.09,
+  Junio:      5105407.13,
+  Julio:      4945057.29,
+  Agosto:     5017300.54,
+  Septiembre: 4984993.16,
+  Octubre:    4921518.85,
+  Noviembre:  4730305.05,
+}
+
+/** Las bases ANTES del export `GRF.xlsx`, para que el cambio sea auditable. */
+export const GRC_BASE_MRR_ANTES_2026_11_16: Record<string, number> = {
   Abril:      4857590.51,
   Mayo:       5076735.09,
   Junio:      5106562.12,
   Julio:      4946533.29,
   Agosto:     5015057.60,
   Septiembre: 4982686.62,
-  /* Al centavo, nunca redondeado. Lo escribí una vez como 4886743 y lo cazó
-     `verifica-contra-tablero.py`: un denominador redondeado da un porcentaje
-     que no es el del tablero. */
   Octubre:    4917285.57,
-  /* Noviembre entra al DENOMINADOR, que es sólo la base del mes. No implica
-     que el módulo publique noviembre: eso lo decide `GRC_MES_EN_CURSO`, que
-     sigue en Octubre. Una base de más no inventa pérdida; una base de menos
-     sí inventa un porcentaje. */
   Noviembre:  4724025.77,
 }
 
@@ -411,7 +424,7 @@ export const GRC_RESUMEN_CERRADOS = {
      desde `aaa-grc-data.ts` + `GRC_BASE_MRR`; aquí no se teclea ninguna que él
      no confirme. QUINTA vez que esta constante se queda atrás en una carga. */
   hasta:     'Octubre',
-  base:      49027835.09,
+  base:      49031041.86,
   churn:       853290.33,
   downgrade:   399288.90,
   perdida:    1252579.23,
@@ -420,13 +433,21 @@ export const GRC_RESUMEN_CERRADOS = {
 
 /**
  * El fraude / reestructura queda FUERA del Gross Revenue Churn: la pérdida
- * real del periodo enero–septiembre es $1,327,044.73 —los tres churns más el
- * downgrade—, sin los $457,271.65 de fraude-reestructura de los mismos nueve
+ * real del periodo enero–**octubre** es $1,692,860.67 —los tres churns más el
+ * downgrade—, sin los $457,716.65 de fraude-reestructura de los mismos diez
  * meses. Se reporta por separado.
+ *
+ * OJO al leer el salto desde los $1,327,044.73 que decía antes: **no es que la
+ * pérdida creciera $365,815.94 en una carga**. Son dos cosas a la vez — entra
+ * OCTUBRE entero al periodo (era enero–septiembre) y el corte del 16 nov trae
+ * las filas de «Churn mensual» reales en vez de las conservadas de un corte
+ * viejo (octubre pasa de 16 a 68). Comparar esta cifra con la anterior como si
+ * fueran el mismo periodo es la trampa.
  *
  * Las dos cifras las imprime `scripts/verifica-resumen-cerrados.py` y hay que
  * releerlas en CADA carga: han pasado por $2,151,751.56 / $244,432.68, por
- * $1,349,098.73 / $457,271.65 y por $1,329,439.73 / $457,271.65 antes de éstas.
+ * $1,349,098.73 / $457,271.65, por $1,329,439.73 / $457,271.65 y por
+ * $1,327,044.73 / $457,271.65 antes de éstas.
  * El grueso del fraude-reestructura sigue siendo una sola fila: GTC - Oleksei,
  * febrero, $189,440.
  */

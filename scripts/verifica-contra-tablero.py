@@ -51,6 +51,18 @@ CENT = 0.005
 # comprobar nada. Se copian del tablero o no se tocan.
 FECHA_TRANSCRIPCION = '6 nov 2026'
 
+# EL CORTE CONTRA EL QUE SE COPIO. Sin esto, la prueba no sabe distinguir «el
+# repo discrepa de Zoho» de «la transcripcion se quedo vieja», y cuando el
+# segundo caso dura varios dias deja diecisiete alarmas encendidas que hay que
+# ignorar para trabajar. Una alarma permanentemente encendida ensena a ignorar
+# la pantalla — es el mismo motivo por el que se retiro GRC_VERIFICACION del
+# modulo el 11 oct 2026.
+#
+# Si el corte vigente NO es este, la comparacion NO APLICA: se dice con
+# palabras y se pide la captura, en vez de gritar un descuadre que no se ha
+# medido. Lo que NUNCA se hace es rellenarla con lo que calcula el repo.
+CORTE_TRANSCRITO = 'CRF.xlsx'
+
 # ── TRANSCRIPCION DEL TABLERO (6 nov 2026) ──────────────────────────────────
 # Copiada de la captura que mando Jose Manuel el 6 nov 2026. Trae YA NOVIEMBRE,
 # que la del 2 nov no tenia, y mueve tres meses respecto de aquella:
@@ -183,13 +195,30 @@ for mes, mrr, ch, dw, pe, pct, acum in TABLERO:
           u'repo %s · tablero %s' % (mx(b), mx(mrr)))
 
 print(u'\n  ═══════════════════════════════════════════════════════════')
+corte_vigente = (d.get('meta') or {}).get('origen') or '(sin declarar)'
+if fallos and corte_vigente != CORTE_TRANSCRITO:
+    print(u'  ESTA COMPROBACIÓN NO APLICA HOY, y por eso no sale con error.')
+    print(u'')
+    print(u'      transcripción copiada del tablero: %s, corte «%s»'
+          % (FECHA_TRANSCRIPCION, CORTE_TRANSCRITO))
+    print(u'      corte que sirve la pantalla AHORA:  «%s»' % corte_vigente)
+    print(u'')
+    print(u'  Son cortes distintos, así que los %d desajustes de arriba NO' % len(fallos))
+    print(u'  dicen que el repo discrepe de Zoho: dicen que el tablero también')
+    print(u'  se movió y la copia vieja es ÉSTA. No están medidos.')
+    print(u'')
+    print(u'  *** FALTA UNA CAPTURA NUEVA DEL TABLERO. Hasta que llegue, el')
+    print(u'      contraste contra la fuente oficial está SIN HACER — que no')
+    print(u'      es lo mismo que estar bien. Se actualiza mirando Zoho')
+    print(u'      —clic derecho sobre el mes, «Ver datos subyacentes»— y')
+    print(u'      NUNCA copiando lo que calcula el repo, que es hacer que la')
+    print(u'      prueba le dé la razón al código.')
+    sys.exit(0)
 if fallos:
     print(u'  *** %d comprobación(es) fallan contra el tablero oficial.' % len(fallos))
-    print(u'      La transcripción de arriba es del %s.' % FECHA_TRANSCRIPCION)
-    print(u'      ANTES de dar por malo el dato: si desde entonces se cargó un')
-    print(u'      export nuevo, el tablero TAMBIÉN se movió y lo viejo es esta')
-    print(u'      copia. Se actualiza mirando Zoho —clic derecho sobre el mes,')
-    print(u'      «Ver datos subyacentes»— y NUNCA copiando lo que calcula el')
-    print(u'      repo, que es hacer que la prueba le dé la razón al código.')
+    print(u'      La transcripción de arriba es del %s, del MISMO corte «%s»'
+          % (FECHA_TRANSCRIPCION, corte_vigente))
+    print(u'      que sirve la pantalla, así que esto SÍ es un descuadre real')
+    print(u'      entre lo publicado y Zoho. Mirarlo uno por uno.')
     sys.exit(1)
 print(u'  LO PUBLICADO ES LO QUE DICE EL TABLERO OFICIAL, celda por celda.')

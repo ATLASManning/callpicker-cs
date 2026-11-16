@@ -47,6 +47,7 @@ Requiere openpyxl:  python -m pip install openpyxl
 """
 import sys
 import re
+import collections
 import unicodedata
 import os
 import openpyxl
@@ -166,7 +167,8 @@ def main():
     destino = os.path.normpath(destino)
 
     wb = openpyxl.load_workbook(origen, read_only=True, data_only=True)
-    fuera = []   # filas omitidas por FUERA_DEL_CHURN, se reportan al final
+    fuera = []          # filas omitidas por FUERA_DEL_CHURN, se reportan al final
+    porConfirmar = []   # (mes, cliente, importe) — ver el filtro mas abajo
 
     def fila(r):
         return {
@@ -220,6 +222,23 @@ def main():
             # este modulo es un reporte de PERDIDA, no el padron de contratos.
             # El MRR base del denominador no sale de aqui, sale de GRC_BASE_MRR.
             if num(r[11]) <= 0 and num(r[12]) <= 0:
+                continue
+            # «POR CONFIRMAR (CORTE DE DATOS)» NO ES PERDIDA: ES FALTA DE DATO.
+            #
+            # Zoho lo pone cuando el corte se tomo antes de que el contrato
+            # facturara: no dice que se perdio, dice que todavia no se sabe. El
+            # export filtrado que alimentaba este modulo no lo traia nunca; el
+            # institucional SI, y en el corte del 16 nov 2026 son 1,005 filas
+            # con $1,471,539.29 — TODAS de noviembre, el mes vivo. Publicarlas
+            # como perdida multiplicaria por 44 la del mes.
+            #
+            # Es exactamente lo que dice la regla de negocio: el churn del mes
+            # vivo es cartera por cobrar. Y es [[feedback-cero-sin-medicion]] al
+            # reves — aqui el riesgo no es fabricar un cero, es fabricar una
+            # perdida con una ausencia de medicion. [[regla-churn-mes-vencido]]
+            if esc(r[10]).lower().startswith('por confirmar'):
+                porConfirmar.append((esc(r[0]), esc(r[1]),
+                                     num(r[11]) + num(r[12])))
                 continue
             porMes.setdefault(esc(r[0]), []).append(fila(r))
         pedidos = [NOMBRES.get(h, h) for h in hojas]
@@ -348,6 +367,34 @@ def main():
     print('Escrito: %s' % destino)
     if fuera:
         print('OMITIDAS por FUERA_DEL_CHURN (%d): %s' % (len(fuera), ', '.join(fuera)))
+
+    # Lo que se dejo fuera por «Por confirmar» se DICE, con su importe: callarlo
+    # seria el mismo hueco silencioso que este filtro viene a evitar.
+    if porConfirmar:
+        pcm = collections.Counter(m for m, _c, _i in porConfirmar)
+        tot = sum(i for _m, _c, i in porConfirmar)
+        print('')
+        print('OMITIDAS por «Por confirmar (corte de datos)»: %d filas, $%s'
+              % (len(porConfirmar), format(tot, ',.2f')))
+        print('  No es perdida, es falta de dato: el corte se tomo antes de')
+        print('  que esos contratos facturaran. Por mes:')
+        for m in [NOMBRES.get(h, h) for h in hojas]:
+            if pcm.get(m):
+                t = sum(i for mm, _c, i in porConfirmar if mm == m)
+                print('     %-12s %5d filas   $%s' % (m, pcm[m], format(t, ',.2f')))
+        # El mes mas nuevo del .ts es el vivo, y ahi «por confirmar» es lo
+        # esperado. En un mes CERRADO no lo es: ese contrato ya tuvo su ciclo
+        # entero para facturar y seguir sin clasificar es una anomalia de la
+        # fuente, no cartera por cobrar. Se grita, no se omite en silencio.
+        vivo = [NOMBRES.get(h, h) for h in hojas][-1]
+        viejos = sorted(m for m in pcm if m != vivo)
+        if viejos:
+            print('')
+            print('  *** OJO: tambien aparece en meses CERRADOS: %s'
+                  % ', '.join('%s (%d)' % (m, pcm[m]) for m in viejos))
+            print('  Ahi no es cartera por cobrar —el mes ya cerro— sino una')
+            print('  fila que la fuente nunca clasifico. Revisar antes de')
+            print('  publicar: se esta omitiendo pérdida que quiza sea real.')
         print('  Recuerda ajustar app/churn/grc-reporte.ts si cambio el monto.')
     print('%d filas en %d meses' % (total, len(meses)))
     if conserva:

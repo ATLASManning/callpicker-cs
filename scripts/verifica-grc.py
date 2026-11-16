@@ -103,12 +103,20 @@ for m in SER:
         malos.append(m['mes'])
 prueba('acumulado = suma de mensuales en los %d meses' % len(SER), not malos, str(malos or ''))
 ago = [m for m in SER if m['mes'] == 'Agosto'][0]
-# 17.1% era lo que Zoho publicaba ANTES de la reexpresion del 11 oct 2026.
-# Al bajar el churn de agosto -$4,745.00 y subir su base +$700.00, el acumulado
-# cae una decima a 17.0%. Se mueve el contraste, no se afloja la tolerancia:
-# ensanchar el margen para que «pase» es apagar la prueba.
-prueba('Agosto acumulado 17.0%% (era 17.1%% antes de la reexpresion del 11 oct)',
-       abs(ago['grcAcumulado'] - 17.0) < 0.1,
+# 17.1% era lo que Zoho publicaba ANTES de la reexpresion del 11 oct 2026, y
+# 17.0% tras ella. Con el corte del 16 nov (`GRF.xlsx`) cae a 16.8%: el churn
+# de agosto baja -$3,884.28 (GVA Rep. Dominicana facturo) y julio baja
+# -$2,246.87, y el acumulado arrastra las dos. Se mueve el contraste, no se
+# afloja la tolerancia: ensanchar el margen para que «pase» es apagar la prueba.
+#
+# LO QUE ESTA PRUEBA VALE, Y HAY QUE SABERLO: hasta el 6 nov el numero venia de
+# una captura del tablero de Zoho, asi que comparaba el repo contra la FUENTE.
+# Con `GRF.xlsx` no llego captura, asi que 16.8% esta CALCULADO del propio
+# corte: a partir de aqui detecta que el .json se mueva por su cuenta, no que
+# el repo discrepe de Zoho. Para re-anclarla hace falta una captura nueva —
+# `verifica-contra-tablero.py`. [[feedback-metricas-derivadas-origen]]
+prueba('Agosto acumulado 16.8%% (17.1%% hasta el 11 oct · 17.0%% hasta el 6 nov)',
+       abs(ago['grcAcumulado'] - 16.8) < 0.1,
        '%.1f%%' % ago['grcAcumulado'])
 
 print()
@@ -232,7 +240,7 @@ PUB_ANTES_2026_11_06 = {
        'Agosto': (5014888.60, 53199.28, 49851.84),
        'Septiembre': (4955923.62, 68872.96, 55726.08)}
 
-PUB = {
+PUB_ANTES_2026_11_16 = {
        'Enero': (4650439.89, 74083.11, 20848.01),
        'Febrero': (4697115.10, 65589.19, 34216.37),
        'Marzo': (4777829.30, 82546.00, 25734.97),
@@ -243,6 +251,47 @@ PUB = {
        'Agosto': (5015057.60, 53199.28, 49851.84),
        'Septiembre': (4982686.62, 68872.96, 55726.08),
        'Octubre': (4917285.57, 301885.55, 37083.82)}
+
+# ── REEXPRESION DEL 16-NOV-2026 (export institucional `GRF.xlsx`) ─────────
+# ONCE meses (Ene-Nov) con 3,670 contratos por mes, contra 3,654 del corte
+# anterior. No trae mes nuevo —noviembre ya existia— pero reexpresa OCHO meses
+# cerrados. Los dos grandes:
+#   · Octubre  churn $301,885.55 -> $268,639.55  (-$33,246.00)
+#   · Agosto   churn  $53,199.28 ->  $49,315.00   (-$3,884.28, GVA Rep. Dom.)
+#     y MRR inicio +$2,242.94, el mayor movimiento de base del corte.
+# Mas Julio (churn -$1,825.00, SENTIAL · downgrade -$421.87), Septiembre
+# (churn -$1,077.00 · downgrade -$1,926.74, CiberZion), Junio (base -$1,154.99,
+# downgrade -$7.99), Abril (base -$1,476.00, downgrade -$7.00) y Mayo
+# (base -$1,469.00).
+#
+# QUINTA vez que un mes «cerrado» se corrige a la baja, y la causa es la de
+# siempre: `concilia-grc-zoho.py` explica el delta entero —CIERRA al centavo—
+# con 625 lineas que estaban marcadas como perdida y DESDE ENTONCES FACTURARON
+# (-$1,458,171.51). [[regla-churn-mes-vencido]]
+#
+# CUADRA CON EL OTRO MODULO, que es la comprobacion que de verdad vale: el
+# corte AAA del mismo dia (`GRC_AAA_2026.xlsx`) mide octubre en $268,639.55 y
+# septiembre en -$1,077.00 / -$1,926.74, exactamente lo mismo. Son dos archivos
+# distintos de la misma extraccion y coinciden al centavo.
+#
+# LO QUE **NO** SE HIZO, y hay que decirlo: estas diez filas NO estan cotejadas
+# celda por celda contra una captura del tablero de Zoho, como si lo estaban
+# las del 2 y el 6 de noviembre. Con este export no llego ninguna captura. Van
+# calculadas del propio corte, asi que esta comprobacion vale lo que vale —
+# detecta que el .json cambie por su cuenta, NO que el repo discrepe de Zoho.
+# Ese contraste vive en `verifica-contra-tablero.py` y sigue con la
+# transcripcion del 6 nov. [[feedback-metricas-derivadas-origen]]
+PUB = {
+       'Enero': (4650439.89, 74083.11, 20848.01),
+       'Febrero': (4697115.10, 65589.19, 34216.37),
+       'Marzo': (4777829.30, 82546.00, 25734.97),
+       'Abril': (4856114.51, 58214.06, 26406.59),
+       'Mayo': (5075266.09, 32586.00, 42283.26),
+       'Junio': (5105407.13, 87260.00, 84204.82),
+       'Julio': (4945057.29, 67261.46, 24859.88),
+       'Agosto': (5017300.54, 49315.00, 49851.84),
+       'Septiembre': (4984993.16, 67795.96, 53799.34),
+       'Octubre': (4921518.85, 268639.55, 37083.82)}
 for m in SER:
     p = PUB.get(m['mes'])
     if not p:
