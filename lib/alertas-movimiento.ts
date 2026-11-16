@@ -68,6 +68,12 @@ const LO_QUE_LA_APAGA: Record<Condicion, string> = {
      marcarle al cliente, y marcarle no cambia el número. Lo que lo cambia es
      que alguien arregle las extensiones muertas y los horarios. */
   atencion:  'que sus llamadas entrantes empiecen a contestarse',
+  /* La apaga el CORTE siguiente del GRC, no una conversación. Y es importante
+     decirlo así: esta alerta nace de que la factura ya bajó, de modo que
+     hablar con el cliente —que es exactamente lo que hay que hacer— no la
+     apaga. Se apaga cuando el mes siguiente deje de traer la reducción.
+     Prometer lo contrario convertiría la alerta en una tarea imposible. */
+  facturacion: 'que el siguiente corte del GRC ya no traiga la reducción',
   trabajo:   'nada: este tipo de alerta se retiró',
 }
 
@@ -96,6 +102,12 @@ const LA_MUEVEN: Record<Condicion, ReadonlySet<TipoCaptura>> = {
   importe:   new Set<TipoCaptura>([]),
   mesa:      new Set<TipoCaptura>([]),
   atencion:  new Set<TipoCaptura>([]),
+  /* Ninguna, y por la misma razón que `importe`: la mueve la factura. Registrar
+     la llamada en que se negoció no cambia lo que el GRC publicó del mes
+     pasado. Lo que esa llamada SÍ puede hacer es encender `escrito` si alguien
+     escribe lo que el cliente dijo — y ésa es otra condición, con su propia
+     memoria, que es justo lo que se quiere. */
+  facturacion: new Set<TipoCaptura>([]),
   trabajo:   new Set<TipoCaptura>([]),
 }
 

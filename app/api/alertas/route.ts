@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { detectarAlertas, UMBRALES } from '@/lib/alertas-detectar'
-import { resumir } from '@/lib/alertas'
+import { resumir, esIndicioDeBaja } from '@/lib/alertas'
 import { mapaFacturacion } from '@/lib/facturacion-cuenta'
 import { alertasConMemoria } from '@/lib/alertas-episodios'
 import { ultimoDiag } from '@/lib/senal-escrita'
@@ -29,7 +29,7 @@ export const runtime = 'nodejs'
  * Es la misma lección de esta mañana en otra ropa: cuando el veredicto importa,
  * que lo diga el código que corre. Ver [[feedback-verificar-antes-asegurar]].
  */
-const VERSION = '2026-10-08.5-sin-abandono-sac'
+const VERSION = '2026-11-16.1-solo-indicios-de-baja'
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams
@@ -62,9 +62,31 @@ export async function GET(req: NextRequest) {
       () => detectarAlertas(asesor ? { asesor } : undefined),
       asesor ? { asesor } : undefined,
     )
-    const resumen = resumir(todas)
+    /* ── SÓLO INDICIOS DE BAJA O DOWNGRADE (16 nov 2026) ─────────────────
+     *
+     * Instrucción de dirección: las alertas son «exclusivamente sobre indicios
+     * que puedan favorecer una solicitud de baja o downgrade». Lo demás —la
+     * ceguera, la oportunidad y los dos tipos que hablan de nuestro registro y
+     * no del cliente— se sigue detectando y se sigue publicando en la ficha
+     * como `analisis` y `entrega`: deja de ser una ALARMA, no desaparece.
+     *
+     * `?todo=1` devuelve el conjunto completo. Existe para que las mediciones y
+     * la ficha puedan pedirlo y para que volver atrás sea quitar un filtro, no
+     * recuperar un motor. No lo usa ninguna pantalla de alertas.
+     *
+     * EL RESUMEN SE CALCULA SOBRE LO MISMO QUE SE LISTA, y esto sí es un
+     * cambio de significado que hay que decir: antes `resumir(todas)` describía
+     * el universo entero a propósito, para que filtrar no encogiera el total.
+     * Ese principio sigue —los filtros de `familia`, `severidad` y `dueno` de
+     * abajo NO tocan el resumen—, pero el recorte por indicio no es un filtro
+     * de pantalla: es qué es una alerta. Si el resumen siguiera contando la
+     * ceguera, el tablero diría «$2.1M en riesgo» mientras lista $1.6M, y
+     * nadie podría reconciliar las dos cifras. [[feedback-tablas-deben-cerrar]] */
+    const universo = sp.get('todo') === '1'
+      ? todas : todas.filter(esIndicioDeBaja)
+    const resumen = resumir(universo)
 
-    let filtradas = todas
+    let filtradas = universo
     const familia = sp.get('familia')
     const severidad = sp.get('severidad')
     const dueno = sp.get('dueno')

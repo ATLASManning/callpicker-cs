@@ -75,6 +75,10 @@ export type TipoAlerta =
   | 'silencio_60'
   | 'silencio_30'
   | 'nunca_contactada'
+  /* LO QUE DICE LA FACTURACIÓN — 16 nov 2026. El GRC ya tenía medido quién
+     bajó su MRR y quién entró en churn, y no llegaba aquí. Ver el catálogo. */
+  | 'downgrade_repetido'
+  | 'churn_facturado'
   | 'rebasa_bolsa'
   /* ── LA MESA DE AYUDA, QUE NO LLEGABA AL MOTOR ──────────────────────────
    *
@@ -407,6 +411,44 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     enlaceEtiqueta: 'Ver la cuenta',
   },
 
+  // ── LO DICE LA FACTURACIÓN (16 nov 2026) ───────────────────────────────
+  //
+  // El GRC tiene medido, mes a mes y cuenta por cuenta, quién bajó su MRR y
+  // quién entró en churn — y NADA de eso llegaba al motor de alertas.
+  // `NOMBRES_CHURN_GRC` existía en `lib/elegibilidad.ts` sólo para BLOQUEAR
+  // actividades: la cuenta no avisaba, simplemente dejaba de poder trabajarse.
+  //
+  // Es la diferencia entre un indicio y una prueba. Las demás señales dicen
+  // que el cliente PUEDE pedir una baja o una reducción; éstas dicen que la
+  // factura ya bajó. Por eso van primero en el orden de lectura.
+  //
+  // El cruce es POR NOMBRE —el GRC no trae CID— y la cobertura está medida en
+  // `scripts/mide-senal-facturacion.py`: de 363 nombres con downgrade, 60
+  // casan con la cartera. Los 303 que no casan son cuentas fuera de la cartera
+  // CS, no un fallo del cruce; se cuentan para no inventar cobertura.
+  // [[dids-fuente]] · [[grc-fuente-zoho]]
+  downgrade_repetido: {
+    tipo: 'downgrade_repetido', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
+    titulo: 'Su facturación bajó dos meses seguidos',
+    accion: 'Esto no es un pronóstico: el GRC ya registró la reducción, y seguida. '
+          + 'Una cuenta que se reduce dos meses consecutivos está renegociando a la '
+          + 'baja sin que nadie se lo haya pedido. Llamar con el detalle de QUÉ se '
+          + 'dio de baja cada mes y qué quedó sin usar, y llevar una propuesta de '
+          + 'plan a la medida antes de que la tercera reducción sea la salida.',
+    enlaceEtiqueta: 'Ver su facturación', ancla: 'facturacion',
+  },
+  churn_facturado: {
+    tipo: 'churn_facturado', familia: 'riesgo', severidad: 'critica', dueno: 'asesor',
+    titulo: 'Facturación ya la da por perdida y la cartera la da por viva',
+    accion: 'El GRC la marca «Churn confirmado» en un mes CERRADO —no en el mes vivo, '
+          + 'donde eso sólo significa cobranza pendiente— y en la base sigue activa o '
+          + 'en riesgo. Una de las dos cosas está mal y hay que resolverla hoy: o el '
+          + 'cliente se fue y nadie lo registró, o facturación la marcó por un pago '
+          + 'que no entró. Confirmar con el cliente ANTES de tocar su estado: una '
+          + 'baja no se da por hecha, se autoriza.',
+    enlaceEtiqueta: 'Ver su facturación', ancla: 'facturacion',
+  },
+
   // ── OPORTUNIDAD ────────────────────────────────────────────────────────
   rebasa_bolsa: {
     tipo: 'rebasa_bolsa', familia: 'oportunidad', severidad: 'oportunidad', dueno: 'asesor',
@@ -532,6 +574,15 @@ export type Condicion =
      contestar la mitad de lo que entra. De hecho es el caso típico — el
      consumo mide los minutos que SÍ se hablaron. */
   | 'atencion'
+  /* Lo que dice la FACTURACIÓN (16 nov 2026). Sus dos tipos son excluyentes en
+     el detector —el churn gana al downgrade, porque si la factura ya la da por
+     perdida, que además se hubiera reducido antes es el prólogo—.
+
+     Y NO cabe en `consumo`: el consumo son los minutos que gastó, esto es el
+     dinero que paga. Una cuenta puede consumir su plan al 100% y haber bajado
+     de plan dos veces; de hecho es el caso que más duele, porque se ve sana
+     por todos lados menos por la factura. */
+  | 'facturacion'
 
 export const CONDICION: Record<TipoAlerta, Condicion> = {
   sin_consumo_medible: 'medicion',
@@ -547,6 +598,7 @@ export const CONDICION: Record<TipoAlerta, Condicion> = {
   sac_atraso_cronico: 'mesa', sac_fuera_sla: 'mesa', sac_fallas_recurrentes: 'mesa',
   sin_importe: 'importe',
   llamadas_sin_contestar: 'atencion', llamadas_perdidas_masivas: 'atencion',
+  downgrade_repetido: 'facturacion', churn_facturado: 'facturacion',
 }
 
 /* ── PENDIENTE EN SUPABASE, Y NO ES OPCIONAL ───────────────────────────────
@@ -699,6 +751,112 @@ export function construirAlerta(
  *
  * Medido: 33 cuentas de 192 (17%), $386,020, seis de ellas TOP.
  */
+/* ══════════════════════════════════════════════════════════════════════════
+ * INDICIO DE BAJA O DOWNGRADE — qué se emite como ALERTA (16 nov 2026)
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Instrucción de dirección: «las alertas o warnings que emites deberán ser por
+ * ahora exclusivamente sobre indicios que puedan favorecer una solicitud de
+ * baja o downgrade, exclusivamente de las cuentas o clientes que se encuentran
+ * asignados a los asesores».
+ *
+ * EL CRITERIO, que es lo que hay que poder repetir dentro de un mes: un
+ * indicio es una señal sobre EL CLIENTE — lo que dice, lo que su factura hace,
+ * lo que deja de usar, lo que deja de contestar, o un servicio que le estamos
+ * fallando. NO lo es un hueco en NUESTROS datos: no saber algo de una cuenta
+ * no la acerca a irse, nos impide verla venir. Tampoco una oportunidad de
+ * venta, que es la conversación contraria.
+ *
+ * «POR AHORA» ESTÁ EN LA INSTRUCCIÓN Y ESTÁ EN EL CÓDIGO. Nada se borra: la
+ * ceguera y la oportunidad se siguen detectando y se siguen publicando en la
+ * ficha de la cuenta como `analisis` y `entrega`. Lo que cambia es que dejan
+ * de ser una ALARMA. Volver atrás es quitar un filtro, no recuperar un motor.
+ *
+ * MEDIDO ANTES DE APLICARLO, con `scripts/mide-indicios-baja.py` contra
+ * producción —no con una réplica— el 16 nov 2026:
+ *
+ *   · de 649 alertas en 189 cuentas, quedan 165 en 122 cuentas, $1,604,915
+ *   · por asesor: Dan 225 → 42 · Erick 210 → 61 · Fátima 214 → 62. La
+ *     capacidad del equipo es ~30 a la semana, así que ésta es la diferencia
+ *     entre una lista que alguien recorre el lunes y un color de fondo.
+ *   · **67 cuentas ($534,823) dejan de tener alerta**, y eso se dice: no es
+ *     que estén bien, es que lo suyo es trabajo de captura, no riesgo de baja.
+ *     Siguen en su ficha, bajo `analisis`.
+ *
+ * DOS QUE SE QUEDARON FUERA Y HAY QUE SABER POR QUÉ:
+ *
+ *   · `nunca_contactada` — «nunca la hemos contactado» es un hecho sobre
+ *     NOSOTROS. Salta en 91 de 189 cuentas, el 48% de la cartera: como alarma
+ *     no distingue nada. Lo que sí es del cliente se queda —`sin_interlocutor`,
+ *     2+ intentos fallidos seguidos, el caso Biolaboratorio Sadat— y son tres
+ *     cuentas, y esas tres importan.
+ *   · `silencio_30` — higiene de relación. A los 60 días sí entra.
+ */
+export const INDICIO_BAJA: ReadonlySet<TipoAlerta> = new Set<TipoAlerta>([
+  // Lo dice la factura. No es indicio, es prueba — por eso va primero.
+  'churn_facturado', 'downgrade_repetido',
+  // Lo declaró alguien del equipo por escrito, con su fecha.
+  'baja_declarada', 'reduccion_declarada', 'riesgo_escrito',
+  // Deja de usar el servicio: el precursor clásico del downgrade.
+  'consumo_cero', 'desplome_consumo', 'caida_consumo', 'uso_bajo',
+  // Se rompe la relación: así se pierde una cuenta sin verla venir.
+  'sin_interlocutor', 'silencio_60',
+  // Le estamos fallando: el motivo de baja mejor documentado de esta cartera.
+  'sac_fuera_sla', 'sac_atraso_cronico', 'sac_fallas_recurrentes',
+  'llamadas_sin_contestar', 'llamadas_perdidas_masivas',
+])
+
+/** Los cinco porqués, en el orden en que se leen. */
+export type GrupoIndicio =
+  'lo_dice_la_factura' | 'lo_declaro' | 'deja_de_usarlo'
+  | 'se_rompe_la_relacion' | 'le_fallamos'
+
+export const GRUPO_INDICIO: Partial<Record<TipoAlerta, GrupoIndicio>> = {
+  churn_facturado: 'lo_dice_la_factura', downgrade_repetido: 'lo_dice_la_factura',
+  baja_declarada: 'lo_declaro', reduccion_declarada: 'lo_declaro',
+  riesgo_escrito: 'lo_declaro',
+  consumo_cero: 'deja_de_usarlo', desplome_consumo: 'deja_de_usarlo',
+  caida_consumo: 'deja_de_usarlo', uso_bajo: 'deja_de_usarlo',
+  sin_interlocutor: 'se_rompe_la_relacion', silencio_60: 'se_rompe_la_relacion',
+  sac_fuera_sla: 'le_fallamos', sac_atraso_cronico: 'le_fallamos',
+  sac_fallas_recurrentes: 'le_fallamos',
+  llamadas_sin_contestar: 'le_fallamos', llamadas_perdidas_masivas: 'le_fallamos',
+}
+
+/** Qué le decimos al asesor que significa cada grupo. Sale en pantalla. */
+export const GRUPO_INDICIO_ETIQUETA: Record<GrupoIndicio, string> = {
+  lo_dice_la_factura:   'Su facturación ya bajó',
+  lo_declaro:           'Alguien lo escribió',
+  deja_de_usarlo:       'Está dejando de usarlo',
+  se_rompe_la_relacion: 'Se rompió el contacto',
+  le_fallamos:          'Le estamos fallando',
+}
+
+export const GRUPO_INDICIO_ORDEN: readonly GrupoIndicio[] = [
+  'lo_dice_la_factura', 'lo_declaro', 'deja_de_usarlo',
+  'se_rompe_la_relacion', 'le_fallamos',
+]
+
+/**
+ * ¿Esta alerta es un indicio de que el cliente puede pedir baja o reducción?
+ *
+ * ES LA ÚNICA PUERTA. Las pantallas no vuelven a escribir la lista: si una
+ * superficie filtrara por su cuenta —`familia === 'riesgo'`, por ejemplo—
+ * volvería a pasar lo del 8 oct 2026, cuando las compuertas del veredicto se
+ * separaron del catálogo y el tramo de silencio 61-89 días se coló entero.
+ */
+export function esIndicioDeBaja(a: { tipo: TipoAlerta }): boolean {
+  return INDICIO_BAJA.has(a.tipo)
+}
+
+/** Reparte una lista en lo que se alerta y lo que pasa a análisis. */
+export function partirPorIndicio<T extends { tipo: TipoAlerta }>(alertas: readonly T[]) {
+  const indicios: T[] = []
+  const contexto: T[] = []
+  for (const a of alertas) (esIndicioDeBaja(a) ? indicios : contexto).push(a)
+  return { indicios, contexto }
+}
+
 export const TIPOS_RIESGO: ReadonlySet<TipoAlerta> = new Set<TipoAlerta>([
   'consumo_cero', 'silencio_60', 'sin_interlocutor',
   /* Si alguien del equipo ESCRIBIÓ que el cliente pidió la baja o que la cuenta
@@ -742,6 +900,21 @@ export const TIPOS_RIESGO: ReadonlySet<TipoAlerta> = new Set<TipoAlerta>([
    * que este conjunto estrecho existe para no repetir. Sigue siendo familia
    * `riesgo`, así que bloquea la luz verde y sale en rojo en la ficha. */
   'sac_fuera_sla', 'sac_atraso_cronico',
+  /* `churn_facturado` ENTRA (16 nov 2026) y `downgrade_repetido` NO.
+   *
+   * Este conjunto contesta «¿cuántas cuentas se están yendo?». Una cuenta que
+   * el GRC marca «Churn confirmado» en un mes CERRADO no es que pueda irse: es
+   * que la factura ya la da por ida mientras la cartera la da por viva. Dejarla
+   * fuera sería tener el caso más claro que existe y no contarlo. Son SIETE
+   * cuentas medidas, así que el KPI pasa de 33 a ~37 — sigue siendo una lista
+   * que alguien recorre el lunes, que es la condición de este conjunto.
+   *
+   * `downgrade_repetido` se queda fuera por la MISMA razón que
+   * `reduccion_declarada`, y conviene que las dos tengan el mismo trato: una
+   * reducción duele y hay que trabajarla —por eso es alerta crítica— pero no
+   * es que la cuenta se vaya. Meter sus 12 cuentas aquí cambiaría lo que
+   * significa el KPI sin que nadie lo haya pedido. */
+  'churn_facturado',
   /* LAS DE ATENCIÓN TELEFÓNICA NO ENTRAN, por la misma razón medida y por
      coherencia con la decisión de arriba (14 oct 2026).
      `llamadas_sin_contestar` son 17 cuentas y `llamadas_perdidas_masivas`

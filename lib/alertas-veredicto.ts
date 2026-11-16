@@ -1,4 +1,4 @@
-import type { Alerta, TipoAlerta } from '@/lib/alertas'
+import { esIndicioDeBaja, type Alerta, type TipoAlerta } from '@/lib/alertas'
 
 /**
  * lib/alertas-veredicto.ts — EL VEREDICTO DE UNA CUENTA, Y SU ÚNICA ACCIÓN
@@ -158,8 +158,26 @@ export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
    *
    * No mueve ninguna compuerta del veredicto: el riesgo lo decide `riesgoVivo`
    * sobre las alertas, y el umbral de entrega cuenta la clase `entrega`. */
+  /* 16 NOV 2026 — LA CLASE `riesgo` LA DECIDE `esIndicioDeBaja`, NO LA FAMILIA.
+   *
+   * Dirección acotó las alertas a «indicios que puedan favorecer una solicitud
+   * de baja o downgrade», y la ficha tiene que decir lo mismo que el panel: si
+   * en `/alertas` una cuenta no sale y al abrirla su ficha la pinta en rojo,
+   * son dos tableros distintos del mismo día.
+   *
+   * Lo que se mueve de `riesgo` a `analisis` son dos tipos de la familia
+   * `riesgo` que hablan de NOSOTROS y no del cliente: `nunca_contactada` —que
+   * salta en 91 de 189 cuentas— y `silencio_30`. Siguen en la ficha, con su
+   * prueba, bajo «lo que nos falta».
+   *
+   * OJO, Y ESTO NO ES UNA INCOHERENCIA: `riesgoVivo` más abajo SIGUE mirando la
+   * familia, así que esos dos tipos siguen bloqueando la luz verde igual que
+   * antes. Son dos preguntas distintas —«¿sobre qué alertamos?» y «¿puedo
+   * declarar esta cuenta en orden?»— y la segunda se contesta con más cautela
+   * que la primera. El 8 oct 2026 una luz verde se pintó sobre tres cuentas con
+   * alerta crítica por relajar justo esto; no se vuelve a tocar a la baja. */
   for (const a of e.alertas) {
-    const clase: ClaseHallazgo = a.familia === 'riesgo' ? 'riesgo'
+    const clase: ClaseHallazgo = esIndicioDeBaja(a) ? 'riesgo'
                                : a.familia === 'oportunidad' ? 'entrega'
                                : 'analisis'
     h.push({ clase, titulo: a.titulo, prueba: a.evidencia })

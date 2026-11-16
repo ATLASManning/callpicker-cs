@@ -15,6 +15,7 @@ import { ticketStatsCuenta } from '@/lib/tickets-cuenta'
    eso es correcto para una cuenta y caro para doscientas. Aquí hacen falta
    cuatro cifras. */
 import { resumenLlamadas, VOLUMEN_MINIMO, type ResumenLlamadas } from '@/lib/llamadas-resumen'
+import { senalGrcDe, MESES_MEDIDOS, RACHA_MINIMA } from '@/lib/grc-senal-cuenta'
 import { construirAlerta, type Alerta, type TipoAlerta } from '@/lib/alertas'
 
 /**
@@ -214,7 +215,18 @@ export async function detectarAlertas(
   if (opciones?.cuentaId) q = q.eq('id', opciones.cuentaId)
   const { data: cuentasRaw, error } = await q
   if (error) throw error
-  const cuentas = (cuentasRaw ?? []) as unknown as CuentaAlerta[]
+  /* SÓLO CARTERA ASIGNADA — instrucción de dirección del 16 nov 2026: las
+     alertas son «exclusivamente de las cuentas o clientes que se encuentran
+     asignados a los asesores».
+
+     HOY NO QUITA NINGUNA —medido: las 649 alertas de producción salen de 189
+     cuentas y las 189 tienen asesor— y por eso mismo se escribe: una condición
+     que hoy se cumple sola es la que mañana se rompe sin que nadie lo note. Una
+     cuenta que entre sin dueño emitiría alertas que nadie puede trabajar, y
+     aparecería en el total de riesgo de una mesa en la que no está. Falla
+     cerrado, como `lib/dueno.ts`. [[auditoria-acceso-oct2026]] */
+  const todas = (cuentasRaw ?? []) as unknown as CuentaAlerta[]
+  const cuentas = todas.filter(c => (c.asesor ?? '').trim() !== '')
   if (!cuentas.length) return []
 
   const ids = cuentas.map(c => c.id)
@@ -746,6 +758,39 @@ export async function detectarAlertas(
           + `${ll.sinContestar.toLocaleString('es-MX')} personas que llamaron `
           + `y no hablaron con nadie, sobre `
           + `${ll.entrantes.toLocaleString('es-MX')} entrantes.`)
+      }
+    }
+
+    /* ── LO QUE DICE LA FACTURACIÓN (16 nov 2026) ─────────────────────────
+     *
+     * El GRC tenía medido mes a mes quién bajó su MRR y quién entró en churn, y
+     * no llegaba aquí. Son los dos únicos tipos que no son un indicio sino una
+     * PRUEBA: la factura ya se movió.
+     *
+     * EXCLUYENTES, y el churn gana. Si facturación ya la da por perdida, que
+     * además se hubiera reducido antes es el prólogo de la misma historia y
+     * comparten grupo de episodio `facturacion`: contarlas por separado haría
+     * envejecer dos episodios de un solo hecho.
+     *
+     * El mes vivo no cuenta —lo excluye `lib/grc-senal-cuenta.ts`— porque ahí
+     * «Churn confirmado» significa cobranza pendiente. [[regla-churn-mes-vencido]] */
+    if (MESES_MEDIDOS > 0) {
+      const g = senalGrcDe(c.empresa)
+      if (g.churn.length) {
+        add('churn_facturado', c,
+            `El GRC la marca «Churn confirmado» en ${g.churn.join(', ')}, `
+          + `${g.churn.length === 1 ? 'un mes CERRADO' : 'meses CERRADOS'} —no en `
+          + `el mes vivo, donde eso sólo significa cobranza pendiente—, y en la `
+          + `base sigue como ${c.estado === 'en_riesgo' ? 'EN RIESGO' : 'ACTIVA'}. `
+          + `Paga ${cuantoPaga(c)}. Una de las dos cosas está mal.`)
+      } else if (g.rachaDowngrade >= RACHA_MINIMA) {
+        add('downgrade_repetido', c,
+            `Downgrade en ${g.downgrade.length} ${g.downgrade.length === 1 ? 'mes' : 'meses'} `
+          + `(${g.downgrade.join(', ')}), con ${g.rachaDowngrade} seguidos. `
+          + `Son $${Math.round(g.perdidoDowngrade).toLocaleString('es-MX')} de MRR `
+          + `que dejó de pagar sobre los ${cuantoPaga(c)} que paga hoy. `
+          + `Dos meses consecutivos a la baja no es un cambio de plan: es una `
+          + `cuenta renegociándose sola.`)
       }
     }
 
