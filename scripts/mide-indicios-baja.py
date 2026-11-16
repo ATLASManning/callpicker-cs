@@ -212,9 +212,27 @@ if args.verifica:
         for f in fallos:
             print(u'  *** %s' % f)
         sys.exit(1)
+    # ── LA MEMORIA, que es lo que el CHECK de Supabase habilita ──────────
+    #
+    # Una alerta que se emite pero cuyo episodio la base rechaza se ve
+    # exactamente igual en pantalla —sale, se trabaja— salvo en una cosa: no
+    # puede decir «lleva 47 dias asi», que es la unica forma de anticipar en
+    # vez de contar. El rechazo se publica en `falla` y aqui se mira.
+    ep = d.get('episodios') or {}
+    print(u'  memoria de episodios: %s abiertos · %s detectados · %s nuevos'
+          % (ep.get('abiertos'), ep.get('detectados'), ep.get('nuevos')))
+    if ep.get('falla'):
+        print(u'')
+        print(u'  *** LA MEMORIA NO ESTA GUARDANDO: %s' % ep['falla'])
+        print(u'  Las alertas salen igual, pero sin antiguedad. Si el texto')
+        print(u'  menciona el codigo 23514 es el CHECK de')
+        print(u'  `alertas_episodios.condicion`: correr')
+        print(u'  `scripts/migracion-condicion-facturacion.sql`.')
+        sys.exit(1)
+    print(u'')
     print(u'  OK — la API emite %d alertas, todas indicio de baja o downgrade,'
           % len(alertas))
-    print(u'  todas de cuentas con asesor asignado.')
+    print(u'  todas de cuentas con asesor asignado, y la memoria guarda.')
     sys.exit(0)
 
 k0 = alertas[0]

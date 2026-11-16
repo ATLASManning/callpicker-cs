@@ -28,9 +28,18 @@
 -- Y NO FALLA EN SILENCIO: `lib/alertas-episodios.ts` recoge el error, lo
 -- publica en `falla` y pone `nuevos` en 0 en vez de reportar el intento.
 --
--- COMPROBAR DESPUES con `python scripts/verifica-check-condicion.py`, que
--- exige el código 23514 y con cualquier otro dice «no concluyente» en vez de
--- acusar.
+-- ════════════════════════════════════════════════════════════════════════
+-- CORRIDA EL 16 NOV 2026. Resultado comprobado, no supuesto:
+--   · `scripts/revisa-check-condicion-vivo.py` -> el CHECK admite las DOCE
+--     condiciones que declara el codigo, 'atencion' y 'facturacion' incluidas
+--   · `scripts/mide-indicios-baja.py --verifica` -> 19 episodios NUEVOS, que
+--     son exactamente los 12 de `downgrade_repetido` mas los 7 de
+--     `churn_facturado`, y `falla` vacio
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- COMPROBAR DESPUES con `python scripts/revisa-check-condicion-vivo.py`, que
+-- intenta insertar una fila por condicion y distingue el rechazo por el CHECK
+-- (codigo 23514) de cualquier otro, en vez de acusar al primero que falle.
 
 ALTER TABLE alertas_episodios DROP CONSTRAINT IF EXISTS alertas_episodios_condicion_check;
 
