@@ -30,6 +30,7 @@ import hmac
 import io
 import json
 import os
+import re
 import sys
 import time
 import urllib.request
@@ -172,9 +173,38 @@ print(u'\n  /api/grc?mode=cuenta&cid=178812 -> %s'
 exige(isinstance(c, dict) and (c.get('mrrFin') is not None or c.get('filas')),
       u'el cruce por CID responde con datos (no vacio en silencio)')
 
+# ── EL MODULO AAA TAMBIEN, QUE ES EL OTRO LADO DE LA MISMA CARGA ────────────
+#
+# Hasta el 16 nov 2026 esta sonda miraba SOLO /api/grc, que sirve
+# `data/grc-zoho.json` (Facturacion). El otro destino del mismo corte —
+# `app/churn/aaa-grc-data.ts`, que alimenta Churn · GRC AAA — no tenia NINGUNA
+# comprobacion en produccion: se cargaba, se desplegaba y se daba por bueno.
+# Son dos archivos distintos que se mueven juntos y pueden desincronizarse.
+#
+# `/churn` es 'use client', asi que no se puede leer del HTML. Pero
+# `/api/cuentas/downgrade` declara `cobertura.grcAaaMeses` desde el mismo .ts,
+# del lado del servidor: eso SI se puede preguntar. [[feedback-verificar-antes-asegurar]]
+RX_MES_TS = re.compile(r"mes:\s*'([^']+)'")
+ts = io.open(os.path.join(RAIZ, 'app', 'churn', 'aaa-grc-data.ts'),
+             encoding='utf-8').read()
+meses_ts = RX_MES_TS.findall(ts)
+print(u'\n  app/churn/aaa-grc-data.ts declara %d meses, el ultimo «%s»'
+      % (len(meses_ts), meses_ts[-1] if meses_ts else u'—'))
+
+d2 = api('/api/cuentas/downgrade')
+ma = ((d2.get('cobertura') or {}).get('grcAaaMeses')
+      if isinstance(d2, dict) else None)
+exige(isinstance(ma, list), u'/api/cuentas/downgrade declara los meses del AAA',
+      u'llego %s' % type(ma).__name__)
+if isinstance(ma, list):
+    print(u'        la API publica %d: %s' % (len(ma), u', '.join(str(x) for x in ma)))
+    ok, motivo = juzga_meses(meses_ts, ma)
+    exige(ok, u'el AAA sirve el mes mas nuevo del .ts y no pierde ninguno', motivo)
+
 print()
 if fallos:
     print(u'  *** %d comprobacion(es) fallan: la pantalla NO sirve el corte de data/.'
           % len(fallos))
     sys.exit(1)
-print(u'  /facturacion sirve el corte que esta en data/grc-zoho.json.')
+print(u'  /facturacion sirve el corte de data/grc-zoho.json y el modulo AAA')
+print(u'  sirve los meses de app/churn/aaa-grc-data.ts.')
