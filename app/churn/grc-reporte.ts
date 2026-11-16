@@ -169,7 +169,35 @@ export const GRC_BASE_PROVISIONAL: readonly string[] = []
  * Al cerrar el mes: poner aquí el siguiente mes vivo. Sus bajas sobrevivientes
  * pasan a ser churn real y generan aclaración solas.
  */
-/* OCTUBRE SIGUE AQUÍ AUNQUE EL MES YA TERMINÓ — 2 nov 2026.
+/* ROTADA A NOVIEMBRE — 16 nov 2026, con el corte `GRC_AAA_2026.xlsx`.
+
+   Dos cosas lo obligan y ninguna es el calendario:
+
+   1. SÓLO PUEDE HABER UN MES EXCLUIDO. El corte trae noviembre (31 filas de
+      Downgrade, $33,700.37, cero «Churn confirmado»), y el módulo ya lo
+      publica. Dejar la constante en Octubre daría noviembre por cerrado
+      —con un GRC de 0.5%, que es un mes recién empezado— y seguiría
+      excluyendo el mes anterior. Es el error en el sentido contrario.
+
+   2. EL CRITERIO DOCUMENTADO ABAJO SE CUMPLIÓ. Decía: «el criterio para rotar
+      no es que el churn baje: es que aparezca una baja real que el cierre
+      venga a capturar». `mide-cierre-de-mes-grc.py Octubre` al 16 nov:
+      de 192 filas con «Churn confirmado», 11 cruzan con la cartera y
+      CINCO ya figuran de baja o dormidas — Jason de México (D7, $17,225),
+      IMAGEN DENTAL AMT (Z18, $8,988), KOMBITEC (D22, $8,539),
+      Biolaboratorio Sadat (C29, $7,184) y SOBERANI (D15, $5,235).
+      El 6 nov eran 13 cotejables y 13 vivas: cero capturas.
+
+   EL COSTE SE DICE, NO SE ESCONDE: quedan SEIS cuentas que la base da por
+   vivas y que entran a NOMBRES_CHURN_GRC — ATP Sofom (C8, en_riesgo,
+   $14,848), ABRL SISTEMAS & PROYECTOS (C11, en_riesgo, $14,665), SW Sapien
+   (C12, en_riesgo, $13,668), BATTERY MART (F40, activo, $7,024), Hairfix
+   (C48, activo, $2,407) y Dental District (Z54, activo, $2,308). Atlas dirá
+   de ellas «aparece como Churn confirmado». Cinco capturas buenas contra
+   seis afirmaciones que hay que mirar una por una; antes era cero contra
+   trece, y por eso antes no se rotaba. */
+
+/* LO QUE DECÍA ANTES — 2 nov 2026, cuando la respuesta era NO.
 
    El corte nuevo se tomó dos días después del cierre y octubre bajó muchísimo:
    de 624 filas y $850,238.92 a 295 filas y $393,410.82, un GRC de 17.4% → 8.1%.
@@ -189,7 +217,7 @@ export const GRC_BASE_PROVISIONAL: readonly string[] = []
    —23.6% → 6.9% → 3.14%— y ni el mes recién cerrado era definitivo. Octubre
    sale de «en curso» cuando esos 15 bajen, no cuando cambie el calendario.
    Ver [[regla-churn-mes-vencido]]. */
-export const GRC_MES_EN_CURSO: string | null = 'Octubre'
+export const GRC_MES_EN_CURSO: string | null = 'Noviembre'
 
 /**
  * POR QUÉ OCTUBRE SIGUE EXCLUIDO AUNQUE YA TERMINÓ.
@@ -223,12 +251,24 @@ export const GRC_MES_EN_CURSO: string | null = 'Octubre'
  * SE REVISA EN CADA CARGA: en cuanto las cotejables empiecen a salir de baja,
  * esto se rota y `GRC_RESUMEN_CERRADOS.hasta` pasa a 'Octubre'.
  */
+/* Al 16 nov 2026 el mes sin madurar ya es NOVIEMBRE, y lo está de verdad:
+   el corte le da 31 filas, todas Downgrade, y CERO «Churn confirmado».
+   Las cifras de octubre quedan abajo como la medición que justificó cerrarlo. */
 export const GRC_MES_SIN_MADURAR = {
-  medido:        '2026-11-06',
+  medido:        '2026-11-16',
   guion:         'scripts/mide-cierre-de-mes-grc.py',
-  filasChurn:    219,
-  cotejables:    13,
-  cotejablesVivas: 13,
+  filasChurn:    0,
+  cotejables:    0,
+  cotejablesVivas: 0,
+}
+
+/** La medición de OCTUBRE el día que se cerró — lo que ya no hay que adivinar. */
+export const GRC_CIERRE_OCTUBRE_2026_11_16 = {
+  medido:          '2026-11-16',
+  filasChurn:      192,     // eran 219 el 6 nov y 246 el 2 nov
+  cotejables:      11,
+  cotejablesVivas: 6,
+  cotejablesDeBaja: 5,
 }
 
 /**
@@ -336,16 +376,19 @@ export const GRC_REEXPRESION_2026_09_20 = {
  * contrarios: por eso ninguna de las dos se deduce de la otra.
  */
 export const GRC_RESUMEN_CERRADOS = {
-  hasta:     'Septiembre',
-  /* +$30,510.00 el 6 nov 2026, que es EXACTAMENTE la suma de los deltas de
-     base de Ene-Sep del export CRF: siete meses a +$169.00, Julio +$2,564.00 y
-     Septiembre +$26,763.00. Lo cazó `verifica-resumen-cerrados.py` el mismo
-     día — CUARTA vez que esta constante escrita a mano se queda atrás. */
-  base:      44110549.52,
-  churn:       591437.06,
-  downgrade:   364568.68,
-  perdida:     956005.74,
-  pct:               2.17,
+  /* 16 nov 2026: pasa de Septiembre a OCTUBRE porque `GRC_MES_EN_CURSO` rotó a
+     Noviembre. No es un ajuste cosmético — entra un mes entero: la base suma
+     los $4,917,285.57 de octubre y la pérdida contada por el GRC sube
+     $296,573.49, con lo que el promedio de meses cerrados pasa de 2.17% a
+     2.55%. Las cuatro cifras las recalcula `verifica-resumen-cerrados.py`
+     desde `aaa-grc-data.ts` + `GRC_BASE_MRR`; aquí no se teclea ninguna que él
+     no confirme. QUINTA vez que esta constante se queda atrás en una carga. */
+  hasta:     'Octubre',
+  base:      49027835.09,
+  churn:       853290.33,
+  downgrade:   399288.90,
+  perdida:    1252579.23,
+  pct:               2.55,
 }
 
 /**

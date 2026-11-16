@@ -61,12 +61,49 @@ if vivo:
           % (vivo['mes'], format(int(vivo['mrrInicio']), ',d'),
              format(int(vivo['churn'] + vivo['downgrade']), ',d'), vivo['grcMensual']))
 
+# ── LAS EXPECTATIVAS SE SACAN DEL ARCHIVO, NO SE TECLEAN ────────────────────
+#
+# Hasta el 16 nov 2026 esta sonda exigia `len(meses) == 10`, `mesVivo ==
+# 'Octubre'` y `'Octubre' in meses`. Las tres se quedaron viejas el dia que el
+# corte trajo noviembre, y la tercera era PEOR que vieja: la serie es
+# acumulativa, asi que octubre existe siempre y la prueba se cumplia sola —
+# seguia diciendo «ok, aparece OCTUBRE, que es lo que trajo este corte» con el
+# corte de NOVIEMBRE cargado. El mismo vicio que ya se corrigio en
+# `sonda-cortes.py`. Un verificador que concluye exito por defecto es peor que
+# no tenerlo. [[feedback-verificar-antes-asegurar]]
+#
+# `juzga_meses` es la regla, y la usan la sonda Y su autoprueba.
+def juzga_meses(declarados, servidos):
+    u"""(ok, motivo) comparando lo que el archivo declara con lo que sirve la
+       API. Exige el mes NUEVO y que no se pierda ninguno de los viejos: en una
+       serie acumulativa, perder un mes cerrado es igual de grave."""
+    if not declarados:
+        return False, u'el archivo no declara ningun mes'
+    if not servidos:
+        return False, u'la API no sirve ningun mes'
+    nuevo = declarados[-1]
+    if nuevo not in servidos:
+        return False, u'la API no sirve «%s», que es el mes mas nuevo del archivo' % nuevo
+    faltan = [m for m in declarados if m not in servidos]
+    if faltan:
+        return False, u'la API pierde meses que el archivo declara: %s' % u', '.join(faltan)
+    return True, u'los %d meses del archivo, con «%s» a la cabeza' % (len(declarados), nuevo)
+
+
 if args.autoprueba:
     assert esp['filas'] > 0, 'no leyo ninguna fila'
-    assert len(esp['meses']) == 10, 'esperaba diez meses, hay %d' % len(esp['meses'])
-    assert esp['mesVivo'] == 'Octubre', 'el mes vivo deberia ser Octubre'
-    assert 'Septiembre' in esp['meses'], 'falta septiembre'
-    print(u'\n  autoprueba: el lector distingue el corte nuevo.')
+    assert esp['meses'], 'el archivo no declara ningun mes'
+    assert esp['mesVivo'] in esp['meses'], (
+        'el mes vivo «%s» no esta en la serie' % esp['mesVivo'])
+    # AL REVES: la regla tiene que RECHAZAR lo que no debe pasar.
+    d = esp['meses']
+    assert juzga_meses(d, d)[0], 'deberia aceptar la serie completa'
+    assert not juzga_meses(d, d[:-1])[0], 'deberia rechazar que falte el mes NUEVO'
+    assert not juzga_meses(d, d[1:])[0], 'deberia rechazar que falte un mes VIEJO'
+    assert not juzga_meses([], d)[0], 'deberia rechazar que el archivo no declare meses'
+    assert not juzga_meses(d, [])[0], 'deberia rechazar que la API no sirva nada'
+    print(u'\n  autoprueba: 5/5 — la regla acepta la serie buena y rechaza')
+    print(u'  que falte el mes nuevo, que falte uno viejo y los dos vacios.')
     sys.exit(0)
 
 E = {}
@@ -120,7 +157,8 @@ if isinstance(sv, list):
     meses = [m.get('mes') for m in sv]
     print(u'        la API publica %d meses: %s' % (len(meses), u', '.join(str(x) for x in meses)))
     exige(meses == esp['meses'], u'los meses de la API son los del archivo')
-    exige('Octubre' in meses, u'aparece OCTUBRE, que es lo que trajo este corte')
+    ok, motivo = juzga_meses(esp['meses'], meses)
+    exige(ok, u'sirve el mes mas nuevo y no pierde ninguno viejo', motivo)
 
 mv = (v.get('meta') or {}).get('mesVivo') if isinstance(v, dict) else None
 exige(mv == esp['mesVivo'], u'el mes vivo de la API es «%s»' % esp['mesVivo'],
