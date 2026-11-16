@@ -375,6 +375,33 @@ export const GRC_REEXPRESION_2026_09_20 = {
  * Un mismo movimiento reclasificado empuja las dos cifras en sentidos
  * contrarios: por eso ninguna de las dos se deduce de la otra.
  */
+/**
+ * EL ÚNICO MES QUE GANÓ UNA FILA EN EL CORTE DEL 16-NOV-2026, y qué era.
+ *
+ * El conciliador vigila que un mes cerrado no gane filas: la cobranza tardía
+ * sólo SACA del churn, así que un mes que gana significa reclasificación en los
+ * dos sentidos y hay que mirarlo. Marcó agosto, +1 fila / $200.00.
+ *
+ * Mirado: es **la misma cantidad cambiando de dueño**. Desaparece el Downgrade
+ * de agosto de TEMPRO MEXICO ($200.00) y aparece el de ARDE NAWI ($200.00). No
+ * es pérdida nueva ni pérdida borrada — es una atribución corregida en el
+ * origen, y en el neto del mes vale cero.
+ *
+ * Queda escrito porque el rasgo volverá a encenderse y la respuesta no se
+ * deduce del conteo: dos importes idénticos intercambiando cliente es la firma
+ * de una captura mal atribuida, no de un corte truncado. TEMPRO MEXICO aparece
+ * además entre las cuentas de octubre que maduraron ($1,959.00 de «Churn
+ * confirmado»), así que es el nombre a revisar si vuelve a salir.
+ */
+export const GRC_ATRIBUCION_AGOSTO_2026_11_16 = {
+  medido:  '2026-11-16',
+  mes:     'Agosto',
+  importe: 200.00,
+  salio:   'TEMPRO MEXICO',
+  entro:   'ARDE NAWI',
+  neto:    0,
+}
+
 export const GRC_RESUMEN_CERRADOS = {
   /* 16 nov 2026: pasa de Septiembre a OCTUBRE porque `GRC_MES_EN_CURSO` rotó a
      Noviembre. No es un ajuste cosmético — entra un mes entero: la base suma
