@@ -190,6 +190,34 @@ export const REACTIVADAS_FUERA_DEL_CHURN: ReadonlyMap<string, string> = new Map(
   // (D59, cartera de Dan). Zoho la sigue contando en agosto; el número oficial
   // la incluye, la operación no.
   ['tatsa', 'Reactivada. Alta como cuenta TOP D59 el 9 sep 2026.'],
+
+  // 17 nov 2026 · José Manuel López Delgadillo, Dirección: "Regresa a Activas
+  // la cuenta ABRL SISTEMAS & PROYECTOS".
+  //
+  // ABRL (C11, CID 26654, Erick) entró a esta lista por el cierre de octubre
+  // del 16 nov 2026: es una de las SEIS que el cierre metió a NOMBRES_CHURN_GRC
+  // estando la base dándolas por vivas, y que grc-reporte.ts dejó anotadas como
+  // el coste a mirar una por una. Ésta es la primera mirada.
+  //
+  // EL COSTE SE DICE, NO SE ESCONDE — las fuentes NO la respaldan:
+  //   · GRC AAA, octubre 2026: MRR 14,665 -> 0, "Churn confirmado"
+  //   · corte institucional vivo (GRF.xlsx): mrrIni 0, mrrFin 0, "Desactivado",
+  //     9 facturas, 83 meses, $1,054,292.50 acumulado, "Fuera de rango"
+  //   · llamadas (corte 12 oct 2026): 978 entrantes en enero -> 119 en
+  //     septiembre, y OCTUBRE SIN UNA SOLA. La cuenta no tiene mes 2026-10
+  //     aunque el corte sí lo cubre.
+  //
+  // O sea: no es el caso Polak —viva y facturando más—, y no es cobranza
+  // tardía. Las tres fuentes apuntan a lo mismo. Se asienta porque dirección
+  // lo instruye y dirección tiene información que las fuentes no traen (fue
+  // exactamente el caso de TATSA, que se reactivó por una visita); queda
+  // escrito para que nadie lea esta entrada como que lo medido la avalaba.
+  //
+  // SI LA CUENTA NO VOLVIÓ, ESTA LÍNEA SE QUITA y vuelve sola a Dormidas: no
+  // borra nada, sólo decide en qué pantalla se ve.
+  ['abrlsistemasproyectos',
+   'Dirección la regresa a Activas el 17 nov 2026. El GRC la da de baja en '
+   + 'octubre y facturación la da en cero: ver el comentario de arriba.'],
 ])
 
 /* ── Listas de exclusión derivadas de Churn ──────────────────────────────────
