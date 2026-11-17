@@ -208,7 +208,17 @@ export const GRC_BASE_PROVISIONAL: readonly string[] = []
    (C48, activo, $2,407) y Dental District (Z54, activo, $2,308). Atlas dirá
    de ellas «aparece como Churn confirmado». Cinco capturas buenas contra
    seis afirmaciones que hay que mirar una por una; antes era cero contra
-   trece, y por eso antes no se rotaba. */
+   trece, y por eso antes no se rotaba.
+
+   VAN 1 DE 6:
+     · ABRL SISTEMAS & PROYECTOS (C11) — 17 nov 2026. Dirección la regresa a
+       Activas; entra a REACTIVADAS_FUERA_DEL_CHURN en lib/elegibilidad.ts.
+       Las tres fuentes decían lo contrario (GRC 14,665→0, corte institucional
+       «Desactivado» con MRR 0, y octubre sin una sola llamada), y eso queda
+       escrito junto a la entrada: la decisión es de dirección, el dato no la
+       avalaba. Comprobado en producción: churn_confirmado false.
+   Quedan: ATP Sofom (C8), SW Sapien (C12), BATTERY MART (F40), Hairfix (C48)
+   y Dental District (Z54). */
 
 /* LO QUE DECÍA ANTES — 2 nov 2026, cuando la respuesta era NO.
 
