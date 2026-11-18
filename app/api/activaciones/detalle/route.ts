@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import path from 'path'
+import { fechaDeHoja } from '@/lib/entrega-apartados'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +43,15 @@ function fmtValor(campo: string, v: unknown): string {
     }
     return Number.isInteger(v) ? String(v) : v.toFixed(2)
   }
-  return String(v).trim()
+  /* LA MISMA COLUMNA TRAE LAS FECHAS EN DOS FORMATOS. Medido el 18 nov 2026
+     sobre `Cierre Ticket`: 1,907 filas la entregan como fecha de verdad y
+     **839 como TEXTO** («21-Aug-2023», con el mes en inglés). Esta ficha
+     mostraba unas en ISO y otras en inglés, en la misma tabla, y dos fechas con
+     distinta forma no se pueden comparar ni ordenar.
+     La regla vive en `lib/entrega-apartados.ts` y no se copia aquí; lo que no
+     reconoce lo devuelve tal cual, sin adivinar. */
+  const s = String(v).trim()
+  return COLS_FECHA.has(campo.trim().toLowerCase()) ? fechaDeHoja(s) : s
 }
 
 const norm = (s: string) =>

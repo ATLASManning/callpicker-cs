@@ -378,3 +378,61 @@ en ninguna parte. Ahora se derivan de `ROLES`.
   del servidor. Es una decisión, no un olvido.
 - **Nada de riesgo, nada de episodios, nada de `cuentas`.** Los puntos 1, 3 y 5
   siguen esperando.
+
+---
+
+## 10. El expediente de entrega, dentro de Activaciones 2.0 (18 nov 2026)
+
+**La hoja sigue siendo la fuente y no se toca.** Activaciones trabaja el
+`.xlsx` igual que siempre; esto se construye ENCIMA: lee lo que la hoja ya trae
+y lo cruza con `cuentas`, el GRC, los contratos y los DIDs para contestar, por
+activación, los 20 apartados que hay que entregar al cerrarla.
+
+- `lib/entrega-apartados.ts` — el catálogo, **fuente única**. Lo leen la API, la
+  pantalla y el guion de medición. No se copia a Python: un espejo tecleado a
+  mano deja de ser espejo a la primera modificación.
+- `app/api/entregas/expediente/route.ts` — el cruce.
+- `components/ExpedienteEntrega.tsx` — la sección, al final de Activaciones 2.0.
+- `scripts/mide-apartados-entrega.ts` — mide la hoja entera.
+- `scripts/prueba-expediente-entrega.py` — prueba la respuesta contra el
+  servidor: 20 apartados, estados declarados, resumen cuadrado.
+
+### Lo que la medición dijo, y que cambió el diseño
+
+Sobre **2,820 activaciones y 34 columnas**: la hoja **cierra 3 de los 20
+apartados** (el 02, el 10 y el 15). Otros 13 los cierra otra fuente del
+sistema, 3 no existen en ninguna parte y 1 no es medible. Sólo **354 de 2,820
+(12.6%)** tienen esos tres completos.
+
+**Dos «completo» falsos, cazados midiendo.** El apartado 04 (DIDs) salía
+completo en 2,603 filas porque la columna `Portabilidad` dice SÍ/NO, y el 11
+(plan) en las 2,820 porque `Tipo` trae texto. Ninguno de los dos es el dato que
+el apartado pide. Por eso `cierraConLaHoja` se **declara apartado por apartado**
+y no se deduce de «hay una columna parecida al lado»: un «falta» falso hace
+trabajar de más; un «completo» falso da por ENTREGADO lo que no está, y eso es
+lo que cierra un ticket.
+
+**El contador no dice «x/20».** Tres apartados no tienen fuente y uno no es
+medible: un «6/20» leería como 30% de cumplimiento y castigaría a quien entrega
+por cuatro cosas que el sistema no le puede dar. Se cuenta sobre los que se
+pueden contestar y los otros cuatro se dicen aparte, con palabras —y cada uno
+con el texto de su ausencia, porque el mismo «—» para «no está capturado», «no
+existe fuente» y «la fuente no lo mide» los vuelve indistinguibles.
+
+### Cómo se verificó
+
+- `npx tsc --noEmit` → **0 errores**; `npm run build` → **exit 0** con
+  `/api/entregas/expediente` en el manifiesto.
+- `scripts/prueba-expediente-entrega.py 162474` → **cierra**. Medexp, CID
+  162474, MRR **$8,067** (la cifra que corrigió la auditoría), 6 contestados de
+  16, 3 sin fuente, 1 no medible.
+- **Se vio pintando en el navegador**, los 20 apartados con su pastilla de
+  estado. «Lo desplegué» no es «lo están viendo».
+- `scripts/revisa-contraste-cpcard.py` → **162**, la línea base exacta.
+
+### Lo que falta, dicho por su nombre
+
+Esto **LEE**. No escribe: ni captura los apartados que no tienen fuente (09, 12,
+20), ni registra la aceptación de SAC, ni cierra nada. El candado que impide que
+`activaciones` firme su propia entrega ya está puesto en `lib/permisos.ts`,
+aunque el endpoint de escritura todavía no exista.

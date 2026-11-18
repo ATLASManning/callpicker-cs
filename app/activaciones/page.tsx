@@ -4,6 +4,7 @@ import ActivacionesCharts, { RegistroItem } from '@/components/charts/Activacion
 import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico'
 import SoloEnCliente, { ReservaGrafica } from '@/components/charts/SoloEnCliente'
 import ActivacionesGrandes from '@/components/charts/ActivacionesGrandes'
+import ExpedienteEntrega from '@/components/ExpedienteEntrega'
 
 export const dynamic = 'force-dynamic'
 
@@ -205,6 +206,18 @@ export default async function ActivacionesPage() {
   const totalFac = activaciones.reduce((s, r) => s + r.primerPago, 0)
   const anos     = Array.from(new Set(registros.map(r => r.ano).filter(Boolean))).sort()
 
+  /* Las del año más reciente, para el buscador del expediente. No se mandan
+     las 2,820: el módulo ya decidió hace tiempo no incrustar el detalle en el
+     HTML inicial, y una lista entera pesaría decenas de KB en cada carga. Se
+     manda el año vivo —las que se están cerrando— y el buscador dice que las
+     anteriores se abren por ID, en vez de dejar creer que no existen. */
+  const ultimoAno = anos.length ? anos[anos.length - 1] : null
+  const paraExpediente = (ultimoAno
+    ? activaciones.filter(r => r.ano === ultimoAno)
+    : activaciones)
+    .map(r => ({ id: r.id, cliente: r.cliente }))
+    .sort((a, b) => a.cliente.localeCompare(b.cliente, 'es'))
+
   return (
     // Va en <div> y no en <main>. OJO: el motivo que decía este comentario ya
     // NO existe — citaba un `main{background:#DBEAFE !important}` de
@@ -315,6 +328,11 @@ export default async function ActivacionesPage() {
         <SoloEnCliente reserva={<ReservaGrafica alto={320} />}>
             <ActivacionesDiagnostico registros={registros} />
           </SoloEnCliente>
+
+        {/* El expediente de entrega. Va al final y no arriba: lo de arriba
+            describe lo que ya pasó; esto es lo que hay que entregar al cerrar
+            una activación concreta. */}
+        <ExpedienteEntrega activaciones={paraExpediente} ano={ultimoAno} />
       </div>
     </div>
   )
