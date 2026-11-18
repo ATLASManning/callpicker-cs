@@ -11,11 +11,24 @@
  * de asesores, upsell ni el dashboard de dirección.
  */
 
-export type Rol = 'admin' | 'asesor' | 'viewer' | 'perfilamiento'
+export type Rol =
+  | 'admin' | 'asesor' | 'viewer' | 'perfilamiento'
+  | 'activaciones' | 'sac'
 
 export interface DefinicionRol {
   label:   string
   color:   string
+  /**
+   * Para qué es este rol, en una línea. Se MUESTRA en Gestión de Usuarios.
+   *
+   * Es obligatorio a propósito: hasta hoy esa pantalla llevaba la descripción
+   * de cada rol tecleada dentro de dos `options={[...]}`, que son literales y
+   * por tanto NO fallan al compilar cuando nace un rol. El rol habría existido
+   * en el tipo, en el CHECK y en el middleware, y aun así nadie habría podido
+   * asignarlo desde la única pantalla que sirve para eso — sin un error en
+   * ninguna parte. Un espejo de constantes tecleado a mano deja de ser espejo.
+   */
+  descripcion: string
   /** Rutas de página permitidas. `null` = todas. */
   paginas: string[] | null
   /** Prefijos de API permitidos, con cualquier método. `null` = todas. */
@@ -53,18 +66,23 @@ export const ROLES: Record<Rol, DefinicionRol> = {
      pantalla de inicio no puede abrir no entra nunca. */
   admin: {
     label: 'Admin', color: '#60A5FA',
+    descripcion: 've todo',
     paginas: null, apis: null, inicio: '/asesores',
   },
   asesor: {
     label: 'Asesor', color: '#34D399',
+    descripcion: 'solo sus cuentas',
     paginas: null, apis: null, inicio: '/asesores',
   },
   viewer: {
     label: 'Viewer', color: '#FBBF24',
+    descripcion: 'solo lectura',
     paginas: null, apis: null, inicio: '/asesores',
   },
   perfilamiento: {
     label: 'Perfilamiento', color: '#A855F7',
+    descripcion: 'Activaciones, Base de Conocimiento, Atlas IA, Auditoría, '
+               + 'Facturación, Cuentas y Tickets',
     paginas: [
       '/activaciones',   // Activaciones 2.0
       '/reuniones/anexos', // Anexos: los documentos del cliente son material
@@ -105,6 +123,116 @@ export const ROLES: Record<Rol, DefinicionRol> = {
       '/api/anexos',
     ],
     inicio: '/cuentas',
+  },
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     LOS DOS ROLES DE LA ENTREGA — 18 nov 2026
+     ══════════════════════════════════════════════════════════════════════════
+
+     POR QUÉ NACEN
+     -------------
+     El control de entrega de activaciones exige separar «cuenta aprovisionada»
+     de «cliente con servicio aceptado», y eso solo significa algo si quien
+     ENTREGA no es quien ACEPTA. Hasta hoy no se podía: los roles eran
+     admin/asesor/viewer/perfilamiento, y los tres primeros llevan
+     `paginas: null, apis: null` — o sea TODO. Con un solo rol operativo, la
+     aceptación de SAC sería un botón que aprieta cualquiera, incluido quien
+     acaba de entregar. Eso no es un control: es un registro.
+
+     Un usuario tiene UNA fila y UN rol, así que la segregación es estructural:
+     nadie puede ser las dos partes a la vez.
+
+     LOS DOS ARRANCAN SIN ESCRIBIR NADA DE LO QUE YA EXISTE, Y NO ES PRUDENCIA
+     DE MÁS
+     -------------------------------------------------------------------------
+     `lib/dueno.ts` acota por cartera SOLO al rol `asesor` (`esRolAcotado`).
+     Para cualquier otro rol, `firmaDeSesion` devuelve la firma que venga en el
+     CUERPO de la petición, no la de la sesión. Un rol nuevo con permiso de
+     escritura sobre `/api/seguimientos` podría dejar un seguimiento firmado con
+     el nombre de otra persona — y el propio `dueno.ts` explica por qué eso es
+     lo peor que puede pasar: «un rastro falso en la bitácora de una cuenta hace
+     responder al asesor suplantado por una gestión que no hizo».
+
+     Así que la escritura de estos dos roles se abre cuando exista el endpoint
+     de entrega, que firmará desde la sesión por construcción. Tocar
+     `esRolAcotado` para incluirlos NO es la solución barata que parece: dejaría
+     a un `sac` sin `asesor_nombre` con 403 en sus propias escrituras, porque
+     ese candado falla cerrado.
+
+     `/api/entregas` YA ESTÁ EN LAS DOS LISTAS, Y TODAVÍA NO EXISTE
+     --------------------------------------------------------------
+     A propósito. `activaciones` lo lleva en `apisLectura` —puede CONSULTAR el
+     expediente, nunca escribirlo— y `sac` lo lleva en `apis`. El día que el
+     endpoint nazca, el candado ya está puesto. Al revés —construir primero y
+     acordarse del permiso después— es como se llega a producción con una
+     aceptación que firma quien entregó.
+
+     LO QUE DELIBERADAMENTE NO SE CONCEDE, Y HAY QUE DECIDIR
+     -------------------------------------------------------
+     El apartado 13 del expediente pide el MRR de la cuenta, y el MRR
+     institucional es el del GRC y nada más. Pero `/api/grc` no devuelve el MRR
+     de UNA cuenta: devuelve la facturación de la empresa entera. Dárselo a
+     Activaciones para rellenar un campo sería abrir el ingreso completo de
+     Callpicker a un área que no lo necesita. Queda FUERA, y el expediente
+     tendrá que recibir ese dato ya resuelto del lado del servidor.
+     ══════════════════════════════════════════════════════════════════════════ */
+  activaciones: {
+    label: 'Activaciones', color: '#38BDF8',
+    descripcion: 'entrega: Activaciones 2.0, ficha de cuenta y tickets. '
+               + 'Consulta el expediente de entrega, no lo acepta',
+    paginas: [
+      '/activaciones',
+      '/cuentas',        // la ficha: es la cuenta que está entregando
+      '/tickets',
+      '/base-cs',
+    ],
+    apis: [
+      '/api/activaciones', '/api/activaciones-excel',
+    ],
+    // Todo lo demás, de solo lectura. La ficha de cuenta tiene que pintarse
+    // —si no, abre vacía con un 403 detrás, que es peor que un error porque se
+    // lee como un dato— pero Activaciones no opera cartera.
+    apisLectura: [
+      '/api/cuentas', '/api/adopcion', '/api/radar', '/api/zoho-lookup',
+      '/api/tickets', '/api/tickets-excel',
+      '/api/customer-tenure',
+      '/api/entregas',   // consulta el expediente. NO lo acepta ni lo firma.
+    ],
+    inicio: '/activaciones',
+  },
+  sac: {
+    label: 'SAC', color: '#F472B6',
+    descripcion: 'recibe y acepta la entrega: Alertas, Cuentas, Reuniones, '
+               + 'Tickets, Auditoría y Atlas IA',
+    paginas: [
+      '/alertas',
+      '/cuentas',
+      '/seguimiento',
+      '/reuniones',
+      '/tickets',
+      '/auditoria',
+      '/chat',
+      '/activaciones',   // para ver qué le están entregando
+      '/base-cs',
+    ],
+    apis: [
+      '/api/entregas',   // ESTE es el rol que acepta. Es su razón de existir.
+      // Atlas IA va completo y no en `apisLectura`: preguntarle es un POST.
+      // Con solo lectura, /chat abriría y ninguna pregunta pasaría — el mismo
+      // fallo que /api/grc le causó a Perfilamiento en Facturación.
+      '/api/chat',
+    ],
+    // El resto, lectura. Las escrituras de cartera siguen siendo del asesor
+    // dueño: ver el bloque de arriba sobre `firmaDeSesion`.
+    apisLectura: [
+      '/api/alertas',
+      '/api/cuentas', '/api/adopcion', '/api/radar', '/api/zoho-lookup',
+      '/api/seguimientos', '/api/reuniones', '/api/anexos',
+      '/api/tickets', '/api/tickets-excel',
+      '/api/activaciones', '/api/activaciones-excel',
+      '/api/customer-tenure',
+    ],
+    inicio: '/alertas',
   },
 }
 

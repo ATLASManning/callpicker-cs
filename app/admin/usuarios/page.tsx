@@ -1,10 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Users, Plus, Trash2, RefreshCw, ShieldCheck, Eye, UserCheck,
-         ToggleLeft, ToggleRight, X, Save, KeyRound, Copy, Check, AlertTriangle, Target } from 'lucide-react'
+         ToggleLeft, ToggleRight, X, Save, KeyRound, Copy, Check, AlertTriangle, Target,
+         PackageCheck, Headset } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 import CustomSelect from '@/components/CustomSelect'
-import type { Rol } from '@/lib/permisos'
+import { ROLES, type Rol } from '@/lib/permisos'
 
 type Usuario = {
   id: string; email: string; nombre: string; rol: Rol
@@ -13,12 +14,37 @@ type Usuario = {
   password_expira: string | null
 }
 
-const ROL_CONFIG: Record<Rol, { label: string; color: string; icon: React.ElementType }> = {
-  admin:         { label: 'Admin',         color: '#10355D', icon: ShieldCheck },
-  asesor:        { label: 'Asesor',        color: '#059669', icon: UserCheck  },
-  viewer:        { label: 'Viewer',        color: '#D97706', icon: Eye        },
-  perfilamiento: { label: 'Perfilamiento', color: '#7E22CE', icon: Target     },
+/* Solo el icono y el tono de esta pantalla. El `Record<Rol, …>` es
+ * deliberado: un rol nuevo en `lib/permisos.ts` ROMPE LA COMPILACIÓN aquí
+ * hasta que se le da uno, que es la única forma de que no aparezca sin cara. */
+const ROL_ICONO: Record<Rol, { color: string; icon: React.ElementType }> = {
+  admin:         { color: '#10355D', icon: ShieldCheck },
+  asesor:        { color: '#059669', icon: UserCheck  },
+  viewer:        { color: '#D97706', icon: Eye        },
+  perfilamiento: { color: '#7E22CE', icon: Target     },
+  activaciones:  { color: '#0369A1', icon: PackageCheck },
+  sac:           { color: '#BE185D', icon: Headset      },
 }
+
+/* ── LAS OPCIONES SE DERIVAN, NO SE TECLEAN ───────────────────────────────────
+ *
+ * Los dos `<CustomSelect>` de abajo llevaban su lista de roles escrita a mano.
+ * Son literales, así que NO fallan al compilar: el 18 nov 2026, al nacer los
+ * roles `activaciones` y `sac`, habrían existido en el tipo, en el CHECK de la
+ * tabla y en el middleware, y aun así no habrían aparecido en la única pantalla
+ * que sirve para asignarlos — sin un error en ninguna parte.
+ *
+ * `ROLES` de lib/permisos.ts es la fuente única de qué roles hay y qué hace
+ * cada uno. Esto solo lo lee. */
+const OPCIONES_ROL = (Object.keys(ROLES) as Rol[]).map(r => ({
+  value: r,
+  label: ROLES[r].label,
+}))
+const OPCIONES_ROL_DESCRITAS = (Object.keys(ROLES) as Rol[]).map(r => ({
+  value: r,
+  label: `${ROLES[r].label} — ${ROLES[r].descripcion}`,
+}))
+
 const ASESORES = ['Fátima', 'Dan', 'Erick', 'Monse', 'José']
 
 /* Genera contraseña legible del lado cliente (para mostrarla en modal) */
@@ -229,7 +255,7 @@ export default function AdminUsuariosPage() {
               </thead>
               <tbody>
                 {usuarios.map(u => {
-                  const rc = ROL_CONFIG[u.rol] ?? ROL_CONFIG.viewer
+                  const rc = ROL_ICONO[u.rol] ?? ROL_ICONO.viewer
                   return (
                     <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/40 transition-colors">
                       <td className="py-3 px-4">
@@ -240,12 +266,7 @@ export default function AdminUsuariosPage() {
                         <CustomSelect value={u.rol} onChange={v => changeRol(u, v as Rol)}
                           className="text-[11px] font-semibold px-2 py-1 rounded-lg border-0 outline-none"
                           style={{ background: `${rc.color}15`, color: rc.color }}
-                          options={[
-                            { value: 'admin', label: 'Admin' },
-                            { value: 'asesor', label: 'Asesor' },
-                            { value: 'viewer', label: 'Viewer' },
-                            { value: 'perfilamiento', label: 'Perfilamiento' },
-                          ]} />
+                          options={OPCIONES_ROL} />
                       </td>
                       <td className="py-3 px-4 text-xs text-gray-500">
                         {u.rol === 'asesor'
@@ -309,12 +330,7 @@ export default function AdminUsuariosPage() {
               <div>
                 <label className="text-xs font-semibold text-gray-500 mb-1 block">Rol</label>
                 <CustomSelect value={form.rol} onChange={v => setForm(f => ({ ...f, rol: v as Rol }))} className="cp-select w-full"
-                  options={[
-                    { value: 'admin', label: 'Admin — ve todo' },
-                    { value: 'asesor', label: 'Asesor — solo sus cuentas' },
-                    { value: 'viewer', label: 'Viewer — solo lectura' },
-                    { value: 'perfilamiento', label: 'Perfilamiento — Activaciones, Base de Conocimiento, Atlas IA, Auditoría, Facturación, Cuentas y Tickets' },
-                  ]} />
+                  options={OPCIONES_ROL_DESCRITAS} />
               </div>
               {form.rol === 'asesor' && (
                 <div>
