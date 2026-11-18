@@ -232,6 +232,10 @@ Ninguna la puedo tomar yo. Las cuatro primeras bloquean; la quinta no.
 1. **El candado del `MOTOR_RIESGO.md`.** Declara el motor de riesgo intocable
    sin tu solicitud expresa. Este prompt pide modificarlo. ¿Lo levanto para
    este trabajo, y queda anotado en ese documento?
+   **El 18 nov 2026 se hizo lo que NO depende de tu respuesta** — ver §12: el
+   sello de los textos (`npm run test:veredicto`), que es el candado que el
+   propio documento llama «el único que protege de verdad lo que declara
+   intocable», y que no modifica el motor. La decisión sigue siendo tuya.
 
 2. ~~**Los roles `activaciones` y `sac`.**~~ **APROBADO Y HECHO el 18 nov 2026**
    — ver §9. *(Esta decisión decía «hoy sólo hay `admin`, `asesor` y `viewer`».
@@ -240,9 +244,15 @@ Ninguna la puedo tomar yo. Las cuatro primeras bloquean; la quinta no.
    donde se declara.)* Queda pendiente **de ti**: correr la migración y decidir
    quién es quién.
 
-3. **La migración de `alertas_episodios` de `DATE` a `TIMESTAMPTZ`.** Afecta
-   807 filas y es la única forma de representar los SLA en horas que pide el
-   §7 y el ejemplo del §11. Es la operación más delicada de todo el plan.
+3. ~~**La migración de `alertas_episodios` de `DATE` a `TIMESTAMPTZ`.**~~
+   **MEDIDA el 18 nov 2026 y es PREMATURA** — ver §12. Afecta 807 filas, sí,
+   pero `condicion_desde` —la columna contra la que correría el SLA— **está
+   vacía en 683 de las 807 (84.6%)**, y ninguno de los 659 episodios abiertos
+   vive menos de un día. Migrar el tipo daría precisión de horas a un reloj que
+   en cinco de cada seis filas no tiene desde cuándo contar. *(Esta decisión
+   decía que era «la única forma» de representar los SLA del §7. Lo es, y aun
+   así no es el primer problema: el primero es que nadie escribe
+   `condicion_desde`.)*
 
 4. ~~**La cadencia real.**~~ **CONTESTADA el 18 nov 2026 con evidencia de
    campo, sin que nadie inicie sesión.** El techo real es de **60 segundos**,
@@ -253,7 +263,9 @@ Ninguna la puedo tomar yo. Las cuatro primeras bloquean; la quinta no.
    distancia está de morir. Lo único que falta de ti es confirmar el plan en la
    página de facturación de Vercel, para saber si subirlo es una opción.
 
-5. **Tickets abiertos** (no bloquea, pero deja el apartado 18 cojo). Hoy la
+5. **Tickets abiertos** (no bloquea, y el apartado 18 **ya no queda cojo**:
+   el expediente lo declara `no_medible` con palabras — ver §12. Lo que falta
+   es la credencial `CONECTOR_COMUNICACIONES_TOKEN`, y es tuya). Hoy la
    fuente sólo trae cerrados. O conseguimos esa vista de Zoho Desk, o el
    apartado 18 se declara «no medible» con palabras, que es lo que el
    principio 18 manda hacer.
@@ -495,3 +507,96 @@ de cartera» como «2,739 se fueron» sería una cifra falsa y alarmante.
 **Un descuadre propio, corregido:** el guion imprimía 222 (filas con CID) y
 repartía sobre 204 (CIDs distintos), así que 81 + 123 no cerraba contra el total
 impreso. Ahora imprime las dos cifras y comprueba el cierre.
+
+---
+
+## 12. Los tres puntos que quedaban, clasificados y trabajados (18 nov 2026)
+
+La pregunta era cuántos de los tres restantes se parecen a los dos que ya se
+cerraron. Lo que hizo trabajables al **2** y al **4** fue esto: no necesitaban
+una credencial nueva, no ejecutaban nada irreversible, y se podían **verificar**
+— el 4 se contestó midiendo (tres HTTP 504) y el 2 se entregó como artefacto
+con comprobaciones previas para que lo corriera él.
+
+Con ese criterio: **dos de los tres se parecen, y los dos quedaron trabajados.
+El tercero no se parece, y se dice por qué.**
+
+### Punto 1 — el candado del `MOTOR_RIESGO.md`: **HECHO lo que no dependía de la respuesta**
+
+La decisión sigue siendo tuya. Pero el trabajo que esconde **no necesita que se
+levante el candado**, y lo dice el propio documento (§ «Lo que falta»):
+
+> «No hay test de snapshot de los textos. Hoy nada impide que un cambio
+> reescriba el `porque` de una situación sin que salte ninguna prueba. Es el
+> candado más barato de los que pide el prompt y **el único que protege de
+> verdad lo que declara intocable**.»
+
+Ese candado ya existe: `scripts/test-sello-veredicto.ts` (`npm run
+test:veredicto`). Sella la salida de `veredictoDe` para las **siete
+situaciones** —situación, luz, dueño, acción y el `porque` **carácter a
+carácter**— y **no toca `lib/alertas-veredicto.ts`**: añadir una prueba no
+modifica el motor.
+
+**Los literales no se teclearon.** Se generan con `--sella` desde el motor real.
+Escribir a mano lo que el texto «debería» decir habría convertido el sello en
+una segunda opinión mía sobre el texto, que es justo lo que un sello no es.
+
+**Dos de mis siete entradas estaban mal, y el propio invariante las cazó:**
+
+- La de `apagandose` ponía consumo 0 **y** 74 días de silencio, y el motor
+  contestó `se_va`: las dos cosas juntas son su firma de baja no dicha. El caso
+  sólo aísla «apagándose» con el contacto reciente.
+- La cuenta «base sana» salía como `hay_que_mostrarle`: con 3 llamadas perdidas
+  y 4 tickets resueltos el motor siempre encuentra algo que enseñar. Para
+  aislar `en_orden` hay que quitarle también el material de valor.
+
+Sellarlas con la etiqueta equivocada habría dejado **dos situaciones sin
+proteger y la prueba en verde**.
+
+**Se rompió a propósito:** subir el MRR de la cuenta base de 10,000 a 11,000
+pone la prueba en **exit 1 con tres textos en rojo** y el diff exacto de cada
+uno. Revertido.
+
+### Punto 3 — `DATE` → `TIMESTAMPTZ`: **MEDIDO, y es prematuro**
+
+Se parece al 2 en la forma (yo preparo, tú corres), así que antes de entregar
+DDL sobre una tabla viva se midió qué cuesta hoy el `DATE`
+(`scripts/mide-costo-fecha-episodios.py`, **sólo lee**):
+
+| medición | resultado |
+|---|---|
+| tipo real de las cuatro columnas | `DATE` en las cuatro, **comprobado por el formato que devuelve la API**, no leído del archivo de migración |
+| episodios | 807 · **659 abiertos** |
+| cerrados el mismo día que abrieron | **2 de 148** (1.4%) |
+| abiertos con menos de 1 día de vida | **0 de 659** |
+| **`condicion_desde` con dato** | **124 de 807 — el 15.4%** |
+
+**El hallazgo que cambia la decisión: la columna contra la que correría el SLA
+está vacía en el 84.6% de las filas.** Migrar el tipo da precisión de horas a un
+reloj que, en cinco de cada seis episodios, **no tiene desde cuándo contar**. Y
+en la población de hoy nada vive menos de un día.
+
+Es el mismo patrón del punto 4: el primer problema no es el que la decisión
+nombra. Allí no era la frecuencia sino que nada registraba la duración; aquí no
+es el tipo de la columna sino que **`condicion_desde` no se está escribiendo**.
+
+*(Dato al margen, medido al comprobar la antigüedad: **497 de los 659 abiertos
+se abrieron el 6 oct 2026**, el día que arrancó el motor de episodios. La
+«mediana de 43 días» es la edad del sistema, no la de las alertas. Citarla como
+antigüedad de las alertas sería falso.)*
+
+**Lo que propongo, y no ejecuto:** antes de la migración, arreglar quién escribe
+`condicion_desde`. Si después de eso el SLA en horas sigue haciendo falta, la
+migración se prepara como la de roles —atómica, con comprobación previa y con
+una lectura que verifique el resultado— y la corres tú.
+
+### Punto 5 — tickets abiertos: **NO se parece, y ya está resuelto como debe**
+
+No se parece porque **depende de una credencial que no puedo conseguir**:
+`CONECTOR_COMUNICACIONES_TOKEN` no está declarado en `.env.local` (comprobado:
+20 claves, ninguna es ésa). El conector de n8n sí trae los tickets abiertos.
+
+Pero el apartado 18 **no quedó cojo**: el expediente lo declara `no_medible`
+con palabras —«el corte de Zoho Desk sólo trae tickets CERRADOS, así que
+"tickets abiertos" no se puede contestar ni con cero»—, que es exactamente lo
+que manda el principio 18 del prompt. Lo que falta es la credencial, y es tuya.
