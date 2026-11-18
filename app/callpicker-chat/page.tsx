@@ -172,19 +172,28 @@ export default function CallpickerChatPage() {
               cuentas tienen bolsa de mensajes real; en ésas sí se muestra el % de consumo.
               <br /><br />
               <span className="font-semibold" style={{ color: '#fff' }}>Dos huecos que vienen del origen, no del tablero:</span>{' '}
-              <span className="font-semibold" style={{ color: '#F97316' }}>{CHAT_RESUMEN.cuentasConError} de {CHAT_RESUMEN.cuentas}</span>{' '}
+              {/* EL `background: 'transparent'` DE ESTOS TRES <span> NO SOBRA.
+                  `globals.css:105` lleva `.cp-card span:not([style*="background"])`,
+                  así que un <span> que declare SOLO `color` se pinta BLANCO: el
+                  naranja se escribía y no se publicaba, y las tres cifras del
+                  hueco se leían igual que el resto del texto. Declarar
+                  `background` —aunque sea transparente— es la cláusula de escape
+                  de esa regla. Medido: #F97316 sobre #082742 da 5.43:1, pasa 4.5
+                  para 12px. Lo vigila `scripts/mide-aviso-cpchat.py`.
+                  [[atlas-dashboard-contrast-architecture]] */}
+              <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>{CHAT_RESUMEN.cuentasConError} de {CHAT_RESUMEN.cuentas}</span>{' '}
               cuentas ({Math.round(100 * CHAT_RESUMEN.cuentasConError / CHAT_RESUMEN.cuentas)}%) no pudieron medir su consumo
               (<code style={{ color: '#93C5FD' }}>operational_error</code>) — la hoja reporta{' '}
               <span className="font-semibold" style={{ color: '#fff' }}>HTTP 500</span> al pedir el resumen de{' '}
               <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.inboxesConError}</span> bandejas; salen en gris
               con su <span className="font-semibold" style={{ color: '#fff' }}>último corte con lectura buena</span> como referencia,
               en vez de reportar una caída que no ocurrió.{' '}
-              <span className="font-semibold" style={{ color: '#F97316' }}>Esas cuentas sumaban {n(CHAT_RESUMEN.mensajesEnRespaldo)} mensajes</span>{' '}
+              <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>Esas cuentas sumaban {n(CHAT_RESUMEN.mensajesEnRespaldo)} mensajes</span>{' '}
               la última vez que sí se pudieron leer, así que lo que falta de medir pesa más que lo medido — y por eso el total de
               arriba no es el total del chat. De ellas,{' '}
               <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.cuentasSinRespaldo}</span>{' '}
               no tienen ningún corte bueno en todo el libro: de ésas no se sabe nada, que no es lo mismo que cero. Y{' '}
-              <span className="font-semibold" style={{ color: '#F97316' }}>{CHAT_RESUMEN.inboxesSinClasificar} de {CHAT_RESUMEN.inboxes}</span>{' '}
+              <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>{CHAT_RESUMEN.inboxesSinClasificar} de {CHAT_RESUMEN.inboxes}</span>{' '}
               bandejas no traen tipo (<code style={{ color: '#93C5FD' }}>inbox_type</code> vacío), así que no se puede decir si son
               WhatsApp API, QR, Facebook o Marketplace. Aquí no se infiere: se publica lo que trae la fuente.
             </div>
