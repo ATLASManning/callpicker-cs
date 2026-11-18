@@ -130,11 +130,21 @@ export default function AnexosPage() {
       fd.append('archivo', archivo)
 
       const res = await fetch('/api/anexos', { method: 'POST', body: fd })
+
+      /* SESIÓN CADUCADA: NO LLEGA UN 401, LLEGA EL LOGIN CON HTTP 200.
+         El `res.status === 401` de abajo no mordía nunca —el middleware sirve la
+         pantalla de acceso con 200 y `text/html`—, así que una subida perdida
+         por sesión caducada se contaba como «error de conexión» y el documento
+         se volvía a intentar contra nada. [[lib/respuesta-json.ts]] */
+      if (!(res.headers.get('content-type') ?? '').toLowerCase().includes('json')) {
+        setError('Tu sesión expiró. Recarga la página e ingresa de nuevo — el archivo NO se subió.')
+        return
+      }
+
       if (!res.ok) {
         let msg = `Error ${res.status}`
         // `mensaje` es la explicación; `error` suele ser un código de máquina.
         try { const j = await res.json(); msg = j.mensaje ?? j.error ?? msg } catch {}
-        if (res.status === 401) msg = 'Sesión expirada. Recarga la página e ingresa de nuevo.'
         setError(msg)
         return
       }

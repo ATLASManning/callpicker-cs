@@ -287,12 +287,21 @@ export default function ReunionesPage() {
         body: JSON.stringify(form),
       })
 
+      /* SESIÓN CADUCADA: NO LLEGA UN 401, LLEGA EL LOGIN CON HTTP 200.
+         El `res.status === 401 || res.status === 302` de abajo no mordía nunca,
+         porque el middleware de este proyecto sirve la pantalla de acceso con
+         200 y `text/html`; lo que reventaba era el `res.json()` de más abajo.
+         Lo que distingue el caso es el content-type. [[lib/respuesta-json.ts]] */
+      if (!(res.headers.get('content-type') ?? '').toLowerCase().includes('json')) {
+        setSaveError('Tu sesión expiró. Recarga la página e ingresa de nuevo.')
+        return
+      }
+
       if (!res.ok) {
         let msg = `Error ${res.status}`
         // `mensaje` es la explicación redactada; `error` suele ser un código de
         // máquina («migracion_pendiente»). Antes se mostraba el código.
         try { const j = await res.json(); msg = j.mensaje ?? j.error ?? msg } catch {}
-        if (res.status === 401 || res.status === 302) msg = 'Sesión expirada. Recarga la página e ingresa de nuevo.'
         setSaveError(msg)
         return
       }
