@@ -48,6 +48,7 @@
    Uso:  python scripts/valida-taxonomia-giro.py
 """
 import collections
+import datetime
 import io
 import json
 import os
@@ -349,7 +350,11 @@ io.open(salida, 'w', encoding='utf-8', newline='\n').write(json.dumps({
                'real. `publica` es el veredicto: un grupo solo publica percentil '
                'si le quedan %d cuentas con lectura Y es mas parejo que la '
                'cartera.' % MIN_COMPARABLES,
-    'generado': '2026-10-07',
+    # Sellado, no tecleado: estaba escrito '2026-10-07' a mano y cada
+    # regeneracion repetia esa fecha. UTC-6 es la hora de Mexico.
+    # [[feedback-fechas-zona-mexico]]
+    'generado': datetime.datetime.now(
+        datetime.timezone(datetime.timedelta(hours=-6))).strftime('%Y-%m-%d %H:%M'),
     'min_comparables': MIN_COMPARABLES,
     'umbral_atipico_mad': UMBRAL_ATIPICO,
     'metricas': CLAVES,

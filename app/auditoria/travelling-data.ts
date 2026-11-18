@@ -156,7 +156,7 @@ export const TRAVELLING: AuditoriaCase = {
   ],
 
   areas_oportunidad: [
-    { area: 'Redistribución de carga Puebla → Monterrey',   impacto: 'Alto — recupera ~300+ contactos sin llamadas adicionales', responsable: 'Cliente (ops) + Claudia' },
+    { area: 'Redistribución de carga Puebla → Monterrey',   impacto: 'Alto — recupera ~300+ contactos sin llamadas adicionales', responsable: 'Cliente (ops) + Erick' },
     { area: 'Formación basada en benchmark Francisco González', impacto: 'Alto — si la brecha de Dulce se cierra al promedio, la cuenta recupera eficiencia sin más personal', responsable: 'Cliente (ops)' },
     { area: 'Ajuste de plan a consumo real',                 impacto: 'Alto — reduce riesgo de cancelación por presión financiera', responsable: 'Erick Sánchez' },
     { area: 'Revisión horario de marcación (18:00 h)',       impacto: 'Medio — 72.4% de pérdida en segunda franja de mayor volumen es corregible con protocolo', responsable: 'Cliente (ops)' },
@@ -171,7 +171,7 @@ export const TRAVELLING: AuditoriaCase = {
       campos: [
         { label: 'Rol',                value: 'Consultor Independiente (no empleado directo de Travelling)' },
         { label: 'Interlocutor',       value: 'Único contacto registrado en CRM de la cuenta' },
-        { label: 'Relevancia',         value: 'Receptor del análisis de consumo y ajuste de plan que gestiona Claudia' },
+        { label: 'Relevancia',         value: 'Receptor del análisis de consumo y ajuste de plan que gestiona Erick' },
       ],
     },
     {
@@ -233,7 +233,7 @@ export const TRAVELLING: AuditoriaCase = {
       'Usar la ventana de bajo volumen para limpiar extensiones vacantes y reentrenar antes de escalar.',
       'Reforzar cobertura en franja 17:00–19:00 h — especialmente 18:00 h con 72.4% de pérdida.',
       'Callpicker Chat para seguimiento asíncrono de prospectos no contactados por voz (adopción "Alto" en CRM).',
-      'El ajuste de plan que Claudia evalúa es consistente con la caída real de consumo — hay espacio legítimo para renegociar.',
+      'El ajuste de plan que Erick evalúa es consistente con la caída real de consumo — hay espacio legítimo para renegociar.',
     ],
     debilidades: [
       'Pérdida saliente estructural del 54.5%, estable en 7 meses sin importar el volumen.',
@@ -256,7 +256,7 @@ export const TRAVELLING: AuditoriaCase = {
   conclusion:
     'Travelling está en una encrucijada: el colapso de personal es un hecho documentado, no una percepción, y los datos de tráfico lo confirman con exactitud (−98.7% de volumen saliente). ' +
     'Sin embargo, la tasa de pérdida del 54.5% es independiente del volumen — existía desde el primer mes y persiste hoy con 23 llamadas mensuales. ' +
-    'El ajuste de plan que Claudia está negociando resuelve el problema financiero de corto plazo, pero no el operativo. ' +
+    'El ajuste de plan que Erick está negociando resuelve el problema financiero de corto plazo, pero no el operativo. ' +
     'Ambas conversaciones deben cerrarse juntas: si el cliente reduce el plan sin mejorar la tasa de conversión, el LTV de la cuenta seguirá deteriorándose.',
 
   pierde: [

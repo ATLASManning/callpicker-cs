@@ -58,7 +58,7 @@ export const SOFIA: AuditoriaCase = {
     { fecha: 'May–Jul 2026',    responsable: 'Soporte',                 evento: 'Cadencia casi semanal de tickets de asistencia de voz (16 en el periodo) — apetito de capacitación sin plan de adopción.', tipo: 'neutral' },
     { fecha: '24 Ago 2026',     responsable: 'Ritual SAC',              evento: 'Se asigna la actividad "Completar Perfil" (perfil 1/8, Radar 0/12). Sigue PENDIENTE.', tipo: 'problema' },
     { fecha: '28 Ago 2026',     responsable: 'Grupo RDS / Claudia',     evento: 'El grupo cancela sus 2 cuentas RDS (ver caso hermano). Claudia abre ticket de alcance: ¿la baja cubre toda la razón social o solo RDS? SIN RESPUESTA ESCRITA AÚN.', tipo: 'pivote' },
-    { fecha: 'Esta semana',     responsable: 'Claudia / Dirección SAC', evento: 'VENTANA: acotar la baja por escrito, completar perfil y decisores, y presentar la ampliación de bolsa sobre consumo demostrado.', tipo: 'neutral' },
+    { fecha: 'Esta semana',     responsable: 'Erick / Dirección SAC', evento: 'VENTANA: acotar la baja por escrito, completar perfil y decisores, y presentar la ampliación de bolsa sobre consumo demostrado.', tipo: 'neutral' },
   ],
 
   perfil_campos: [
@@ -120,7 +120,7 @@ export const SOFIA: AuditoriaCase = {
     { fase: 'Soporte',    area: 'Mesa Callpicker',        accion: '20 tickets resueltos, 16 de asistencia en cadencia semanal.',                            resultado: 'Fricción atendida una a una; apetito de capacitación sin plan.' },
     { fase: 'Gestión',    area: 'CRM / SAC',              accion: '7 meses sin capturar perfil, decisores ni observaciones; 0 módulos sembrados.',          resultado: 'Grupo de $11,744 administrativamente invisible.' },
     { fase: 'Crisis',     area: 'Grupo RDS (28 Ago)',     accion: 'El grupo cancela 2 cuentas hermanas con competidor operando.',                           resultado: 'Sofia queda expuesta: ticket de alcance abierto sobre la razón social.' },
-    { fase: 'Hoy',        area: 'Claudia / Dirección',    accion: 'Acotar la baja + completar perfil + proponer ampliación.',                               resultado: 'PENDIENTE — define expansión o contagio.' },
+    { fase: 'Hoy',        area: 'Erick / Dirección',    accion: 'Acotar la baja + completar perfil + proponer ampliación.',                               resultado: 'PENDIENTE — define expansión o contagio.' },
   ],
 
   comparativo: [
@@ -135,12 +135,12 @@ export const SOFIA: AuditoriaCase = {
   plan_inmediato: [
     { accion: 'Cerrar el ticket de alcance con confirmación escrita: la baja cubre únicamente las 2 cuentas RDS.',        responsable: 'Erick Sánchez',   criterio: 'Notificación formal enviada y aceptada.' },
     { accion: 'Completar la actividad SAC pendiente: perfil 8/8, Radar 12/12, decisores con Straffon incluido.',           responsable: 'Erick Sánchez',   criterio: 'Actividad completada esta semana.' },
-    { accion: 'Preparar la propuesta de ampliación de bolsa con los 7 cortes como evidencia.',                             responsable: 'Claudia / SAC',       criterio: 'Propuesta lista antes del corte de septiembre.' },
+    { accion: 'Preparar la propuesta de ampliación de bolsa con los 7 cortes como evidencia.',                             responsable: 'Erick / SAC',       criterio: 'Propuesta lista antes del corte de septiembre.' },
   ],
 
   plan_mediano: [
     { accion: 'Plan de adopción sobre la demanda de soporte: capacitación + activación de panel administrador y un canal digital.', responsable: 'SAC',            criterio: 'Primer módulo activado; cadencia de tickets a la baja.' },
-    { accion: 'Sesión con decisores del grupo: contraoferta omnicanal (Chat + IA + clic-a-WhatsApp) frente a Bambete.',             responsable: 'Claudia / Dirección SAC', criterio: 'Reunión con al menos un decisor real del grupo.' },
+    { accion: 'Sesión con decisores del grupo: contraoferta omnicanal (Chat + IA + clic-a-WhatsApp) frente a Bambete.',             responsable: 'Erick / Dirección SAC', criterio: 'Reunión con al menos un decisor real del grupo.' },
   ],
 
   plan_estrategico: [
@@ -150,7 +150,7 @@ export const SOFIA: AuditoriaCase = {
 
   areas_oportunidad: [
     { area: 'Acotar el alcance de la cancelación',   impacto: 'Muy alto — contiene la exposición en $2,387 vs $11,744.',             responsable: 'Erick Sánchez' },
-    { area: 'Ampliación de bolsa',                   impacto: 'Muy alto — upsell sobre 2 excedentes ya pagados y tendencia +5.8%.',  responsable: 'Claudia / Comercial' },
+    { area: 'Ampliación de bolsa',                   impacto: 'Muy alto — upsell sobre 2 excedentes ya pagados y tendencia +5.8%.',  responsable: 'Erick / Comercial' },
     { area: 'Perfil + decisores',                    impacto: 'Alto — elimina la ceguera que hizo invisible la crisis del grupo.',   responsable: 'Erick Sánchez' },
     { area: 'Adopción sobre tickets',                impacto: 'Alto — convierte fricción semanal en anclas de permanencia.',         responsable: 'SAC' },
     { area: 'Omnicanal del grupo',                   impacto: 'Medio-alto — defensa frente a Bambete, después de acotar y ampliar.', responsable: 'Comercial / SAC' },

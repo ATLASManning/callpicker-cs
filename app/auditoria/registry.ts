@@ -52,7 +52,10 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
      del Municipio). Y el directorio de decisores que el asesor no encontraba
      lleva meses publicado en impas.mpiochih.gob.mx. */
   { id: 'impas-chihuahua',  nombre: 'IMPAS Municipio Chihuahua',       consecutivos: ['Z63'] },
-  // ── Claudia ───────────────────────────────────────────────────────────────
+  // ── Erick · la cartera que recibió el 15 oct 2026 ────────────────────
+  //    (Era la cartera de Claudia Hernández. El rótulo decía su nombre
+  //     hasta el 18 nov 2026, un mes después del relevo: `cuentas.asesor`
+  //     ya decía Erick y este padrón no. Ver [[erick-sustituye-a-claudia]].)
   { id: 'agua-inmaculada', nombre: 'Agua Inmaculada',                  consecutivos: ['C17'] },
   { id: 'labsus',          nombre: 'LABSUS Centro Diagnóstico',        consecutivos: ['C37'] },
   /* La voz MEJORA sola (5.0% → 1.9% de pérdida mientras el volumen crece), y
@@ -102,10 +105,12 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
      de llamadas sin contestar NO es una falla —van todas a un agente
      virtual— y su MRR real es $1,078, no los $38,123 de la ficha. */
   { id: 'system-ooapas',     nombre: 'Grupo System OOAPAS (Estradata)',     consecutivos: ['D2']  },
-  // ── Erick ─────────────────────────────────────────────────────────────────
-  //    (El bloque rotulado «Claudia» de arriba también es cartera de Erick
-  //     desde el 15 oct 2026; el rótulo se dejó como estaba para no mezclar
-  //     este cambio con ese. Ver [[erick-sustituye-a-claudia]].)
+  // ── Erick · altas posteriores al relevo ────────────────────────────────────
+  //    (Dos expedientes del bloque «Dan» de arriba también son suyos según
+  //     `cuentas.asesor`: VAEO Business Club (C51) y NERUC Sede Central
+  //     (C9). No se movieron de sitio porque el orden de este arreglo no
+  //     es el agrupamiento, y moverlos cambiaría algo que no se ha medido.
+  //     Lo comprueba `scripts/mide-cartera-asesor.py` contra la tabla.)
   /* El apagón de entrantes del 30 oct: 76 llamadas en cuatro días hábiles y UNA
      atendida. Pero el hallazgo que el ticket no traía es estructural y anterior:
      la ruta «Disponible» recibió 334 llamadas en el año y perdió las 334 — el

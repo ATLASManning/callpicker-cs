@@ -1,5 +1,24 @@
 import type { AuditoriaCase } from './types'
 
+/**
+ * EL PLAN DE ESTE EXPEDIENTE ES DE JUNIO DE 2026, Y SUS PLAZOS TAMBIÉN
+ * ====================================================================
+ *
+ * Varias acciones dicen «antes del lunes». Ese lunes era el de la auditoría,
+ * en junio de 2026 — no el próximo. Se leen como compromisos vivos y no lo
+ * son.
+ *
+ * El 18 nov 2026 se barrió el nombre de la asesora anterior de todo lo que
+ * aquí es instrucción: `responsable` decía Claudia Hernández y la cartera pasó
+ * a Erick Sánchez el 15 oct 2026. Quedó a propósito la frase del hallazgo que
+ * dice «Jennyffer y Claudia ya acordaron cambiar a timbrado simultáneo»,
+ * porque eso lo acordó ella y es un dato, no una tarea.
+ *
+ * Lo que NO se arregló aquí, porque es otra cosa: si el plan sigue vigente
+ * cinco meses después, o si ya se ejecutó y nadie lo marcó, lo tiene que
+ * decidir quien lleve la cuenta. Reasignar un dueño no actualiza un plazo.
+ * [[erick-sustituye-a-claudia]]
+ */
 export const LABSUS: AuditoriaCase = {
   id: 'labsus',
   asesor: 'Erick',
@@ -42,7 +61,7 @@ export const LABSUS: AuditoriaCase = {
     { fecha: 'May–Jun 2026', responsable: 'Alta dirección LABSUS (familia)', evento: 'Alta dirección recibe propuestas de competidores con precios significativamente inferiores. Riesgo competitivo activado.', tipo: 'problema' },
     { fecha: 'Pre-lunes',    responsable: 'Jennyffer Soto / José Manuel', evento: 'Reunión de revisión de consumo. Confirmaciones críticas: "juan" sin desactivar, timbrado secuencial como causa de pérdida en RECEPCION, AV no configurado.', tipo: 'pivote' },
     { fecha: 'Pre-lunes',    responsable: 'José Manuel López',             evento: 'Decisión de reducir plan a 2,500 min — correcta y propuesta por Callpicker. Mantiene el control de la narrativa.', tipo: 'ok' },
-    { fecha: 'Lunes (pending)', responsable: 'José Manuel + Claudia + Jennyffer', evento: 'Reunión de retención con demostración de valor basada en datos. Equipo de Chat para demo de WhatsApp. Próximo paso con fecha y responsable nominado.', tipo: 'neutral' },
+    { fecha: 'Lunes (pending)', responsable: 'José Manuel + Erick + Jennyffer', evento: 'Reunión de retención con demostración de valor basada en datos. Equipo de Chat para demo de WhatsApp. Próximo paso con fecha y responsable nominado.', tipo: 'neutral' },
   ],
 
   perfil_campos: [
@@ -78,7 +97,7 @@ export const LABSUS: AuditoriaCase = {
     { fase: '3. Config secuencial en RECEPCION',  area: 'LABSUS',                  accion: 'Timbrado secuencial hace que los agentes asuman que el siguiente tomará la llamada', resultado: '38.3% de pérdida evitable. Confirmado y acordado en reunión pre-lunes.' },
     { fase: '4. AV contratado sin configurar',    area: 'Activaciones Callpicker', accion: 'AI Voice Agent pagado pero no funcionando correctamente. Horario nocturno sin cobertura.', resultado: '79.2% de pérdida a las 19h y 62.2% dominical sin resolución con herramienta ya contratada.' },
     { fase: '5. Competidor entra con precio',     area: 'Mercado / Alta dirección', accion: 'Cotización de competidor con precio inferior llega a la dirección familiar directamente', resultado: 'El valor de Callpicker no es visible porque nunca se midió ni se presentó en datos.' },
-    { fase: '6. Reunión del lunes — momento bisagra', area: 'José Manuel + Claudia + Jennyffer', accion: 'Presentación de análisis de 4,044 llamadas + quick wins ya ejecutados + propuesta ajustada', resultado: 'Define si LABSUS renueva, reduce o cancela.' },
+    { fase: '6. Reunión del lunes — momento bisagra', area: 'José Manuel + Erick + Jennyffer', accion: 'Presentación de análisis de 4,044 llamadas + quick wins ya ejecutados + propuesta ajustada', resultado: 'Define si LABSUS renueva, reduce o cancela.' },
   ],
 
   comparativo: [
@@ -91,10 +110,10 @@ export const LABSUS: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Desactivar / redirigir extensión "juan" antes del lunes', responsable: 'José Manuel + Claudia', criterio: 'Extensión desactivada. Confirmación a Jennyffer antes de la reunión.' },
-    { accion: 'Activar timbrado simultáneo en grupos de RECEPCION antes del lunes', responsable: 'José Manuel + Claudia', criterio: 'Config aplicada. Jennyffer puede verificarlo en su panel antes de la reunión.' },
+    { accion: 'Desactivar / redirigir extensión "juan" antes del lunes', responsable: 'José Manuel + Erick', criterio: 'Extensión desactivada. Confirmación a Jennyffer antes de la reunión.' },
+    { accion: 'Activar timbrado simultáneo en grupos de RECEPCION antes del lunes', responsable: 'José Manuel + Erick', criterio: 'Config aplicada. Jennyffer puede verificarlo en su panel antes de la reunión.' },
     { accion: 'Revisar estado real del AI Voice Agent — qué está configurado y qué falta', responsable: 'Erick Sánchez', criterio: 'Respuesta clara antes del lunes. Si llegan sin esta respuesta y el cliente lo menciona, se pierde credibilidad.' },
-    { accion: 'Preparar propuesta 2,500 min con argumento de ROI — no solo precio', responsable: 'Claudia (propuesta formal)', criterio: 'Propuesta lista antes del lunes. Incluye costo de Callpicker vs. ingreso perdido por 513 llamadas.' },
+    { accion: 'Preparar propuesta 2,500 min con argumento de ROI — no solo precio', responsable: 'Erick (propuesta formal)', criterio: 'Propuesta lista antes del lunes. Incluye costo de Callpicker vs. ingreso perdido por 513 llamadas.' },
     { accion: 'Preparar brief de 1 página para Jennyffer: ROI, riesgo de cambio y prueba interna (Castaños)', responsable: 'José Manuel', criterio: 'Documento listo antes del lunes. Jennyffer lo usa con su dirección familiar.' },
     { accion: 'Confirmar equipo de Chat para demo de WhatsApp e integraciones en la misma sesión del lunes', responsable: 'José Manuel (coordinación)', criterio: 'Demo confirmada. Es la apertura más importante de negocio nuevo en la cuenta.' },
   ],
@@ -102,7 +121,7 @@ export const LABSUS: AuditoriaCase = {
     { accion: 'Configurar AI Voice Agent para cobertura nocturna (18–20h) y dominical (62.2% de pérdida)', responsable: 'Activaciones + Jennyffer', criterio: 'AV nocturno activo en la semana post-reunión. Confirmar reducción de pérdida en primera semana.' },
     { accion: 'Verificar si el sistema SAS (sasslabsus.dyndns.org) tiene API pública disponible — integración como palanca de contrato 12 meses', responsable: 'Jennyffer (investigación) + apoyo José Manuel', criterio: 'Respuesta definida. Si hay API: propuesta de integración = continuidad garantizada.' },
     { accion: 'Documentar procesos de administración del sistema para evitar pérdida de conocimiento (riesgo "juan" futuro)', responsable: 'Jennyffer + Linda', criterio: 'Manual básico de configuración entregado al cliente en la semana post-reunión.' },
-    { accion: 'Activar evaluación y grabación de llamadas — pasar de 1.7% a 100% de llamadas evaluadas', responsable: 'Claudia + Activaciones', criterio: 'Config activa. Primer dashboard de QA compartido con Jennyffer en 2 semanas.' },
+    { accion: 'Activar evaluación y grabación de llamadas — pasar de 1.7% a 100% de llamadas evaluadas', responsable: 'Erick + Activaciones', criterio: 'Config activa. Primer dashboard de QA compartido con Jennyffer en 2 semanas.' },
   ],
   plan_estrategico: [
     { accion: 'Propuesta de CRM clínico-comercial: pacientes recurrentes (top 15 con 8–14 llamadas), médicos referidores, empresas B2B', responsable: 'José Manuel + Comercial', criterio: 'Propuesta entregada 30 días post-reunión si la cuenta se retiene.' },
@@ -110,7 +129,7 @@ export const LABSUS: AuditoriaCase = {
     { accion: 'Documentar LABSUS como caso de retención por valor demostrado con datos — replicable en cuentas con propuestas de competidores', responsable: 'VP SAC', criterio: 'Caso documentado 60 días post-reunión si la retención fue exitosa.' },
   ],
   areas_oportunidad: [
-    { area: 'Replicar modelo Castaños (0% pérdida) en Monclova y San Buenaventura',   impacto: 'Sin costo adicional. Solo configuración. Reducción de pérdida de 38.3% → <10% en RECEPCION.', responsable: 'José Manuel + Claudia — antes del lunes' },
+    { area: 'Replicar modelo Castaños (0% pérdida) en Monclova y San Buenaventura',   impacto: 'Sin costo adicional. Solo configuración. Reducción de pérdida de 38.3% → <10% en RECEPCION.', responsable: 'José Manuel + Erick — antes del lunes' },
     { area: 'AI Voice Agent nocturno y dominical (ya contratado)',                      impacto: 'Cubre 79.2% de pérdida a las 19h y 62.2% dominical con herramienta existente. Costo: $0 adicional.', responsable: 'Activaciones — post-reunión' },
     { area: 'CRM clínico con 3 pipelines: pacientes, médicos referidores, empresas B2B', impacto: '513 pacientes perdidos rastreables. Top 15 con 8–14 llamadas sin gestión = base de CRM lista.', responsable: 'Comercial + José Manuel' },
     { area: 'Integración con sistema SAS si tiene API',                                 impacto: 'Si se confirma: continuidad de contrato por 12 meses garantizada. Callpicker se vuelve indispensable.', responsable: 'Jennyffer (verificación) + Ingeniería CP' },

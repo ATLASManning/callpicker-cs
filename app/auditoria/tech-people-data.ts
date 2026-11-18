@@ -488,14 +488,14 @@ export const TECH_PEOPLE: AuditoriaCase = {
   ],
 
   plan_estrategico: [
-    { accion: 'Panel de desempeño por sucursal — es el producto que ya compró, aplicado a sus +100 puntos', responsable: 'Producto / Claudia', criterio: 'El cliente recibe un reporte mensual por tienda' },
+    { accion: 'Panel de desempeño por sucursal — es el producto que ya compró, aplicado a sus +100 puntos', responsable: 'Producto / Erick', criterio: 'El cliente recibe un reporte mensual por tienda' },
     { accion: 'Proponer IA de Voz para el alto volumen de consultas repetitivas de estado de reparación', responsable: 'Erick', criterio: 'Propuesta presentada con el cálculo sobre sus 116,054 entrantes' },
-    { accion: 'Integración con su sistema de órdenes de servicio', responsable: 'Ingeniería / Claudia', criterio: 'Propuesta técnica y costo entregados' },
-    { accion: 'Gobernanza: reunión semestral fija. Nunca ha habido una', responsable: 'Claudia / Dirección', criterio: 'Primera reunión agendada con fecha y asistentes' },
+    { accion: 'Integración con su sistema de órdenes de servicio', responsable: 'Ingeniería / Erick', criterio: 'Propuesta técnica y costo entregados' },
+    { accion: 'Gobernanza: reunión semestral fija. Nunca ha habido una', responsable: 'Erick / Dirección', criterio: 'Primera reunión agendada con fecha y asistentes' },
   ],
 
   areas_oportunidad: [
-    { area: 'Las SIETE tiendas que pierden más del 38%', impacto: '908 llamadas perdidas en siete sucursales de más de cien — y 140 destinos sin abrir, 106 de ellos con alguna perdida', responsable: 'Claudia + TP' },
+    { area: 'Las SIETE tiendas que pierden más del 38%', impacto: '908 llamadas perdidas en siete sucursales de más de cien — y 140 destinos sin abrir, 106 de ellos con alguna perdida', responsable: 'Erick + TP' },
     { area: 'Visibilidad por sucursal',                  impacto: 'Es el producto contratado, sin aplicar a su propia red', responsable: 'Producto' },
     { area: 'IA de Voz',                                 impacto: '116,054 entrantes de consulta repetitiva, sin automatizar', responsable: 'Erick' },
     { area: 'El 46.3% de perdidas sin destino',          impacto: '3,341 llamadas sin atribuir a ningún destino: 3,125 sin la columna y 216 «(sin destino registrado)»', responsable: 'Erick' },

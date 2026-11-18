@@ -126,7 +126,7 @@ export const NERUC_SEDE_CENTRAL: AuditoriaCase = {
 
   /* ── Plan de acción ──────────────────────────────────────────── */
   plan_inmediato: [
-    { accion: 'Confirmar con Claudia la regla exacta usada para "fijo=1min" (7,880 min entrantes) antes de usar 11,794 min en cualquier comunicación', responsable: 'Daniel / Claudia', criterio: 'Cifra reconciliada y documentada antes del 18 ago' },
+    { accion: 'Confirmar con Claudia la regla exacta usada para "fijo=1min" (7,880 min entrantes) antes de usar 11,794 min en cualquier comunicación', responsable: 'Daniel / Erick', criterio: 'Cifra reconciliada y documentada antes del 18 ago' },
     { accion: 'Sustituir 8,850 min por 12,764 min (127.6%) en todas las comunicaciones internas y externas a partir de ahora', responsable: 'Daniel / CS', criterio: 'Ningún documento o mensaje nuevo cita 8,850 min como consumo total' },
     { accion: 'Alex Rendón: resolver líneas bloqueadas en Sembia/Sirena (WhatsApp API) — impacta bajas de DIDs pendientes de Grupo Vanguardia', responsable: 'Alex Rendón (Colpicker Chat)', criterio: 'DIDs liberados para procesar la baja solicitada por Axél' },
     { accion: 'Axél: confirmar desglose de los 55 DIDs solicitados vs los 67 sin actividad detectados en la auditoría — evitar duplicar trabajo', responsable: 'Axél / Daniel', criterio: 'Lista única reconciliada de números a dar de baja' },
@@ -142,7 +142,7 @@ export const NERUC_SEDE_CENTRAL: AuditoriaCase = {
   plan_estrategico: [
     { accion: 'Neruc Prime OS: formalizar oferta API/Developer plan — webhooks, consumo en tiempo real, integración con Power BI / Make / n8n', responsable: 'Daniel / Producto', criterio: 'Propuesta API presentada en reunión del 18 ago o la siguiente' },
     { accion: 'Panel por sub-cuenta + alertas de consumo: resuelve la causa raíz de falta de visibilidad confirmada por Axél en reunión', responsable: 'Daniel / Producto CP', criterio: 'Demo o acceso habilitado para Neruc antes de sep 2026' },
-    { accion: 'Revisar calidad de marcación saliente (Kia 69.1%, Suzuki 44.8%) con el cliente: identificar herramienta, proponer IA de voz o ajuste de campaña', responsable: 'Claudia / Daniel', criterio: 'Pregunta directa en reunión 18 ago · Respuesta documentada' },
+    { accion: 'Revisar calidad de marcación saliente (Kia 69.1%, Suzuki 44.8%) con el cliente: identificar herramienta, proponer IA de voz o ajuste de campaña', responsable: 'Erick / Daniel', criterio: 'Pregunta directa en reunión 18 ago · Respuesta documentada' },
   ],
 
   areas_oportunidad: [

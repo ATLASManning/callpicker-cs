@@ -8,7 +8,7 @@ export const ALTERNET: AuditoriaCase = {
   fecha_periodo: 'Enero – Junio 2026',
   fecha_auditoria: 'Jun 2026',
   tipo_cliente: 'Pequeña empresa · 11–50 empleados · CID 122421 · Zona de riesgo HS 56',
-  descripcion_contexto: '13,234 llamadas analizadas · Asesor: Claudia · Contacto: Anahí Santiago Vega · Pedro Escobedo, Querétaro',
+  descripcion_contexto: '13,234 llamadas analizadas · Asesor: Erick · Contacto: Anahí Santiago Vega · Pedro Escobedo, Querétaro',
   estado: 'en_riesgo',
   clasificacion: 'CONFIDENCIAL',
   version: '1.0',
@@ -85,15 +85,15 @@ export const ALTERNET: AuditoriaCase = {
     { nombre: 'Adopción como argumento de valor', descripcion: 'El cliente puede no percibir la plataforma como herramienta de gestión sino como línea de teléfono. Si no ve el valor de los módulos, no contratará expansión y puede buscar alternativas más simples.', impacto: 'Riesgo de no-renovación o downgrade si no se activa adopción antes de la revisión de contrato' },
     { nombre: 'Sub-cuenta inactiva como señal de alerta', descripcion: 'Una sub-cuenta sin factura en junio puede ser el precursor de cancelación o reducción de servicio. Sin seguimiento KAM activo, la pérdida puede ocurrir sin aviso.', impacto: 'Churn parcial o total si la sub-cuenta no se gestiona en las próximas 2 semanas' },
   ],
-  senal_alarma: 'Si la sub-cuenta inactiva lleva más de 60 días sin factura y sin contacto del cliente, es señal de churn en proceso. Claudia debe identificar el estado de esa cuenta y el nombre del contacto responsable antes de la próxima interacción con Anahí.',
+  senal_alarma: 'Si la sub-cuenta inactiva lleva más de 60 días sin factura y sin contacto del cliente, es señal de churn en proceso. Erick debe identificar el estado de esa cuenta y el nombre del contacto responsable antes de la próxima interacción con Anahí.',
 
   problema_raiz: 'ALTERNET usa la plataforma al 2% de su capacidad durante 4 años porque nadie del equipo Callpicker ha hecho una presentación formal de valor de los módulos adicionales en el contexto específico de un ISP rural.',
   problema_raiz_detalle: 'La falla de salientes (58.2% constante) es un problema técnico de configuración que ningún asesor ha escalado al equipo técnico en 6 meses. La adopción en 2/100 no es resistencia del cliente — es ausencia de propuesta con contexto: un ISP de comunidades rurales con demanda 7 días y soporte técnico repetible es el caso de uso más obvio para IA de Voz y Chat. Nadie lo ha planteado así.\n\nEl cliente abrió un ticket de capacitación el 1 de junio. Esa es la señal más clara posible de que hay disposición de mejorar. El timing es ahora.',
 
   flujo_real: [
-    { fase: '1. Adopción en 2/100 durante 4 años',   area: 'Claudia / Equipo SAC',    accion: 'Sin presentación formal de módulos adicionales en contexto ISP rural', resultado: 'Cliente paga 4 años por plataforma que usa al 2% de capacidad.' },
+    { fase: '1. Adopción en 2/100 durante 4 años',   area: 'Erick / Equipo SAC',    accion: 'Sin presentación formal de módulos adicionales en contexto ISP rural', resultado: 'Cliente paga 4 años por plataforma que usa al 2% de capacidad.' },
     { fase: '2. Falla saliente sin intervención',    area: 'Técnico Callpicker',       accion: 'Configuración de ruteo saliente nunca auditada — 58.2% de pérdida constante', resultado: '6 meses de problema estructural sin escalamiento técnico.' },
-    { fase: '3. Tres agentes sin configurar',        area: 'Equipo Alternet / Claudia', accion: 'Osiel, Maricruz y Víctor no asignados al grupo entrante', resultado: '974 llamadas perdidas por período sin que sea problema de agentes.' },
+    { fase: '3. Tres agentes sin configurar',        area: 'Equipo Alternet / Erick', accion: 'Osiel, Maricruz y Víctor no asignados al grupo entrante', resultado: '974 llamadas perdidas por período sin que sea problema de agentes.' },
     { fase: '4. Fin de semana sin cobertura',        area: 'Operación Alternet',       accion: 'Sin turnos de fin de semana ni canal automatizado de respaldo', resultado: '75.4% abandono domingo — ISP sin atención los días de mayor falla de red.' },
     { fase: '5. Ticket de capacitación (1 jun)',     area: 'Anahí Santiago',           accion: 'Cliente abre ticket de capacitación en Voz — señal de intención activa', resultado: 'Momentum disponible que caduca si no se activa en las próximas 2 semanas.' },
     { fase: '6. Sub-cuenta inactiva sin seguimiento', area: 'Erick',                 accion: 'Sub-cuenta sin factura de junio — sin acción documentada', resultado: 'Churn silencioso posible sin que nadie lo detecte.' },
@@ -110,26 +110,26 @@ export const ALTERNET: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Escalar con técnico Callpicker la configuración de ruteo saliente. Con 58.2% de pérdida constante en 6 meses, el problema no son los agentes — es la arquitectura de cola. Acción interna que no requiere aprobación del cliente.', responsable: 'Claudia + Técnico Callpicker', criterio: 'Diagnóstico técnico completado y resultado documentado en la semana' },
-    { accion: 'Revisar configuración de Osiel Martínez, Maricruz Martínez y Víctor Marchán. Verificar asignación al grupo entrante, estado de extensión y desvío habilitado. 974 llamadas perdidas recuperables sin costo.', responsable: 'Claudia + Técnico', criterio: 'Tres agentes correctamente configurados. Verificar atención en las siguientes 48h' },
+    { accion: 'Escalar con técnico Callpicker la configuración de ruteo saliente. Con 58.2% de pérdida constante en 6 meses, el problema no son los agentes — es la arquitectura de cola. Acción interna que no requiere aprobación del cliente.', responsable: 'Erick + Técnico Callpicker', criterio: 'Diagnóstico técnico completado y resultado documentado en la semana' },
+    { accion: 'Revisar configuración de Osiel Martínez, Maricruz Martínez y Víctor Marchán. Verificar asignación al grupo entrante, estado de extensión y desvío habilitado. 974 llamadas perdidas recuperables sin costo.', responsable: 'Erick + Técnico', criterio: 'Tres agentes correctamente configurados. Verificar atención en las siguientes 48h' },
     { accion: 'Identificar estado de sub-cuenta inactiva. Nombre del contacto responsable y motivo de inactividad en junio 2026. Acción de prevención de churn silencioso.', responsable: 'Erick', criterio: 'Estado documentado en CRM en los próximos 7 días' },
   ],
 
   plan_mediano: [
     { accion: 'Presentar a Anahí la mejora de entrantes (65.8% → 28.8%) como resultado de valor medible. Llevar el dato en formato visual antes de que el cliente lo descubra por su cuenta. Base perfecta para abrir conversación de expansión.', responsable: 'Erick', criterio: 'Reunión realizada. Anahí informada formalmente del resultado.' },
-    { accion: 'Proponer IA de Voz para cobertura de fin de semana y horario nocturno. Argumento de negocio: ISP rural con 75.4% de abandono el domingo y 71.7% el sábado. La plataforma ya tiene la capacidad — el cliente no la usa.', responsable: 'Claudia + Ventas', criterio: 'Demo presentada a Anahí. Propuesta formal enviada.' },
+    { accion: 'Proponer IA de Voz para cobertura de fin de semana y horario nocturno. Argumento de negocio: ISP rural con 75.4% de abandono el domingo y 71.7% el sábado. La plataforma ya tiene la capacidad — el cliente no la usa.', responsable: 'Erick + Ventas', criterio: 'Demo presentada a Anahí. Propuesta formal enviada.' },
     { accion: 'Capitalizar el ticket de capacitación de voz del 1 de junio. Agendar sesión con el equipo Alternet donde Ximena Araujo (78% de atención) comparte su protocolo con el resto.', responsable: 'Erick', criterio: 'Sesión de capacitación realizada. Benchmark interno activo.' },
   ],
 
   plan_estrategico: [
     { accion: 'Activar revisión mensual formal con Anahí. Panel administrador sin revisión documentada = cliente sin visibilidad de su propia operación. Proponer reunión mensual de 30 min con reporte de KPIs.', responsable: 'Erick', criterio: 'Primera reunión mensual agendada a más tardar en julio 2026' },
-    { accion: 'Proponer cobertura de franja 18–20h del lunes con desbordamiento o IVR informativo. Lunes concentra 25.9% del volumen semanal con 44.1% de pérdida en ese horario.', responsable: 'Técnico + Claudia', criterio: 'Configuración activa. Medición de impacto en 30 días.' },
-    { accion: 'Presentar hoja de ruta de adopción de módulos a 6 meses. IA Voz → IA Chat → API → pago automático. Contexto ISP rural: cada módulo tiene caso de uso inmediato y concreto.', responsable: 'Claudia + Dir. SAC', criterio: 'Hoja de ruta presentada y aceptada por Anahí.' },
+    { accion: 'Proponer cobertura de franja 18–20h del lunes con desbordamiento o IVR informativo. Lunes concentra 25.9% del volumen semanal con 44.1% de pérdida en ese horario.', responsable: 'Técnico + Erick', criterio: 'Configuración activa. Medición de impacto en 30 días.' },
+    { accion: 'Presentar hoja de ruta de adopción de módulos a 6 meses. IA Voz → IA Chat → API → pago automático. Contexto ISP rural: cada módulo tiene caso de uso inmediato y concreto.', responsable: 'Erick + Dir. SAC', criterio: 'Hoja de ruta presentada y aceptada por Anahí.' },
   ],
 
   areas_oportunidad: [
-    { area: 'IA de Voz (fin de semana + noche)',   impacto: 'ISP rural con 75.4% abandono domingo. Atención automática de reportes de fallas es el upsell más obvio y urgente de la cuenta.', responsable: 'Claudia + Ventas' },
-    { area: 'IA de Chat para soporte técnico',     impacto: 'Problemas de conectividad repetibles son el caso de uso ideal para chat automatizado. Reduce carga del equipo y mejora NPS.', responsable: 'Claudia + Ventas' },
+    { area: 'IA de Voz (fin de semana + noche)',   impacto: 'ISP rural con 75.4% abandono domingo. Atención automática de reportes de fallas es el upsell más obvio y urgente de la cuenta.', responsable: 'Erick + Ventas' },
+    { area: 'IA de Chat para soporte técnico',     impacto: 'Problemas de conectividad repetibles son el caso de uso ideal para chat automatizado. Reduce carga del equipo y mejora NPS.', responsable: 'Erick + Ventas' },
     { area: 'Capacitación diferenciada',           impacto: 'Ximena Araujo: 3,083 llamadas con 78% de atención. Su protocolo es replicable. Sesión interna = mejora sin costo.', responsable: 'Erick' },
     { area: 'Pago automático',                     impacto: 'No configurado. Para empresa de 11–50 empleados con facturación mensual recurrente, es reducción directa de fricción administrativa.', responsable: 'Erick' },
   ],
@@ -213,7 +213,7 @@ export const ALTERNET: AuditoriaCase = {
     ],
   },
 
-  conclusion: 'ALTERNET es una cuenta con una narrativa de dos velocidades. Las entrantes mejoran de forma acelerada y documentan que el equipo está aprendiendo. Las salientes tienen un problema técnico que nadie ha intervenido en 6 meses. La adopción en 2/100 representa una oportunidad de expansión intacta en una cuenta de 4 años.\n\nLa ventana de intervención es clara: el ticket de capacitación del 1 de junio es la señal más explícita de disposición que un cliente puede dar. Claudia tiene 2 semanas para capitalizarla antes de que el momentum se disipe. La primera acción no requiere al cliente: escalar la falla de salientes al equipo técnico. La segunda tampoco: corregir los 3 agentes con 0%. Ambas pueden ejecutarse esta semana.',
+  conclusion: 'ALTERNET es una cuenta con una narrativa de dos velocidades. Las entrantes mejoran de forma acelerada y documentan que el equipo está aprendiendo. Las salientes tienen un problema técnico que nadie ha intervenido en 6 meses. La adopción en 2/100 representa una oportunidad de expansión intacta en una cuenta de 4 años.\n\nLa ventana de intervención es clara: el ticket de capacitación del 1 de junio es la señal más explícita de disposición que un cliente puede dar. Erick tiene 2 semanas para capitalizarla antes de que el momentum se disipe. La primera acción no requiere al cliente: escalar la falla de salientes al equipo técnico. La segunda tampoco: corregir los 3 agentes con 0%. Ambas pueden ejecutarse esta semana.',
 
   pierde: [
     'Ticket de capacitación sin respuesta → cliente pierde disposición de mejora',
@@ -230,7 +230,7 @@ export const ALTERNET: AuditoriaCase = {
     'Ticket de capacitación capitalizado → Ximena comparte protocolo, equipo mejora',
     'IA de Voz propuesta y demostrada → cobertura de fin de semana, upsell inmediato',
     'Sub-cuenta documentada → churn silencioso prevenido o confirmado con tiempo',
-    'QBR mensual iniciado → Claudia posicionada como asesora estratégica, no reactiva',
+    'QBR mensual iniciado → Erick posicionado como asesor estratégico, no reactivo',
   ],
-  recomendacion_central: 'Claudia debe actuar en dos frentes esta semana. Frente interno: escalar la falla técnica de salientes con el equipo de Callpicker y corregir la configuración de los 3 agentes con 0%. Ambas son acciones internas que no requieren al cliente. Frente externo: capitalizar el ticket de capacitación como punto de entrada para presentar la mejora de entrantes, abrir la conversación de IA de Voz y resolver el estado de la sub-cuenta. El cliente ya mostró disposición. El movimiento es de Claudia.',
+  recomendacion_central: 'Erick debe actuar en dos frentes esta semana. Frente interno: escalar la falla técnica de salientes con el equipo de Callpicker y corregir la configuración de los 3 agentes con 0%. Ambas son acciones internas que no requieren al cliente. Frente externo: capitalizar el ticket de capacitación como punto de entrada para presentar la mejora de entrantes, abrir la conversación de IA de Voz y resolver el estado de la sub-cuenta. El cliente ya mostró disposición. El movimiento es de Erick.',
 }

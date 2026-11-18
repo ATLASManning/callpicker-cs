@@ -142,7 +142,7 @@ export const RDS_INVEST_VACAY: AuditoriaCase = {
 
   plan_mediano: [
     { accion: 'Presentar este post-mortem en la mesa comercial con las dos reglas propuestas (indagatoria omnicanal + promos de adopción).', responsable: 'Dirección SAC → Dirección Comercial', criterio: 'Caso presentado; reglas aceptadas o rechazadas con registro.' },
-    { accion: 'Programar el recontacto a Ricardo Straffon (90-120 días) con solución de contactabilidad/omnicanal.',                          responsable: 'Claudia / Comercial',                  criterio: 'Recordatorio con dueño y fecha en CRM.' },
+    { accion: 'Programar el recontacto a Ricardo Straffon (90-120 días) con solución de contactabilidad/omnicanal.',                          responsable: 'Erick / Comercial',                  criterio: 'Recordatorio con dueño y fecha en CRM.' },
   ],
 
   plan_estrategico: [
@@ -153,7 +153,7 @@ export const RDS_INVEST_VACAY: AuditoriaCase = {
   areas_oportunidad: [
     { area: 'Reglas de cierre (omnicanal + adopción)',      impacto: 'Muy alto — evita fabricar el próximo churn de 39 días.',                       responsable: 'Dirección Comercial' },
     { area: 'Protocolo ventas ↔ cartera en grupos',         impacto: 'Alto — SAC deja de enterarse de sus propios clientes por la cancelación.',      responsable: 'Dirección SAC' },
-    { area: 'Recontacto Straffon con omnicanal propio',     impacto: 'Medio-alto — churn validado como recuperable por el propio cliente.',           responsable: 'Claudia / Comercial' },
+    { area: 'Recontacto Straffon con omnicanal propio',     impacto: 'Medio-alto — churn validado como recuperable por el propio cliente.',           responsable: 'Erick / Comercial' },
     { area: 'Servicio de contactabilidad (reputación)',     impacto: 'Medio — la causa raíz (respuesta telefónica desplomada) afecta a más clientes de pauta.', responsable: 'Producto / Dirección' },
   ],
 

@@ -39,6 +39,7 @@
        python scripts/crecimiento-escalera.py
        python scripts/crecimiento-escalera.py --json  (vuelca el detalle)
 """
+import datetime
 import io
 import json
 import os
@@ -521,8 +522,24 @@ print('  consumo no medible:                %3d' % sum(1 for f in filas if f['pc
 print('  CE respaldado por 1 sola fuente:   %3d' % sum(1 for f in filas if f['tiene_CE'] and f['fuentes_CE'] == 1))
 print('  VyC respaldado por 1 sola fuente:  %3d' % sum(1 for f in filas if f['tiene_VyC'] and f['fuentes_VyC'] == 1))
 
+# LA FECHA SE SELLA, NO SE TECLEA.
+#
+# Aqui estaba escrito `'generado': '2026-09-21'` a mano, asi que CADA
+# regeneracion volvia a estampar esa fecha. El unico campo que dice cuan viejo
+# es el dato mentia por construccion, y mintio dos meses: el 15 oct 2026 la
+# cartera de Claudia paso a Erick, la tabla `cuentas` quedo correcta, y este
+# archivo siguio publicando 70 cuentas a nombre de Claudia con un sello de
+# septiembre que parecia explicarlo. De aqui lo lee
+# `veredicto-candidatura.py`, y de ahi `auditoria_alarma`, que lo lee una
+# persona. [[feedback-verificar-antes-asegurar]] [[erick-sustituye-a-claudia]]
+#
+# UTC-6, que es la hora de Mexico, igual que en `consumo-aaa-cacique.py`:
+# sellar en UTC adelanta la fecha seis horas cada noche.
+# [[feedback-fechas-zona-mexico]]
+SELLO = datetime.datetime.now(
+    datetime.timezone(datetime.timedelta(hours=-6))).strftime('%Y-%m-%d %H:%M')
 io.open(SALIDA, 'w', encoding='utf-8').write(
-    json.dumps({'generado': '2026-09-21', 'cuentas': filas}, ensure_ascii=False, indent=1))
+    json.dumps({'generado': SELLO, 'cuentas': filas}, ensure_ascii=False, indent=1))
 print('\n  detalle en %s' % os.path.relpath(SALIDA, RAIZ))
 
 if '--json' in sys.argv:

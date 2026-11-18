@@ -23,6 +23,7 @@
    eso el veredicto separa «a que es candidato» de «se puede hoy», en vez de
    fundir las dos cosas en un NO que esconde la oportunidad.
 """
+import datetime
 import io
 import json
 import os
@@ -450,7 +451,15 @@ for f in sorted(ca, key=lambda x: -(x['monto_ultimo_corte'] or 0)):
     print('  %-30s %-26s %s' % (str(f['empresa'])[:30], f['candidato_a'][:26],
                                 'HOY' if not f['bloqueado'] else 'bloqueada'))
 
+# El sello se SELLA. Estaba escrito '2026-09-21' a mano, igual que en
+# `crecimiento-escalera.py`, de donde este guion lee la cartera. Dos sellos
+# falsos en fila daban un archivo coherente consigo mismo y dos meses viejo, y
+# de aqui sale `auditoria_alarma`, que lo lee una persona antes de escribir un
+# reporte de cliente. UTC-6 es la hora de Mexico.
+# [[feedback-fechas-zona-mexico]] [[feedback-verificar-antes-asegurar]]
+SELLO = datetime.datetime.now(
+    datetime.timezone(datetime.timedelta(hours=-6))).strftime('%Y-%m-%d %H:%M')
 io.open(SALIDA, 'w', encoding='utf-8').write(
-    json.dumps({'generado': '2026-09-21', 'sin_pareja': sin_pareja, 'cuentas': filas},
+    json.dumps({'generado': SELLO, 'sin_pareja': sin_pareja, 'cuentas': filas},
                ensure_ascii=False, indent=1))
 print('\n  detalle en %s' % os.path.relpath(SALIDA, RAIZ))

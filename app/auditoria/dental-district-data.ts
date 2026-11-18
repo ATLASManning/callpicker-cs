@@ -111,25 +111,25 @@ export const DENTAL_DISTRICT: AuditoriaCase = {
   ],
 
   plan_inmediato: [
-    { accion: 'Configurar IVR para ventana 8:00–10:00 que capture y agende llamadas antes de cobertura humana.', responsable: 'Claudia + Soporte/Ingeniería', criterio: 'Pérdida en bloque 8:00–9:59 cae por debajo del 30%.' },
+    { accion: 'Configurar IVR para ventana 8:00–10:00 que capture y agende llamadas antes de cobertura humana.', responsable: 'Erick + Soporte/Ingeniería', criterio: 'Pérdida en bloque 8:00–9:59 cae por debajo del 30%.' },
     { accion: 'Validar con el cliente si mayo 2026 generó cargos por excedente (confirmar factura real). Presentar análisis de consumo mes a mes.', responsable: 'Erick', criterio: 'Cliente confirma o descarta sobreconsumo documentado. Primer paso para propuesta de upgrade de plan.' },
     { accion: 'Completar perfil de cuenta en el panel: fecha de inicio, contacto principal, giro, servicios, MRR real.', responsable: 'Erick', criterio: 'Perfil 100% completo. Health Score recalibrado con evaluación real (no valores de 50 por defecto).' },
   ],
   plan_mediano: [
     { accion: 'Proponer upgrade de plan a bolsa mayor o plan sin límite de minutos. Argumento: tráfico transfronterizo crónico lleva la cuenta al límite mensual.', responsable: 'Erick', criterio: 'Cliente aprueba ajuste de plan. Sobreconsumo eliminado.' },
-    { accion: 'Establecer protocolo diario de salientes por asesor (objetivo: recuperar >15 llamadas/día). Investigar posibilidad de contratar cobertura de reemplazo.', responsable: 'Claudia + cliente', criterio: 'Volumen saliente vuelve a >15/día sostenido por 30 días.' },
-    { accion: 'Resolver pérdida en cierre de jornada (19:00): extender cobertura humana 30 minutos o activar IVR de buzón estructurado para el bloque 19:00–20:00.', responsable: 'Claudia + Ingeniería', criterio: 'Pérdida a las 19:00 baja de 48.5% a <25%.' },
+    { accion: 'Establecer protocolo diario de salientes por asesor (objetivo: recuperar >15 llamadas/día). Investigar posibilidad de contratar cobertura de reemplazo.', responsable: 'Erick + cliente', criterio: 'Volumen saliente vuelve a >15/día sostenido por 30 días.' },
+    { accion: 'Resolver pérdida en cierre de jornada (19:00): extender cobertura humana 30 minutos o activar IVR de buzón estructurado para el bloque 19:00–20:00.', responsable: 'Erick + Ingeniería', criterio: 'Pérdida a las 19:00 baja de 48.5% a <25%.' },
   ],
   plan_estrategico: [
-    { accion: 'Implementar IA de Voz para confirmaciones y recordatorios de citas — libera a Manuel y Jazmin de la dependencia de cobertura humana en horarios críticos.', responsable: 'Claudia + UX/Producto', criterio: 'Adopción verificada. Reducción de pérdida entrante global por debajo del 15%.' },
+    { accion: 'Implementar IA de Voz para confirmaciones y recordatorios de citas — libera a Manuel y Jazmin de la dependencia de cobertura humana en horarios críticos.', responsable: 'Erick + UX/Producto', criterio: 'Adopción verificada. Reducción de pérdida entrante global por debajo del 15%.' },
     { accion: 'Unificar DID saliente: el 90.6% del saliente ya sale por la línea USA — consolidar para reforzar identidad de marca ante clientela transfronteriza.', responsable: 'Ingeniería + cliente', criterio: 'Un solo número de salida. Mejora en tasa de contestación (el destinatario reconoce el número).' },
   ],
 
   areas_oportunidad: [
-    { area: 'Automatización apertura',  impacto: '~45 llamadas/mes recuperadas en bloque 8:00–10:00',           responsable: 'Ingeniería + Claudia' },
-    { area: 'Upgrade plan minutos',     impacto: 'Elimina sobreconsumo y riesgo de cargos inesperados',          responsable: 'Claudia (upsell)' },
-    { area: 'Recuperación salientes',   impacto: 'Regreso a 15–24 llamadas/día: agenda de pacientes más activa', responsable: 'Claudia + cliente' },
-    { area: 'IA de Voz',               impacto: 'Escalabilidad sin dependencia de cobertura humana',             responsable: 'Producto + Claudia' },
+    { area: 'Automatización apertura',  impacto: '~45 llamadas/mes recuperadas en bloque 8:00–10:00',           responsable: 'Ingeniería + Erick' },
+    { area: 'Upgrade plan minutos',     impacto: 'Elimina sobreconsumo y riesgo de cargos inesperados',          responsable: 'Erick (upsell)' },
+    { area: 'Recuperación salientes',   impacto: 'Regreso a 15–24 llamadas/día: agenda de pacientes más activa', responsable: 'Erick + cliente' },
+    { area: 'IA de Voz',               impacto: 'Escalabilidad sin dependencia de cobertura humana',             responsable: 'Producto + Erick' },
   ],
 
   perfiles: [

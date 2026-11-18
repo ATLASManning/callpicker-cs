@@ -238,11 +238,11 @@ export const ECODELI: AuditoriaCase = {
 
   plan_inmediato: [
     { accion: 'Resolver la contradicción entre fuentes: el archivo de llamadas registra 294,561 minutos y el Informe de Cortes dice «0 de 5 meses con dato de consumo». Una de las dos está equivocada sobre la cuenta de más tráfico de la cartera', responsable: 'Ingeniería', criterio: 'O la cuenta aparece en los cortes, o queda escrito por qué no puede aparecer' },
-    { accion: 'Averiguar cuántos canales concurrentes tiene contratados: el servicio registrado no trae cantidad y `servicios_json` está vacío', responsable: 'Facturación / Claudia', criterio: 'El número en la ficha, comparado contra el pico medido de las 08:00' },
+    { accion: 'Averiguar cuántos canales concurrentes tiene contratados: el servicio registrado no trae cantidad y `servicios_json` está vacío', responsable: 'Facturación / Erick', criterio: 'El número en la ficha, comparado contra el pico medido de las 08:00' },
     { accion: 'Llamar: no hay un contacto efectivo documentado y `silencio_60` está crítica desde el 6 de octubre. Abrir con su propio perfil horario, que describe su operación. Y de paso cuadrar las dos fechas: la alerta cuenta desde el 17 jul y la ficha trae 8 ago', responsable: 'Erick', criterio: 'Contacto efectivo registrado CON resultado escrito, `ultimo_contacto` actualizado y la alerta cerrada por trabajo, no por el paso del tiempo' },
     { accion: 'CONFIRMAR con el cliente para qué usa el servicio. El perfil dice checadora telefónica con tres evidencias, pero eso es nuestra lectura, no su palabra', responsable: 'Erick', criterio: 'Queda escrito en la ficha para qué usa el cliente el servicio, en sus términos' },
     { accion: 'Corregir el contacto: el correo está DENTRO del campo de nombre y `contacto_email` está vacío; `contacto_tel` trae dos números pegados', responsable: 'Erick', criterio: 'Los campos separados, y al menos tres contactos en `contactos_json`' },
-    { accion: 'Aclarar cuál de las dos razones sociales del grupo es la contratante: la ficha lleva el domicilio de Ecodeli Comercial y el sitio y el correo de Ecodeli Industrial', responsable: 'Claudia / Facturación', criterio: 'La entidad contratante escrita en la ficha antes de cualquier renovación' },
+    { accion: 'Aclarar cuál de las dos razones sociales del grupo es la contratante: la ficha lleva el domicilio de Ecodeli Comercial y el sitio y el correo de Ecodeli Industrial', responsable: 'Erick / Facturación', criterio: 'La entidad contratante escrita en la ficha antes de cualquier renovación' },
   ],
 
   plan_mediano: [
@@ -253,14 +253,14 @@ export const ECODELI: AuditoriaCase = {
   ],
 
   plan_estrategico: [
-    { accion: 'Reporte de asistencia por sitio y por turno. Si la plataforma ya sabe quién marcó desde dónde y a qué hora, ese dato es supervisión operativa para el cliente y no sólo un registro de llamadas', responsable: 'Producto / Claudia', criterio: 'Propuesta presentada con una muestra de sus propios datos' },
+    { accion: 'Reporte de asistencia por sitio y por turno. Si la plataforma ya sabe quién marcó desde dónde y a qué hora, ese dato es supervisión operativa para el cliente y no sólo un registro de llamadas', responsable: 'Producto / Erick', criterio: 'Propuesta presentada con una muestra de sus propios datos' },
     { accion: 'IA de Voz sobre el flujo de registro, que es lo que alivia un pico tan concentrado sin vender más canales', responsable: 'Erick', criterio: 'Propuesta con el cálculo de canales liberados en la ventana de las 08:00' },
-    { accion: 'Integración API con su sistema de nómina o RH: el dato de asistencia tiene que acabar en algún sitio y hoy no sabemos en cuál', responsable: 'Ingeniería / Claudia', criterio: 'Se documenta a dónde va el dato hoy, y se propone la integración si no la hay' },
+    { accion: 'Integración API con su sistema de nómina o RH: el dato de asistencia tiene que acabar en algún sitio y hoy no sabemos en cuál', responsable: 'Ingeniería / Erick', criterio: 'Se documenta a dónde va el dato hoy, y se propone la integración si no la hay' },
     { accion: 'QUE EL SEMÁFORO DE ATENCIÓN DIGA SOBRE QUÉ OPINA. En esta cuenta el 0.07% mide registros de turno de un minuto y sale verde; en IMPAS el 0% sin contestar tapaba que NADIE llegaba a una persona —allí sí era una máquina: redir 0 de 352— y ese 0% la pone POR DELANTE de ECODELI en el ranking en bruto. El mismo indicador no puede significar lo mismo en los dos casos, y hoy el que sale mejor es el peor atendido', responsable: 'Producto / Dirección', criterio: 'La ficha publica además el % que llega a una PERSONA (`redir`), que es lo que distingue los dos casos' },
   ],
 
   areas_oportunidad: [
-    { area: 'Capacidad en la ventana de las 08:00', impacto: 'El 32.3% de la operación diaria del cliente en una sola hora', responsable: 'Ingeniería / Claudia' },
+    { area: 'Capacidad en la ventana de las 08:00', impacto: 'El 32.3% de la operación diaria del cliente en una sola hora', responsable: 'Ingeniería / Erick' },
     { area: 'Reporte de asistencia por sitio', impacto: 'Convierte un CDR en supervisión operativa para el cliente', responsable: 'Producto' },
     { area: 'Integración con nómina / RH', impacto: '`tiene_integracion_api` en falso sobre 289,238 registros al periodo', responsable: 'Ingeniería' },
     { area: 'IA de Voz en el flujo de registro', impacto: 'Alivia el pico sin vender más canales', responsable: 'Erick' },
