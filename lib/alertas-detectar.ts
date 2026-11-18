@@ -1,4 +1,5 @@
 import { supabaseAdmin, traerPorPaginas } from '@/lib/supabase'
+import { REQUISITOS_FICHA } from '@/lib/requisitos-ficha'
 import { todosLosCortes } from '@/lib/cortes-cuenta'
 import {
   mapaFacturacion, importeDeCuenta, topDeCartera, type ImporteCuenta,
@@ -142,41 +143,11 @@ function diasDesde(fecha: string | null | undefined, hoy: string): number | null
   return Math.max(0, Math.round((b - a) / 86400000))
 }
 
-/* ── LOS CAMPOS SIN LOS QUE UNA AUDITORIA ES OPINION ──────────────────────
- *
- * La lista no es un gusto: es lo que hizo falta de verdad al escribir las
- * primeras auditorías del TOP 50. Sin `giro` no se puede decir si 2,000
- * llamadas al mes son muchas o pocas —una concesionaria y un laboratorio no se
- * parecen—; sin `servicio` no se sabe contra qué plan comparar el consumo; sin
- * `activo_desde` no se distingue un deterioro nuevo de uno de siempre.
- *
- * `critico` separa los que impiden escribir del que sólo empobrece. `tamano_
- * empresa` y las `notas` se piden en la misma visita porque ya se está ahí,
- * pero su ausencia no dispara nada por sí sola: una alerta que salta por un
- * campo opcional es una alerta que se aprende a cerrar sin leer.
- *
- * Cada campo lleva QUIEN lo requisita, porque dirección lo pidió así y porque
- * un pendiente sin dueño no es un pendiente. [[feedback-tablas-deben-cerrar]]
- */
-const REQUISITOS_FICHA: ReadonlyArray<{
-  campo: string
-  etiqueta: string
-  critico: boolean
-  dueno: string
-  hay: (c: CuentaAlerta) => boolean
-}> = [
-  { campo: 'giro', etiqueta: 'giro o sector', critico: true, dueno: 'el asesor',
-    hay: c => !!(c.giro ?? '').trim() },
-  { campo: 'servicio', etiqueta: 'servicio contratado', critico: true, dueno: 'el asesor',
-    hay: c => !!(c.servicio ?? '').trim() },
-  { campo: 'activo_desde', etiqueta: 'fecha de alta (antigüedad)', critico: true,
-    dueno: 'facturación',
-    hay: c => !!(c.activo_desde ?? '').trim() },
-  { campo: 'tamano_empresa', etiqueta: 'tamaño de empresa', critico: false, dueno: 'el asesor',
-    hay: c => !!(c.tamano_empresa ?? '').trim() },
-  { campo: 'notas', etiqueta: 'notas de contexto', critico: false, dueno: 'el asesor',
-    hay: c => !!(c.notas ?? '').trim() },
-]
+/* El catálogo de requisitos de ficha vive en `lib/requisitos-ficha.ts`.
+   Se movió el 18 nov 2026 TAL CUAL —ni un campo, ni un `critico`, ni un
+   dueño— porque el expediente de entrega lo necesita para decidir si una
+   activación es «Cuenta» o «Cliente», y al importarlo de aquí arrastraba el
+   motor entero y con él `lib/supabase`. Se sigue usando igual. */
 
 function cuantosContactos(v: unknown): number {
   try {

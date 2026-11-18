@@ -29,6 +29,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -50,12 +51,65 @@ def secreto() -> str:
     sys.exit('.env.local no declara CRON_SECRET.')
 
 
+def prueba_busqueda(texto: str, puerto: str) -> int:
+    """El buscador tiene que alcanzar las 2,820, no sólo el año vivo."""
+    url = (f'http://localhost:{puerto}/api/entregas/buscar'
+           f'?q={urllib.parse.quote(texto)}')
+    req = urllib.request.Request(url, headers={'Authorization': f'Bearer {secreto()}'})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            tipo = (r.headers.get('content-type') or '').lower()
+            cuerpo = r.read().decode('utf-8', errors='replace')
+    except urllib.error.URLError as e:
+        print(f'NO SE PUDO LLAMAR AL SERVIDOR: {e}')
+        return 1
+    if 'json' not in tipo:
+        print(f'EL SERVIDOR NO RESPONDIÓ JSON sino «{tipo or "sin tipo"}».')
+        return 1
+
+    d = json.loads(cuerpo)
+    if 'error' in d:
+        print(f'EL ENDPOINT DEVOLVIÓ UN ERROR: {d["error"]}')
+        return 1
+
+    print(f'«{texto}» -> {d["coincidencias"]} coincidencia(s) '
+          f'de {d["totalEnLaHoja"]} activaciones · se devuelven {d["devueltos"]}'
+          + (' (RECORTADO)' if d.get('recortado') else ''))
+    if d.get('cuentasError'):
+        print(f'  EL APARTADO CUENTAS NO SE PUDO LEER: {d["cuentasError"]}')
+        print('  (el distintivo de estos resultados NO está medido)')
+
+    por_distintivo = {}
+    anos = set()
+    for r in d['resultados'][:200]:
+        c = r['clasificacion']
+        clave = c['distintivo'] + (f' · {c["motivo"]}' if c['motivo'] else '')
+        por_distintivo[clave] = por_distintivo.get(clave, 0) + 1
+        if r['ano']:
+            anos.add(r['ano'])
+    for k, n in sorted(por_distintivo.items()):
+        print(f'  {n:>4}  {k}')
+    if anos:
+        print(f'  años presentes: {", ".join(sorted(anos))}')
+    for r in d['resultados'][:8]:
+        c = r['clasificacion']
+        falta = ', '.join(x['etiqueta'] for x in c['faltan'])
+        print(f'    [{c["distintivo"]:<7}] {r["cliente"][:38]:<38} {r["id"]} '
+              f'{r["ano"]}{("  falta: " + falta) if falta else ""}')
+    return 0
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument('id', help='ID de la activación, tal como viene en la hoja')
     p.add_argument('--puerto', default='3100')
     p.add_argument('--guarda', default=None)
+    p.add_argument('--buscar', default=None,
+                   help='En vez del expediente, prueba /api/entregas/buscar con este texto')
     a = p.parse_args()
+
+    if a.buscar is not None:
+        return prueba_busqueda(a.buscar, a.puerto)
 
     url = f'http://localhost:{a.puerto}/api/entregas/expediente?id={a.id}'
     req = urllib.request.Request(url, headers={'Authorization': f'Bearer {secreto()}'})

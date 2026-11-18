@@ -101,15 +101,22 @@ export default function CuentasVsClientes({ d }: { d: ContrasteCuentasClientes }
             color="#B45309" />
         </div>
 
-        {/* ── Lo que la cifra de clientes NO puede prometer ────────────────── */}
-        <div style={{
+        {/* ── Lo que la cifra de clientes NO puede prometer ──────────────────
+            Va plegado, no escondido: la salvedad corta («estimación por
+            nombre») viaja PEGADA a la cifra, arriba. Lo que se pliega es el
+            método largo, que es para quien va a citar el número, no para quien
+            lo mira de paso. Esta pantalla es la puerta y se usa con prisa. */}
+        <details style={{
           marginTop: 14, padding: '12px 14px', borderRadius: 12,
           background: '#F5F8FB', border: `1px solid ${BORDE}`,
         }}>
+          <summary style={{ fontSize: 12.5, fontWeight: 700, color: TX, cursor: 'pointer' }}>
+            Cómo se agrupa, y qué puede fallar
+          </summary>
+          <div style={{ marginTop: 8 }}>
           <p style={{ fontSize: 12.5, color: TX_MID, lineHeight: 1.7 }}>
             {/* El método va PEGADO a la cifra. Una estimación sin método al lado
                 se cita después como si fuera un censo. */}
-            <strong style={{ color: TX }}>Cómo se agrupa, y qué puede fallar.</strong>{' '}
             La hoja no trae identificador de cliente: sólo el nombre escrito a
             mano. Se agrupa por ese nombre, ignorando mayúsculas, acentos,
             puntuación y el sufijo de razón social. Eso cose
@@ -128,7 +135,8 @@ export default function CuentasVsClientes({ d }: { d: ContrasteCuentasClientes }
               </>
             )}
           </p>
-        </div>
+          </div>
+        </details>
 
         {/* ── El cruce con cartera ─────────────────────────────────────────── */}
         <div style={{
@@ -168,9 +176,10 @@ export default function CuentasVsClientes({ d }: { d: ContrasteCuentasClientes }
         {/* ── Los casos, uno por uno ───────────────────────────────────────── */}
         {d.clientesMulti.length > 0 && (
           <>
-            <h3 style={{ fontSize: 14, fontWeight: 800, color: TX, marginTop: 22 }}>
+            <details style={{ marginTop: 22 }}>
+            <summary style={{ fontSize: 14, fontWeight: 800, color: TX, cursor: 'pointer' }}>
               Los {d.clientesMulti.length} clientes con más de una cuenta
-            </h3>
+            </summary>
             <p style={{ fontSize: 12, color: TX_SUA, marginTop: 4, lineHeight: 1.6 }}>
               Cada uno cuenta como varias activaciones arriba y como un solo
               cliente aquí. El expediente de entrega, más abajo, avisa cuando la
@@ -203,6 +212,7 @@ export default function CuentasVsClientes({ d }: { d: ContrasteCuentasClientes }
                 </li>
               ))}
             </ul>
+            </details>
           </>
         )}
       </div>

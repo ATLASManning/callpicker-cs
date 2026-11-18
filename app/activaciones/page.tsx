@@ -4,7 +4,9 @@ import ActivacionesCharts, { RegistroItem } from '@/components/charts/Activacion
 import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico'
 import SoloEnCliente, { ReservaGrafica } from '@/components/charts/SoloEnCliente'
 import ActivacionesGrandes from '@/components/charts/ActivacionesGrandes'
-import ExpedienteEntrega from '@/components/ExpedienteEntrega'
+import ExpedienteEntrega, { type Puerta } from '@/components/ExpedienteEntrega'
+import { clasifica, CAMPOS_CLASIFICACION, type FichaParaClasificar } from '@/lib/clasificacion-entrega'
+import { supabaseAdmin } from '@/lib/supabase'
 import CuentasVsClientes, { type ContrasteCuentasClientes } from '@/components/CuentasVsClientes'
 import { agrupaClientes } from '@/lib/clientes-activacion'
 
@@ -51,6 +53,58 @@ function normTipo(t: string): string {
  *  importe, el módulo no puede afirmar que no se le escapó ninguna. */
 interface Descartada {
   id: string; cliente: string; ejecutivo: string; ano: number; primerPago: number
+}
+
+/**
+ * El reparto Cuenta / Cliente de TODAS las activaciones.
+ *
+ * Regla de dirección (18 nov 2026): si falta información es Cuenta; si la ficha
+ * del apartado Cuentas está completa, es Cliente. La regla no se escribe aquí:
+ * viene de `lib/clasificacion-entrega.ts`, que importa los requisitos del mismo
+ * catálogo que usa el motor de alertas.
+ *
+ * Si la tabla no se puede leer, devuelve `error` y NINGÚN reparto. Repartir
+ * 2,820 en «Cuenta» porque la base falló sería convertir una caída en un juicio
+ * sobre el trabajo de alguien.
+ */
+async function reparteCuentaOCliente(ids: string[]): Promise<Puerta> {
+  const vacio: Puerta = {
+    total: ids.length, cliente: 0, incompleta: 0, fuera: 0,
+    porFaltante: [], error: null,
+  }
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('cuentas')
+      .select(CAMPOS_CLASIFICACION)
+    if (error) return { ...vacio, error: error.message }
+
+    const fichas = new Map<string, FichaParaClasificar>()
+    for (const c of (data ?? []) as FichaParaClasificar[]) {
+      const k = String(c.cid ?? '').trim()
+      if (k) fichas.set(k, c)
+    }
+
+    let cliente = 0, incompleta = 0, fuera = 0
+    const faltantes = new Map<string, { dueno: string; n: number }>()
+    for (const id of ids) {
+      const c = clasifica(fichas.get(id) ?? null)
+      if (c.distintivo === 'cliente') { cliente++; continue }
+      if (c.motivo === 'fuera') { fuera++; continue }
+      incompleta++
+      for (const f of c.faltan) {
+        const prev = faltantes.get(f.etiqueta)
+        faltantes.set(f.etiqueta, { dueno: f.dueno, n: (prev?.n ?? 0) + 1 })
+      }
+    }
+    return {
+      total: ids.length, cliente, incompleta, fuera,
+      porFaltante: Array.from(faltantes, ([etiqueta, v]) =>
+        ({ etiqueta, dueno: v.dueno, n: v.n })).sort((a, b) => b.n - a.n),
+      error: null,
+    }
+  } catch (e) {
+    return { ...vacio, error: String(e) }
+  }
 }
 
 /**
@@ -244,17 +298,12 @@ export default async function ActivacionesPage() {
   const totalFac = activaciones.reduce((s, r) => s + r.primerPago, 0)
   const anos     = Array.from(new Set(registros.map(r => r.ano).filter(Boolean))).sort()
 
-  /* Las del año más reciente, para el buscador del expediente. No se mandan
-     las 2,820: el módulo ya decidió hace tiempo no incrustar el detalle en el
-     HTML inicial, y una lista entera pesaría decenas de KB en cada carga. Se
-     manda el año vivo —las que se están cerrando— y el buscador dice que las
-     anteriores se abren por ID, en vez de dejar creer que no existen. */
+  /* EL BUSCADOR YA NO RECIBE UNA LISTA. Recibía las del año vivo —373 de
+     2,820— para no engordar el HTML, y el efecto era que buscar por nombre
+     sólo encontraba ésas: una activación de 2023 existía y no aparecía. Ahora
+     la búsqueda se hace en `/api/entregas/buscar`, contra las 2,820, y sólo
+     viajan los resultados. */
   const ultimoAno = anos.length ? anos[anos.length - 1] : null
-  const paraExpediente = (ultimoAno
-    ? activaciones.filter(r => r.ano === ultimoAno)
-    : activaciones)
-    .map(r => ({ id: r.id, cliente: r.cliente }))
-    .sort((a, b) => a.cliente.localeCompare(b.cliente, 'es'))
 
   /* ── CUENTA ≠ CLIENTE ──────────────────────────────────────────────────────
      Se agrupa sobre TODOS los registros, demos incluidas: un cliente que probó
@@ -273,6 +322,8 @@ export default async function ActivacionesPage() {
       grafias: c.grafias,
       cuentas: c.cuentas.map(id => ({ id, ano: anoDeId.get(id) ?? null })),
     }))
+  const puerta = await reparteCuentaOCliente(registros.map(r => r.id))
+
   const contraste: ContrasteCuentasClientes = {
     cuentas:       registros.length,
     clientes:      agrupacion.clientes.length,
@@ -402,9 +453,9 @@ export default async function ActivacionesPage() {
             describe lo que ya pasó; esto es lo que hay que entregar al cerrar
             una activación concreta. */}
         <ExpedienteEntrega
-          activaciones={paraExpediente}
           ano={ultimoAno}
-          clientesMulti={clientesMulti} />
+          clientesMulti={clientesMulti}
+          puerta={puerta} />
       </div>
     </div>
   )

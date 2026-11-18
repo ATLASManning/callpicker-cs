@@ -600,3 +600,84 @@ Pero el apartado 18 **no quedó cojo**: el expediente lo declara `no_medible`
 con palabras —«el corte de Zoho Desk sólo trae tickets CERRADOS, así que
 "tickets abiertos" no se puede contestar ni con cero»—, que es exactamente lo
 que manda el principio 18 del prompt. Lo que falta es la credencial, y es tuya.
+
+---
+
+## 13. La puerta: Cuenta o Cliente, y las 2,820 alcanzables (18 nov 2026)
+
+Instrucción de dirección: *«No aparecen todas las activaciones, verifica que se
+encuentren TODAS. Si hace falta información dale el distintivo de Cuenta; si
+está completa la información en el apartado Cuentas, la clasificación será
+Cliente.»* Y: *«Todo el apartado de Activaciones 2.0 debe ser interactivo,
+gráfico y sencillo: es nuestra puerta por donde recibimos Cuentas o Clientes.»*
+
+### El defecto: 373 de 2,820
+
+El buscador recibía del servidor **sólo las activaciones del año vivo** —373—
+para no engordar el HTML. El efecto no era que la búsqueda fuera lenta: era que
+**buscar por nombre sólo encontraba las de 2026**. Una activación de 2023
+existía y no aparecía, que es la forma más silenciosa de perder un dato.
+
+Ahora la búsqueda se hace en `/api/entregas/buscar`, **contra las 2,820**, y
+sólo viajan los resultados. Comprobado: `medexp` la encuentra en 2024,
+`maquinas` las cuatro de 2026, `vallmon` las dos de 2024.
+
+*(De paso: `medicall` devuelve **0 coincidencias**, y es correcto. En la hoja esa
+cuenta se llama «Medexp». Es el mismo hueco que el apartado 03 ya declaraba.)*
+
+### El distintivo, y por qué «completa» no lo decide la pantalla
+
+| | | |
+|---|---|---|
+| **CLIENTE** · ficha completa | **31** | 1.1% |
+| **CUENTA** · está en Cuentas y le falta información | **55** | 2.0% |
+| **CUENTA** · no está en el apartado Cuentas | **2,734** | 97.0% |
+
+**Completa** no es una lista nueva: es la que el sistema ya usa para encender
+sus alarmas de ceguera — los tres campos críticos de `REQUISITOS_FICHA` (giro,
+servicio contratado, fecha de alta), más **al menos un contacto** y las
+**observaciones del KAM**. Tamaño de empresa y notas se nombran pero **no
+degradan**: el propio catálogo dice que su ausencia no enciende ninguna alerta
+por sí sola.
+
+Qué falta en las 55 que sí están en Cuentas: 44 sin un solo contacto, 20 sin
+servicio, 19 sin observaciones del KAM, 17 sin giro, 1 sin fecha de alta. *(Una
+activación puede faltarle varias, así que esa lista **no suma** 55.)*
+
+**Hay TRES razones de «no es Cliente», no dos**, y piden cosas distintas:
+`incompleta` es trabajo del asesor; `fuera` es que CS no gestiona esa cuenta; y
+`no_medido` —la base no se pudo leer— **no se pinta como «Cuenta»**: sale
+*sin medir*. Repartir 2,820 en «Cuenta» porque falló una consulta convertiría
+una caída en un juicio sobre el trabajo de alguien.
+
+### Interactivo, gráfico y sencillo
+
+- Una **barra** con el reparto real de las 2,820 y **tres chips que filtran**.
+  El tramo de 31 sobre 2,820 es el 1.1% y desaparecería: lleva un mínimo
+  visible, porque esconder al que importa por pequeño sería lo contrario de lo
+  que hace esta pantalla.
+- El **buscador** con espera de 280 ms —sin ella, escribir «medicall» son ocho
+  lecturas del `.xlsx`— y las **tres cifras por separado**: cuántas hay, cuántas
+  coinciden y cuántas se muestran. Con una sola, un recorte parece un total.
+- Cada resultado trae su distintivo y, si falta algo, **qué falta**. Un clic
+  abre su expediente de 20 apartados.
+- El método largo y la lista de 56 clientes quedan **plegados**, no escondidos:
+  la salvedad corta («estimación por nombre») sigue pegada a la cifra.
+
+### Dos refactores que el trabajo obligó, y cómo se verificaron
+
+1. **`lib/hoja-activaciones.ts`** — el lector del `.xlsx` estaba dentro de la
+   ruta del expediente. El buscador lo necesitaba igual, y copiarlo era
+   garantizar que un día leyeran distinto (una activación por ID, encabezados
+   repetidos, las fechas en dos formatos).
+2. **`lib/requisitos-ficha.ts`** — el catálogo estaba dentro de
+   `lib/alertas-detectar.ts`, y al importarlo desde ahí **arrastraba el motor
+   entero y con él `lib/supabase`**: el guion de medición reventaba con
+   «Node.js 20 detected without native WebSocket support». Se movió **tal cual**
+   y se comprobó: el array normalizado contra `git show HEAD` es **idéntico**.
+   Mover algo es borrarlo si nadie lo compara.
+
+Verificado: `tsc` 0 errores · `build` exit 0 con `/api/entregas/buscar` ·
+`npm run mide:distintivo` cierra 2,820 de 2,820 · `npm run test:veredicto`
+sigue sellado · contraste en **162** · y la puerta vista pintando, filtrando y
+abriendo expedientes.
