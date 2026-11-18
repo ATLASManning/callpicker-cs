@@ -117,6 +117,25 @@ def num(v, dec=False):
         return None
 
 
+def rota(f):
+    u"""Una lectura esta rota si el origen lo dice de CUALQUIERA de sus dos
+       formas, y hay que mirar las dos.
+
+       MEDIDO EN EL LIBRO DEL 17 NOV 2026: de 717 filas, 92 lo dicen por las
+       dos vias a la vez, 0 solo por `status`... y DOCE solo por la columna
+       `operational_error`, con `status = 'usage_alert'` y `messages_total`
+       en cero.
+
+       Mirar solo `status` -que es lo que se hacia- mandaba esas doce a
+       `sin_uso`, o sea «cero mensajes en el periodo completo». Eso convierte
+       «no pudimos leerla» en «el cliente dejo de usarlo»: un cero fabricado
+       que ademas dispara trabajo de SAC contra un cliente que puede estar
+       perfectamente. [[feedback-cero-sin-medicion]]
+    """
+    return (f.get('status') == 'operational_error'
+            or bool((f.get('operational_error') or '').strip()))
+
+
 # ── semaforo de salud de uso ─────────────────────────────────────────────────
 # Seis estados. El orden de evaluacion importa: los estados "no juzgables"
 # (sin medicion / suspendida) ganan a todo, porque colorear una cuenta cuya
@@ -132,9 +151,20 @@ def semaforo(c):
     m = []
     if c['estado'] == 'suspended':
         return 'suspendida', ['Cuenta suspendida en el periodo — no se mide consumo.']
-    if c['estado'] == 'operational_error':
-        return 'sin_medicion', ['La recolección del periodo falló (operational_error): '
-                                'la cifra de este corte no es confiable.']
+    if c['lecturaRota']:
+        m = ['La recolección de este corte falló (operational_error): '
+             'la cifra no es confiable, y un cero aquí no significa que el '
+             'cliente dejara de usarlo.']
+        # El ultimo corte BUENO del mismo libro, cuando existe. Sin esto la
+        # ficha no dice nada de una cuenta de la que si sabemos algo: solo que
+        # hoy no se pudo leer.
+        if c['respaldoPeriodo']:
+            m.append('Último dato fiable: %s mensajes en el corte del %s.'
+                     % (format(c['respaldoMensajes'] or 0, ','), c['respaldoPeriodo'][:10]))
+        else:
+            m.append('No hay ningún corte con lectura buena en todo el libro: '
+                     'de esta cuenta no se sabe nada, que no es lo mismo que cero.')
+        return 'sin_medicion', m
 
     msgs = c['mensajes'] or 0
     if msgs == 0:
@@ -188,7 +218,9 @@ def semaforo(c):
 # fuera. Ver [[feedback_contexto_ia_sin_huecos]].
 
 def medible(c):
-    return c['estado'] not in ('operational_error', 'suspended') and c['mensajes'] > 0
+    return (not c['lecturaRota']
+            and c['estado'] not in ('operational_error', 'suspended')
+            and c['mensajes'] > 0)
 
 
 # Base minima para que un ratio signifique algo. Sin esto, una cuenta con 3
@@ -300,6 +332,13 @@ def semaforo_cliente(cuentas):
     pct = (sum(c['mensajes'] for c in con_bolsa) / bolsa * 100) if bolsa else None
     agg = {
         'estado': 'ok',
+        # El agregado se arma SOLO con `vivas`, de donde ya se excluyeron las
+        # cuentas sin medicion y las suspendidas. Por construccion no puede
+        # venir de una lectura rota, y las que si lo estan se nombran abajo en
+        # vez de diluirse en la suma.
+        'lecturaRota': False,
+        'respaldoPeriodo': None,
+        'respaldoMensajes': None,
         'mensajes': sum(c['mensajes'] for c in vivas),
         'inboxesContratados': sum(c['inboxesContratados'] or 0 for c in vivas) or None,
         'inboxesActivos': sum(c['inboxesActivos'] or 0 for c in vivas),
@@ -424,7 +463,17 @@ def main():
     cuentas = []
     for (cid, nombreCuenta), filas in porCuenta.items():
         filas.sort(key=lambda x: x.get('period_start') or '', reverse=True)
-        v, ant = filas[0], (filas[1] if len(filas) > 1 else None)
+        v = filas[0]
+        # EL RESPALDO ES EL ULTIMO CORTE CON LECTURA BUENA, no simplemente el
+        # anterior. Cuando fallan dos cortes seguidos —y en el libro del 17 nov
+        # 2026 pasa en varias cuentas— `filas[1]` es otra lectura rota, con lo
+        # que el respaldo queda tan vacio como el vigente y la ficha no puede
+        # decir nada de una cuenta de la que SI hay dato, un mes mas atras.
+        #
+        # El vigente NO se sustituye: lo que se publica como «el periodo» sigue
+        # siendo el corte vigente. Fabricar un total mezclando el noviembre de
+        # unas con el septiembre de otras seria otra mentira, solo que al reves.
+        ant = next((f for f in filas[1:] if not rota(f)), None)
         c = {
             'cid': cid,
             'cliente': v.get('client_name'),
@@ -454,6 +503,7 @@ def main():
             'tier':             v.get('tier') or (ant.get('tier') if ant else None),
             'respaldoPeriodo':  ant.get('period_start') if ant else None,
             'respaldoMensajes': num(ant.get('messages_total')) if ant else None,
+            'lecturaRota':      rota(v),
         }
         if c['bolsaMensajes'] == 0:
             c['bolsaMensajes'] = None
@@ -583,6 +633,23 @@ def main():
         'clientesSinUso':   dist.get('sin_uso', 0),
         'clientesConError': sum(1 for c in clientes if c['conError']),
         'cuentasConError':  sum(1 for c in cuentas if c['semaforo'] == 'sin_medicion'),
+        # ── DE QUE ESTA HECHO EL NUMERO GRANDE ──────────────────────────────
+        # `mensajes` suma SOLO las cuentas cuyo corte vigente se pudo leer. Las
+        # demas aportan cero, y hasta hoy eso no se decia en ninguna parte: la
+        # tarjeta «Mensajes del periodo» cayo de 1,427,007 a 473,416 entre dos
+        # cortes y se leia como un desplome del 67% del negocio, cuando lo que
+        # se desplomo fue la LECTURA. Estos cuatro campos existen para que la
+        # pantalla pueda decir sobre cuanto esta hablando.
+        # [[feedback-cero-sin-medicion]] · [[feedback-contexto-ia-sin-huecos]]
+        'cuentasMedidas':      sum(1 for c in cuentas if not c['lecturaRota']),
+        'cuentasLecturaRota':  sum(1 for c in cuentas if c['lecturaRota']),
+        'cuentasSinRespaldo':  sum(1 for c in cuentas
+                                   if c['lecturaRota'] and not c['respaldoPeriodo']),
+        # Volumen que esas cuentas tenian en su ULTIMO corte bueno. No entra en
+        # `mensajes` —seria mezclar periodos— pero es la magnitud de lo que hoy
+        # no se esta midiendo, y sin ella un 473,416 parece el total del chat.
+        'mensajesEnRespaldo':  sum(c['respaldoMensajes'] or 0 for c in cuentas
+                                   if c['lecturaRota']),
         'conBolsa': sum(1 for c in cuentas if c['bolsaMensajes']),
         'periodoMin': min(c['periodo'] for c in clientes if c['periodo']),
         'periodoMax': max(c['periodo'] for c in clientes if c['periodo']),
@@ -766,6 +833,7 @@ def main():
               'mensajesPrevios: number | null', 'crecimientoPct: number | null',
               'tendencia: string | null', 'tier: string | null',
               'respaldoPeriodo: string | null', 'respaldoMensajes: number | null',
+              'lecturaRota: boolean',
               'sacux: Record<string, any> | null']:
         w('  ' + l)
     w('}')

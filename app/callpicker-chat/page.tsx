@@ -125,10 +125,15 @@ export default function CallpickerChatPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard label="Clientes con chat" value={CHAT_RESUMEN.clientes}
             sub={`${CHAT_RESUMEN.cuentas} cuentas Chatwoot`} icon={Users} variant="primary" />
+          {/* El total NO cubre las cuentas cuya lectura falló: aportan cero y
+              eso hundía la tarjeta sin que nada lo dijera. El denominador va
+              en el subtítulo para que el número grande no se lea como el total
+              del chat. Ver el aviso de calidad del dato más abajo. */}
           <StatCard label="Mensajes del periodo" value={n(CHAT_RESUMEN.mensajes)}
-            sub={`${n(CHAT_RESUMEN.conversaciones)} conversaciones`} icon={MessageCircle} variant="teal" />
+            sub={`${n(CHAT_RESUMEN.conversaciones)} conversaciones · medido en ${CHAT_RESUMEN.cuentasMedidas} de ${CHAT_RESUMEN.cuentas} cuentas`}
+            icon={MessageCircle} variant="teal" />
           <StatCard label="Clientes sin uso" value={CHAT_RESUMEN.clientesSinUso}
-            sub="cero mensajes en su corte" icon={CircleSlash} variant="danger" />
+            sub="cero mensajes medido, no lectura fallida" icon={CircleSlash} variant="danger" />
           <StatCard label="Inboxes contratados muertos" value={CHAT_RESUMEN.contratadosMuertos}
             sub="capacidad pagada sin un solo mensaje" icon={Ban} variant="warn" />
           <StatCard label="Inboxes sin contratar con tráfico" value={CHAT_RESUMEN.sinContratoConTrafico}
@@ -172,7 +177,13 @@ export default function CallpickerChatPage() {
               (<code style={{ color: '#93C5FD' }}>operational_error</code>) — la hoja reporta{' '}
               <span className="font-semibold" style={{ color: '#fff' }}>HTTP 500</span> al pedir el resumen de{' '}
               <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.inboxesConError}</span> bandejas; salen en gris
-              con su corte anterior como referencia, en vez de reportar una caída que no ocurrió. Y{' '}
+              con su <span className="font-semibold" style={{ color: '#fff' }}>último corte con lectura buena</span> como referencia,
+              en vez de reportar una caída que no ocurrió.{' '}
+              <span className="font-semibold" style={{ color: '#F97316' }}>Esas cuentas sumaban {n(CHAT_RESUMEN.mensajesEnRespaldo)} mensajes</span>{' '}
+              la última vez que sí se pudieron leer, así que lo que falta de medir pesa más que lo medido — y por eso el total de
+              arriba no es el total del chat. De ellas,{' '}
+              <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.cuentasSinRespaldo}</span>{' '}
+              no tienen ningún corte bueno en todo el libro: de ésas no se sabe nada, que no es lo mismo que cero. Y{' '}
               <span className="font-semibold" style={{ color: '#F97316' }}>{CHAT_RESUMEN.inboxesSinClasificar} de {CHAT_RESUMEN.inboxes}</span>{' '}
               bandejas no traen tipo (<code style={{ color: '#93C5FD' }}>inbox_type</code> vacío), así que no se puede decir si son
               WhatsApp API, QR, Facebook o Marketplace. Aquí no se infiere: se publica lo que trae la fuente.
