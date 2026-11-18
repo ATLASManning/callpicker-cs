@@ -67,6 +67,23 @@ const EXIGIDO = {
                            'la cifra refutable: 17 días y 118 llamadas no son un mes'],
     ['20.3%',              'el cierre de la serie entre meses completos'],
   ],
+  /* MEDICALL EXPERT. El caso donde la frase obligatoria no protege de lo que
+     dice el cliente, sino de lo que decíamos NOSOTROS: el reporte de noviembre
+     reprodujo literalmente el párrafo de alarma de julio, con el MRR, la
+     antigüedad, los tickets y el «cero seguimiento KAM» de hace cuatro meses.
+     Si esas prohibiciones caen del corte, Atlas vuelve a servir las seis
+     cifras vencidas al asesor que está por llamar. Y la del 70% importa igual:
+     es la cifra más citable del documento y es la que el cliente puede
+     refutar con su propio calendario. */
+  'medicall-expert': [
+    ['$8,067',        'el MRR del GRC; sin esto Atlas cita los $6,831 de julio'],
+    ['no $6,831',     'la cifra que NO se debe citar, dicha como prohibición'],
+    ['869 dias',      'la antigüedad vigente; 753 caían el 24 de julio'],
+    ['kam no es cero','la afirmación falsa más repetida del documento'],
+    ['57.9%',         'el hallazgo central, que sí se sostiene'],
+    ['no citar la ficha vieja',
+                      'el encabezado que ordena las otras cinco prohibiciones'],
+  ],
   'hospital-santa-rosa': [
     ['no presentar al cliente', 'que la cuenta no está lista para una presentación'],
     ['sin_interlocutor',        'la alerta crítica que contradice al reporte'],
