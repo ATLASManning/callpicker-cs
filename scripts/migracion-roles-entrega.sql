@@ -28,6 +28,43 @@
 --  puesto. Erick estuvo registrado y activo sin poder entrar justo por esto.
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ── VA EN UNA TRANSACCIÓN, Y NO ES ADORNO ──────────────────────────────────
+--
+-- `drop` y `add` suelto dejan una ventana en la que `usuarios.rol` no tiene
+-- NINGUNA restricción. Y si el `add` fallara —basta una fila con un rol que no
+-- esté en la lista— la columna se quedaría así: sin validar, en silencio, justo
+-- en la tabla de los accesos. Dentro de la transacción, un fallo revierte al
+-- CHECK anterior y la base queda como estaba.
+--
+-- Lo mismo vale para el bloque de comprobación de abajo: si levanta una
+-- excepción, aborta la transacción, el `commit` actúa como `rollback` y la
+-- restricción vieja sigue en su sitio. Falla cerrado.
+begin;
+
+-- Lo único que puede hacer fallar el `add`: una fila con un rol que no esté en
+-- la lista nueva. Preguntarlo ANTES da un mensaje que se entiende, en vez del
+-- error de restricción, que no dice qué fila ni qué valor.
+do $$
+declare
+  fuera text;
+begin
+  -- `coalesce` y no `rol` a secas: `string_agg` IGNORA los nulos, así que una
+  -- fila con el rol vacío habría dejado `fuera` en null y este bloque habría
+  -- dado verde sobre el caso exacto que vino a detectar.
+  select string_agg(distinct coalesce(rol, '(nulo)'), ', ') into fuera
+    from usuarios
+   where rol is null
+      or rol not in ('admin', 'asesor', 'viewer', 'perfilamiento',
+                     'activaciones', 'sac');
+  if fuera is not null then
+    raise exception
+      'Hay usuarios con un rol que la lista nueva NO admite: %. '
+      'Decidir que hacer con ellos antes de migrar — no se tocan desde aqui.',
+      fuera;
+  end if;
+  raise notice 'ok  ninguna fila existente queda fuera de la lista nueva.';
+end $$;
+
 alter table usuarios drop constraint if exists usuarios_rol_check;
 alter table usuarios add constraint usuarios_rol_check
   check (rol in ('admin', 'asesor', 'viewer', 'perfilamiento',
@@ -79,10 +116,20 @@ begin
   raise notice 'ok  lista cerrada y los dos roles nuevos admitidos: %', def;
 end $$;
 
--- Qué roles hay realmente en uso, y con cuántas personas cada uno.
--- Un rol recién creado debe salir con 0: eso es correcto, y es distinto de que
--- el rol no exista.
-select rol, count(*) as personas, count(*) filter (where activo) as activas
-  from usuarios
- group by rol
- order by personas desc;
+commit;
+
+-- ── EL CENSO, CON LOS SEIS ROLES SIEMPRE PRESENTES ─────────────────────────
+--
+-- Un `group by rol` sobre `usuarios` sólo devuelve los roles que ALGUIEN tiene,
+-- así que `activaciones` y `sac` no saldrían con 0: no saldrían. Y «no aparece»
+-- se lee igual que «no existe», que es justo lo contrario de lo que acabamos de
+-- hacer. La lista de los seis va escrita aquí para que el cero sea un cero
+-- MEDIDO.
+select r.rol,
+       count(u.id)                         as personas,
+       count(u.id) filter (where u.activo) as activas
+  from (values ('admin'), ('asesor'), ('viewer'), ('perfilamiento'),
+               ('activaciones'), ('sac')) as r(rol)
+  left join usuarios u on u.rol = r.rol
+ group by r.rol
+ order by personas desc, r.rol;
