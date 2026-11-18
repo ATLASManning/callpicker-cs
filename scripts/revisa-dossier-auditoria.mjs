@@ -51,6 +51,22 @@ const EXIGIDO = {
     ['−39%',             'la contracción medida entre meses completos'],
     ['no de −68%',       'la lectura vieja, que comparaba 17 días contra 31'],
   ],
+  /* CINTAS COVE. Aquí la frase que más importa no es una cifra: es el MARCO.
+     Esta cuenta MEJORÓ sola entre julio y noviembre —la atención por agente se
+     triplicó y el outbound se multiplicó por diez sin que nosotros tocáramos
+     nada—, y `lib/seguimiento-auditoria.ts` mete los TRES primeros hallazgos
+     enteros en la actividad que el asesor lee ANTES de llamar. Si «MEJORÓ sola»
+     cae del corte, el asesor entra a señalar fallos a un cliente que acaba de
+     corregir su operación, que es la peor llamada posible y además se le nota. */
+  'cintascove': [
+    ['$13,560',            'el MRR institucional del GRC; sin esto se cita la columna mala'],
+    ['no $13,965',         'la cifra que NO se debe citar, dicha como prohibición'],
+    ['mejoró sola',        'el marco de la llamada: reconocer antes de recomendar'],
+    ['56.2%',              'la atención del último mes COMPLETO, no la del parcial'],
+    ['no citar «11.0% en noviembre»',
+                           'la cifra refutable: 17 días y 118 llamadas no son un mes'],
+    ['20.3%',              'el cierre de la serie entre meses completos'],
+  ],
   'hospital-santa-rosa': [
     ['no presentar al cliente', 'que la cuenta no está lista para una presentación'],
     ['sin_interlocutor',        'la alerta crítica que contradice al reporte'],
