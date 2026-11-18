@@ -252,7 +252,21 @@ for m in re.finditer(r"id:\s*'([^']+)'[^}]*?consecutivos:\s*\[([^\]]*)\]", reg):
 print(u'  %d auditoria(s) registradas · %d cuenta(s) en la cartera\n'
       % (len(registro), len(cuentas)))
 
-malas, sin_cid, ok_n = [], [], 0
+# LAS CUATRO LISTAS TIENEN QUE SUMAR 43, Y ANTES SUMABAN 42.
+#
+# El resumen decia «43 registradas», luego «41 coinciden · 0 no coinciden» y
+# «no declaran CID · 1». 41+1 = 42. Faltaba una, y faltaba EN SILENCIO: habia
+# dos `continue` que dejaban un expediente fuera de todas las listas, asi que
+# no lo comprobaba nadie y el resumen no se enteraba.
+#
+# La que se caia era `viajes-macull`: registrada a proposito con
+# `consecutivos: []` —nacio cancelando y nunca entro a cartera, no hay ficha
+# donde pintar el boton— y su identificador se escribe «CP 189846», que no es
+# un CID. Es un caso legitimo; lo que no era legitimo es que desapareciera.
+#
+# Un cubo «otros» mas un assert de cierre, como en cada corte de la cadena.
+# [[feedback-tablas-deben-cerrar]]
+malas, sin_cid, otros, ok_n = [], [], [], 0
 for caso_id, cons_reg in sorted(registro.items()):
     f = os.path.join(AUD, caso_id + '-data.ts')
     if not os.path.exists(f):
@@ -265,6 +279,13 @@ for caso_id, cons_reg in sorted(registro.items()):
                     if x.endswith('-data.ts')
                     and ("'%s'" % caso_id) in io.open(os.path.join(AUD, x), encoding='utf-8').read()]
         if not cand:
+            # ESTE SI ES GRAVE, y antes era un `continue` mudo. `registry.ts`
+            # nombra un expediente que no existe en ningun archivo: el modulo
+            # cuenta una auditoria que nadie puede abrir, y `AUDITORIA_REFS`
+            # —que tambien sirve para saber que cuentas tienen auditoria
+            # documentada— da por cubierta una cuenta que no lo esta.
+            otros.append((caso_id, cons_reg, u'GRAVE', u'registrada pero no existe '
+                          u'ningun -data.ts con ese id'))
             continue
         f = os.path.join(AUD, cand[0])
     txt = io.open(f, encoding='utf-8').read()
@@ -272,6 +293,14 @@ for caso_id, cons_reg in sorted(registro.items()):
     if not suyo:
         if cons_reg or RE_CID.search(txt):
             sin_cid.append((caso_id, cons_reg))
+        else:
+            # Ni declara CID ni esta registrada en una cuenta. Suele ser
+            # deliberado —una auditoria de alguien que nunca entro a cartera—
+            # y `registry.ts` lo explica caso por caso. Deliberado no es
+            # comprobado: va a la vista, con su motivo, para que se pueda
+            # releer el dia que alguien sospeche del registro.
+            otros.append((caso_id, cons_reg, u'a proposito',
+                          u'no declara CID y no esta registrada en ninguna cuenta'))
         continue
     duenos = por_cid.get(suyo, [])
     if not duenos:
@@ -313,4 +342,34 @@ if sin_cid:
     for caso, cons_reg in sin_cid:
         print(u'    %-28s registrada en %s' % (caso, u', '.join(cons_reg) or u'(ninguna)'))
 
-sys.exit(1 if malas else 0)
+graves = [x for x in otros if x[2] == u'GRAVE']
+
+if otros:
+    print(u'\n  ══ NI CRUZADAS NI SIN CID · %d ═══════════════════════════' % len(otros))
+    print(u'  El cubo «otros»: lo que no cabe en los de arriba. Existe para')
+    print(u'  que el resumen cierre — sin el, estas desaparecian del conteo.')
+    for caso, cons_reg, clase, motivo in otros:
+        marca = u'***' if clase == u'GRAVE' else u' ~ '
+        print(u'  %s %-26s %s' % (marca, caso, motivo))
+        if cons_reg:
+            print(u'      registrada en %s' % u', '.join(cons_reg))
+
+# ── EL ASSERT DE CIERRE ──────────────────────────────────────────────────────
+# Cada expediente registrado cae en UNA de las cuatro listas y en una sola. Si
+# la suma no da, es que hay otro camino mudo como los dos que habia, y eso se
+# dice en voz alta: un resumen que no cuadra esta midiendo otra cosa.
+suma = ok_n + len(malas) + len(sin_cid) + len(otros)
+print(u'\n  ── CIERRE ────────────────────────────────────────────────')
+print(u'  %d coinciden + %d no coinciden + %d sin CID + %d otros = %d'
+      % (ok_n, len(malas), len(sin_cid), len(otros), suma))
+if suma != len(registro):
+    print(u'  *** NO CIERRA: hay %d registradas y las listas suman %d. ***'
+          % (len(registro), suma))
+    print(u'  Falta(n) %d expediente(s) que no comprueba nadie y que este'
+          % abs(len(registro) - suma))
+    print(u'  resumen estaba dando por revisadas. Hay un camino mudo en el')
+    print(u'  barrido: encuentralo antes de fiarte de la cifra de arriba.')
+    sys.exit(1)
+print(u'  Cierra con las %d registradas.' % len(registro))
+
+sys.exit(1 if (malas or graves) else 0)
