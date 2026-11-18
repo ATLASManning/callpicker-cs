@@ -436,3 +436,62 @@ Esto **LEE**. No escribe: ni captura los apartados que no tienen fuente (09, 12,
 20), ni registra la aceptación de SAC, ni cierra nada. El candado que impide que
 `activaciones` firme su propia entrega ya está puesto en `lib/permisos.ts`,
 aunque el endpoint de escritura todavía no exista.
+
+---
+
+## 11. Cuentas que activan ≠ clientes que activan (18 nov 2026)
+
+El encabezado del módulo cuenta activaciones y se lee como si contara clientes.
+No son lo mismo, y la diferencia tiene consecuencias: **un cliente con cuatro
+cuentas entró como cuatro altas y sale de la cartera como una baja.**
+
+### Las tres cifras, y lo que vale cada una
+
+| cifra | valor | qué es |
+|---|---|---|
+| cuentas activadas | **2,820** | IDs únicos. **Exacta.** |
+| clientes distintos | **2,750** | agrupando por el nombre tecleado. **Estimación.** |
+| clientes con más de una cuenta | **56** | 118 cuentas, el 4.2% |
+
+**La cifra de clientes es un techo, no un censo.** La hoja no trae
+identificador de cliente: sólo el nombre escrito a mano. Se agrupa ignorando
+mayúsculas, acentos, puntuación y el sufijo de razón social, lo que cose
+«ACACIA CAFÉ» con «Acacia Café» —23 clientes estaban escritos de más de una
+forma— pero **no puede coser «Medexp» con «Medicall Expert»**, que no se
+parecen como texto. El número real de clientes es **ése o menos, nunca más**, y
+el método se publica pegado a la cifra para que nadie la cite después como si
+fuera un censo.
+
+Aparte quedan **8 cuentas cuyo nombre de cliente es el propio número de
+activación** (`cpNNNNNN`): no son clientes distintos, son nombres sin capturar.
+Contarlos habría inflado la cifra con un cliente ficticio por fila.
+
+### La diferencia con dientes: activar no es entrar a la cartera
+
+De las **204 cuentas de cartera** que el GRC identifica por CID, sólo **81**
+aparecen en esta hoja; las otras **123 no están**. Las dos listas apenas se
+tocan y **ninguna se deriva de la otra**: la hoja de Activaciones no es el
+censo de clientes.
+
+**El límite de ese cruce, dicho antes de que alguien lo cite mal:** en el GRC
+sólo traen CID las filas de cartera —222 de 3,670 filas, que son 204 cuentas—,
+así que esto mide **pertenencia a la cartera, no supervivencia**. Una
+activación fuera de esa lista puede estar facturando igual. Leer «2,739 no son
+de cartera» como «2,739 se fueron» sería una cifra falsa y alarmante.
+
+### Dónde quedó construido
+
+- `lib/clientes-activacion.ts` — la agrupación, **fuente única**: la comparten
+  la pantalla y el guion de medición.
+- `components/CuentasVsClientes.tsx` — la sección, antes del expediente.
+- `scripts/mide-cliente-vs-cuenta.ts` (`npm run mide:clientes`) — la medición,
+  con cierre comprobado en cada reparto.
+- **En el expediente**: al abrir una cuenta de un cliente con varias, avisa
+  *«esta cuenta es una de 4»* y ofrece las otras. Ahí la diferencia deja de ser
+  una estadística: el expediente se entrega **por cuenta** —cada una tiene su
+  ticket, sus DIDs y su aceptación— y quien lo lee tiene que saber que está
+  viendo una parte del cliente.
+
+**Un descuadre propio, corregido:** el guion imprimía 222 (filas con CID) y
+repartía sobre 204 (CIDs distintos), así que 81 + 123 no cerraba contra el total
+impreso. Ahora imprime las dos cifras y comprueba el cierre.

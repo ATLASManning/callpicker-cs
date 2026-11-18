@@ -5,6 +5,8 @@ import ActivacionesDiagnostico from '@/components/charts/ActivacionesDiagnostico
 import SoloEnCliente, { ReservaGrafica } from '@/components/charts/SoloEnCliente'
 import ActivacionesGrandes from '@/components/charts/ActivacionesGrandes'
 import ExpedienteEntrega from '@/components/ExpedienteEntrega'
+import CuentasVsClientes, { type ContrasteCuentasClientes } from '@/components/CuentasVsClientes'
+import { agrupaClientes } from '@/lib/clientes-activacion'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +51,42 @@ function normTipo(t: string): string {
  *  importe, el módulo no puede afirmar que no se le escapó ninguna. */
 interface Descartada {
   id: string; cliente: string; ejecutivo: string; ano: number; primerPago: number
+}
+
+/**
+ * Cuántas cuentas de CARTERA aparecen en la hoja de activaciones.
+ *
+ * En el GRC sólo traen CID las filas de cartera —222 de 3,670 el 18 nov 2026—,
+ * así que este cruce mide PERTENENCIA A LA CARTERA y no supervivencia del
+ * cliente. Cruzarlo por nombre en vez de por CID mezclaría cuentas, y
+ * presentarlo como «cuántas siguen vivas» daría una cifra falsa y alarmante.
+ *
+ * Devuelve `null` si el archivo no se puede leer: un cero fabricado aquí se
+ * leería como «ninguna activación es de cartera», que es una afirmación, no
+ * una ausencia de dato.
+ */
+async function cruceConCartera(idsHoja: Set<string>): Promise<ContrasteCuentasClientes['cartera']> {
+  try {
+    const fs = (await import('fs')).default
+    const ruta = path.join(process.cwd(), 'data', 'grc-zoho.json')
+    if (!fs.existsSync(ruta)) return null
+    const grc = JSON.parse(fs.readFileSync(ruta, 'utf8'))
+    const filas: Array<{ cid?: unknown }> = Array.isArray(grc?.filas) ? grc.filas : []
+    if (!filas.length) return null
+    const cids = new Set(
+      filas.map(f => String(f.cid ?? '').trim()).filter(Boolean))
+    let enAmbas = 0
+    for (const c of cids) if (idsHoja.has(c)) enAmbas++
+    return {
+      filasGrc:    filas.length,
+      filasConCid: filas.filter(f => String(f.cid ?? '').trim()).length,
+      conCid:      cids.size,
+      enAmbas,
+      soloCartera: cids.size - enAmbas,
+    }
+  } catch {
+    return null
+  }
 }
 
 /* El tipo declarado decía `Promise<RegistroItem[]>` y la función devuelve un
@@ -218,6 +256,32 @@ export default async function ActivacionesPage() {
     .map(r => ({ id: r.id, cliente: r.cliente }))
     .sort((a, b) => a.cliente.localeCompare(b.cliente, 'es'))
 
+  /* ── CUENTA ≠ CLIENTE ──────────────────────────────────────────────────────
+     Se agrupa sobre TODOS los registros, demos incluidas: un cliente que probó
+     con una demo y luego pagó son dos cuentas del mismo cliente, y dejarlas
+     fuera escondería justo el caso que esta sección existe para enseñar.
+     La regla vive en `lib/clientes-activacion.ts` y la comparte el guion de
+     medición: si se copiara aquí, la pantalla y la cifra medida se separarían
+     al primer cambio. */
+  const agrupacion = agrupaClientes(
+    registros.map(r => ({ id: r.id, cliente: r.cliente })))
+  const anoDeId = new Map(registros.map(r => [r.id, r.ano ?? null]))
+  const clientesMulti = agrupacion.clientes
+    .filter(c => c.cuentas.length > 1)
+    .map(c => ({
+      nombre:  c.nombre,
+      grafias: c.grafias,
+      cuentas: c.cuentas.map(id => ({ id, ano: anoDeId.get(id) ?? null })),
+    }))
+  const contraste: ContrasteCuentasClientes = {
+    cuentas:       registros.length,
+    clientes:      agrupacion.clientes.length,
+    sinNombre:     agrupacion.sinNombre.length + agrupacion.sinDato.length,
+    clientesMulti,
+    cuentasMulti:  clientesMulti.reduce((s, c) => s + c.cuentas.length, 0),
+    cartera:       await cruceConCartera(new Set(registros.map(r => r.id))),
+  }
+
   return (
     // Va en <div> y no en <main>. OJO: el motivo que decía este comentario ya
     // NO existe — citaba un `main{background:#DBEAFE !important}` de
@@ -329,10 +393,18 @@ export default async function ActivacionesPage() {
             <ActivacionesDiagnostico registros={registros} />
           </SoloEnCliente>
 
+        {/* Cuenta ≠ cliente. Va ANTES del expediente porque el expediente se
+            abre por cuenta, y hay que saber que una cuenta puede no ser todo
+            el cliente antes de leer su expediente. */}
+        <CuentasVsClientes d={contraste} />
+
         {/* El expediente de entrega. Va al final y no arriba: lo de arriba
             describe lo que ya pasó; esto es lo que hay que entregar al cerrar
             una activación concreta. */}
-        <ExpedienteEntrega activaciones={paraExpediente} ano={ultimoAno} />
+        <ExpedienteEntrega
+          activaciones={paraExpediente}
+          ano={ultimoAno}
+          clientesMulti={clientesMulti} />
       </div>
     </div>
   )

@@ -12,7 +12,8 @@
     "test:cierre": "ts-node --project tsconfig.import.json scripts/test-cierre-actividades.ts",
     "test:solicitud": "ts-node --project tsconfig.import.json scripts/test-solicitud-cancelacion.ts",
     "test:conector": "ts-node --project tsconfig.import.json scripts/test-conector-comunicaciones.ts",
-    "test:roles": "ts-node --project tsconfig.import.json scripts/test-roles-entrega.ts"
+    "test:roles": "ts-node --project tsconfig.import.json scripts/test-roles-entrega.ts",
+    "mide:clientes": "ts-node --project tsconfig.import.json scripts/mide-cliente-vs-cuenta.ts"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

@@ -90,9 +90,20 @@ const ETIQUETA: Record<Estado, string> = {
   no_medible:  'no medible',
 }
 
+/** Un cliente de la hoja con más de una cuenta. Ver `lib/clientes-activacion.ts`. */
+export interface ClienteMultiCuenta {
+  nombre:  string
+  grafias: string[]
+  cuentas: Array<{ id: string; ano: number | null }>
+}
+
 export default function ExpedienteEntrega({
-  activaciones, ano,
-}: { activaciones: ItemActivacion[]; ano: number | null }) {
+  activaciones, ano, clientesMulti = [],
+}: {
+  activaciones: ItemActivacion[]
+  ano: number | null
+  clientesMulti?: ClienteMultiCuenta[]
+}) {
   const [filtro,  setFiltro]  = useState('')
   const [cargando, setCargando] = useState(false)
   const [error,   setError]   = useState<string | null>(null)
@@ -209,16 +220,30 @@ export default function ExpedienteEntrega({
           </div>
         )}
 
-        {exp && <Detalle exp={exp} />}
+        {exp && (
+          <Detalle
+            exp={exp}
+            /* La cuenta abierta puede ser una de varias del mismo cliente. El
+               expediente se entrega POR CUENTA —cada una tiene su ticket, sus
+               DIDs y su aceptación—, pero quien lo lee tiene que saber que está
+               viendo una parte del cliente, no el cliente. */
+            hermano={clientesMulti.find(c => c.cuentas.some(x => x.id === exp.id)) ?? null}
+            abre={abre} />
+        )}
       </div>
     </section>
   )
 }
 
-function Detalle({ exp }: { exp: Respuesta }) {
+function Detalle({ exp, hermano, abre }: {
+  exp: Respuesta
+  hermano: ClienteMultiCuenta | null
+  abre: (id: string) => void
+}) {
   const r = exp.resumen
   const cierran = r.completos + r.faltan
   const pct = cierran > 0 ? (r.completos / cierran) * 100 : null
+  const otras = hermano ? hermano.cuentas.filter(x => x.id !== exp.id) : []
 
   return (
     <div style={{ marginTop: 22, borderTop: `1px solid ${BORDE}`, paddingTop: 20 }}>
@@ -228,6 +253,39 @@ function Detalle({ exp }: { exp: Respuesta }) {
       <p style={{ fontSize: 12, color: TX_SUA, marginTop: 4 }}>
         ID {exp.id}{exp.cid && exp.cid !== exp.id ? ` · CID ${exp.cid}` : ''}
       </p>
+
+      {/* ── ESTA CUENTA NO ES TODO EL CLIENTE ────────────────────────────── */}
+      {otras.length > 0 && (
+        <div style={{
+          marginTop: 12, padding: '11px 13px', borderRadius: 10,
+          background: '#F5F8FB', border: `1px solid ${BORDE}`,
+        }}>
+          <p style={{ fontSize: 12.5, color: TX_MID, lineHeight: 1.7 }}>
+            <strong style={{ color: TX }}>Esta cuenta es una de {hermano!.cuentas.length}</strong>{' '}
+            de <strong style={{ color: TX }}>{hermano!.nombre}</strong>. El
+            expediente se entrega por cuenta —cada una tiene su ticket, sus DIDs
+            y su aceptación—, así que lo de abajo NO describe al cliente entero.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+            {otras
+              .slice()
+              .sort((a, b) => (a.ano ?? 0) - (b.ano ?? 0))
+              .map(x => (
+                <button
+                  key={x.id}
+                  onClick={() => abre(x.id)}
+                  style={{
+                    padding: '4px 10px', fontSize: 12, fontWeight: 700,
+                    color: TX_MID, background: '#FFFFFF',
+                    border: `1px solid ${BORDE}`, borderRadius: 8, cursor: 'pointer',
+                  }}
+                >
+                  {x.id}{x.ano ? ` · ${x.ano}` : ''}
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* ── De qué fuentes se pudo tirar, dicho antes de los apartados ───── */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
