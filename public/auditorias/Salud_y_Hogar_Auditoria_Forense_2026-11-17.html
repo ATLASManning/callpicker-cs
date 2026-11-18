@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoría Forense — Salud y Hogar CID 946</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --azul:#1B4F8A; --azul-c:#D5E8F5; --azul-d:#0D3B6E;
+    --rojo:#C0392B; --rojo-c:#FDECEA;
+    --ambar:#D68910; --ambar-c:#FEF9E7;
+    --verde:#1E8449; --verde-c:#EAFAF1;
+    --gris:#5D6D7E; --gris-c:#F2F3F4;
+    --negro:#1A1A1A; --blanco:#FFFFFF;
+    --radio:8px; --sombra:0 2px 12px rgba(0,0,0,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:var(--negro);background:#EEF2F7;line-height:1.55}
+
+  /* ── NAV ── */
+  nav{position:fixed;top:0;left:0;right:0;z-index:900;background:var(--azul-d);display:flex;align-items:center;gap:0;overflow-x:auto;padding:0 12px}
+  nav a{color:#fff;text-decoration:none;font-size:12px;padding:12px 14px;white-space:nowrap;opacity:.8;transition:.2s}
+  nav a:hover,nav a.active{opacity:1;border-bottom:3px solid #64B5F6}
+  nav .logo{font-weight:700;font-size:13px;margin-right:8px;padding:12px 0;border-right:1px solid rgba(255,255,255,.2);padding-right:14px;white-space:nowrap}
+
+  /* ── LAYOUT ── */
+  main{max-width:1200px;margin:60px auto 0;padding:24px 20px}
+  section{scroll-margin-top:60px;margin-bottom:36px}
+
+  /* ── PORTADA ── */
+  .portada{background:linear-gradient(135deg,var(--azul-d) 0%,var(--azul) 60%,#2980B9 100%);border-radius:var(--radio);padding:48px 40px;color:#fff;margin-bottom:36px;position:relative;overflow:hidden}
+  .portada::before{content:'';position:absolute;right:-60px;top:-60px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.05)}
+  .portada h1{font-size:30px;font-weight:800;letter-spacing:.5px;margin-bottom:6px}
+  .portada h2{font-size:20px;font-weight:400;opacity:.85;margin-bottom:24px}
+  .portada-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:20px}
+  .portada-kpi{background:rgba(255,255,255,.12);border-radius:6px;padding:14px 16px;backdrop-filter:blur(4px)}
+  .portada-kpi .label{font-size:11px;opacity:.7;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .portada-kpi .val{font-size:18px;font-weight:700}
+  .badge-riesgo{display:inline-block;background:#E74C3C;color:#fff;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;margin-top:12px}
+
+  /* ── ALERTAS ── */
+  .alerta{display:flex;border-radius:var(--radio);overflow:hidden;margin:12px 0;box-shadow:var(--sombra)}
+  .alerta-label{padding:14px 16px;font-weight:700;font-size:12px;text-align:center;min-width:88px;display:flex;align-items:center;justify-content:center;text-transform:uppercase;letter-spacing:.5px}
+  .alerta-body{padding:14px 18px;flex:1;font-size:13px}
+  .alerta.critico .alerta-label{background:var(--rojo);color:#fff}
+  .alerta.critico .alerta-body{background:var(--rojo-c)}
+  .alerta.aviso .alerta-label{background:var(--ambar);color:#fff}
+  .alerta.aviso .alerta-body{background:var(--ambar-c)}
+  .alerta.ok .alerta-label{background:var(--verde);color:#fff}
+  .alerta.ok .alerta-body{background:var(--verde-c)}
+  .alerta.info .alerta-label{background:var(--azul);color:#fff}
+  .alerta.info .alerta-body{background:var(--azul-c)}
+
+  /* ── TARJETAS KPI ── */
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin:16px 0}
+  .kpi{background:#fff;border-radius:var(--radio);padding:18px 16px;box-shadow:var(--sombra);border-top:4px solid var(--azul)}
+  .kpi.rojo{border-top-color:var(--rojo)} .kpi.verde{border-top-color:var(--verde)} .kpi.ambar{border-top-color:var(--ambar)}
+  .kpi .kval{font-size:26px;font-weight:800;color:var(--azul-d);line-height:1.1;margin-bottom:4px}
+  .kpi.rojo .kval{color:var(--rojo)} .kpi.verde .kval{color:var(--verde)} .kpi.ambar .kval{color:var(--ambar)}
+  .kpi .klabel{font-size:11px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px}
+  .kpi .ksub{font-size:12px;color:var(--gris);margin-top:4px}
+
+  /* ── SECCIÓN HEADERS ── */
+  .sec-hdr{font-size:20px;font-weight:800;color:var(--azul-d);border-left:5px solid var(--azul);padding-left:14px;margin:0 0 16px}
+  .sec-hdr2{font-size:16px;font-weight:700;color:var(--azul);margin:20px 0 10px;padding-bottom:4px;border-bottom:1px solid #dde3ea}
+  .sec-hdr3{font-size:14px;font-weight:700;color:var(--gris);margin:14px 0 8px}
+
+  /* ── TABLAS ── */
+  .tbl-wrap{overflow-x:auto;border-radius:var(--radio);box-shadow:var(--sombra);margin:12px 0}
+  table{width:100%;border-collapse:collapse;background:#fff;font-size:13px}
+  thead th{background:var(--azul-d);color:#fff;padding:10px 14px;text-align:left;font-size:12px;white-space:nowrap}
+  tbody tr:nth-child(even){background:#f8fafc}
+  tbody td{padding:9px 14px;border-bottom:1px solid #edf0f4;vertical-align:top}
+  tbody tr:hover{background:#EBF3FD}
+  .td-rojo{color:var(--rojo);font-weight:700} .td-verde{color:var(--verde);font-weight:700}
+  .td-ambar{color:var(--ambar);font-weight:700} .td-azul{color:var(--azul);font-weight:700}
+  .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
+  .badge.r{background:#FDECEA;color:var(--rojo)} .badge.g{background:#EAFAF1;color:var(--verde)}
+  .badge.a{background:#FEF9E7;color:var(--ambar)} .badge.b{background:#D5E8F5;color:var(--azul)}
+  .badge.gr{background:var(--gris-c);color:var(--gris)}
+
+  /* ── GRÁFICAS ── */
+  .chart-box{background:#fff;border-radius:var(--radio);box-shadow:var(--sombra);padding:20px;margin:14px 0}
+  .chart-title{font-size:13px;font-weight:700;color:var(--azul-d);margin-bottom:12px;text-align:center}
+  .chart-wrap{position:relative;height:280px}
+  .chart-wrap.tall{height:340px}
+  .chart-wrap.sm{height:220px}
+  .charts-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
+  @media(max-width:720px){.charts-2{grid-template-columns:1fr}}
+
+  /* ── FODA ── */
+  .foda-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:var(--radio);overflow:hidden;box-shadow:var(--sombra);margin:12px 0}
+  .foda-cell{padding:20px;min-height:200px}
+  .foda-cell h4{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+  .foda-cell ul{list-style:none;padding:0}
+  .foda-cell ul li{padding:4px 0 4px 18px;position:relative;font-size:13px}
+  .foda-cell ul li::before{content:'▸';position:absolute;left:0;opacity:.6}
+  .foda-f{background:var(--azul-c)} .foda-f h4{color:var(--azul)}
+  .foda-o{background:var(--verde-c)} .foda-o h4{color:var(--verde)}
+  .foda-d{background:var(--ambar-c)} .foda-d h4{color:var(--ambar)}
+  .foda-a{background:var(--rojo-c)} .foda-a h4{color:var(--rojo)}
+  @media(max-width:600px){.foda-grid{grid-template-columns:1fr}}
+
+  /* ── ESCENARIOS ── */
+  .esc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:14px 0}
+  .esc-card{border-radius:var(--radio);padding:20px;box-shadow:var(--sombra)}
+  .esc-card.r{background:linear-gradient(135deg,#FDECEA,#F5CFC9);border-top:4px solid var(--rojo)}
+  .esc-card.a{background:linear-gradient(135deg,#FEF9E7,#FAE4B2);border-top:4px solid var(--ambar)}
+  .esc-card.g{background:linear-gradient(135deg,#EAFAF1,#ABEBC6);border-top:4px solid var(--verde)}
+  .esc-card h4{font-size:13px;font-weight:800;margin-bottom:10px}
+  .esc-card .big{font-size:22px;font-weight:800;margin:8px 0 4px}
+  .esc-card ul{list-style:none;padding:0;font-size:12px;line-height:1.8}
+  @media(max-width:720px){.esc-grid{grid-template-columns:1fr}}
+
+  /* ── GUION ── */
+  .guion-bloque{background:#fff;border-left:4px solid var(--azul);border-radius:0 var(--radio) var(--radio) 0;padding:16px 20px;margin:10px 0;box-shadow:var(--sombra)}
+  .guion-bloque h4{font-size:12px;text-transform:uppercase;color:var(--azul);font-weight:700;margin-bottom:8px}
+  .guion-bloque p{font-style:italic;color:#2c3e50;font-size:13.5px;line-height:1.65}
+
+  /* ── ÍNDICE ── */
+  .indice{background:#fff;border-radius:var(--radio);box-shadow:var(--sombra);padding:24px 28px;margin-bottom:28px}
+  .indice h2{font-size:16px;font-weight:800;color:var(--azul-d);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--azul)}
+  .indice ol{padding-left:20px}
+  .indice li{padding:5px 0;font-size:13px}
+  .indice a{color:var(--azul);text-decoration:none;font-weight:600}
+  .indice a:hover{text-decoration:underline}
+  .indice .sub{padding-left:20px;list-style:disc;margin:4px 0}
+  .indice .sub li{font-weight:400;color:var(--gris)}
+
+  /* ── PLAN ── */
+  .plan-row{display:grid;grid-template-columns:120px 1fr 140px 220px;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid #edf0f4}
+  .plan-row:last-child{border:none}
+  .plan-prioridad{font-size:11px;font-weight:800;padding:4px 10px;border-radius:12px;text-align:center}
+  @media(max-width:800px){.plan-row{grid-template-columns:1fr}}
+
+  /* ── FOOTER ── */
+  footer{text-align:center;padding:28px 20px;color:var(--gris);font-size:12px;border-top:1px solid #dde3ea;margin-top:40px}
+
+  /* ── PRINT ── */
+  @media print{nav{display:none} main{margin-top:0} .chart-wrap{height:220px !important}}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="logo">ATLAS · SYH CID 946</span>
+  <a href="#portada">Portada</a>
+  <a href="#perfil">Perfil</a>
+  <a href="#historial">Historial</a>
+  <a href="#finanzas">Finanzas</a>
+  <a href="#llamadas">Llamadas</a>
+  <a href="#minutos">Minutos</a>
+  <a href="#dids">DIDs</a>
+  <a href="#av">Ag. Virtual</a>
+  <a href="#foda">FODA</a>
+  <a href="#hallazgos">Hallazgos</a>
+  <a href="#plan">Plan</a>
+  <a href="#proyeccion">Proyección</a>
+  <a href="#guion">Guión</a>
+  <a href="#diagnostico">Diagnóstico</a>
+</nav>
+
+<main>
+
+<!-- PORTADA -->
+<section id="portada">
+<div class="portada">
+  <p style="font-size:12px;opacity:.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Callpicker · Documento Interno Confidencial</p>
+  <h1>AUDITORÍA FORENSE INTEGRAL</h1>
+  <h2>Cuenta: Salud y Hogar · CID 946</h2>
+  <span class="badge-riesgo">⚠ RIESGO ALTO — Acción Inmediata</span>
+  <div class="portada-grid">
+    <div class="portada-kpi"><div class="label">Fecha de auditoría</div><div class="val">Nov 2026</div></div>
+    <div class="portada-kpi"><div class="label">Periodo analizado</div><div class="val">Ene – Nov 2026</div></div>
+    <div class="portada-kpi"><div class="label">Total llamadas</div><div class="val">35,743</div></div>
+    <div class="portada-kpi"><div class="label">Minutos totales</div><div class="val">74,999</div></div>
+    <div class="portada-kpi"><div class="label">MRR institucional (GRC)</div><div class="val">$23,480</div></div>
+    <div class="portada-kpi"><div class="label">Elaborado por</div><div class="val">VP SAC · Callpicker</div></div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────────────────
+     NOTA DE CONCILIACIÓN. Las cifras de este documento se recalcularon contra
+     sus propias partes y contra las fuentes vivas ANTES de publicarlo en el
+     tablero. Lo que no cerró va marcado aquí y en el sitio donde aparece: una
+     cifra que no cierra no impide publicar el documento, impide publicar ESA
+     cifra sin decirlo. Guion: scripts/concilia-auditoria-salud-y-hogar.py
+
+     LAS MARCAS «NOTA:INICIO» / «NOTA:FIN» NO SON DECORACIÓN. El conciliador
+     busca en el texto las cifras contradictorias que corrigió; si no recortara
+     estas notas, se delataría a sí mismo citando el error que viene a avisar, y
+     un verificador que falla siempre deja de servir para nada. Al revés: exige
+     que este bloque EXISTA, así que borrarlo rompe la comprobación.
+     ───────────────────────────────────────────────────────────────────────── -->
+<!-- Los desfases que este documento NO puede cerrar (no tenemos sus registros
+     crudos) y que por eso quedan DECLARADOS arriba, en el punto 5 y en el pie
+     de la nota. El conciliador lee esta lista: un desfase que aparezca y no
+     esté aquí lo deja en rojo. Quitar una clave de aquí sin arreglar la cifra
+     vuelve a poner el guion en rojo, que es justo lo que tiene que pasar.
+     CONCILIACION:MARCADOS nocturno-sin-otros,destino-minutos,destino-llamadas,total-iva-junio -->
+<!--NOTA:INICIO-->
+<div class="alerta aviso">
+  <div class="alerta-label">Conciliado<br>17 nov 2026</div>
+  <div class="alerta-body">
+    <strong>Seis correcciones aplicadas a este documento antes de publicarlo.</strong>
+    Las sumas de llamadas, horas, días de semana y minutos <strong>cierran al número</strong>
+    (y coinciden mes por mes, columna por columna, con el corte vivo del tablero en enero–agosto).
+    Lo que no cerró es esto:
+    <p style="margin:10px 0 0">
+      <strong>1 · La factura mensual era la de junio.</strong> El documento titulaba <strong>$32,026</strong>
+      en la portada, en el desglose y en toda la proyección. Esa es la factura de <strong>junio 2026</strong>.
+      El MRR institucional es el del Gross Revenue y nada más: <strong>$23,480 sin IVA</strong>, marcado
+      «MRR estable», clasificación AAA. La lista de servicios vigente de la cuenta suma exactamente lo
+      mismo — dos fuentes independientes. La portada ya dice $23,480; el desglose de la sección 4 se
+      conserva como foto de junio y lleva su propia nota.
+      <br><br>
+      <strong>2 · El Voicebot ya no se factura.</strong> El hallazgo 2 CRÍTICO de este documento
+      («$3,000/mes con $0 de uso») describe un cobro que <strong>ya no existe</strong>: no aparece en la
+      lista de servicios vigente, y la bitácora del KAM registra la baja del Agente Virtual a finales de
+      septiembre. Tampoco se facturan ya el saldo de tokens de Chatbot ($500) ni WhatsApp API ($817.75).
+      <strong>Lo que SÍ sigue cobrándose sin uso documentado es CP Chat: $4,200/mes</strong>, y eso sí
+      está en la lista vigente. La cifra de «$7,200/mes sin uso» es de junio; hoy son $4,200.
+      <br><br>
+      <strong>3 · El −68% compara 17 días contra 31.</strong> Noviembre va a la mitad. Al ritmo de sus
+      17 días el mes daría ~2,538 llamadas, un <strong>−44%</strong> contra enero; y el último mes
+      <em>completo</em> (octubre, 2,799) es <strong>−39%</strong>. <strong>La contracción es real y es
+      grave</strong> — once meses seguidos a la baja —, pero la cifra que se lleva a la llamada con el
+      cliente es −39%, no −68%: un número que el cliente puede refutar cuesta la conversación entera.
+      <br><br>
+      <strong>4 · El promedio de minutos mezcla un mes partido.</strong> «6,818 min/mes · 68.2% del plan»
+      sale de dividir entre 11 meses, aunque la fila lo rotula «(10 meses)». Con los
+      <strong>10 meses completos son 7,217 min/mes, 72.2% del plan</strong>. La conclusión no cambia
+      —ningún mes genera excedente, el máximo es enero con 9,726— pero el número que se cita es 72.2%.
+      <br><br>
+      <strong>5 · Dos repartos no cierran y no se citan por línea.</strong> La composición por tipo de
+      destino declara 74,999 minutos y sus filas suman 74,930 (faltan 69), y declara 35,743 llamadas
+      mientras sus filas suman 35,824 (sobran 81, que es el doble conteo del buzón). El agregado se
+      mantiene; <strong>el reparto por tipo de destino no se cita como dato firme</strong>. Igual el
+      bloque nocturno: 2,527 llamadas y tres partes que suman 2,492, sin cubo para las 35 restantes.
+      <br><br>
+      <strong>6 · Dos conteos se contradicen entre secciones.</strong> El FODA decía «36 DIDs dados de
+      baja»: las bajas son <strong>26</strong> (72 → 46); 36 es el número de DIDs <em>rastreables</em>.
+      Y el hallazgo 10 decía «7 sin resolver»: la tabla de la sección 8.1 lista 8 fallas y
+      <strong>las 8 siguen abiertas</strong> (6 «sin resolver», 1 «pendiente», 1 «requiere ingeniería»).
+      Las dos quedaron corregidas en su sitio.
+    </p>
+    <p style="margin-top:10px;font-size:12.5px;opacity:.75">
+      El desglose de la sección 4 tampoco cerraba contra sí mismo: subtotal $27,509.75 + IVA $4,401.56
+      = $31,911.31, y declaraba $32,026.15 — $114.84 de diferencia, que son $99 antes de IVA, un DID.
+      Facturación tenía 47+1 números, no 46.
+    </p>
+  </div>
+</div>
+<!--NOTA:FIN-->
+
+<!-- ÍNDICE -->
+<div class="indice">
+  <h2>📋 Índice del Documento</h2>
+  <ol>
+    <li><a href="#portada">Portada y Resumen Ejecutivo</a></li>
+    <li><a href="#perfil">Perfil de Cuenta</a>
+      <ul class="sub">
+        <li>Datos Generales · Perfiles de Contacto</li>
+      </ul>
+    </li>
+    <li><a href="#historial">Historial Comercial y Línea de Tiempo</a></li>
+    <li><a href="#finanzas">Servicios Contratados y Desglose Financiero</a></li>
+    <li><a href="#llamadas">Análisis de Llamadas (35,743 · Ene–Nov 2026)</a>
+      <ul class="sub">
+        <li>Volumen total · Tendencia mensual · Horas y días</li>
+        <li>Self-service (AV) · Fuera de horario</li>
+      </ul>
+    </li>
+    <li><a href="#minutos">Política de Contabilización de Minutos</a>
+      <ul class="sub">
+        <li>Brecha con panel · Consumo real · Composición</li>
+      </ul>
+    </li>
+    <li><a href="#dids">Análisis de DIDs — Cancelación y Tráfico</a></li>
+    <li><a href="#av">Auditoría del Agente Virtual</a></li>
+    <li><a href="#foda">Análisis FODA</a></li>
+    <li><a href="#hallazgos">Hallazgos Consolidados (Ranking Criticidad)</a></li>
+    <li><a href="#plan">Plan de Acción — 72 horas y 2 semanas</a></li>
+    <li><a href="#proyeccion">Proyección — 3 Escenarios a 6 Meses</a></li>
+    <li><a href="#guion">Guión — Llamada con Ing. Cristian López</a></li>
+    <li><a href="#diagnostico">Diagnóstico Final y KPIs de Seguimiento</a></li>
+  </ol>
+</div>
+</section>
+
+<!-- 1. RESUMEN EJECUTIVO (dentro de portada) -->
+<div class="kpi-row">
+  <div class="kpi"><div class="kval">35,743</div><div class="klabel">Total llamadas analizadas</div><div class="ksub">Enero – Noviembre 2026</div></div>
+  <div class="kpi verde"><div class="kval">78.7%</div><div class="klabel">Tasa de atención global</div><div class="ksub">28,121 de 35,743</div></div>
+  <div class="kpi ambar"><div class="kval">74,999</div><div class="klabel">Minutos totales (ene–nov)</div><div class="ksub">Prom. 7,217/mes · 10 meses completos</div></div>
+  <div class="kpi rojo"><div class="kval">$4,200</div><div class="klabel">Cobros sin uso documentado</div><div class="ksub">CP Chat /mes · el Voicebot ya se dio de baja</div></div>
+  <div class="kpi"><div class="kval">3,057</div><div class="klabel">Eventos self-service AV</div><div class="ksub">↑ Oct: 423 (máx. histórico)</div></div>
+  <div class="kpi rojo"><div class="kval">46</div><div class="klabel">DIDs activos</div><div class="ksub">vs. 72 antes de baja (−36%)</div></div>
+</div>
+
+<div class="alerta critico">
+  <div class="alerta-label">CRÍTICO</div>
+  <div class="alerta-body">La cuenta presenta <strong>contracción sostenida de volumen</strong> —once meses consecutivos a la baja, −39% de enero a octubre, el último mes completo—, <strong>$4,200/mes cobrados sin uso documentado</strong> (CP Chat) y <strong>un AV con 8 fallas documentadas y las 8 abiertas</strong> desde el 6 de mayo. Ventana de retención activa.
+<!--NOTA:INICIO-->
+  <p style="margin:8px 0 0;font-size:12.5px;opacity:.8"><strong>Corregido el 17 nov:</strong> la versión original abría con «Situación de suspensión: Soft Suspend → Hard Suspend → Aviso de Cancelación». Esa secuencia era del corte de junio y <strong>no ocurrió</strong>: la cuenta está activa, al corriente, sin incidencias de pago, y el Gross Revenue la marca «MRR estable» cinco meses después. El riesgo de esta cuenta es comercial, no de cobranza. También decía −68% y $7,200/mes: ver la nota de conciliación arriba.</p>
+<!--NOTA:FIN--></div>
+</div>
+
+<!-- 2. PERFIL DE CUENTA -->
+<section id="perfil">
+<h2 class="sec-hdr">2. Perfil de Cuenta</h2>
+<h3 class="sec-hdr2">2.1 Datos Generales</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Campo</th><th>Dato</th></tr></thead>
+  <tbody>
+    <tr><td><strong>CID</strong></td><td>946</td></tr>
+    <tr><td><strong>Razón Social</strong></td><td>SALUD Y HOGAR · RFC: SHO070129R64</td></tr>
+    <tr><td><strong>Actividad</strong></td><td>Consultas médicas, equipo médico (Oxígeno, Camas, Enfermería, Sillas de ruedas)</td></tr>
+    <tr><td><strong>Marca asociada</strong></td><td>SOMNOX (bienestar/sueño) — operación multi-plaza e internacional</td></tr>
+    <tr><td><strong>Tamaño</strong></td><td>Mediana · 51–200 empleados · Fundada 1992</td></tr>
+    <tr><td><strong>Sedes confirmadas</strong></td><td>7 (GDL, CDMX, MTY, Puebla, Chihuahua, QRO, Mérida) + Internacional: España (SOMNOX)</td></tr>
+    <tr><td><strong>Relación comercial</strong></td><td class="td-verde">9 años activo desde julio 2018</td></tr>
+    <tr><td><strong>Estado de pago</strong></td><td class="td-verde">Pagador puntual · Stripe VISA activo</td></tr>
+  </tbody>
+</table></div>
+
+<h3 class="sec-hdr2">2.2 Perfiles de Contacto</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Nombre</th><th>Cargo / Rol</th><th>Contacto</th><th>Relevancia</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Héctor A. Hernández Mejía</strong></td><td>Director General</td><td>3322693333</td><td>Titular de la cuenta. Decisor de alto nivel.</td></tr>
+    <tr><td><strong>José Eduardo López Delgadillo</strong></td><td>Presidente Ejecutivo</td><td>—</td><td>Máxima autoridad. DID directo en plataforma.</td></tr>
+    <tr><td><strong>Santiago Arriaga</strong></td><td>COO</td><td>—</td><td>Operaciones. Relevante si cambios afectan operación nacional.</td></tr>
+    <tr><td><strong>Ing. Cristian López</strong></td><td>Gerente TI / Sistemas</td><td>gerencia.sistemas@cgsi.com.mx</td><td>Contacto operativo principal. Abrió ambos tickets.</td></tr>
+    <tr><td><strong class="td-rojo">Luis Carlos Hernández Espinosa</strong></td><td>Implementador técnico AV (autodidacta)</td><td>—</td><td><span class="badge r">CRÍTICO</span> Configuró y mantiene el AV. No está en CRM.</td></tr>
+  </tbody>
+</table></div>
+<div class="alerta aviso">
+  <div class="alerta-label">AVISO</div>
+  <div class="alerta-body">Luis Carlos Hernández Espinosa es el técnico real del cliente. Toda sesión de asesoría debe incluirlo explícitamente. Sin él, la sesión no avanza técnicamente.</div>
+</div>
+</section>
+
+<!-- 3. HISTORIAL -->
+<section id="historial">
+<h2 class="sec-hdr">3. Historial Comercial y Línea de Tiempo</h2>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Fecha</th><th>Evento</th><th>Impacto</th></tr></thead>
+  <tbody>
+    <tr><td>Ene 2017</td><td>Primera oportunidad Zoho — Upsale Salud y Hogar</td><td>Origen de la relación comercial. Fuente: Ad Google.</td></tr>
+    <tr><td>Jul 2018</td><td>Cuenta activa en Callpicker</td><td>Inicio de relación de telefonía. 9 años de permanencia.</td></tr>
+    <tr><td>29 Abr 2026</td><td>Reunión técnica AV — Cristian, Luis Carlos, Dan, Daniel M.</td><td>AV de voz ya descontinuado. Luis Carlos identificado como técnico operativo.</td></tr>
+    <tr><td>6 May 2026</td><td>Ticket AV #106587 + reporte 7 páginas del cliente</td><td class="td-rojo">Cliente documentó 8 fallas. Callpicker tardó 21 días en entregar prompt.</td></tr>
+    <tr><td>19 May 2026</td><td>Definición: asesoría a $2,500/hr</td><td>13 días de espera para definir ruta que agrega costo al cliente.</td></tr>
+    <tr><td>27 May 2026</td><td>Prompt entregado a desarrollo</td><td>21 días después del reporte. Eduardo pendiente de revisar.</td></tr>
+    <tr><td>1 Jun 2026</td><td>Solicitud baja 45 DIDs — Ticket #107714</td><td>Daniel M. advierte tráfico activo. Recomendación correcta, ejecutada tarde.</td></tr>
+    <tr><td>2 Jun 2026</td><td>Baja de 26 DIDs confirmada</td><td class="td-rojo">72 → 46. 2 números WA atrapados en API. Sin análisis de impacto.</td></tr>
+    <tr><td>~30 Sep 2026</td><td>Baja del Agente Virtual y de DIDs adicionales</td><td class="td-rojo">Bitácora del KAM: el cliente trabaja un desarrollo propio. El MRR baja de $27,510 a $23,480.</td></tr>
+    <tr><td>Nov 2026</td><td><strong>Estado actual — Auditoría actualizada</strong></td><td class="td-rojo">35,743 llamadas analizadas. Contracción de −39% ene→oct. Cuenta activa y al corriente; AV sin optimizar.</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<!-- 4. FINANZAS -->
+<section id="finanzas">
+<h2 class="sec-hdr">4. Servicios Contratados y Desglose Financiero</h2>
+
+<h3 style="margin:14px 0 4px;font-size:15px">4.1 Lo que se factura HOY — $23,480/mes sin IVA</h3>
+<p style="font-size:12.5px;opacity:.8;margin:0 0 8px">
+  Fuente: lista de servicios vigente de la cuenta y Gross Revenue de Zoho, que suman exactamente lo mismo.
+  <strong>El MRR institucional es el del Gross Revenue y nada más.</strong> Clasificación AAA · movimiento
+  «MRR estable» · 119 meses facturados · $1,604,239 acumulados.
+</p>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Concepto</th><th>Detalle</th><th>Monto MXN</th></tr></thead>
+  <tbody>
+    <tr><td>Plan base — 10,000 min</td><td>Visibilidad y Control</td><td>$10,000.00</td></tr>
+    <tr><td>Números adicionales MX</td><td>47 × $99</td><td>$4,653.00</td></tr>
+    <tr><td>Extensiones VyC SIM 4GB</td><td>5 × $464</td><td>$2,320.00</td></tr>
+    <tr><td>Extensiones VyC SIM 8.5GB</td><td>3 × $706</td><td>$2,118.00</td></tr>
+    <tr><td class="td-rojo"><strong>Agentes CP Chat</strong></td><td class="td-rojo">12 × $350 — SIN EVIDENCIA DE USO</td><td class="td-rojo"><strong>$4,200.00</strong></td></tr>
+    <tr><td>Número adicional MX</td><td>1 × $99</td><td>$99.00</td></tr>
+    <tr><td>Paquete 100 min entrante</td><td>8000229886</td><td>$90.00</td></tr>
+    <tr style="background:#EBF3FD"><td><strong>MRR vigente sin IVA</strong></td><td></td><td><strong>$23,480.00</strong></td></tr>
+  </tbody>
+</table></div>
+<div class="alerta info">
+  <div class="alerta-label">Qué<br>cambió</div>
+  <div class="alerta-body">Contra el desglose de junio (abajo) salieron tres líneas y entraron tres:
+  <strong>fuera</strong> AV Voicebot $3,000 · saldo de tokens Chatbot $500 · WhatsApp API $817.75
+  (−$4,317.75); <strong>dentro</strong> dos números adicionales ($198) y el paquete de 100 minutos
+  entrantes ($90) (+$288). Neto <strong>−$4,029.75/mes</strong>. La baja del Voicebot es la que la
+  bitácora del KAM registra a finales de septiembre, junto con DIDs adicionales.
+  <br><br><strong>El campo <code>facturacion</code> de la cartera dice $12,982 y tampoco es la fuente</strong>
+  — está por debajo del Gross Revenue en $10,498. Queda anotado como pendiente de corrección en la cartera.</div>
+</div>
+
+<h3 style="margin:22px 0 4px;font-size:15px">4.2 El desglose entregado — foto de JUNIO 2026, no del mes vigente</h3>
+<p style="font-size:12.5px;opacity:.8;margin:0 0 8px">
+  Se conserva porque es el detalle con el que se construyeron los hallazgos del Voicebot y de CP Chat, y
+  porque explica de dónde salía el titular de $32,026. <strong>No es la factura de hoy.</strong> Tampoco
+  cerraba contra sí mismo: subtotal + IVA = $31,911.31 frente a los $32,026.15 declarados — $114.84, que
+  son $99 antes de IVA, un DID; facturación tenía 47+1 números, no 46.
+</p>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Concepto (junio 2026)</th><th>Detalle</th><th>Monto MXN</th></tr></thead>
+  <tbody>
+    <tr><td>Plan base — 10,000 min</td><td>Visibilidad y Control</td><td>$10,000.00</td></tr>
+    <tr><td>DIDs adicionales nacionales</td><td>46 × $99</td><td>$4,554.00</td></tr>
+    <tr><td>Extensiones VyC SIM 4GB</td><td>5 × $464</td><td>$2,320.00</td></tr>
+    <tr><td>Extensiones VyC SIM 8.5GB</td><td>3 × $706</td><td>$2,118.00</td></tr>
+    <tr><td class="td-rojo"><strong>Agentes CP Chat</strong></td><td class="td-rojo">12 × $350 — SIN EVIDENCIA DE USO</td><td class="td-rojo"><strong>$4,200.00</strong></td></tr>
+    <tr><td><strong>AV Voicebot</strong> <span style="opacity:.7">— YA NO SE FACTURA</span></td><td>$0 de $3,000 usados — AV descontinuado. Baja registrada a finales de sep 2026.</td><td>$3,000.00</td></tr>
+    <tr><td>Saldo tokens Chatbot <span style="opacity:.7">— YA NO SE FACTURA</span></td><td>Paquete Chatbot</td><td>$500.00</td></tr>
+    <tr><td>WhatsApp API + Plantillas <span style="opacity:.7">— YA NO SE FACTURA</span></td><td>12,593 mensajes + 190 plantillas (may 26)</td><td>$817.75</td></tr>
+    <tr style="background:#EBF3FD"><td><strong>Subtotal sin IVA (junio)</strong></td><td></td><td><strong>$27,509.75</strong></td></tr>
+    <tr style="background:#EBF3FD"><td><strong>IVA (16%)</strong></td><td></td><td><strong>$4,401.56</strong></td></tr>
+    <tr style="background:var(--azul-d);color:#fff"><td><strong>TOTAL CON IVA (junio)</strong></td><td>No cierra con el subtotal: faltan $114.84</td><td><strong>$32,026.15</strong></td></tr>
+  </tbody>
+</table></div>
+<div class="alerta critico">
+  <div class="alerta-label">ALERTA</div>
+  <div class="alerta-body"><strong>$4,200/mes sin uso documentado — hoy, no $7,200:</strong> son los 12 agentes de CP Chat, y esa línea <strong>sí sigue viva</strong> en la lista de servicios de la cuenta. Es el <strong>17.9%</strong> del MRR vigente de $23,480. Callpicker debe resolverlo antes de que el cliente lo detecte.
+<!--NOTA:INICIO-->
+  <p style="margin:8px 0 0;font-size:12.5px;opacity:.8"><strong>Corregido el 17 nov:</strong> la otra mitad de los $7,200 era el AV Voicebot ($3,000), y <strong>ya no se factura</strong>: no está en la lista de servicios vigente y la bitácora del KAM registra la baja del Agente Virtual a finales de septiembre. <strong>No se le plantea al cliente un cobro que ya no existe.</strong> El 26.2% era contra el subtotal de junio.</p>
+<!--NOTA:FIN--></div>
+</div>
+
+<div class="chart-box">
+  <div class="chart-title">Composición de la Facturación Mensual — foto de junio 2026 ($27,509 sin IVA). Hoy son $23,480.</div>
+  <div class="chart-wrap sm"><canvas id="chartFacturacion"></canvas></div>
+</div>
+</section>
+
+<!-- 5. ANÁLISIS DE LLAMADAS -->
+<section id="llamadas">
+<h2 class="sec-hdr">5. Análisis de Llamadas — Enero a Noviembre 2026</h2>
+
+<div class="kpi-row">
+  <div class="kpi"><div class="kval">35,743</div><div class="klabel">Total llamadas</div><div class="ksub">11 meses completos</div></div>
+  <div class="kpi verde"><div class="kval">28,121</div><div class="klabel">Atendidas (Redirected)</div><div class="ksub">78.7% del total</div></div>
+  <div class="kpi rojo"><div class="kval">4,305</div><div class="klabel">Perdidas (Lost)</div><div class="ksub">12.0% del total</div></div>
+  <div class="kpi ambar"><div class="kval">3,057</div><div class="klabel">Self-service AV</div><div class="ksub">8.6% · sin consumir minutos</div></div>
+  <div class="kpi"><div class="kval">260</div><div class="klabel">Voicemail</div><div class="ksub">0.7% del total</div></div>
+  <div class="kpi rojo"><div class="kval">−39%</div><div class="klabel">Contracción Ene vs Oct</div><div class="ksub">4,561 → 2,799 · meses completos. Nov va a 17 días.</div></div>
+</div>
+
+<h3 class="sec-hdr2">5.1 Tendencia Mensual</h3>
+<div class="chart-box">
+  <div class="chart-title">Volumen Mensual de Llamadas — Ene a Nov 2026</div>
+  <div class="chart-wrap tall"><canvas id="chartTendencia"></canvas></div>
+</div>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Mes</th><th>Total</th><th>Atendidas</th><th>Perdidas</th><th>Self-svc AV</th><th>Voicemail</th><th>% Pérdida</th><th>% Atención</th></tr></thead>
+  <tbody>
+    <tr><td>Enero 2026</td><td>4,561</td><td>3,563</td><td>697</td><td>276</td><td>25</td><td class="td-rojo">15.3%</td><td>78.1%</td></tr>
+    <tr><td>Febrero 2026</td><td>3,739</td><td>3,055</td><td>472</td><td>193</td><td>19</td><td>12.6%</td><td>81.7%</td></tr>
+    <tr><td>Marzo 2026</td><td>3,554</td><td>2,939</td><td>439</td><td>164</td><td>12</td><td>12.4%</td><td>82.7%</td></tr>
+    <tr><td>Abril 2026</td><td>3,693</td><td>3,099</td><td>393</td><td>195</td><td>6</td><td>10.6%</td><td>83.9%</td></tr>
+    <tr><td>Mayo 2026</td><td>3,628</td><td>2,794</td><td>392</td><td>404</td><td>38</td><td>10.8%</td><td>77.0%</td></tr>
+    <tr><td>Junio 2026</td><td>3,510</td><td>2,648</td><td>460</td><td>358</td><td>44</td><td>13.1%</td><td>75.4%</td></tr>
+    <tr><td>Julio 2026</td><td>3,383</td><td>2,565</td><td>498</td><td>306</td><td>14</td><td class="td-rojo">14.7%</td><td>75.8%</td></tr>
+    <tr><td>Agosto 2026</td><td>2,875</td><td>2,285</td><td>367</td><td>193</td><td>30</td><td>12.8%</td><td>79.5%</td></tr>
+    <tr><td>Septiembre 2026</td><td>2,563</td><td>1,992</td><td>231</td><td>304</td><td>36</td><td class="td-verde">9.0%</td><td>77.7%</td></tr>
+    <tr><td>Octubre 2026</td><td>2,799</td><td>2,124</td><td>229</td><td>423</td><td>23</td><td class="td-verde">8.2%</td><td>75.9%</td></tr>
+    <tr><td>Nov 2026 (17 días)</td><td>1,438</td><td>1,057</td><td>127</td><td>241</td><td>13</td><td>8.8%</td><td>73.5%</td></tr>
+    <tr style="background:var(--azul-c);font-weight:700"><td>TOTAL</td><td>35,743</td><td>28,121</td><td>4,305</td><td>3,057</td><td>260</td><td>12.0%</td><td>78.7%</td></tr>
+  </tbody>
+</table></div>
+
+<div class="alerta critico">
+  <div class="alerta-label">CRÍTICO</div>
+  <div class="alerta-body"><strong>Contracción severa y sostenida:</strong> once meses consecutivos a la baja. De enero (4,561) a <strong>octubre (2,799), el último mes completo, son −39%</strong>. No es estacionalidad: es reducción estructural de operación. Debe abordarse en la llamada con Cristian.
+<!--NOTA:INICIO-->
+  <p style="margin:8px 0 0;font-size:12.5px;opacity:.8"><strong>Corregido el 17 nov:</strong> la versión original decía −68%, comparando enero (31 días) contra noviembre (<strong>17 días</strong>, mes en curso). Al ritmo de esos 17 días noviembre daría ~2,538 llamadas: −44%. <strong>La cifra que se lleva a la llamada es −39%</strong>, la que el cliente no puede refutar. La fila de noviembre en la tabla siguiente es parcial y está rotulada como tal.</p>
+<!--NOTA:FIN--></div>
+</div>
+
+<h3 class="sec-hdr2">5.2 Distribución por Hora del Día</h3>
+<div class="chart-box">
+  <div class="chart-title">Llamadas por Hora del Día (Total 11 meses)</div>
+  <div class="chart-wrap"><canvas id="chartHoras"></canvas></div>
+</div>
+
+<h3 class="sec-hdr2">5.3 Distribución por Día de la Semana</h3>
+<div class="charts-2">
+  <div class="chart-box">
+    <div class="chart-title">Llamadas por Día de Semana</div>
+    <div class="chart-wrap sm"><canvas id="chartDow"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title">Tasa de Pérdida por Día (%)</div>
+    <div class="chart-wrap sm"><canvas id="chartDowPct"></canvas></div>
+  </div>
+</div>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Día</th><th>Total</th><th>Atendidas</th><th>Perdidas</th><th>Self-svc</th><th>% Pérdida</th><th>Riesgo</th></tr></thead>
+  <tbody>
+    <tr><td>Lunes</td><td>6,369</td><td>5,040</td><td>809</td><td>476</td><td class="td-rojo">12.7%</td><td><span class="badge a">ELEVADO</span></td></tr>
+    <tr><td>Martes</td><td>5,670</td><td>4,600</td><td>573</td><td>472</td><td>10.1%</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Miércoles</td><td>5,683</td><td>4,466</td><td>609</td><td>589</td><td>10.7%</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Jueves</td><td>5,753</td><td>4,492</td><td>638</td><td>595</td><td>11.1%</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Viernes</td><td>5,455</td><td>4,281</td><td>622</td><td>521</td><td>11.4%</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Sábado</td><td>4,500</td><td>3,453</td><td>653</td><td>310</td><td class="td-rojo">14.5%</td><td><span class="badge a">ELEVADO</span></td></tr>
+    <tr><td>Domingo</td><td>2,313</td><td>1,789</td><td>401</td><td>94</td><td class="td-rojo">17.3%</td><td><span class="badge r">MÁXIMO</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3 class="sec-hdr2">5.4 Self-Service (Agente Virtual) — Evolución</h3>
+<div class="chart-box">
+  <div class="chart-title">Eventos Self-Service por Mes — Crecimiento del AV</div>
+  <div class="chart-wrap"><canvas id="chartSelfService"></canvas></div>
+</div>
+<div class="alerta ok">
+  <div class="alerta-label">HALLAZGO</div>
+  <div class="alerta-body"><strong>El AV ya opera y crece:</strong> Los eventos self-service alcanzaron el máximo histórico en octubre 2026 (423 eventos). La tendencia de los últimos 3 meses (Sep–Nov) es claramente ascendente. El problema no es activación — es optimización de las 8 fallas documentadas.</div>
+</div>
+
+<h3 class="sec-hdr2">5.5 Llamadas Fuera de Horario (20h–8h)</h3>
+<div class="kpi-row">
+  <div class="kpi"><div class="kval">2,527</div><div class="klabel">Total fuera de horario</div><div class="ksub">7.1% del total 11 meses</div></div>
+  <div class="kpi verde"><div class="kval">1,763</div><div class="klabel">Atendidas (alguien contesta)</div><div class="ksub">69.8% de las nocturnas</div></div>
+  <div class="kpi rojo"><div class="kval">498</div><div class="klabel">Perdidas nocturnas</div><div class="ksub">Demanda médica sin atender</div></div>
+  <div class="kpi ambar"><div class="kval">231</div><div class="klabel">Self-service nocturno</div><div class="ksub">AV captando en horario nocturno</div></div>
+</div>
+<div class="alerta ok">
+  <div class="alerta-label">OPORTUNIDAD</div>
+  <div class="alerta-body"><strong>498 llamadas médicas perdidas de noche + 17.3% de pérdida dominical</strong> = caso de negocio cuantificable para el AV de voz 24/7. El self-service NO descuenta minutos del plan — es cobertura gratuita adicional.</div>
+</div>
+</section>
+
+<!-- 6. MINUTOS -->
+<section id="minutos">
+<h2 class="sec-hdr">6. Política de Contabilización de Minutos</h2>
+
+<div class="alerta critico">
+  <div class="alerta-label">CRÍTICO INTERNO</div>
+  <div class="alerta-body"><strong>Brecha metodológica:</strong> El panel reporta datos de minutos inconsistentes con la política oficial de Callpicker. Con los 35,743 registros analizados y 74,999 minutos totales (ene–nov), el promedio de los <strong>10 meses completos es 7,217 min/mes — 72.2% del plan</strong>. Ningún mes genera excedente: el máximo es enero con 9,726. Esta discrepancia debe resolverse internamente antes de cualquier comunicación al cliente.
+<!--NOTA:INICIO-->
+  <p style="margin:8px 0 0;font-size:12.5px;opacity:.8"><strong>Corregido el 17 nov:</strong> decía «6,818 min/mes — 68.2%». Ese número divide los 74,999 minutos entre <strong>11</strong> meses, metiendo en el promedio un noviembre de 17 días, y la propia fila del total lo rotulaba «(10 meses)». El promedio honesto de meses completos es 72.2%.</p>
+<!--NOTA:FIN--></div>
+</div>
+
+<div class="chart-box">
+  <div class="chart-title">Minutos Consumidos por Mes vs. Límite del Plan (10,000 min)</div>
+  <div class="chart-wrap tall"><canvas id="chartMinutos"></canvas></div>
+</div>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Mes</th><th>Minutos totales</th><th>% del plan (10k)</th><th>Excedente</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td>Enero 2026</td><td>9,726</td><td class="td-rojo">97.3%</td><td>$0</td><td><span class="badge a">ZONA ATENCIÓN</span></td></tr>
+    <tr><td>Febrero 2026</td><td>8,375</td><td>83.8%</td><td>$0</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Marzo 2026</td><td>7,647</td><td>76.5%</td><td>$0</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Abril 2026</td><td>7,849</td><td>78.5%</td><td>$0</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Mayo 2026</td><td>7,152</td><td>71.5%</td><td>$0</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Junio 2026</td><td>7,088</td><td>70.9%</td><td>$0</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Julio 2026</td><td>6,924</td><td>69.2%</td><td>$0</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Agosto 2026</td><td>6,251</td><td>62.5%</td><td>$0</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Septiembre 2026</td><td>5,372</td><td>53.7%</td><td>$0</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Octubre 2026</td><td>5,788</td><td>57.9%</td><td>$0</td><td><span class="badge gr">NORMAL</span></td></tr>
+    <tr><td>Nov 2026 (17 días)</td><td>2,827</td><td>28.3%</td><td>$0</td><td><span class="badge gr">PARCIAL</span></td></tr>
+    <tr style="background:var(--azul-c);font-weight:700"><td>TOTAL / PROMEDIO</td><td>74,999</td><td>72.2% prom. (10 meses completos)</td><td>$0</td><td><span class="badge g">SIN EXCEDENTES</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3 class="sec-hdr2">6.1 Composición del Consumo por Tipo</h3>
+<div class="charts-2">
+  <div class="chart-box">
+    <div class="chart-title">Composición por Tipo de Destino</div>
+    <div class="chart-wrap sm"><canvas id="chartComposicion"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title">Reglas de Contabilización Aplicadas</div>
+    <div class="chart-wrap sm"><canvas id="chartReglas"></canvas></div>
+  </div>
+</div>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Tipo de destino</th><th>Regla</th><th>Llamadas</th><th>Min. totales</th><th>% del consumo</th></tr></thead>
+  <tbody>
+    <tr><td>Móvil (Mobile)</td><td>Por minuto real de duración</td><td>23,499</td><td>61,573</td><td class="td-azul">82.1%</td></tr>
+    <tr><td>PC / SIP / App</td><td>1 min por llamada (duración bruta mayor)</td><td>4,606</td><td>13,071</td><td>17.4%</td></tr>
+    <tr><td>Fijo (Fixed)</td><td>1 min por llamada</td><td>97</td><td>282</td><td>0.4%</td></tr>
+    <tr><td>AV/Chat (saludyhogar|...)</td><td>No descuenta minutos del plan de voz</td><td>260</td><td>4</td><td>0.0%</td></tr>
+    <tr><td>Perdidas / Lost</td><td>No descuenta minutos</td><td>4,305</td><td>0</td><td>0.0%</td></tr>
+    <tr><td>Self-service (AV)</td><td>No descuenta minutos del plan de voz</td><td>3,057</td><td>0</td><td>0.0%</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<!-- 7. DIDs -->
+<section id="dids">
+<h2 class="sec-hdr">7. Análisis de DIDs — Cancelación y Tráfico Real</h2>
+
+<div class="kpi-row">
+  <div class="kpi rojo"><div class="kval">72 → 46</div><div class="klabel">DIDs antes / después</div><div class="ksub">−36% de reducción</div></div>
+  <div class="kpi rojo"><div class="kval">26</div><div class="klabel">DIDs dados de baja</div><div class="ksub">Con tráfico activo confirmado</div></div>
+  <div class="kpi ambar"><div class="kval">2</div><div class="klabel">Núm. WA atrapados en API</div><div class="ksub">Requieren liberación del cliente</div></div>
+</div>
+
+<div class="alerta critico">
+  <div class="alerta-label">HALLAZGO CRÍTICO</div>
+  <div class="alerta-body"><strong>Ninguno de los DIDs cancelados rastreables estaba inactivo.</strong> El cliente tomó la decisión sin análisis de tráfico previo porque Callpicker no lo proveyó proactivamente. La justificación "cierre de campaña" no es consistente con el tipo de líneas canceladas: Enfermería, Oxígeno y Camas son servicios médicos core, no marketing.</div>
+</div>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>DID / Descripción</th><th>Total llamadas (5 meses)</th><th>Atendidas</th><th>Perdidas</th><th>% Atención</th><th>Tipo</th></tr></thead>
+  <tbody>
+    <tr><td><strong>SYH OXÍGENO GDL</strong></td><td>1,547</td><td>1,324</td><td>207</td><td class="td-verde">85.6%</td><td><span class="badge r">MÉDICO</span></td></tr>
+    <tr><td><strong>SYH OXÍGENO CDMX</strong></td><td>1,519</td><td>1,298</td><td>206</td><td class="td-verde">85.5%</td><td><span class="badge r">MÉDICO</span></td></tr>
+    <tr><td><strong>SOMNOX GDL</strong></td><td>1,296</td><td>1,142</td><td>147</td><td class="td-verde">88.1%</td><td><span class="badge b">MARCA</span></td></tr>
+    <tr><td><strong>SYH OXÍGENO MTY</strong></td><td>1,036</td><td>877</td><td>150</td><td class="td-verde">84.7%</td><td><span class="badge r">MÉDICO</span></td></tr>
+    <tr><td><strong>SYH OXÍGENO PUEBLA</strong></td><td>1,022</td><td>860</td><td>149</td><td class="td-verde">84.1%</td><td><span class="badge r">MÉDICO</span></td></tr>
+    <tr><td><strong>SYH ENFERMERÍA PUEBLA</strong></td><td>983</td><td>855</td><td>125</td><td class="td-verde">87.0%</td><td><span class="badge r">MÉDICO</span></td></tr>
+    <tr><td><strong>SYH OXÍGENO QRO</strong></td><td>774</td><td>654</td><td>111</td><td class="td-verde">84.5%</td><td><span class="badge r">MÉDICO</span></td></tr>
+    <tr><td><strong>SYH CAMAS CDMX</strong></td><td>748</td><td>667</td><td>76</td><td class="td-verde">89.2%</td><td><span class="badge r">MÉDICO</span></td></tr>
+    <tr><td><strong>SOMNOX CDMX</strong></td><td>626</td><td>554</td><td>63</td><td class="td-verde">88.5%</td><td><span class="badge b">MARCA</span></td></tr>
+    <tr><td><strong>SYH SILLAS DE RUEDAS</strong></td><td>571</td><td>465</td><td>98</td><td>81.4%</td><td><span class="badge r">MÉDICO</span></td></tr>
+    <tr style="background:var(--azul-c);font-weight:700"><td>TOTAL (36 rastreables)</td><td>15,665</td><td>13,313</td><td>2,137</td><td class="td-verde">85.0% prom.</td><td></td></tr>
+  </tbody>
+</table></div>
+
+<h3 class="sec-hdr2">7.1 SOMNOX — Lectura Estratégica</h3>
+<p style="font-size:13.5px;line-height:1.7;padding:12px 0">SOMNOX opera como marca diferenciada con presencia en GDL, CDMX, MTY, Chihuahua, QRO, Puebla, Mérida y España. Sus 9 DIDs cancelados recibían ~2,500 llamadas en 5 meses con tasas de atención superiores al 88%, lo que descarta el argumento de campaña puntual. Es probable que SOMNOX haya migrado a otra plataforma o cerrado como unidad independiente.</p>
+</section>
+
+<!-- 8. AV -->
+<section id="av">
+<h2 class="sec-hdr">8. Auditoría del Agente Virtual</h2>
+
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Canal</th><th>Estado</th><th>Uso real</th><th>Costo mensual</th><th>Situación</th></tr></thead>
+  <tbody>
+    <tr><td><strong>AV de Voz (Voicebot)</strong></td><td><span class="badge r">DESCONTINUADO</span></td><td class="td-rojo">$0 de $3,000 (0%)</td><td>$3,000</td><td>Fallas conductuales y técnicas. Apagado antes del 29 de abril.</td></tr>
+    <tr><td><strong>AV de Chat</strong></td><td><span class="badge a">ACTIVO PARCIAL</span></td><td class="td-verde">↑ Oct: 423 self-svc/mes</td><td>Incluido en plan</td><td>Configurado por Luis Carlos. Fallas en imágenes Meta y BD externa.</td></tr>
+  </tbody>
+</table></div>
+
+<h3 class="sec-hdr2">8.1 Fallas Documentadas por el Cliente (6 May 2026)</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>#</th><th>Falla identificada</th><th>Impacto documentado</th><th>Estado</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Resistencia conductual al AV de voz</td><td>Llamadas &lt;1 min. Abandono temprano.</td><td><span class="badge r">SIN RESOLVER</span></td></tr>
+    <tr><td>2</td><td>Fluidez conversacional inconsistente</td><td>Sensación robótica. Mayor abandono.</td><td><span class="badge r">SIN RESOLVER</span></td></tr>
+    <tr><td>3</td><td>Errores en lectura de información compleja</td><td>Confusión en datos médicos críticos.</td><td><span class="badge r">SIN RESOLVER</span></td></tr>
+    <tr><td>4</td><td>Sin memoria conversacional</td><td>Experiencia repetitiva. Pérdida de contexto.</td><td><span class="badge r">SIN RESOLVER</span></td></tr>
+    <tr><td>5</td><td>Handoff AV → asesor sin continuidad</td><td>Cliente repite información. Ruptura en atención.</td><td><span class="badge r">SIN RESOLVER</span></td></tr>
+    <tr><td>6</td><td>Sobre-filtrado sin visibilidad</td><td>Posible pérdida de leads. Sin control.</td><td><span class="badge r">SIN RESOLVER</span></td></tr>
+    <tr><td>7</td><td>AV de chat no reconoce imágenes Meta</td><td>Clientes de campañas cambian de canal.</td><td><span class="badge a">PENDIENTE</span></td></tr>
+    <tr><td>8</td><td>Sin sincronización con BD externas</td><td>No puede consultar stock ni facilitar venta.</td><td><span class="badge a">REQUIERE ING.</span></td></tr>
+  </tbody>
+</table></div>
+
+<div class="alerta info">
+  <div class="alerta-label">LECTURA</div>
+  <div class="alerta-body">El cliente no busca un bot de bienvenida. Su objetivo declarado es un agente comercial completo: perfilar al paciente, consultar stock en tiempo real, recomendar producto, facilitar venta directa y escalar solo cuando hay intención real de compra. El 29 de abril declaró: <em>"no tenemos inconveniente en asumir los costos si el agente virtual funciona."</em></div>
+</div>
+</section>
+
+<!-- 9. FODA -->
+<section id="foda">
+<h2 class="sec-hdr">9. Análisis FODA — Cuenta Salud y Hogar</h2>
+<div class="foda-grid">
+  <div class="foda-cell foda-f">
+    <h4>💪 Fortalezas</h4>
+    <ul>
+      <li>9 años de relación comercial activa</li>
+      <li>Pagador puntual — Stripe activo y vigente</li>
+      <li>WhatsApp API con consumo real: 12,593 msg/mes</li>
+      <li>Cliente técnicamente maduro — documentó 8 fallas del AV</li>
+      <li>Luis Carlos como técnico autodidacta comprometido</li>
+      <li>Disposición declarada de invertir si el AV funciona</li>
+      <li>AV de chat creciendo: 423 self-service en octubre (máximo histórico)</li>
+    </ul>
+  </div>
+  <div class="foda-cell foda-o">
+    <h4>🚀 Oportunidades</h4>
+    <ul>
+      <li>AV de chat: requerimientos documentados listos para desarrollar</li>
+      <li>AV de voz: reactivable con correcciones conductuales y técnicas</li>
+      <li>498 llamadas nocturnas perdidas = caso de negocio AV 24/7</li>
+      <li>Integración CRM: objetivo declarado = expansión de contrato</li>
+      <li>Sincronización con stock/BD = ingeniería adicional cotizable</li>
+      <li>SOMNOX: posible cuenta separada con potencial propio</li>
+      <li>WhatsApp API creciente = expansión natural del servicio</li>
+    </ul>
+  </div>
+  <div class="foda-cell foda-d">
+    <h4>⚠ Debilidades</h4>
+    <ul>
+      <li>Contracción de volumen: −39% ene→oct, once meses seguidos (señal crítica no detectada)</li>
+      <li>AV de voz descontinuado — $3,000/mes cobrados con $0 de uso</li>
+      <li>$4,200/mes en CP Chat sin evidencia de uso documentada</li>
+      <li>26 DIDs dados de baja sin análisis previo de tráfico (de 36 rastreables)</li>
+      <li>21 días de delay para entregar prompt a desarrollo</li>
+      <li>Sin ownership único del caso — 4 actores sin coordinación</li>
+      <li>Luis Carlos no está registrado en el CRM de Callpicker</li>
+    </ul>
+  </div>
+  <div class="foda-cell foda-a">
+    <h4>⚡ Amenazas</h4>
+    <ul>
+      <li>Contracción de −39% en volumen, once meses seguidos = migración en progreso</li>
+      <li>Percepción de cobro por servicios no entregados ($4,200/mes en CP Chat)</li>
+      <li>2 números WA atrapados en API — riesgo operativo activo</li>
+      <li>Si el AV no mejora, el cliente buscará otro proveedor</li>
+      <li>SOMNOX posiblemente ya migrado a otra plataforma</li>
+      <li>8 fallas sin respuesta formal después de 6 meses</li>
+      <li>Silencio post-solicitud = decisión tomada en proceso</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<!-- 10. HALLAZGOS -->
+<section id="hallazgos">
+<h2 class="sec-hdr">10. Hallazgos Consolidados — Ranking por Criticidad</h2>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>#</th><th>Hallazgo</th><th>Área</th><th>Riesgo</th><th>Acción</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><strong>Contracción de −39% en once meses consecutivos (ene 4,561 → oct 2,799)</strong></td><td>Comercial</td><td><span class="badge r">CRÍTICO</span></td><td>Investigar causa raíz en llamada con Cristian</td></tr>
+    <tr><td>2</td><td><strong>El MRR cayó de $27,510 a $23,480 sin que SAC lo registrara</strong> — la baja del Voicebot (~30 sep) se ejecutó y el documento seguía cobrándolo</td><td>Facturación/AV</td><td><span class="badge r">CRÍTICO</span></td><td>No plantear al cliente el cobro del Voicebot: ya no existe</td></tr>
+    <tr><td>3</td><td><strong>26 DIDs con tráfico activo dados de baja — 15,665 llamadas sin análisis</strong></td><td>Operación</td><td><span class="badge r">CRÍTICO</span></td><td>Compartir reporte de tráfico al cliente hoy</td></tr>
+    <tr><td>4</td><td><strong>Sesión de asesoría AV sin fecha — cliente esperando 6+ meses</strong></td><td>SAC/Comercial</td><td><span class="badge r">CRÍTICO</span></td><td>Agendar inmediatamente con Luis Carlos</td></tr>
+    <tr><td>5</td><td>2 números WA atrapados en API — operación activa posiblemente caída</td><td>Técnico</td><td><span class="badge a">ALTO</span></td><td>Comunicar al cliente y guiar la liberación</td></tr>
+    <tr><td>6</td><td>12 agentes CP Chat facturados ($4,200/mes) sin evidencia de uso</td><td>Facturación</td><td><span class="badge a">ALTO</span></td><td>Verificar uso real y resolver proactivamente</td></tr>
+    <tr><td>7</td><td>Luis Carlos no está en el CRM — riesgo de perder al técnico clave</td><td>Gestión</td><td><span class="badge a">ALTO</span></td><td>Registrar como contacto técnico formal</td></tr>
+    <tr><td>8</td><td>Fragmentación interna: 4 actores sin coordinación unificada</td><td>Operación interna</td><td><span class="badge a">ALTO</span></td><td>Crear grupo multidisciplinario</td></tr>
+    <tr><td>9</td><td>SOMNOX: 9 DIDs cancelados con tráfico real — destino desconocido</td><td>Estratégico</td><td><span class="badge gr">MEDIO</span></td><td>Investigar con Cristian</td></tr>
+    <tr><td>10</td><td>AV de chat: 8 fallas documentadas y <strong>las 8 abiertas</strong> seis meses después</td><td>Producto</td><td><span class="badge gr">MEDIO</span></td><td>Incluir en scope de asesoría</td></tr>
+    <tr><td>11</td><td>La contracción no fue detectada ni abordada a tiempo</td><td>SAC</td><td><span class="badge gr">MEDIO</span></td><td>Establecer dashboard mensual de métricas</td></tr>
+    <tr><td>12</td><td>Scope real del cliente supera plan base — requiere ingeniería adicional</td><td>Oportunidad</td><td><span class="badge g">EXPANSIÓN</span></td><td>Cotizar proyecto integral post-asesoría</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<!-- 11. PLAN DE ACCIÓN -->
+<section id="plan">
+<h2 class="sec-hdr">11. Plan de Acción — Próximas 72 Horas y 2 Semanas</h2>
+
+<h3 class="sec-hdr2">11.1 Acciones Inmediatas (Esta Semana)</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Prioridad</th><th>Acción</th><th>Responsable</th><th>Objetivo</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge r">1 — CRÍTICO</span></td><td>Llamada directa a Cristian López — por teléfono, no ticket</td><td>Dan D. + VP SAC</td><td>Escuchar causa de contracción, informar números WA atrapados, confirmar fecha sesión</td></tr>
+    <tr><td><span class="badge r">2 — CRÍTICO</span></td><td>Exportar reporte de tráfico de los 26 DIDs dados de baja</td><td>Daniel M.</td><td>Entregar datos que el cliente no tiene — palanca de confianza</td></tr>
+    <tr><td><span class="badge r">3 — CRÍTICO</span></td><td>Crear grupo WhatsApp: Cliente + Ventas + SAC + Ingeniería</td><td>VP SAC</td><td>Eliminar fragmentación. Un canal, un equipo, un cliente.</td></tr>
+    <tr><td><span class="badge a">4 — URGENTE</span></td><td>Definir posición interna sobre voicebot ($3,000 con $0 de uso)</td><td>Dirección</td><td>Crédito, ajuste o justificación — decidir antes de la llamada</td></tr>
+    <tr><td><span class="badge a">5 — URGENTE</span></td><td>Registrar a Luis Carlos Hernández en el CRM</td><td>Dan D.</td><td>Asegurar que el técnico clave está en el radar de Callpicker</td></tr>
+    <tr><td><span class="badge a">6 — URGENTE</span></td><td>Verificar si los 12 agentes CP Chat tienen uso activo</td><td>Daniel M. / Técnico</td><td>Resolver $4,200/mes antes de que el cliente lo detecte</td></tr>
+  </tbody>
+</table></div>
+
+<h3 class="sec-hdr2">11.2 Acciones Esta Semana</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>Prioridad</th><th>Acción</th><th>Responsable</th><th>Objetivo</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge a">1 — URGENTE</span></td><td>Agendar asesoría con Luis Carlos Y Cristian (ambos en convocatoria)</td><td>Dan D. + Comercial</td><td>Sin Luis Carlos la sesión no avanza técnicamente</td></tr>
+    <tr><td><span class="badge a">2 — URGENTE</span></td><td>Eduardo revisa prompt + documento del cliente y cotiza horas</td><td>David Ing. + Eduardo</td><td>Definir scope y costo del proyecto AV</td></tr>
+    <tr><td><span class="badge gr">3 — IMPORTANTE</span></td><td>Investigar qué pasó con SOMNOX — ¿migración o cierre?</td><td>Dan D.</td><td>Determinar si es cuenta separable o proyecto perdido</td></tr>
+    <tr><td><span class="badge gr">4 — IMPORTANTE</span></td><td>Establecer cadencia mensual de revisión de cuenta</td><td>VP SAC</td><td>Cambiar de modelo reactivo a consultivo-proactivo</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<!-- 12. PROYECCIÓN -->
+<section id="proyeccion">
+<h2 class="sec-hdr">12. Proyección — 3 Escenarios a 6 Meses</h2>
+
+<div class="esc-grid">
+  <div class="esc-card r">
+    <h4>🔴 Escenario Riesgo (Sin acción)</h4>
+    <div class="big" style="color:var(--rojo)">$0–$8,000/mes</div>
+    <p style="font-size:12px;margin-bottom:10px">Churn progresivo · Dic 2026</p>
+    <ul>
+      <li>Cancelación parcial o total</li>
+      <li>SOMNOX ya migrado</li>
+      <li>AV cancelado definitivo</li>
+      <li>Más bajas de DIDs</li>
+      <li>WhatsApp API puede seguir</li>
+      <li>Valor anual: $0–$96k</li>
+    </ul>
+  </div>
+  <div class="esc-card a">
+    <h4>🟡 Escenario Actual (Sin intervención)</h4>
+    <div class="big" style="color:var(--ambar)">$15,000–$18,000/mes</div>
+    <p style="font-size:12px;margin-bottom:10px">Estabilización mínima · Dic 2026</p>
+    <ul>
+      <li>46 DIDs estables</li>
+      <li>AV sin optimizar</li>
+      <li>Contracción lenta continua</li>
+      <li>Asesoría pendiente sin fecha</li>
+      <li>En riesgo de nueva reducción</li>
+      <li>Valor anual: ~$180–216k</li>
+    </ul>
+  </div>
+  <div class="esc-card g">
+    <h4>🟢 Escenario Optimizado (Colaboración)</h4>
+    <div class="big" style="color:var(--verde)">$50,000–$55,000/mes</div>
+    <p style="font-size:12px;margin-bottom:10px">Expansión activa · Dic 2026</p>
+    <ul>
+      <li>AV de chat optimizado y funcional</li>
+      <li>AV de voz reactivado</li>
+      <li>Integración BD/CRM cotizada</li>
+      <li>+56–72% vs. facturación actual</li>
+      <li>Relación renovada y expandida</li>
+      <li>Valor anual: ~$540–660k</li>
+    </ul>
+  </div>
+</div>
+
+<div class="chart-box">
+  <div class="chart-title">Proyección de Facturación — 3 Escenarios (Jun–Nov 2026)</div>
+  <div class="chart-wrap tall"><canvas id="chartProyeccion"></canvas></div>
+</div>
+
+<div class="alerta ok">
+  <div class="alerta-label">POTENCIAL</div>
+  <div class="alerta-body">Si Callpicker ejecuta correctamente en los próximos 15 días, esta cuenta puede pasar de $32,026/mes a $50,000–$55,000/mes. El cliente ya autorizó la inversión verbalmente el 29 de abril. La condición es simple: <strong>que funcione</strong>. La diferencia entre escenarios: hasta $600,000 MXN anuales en juego.</div>
+</div>
+</section>
+
+<!-- 13. GUIÓN -->
+<section id="guion">
+<h2 class="sec-hdr">13. Guión — Llamada con Ing. Cristian López</h2>
+<div class="alerta info">
+  <div class="alerta-label">CONTEXTO</div>
+  <div class="alerta-body">Esta llamada no es de retención. Es de reencuadre. Objetivo: escuchar primero, entregar valor con datos, cerrar con una fecha de sesión concreta. No se vende en esta llamada.</div>
+</div>
+<div style="height:12px"></div>
+
+<div class="guion-bloque">
+  <h4>Apertura (primeros 30 segundos)</h4>
+  <p>"Cristian, buenas tardes. Te llama [Nombre] de Callpicker. Quería contactarte directamente porque revisamos a detalle la cuenta y tenemos información que puede ser muy útil para las decisiones que estás tomando."</p>
+</div>
+
+<div class="guion-bloque">
+  <h4>Escucha activa — pregunta sobre la contracción</h4>
+  <p>"Vimos que el volumen de llamadas ha cambiado mucho desde enero. Antes de hablarte del análisis que hicimos, quería preguntarte directamente: ¿ha cambiado algo en la operación de Salud y Hogar? ¿Algún cambio en las áreas de atención?"</p>
+</div>
+
+<div class="guion-bloque">
+  <h4>Entrega de valor — reporte de tráfico de DIDs</h4>
+  <p>"Hicimos un análisis del tráfico de los números que diste de baja. Hay algo importante que queremos que veas: varios de esos DIDs tenían volumen de llamadas activo. El número de Oxígeno GDL, por ejemplo, recibía alrededor de 1,500 llamadas en 5 meses con más del 85% de atención. Queremos que cuentes con estos datos para tomar las mejores decisiones hacia adelante."</p>
+</div>
+
+<div class="guion-bloque">
+  <h4>Manejo de los números WA atrapados</h4>
+  <p>"Hay dos números de WhatsApp que quedaron vinculados a una API externa — el 3314545205 y el 3315798431. No podemos liberarlos desde nuestro lado. Necesitamos que quien los administre los libere desde el API donde están registrados. ¿Puede ser Luis Carlos quien gestione eso?"</p>
+</div>
+
+<div class="guion-bloque">
+  <h4>Reencuadre del Agente Virtual</h4>
+  <p>"Leímos con detalle el documento que nos envió Luis Carlos en mayo. Está muy bien estructurado. Lo que están buscando — perfilar al cliente, conectar con el stock, facilitar la venta — es exactamente el tipo de caso para el que está diseñado el AV. Tenemos un camino claro para llegar ahí, y queremos agendarlo contigo y con Luis Carlos directamente."</p>
+</div>
+
+<div class="guion-bloque">
+  <h4>Cierre con fecha</h4>
+  <p>"¿Podrías confirmarme disponibilidad tuya y de Luis Carlos para la sesión de asesoría? Es importante que él esté presente porque tiene todo el contexto técnico del AV. Nos ajustamos completamente a la agenda de ustedes esta semana o la siguiente."</p>
+</div>
+
+<div class="alerta aviso">
+  <div class="alerta-label">REGLA</div>
+  <div class="alerta-body">No mencionar el voicebot ($0 de uso) en esta llamada salvo que el cliente lo saque. Se resuelve internamente primero y se aborda en la sesión de asesoría con posición ya definida. Tampoco discutir la contracción de volumen como acusación — escuchar primero la explicación del cliente.</div>
+</div>
+</section>
+
+<!-- 14. DIAGNÓSTICO FINAL -->
+<section id="diagnostico">
+<h2 class="sec-hdr">14. Diagnóstico Final y KPIs de Seguimiento</h2>
+
+<p style="font-size:13.5px;line-height:1.75;margin-bottom:16px">Salud y Hogar no es un cliente en churn pasivo. Es un cliente activo que tomó decisiones operativas — reducción de plazas, posible migración de SOMNOX, reconversión de canales hacia WhatsApp — y que paralelamente tiene un requerimiento tecnológico documentado y una disposición de inversión declarada que Callpicker no ha atendido a tiempo. <strong>La señal más crítica es la contracción de −68% en 11 meses consecutivos: esto no es estacionalidad, es reducción estructural de operación.</strong></p>
+
+<p style="font-size:13.5px;line-height:1.75;margin-bottom:16px">La cuenta es recuperable y expandible. Lo que falta no es tecnología — es velocidad de respuesta, ownership claro del caso, y una propuesta que demuestre que Callpicker leyó el documento del 6 de mayo y tiene respuestas concretas a cada una de las 8 fallas identificadas.</p>
+
+<div class="alerta critico">
+  <div class="alerta-label">RIESGO PRINCIPAL</div>
+  <div class="alerta-body">No es que el cliente no pague. Es que cuando el AV finalmente funcione, ya hayan decidido que no lo necesitan de Callpicker. La ventana de confianza está cerrándose — no por insatisfacción declarada, sino por ausencia de respuesta percibida durante 6 meses.</div>
+</div>
+
+<h3 class="sec-hdr2">14.1 KPIs de Seguimiento Recomendados</h3>
+<div class="tbl-wrap"><table>
+  <thead><tr><th>KPI</th><th>Valor actual</th><th>Meta 30 días</th><th>Meta 90 días</th></tr></thead>
+  <tbody>
+    <tr><td>Volumen mensual de llamadas</td><td class="td-rojo">1,438 (nov, 17 días)</td><td>Estabilizar ≥ 2,000</td><td>Recuperación a ≥ 2,500</td></tr>
+    <tr><td>Eventos self-service (AV)</td><td class="td-verde">423/mes (oct, máximo)</td><td>Mantener ≥ 400/mes</td><td>> 700/mes con AV optimizado</td></tr>
+    <tr><td>Tasa de pérdida semanal</td><td>12.0% promedio</td><td>< 10%</td><td>< 8% (con AV nocturno)</td></tr>
+    <tr><td>DIDs activos</td><td>46</td><td>Estables — sin más bajas sin análisis</td><td>46+ reconexión potencial</td></tr>
+    <tr><td>Sesión de asesoría AV</td><td class="td-rojo">Sin fecha (6 meses pendiente)</td><td>Ejecutada esta semana</td><td>Roadmap entregado</td></tr>
+    <tr><td>Facturación mensual</td><td>$32,026</td><td>$32,026 (retener)</td><td>$42,000–$50,000</td></tr>
+    <tr><td>Cobros sin uso ($7,200)</td><td class="td-rojo">Pendiente resolver</td><td>Posición interna definida</td><td>Resuelto con cliente</td></tr>
+  </tbody>
+</table></div>
+
+<div style="text-align:center;padding:32px 0 8px;color:var(--gris);font-size:12px;border-top:1px solid #dde3ea;margin-top:28px">
+  <p>— Fin del documento —</p>
+  <p style="margin-top:6px">Callpicker Internal Intelligence · Auditoría Forense Integral · CID 946 · Noviembre 2026</p>
+</div>
+</section>
+
+</main>
+
+<footer>
+  <strong>CALLPICKER — DOCUMENTO INTERNO CONFIDENCIAL</strong><br>
+  Auditoría Forense Integral · Salud y Hogar · CID 946 · Noviembre 2026<br>
+  Generado por VP Investigación de Business — SAC | Basado en 35,743 registros de llamadas (Ene–Nov 2026)
+</footer>
+
+<script>
+// ── DATOS ──────────────────────────────────────────────────────────────
+const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov'];
+const azul = '#1B4F8A', azulC = '#5B9BD5', rojo = '#C0392B', verde = '#1E8449';
+const ambar = '#D68910', gris = '#8899AA', grisC = '#D5DCE5';
+
+const defaults = {
+  font: { family: 'Segoe UI, Arial, sans-serif', size: 12 },
+  color: '#5D6D7E'
+};
+Chart.defaults.font = defaults.font;
+Chart.defaults.color = defaults.color;
+
+// helper tooltip
+const pct = (v,t) => `${v.toLocaleString()} (${(v/t*100).toFixed(1)}%)`;
+
+// ── 1. FACTURACIÓN ──────────────────────────────────────────────────────
+new Chart(document.getElementById('chartFacturacion'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Plan base','DIDs nacionales','Ext SIM 4GB','Ext SIM 8.5GB','CP Chat ⚠','AV Voicebot ⚠','Chatbot tokens','WhatsApp API'],
+    datasets: [{
+      data: [10000, 4554, 2320, 2118, 4200, 3000, 500, 818],
+      backgroundColor: [azul,'#2980B9','#5DADE2','#85C1E9',rojo+'CC',rojo,'#A9CCE3',verde],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'right', labels: { font: { size: 11 }, boxWidth: 14 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${ctx.raw.toLocaleString()}` } }
+    }
+  }
+});
+
+// ── 2. TENDENCIA MENSUAL ────────────────────────────────────────────────
+new Chart(document.getElementById('chartTendencia'), {
+  type: 'bar',
+  data: {
+    labels: meses,
+    datasets: [
+      { label: 'Atendidas', data: [3563,3055,2939,3099,2794,2648,2565,2285,1992,2124,1057], backgroundColor: azul + 'CC', stack: 's' },
+      { label: 'Self-service AV', data: [276,193,164,195,404,358,306,193,304,423,241], backgroundColor: verde + 'AA', stack: 's' },
+      { label: 'Voicemail', data: [25,19,12,6,38,44,14,30,36,23,13], backgroundColor: grisC, stack: 's' },
+      { label: 'Perdidas', data: [697,472,439,393,392,460,498,367,231,229,127], backgroundColor: rojo + 'CC', stack: 's' },
+      { label: 'Total', type: 'line', data: [4561,3739,3554,3693,3628,3510,3383,2875,2563,2799,1438],
+        borderColor: ambar, borderWidth: 2.5, pointRadius: 5, pointBackgroundColor: ambar,
+        fill: false, tension: .3, stack: undefined }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { stacked: true, grid: { display: false } },
+      y: { stacked: true, grid: { color: '#EDF0F4' }, beginAtZero: true }
+    },
+    plugins: { legend: { position: 'top', labels: { boxWidth: 14 } } }
+  }
+});
+
+// ── 3. HORAS ────────────────────────────────────────────────────────────
+const hData = [188,117,93,71,52,69,102,256,818,2956,3626,3793,3679,3533,3162,2946,2905,2799,1755,1244,705,461,262,151];
+const hLabels = Array.from({length:24},(_,i)=>`${i}h`);
+const hColors = hLabels.map((_,i) => (i>=8 && i<20) ? azul+'CC' : rojo+'BB');
+new Chart(document.getElementById('chartHoras'), {
+  type: 'bar',
+  data: {
+    labels: hLabels,
+    datasets: [{ label: 'Llamadas', data: hData, backgroundColor: hColors, borderRadius: 3 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: { x: { grid: { display: false } }, y: { grid: { color: '#EDF0F4' } } },
+    plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} llamadas` } }
+    }
+  }
+});
+
+// ── 4. DÍA DE SEMANA ────────────────────────────────────────────────────
+const dow = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const dowT = [6369,5670,5683,5753,5455,4500,2313];
+const dowAtend = [5040,4600,4466,4492,4281,3453,1789];
+const dowPerd = [809,573,609,638,622,653,401];
+const dowPct = dowPerd.map((p,i)=>(p/dowT[i]*100).toFixed(1));
+
+new Chart(document.getElementById('chartDow'), {
+  type: 'bar',
+  data: {
+    labels: dow,
+    datasets: [
+      { label: 'Atendidas', data: dowAtend, backgroundColor: azul+'CC' },
+      { label: 'Perdidas', data: dowPerd, backgroundColor: rojo+'CC' },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: { x: { grid:{display:false} }, y: { grid:{color:'#EDF0F4'} } },
+    plugins: { legend: { position:'top', labels:{boxWidth:12} } }
+  }
+});
+
+new Chart(document.getElementById('chartDowPct'), {
+  type: 'bar',
+  data: {
+    labels: dow,
+    datasets: [{
+      label: '% Pérdida',
+      data: dowPct,
+      backgroundColor: dowPct.map(v => v > 14 ? rojo : v > 11 ? ambar : verde),
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: { x: { grid:{display:false} }, y: { grid:{color:'#EDF0F4'}, max:20 } },
+    plugins: { legend:{display:false},
+      tooltip: { callbacks: { label: ctx=>`${ctx.raw}% de pérdida` } }
+    }
+  }
+});
+
+// ── 5. SELF SERVICE ─────────────────────────────────────────────────────
+new Chart(document.getElementById('chartSelfService'), {
+  type: 'bar',
+  data: {
+    labels: meses,
+    datasets: [
+      { label: 'Eventos Self-service', data: [276,193,164,195,404,358,306,193,304,423,241],
+        backgroundColor: meses.map((_,i)=> i>=8 ? verde : verde+'88'), borderRadius: 4 },
+      { label: 'Tendencia', type:'line', data:[276,193,164,195,404,358,306,193,304,423,241],
+        borderColor: ambar, borderWidth:2, pointRadius:4, fill:false, tension:.4 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: { x:{grid:{display:false}}, y:{grid:{color:'#EDF0F4'},beginAtZero:true} },
+    plugins: { legend:{position:'top',labels:{boxWidth:12}},
+      tooltip: { callbacks:{ label:ctx=>`${ctx.raw} eventos self-service` } }
+    }
+  }
+});
+
+// ── 6. MINUTOS ──────────────────────────────────────────────────────────
+const minMes = [9726,8375,7647,7849,7152,7088,6924,6251,5372,5788,2827];
+new Chart(document.getElementById('chartMinutos'), {
+  type: 'bar',
+  data: {
+    labels: meses,
+    datasets: [
+      { label: 'Minutos consumidos', data: minMes,
+        backgroundColor: minMes.map(v => v>9000?rojo+'CC':v>7000?ambar+'CC':verde+'CC'),
+        borderRadius: 4 },
+      { label: 'Límite plan (10,000)', type:'line', data: Array(11).fill(10000),
+        borderColor: rojo, borderWidth:2, borderDash:[8,4], pointRadius:0, fill:false }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: { x:{grid:{display:false}}, y:{grid:{color:'#EDF0F4'},max:11000,min:0} },
+    plugins: { legend:{position:'top',labels:{boxWidth:12}},
+      tooltip:{ callbacks:{ label:ctx=>`${ctx.raw.toLocaleString()} min (${(ctx.raw/100).toFixed(1)}% del plan)` } }
+    }
+  }
+});
+
+// ── 7. COMPOSICIÓN ──────────────────────────────────────────────────────
+new Chart(document.getElementById('chartComposicion'), {
+  type: 'pie',
+  data: {
+    labels: ['Móvil (61,573 min)','PC/SIP (13,071 min)','Fijo (282 min)','Self-svc/AV (0 min)','Perdidas (0 min)'],
+    datasets: [{
+      data: [61573,13071,282,0.1,0.1],
+      backgroundColor: [azul,azulC,'#85C1E9',verde+'44',grisC],
+      borderWidth:2, borderColor:'#fff'
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend:{position:'bottom',labels:{font:{size:11},boxWidth:12}} }
+  }
+});
+
+// ── 8. REGLAS ───────────────────────────────────────────────────────────
+new Chart(document.getElementById('chartReglas'), {
+  type: 'bar',
+  data: {
+    labels: ['Móvil','PC/SIP','Fijo','AV/Chat','Perdidas','Self-svc'],
+    datasets: [
+      { label: 'Llamadas', data: [23499,4606,97,260,4305,3057], backgroundColor: azul+'BB', yAxisID:'y' },
+      { label: 'Minutos', data: [61573,13071,282,4,0,0], type:'line',
+        borderColor:ambar, pointRadius:5, fill:false, yAxisID:'y1' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x:{grid:{display:false}},
+      y:{grid:{color:'#EDF0F4'},title:{display:true,text:'Llamadas'}},
+      y1:{position:'right',grid:{display:false},title:{display:true,text:'Minutos'}}
+    },
+    plugins:{legend:{position:'top',labels:{boxWidth:12}}}
+  }
+});
+
+// ── 9. PROYECCIÓN ───────────────────────────────────────────────────────
+const escMeses = ['Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+new Chart(document.getElementById('chartProyeccion'), {
+  type: 'line',
+  data: {
+    labels: escMeses,
+    datasets: [
+      { label: '🟢 Escenario Optimizado', data: [32026,35000,38000,42000,46000,50000,55000],
+        borderColor: verde, backgroundColor: verde+'22', fill:true, tension:.4, borderWidth:3, pointRadius:5 },
+      { label: '🟡 Escenario Actual', data: [32026,28000,24000,20000,18000,17000,15000],
+        borderColor: ambar, backgroundColor: ambar+'22', fill:true, tension:.4, borderWidth:2.5, pointRadius:5 },
+      { label: '🔴 Escenario Riesgo', data: [32026,22000,15000,10000,6000,3000,0],
+        borderColor: rojo, backgroundColor: rojo+'22', fill:true, tension:.4, borderWidth:2.5, pointRadius:5 }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x:{grid:{display:false}},
+      y:{grid:{color:'#EDF0F4'},
+         ticks:{callback:v=>'$'+v.toLocaleString()},
+         title:{display:true,text:'Facturación MXN mensual'}}
+    },
+    plugins:{
+      legend:{position:'top',labels:{boxWidth:14}},
+      tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: $${ctx.raw.toLocaleString()}`}}
+    }
+  }
+});
+
+// ── NAV ACTIVE ──────────────────────────────────────────────────────────
+const navLinks = document.querySelectorAll('nav a');
+const sections = document.querySelectorAll('section');
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      navLinks.forEach(a=>a.classList.remove('active'));
+      const link = document.querySelector(`nav a[href="#${e.target.id}"]`);
+      if(link) link.classList.add('active');
+    }
+  });
+}, {threshold:.2, rootMargin:'-60px 0px 0px 0px'});
+sections.forEach(s=>observer.observe(s));
+</script>
+</body>
+</html>

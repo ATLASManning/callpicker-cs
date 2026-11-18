@@ -37,6 +37,20 @@ const jiti = crear(fileURLToPath(import.meta.url), { alias: { '@': RAIZ } })
    es decoración: es algo que cambia lo que Atlas respondería si no lo supiera.
    Se busca en minúsculas y sin acentos para no fallar por una tilde. */
 const EXIGIDO = {
+  /* SALUD Y HOGAR. Las dos primeras existen para que el modelo NO repita lo
+     que dice el documento entregado: su titular de factura es de junio, y su
+     hallazgo 2 CRÍTICO es un cobro que ya se dio de baja. Si cualquiera de las
+     dos cae del corte, Atlas vuelve a decir «$32,026» y «el Voicebot se cobra
+     sin uso», que es exactamente lo que se corrigió. */
+  'salud-y-hogar': [
+    ['$23,480',          'el MRR vigente; sin esto Atlas cita los $32,026 de junio'],
+    ['no $32,026',       'la cifra que NO se debe citar, dicha como prohibición'],
+    ['cobro del voicebot: ya no se factura',
+                         'para que nadie le plantee al cliente un cargo inexistente'],
+    ['desarrollo propio','el mecanismo real de churn, que el documento no recoge'],
+    ['−39%',             'la contracción medida entre meses completos'],
+    ['no de −68%',       'la lectura vieja, que comparaba 17 días contra 31'],
+  ],
   'hospital-santa-rosa': [
     ['no presentar al cliente', 'que la cuenta no está lista para una presentación'],
     ['sin_interlocutor',        'la alerta crítica que contradice al reporte'],
