@@ -148,6 +148,23 @@ const EXIGIDO = {
     ['42.47%',     'la concentración de las pérdidas en una extensión'],
     ['1.37%',      'el volumen de esa extensión: por eso es configuración'],
   ],
+  /* CP 190196 — el anexo del ciclo de compra.
+     El riesgo aquí es que el modelo lo lea como lo que parece: una cuenta de
+     $209 que se fue. «$42,753» y «36 cuentas» son el tamaño real del patrón, y
+     «perdida cero» es por qué nadie lo ve. «sencillo» impide que el consejo
+     salga disparado contra Activaciones, que no tiene un solo hallazgo en este
+     expediente. «2:22» es la venta entera en una cifra. Y «no esta confirmada»
+     es la que protege un acto: sin ella, alguien escribe «perdida» y consuma
+     una baja que ninguna fuente nuestra sostiene. */
+  'cp-190196': [
+    ['$42,753',      'el tamaño real del patrón; sin esto el caso se lee como una anécdota de $209'],
+    ['36 cuentas',   'que no es una: es una cohorte, y por eso es un hallazgo institucional'],
+    ['perdida cero', 'por qué nadie lo cuenta: el cubo que las guarda agrega cero'],
+    ['sencillo',     'que la activación salió en verde — no es problema de Activaciones'],
+    ['2:22',         'la venta cerrada dos minutos después de la única conversación'],
+    ['no esta confirmada',
+                     'que nadie debe escribir «perdida»: ninguna fuente nuestra consuma la baja'],
+  ],
   'hospital-santa-rosa': [
     ['no presentar al cliente', 'que la cuenta no está lista para una presentación'],
     ['sin_interlocutor',        'la alerta crítica que contradice al reporte'],

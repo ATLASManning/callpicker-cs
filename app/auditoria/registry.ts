@@ -138,6 +138,12 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
      no hay ficha de cuenta donde pintar el boton — que es exactamente lo que
      `findAuditoriaForConsecutivo` hace al no encontrar coincidencia. */
   { id: 'viajes-macull',   nombre: 'Viajes Macull / Viajo Mexico (CP 189846)', consecutivos: [] },
+  /* CP 190196: mismo caso que Viajes Macull y por eso va junto a ella en la
+     barra. No esta en `cuentas`, no tiene consecutivo y NO TIENE CID: en el
+     GRC su fila se encuentra por NOMBRE, no por llave, asi que
+     `revisa-registro-auditorias.py` la cuenta entre las que no puede cruzar.
+     Eso no es un olvido: es el dato. */
+  { id: 'cp-190196',       nombre: 'CP 190196 · Ingenieria Mantenimiento y Desarrollo Informatico', consecutivos: [] },
   /* RDS estaba en `cases.ts` pero NO aqui. No rompia nada —el boton de la ficha
      simplemente no existia, que es lo correcto para una cuenta sin consecutivo—
      pero dejaba el registro incompleto: `AUDITORIA_REFS` se usa tambien para

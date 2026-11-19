@@ -33,6 +33,7 @@ import { SOFIA }                 from './sofia-data'
 import { RDS_INVEST_VACAY }      from './rds-invest-vacay-data'
 import { UNIVERSITY_4_PEOPLE }   from './university-4-people-data'
 import { VIAJES_MACULL }        from './viajes-macull-data'
+import { CP_190196 }           from './cp-190196-data'
 import { TORRES_CORZO }         from './torres-corzo-data'
 import { TECH_PEOPLE }          from './tech-people-data'
 import { SYSTEM_OOAPAS }        from './system-ooapas-data'
@@ -45,6 +46,11 @@ import { PROBEMEDIC }           from './probemedic-data'
 import { ABRL }                 from './abrl-data'
 import type { AuditoriaCase } from './types'
 
+/* EL ORDEN DE ESTE ARREGLO IMPORTA PARA LAS CUENTAS SIN ASESOR.
+   La barra de /auditoria ordena alfabéticamente los casos CON asesor y deja al
+   final los que tienen `asesor: null` —las cuentas que murieron antes de entrar
+   a cartera— respetando el orden en que aparecen AQUÍ. Mover una de esas la
+   mueve en la pantalla; mover una de las demás no cambia nada. */
 export const STATIC_CASES: AuditoriaCase[] = [
   ANCONA_AUTOPARTES, ARKANSAS, FINSUS, GRUPOFRISA, AGUA_INMACULADA, SALUD_Y_HOGAR,
   SAMALAB, LABSUS, ALIANZA, ALTERNET, AZYCO,
@@ -52,7 +58,7 @@ export const STATIC_CASES: AuditoriaCase[] = [
   HOSPITAL_SANTA_ROSA, TRAVELLING, POLAK_GRUPO, PUBSA,
   DENTAL_DISTRICT, MEDICALL_EXPERT, VAEO_BUSINESS_CLUB, KOMBITEC,
   NERUC_SEDE_CENTRAL, JASON_DE_MEXICO, GWEP, MINT_CARGO, CARGO_LIFT, CASA_GALVAN, GRUPO_2711, LI_FINANCIERA, SOFIA, RDS_INVEST_VACAY,
-  UNIVERSITY_4_PEOPLE, VIAJES_MACULL, TORRES_CORZO, TECH_PEOPLE, SYSTEM_OOAPAS,
+  UNIVERSITY_4_PEOPLE, VIAJES_MACULL, CP_190196, TORRES_CORZO, TECH_PEOPLE, SYSTEM_OOAPAS,
   SECCION_AMARILLA, IMPAS_CHIHUAHUA, ECODELI, ODONTOPREV, PROBEMEDIC, ABRL,
   LINEACEL,
 ]

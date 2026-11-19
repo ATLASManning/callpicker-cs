@@ -77,10 +77,23 @@ export default function AuditoriaPage() {
   const allCases: AuditoriaCase[] = [...STATIC_CASES, ...userCases]
   const currentCase = allCases.find(c => c.id === selectedId) ?? STATIC_CASES[0]
 
+  /* ORDEN DE LA BARRA: alfabético para la cartera, y al final las que no son
+     de nadie.
+     Un caso con `asesor: null` no es una cuenta de un KAM: son las que se
+     vendieron y se perdieron ANTES de entrar a `cuentas`, sin consecutivo y a
+     veces sin CID (Viajes Macull, CP 190196). Intercaladas por nombre
+     aparecían en medio de la cartera, donde se leen como una cuenta asignada
+     que a nadie le toca. Van juntas al final, en el orden en que están en
+     `cases.ts`, que es el de alta: la última auditada queda abajo.
+     Instrucción de dirección del 19 nov 2026 al cargar CP 190196: «colócalo
+     debajo de la cuenta Viajes Macull». */
   const grouped = ESTADO_ORDER.reduce<{ estado: EstadoAuditoria; cases: AuditoriaCase[] }[]>((acc, estado) => {
-    const grp = allCases
-      .filter(c => c.estado === estado)
+    const delEstado = allCases.filter(c => c.estado === estado)
+    const conAsesor = delEstado
+      .filter(c => c.asesor)
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }))
+    const sinAsesor = delEstado.filter(c => !c.asesor)   // sin ordenar: orden de alta
+    const grp = [...conAsesor, ...sinAsesor]
     if (grp.length > 0) acc.push({ estado, cases: grp })
     return acc
   }, [])

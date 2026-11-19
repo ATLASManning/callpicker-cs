@@ -1,0 +1,363 @@
+<title>Caso CP 190196</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400&display=swap">
+<style>
+/* Expediente forense de una sola cuenta: cronología como espina, evidencia citada, campos vacíos como hallazgo */
+:root{
+  --ground:#F2F1ED; --panel:#FBFAF8; --panel-2:#E9E8E2;
+  --ink:#1A1D22; --ink-2:#4A4F57; --ink-3:#777C85;
+  --rule:#D5D3CB; --rule-2:#BFBDB3;
+  --navy:#10355D; --navy-soft:#E2E8F0;
+  --crit:#8E2A20; --crit-bg:#F7E7E4;
+  --warn:#8A5A09; --warn-bg:#F9EEDA;
+  --ok:#1A5F4A; --ok-bg:#E2EFE9;
+  --f-sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --f-serif:"IBM Plex Serif",Georgia,serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#14161A; --panel:#1C1F24; --panel-2:#23272D;
+  --ink:#E8E7E2; --ink-2:#B3B6BC; --ink-3:#848A93;
+  --rule:#30353C; --rule-2:#424851;
+  --navy:#8FB4DF; --navy-soft:#1E2A3A;
+  --crit:#E8938A; --crit-bg:#331A17;
+  --warn:#DEAE5C; --warn-bg:#2E2314;
+  --ok:#6FBFA2; --ok-bg:#132A22;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --ground:#14161A; --panel:#1C1F24; --panel-2:#23272D;
+  --ink:#E8E7E2; --ink-2:#B3B6BC; --ink-3:#848A93;
+  --rule:#30353C; --rule-2:#424851;
+  --navy:#8FB4DF; --navy-soft:#1E2A3A;
+  --crit:#E8938A; --crit-bg:#331A17;
+  --warn:#DEAE5C; --warn-bg:#2E2314;
+  --ok:#6FBFA2; --ok-bg:#132A22;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--f-sans);font-size:16px;line-height:1.65;margin:0;-webkit-text-size-adjust:100%}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 72px}
+h1,h2,h3,h4{text-wrap:balance;margin:0;font-weight:600;letter-spacing:-0.01em}
+h1{font-size:clamp(1.8rem,5.2vw,2.6rem);line-height:1.1}
+h2{font-size:clamp(1.28rem,3.5vw,1.6rem);line-height:1.2}
+h3{font-size:1.06rem;line-height:1.3}
+h4{font-size:.94rem;line-height:1.35}
+p{margin:0}
+code,.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+.head{border-bottom:2px solid var(--ink);padding-block:40px 24px;display:flex;flex-direction:column;gap:20px}
+.eyebrow{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.meta{display:flex;flex-wrap:wrap;gap:10px 28px;font-family:var(--f-mono);font-size:.74rem;color:var(--ink-2)}
+.meta div{min-width:0}
+.meta span{color:var(--ink-3);display:block;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.lede{font-family:var(--f-serif);font-size:clamp(1.04rem,2.5vw,1.22rem);line-height:1.55;color:var(--ink-2);max-width:62ch}
+
+section{padding-block:44px;border-bottom:1px solid var(--rule)}
+.shead{display:flex;gap:14px;align-items:baseline;margin-bottom:8px}
+.snum{font-family:var(--f-mono);font-size:.78rem;font-weight:600;color:var(--navy);flex:none;padding-top:.25em}
+.sub{color:var(--ink-2);max-width:66ch;margin-top:10px}
+.stack{display:flex;flex-direction:column;gap:18px;margin-top:24px}
+
+.anchors{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:26px}
+.anchor{background:var(--panel);padding:20px 18px;min-width:0}
+.anchor .n{font-family:var(--f-mono);font-size:clamp(1.5rem,4.4vw,2rem);font-weight:600;line-height:1.05;color:var(--crit);font-variant-numeric:tabular-nums}
+.anchor .l{font-size:.85rem;color:var(--ink-2);margin-top:10px;line-height:1.45}
+
+/* cronología */
+.tl{display:flex;flex-direction:column;margin-top:26px;border-left:2px solid var(--rule);padding-left:0}
+.ev{display:grid;grid-template-columns:minmax(74px,88px) 1fr;gap:14px;padding:11px 0 11px 16px;position:relative;border-bottom:1px solid var(--rule);min-width:0}
+.ev:last-child{border-bottom:none}
+.ev::before{content:"";position:absolute;left:-5px;top:19px;width:8px;height:8px;border-radius:50%;background:var(--rule-2)}
+.ev.hit::before{background:var(--ok)}
+.ev.miss::before{background:var(--crit)}
+.ev.key::before{background:var(--navy);width:12px;height:12px;left:-7px;top:17px}
+.ev .when{font-family:var(--f-mono);font-size:.72rem;color:var(--ink-3);line-height:1.5;padding-top:2px;min-width:0;overflow-wrap:break-word}
+.ev .what{min-width:0}
+.ev .what b{display:block;font-size:.9rem;font-weight:600;margin-bottom:2px}
+.ev .what p{font-size:.85rem;color:var(--ink-2)}
+.ev .who{font-family:var(--f-mono);font-size:.66rem;color:var(--ink-3);letter-spacing:.05em;text-transform:uppercase;margin-top:4px}
+.ev.key{background:var(--navy-soft);margin-left:-2px;padding-left:18px;border-bottom:1px solid var(--rule)}
+.ev.key .what b{color:var(--navy)}
+.gap{font-family:var(--f-mono);font-size:.72rem;color:var(--crit);padding:14px 0 14px 16px;border-bottom:1px solid var(--rule);letter-spacing:.03em}
+
+.quote{background:var(--panel);border:1px solid var(--rule);padding:18px;display:flex;flex-direction:column;gap:11px;min-width:0}
+.quote blockquote{font-family:var(--f-serif);font-size:1rem;line-height:1.55;margin:0;color:var(--ink);border-left:2px solid var(--navy);padding-left:15px}
+.quote .attr{font-family:var(--f-mono);font-size:.68rem;color:var(--ink-3);letter-spacing:.05em}
+
+.vs{display:grid;grid-template-columns:1fr;gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:22px}
+.vs>div{background:var(--panel);padding:18px;min-width:0}
+.vs .k{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;margin-bottom:8px}
+.vs .a .k{color:var(--ok)}
+.vs .b .k{color:var(--crit)}
+.vs .c .k{color:var(--warn)}
+.vs p{font-size:.9rem;color:var(--ink-2)}
+.vs .big{font-family:var(--f-serif);font-size:1rem;color:var(--ink);line-height:1.5}
+@media(min-width:760px){.vs{grid-template-columns:1fr 1fr 1fr}}
+
+.tw{overflow-x:auto;margin-top:22px;border:1px solid var(--rule);background:var(--panel)}
+table{border-collapse:collapse;width:100%;min-width:540px;font-size:.84rem}
+caption{text-align:left;padding:14px 16px;font-size:.8rem;color:var(--ink-3);border-bottom:1px solid var(--rule);font-family:var(--f-mono)}
+th,td{padding:9px 14px;text-align:left;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+td.n,th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tr.hl td{background:var(--crit-bg);color:var(--crit);font-weight:500}
+td .vacio{font-family:var(--f-mono);font-size:.74rem;color:var(--crit)}
+td .lleno{font-family:var(--f-mono);font-size:.74rem;color:var(--ok)}
+
+ul.dash{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+ul.dash li{padding-left:20px;position:relative;font-size:.92rem;color:var(--ink-2);min-width:0}
+ul.dash li::before{content:"—";position:absolute;left:0;color:var(--rule-2);font-family:var(--f-mono)}
+ul.dash li b{color:var(--ink);font-weight:600}
+
+.note{border:1px solid var(--warn);background:var(--warn-bg);padding:16px 18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.note .nt{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--warn);font-weight:600}
+.note p{font-size:.88rem;color:var(--ink)}
+.note.c{border-color:var(--crit);background:var(--crit-bg)}
+.note.c .nt{color:var(--crit)}
+.note.o{border-color:var(--navy);background:var(--navy-soft)}
+.note.o .nt{color:var(--navy)}
+.foot{padding-block:34px;font-family:var(--f-mono);font-size:.72rem;color:var(--ink-3);line-height:1.7}
+</style>
+
+<div class="wrap">
+
+<header class="head">
+  <p class="eyebrow">Callpicker · Satisfacción al Cliente · Anexo al diagnóstico del ciclo de compra</p>
+  <h1>Una venta de 14 minutos que murió en 27 días</h1>
+  <p class="lede">Reconstrucción completa de la cuenta CP 190196 desde el clic en Facebook hasta el correo de cancelación. Es el único caso del que existe trazabilidad íntegra en los tres sistemas, y reproduce, con nombre y hora, cada falla descrita en el diagnóstico general.</p>
+  <div class="meta">
+    <div><span>Cuenta</span>CP 190196 · Ingeniería Mantenimiento y Desarrollo Informático</div>
+    <div><span>Plan</span>Comunicación Empresarial 60 minutos · $209 MXN</div>
+    <div><span>Vida</span>27 días desde el pago · una sola factura</div>
+    <div><span>Fuentes</span>Zoho CRM (Contacto y Oportunidad) · canal de Activaciones · Zoho Desk #119093</div>
+  </div>
+</header>
+
+<section>
+  <div class="shead"><span class="snum">01</span><h2>El caso en seis cifras</h2></div>
+
+  <div class="anchors">
+    <div class="anchor"><p class="n">14:46</p><p class="l">minutos. Es todo el tiempo que alguien de Callpicker habló con este cliente en los 52 días del ciclo comercial. Una sola llamada.</p></div>
+    <div class="anchor"><p class="n">2:22</p><p class="l">minutos entre que terminó esa llamada y que la oportunidad se creó ya como contrato firmado.</p></div>
+    <div class="anchor"><p class="n">7 de 7</p><p class="l">llamadas salientes de Callpicker al prospecto, perdidas. El 100%. Las dos que conectaron las hizo el cliente.</p></div>
+    <div class="anchor"><p class="n">8</p><p class="l">intentos de contacto de Perfilamiento en 25 días antes de lograr pasarlo a Ventas.</p></div>
+    <div class="anchor"><p class="n">$209</p><p class="l">de ingreso total en toda la relación. Unos $125 de margen al 60%.</p></div>
+    <div class="anchor"><p class="n">27</p><p class="l">días entre el pago y la solicitud de cancelación. Activaciones lo había cerrado con capacitación completa.</p></div>
+  </div>
+
+  <div class="stack">
+    <div class="note o">
+      <p class="nt">Por qué este caso vale más que cien tickets</p>
+      <p>En el canal de Activaciones esta cuenta figura como una activación exitosa: <em>«CE60. Se activó cuenta brindando capacitación, se instaló app en CP. Cliente agradece el servicio y comenta que ya sería todo.»</em> Trabajo impecable, cliente agradecido, ticket cerrado. <strong>Y la cuenta murió 27 días después.</strong> Ninguna de las tres áreas hizo mal su trabajo según su propia definición. El cliente se fue igual.</p>
+      <p>Además, como canceló el 3 de noviembre, <strong>no aparece en el corte de churn</strong> que sostiene el diagnóstico general: ahí está contada entre las cuentas sin evento registrado. Es un sobreviviente falso, y confirma que el 32.3% de mortalidad de la cohorte 2026 es un piso.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">02</span><h2>Cómo nació, cómo evolucionó, cómo se cerró</h2></div>
+  <p class="sub">Cronología reconstruida de los registros de Zoho CRM, el canal de Activaciones y el ticket de Zoho Desk. Punto verde: contacto logrado. Punto rojo: contacto fallido. Punto azul: momento decisivo.</p>
+
+  <div class="tl">
+    <div class="ev"><span class="when">12 sep<br>17:56</span><span class="what"><b>Nace el lead</b><p>Formulario desde Facebook Ads. Microempresa de 2 a 5 personas. Necesidad declarada: «número empresarial para poder comunicarse con sus clientes para ventas». Implementación a corto plazo, de 1 a 3 semanas.</p><span class="who">Marketing · campaña pagada</span></span></div>
+
+    <div class="ev miss"><span class="when">14 sep<br>08:14</span><span class="what"><b>Intento 1 — número ocupado</b><p>Llamada saliente perdida, 16 segundos. Se envía WhatsApp.</p><span class="who">Perfilamiento</span></span></div>
+
+    <div class="ev miss"><span class="when">17 sep</span><span class="what"><b>Intento 3 — WhatsApp con información</b><p>Se envía información del servicio de su interés. Sin respuesta.</p><span class="who">Perfilamiento</span></span></div>
+
+    <div class="ev miss"><span class="when">18 sep<br>11:04</span><span class="what"><b>Intento 4 — suena y no contesta</b><p>Llamada saliente perdida, 42 segundos. «Suena varias veces pero no contesta la llamada y los WhatsApp no los contestó.»</p><span class="who">Perfilamiento</span></span></div>
+
+    <div class="gap">19 días sin un solo registro de actividad</div>
+
+    <div class="ev miss"><span class="when">7 oct<br>10:06</span><span class="what"><b>Intentos 5, 6 y 7 — el cliente pide que le marquen</b><p>El prospecto regresa por chat con otro número y pide que le llamen. Tres llamadas salientes en tres minutos: perdidas de 9 y 10 segundos. «Le informo que no pude comunicarme, pide que le marque otra vez y nuevamente dice que el número está ocupado.»</p><span class="who">Perfilamiento</span></span></div>
+
+    <div class="ev miss"><span class="when">7 oct<br>10:09</span><span class="what"><b>El cliente llama y cae en buzón de voz</b><p>Llamada entrante del prospecto. Estatus: correo de voz. <strong>5 minutos y 36 segundos</strong> esperando. Tres grabaciones en el expediente.</p><span class="who">Recibe Perfilamiento</span></span></div>
+
+    <div class="ev miss"><span class="when">7 oct<br>10:17</span><span class="what"><b>Intento 8 — se califica sin poder transferir</b><p>«Marca el lead, perfilo e intento transferir a ventas sin éxito. Les comparto el link para que le marquen en cuanto se desocupe alguno.» Queda registrado el motivo en el CRM: <strong>«No hay asesores disponibles (no contestan)»</strong>. Estado del lead: E4, SQL transferido, handshake.</p><span class="who">Perfilamiento</span></span></div>
+
+    <div class="ev miss"><span class="when">7 oct<br>10:17–10:19</span><span class="what"><b>Ventas intenta tres veces y falla tres veces</b><p>Tres llamadas salientes perdidas de 10, 10 y 9 segundos. «Número ocupado, se envía WA para iniciar contacto.»</p><span class="who">Ventas</span></span></div>
+
+    <div class="ev key"><span class="when">7 oct<br>10:19:52</span><span class="what"><b>La única conversación de todo el ciclo</b><p>Llamada entrante. La hace el cliente. <strong>Contestada, 14 minutos y 46 segundos.</strong> Es el primer y último diálogo comercial de esta cuenta, 25 días después de que el lead entró.</p><span class="who">Ventas · con grabación en el expediente</span></span></div>
+
+    <div class="ev key"><span class="when">7 oct<br>10:37</span><span class="what"><b>Oportunidad creada y cerrada</b><p><strong>Dos minutos y veintidós segundos después de colgar.</strong> Fase: Contrato Firmado, Cierre Logrado. Probabilidad 100%. Importe $209. Nota del asesor, completa: «Se resuelven dudas de uso y funcionalidad, sería para 2 personas, van iniciando y requieren algo básico. Se ofrece CE 60.»</p><span class="who">Ventas</span></span></div>
+
+    <div class="ev hit"><span class="when">7 oct</span><span class="what"><b>Pago y facturación el mismo día</b><p>Cotejo de cierre posterior confirma factura emitida, monto y fecha coincidentes.</p><span class="who">Administración</span></span></div>
+
+    <div class="ev hit"><span class="when">oct</span><span class="what"><b>Activación cerrada con éxito</b><p>«CE60. Se activó cuenta brindando capacitación, se instaló app en CP. Cliente agradece el servicio y comenta que ya sería todo.»</p><span class="who">Activaciones</span></span></div>
+
+    <div class="ev miss"><span class="when">3 nov<br>16:33</span><span class="what"><b>El cliente pide la cancelación por correo</b><p>Escribe directo a la mesa de ayuda: «solicito de su ayuda para implementar la cancelación del servicio… debido a que no ocuparemos más la línea».</p><span class="who">El cliente</span></span></div>
+
+    <div class="ev"><span class="when">3 nov<br>16:58</span><span class="what"><b>SAC intenta retener</b><p>Se escala para intento de retención ofreciendo vincular la línea a WhatsApp. Se deja constancia interna: «solo pagó una vez y prácticamente solo hizo pruebas, por lo que es importante la retro».</p><span class="who">SAC</span></span></div>
+
+    <div class="ev miss"><span class="when">4 nov<br>13:51</span><span class="what"><b>Se le contacta por WhatsApp, porque su línea no contesta</b><p>«Me comunico con el cliente por llamada a través de WhatsApp ya que en su línea directa no había contestación.» El cliente explica que su comunicación con clientes es por correo, que el uso fue muy bajo, y que <strong>su operación no requiere, en su mayoría, del uso de llamadas</strong>. Rechaza la alternativa de WhatsApp.</p><span class="who">SAC · retención</span></span></div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">03</span><h2>El sistema sabía qué quería el cliente. Nadie lo usó.</h2></div>
+  <p class="sub">Esta es la parte del caso que no admite interpretación benévola. El 7 de octubre, la propia inteligencia artificial de Callpicker transcribió y analizó la llamada de 14 minutos, y dejó su lectura en el expediente. El asesor escribió la suya el mismo día.</p>
+
+  <div class="vs">
+    <div class="a">
+      <p class="k">7 oct · lo que dijo el análisis de IA</p>
+      <p class="big">«El cliente busca un servicio de comunicación telefónica y CRM para una microempresa. El interés es integrar un <strong>CRM</strong> con líneas telefónicas y <strong>WhatsApp</strong> para facilitar la comunicación con clientes.»</p>
+      <p style="margin-top:10px">Temas recurrentes detectados: CRM · comunicación con clientes · WhatsApp</p>
+    </div>
+    <div class="b">
+      <p class="k">7 oct · lo que escribió el asesor</p>
+      <p class="big">«Se resuelven dudas de uso y funcionalidad, sería para 2 personas, van iniciando y requieren algo básico. Se ofrece CE 60.»</p>
+      <p style="margin-top:10px">Se vendió un plan de telefonía de 60 minutos. Ni CRM, ni WhatsApp, ni chat.</p>
+    </div>
+    <div class="c">
+      <p class="k">4 nov · lo que ofreció retención</p>
+      <p class="big">Vincular la línea a WhatsApp para que le fuera más útil.</p>
+      <p style="margin-top:10px"><strong>Veintiocho días tarde.</strong> Se ofreció, para retener, exactamente lo que el sistema había dicho el día de la venta.</p>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="note c">
+      <p class="nt">Y hay un segundo aviso, en el propio formulario</p>
+      <p>En el campo «Rol del contacto en la compra» alguien escribió <strong>«Sonar profesional»</strong>. El campo está mal usado, pero el contenido es la declaración más precisa de todo el expediente: el cliente no compraba capacidad de llamadas, compraba <strong>imagen</strong>. Una microempresa de dos personas que opera por correo y quiere un número que suene serio.</p>
+      <p>Treinta días después, al cancelar, dijo exactamente eso: su operación no requiere llamadas. <strong>No cambió de opinión. Nadie le preguntó.</strong></p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">04</span><h2>Lo que se dejó de hacer</h2></div>
+  <p class="sub">El formulario de la oportunidad en Zoho ya contiene todas las preguntas correctas. Están diseñadas, nombradas y disponibles. Esto es lo que se llenó y lo que no.</p>
+
+  <div class="tw">
+    <table>
+      <caption>Campos del formulario de oportunidad · CP 190196</caption>
+      <thead><tr><th>Sección y campo</th><th>Estado</th><th>Qué habría pasado si se llenaba</th></tr></thead>
+      <tbody>
+        <tr><td><b>Perfilamiento</b> · necesidad, tiempo, tamaño, número de usuarios, portabilidad, giro</td><td><span class="lleno">Completo</span></td><td>Perfilamiento hizo su parte. El expediente comercial arranca bien.</td></tr>
+        <tr class="hl"><td><b>Consumo</b> · ¿Cuántas llamadas reciben y hacen al día?</td><td><span class="vacio">Vacío</span></td><td>Este es el campo que decidía todo. La respuesta era «casi ninguna». Un plan de 60 minutos no tenía sentido, y la venta correcta era otra o no era.</td></tr>
+        <tr class="hl"><td><b>Consumo</b> · ¿Requieren integración con Teams o CRM?</td><td><span class="vacio">Vacío</span></td><td>La IA había detectado CRM como tema central de la llamada.</td></tr>
+        <tr class="hl"><td><b>Consumo</b> · ¿Requieren el servicio de CP Chat?</td><td><span class="vacio">Vacío</span></td><td>La IA había detectado WhatsApp como tema central. Es lo que se le ofreció un mes después, para retenerlo.</td></tr>
+        <tr><td><b>Diagnóstico</b> · Problema, Impacto, Detonador</td><td><span class="vacio">Vacío</span></td><td>No hay registro de qué le dolía al cliente ni por qué buscó ahora.</td></tr>
+        <tr><td><b>Diagnóstico</b> · ¿Problema confirmado con el cliente?</td><td><span class="vacio">Vacío</span></td><td>Nunca se validó que existiera un problema que Callpicker resolviera.</td></tr>
+        <tr><td><b>Diagnóstico</b> · ¿Qué número dan a conocer a sus clientes?</td><td><span class="vacio">Vacío</span></td><td>Pregunta directa al caso de uso de imagen que el cliente traía.</td></tr>
+        <tr><td><b>Consumo</b> · días laborados, duración promedio, llamadas simultáneas, grabación, sucursales</td><td><span class="vacio">Vacío</span></td><td>Dimensionamiento del plan. Ninguno se preguntó.</td></tr>
+        <tr><td><b>Prueba</b> · toda la sección, incluida «¿Se acordó qué resultado daría por buena la prueba?»</td><td><span class="vacio">Vacío</span></td><td>No hubo demo ni criterio de éxito acordado. El cliente compró sin haber visto si le servía.</td></tr>
+        <tr><td><b>Costo</b> · Cotización, «El cliente entendió cómo quedaría su servicio»</td><td><span class="vacio">Vacío</span></td><td>Sin cotización y sin confirmación de entendimiento.</td></tr>
+        <tr><td><b>Decisión</b> · ¿Quién más participa? → «Director General»</td><td><span class="lleno">Lleno</span></td><td>Se identificó al decisor y nunca se le involucró. El campo «¿A quiénes hay que involucrar?» quedó vacío.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="stack">
+    <div class="note">
+      <p class="nt">El embudo existe, está diseñado y no se recorrió</p>
+      <p>El CRM tiene definidas, entre otras, las etapas <em>Calificación</em>, <em>Análisis de Necesidades</em>, <em>Propuesta/Cotización</em>, <em>Prueba</em>, <em>Negociación/Revisión</em> y <em>En espera de pago</em>. Esta oportunidad pasó de calificación a <strong>Contrato Firmado — Cierre Logrado</strong> en el mismo día, dos minutos después de una llamada. Se saltaron cuatro etapas intermedias.</p>
+      <p>Y el propio catálogo de cierre perdido contiene, redactada por la empresa, la causa exacta de esta cancelación: <strong>«Cierre Perdido — Su necesidad era otra.»</strong> Existía la categoría. Faltó el paso que la habría detectado.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">05</span><h2>La ironía operativa que nadie registró</h2></div>
+  <p class="sub">Separada del análisis comercial porque es un hallazgo de producto y de operación propia, no de proceso.</p>
+
+  <div class="tw">
+    <table>
+      <caption>Llamadas entre Callpicker y el prospecto · todo el ciclo</caption>
+      <thead><tr><th>Dirección</th><th class="n">Total</th><th class="n">Conectadas</th><th class="n">Perdidas o a buzón</th></tr></thead>
+      <tbody>
+        <tr class="hl"><td>Salientes · Callpicker llama al prospecto</td><td class="n">7</td><td class="n">0</td><td class="n">7</td></tr>
+        <tr><td>Entrantes · el prospecto llama a Callpicker</td><td class="n">2</td><td class="n">1</td><td class="n">1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="stack">
+    <ul class="dash">
+      <li>Una empresa que vende conmutadores en la nube <b>perdió las siete llamadas que hizo</b> a un prospecto, con duraciones de 9 a 42 segundos.</li>
+      <li>Ese prospecto llamó por su cuenta y <b>pasó 5 minutos y 36 segundos en un buzón de voz</b> antes de colgar.</li>
+      <li>El motivo quedó escrito en el CRM por el área de Perfilamiento: <b>«No hay asesores disponibles (no contestan)»</b>.</li>
+      <li>Un mes después, para intentar retenerlo, <b>hubo que buscarlo por WhatsApp «ya que en su línea directa no había contestación»</b>.</li>
+      <li>Las dos únicas veces que hubo conversación, <b>fue el cliente quien marcó</b>. Callpicker nunca logró alcanzarlo.</li>
+    </ul>
+    <div class="note c">
+      <p class="nt">Lo que esto cuesta y nadie mide</p>
+      <p>Este lead venía de campaña pagada en Facebook. Entre el 12 de septiembre y el 7 de octubre hubo <strong>ocho intentos y 25 días</strong> para lograr una conversación que, cuando ocurrió, cerró en quince minutos. No existe indicador de cuántos leads pagados se pierden en ese tramo, ni de cuántas llamadas de prospección se caen por no haber asesor disponible. Si este caso es representativo, el desperdicio de inversión en adquisición ocurre <strong>antes</strong> de que Ventas entre en contacto.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">06</span><h2>Por qué canceló, y dónde estaba escrito</h2></div>
+
+  <div class="stack">
+    <div class="quote">
+      <blockquote>El cliente comenta que actualmente la mayoría de la comunicación que tiene con sus clientes es a través de correo. Al principio requerían del servicio como una alternativa de comunicación, pero el uso es muy bajo. Pregunté si había comunicación por WhatsApp para ofrecerle una alternativa del servicio, pero insistió en que el motivo es que su operación no requiere, en su mayoría, del uso de llamadas.</blockquote>
+      <p class="attr">Nota de retención · 4 de noviembre de 2026</p>
+    </div>
+
+    <p style="color:var(--ink-2)">No canceló por precio. No canceló por falla técnica. No canceló por mala atención: Activaciones lo capacitó y él agradeció el servicio. <strong>Canceló porque el producto no correspondía a su operación, y eso era averiguable el 7 de octubre con una sola pregunta que el formulario ya contenía.</strong></p>
+
+    <div class="tw">
+      <table>
+        <caption>Las tres señales disponibles antes de vender</caption>
+        <thead><tr><th>Señal</th><th>Dónde estaba</th><th>Cuándo</th></tr></thead>
+        <tbody>
+          <tr><td>«Sonar profesional» como motivo de compra</td><td>Formulario de la oportunidad</td><td>7 de octubre</td></tr>
+          <tr><td>Interés en CRM y WhatsApp, no en telefonía</td><td>Análisis de IA de la llamada, en el expediente</td><td>7 de octubre</td></tr>
+          <tr><td>«Con celular, es proyecto nuevo» — sin operación telefónica previa</td><td>Campo de calificación, sección Budget</td><td>7 de octubre</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="color:var(--ink-2)">Las tres estaban en el sistema el mismo día de la venta. Ninguna se cruzó con la pregunta de cuántas llamadas hace al día, porque esa pregunta no se formuló.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead"><span class="snum">07</span><h2>Qué habría cambiado el resultado</h2></div>
+  <p class="sub">Tres intervenciones, ninguna costosa, ordenadas por impacto sobre este caso concreto.</p>
+
+  <div class="stack">
+    <div class="note o">
+      <p class="nt">1 · Una pregunta obligatoria antes de poder cerrar</p>
+      <p>«¿Cuántas llamadas reciben y hacen al día?» El campo ya existe en el formulario. Si la respuesta es «casi ninguna», el sistema no debería permitir cerrar un plan de minutos. <strong>En este caso, esa sola pregunta cambia el desenlace</strong>: o no se vende, o se vende CP Chat y la integración con CRM, que es lo que el cliente pedía y lo que se le ofreció treinta días tarde.</p>
+    </div>
+    <div class="note o">
+      <p class="nt">2 · Que el análisis de IA de la llamada sea insumo de la venta, no adorno del expediente</p>
+      <p>La transcripción ya detectó CRM y WhatsApp como los temas centrales. Está en el mismo registro que el asesor usó para cerrar. <strong>Hacer que el cierre exija confirmar o refutar lo que la IA detectó</strong> convierte una herramienta que ya se paga en un control de calidad de la venta. No requiere desarrollo nuevo: requiere un campo y una regla.</p>
+    </div>
+    <div class="note o">
+      <p class="nt">3 · Que no se pueda saltar de calificación a cierre</p>
+      <p>Cuatro etapas del embudo se omitieron, incluida la prueba y la confirmación de que el cliente entendió qué estaba comprando. El embudo ya está diseñado en Zoho con todas sus etapas. <strong>Falta que el sistema las exija</strong>, o al menos que registre y reporte cuántas oportunidades las saltan.</p>
+    </div>
+  </div>
+</section>
+
+<section style="border-bottom:none">
+  <div class="shead"><span class="snum">08</span><h2>Qué prueba este caso</h2></div>
+
+  <div class="stack">
+    <ul class="dash">
+      <li><b>No es un problema de Activaciones.</b> Activaciones hizo un trabajo correcto y documentado, con capacitación e instalación de app, y el cliente lo agradeció. La cuenta murió igual porque llegó mal vendida.</li>
+      <li><b>No es un problema de documentación.</b> El formulario existe, las preguntas están diseñadas, el embudo está configurado y la IA ya analiza las llamadas. <strong>No falta herramienta: falta que alguien estudie al cliente.</strong></li>
+      <li><b>No es un problema de esfuerzo.</b> Perfilamiento hizo ocho intentos en 25 días y dejó constancia de cada uno. El esfuerzo estuvo. El diagnóstico no.</li>
+      <li><b>Es la cadena completa fallando en orden.</b> Marketing trae un lead pagado; la operación propia pierde siete llamadas y lo manda a buzón; Ventas cierra en dos minutos sin preguntar nada; Activaciones activa lo que le llega; SAC hereda una cuenta sin expediente y descubre, al cancelar, lo que estaba escrito el día uno.</li>
+      <li><b>Y confirma que las cifras del diagnóstico general son un piso.</b> Esta cuenta canceló después del corte de datos, así que está contada entre las que aparecen vivas.</li>
+    </ul>
+
+    <div class="note c">
+      <p class="nt">La frase para la mesa</p>
+      <p>Este cliente dijo lo que necesitaba el 7 de octubre. Lo dijo en el formulario, lo dijo en la llamada y la inteligencia artificial de la empresa lo transcribió. <strong>Se le vendió otra cosa en catorce minutos, y se le ofreció lo correcto veintiocho días después, cuando ya se iba.</strong></p>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  Fuentes: registro de Contacto y registro de Oportunidad en Zoho CRM (CP 190196) · canal de activaciones post-venta · ticket de cancelación en Zoho Desk #119093 · análisis automático de llamada generado por la plataforma.<br><br>
+  Documento de trabajo interno. Todas las horas y duraciones proceden de los registros de llamada del propio sistema. Las citas son transcripción literal de las notas en los expedientes. Anexo al diagnóstico del ciclo de compra.
+</footer>
+
+</div>
