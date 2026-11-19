@@ -110,7 +110,8 @@ SERVICIOS = [
 ]
 
 OBS_KAM = u"""INTELIGENCIA DE CUENTA — UNIVERSIDAD UNIVERMILENIUM (CID 178812)
-Alta 10 oct 2026 por instruccion de direccion. Cuenta TOP, asesora Claudia.
+Alta 10 oct 2026 por instruccion de direccion, como cuenta TOP. El alta se dio
+a nombre de Claudia; la cartera paso a ERICK el 15 oct 2026 y es quien la lleva.
 
 — QUE ES
 Institucion privada de educacion superior en el Estado de Mexico, fundada en
@@ -235,7 +236,8 @@ campus del directorio que NO aparecen en el alcance del desarrollo
 natural de crecimiento. CONDICIONAL: primero hay que verificar cuales atiende
 Callpicker hoy — ese dato no lo tenemos."""
 
-NOTAS = u"""[ALTA 10 oct 2026] Cuenta TOP C69, asesora Claudia, por instruccion de direccion.
+NOTAS = u"""[ALTA 10 oct 2026] Cuenta TOP C69, por instruccion de direccion. Se
+dio de alta a nombre de Claudia y la lleva ERICK desde el 15 oct 2026.
 
 CLASIFICACION AAA segun el export de Gross Revenue Facturacion. No hay columna
 para eso en `cuentas`; queda aqui escrito.
@@ -254,8 +256,9 @@ Puede ser que el recurrente arrancara mas bajo y subiera con el upsale de
 agosto, o que el acumulado no cubra los 7 meses completos. El campo
 `facturacion` se sembro con los $18,514 del export por ser la unica cifra
 etiquetada como MRR; la cifra que mande es la del cruce vivo de GRC por CID,
-que es la fuente unica. Revisar en el proximo corte.
-Ver [[feedback-metricas-derivadas-origen]] y [[grc-fuente-zoho]].
+que es la fuente unica. Revisar en el proximo corte. Y la regla que impide
+cerrar esto a ojo: un promedio que sale de dividir un acumulado entre meses no
+es un MRR, y no se espejea una cifra derivada sin reconstruir su formula.
 
 FECHA DE INICIO: se usa 2026-04-28, el cierre de la primera oportunidad, porque
 cuadra con los 7 meses activos del export (abr-oct). NO se uso el 2026-02-05
@@ -267,7 +270,7 @@ DATOS QUE FALTAN Y POR QUE IMPORTAN — no se inventaron:
   «Puesto» vienen vacios. Sin el no sabemos si tiene facultad de compra, y es
   el unico contacto de la cuenta.
 - SEGUNDO CONTACTO: NO EXISTE. Ocho meses de relacion con un solo interlocutor.
-  Es el riesgo mas accionable de la cuenta y la primera tarea de Claudia.
+  Es el riesgo mas accionable de la cuenta y la primera tarea de Erick.
 - RFC y razon social: SIN CAPTURAR. No se inventan.
 - CUANTOS DE LOS 7 CAMPUS ATIENDE CALLPICKER: SIN VERIFICAR. El desarrollo
   nombra 3 (Cuautitlan, Ecatepec, Rectoria); el directorio publica 7.
@@ -290,7 +293,14 @@ FILA = {
     'consecutivo':       CONSECUTIVO,
     'empresa':           'Universidad UniverMilenium',
     'grupo_empresarial': 'Alias en Zoho CRM: «Univer Milenium». Razon social y RFC SIN CAPTURAR.',
-    'asesor':            'Claudia',
+    # OJO AL RE-APLICAR ESTE GUION. El alta se dio el 10 oct 2026 a nombre de
+    # Claudia y el 15 oct 2026 la cartera entera paso a ERICK. Este campo decia
+    # 'Claudia' y el 19 nov 2026, al correr el guion otra vez para quitar unos
+    # enlaces de las notas, LE DEVOLVIO EL ASESOR VIEJO a la fila. Lo cazo el
+    # respaldo que se saco antes de aplicar, no el guion. Un alta vieja que se
+    # vuelve a correr no es inofensiva: reimpone el mundo del dia que se
+    # escribio. El dueño vivo es Erick.
+    'asesor':            'Erick',
     'estado':            'activo',
     'cid':               CID,
     'facturacion':       18514,

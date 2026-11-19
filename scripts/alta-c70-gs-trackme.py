@@ -210,8 +210,9 @@ Las dos filas de este cliente en `data/grc-zoho.json` tienen `cid: null`. Como
 `importeDeCuenta` cruza por CID y cae a la ficha cuando no lo encuentra, el
 importe de esta cuenta lo va a mandar `cuentas.facturacion` — o sea este alta —
 y NO el cruce vivo del GRC. Es el mismo problema que GTC. Mientras el CID no se
-cargue en el export, esta cifra hay que revisarla a mano en cada corte.
-Ver [[grc-fuente-zoho]] y [[grupo-gtc-torres-corzo]].
+cargue en el export, esta cifra hay que revisarla a mano en cada corte. Es la
+regla del GRC: su export manda el MRR institucional y de nada mas sale, asi que
+una fila sin llave queda a merced de lo que diga la ficha.
 
 LA SEGUNDA LINEA DEL CLIENTE, que NO se suma a esta cuenta:
 «GS Trackme - Sercurezza», clasificacion B, 58 Meses Activo, $32,337.18
@@ -254,10 +255,10 @@ QUE VA A SALIR VACIO EN EL TABLERO Y POR QUE — no es cero, es que no se ha med
 - LLAMADAS: `tieneLlamadas` sale falso y el motor lo dice con palabras («No
   hay lectura de sus llamadas»). El modulo de atencion va a salir SIN LECTURA
   hasta que se pida el Excel. Ojo: esto NO contradice los 9 cortes de arriba,
-  son DOS fuentes distintas ([[llamadas-fuente]]).
+  son DOS fuentes distintas: los cortes de facturacion y el reporte de llamadas.
 - TICKETS: la fuente solo trae CERRADOS, asi que «tickets abiertos» es NO
-  MEDIBLE. El #118633 abierto HOY no va a aparecer en ninguna cifra.
-  Ver [[tickets-fuente]].
+  MEDIBLE. El #118633 abierto HOY no va a aparecer en ninguna cifra, porque la
+  fuente de tickets solo exporta los cerrados.
 
 DATOS QUE FALTAN Y NO SE INVENTARON:
 - PUESTO de Enrique Gomez: SIN CAPTURAR. En Zoho los campos de titulo y puesto
