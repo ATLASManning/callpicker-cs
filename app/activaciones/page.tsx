@@ -436,7 +436,7 @@ export default async function ActivacionesPage() {
               Activaciones 2.0
             </h1>
             <p style={{ fontSize: 13, color: TX_MID, marginTop: 8 }}>
-              {activaciones.length.toLocaleString('es-MX')} activaciones{demos > 0 && <> &middot; {demos.toLocaleString('es-MX')} demos</>} &middot; {anos.join(' · ')} &middot; Facturación total{' '}
+              {activaciones.length.toLocaleString('es-MX')} activaciones{demos > 0 && <> &middot; {demos.toLocaleString('es-MX')} demos</>} &middot; {anos.slice().reverse().join(' · ')} &middot; Facturación total{' '}
               <strong style={{ color: '#1D6CAA' }}>
                 {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }).format(totalFac)}
               </strong>

@@ -398,7 +398,11 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
         {/* Fila 1: Año (tabs) */}
         <div style={{display:'flex',gap:6,alignItems:'center',marginBottom:16}}>
           <span style={{fontSize:10,fontWeight:700,color:TX_LOW,textTransform:'uppercase',letterSpacing:'0.08em',width:60}}>Año</span>
-          {(['todos',...anos] as (number|'todos')[]).map(a=>(
+          {/* DEL AÑO VIVO HACIA ATRÁS. Instrucción de dirección (19 nov 2026).
+              Se invierte una COPIA: `anos` llega ascendente y las gráficas lo
+              usan así para el eje del tiempo; `reverse()` muta el arreglo y les
+              daría la vuelta al eje sin avisar. */}
+          {(['todos',...anos.slice().reverse()] as (number|'todos')[]).map(a=>(
             <button key={String(a)} onClick={()=>setSelAno(a)} style={{
               padding:'5px 14px',borderRadius:8,fontSize:12,fontWeight:700,
               cursor:'pointer',transition:'all 150ms',
