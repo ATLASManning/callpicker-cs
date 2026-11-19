@@ -15,7 +15,7 @@ import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { esConElCliente, etiquetaTipo } from './reuniones-tipo'
 import { lineaSeguimientosKAM } from './seguimiento-tipos'
 import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
-import { REPORTE_S28_OCT_2026 } from '@/app/churn/reporte-actual'
+import { REPORTE_S29_OCT_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
 import { seccionesPlanesPago } from './planes-pago'
@@ -786,7 +786,7 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   modulos.push('churn-grc')
 
   // Corte vigente de Gross Revenue Churn — misma fuente que renderiza el módulo.
-  const rep = REPORTE_S28_OCT_2026
+  const rep = REPORTE_S29_OCT_2026
   if (rep.grc) {
     const evo = rep.grc.evolucion
       .map(e => `${e.mes} ${e.pct}%${e.anterior !== undefined ? ` (ant. ${e.anterior}%)` : ''}`)
@@ -894,6 +894,26 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       ? `en ${rep.pendientesCuentasReal} cuentas`
       : 'el corte NO dice en cuántas cuentas'
     const topN = rep.pendientes.filter(p => !p.cliente.startsWith('+')).length
+    /* Y LA CARTERA ERA EL HUECO QUE QUEDABA DE LA CLASE. Downgrades, cancelados
+       y suspendidos ya tienen su rama de «no reportado»; `pendientes` no la
+       tenía, así que su línea se escribía siempre y un corte que no trae
+       cartera —la semana 29 es el primero— le metía a Atlas «$0 el corte NO
+       dice en cuántas cuentas. Top 0: ninguno». La última lectura son
+       $208,994.05 en 172 clientes: ese «$0» no es un redondeo, es lo contrario
+       del dato, y encima iba debajo de un rótulo que dice NO REPORTADA. El
+       rótulo no salva a la cifra: el modelo contesta la cifra.
+       [[feedback-cero-sin-medicion]] [[feedback-contexto-ia-sin-huecos]] */
+    const pendNoReportados =
+      rep.pendientesTotalReal === undefined && rep.pendientes.length === 0
+    const lineaCartera = pendNoReportados
+      ? `  Cartera por cobrar: ESTE CORTE NO LA PUBLICA. No hay importe, ni conteo de cuentas, `
+        + `ni tramos de antigüedad. NO respondas cero, ni que la cartera se cobró, ni que está `
+        + `limpia: di que este corte no la trae y remite a la nota del corte. Cortes anteriores `
+        + `del mismo mes SÍ la reportaron, así que un cero sería falso; la última lectura está `
+        + `en el selector de periodos y no se estima.\n`
+      : `  ${rep.pendientesEtiqueta ?? 'Cartera en Activo'}${deEmpresa}: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} ${cuentasActivo}.`
+        + ` Top ${topN}${acotado ? ' (recortado a tu alcance)' : ''}: ${top || 'ninguno en tu alcance'}.`
+        + ` El Top no es la cartera: lo que no está listado no tiene nombre en el corte, no lo inventes.\n`
     /* Dinero fuera de cartera: se SUMA de este corte, no se recuerda del
        anterior. Si el corte no lo reporta, se dice que no lo reporta. */
     const fueraTotal = (rep.suspendidosTotalReal ?? 0) + (rep.desactivadosTotalReal ?? 0)
@@ -951,6 +971,38 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
     ].filter(Boolean).join(' · ')
     const antigTotal = (rep.antiguedadSaldos ?? []).reduce((s, a) => s + a.monto, 0)
 
+    /* POR QUÉ SE VAN. Bloque nuevo en la semana 29 y la pregunta que un asesor
+       hace primero, así que si no entra aquí Atlas la contesta de memoria.
+       Se entrega con el total y el conteo SUMADOS de las propias filas —no
+       tecleados— y cerrando con `i/N`, que es lo que impide que el modelo
+       alargue la lista. [[feedback-contexto-ia-sin-huecos]]
+
+       Y SE DICE CUÁNTO NO CUBRE. «Sin motivo registrado» es una fila como las
+       demás y en este corte es la MAYORITARIA: 26 de 43 y el 36% del dinero.
+       Entregar los motivos sin esa proporción le daría a Atlas una explicación
+       del mes cuando describe menos de la mitad de los casos.
+       [[feedback-cero-sin-medicion]] */
+    const motivos = rep.canceladoMotivos ?? []
+    const motivosClientes = motivos.reduce((s, m) => s + m.clientes, 0)
+    const motivosMonto = motivos.reduce((s, m) => s + m.importe, 0)
+    const sinMotivo = motivos.filter(m => /sin motivo/i.test(m.motivo))
+    const sinMotivoCli = sinMotivo.reduce((s, m) => s + m.clientes, 0)
+    const sinMotivoDin = sinMotivo.reduce((s, m) => s + m.importe, 0)
+    const lineaMotivos = motivos.length === 0
+      ? ''
+      : `  POR QUÉ SE FUERON — conteo de motivos de ${mesCorte}${deEmpresa} `
+        + `(${motivosClientes} clientes, $${motivosMonto.toLocaleString('es-MX')}; cuadra con las `
+        + `cancelaciones del corte). Son agregados: el corte NO dice qué cliente tuvo qué motivo, `
+        + `así que no se lo atribuyas a nadie por nombre.\n`
+        + motivos
+          .map((m, i) => `    ${i + 1}/${motivos.length}. ${m.motivo}: ${m.clientes} cliente(s), `
+            + `$${m.importe.toLocaleString('es-MX')}`)
+          .join('\n')
+        + `\n    AVISO: «sin motivo registrado» son ${sinMotivoCli} de ${motivosClientes} clientes `
+        + `y $${sinMotivoDin.toLocaleString('es-MX')}, o sea el `
+        + `${Math.round(sinMotivoDin / motivosMonto * 100)}% del dinero perdido. Este bloque `
+        + `NO explica el mes: describe la parte que tiene motivo. No rellenes el resto.\n`
+
     sections.push(
       `CHURN — CORTE VIGENTE (apartado Churn > ${rep.periodo}, al ${rep.fecha} | ` +
       `ESTA es la fuente para ${mesCorte}: ` +
@@ -964,10 +1016,9 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       `${rep.grc.anterior !== undefined ? ` (ant. ${rep.grc.anterior}%)` : ''}.` +
       ` Los meses se REEXPRESAN corte a corte conforme entran pagos tardíos: si una cifra cambió` +
       ` respecto a un corte anterior no es un error, y el mes vivo mide retraso de cobranza, no bajas.\n` +
-      `  ${rep.pendientesEtiqueta ?? 'Cartera en Activo'}${deEmpresa}: $${(rep.pendientesTotalReal ?? 0).toLocaleString('es-MX')} ${cuentasActivo}.` +
-      ` Top ${topN}${acotado ? ' (recortado a tu alcance)' : ''}: ${top || 'ninguno en tu alcance'}.` +
-      ` El Top no es la cartera: lo que no está listado no tiene nombre en el corte, no lo inventes.\n` +
+      lineaCartera +
       `  Dinero fuera de cartera${deEmpresa}: $${fueraTotal.toLocaleString('es-MX')} — ${fueraDetalle}.\n` +
+      lineaMotivos +
       (antig ? `  Antigüedad de saldos${deEmpresa} (total $${antigTotal.toLocaleString('es-MX')}): ${antig}.\n` : '') +
       `${cierreDowns}\n` +
       (downsNoReportados

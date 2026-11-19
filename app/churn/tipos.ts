@@ -13,6 +13,23 @@ export interface ChurnSuspendido  { cliente: string; importe: number; mesesActiv
 export interface ChurnDesactivado { cliente: string; importe: number; mesesActivo: number }
 export interface DowngradeArticulo { articulo: string; vecesAfectado: number; clientes: string[] }
 
+/**
+ * Por qué se fueron, cuando el corte lo cuenta.
+ *
+ * Bloque NUEVO en la semana 29: es la primera vez que un corte agrupa las
+ * cancelaciones por motivo. Va tipado en vez de dentro de la prosa de
+ * `notaEspecial` porque es una tabla que tiene que CERRAR —los clientes suman
+ * el conteo declarado del mes y los importes su total— y una tabla que vive en
+ * una cadena de texto no la puede comprobar ningún script.
+ * [[feedback-tablas-deben-cerrar]]
+ *
+ * «Sin motivo registrado» ES un motivo y va como una fila más: sacarlo de la
+ * tabla la descuadraría, y además es el mayoritario —26 de 43 en la semana 29—,
+ * así que esconderlo haría leer el bloque como si cubriera el mes entero.
+ * [[feedback-cero-sin-medicion]]
+ */
+export interface ChurnMotivo { motivo: string; clientes: number; importe: number }
+
 export interface ChurnGRC {
   evolucion:   { mes: string; pct: number; anterior?: number }[]
   acumulado:   number
@@ -44,6 +61,8 @@ export interface ChurnReporte {
   suspendidos?: ChurnSuspendido[]
   desactivados?: ChurnDesactivado[]
   downgradeArticulos?: DowngradeArticulo[]
+  /** Conteo de cancelaciones por motivo, cuando el corte lo publica. */
+  canceladoMotivos?: ChurnMotivo[]
   /** Antigüedad de saldos por vencer / vencidos, cuando el corte la reporta. */
   antiguedadSaldos?: { rango: string; monto: number }[]
   grc?:        ChurnGRC

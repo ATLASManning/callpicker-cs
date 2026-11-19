@@ -7,10 +7,10 @@
     "D": 38,
     "C": 43
   },
-  "grc_nombres": 474,
+  "grc_nombres": 659,
   "cancel_nombres": 93,
-  "marcadas_total": 31,
-  "se_ven_en_activas": 0,
+  "marcadas_total": 35,
+  "se_ven_en_activas": 3,
   "ya_movidas": 9,
   "ya_movidas_detalle": [
     {
@@ -32,7 +32,7 @@
       "estado": "hibernacion",
       "mrr": 17225,
       "esTop": true,
-      "grc": false,
+      "grc": true,
       "cancel": false,
       "dir": true,
       "dormidaPorEstado": true
@@ -68,7 +68,7 @@
       "estado": "hibernacion",
       "mrr": 8663,
       "esTop": true,
-      "grc": false,
+      "grc": true,
       "cancel": false,
       "dir": true,
       "dormidaPorEstado": true
@@ -80,7 +80,7 @@
       "estado": "hibernacion",
       "mrr": 6666,
       "esTop": true,
-      "grc": false,
+      "grc": true,
       "cancel": false,
       "dir": true,
       "dormidaPorEstado": true
@@ -104,7 +104,7 @@
       "estado": "hibernacion",
       "mrr": 5235,
       "esTop": true,
-      "grc": false,
+      "grc": true,
       "cancel": false,
       "dir": true,
       "dormidaPorEstado": true
@@ -122,5 +122,42 @@
       "dormidaPorEstado": true
     }
   ],
-  "candidatas": []
+  "candidatas": [
+    {
+      "cons": "C8",
+      "empresa": "ATP Sofom",
+      "asesor": "Erick",
+      "estado": "en_riesgo",
+      "mrr": 15495,
+      "esTop": true,
+      "grc": true,
+      "cancel": false,
+      "dir": false,
+      "dormidaPorEstado": false
+    },
+    {
+      "cons": "C12",
+      "empresa": "SW Sapien",
+      "asesor": "Erick",
+      "estado": "en_riesgo",
+      "mrr": 13544,
+      "esTop": true,
+      "grc": true,
+      "cancel": false,
+      "dir": false,
+      "dormidaPorEstado": false
+    },
+    {
+      "cons": "F40",
+      "empresa": "BATTERY MART",
+      "asesor": "Fátima",
+      "estado": "activo",
+      "mrr": 3797,
+      "esTop": true,
+      "grc": true,
+      "cancel": false,
+      "dir": false,
+      "dormidaPorEstado": false
+    }
+  ]
 }

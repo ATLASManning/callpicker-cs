@@ -100,7 +100,12 @@ m = re.search(r'pendientes:\s*\[(.*?)\n  \]', actual, re.S)
 sospechosas = []
 if m:
     for cli in re.findall(r"cliente:\s*'([^']+)'", m.group(1)):
-        esCierre = re.search(r'\brest\w|\badicional\w|\botras? cuentas\b|no desglosa', cli, re.I)
+        # `\brest\w` acusaba a WhatsHome porque su nota dice «Restructuración»,
+        # que es un MOTIVO de baja, no una fila de cierre. Un verificador que
+        # acusa en falso se deja de leer, y entonces ya no verifica nada.
+        # Ahora pide la palabra entera. [[feedback-verificar-antes-asegurar]]
+        esCierre = re.search(r'\bresto\b|\brestantes\b|\badicional\w|\botras? cuentas\b'
+                             r'|no desglosa', cli, re.I)
         if esCierre and not cli.startswith('+'):
             sospechosas.append(cli[:70])
 print()
@@ -108,6 +113,20 @@ print('=== FILAS DE CIERRE (deben empezar con «+» para que Atlas las ignore) =
 print('  sin el prefijo: %s' % (sospechosas or 'ninguna'))
 
 ant = suma('antiguedadSaldos', 'monto')
+# UN CORTE PUEDE NO TRAER CARTERA. La semana 29 es el primero: su propia entrada
+# la anuncia y el cuerpo no la trae. Sin este guardia el script reventaba con
+# `TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'` y, al
+# reventar, se saltaba en silencio TODAS las comprobaciones de abajo — que es
+# exactamente el fallo que esta misma sección ya arregló dos veces.
+# [[feedback-verificar-antes-asegurar]]
+if ant is None:
+    print()
+    print(u'=== ANTIGÜEDAD DE SALDOS ===')
+    print(u'  el corte NO trae tramos de cartera: no reportado, NO cero.')
+    print(u'  (las comprobaciones de cartera no aplican a este corte; se declara, no se salta)')
+    print()
+    print(u'=== listo ===')
+    raise SystemExit(0)
 # El tramo por vencer se etiqueta de dos formas segun el corte: «Por vencer» a
 # secas o «Por vencer (total Activo)». Buscando solo la primera, el script
 # REVENTABA con AttributeError en los cortes nuevos —y al reventar se saltaba
