@@ -32,19 +32,15 @@ import { leeJson, mensajeDeError } from '@/lib/respuesta-json'
  * y castigaría a quien entrega por cuatro cosas que el sistema no le puede dar.
  */
 
-type Estado = 'completo' | 'falta' | 'otra_fuente' | 'sin_fuente' | 'no_medible'
-type Distintivo = 'cliente' | 'cuenta'
-type MotivoCuenta = 'incompleta' | 'fuera' | 'no_medido'
-
-interface Faltante { campo: string; etiqueta: string; critico: boolean; dueno: string }
-
-interface Clasificacion {
-  distintivo: Distintivo
-  motivo: MotivoCuenta | null
-  faltan: Faltante[]
-  faltanOpcionales: Faltante[]
-  porque: string
-}
+/* Los tipos, los tonos y las etiquetas NO se vuelven a teclear aquí: vienen de
+   `ExpedienteApartados`, que es el bloque que pinta el expediente en la ficha
+   del cliente. Dos copias del mismo catálogo se separan sin avisar y las dos
+   siguen pareciendo ciertas. */
+import type { Clasificacion, Expediente } from '@/components/ExpedienteApartados'
+import {
+  COLOR_DISTINTIVO, ListaApartados,
+  colorDistintivo as colorDe, textoDistintivo as textoDe,
+} from '@/components/ExpedienteApartados'
 
 interface ResultadoBusqueda {
   id: string; cliente: string; ano: string; tipo: string
@@ -60,23 +56,10 @@ interface RespuestaBusqueda {
   cuentasError: string | null
 }
 
-interface ApartadoVivo {
-  clave: string; titulo: string; estado: Estado
-  valor: string; nota?: string; detalle?: string; fuente: string
-}
-
-interface Respuesta {
-  id: string; cid: string; cliente: string
-  apartados: ApartadoVivo[]
-  resumen: {
-    completos: number; faltan: number; otraFuente: number
-    sinFuente: number; noMedibles: number; total: number
-  }
-  fuentes: {
-    cuentaEnCartera: boolean; cuentaError: string | null
-    enGrc: boolean; conContrato: boolean; didsEncontrados: number
-  }
-}
+/* La forma de la respuesta del expediente es la del tipo compartido: la
+   declaraba también aquí, y ya se había quedado atrás —le faltaba
+   `clasificacion`, que el endpoint sí manda—. */
+type Respuesta = Expediente
 
 /** Lo medido sobre las 2,820, en el servidor. */
 export interface Puerta {
@@ -98,41 +81,6 @@ const TX     = '#202E3B'
 const TX_MID = '#3D4B5C'
 const TX_SUA = '#6A7889'
 const BORDE  = '#DFE8EF'
-
-/* Los tonos se CALCULAN contra el fondo real de la página. Es la única regla
- * que ha sobrevivido catorce rondas del mismo error. */
-const COLOR: Record<Estado, string> = {
-  completo: '#15803D', falta: '#B45309', otra_fuente: '#1D6CAA',
-  sin_fuente: '#6D28D9', no_medible: '#52606D',
-}
-const ETIQUETA: Record<Estado, string> = {
-  completo: 'completo', falta: 'falta', otra_fuente: 'otra fuente',
-  sin_fuente: 'sin fuente', no_medible: 'no medible',
-}
-/* Un guion no dice POR QUÉ está vacío. La ausencia se marca con palabras. */
-const VACIO: Record<Estado, string> = {
-  completo: '—',
-  falta: 'no está capturado',
-  otra_fuente: 'lo cierra otra fuente del sistema',
-  sin_fuente: 'no existe en ninguna fuente — se captura o se declara no disponible',
-  no_medible: 'la fuente existe pero no mide esto',
-}
-
-const COLOR_CLIENTE    = '#15803D'
-const COLOR_INCOMPLETA = '#B45309'
-const COLOR_FUERA      = '#52606D'
-
-function colorDe(c: Clasificacion): string {
-  if (c.distintivo === 'cliente') return COLOR_CLIENTE
-  if (c.motivo === 'fuera') return COLOR_FUERA
-  if (c.motivo === 'no_medido') return '#6D28D9'
-  return COLOR_INCOMPLETA
-}
-function textoDe(c: Clasificacion): string {
-  if (c.distintivo === 'cliente') return 'CLIENTE'
-  if (c.motivo === 'no_medido') return 'sin medir'
-  return 'CUENTA'
-}
 
 type Filtro = 'todas' | 'cliente' | 'incompleta' | 'fuera'
 
@@ -334,9 +282,9 @@ function BarraPuerta({ p, filtro, alFiltrar }: {
   }
   const total = Math.max(1, p.total)
   const tramos = [
-    { f: 'cliente'    as Filtro, n: p.cliente,    color: COLOR_CLIENTE,    label: 'Cliente' },
-    { f: 'incompleta' as Filtro, n: p.incompleta, color: COLOR_INCOMPLETA, label: 'Cuenta · falta información' },
-    { f: 'fuera'      as Filtro, n: p.fuera,      color: COLOR_FUERA,      label: 'Cuenta · fuera del apartado Cuentas' },
+    { f: 'cliente'    as Filtro, n: p.cliente,    color: COLOR_DISTINTIVO.cliente,    label: 'Cliente' },
+    { f: 'incompleta' as Filtro, n: p.incompleta, color: COLOR_DISTINTIVO.incompleta, label: 'Cuenta · falta información' },
+    { f: 'fuera'      as Filtro, n: p.fuera,      color: COLOR_DISTINTIVO.fuera,      label: 'Cuenta · fuera del apartado Cuentas' },
   ]
   return (
     <div style={{ marginTop: 16 }}>
@@ -425,9 +373,6 @@ function Detalle({ exp, clasificacion, hermano, abre }: {
   hermano: ClienteMultiCuenta | null
   abre: (id: string) => void
 }) {
-  const r = exp.resumen
-  const cierran = r.completos + r.faltan
-  const pct = cierran > 0 ? (r.completos / cierran) * 100 : null
   const otras = hermano ? hermano.cuentas.filter(x => x.id !== exp.id) : []
 
   return (
@@ -472,70 +417,9 @@ function Detalle({ exp, clasificacion, hermano, abre }: {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-        <Pastilla color={exp.fuentes.cuentaEnCartera ? COLOR.completo : COLOR.no_medible}
-          texto={exp.fuentes.cuentaEnCartera ? 'en la cartera de CS' : 'fuera de la cartera de CS'} />
-        <Pastilla color={exp.fuentes.enGrc ? COLOR.completo : COLOR.falta}
-          texto={exp.fuentes.enGrc ? 'en el GRC' : 'no está en el GRC'} />
-        <Pastilla color={exp.fuentes.conContrato ? COLOR.completo : COLOR.no_medible}
-          texto={exp.fuentes.conContrato ? 'con contrato en el archivo' : 'sin contrato en el archivo'} />
-        <Pastilla color={exp.fuentes.didsEncontrados ? COLOR.completo : COLOR.falta}
-          texto={exp.fuentes.didsEncontrados ? `${exp.fuentes.didsEncontrados} DID(s)` : 'sin DIDs localizados'} />
-      </div>
-
-      {exp.fuentes.cuentaError && (
-        <Aviso texto={`La ficha de la cuenta NO SE PUDO LEER, así que los apartados 05 a 08 y el 11 no están medidos — que es distinto de estar vacíos: ${exp.fuentes.cuentaError}`} />
-      )}
-
-      <div style={{
-        marginTop: 16, padding: '12px 14px', borderRadius: 12,
-        background: '#F5F8FB', border: `1px solid ${BORDE}`,
-      }}>
-        <p style={{ fontSize: 13, color: TX_MID, lineHeight: 1.7 }}>
-          <span style={{ fontWeight: 800, color: TX, background: 'transparent' }}>
-            {r.completos} de {cierran}
-          </span>{' '}
-          apartados contestados{pct !== null ? ` (${pct.toFixed(0)}%)` : ''}.{' '}
-          {r.sinFuente > 0 && (
-            <>
-              Otros <span style={{ fontWeight: 700, color: TX, background: 'transparent' }}>{r.sinFuente}</span>{' '}
-              no existen en ninguna fuente{' '}
-            </>
-          )}
-          {r.noMedibles > 0 && (
-            <>
-              y <span style={{ fontWeight: 700, color: TX, background: 'transparent' }}>{r.noMedibles}</span>{' '}
-              no es medible con el corte de tickets actual
-            </>
-          )}
-          {(r.sinFuente > 0 || r.noMedibles > 0) &&
-            ', así que quedan fuera del contador en vez de contar como incumplimiento.'}
-        </p>
-      </div>
-
-      <ol style={{ listStyle: 'none', padding: 0, margin: '16px 0 0' }}>
-        {exp.apartados.map(a => (
-          <li key={a.clave} style={{ padding: '12px 0', borderBottom: `1px solid ${BORDE}` }}>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 11, fontWeight: 800, color: TX_SUA, background: 'transparent', minWidth: 20 }}>
-                {a.clave}
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: TX, background: 'transparent' }}>
-                {a.titulo}
-              </span>
-              <Pastilla color={COLOR[a.estado]} texto={ETIQUETA[a.estado]} />
-            </div>
-            <p style={{ fontSize: 13, color: TX_MID, marginTop: 6, lineHeight: 1.6 }}>
-              {a.valor || VACIO[a.estado]}
-            </p>
-            {(a.detalle || a.nota) && (
-              <p style={{ fontSize: 11.5, color: TX_SUA, marginTop: 4, lineHeight: 1.6 }}>
-                {a.detalle ?? a.nota}
-              </p>
-            )}
-          </li>
-        ))}
-      </ol>
+      {/* La lista es EXACTAMENTE la misma que pinta la ficha del cliente, con
+          el mismo contador honesto y los mismos avisos. */}
+      <ListaApartados exp={exp} />
     </div>
   )
 }

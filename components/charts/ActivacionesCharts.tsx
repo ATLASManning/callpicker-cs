@@ -7,6 +7,8 @@ import {
 import { formatMXN } from '@/lib/types'
 import CustomSelect from '@/components/CustomSelect'
 import { tonoSobreClaro, tonoSobreFondo } from '@/lib/contraste'
+import { leeJson, mensajeDeError } from '@/lib/respuesta-json'
+import ExpedienteApartados from '@/components/ExpedienteApartados'
 
 // ── Paleta clara ──────────────────────────────────────────────────────────────
 /* La paleta del Customer Success Operating System. Los hex salen del
@@ -277,10 +279,19 @@ function FichaCliente({ cid, cliente }: { cid: string; cliente: string }) {
     let vivo = true
     setData(null); setError(null)
     const qs = cid !== 'todos' ? `cid=${encodeURIComponent(cid)}` : `cliente=${encodeURIComponent(cliente)}`
-    fetch(`/api/activaciones/detalle?${qs}`)
-      .then(r => r.json())
-      .then(d => { if (!vivo) return; d.error ? setError(d.error) : setData(d) })
-      .catch(e => vivo && setError(String(e)))
+    ;(async () => {
+      try {
+        const r = await fetch(`/api/activaciones/detalle?${qs}`)
+        /* Antes era `r.json()` a secas. Con la sesión caducada el middleware
+           sirve el LOGIN con HTTP 200 y text/html, así que `r.json()` reventaba
+           con «Unexpected token '<'» y la ficha decía eso en rojo, como si el
+           dato estuviera mal. [[lib/respuesta-json.ts]] */
+        const d = await leeJson<{ registros: RegistroDetalle[]; columnasArchivo: number }>(r)
+        if (vivo) setData(d)
+      } catch (e) {
+        if (vivo) setError(mensajeDeError(e))
+      }
+    })()
     return () => { vivo = false }
   }, [cid, cliente])
 
@@ -309,7 +320,17 @@ function FichaCliente({ cid, cliente }: { cid: string; cliente: string }) {
               <span style={{ fontSize:10.5, color:TX_LOW }}>registro {i + 1} de {data.registros.length}</span>
             )}
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'8px 18px' }}>
+
+          {/* LA ETIQUETA Y LOS 20 PUNTOS, EN LA FICHA
+              ─────────────────────────────────────────
+              Instrucción de dirección (18 nov 2026): se tiene que saber de un
+              clic quién es CLIENTE y quién es sólo una CUENTA, y los 20 puntos
+              de la entrega van aquí, no en una sección aparte. El bloque es el
+              mismo que usa el buscador de la puerta, para que no haya dos
+              lecturas del mismo expediente. */}
+          <ExpedienteApartados id={r.cid} />
+
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'8px 18px', marginTop:16 }}>
             {r.campos.filter(c => !LARGOS.has(c.campo) && c.campo !== 'ID' && c.campo !== 'Cliente').map(c => (
               <div key={c.campo} style={{ minWidth:0 }}>
                 <p style={{ fontSize:9.5, fontWeight:700, color:TX_LOW, textTransform:'uppercase',

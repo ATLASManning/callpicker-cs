@@ -153,6 +153,24 @@ def main() -> int:
     if mudos:
         fallos.append(f'apartados sin título o sin fuente: {mudos}')
 
+    # El distintivo viaja en la MISMA respuesta que los apartados, porque la
+    # ficha del cliente lo pinta junto a ellos. Si faltara, la etiqueta de la
+    # ficha se quedaría muda y nadie se enteraría mirando la pantalla.
+    cla = d.get('clasificacion')
+    if not isinstance(cla, dict):
+        fallos.append('la respuesta no trae `clasificacion`: la ficha no podría '
+                      'pintar la etiqueta Cliente/Cuenta')
+    else:
+        if cla.get('distintivo') not in ('cliente', 'cuenta'):
+            fallos.append(f'distintivo que no existe: {cla.get("distintivo")!r}')
+        if not (cla.get('porque') or '').strip():
+            fallos.append('la clasificación no dice POR QUÉ')
+        # Un «cuenta» sin motivo no se puede explicar a quien la capturó.
+        if cla.get('distintivo') == 'cuenta' and not cla.get('motivo'):
+            fallos.append('sale «cuenta» y no declara motivo')
+        if cla.get('motivo') == 'incompleta' and not cla.get('faltan'):
+            fallos.append('dice «incompleta» y no nombra qué falta')
+
     print(f'{d.get("cliente", "?")} — ID {d.get("id")} · CID {d.get("cid") or "(sin CID)"}')
     print(f'  {len(aps)} apartados · completos {r.get("completos")} · faltan {r.get("faltan")} '
           f'· otra fuente {r.get("otraFuente")} · sin fuente {r.get("sinFuente")} '
@@ -165,6 +183,13 @@ def main() -> int:
     if f.get('cuentaError'):
         print(f'  LA FICHA DE LA CUENTA NO SE PUDO LEER: {f["cuentaError"]}')
         print('  (eso NO es «la cuenta no tiene datos»)')
+    if isinstance(cla, dict):
+        etiqueta = ('CLIENTE' if cla.get('distintivo') == 'cliente'
+                    else 'SIN MEDIR' if cla.get('motivo') == 'no_medido' else 'CUENTA')
+        print(f'  etiqueta de la ficha: [{etiqueta}] motivo {cla.get("motivo") or "-"}')
+        print(f'    {cla.get("porque")}')
+        for x in cla.get('faltan') or []:
+            print(f'    falta: {x.get("etiqueta")} ({x.get("dueno")})')
 
     for x in aps:
         print(f'  {x.get("clave")} [{x.get("estado"):<11}] {x.get("titulo")}')

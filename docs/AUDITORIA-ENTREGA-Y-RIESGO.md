@@ -681,3 +681,47 @@ Verificado: `tsc` 0 errores · `build` exit 0 con `/api/entregas/buscar` ·
 `npm run mide:distintivo` cierra 2,820 de 2,820 · `npm run test:veredicto`
 sigue sellado · contraste en **162** · y la puerta vista pintando, filtrando y
 abriendo expedientes.
+
+---
+
+## 14. La etiqueta y los 20 puntos, dentro de la ficha del cliente
+
+**Instrucción de dirección (18 nov 2026).** Los 20 apartados y el distintivo
+**Cliente / Cuenta** tienen que estar **en la ficha del cliente**, a un clic, no
+en una sección aparte.
+
+**Dónde quedó.** En «Ficha del cliente — detalle completo del archivo», debajo
+del nombre y el CID: la pastilla con el distintivo, la frase que dice por qué, y
+un botón que abre los 20 puntos. El resto de la ficha (las 34 columnas del
+archivo) sigue igual, debajo.
+
+**Qué se evitó.** El bloque es UNO —`components/ExpedienteApartados.tsx`— y lo
+usan la ficha y el buscador de la puerta. Antes cada pantalla tenía su propia
+lista de apartados, sus propios tonos y sus propias etiquetas de estado
+tecleados a mano: dos copias del mismo catálogo se separan sin avisar y las dos
+siguen pareciendo ciertas. Ahora `COLOR`, `ETIQUETA`, `VACIO`,
+`COLOR_DISTINTIVO` y los tipos se declaran una sola vez.
+
+**Un bug que salió al mover el tipo.** `ExpedienteEntrega` declaraba su propia
+forma de la respuesta del expediente y ya se había quedado atrás: le faltaba
+`clasificacion`, que el endpoint sí manda. Al pasar al tipo compartido, el
+compilador lo dijo.
+
+**La misma trampa de siempre, en la ficha.** El `fetch` de la ficha hacía
+`r.json()` a secas. Con la sesión caducada el middleware sirve el LOGIN con
+HTTP 200 y `text/html`, así que la ficha pintaba en rojo
+«Unexpected token '<'» —que se lee como un dato malo— en vez de «tu sesión
+expiró». Ahora pasa por `leeJson`.
+
+**Lo medido, no lo supuesto.** `scripts/prueba-expediente-entrega.py` ahora
+comprueba que la respuesta trae `clasificacion`, que el distintivo existe, que
+dice POR QUÉ, que un «cuenta» declara motivo y que un «incompleta» nombra qué
+falta. Contra el servidor:
+
+| activación | etiqueta | por qué |
+|---|---|---|
+| 100 LADRILLOS (135300) | **CUENTA · fuera** | no está en el apartado Cuentas |
+| Grupo DC Mexico (180111) | **CLIENTE** | ficha completa: giro, servicio, alta, contactos y observaciones del KAM |
+
+Y en pantalla, con los datos reales: la pastilla verde **CLIENTE**, el contador
+honesto «3 de 16 (19%)» —no «3 de 20»— y los 20 puntos con su estado.

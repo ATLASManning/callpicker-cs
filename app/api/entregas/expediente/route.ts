@@ -6,6 +6,7 @@ import {
   type FilaHoja, type ValorApartado, type EstadoApartado,
 } from '@/lib/entrega-apartados'
 import { cargaHoja } from '@/lib/hoja-activaciones'
+import { clasifica } from '@/lib/clasificacion-entrega'
 
 export const dynamic = 'force-dynamic'
 
@@ -386,9 +387,13 @@ export async function GET(req: NextRequest) {
     try {
       const { data, error } = await supabaseAdmin
         .from('cuentas')
+        /* `giro`, `activo_desde` y `tamano_empresa` no los usa ningún apartado:
+           entran para poder decir en la misma respuesta si esto es CUENTA o
+           CLIENTE. Pedirlos en una segunda consulta sería dos viajes para
+           pintar una etiqueta. */
         .select('id, cid, empresa, contacto_nombre, contacto_cargo, contacto_tel, '
               + 'contacto_email, contactos_json, servicio, servicios_json, '
-              + 'observaciones_kam, notas, asesor')
+              + 'observaciones_kam, notas, asesor, giro, activo_desde, tamano_empresa')
         .eq('cid', cid)
         .maybeSingle()
       if (error) throw error
@@ -441,6 +446,11 @@ export async function GET(req: NextRequest) {
       cliente: fila['cliente'] ?? '',
       apartados,
       resumen: resumenExpediente(apartados),
+      /* EL DISTINTIVO, EN LA MISMA RESPUESTA QUE LOS 20 APARTADOS.
+         Si la consulta a `cuentas` falló, `errCuenta` lo dice y la
+         clasificación sale `no_medido` —nunca «Cuenta»—: una caída de la base
+         no es un juicio sobre el trabajo de nadie. */
+      clasificacion: clasifica(errCuenta ? undefined : (cuenta ?? null)),
       fuentes: {
         cuentaEnCartera: Boolean(cuenta),
         // Se dice cuando una fuente FALLÓ, en vez de dejarla como ausente.
