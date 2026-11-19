@@ -450,18 +450,6 @@ export default async function ActivacionesPage() {
 
       {/* Charts */}
       <div style={{ padding: '28px 32px 64px' }}>
-        {/* EL PANEL VA PRIMERO.
-            Estaba al final, y los únicos buscadores de arriba eran los
-            desplegables de las gráficas, que sólo listan el año vivo: dirección
-            buscó «CBS Compresores» —F24, CID 134358— y no aparecía. No era un
-            recorte de la búsqueda, era que ahí no estaban todas. Este panel
-            busca contra la hoja entera UNIDA a la cartera, y al hacer clic abre
-            la ficha completa con la etiqueta y los 20 puntos. */}
-        <ExpedienteEntrega
-          ano={ultimoAno}
-          clientesMulti={clientesMulti}
-          puerta={puerta} />
-
         <SoloEnCliente reserva={<ReservaGrafica alto={420} />}>
             <ActivacionesCharts registros={registros} anos={anos} />
           </SoloEnCliente>
@@ -474,6 +462,17 @@ export default async function ActivacionesPage() {
             abre por cuenta, y hay que saber que una cuenta puede no ser todo
             el cliente antes de leer su expediente. */}
         <CuentasVsClientes d={contraste} />
+
+        {/* EL PANEL, AL FINAL DE LA HOJA.
+            Instrucción de dirección (19 nov 2026). Lo que importaba de subirlo
+            no era el sitio sino el universo: busca contra la hoja entera UNIDA
+            a la cartera —2,958, no 2,820—, y al hacer clic abre la ficha
+            completa con la etiqueta y los 20 puntos. Eso se queda igual aquí
+            abajo. */}
+        <ExpedienteEntrega
+          ano={ultimoAno}
+          clientesMulti={clientesMulti}
+          puerta={puerta} />
       </div>
     </div>
   )
