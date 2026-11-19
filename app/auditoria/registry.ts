@@ -93,6 +93,7 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
   { id: 'jason-de-mexico',   nombre: 'Jason de México',               consecutivos: ['D7']  },
   { id: 'gwep',              nombre: 'GWEP (Grupo Gwep)',             consecutivos: ['D54'] },
   { id: 'cargo-lift',        nombre: 'Cargo Lift',                    consecutivos: ['D5']  },
+  { id: 'casa-galvan',       nombre: 'CASA Galván',                  consecutivos: ['D23'] },
   { id: 'university-4-people', nombre: 'University 4 People (Tec de Monterrey)', consecutivos: ['D58'] },
   /* La MAYOR de la cartera: $272,436 al mes (GRC `mrrFin`), el 23.3% de las 132
      cuentas activas. El cliente pidió DESCENTRALIZAR y hoy cada agencia responde

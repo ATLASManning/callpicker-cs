@@ -84,6 +84,22 @@ const EXIGIDO = {
     ['no citar la ficha vieja',
                       'el encabezado que ordena las otras cinco prohibiciones'],
   ],
+  /* CASA GALVÁN. Las cuatro frases son las que cambian la llamada. «NO es falta
+     de gente» es la tesis entera: si cae, Atlas entrega un reporte de 3,230
+     llamadas perdidas y el asesor entra a pedir que contraten. «1,411» es el
+     motivo de reunión y lo único que rompe el silencio de un interlocutor
+     único. «15 ago 2026» impide presentar como hallazgo de esta semana un
+     riesgo que llevamos tres meses sabiendo —y que el cliente puede comprobar—.
+     Y «Health Score 50, no 76» es la cifra que el BORRADOR de este mismo
+     reporte traía mal: sin la prohibición, vuelve a circular. */
+  'casa-galvan': [
+    ['no es falta de gente', 'la tesis; sin ella el asesor va a pedir que contraten'],
+    ['65.6%',                'la proporción que sostiene la tesis'],
+    ['1,411',                'el motivo de reunión, y lo que rompe el silencio'],
+    ['15 ago 2026',          'que el riesgo de interlocutor no es de esta semana'],
+    ['health score 50, no 76',
+                             'la cifra que el borrador traía mal, dicha como prohibición'],
+  ],
   'hospital-santa-rosa': [
     ['no presentar al cliente', 'que la cuenta no está lista para una presentación'],
     ['sin_interlocutor',        'la alerta crítica que contradice al reporte'],
