@@ -100,6 +100,25 @@ const EXIGIDO = {
     ['health score 50, no 76',
                              'la cifra que el borrador traía mal, dicha como prohibición'],
   ],
+  /* CARGO LIFT. Aquí el peligro no es una cifra mala: es el MARCO. Esta cuenta
+     MEJORÓ su atención —la pérdida bajó de 10.4% a 6.5%— y a la vez perdió la
+     mitad de su demanda, y `lib/seguimiento-auditoria.ts` mete los TRES
+     primeros hallazgos enteros en la actividad que el asesor lee ANTES de
+     llamar. Si «no felicitar la mejora» cae del corte, el asesor entra a
+     celebrar un número que mejoró en parte porque hay menos tráfico, delante
+     de un cliente que perdió la mitad de sus llamadas entrantes. «157» es lo
+     que vuelve esto un pedido perdido y no una estadística. Y las dos últimas
+     protegen de lo que decíamos NOSOTROS: el reporte de tráfico no menciona la
+     alerta crítica de downgrade, y la versión 1.0 de este expediente llevaba
+     el MRR de `cuentas.facturacion` —$7,609 por debajo del real—. */
+  'cargo-lift': [
+    ['no felicitar la mejora', 'el marco de la llamada: la tasa mejoró porque entra menos'],
+    ['53% por día hábil',      'la caída de demanda, que es el riesgo real'],
+    ['6.8%',                   'la devolución: el indicador con más distancia a su meta'],
+    ['157',                    'los primeros contactos perdidos, que es el pedido que se fue'],
+    ['downgrade en 6 meses',   'la alerta crítica que el reporte de tráfico no menciona'],
+    ['no $10,655',             'la cifra que la versión 1.0 traía mal, dicha como prohibición'],
+  ],
   'hospital-santa-rosa': [
     ['no presentar al cliente', 'que la cuenta no está lista para una presentación'],
     ['sin_interlocutor',        'la alerta crítica que contradice al reporte'],
@@ -140,6 +159,24 @@ if (!caso) {
   console.log(`\n  *** No existe el caso «${idPedido}». ***`)
   console.log('      Casos: ' + STATIC_CASES.map((c) => c.id).join(', '))
   process.exit(2)
+}
+
+/** Un `[[enlace-de-memoria]]` dentro de un hallazgo NO se queda en el código:
+ *  `AuditoriaDetail.tsx` lo pinta literal en una pantalla que lee Dirección
+ *  General, y `atlas-context.ts` lo mete en el dossier, donde el modelo puede
+ *  repetirlo delante del asesor. La convención es nuestra y vive en los
+ *  comentarios; en los textos que se renderizan, no. Se mide sobre TODOS los
+ *  casos, no sólo sobre el que se está revisando: si un día aparece en otro
+ *  expediente, este guion lo dice sin que nadie lo busque. */
+function fugasDeConvencion(casos) {
+  const fugas = []
+  for (const c of casos) {
+    (c.hallazgos ?? []).forEach((h, i) => {
+      const m = String(h).match(/\[\[[^\]]+\]\]/g)
+      if (m) fugas.push(`${c.id} · hallazgo ${i + 1}: ${m.join(' ')}`)
+    })
+  }
+  return fugas
 }
 
 const { cuantos, corte } = limitesDeAtlas()
@@ -187,6 +224,17 @@ if (!exigidas) {
   }
 }
 
+const fugas = fugasDeConvencion(STATIC_CASES)
+console.log('')
+console.log(`  ENLACES [[...]] EN TEXTOS QUE SE RENDERIZAN (los ${STATIC_CASES.length} casos):`)
+if (!fugas.length) {
+  console.log('    ninguno — la convención se queda en los comentarios, como debe.')
+} else {
+  for (const f of fugas) console.log(`    *** FUGA *** ${f}`)
+  console.log('    Esto se pinta literal en /auditoria y entra en el dossier de Atlas.')
+  console.log('    El enlace va al comentario de cabecera del archivo, no al hallazgo.')
+}
+
 console.log('')
 if (fallan) {
   console.log(`  *** ${fallan} frase(s) se quedaron fuera de lo que ve Atlas. ***`)
@@ -196,5 +244,8 @@ if (fallan) {
 } else if (exigidas) {
   console.log(`  Las ${exigidas.length} frases obligatorias entran en el dossier.`)
 }
+if (fugas.length) {
+  console.log(`  *** Y ${fugas.length} enlace(s) [[...]] se están renderizando en pantalla. ***`)
+}
 console.log('')
-process.exit(fallan ? 1 : 0)
+process.exit(fallan || fugas.length ? 1 : 0)
