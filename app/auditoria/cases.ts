@@ -40,6 +40,7 @@ import { SECCION_AMARILLA }     from './seccion-amarilla-data'
 import { IMPAS_CHIHUAHUA }      from './impas-chihuahua-data'
 import { ECODELI }              from './ecodeli-data'
 import { ODONTOPREV }           from './odontoprev-data'
+import { LINEACEL }             from './lineacel-data'
 import { PROBEMEDIC }           from './probemedic-data'
 import { ABRL }                 from './abrl-data'
 import type { AuditoriaCase } from './types'
@@ -53,6 +54,7 @@ export const STATIC_CASES: AuditoriaCase[] = [
   NERUC_SEDE_CENTRAL, JASON_DE_MEXICO, GWEP, MINT_CARGO, CARGO_LIFT, CASA_GALVAN, GRUPO_2711, LI_FINANCIERA, SOFIA, RDS_INVEST_VACAY,
   UNIVERSITY_4_PEOPLE, VIAJES_MACULL, TORRES_CORZO, TECH_PEOPLE, SYSTEM_OOAPAS,
   SECCION_AMARILLA, IMPAS_CHIHUAHUA, ECODELI, ODONTOPREV, PROBEMEDIC, ABRL,
+  LINEACEL,
 ]
 
 export const STATIC_CASE_IDS: ReadonlySet<string> = new Set(STATIC_CASES.map(c => c.id))

@@ -119,6 +119,35 @@ const EXIGIDO = {
     ['downgrade en 6 meses',   'la alerta crítica que el reporte de tráfico no menciona'],
     ['no $10,655',             'la cifra que la versión 1.0 traía mal, dicha como prohibición'],
   ],
+  /* LINEACEL — lo que NO puede caerse del corte de 180.
+     La ficha del tablero dice $13,802 y el GRC vivo factura $37,222: si el
+     modelo se queda con el de la ficha, aconseja sobre una cuenta que vale
+     menos de la mitad. «72 días» es lo que convierte el silencio en una
+     reunión con fecha. «98.7%» es el arreglo gratis —campañas marcando sin
+     agentes conectados—, y «50.6%» es la caída de conexión con el volumen
+     clavado: sin ese par, el hallazgo se lee como falta de capacidad. */
+  'lineacel': [
+    ['$37,222',   'el MRR institucional vivo, que la ficha tiene al 37%'],
+    ['no los $13,802', 'la cifra de la ficha, dicha como prohibición'],
+    ['72 días',   'el silencio que convierte el hallazgo en una reunión'],
+    ['50.6%',     'la caída de conexión con el volumen clavado'],
+    ['98.7%',     'las campañas marcando sin agentes: el arreglo gratis'],
+  ],
+  /* ODONTOPREV — el cargo de Meta y la bolsa propia.
+     «$10,740.10» es la PRIMERA incidencia de pago en 28 meses y es lo que
+     abrió la conversación: sin ella el modelo describe una cuenta sana.
+     «346%» es la mitad que nos toca y que el reporte entregado no menciona;
+     sin «lectura» / «no es desuso», un cero de chat se lee como abandono y
+     el consejo sale al revés. Y el par 42.47% / 1.37% es lo que hace que el
+     enrutamiento roto se lea como configuración y no como capacidad. */
+  'odontoprev': [
+    ['$10,740.10', 'el cargo nuevo de WhatsApp: la primera incidencia en 28 meses'],
+    ['28 meses',   'que es la PRIMERA, que es lo que la vuelve grave'],
+    ['346%',       'la bolsa propia rebasada, que el reporte no menciona'],
+    ['no es desuso', 'que el cero del chat es una lectura fallida, no abandono'],
+    ['42.47%',     'la concentración de las pérdidas en una extensión'],
+    ['1.37%',      'el volumen de esa extensión: por eso es configuración'],
+  ],
   'hospital-santa-rosa': [
     ['no presentar al cliente', 'que la cuenta no está lista para una presentación'],
     ['sin_interlocutor',        'la alerta crítica que contradice al reporte'],

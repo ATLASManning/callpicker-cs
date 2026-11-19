@@ -10,7 +10,17 @@ u"""IMPRIME LAS FILAS DE LAS TABLAS COLGADAS DE UNA CUENTA.
    Credenciales de `.env.local`, dentro del guion, sin imprimirlas.
 
    USO
-       python -I scripts/lee-tablas-cuenta.py <CID> [tabla ...]
+       python -I scripts/lee-tablas-cuenta.py <CID> [tabla ...] [--completo]
+
+   `--completo` imprime los campos SIN recortar, un campo por línea. Hace
+   falta más de lo que parece: el recorte a 220 caracteres se come justo el
+   final de un `descripcion`, que es donde está lo que el cliente contestó.
+   Un texto cortado en silencio se lee como un texto que termina ahí, y eso
+   convierte una respuesta del cliente en un «no respondió».
+   [[feedback-contexto-ia-sin-huecos]]
+
+   Por eso, sin la bandera, el recorte se ANUNCIA: dice cuántos caracteres se
+   quedaron fuera y recuerda cómo verlos.
 """
 import io
 import json
@@ -25,8 +35,13 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if len(sys.argv) < 2:
     print(u'  uso: python -I scripts/lee-tablas-cuenta.py <CID> [tabla ...]')
     sys.exit(1)
-CID = sys.argv[1]
-TABLAS = sys.argv[2:] or ['alertas_episodios', 'seguimientos', 'actividades', 'reuniones']
+ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
+COMPLETO = '--completo' in sys.argv[1:]
+if not ARGS:
+    print(u'  uso: python -I scripts/lee-tablas-cuenta.py <CID> [tabla ...] [--completo]')
+    sys.exit(1)
+CID = ARGS[0]
+TABLAS = ARGS[1:] or ['alertas_episodios', 'seguimientos', 'actividades', 'reuniones']
 
 env = {}
 for ln in io.open(os.path.join(RAIZ, '.env.local'), encoding='utf-8'):
@@ -63,10 +78,27 @@ for t in TABLAS:
         print(u'    sin filas (leído, no supuesto)')
         continue
     for f in filas:
+        if COMPLETO:
+            print(u'    ·' + u' ─' * 34)
+            for k, v in f.items():
+                if k in ('id', 'cuenta_id', 'created_at', 'updated_at') or v in (None, '', [], {}):
+                    continue
+                s = json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else str(v)
+                if u'\n' in s:
+                    print(u'      %s =' % k)
+                    for ln in s.split(u'\n'):
+                        print(u'        %s' % ln)
+                else:
+                    print(u'      %s = %s' % (k, s))
+            continue
         trozos = []
         for k, v in f.items():
             if k in ('id', 'cuenta_id', 'created_at', 'updated_at') or v in (None, '', [], {}):
                 continue
             s = json.dumps(v, ensure_ascii=False) if isinstance(v, (dict, list)) else str(v)
-            trozos.append(u'%s=%s' % (k, s if len(s) <= 220 else s[:220] + u'…'))
+            if len(s) > 220:
+                # El recorte se DECLARA. Un «…» a secas se lee como «aquí se
+                # acaba el texto», y lo que falta suele ser la respuesta.
+                s = u'%s… [+%d caracteres: usa --completo]' % (s[:220], len(s) - 220)
+            trozos.append(u'%s=%s' % (k, s))
         print(u'    · ' + u' | '.join(trozos))

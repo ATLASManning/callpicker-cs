@@ -119,6 +119,18 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
      agosto. Descontándola, la caída real de los agentes en octubre fue 9.8%, no
      el 25.7% del indicador. El cliente ya cuestionó por escrito la continuidad. */
   { id: 'abrl',            nombre: 'ABRL Sistemas & Proyectos',       consecutivos: ['C11'] },
+  /* OJO CON ESTE CONSECUTIVO: es «C» a secas, SIN número — la única así de las
+     224 cuentas de cartera. No es un olvido de este padrón: es lo que guarda
+     `cuentas.consecutivo`, y por eso aquí dice «C» y no «C71». El siguiente
+     libre del prefijo es C71; el día que se complete hay que cambiarlo AQUÍ en
+     el mismo movimiento, o el botón de Auditoría desaparece de la ficha sin que
+     nada falle. Lo caza `scripts/revisa-registro-auditorias.py`, que cruza por
+     CID y no por consecutivo.
+     La cuenta marca lo mismo que en junio y conecta 19.6 puntos menos — pero el
+     riesgo no está en el teléfono: la factura de noviembre son $37,222 contra
+     los $13,802 que guardaba la ficha, y nadie ha hablado con el cliente desde
+     el 8 de septiembre. */
+  { id: 'lineacel',        nombre: 'LINEACEL (campañas BAIT / Movistar)', consecutivos: ['C'] },
   /* ── Sin cuenta en cartera ─────────────────────────────────────────────────
      `consecutivos: []` NO es un olvido. Son auditorias de cuentas que nunca
      entraron a `cuentas` y por tanto no tienen consecutivo ni KAM: se vendieron
