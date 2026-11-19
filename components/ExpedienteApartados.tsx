@@ -51,6 +51,9 @@ export interface Expediente {
     sinFuente: number; noMedibles: number; total: number
   }
   fuentes: {
+    /** `false` = esta cuenta NO tiene fila en Activaciones 2.0. Son 138 de las
+     *  224 de cartera, medido el 18 nov 2026 con `npm run mide:universo`. */
+    enLaHoja?: boolean
     cuentaEnCartera: boolean; cuentaError: string | null
     enGrc: boolean; conContrato: boolean; didsEncontrados: number
   }

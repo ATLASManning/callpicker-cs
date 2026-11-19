@@ -69,7 +69,8 @@ interface Descartada {
  */
 async function reparteCuentaOCliente(ids: string[]): Promise<Puerta> {
   const vacio: Puerta = {
-    total: ids.length, cliente: 0, incompleta: 0, fuera: 0,
+    total: ids.length, activaciones: ids.length, sinFilaEnLaHoja: 0,
+    cliente: 0, incompleta: 0, fuera: 0,
     porFaltante: [], error: null,
   }
   try {
@@ -84,9 +85,19 @@ async function reparteCuentaOCliente(ids: string[]): Promise<Puerta> {
       if (k) fichas.set(k, c)
     }
 
+    /* EL UNIVERSO ES LA HOJA **UNIDA** A LA CARTERA.
+     *
+     * Con sólo la hoja, las 138 cuentas de cartera que no tienen fila en
+     * Activaciones 2.0 no entraban en el reparto, y la barra decía «2,820» como
+     * si fueran todas. Dirección lo encontró buscando CBS Compresores (F24),
+     * que existe, factura, y no aparecía por ningún lado. */
+    const enHoja = new Set(ids)
+    const soloCartera = Array.from(fichas.keys()).filter(k => !enHoja.has(k))
+    const universo = [...ids, ...soloCartera]
+
     let cliente = 0, incompleta = 0, fuera = 0
     const faltantes = new Map<string, { dueno: string; n: number }>()
-    for (const id of ids) {
+    for (const id of universo) {
       const c = clasifica(fichas.get(id) ?? null)
       if (c.distintivo === 'cliente') { cliente++; continue }
       if (c.motivo === 'fuera') { fuera++; continue }
@@ -97,7 +108,10 @@ async function reparteCuentaOCliente(ids: string[]): Promise<Puerta> {
       }
     }
     return {
-      total: ids.length, cliente, incompleta, fuera,
+      total: universo.length,
+      activaciones: ids.length,
+      sinFilaEnLaHoja: soloCartera.length,
+      cliente, incompleta, fuera,
       porFaltante: Array.from(faltantes, ([etiqueta, v]) =>
         ({ etiqueta, dueno: v.dueno, n: v.n })).sort((a, b) => b.n - a.n),
       error: null,
@@ -436,6 +450,18 @@ export default async function ActivacionesPage() {
 
       {/* Charts */}
       <div style={{ padding: '28px 32px 64px' }}>
+        {/* EL PANEL VA PRIMERO.
+            Estaba al final, y los únicos buscadores de arriba eran los
+            desplegables de las gráficas, que sólo listan el año vivo: dirección
+            buscó «CBS Compresores» —F24, CID 134358— y no aparecía. No era un
+            recorte de la búsqueda, era que ahí no estaban todas. Este panel
+            busca contra la hoja entera UNIDA a la cartera, y al hacer clic abre
+            la ficha completa con la etiqueta y los 20 puntos. */}
+        <ExpedienteEntrega
+          ano={ultimoAno}
+          clientesMulti={clientesMulti}
+          puerta={puerta} />
+
         <SoloEnCliente reserva={<ReservaGrafica alto={420} />}>
             <ActivacionesCharts registros={registros} anos={anos} />
           </SoloEnCliente>
@@ -448,14 +474,6 @@ export default async function ActivacionesPage() {
             abre por cuenta, y hay que saber que una cuenta puede no ser todo
             el cliente antes de leer su expediente. */}
         <CuentasVsClientes d={contraste} />
-
-        {/* El expediente de entrega. Va al final y no arriba: lo de arriba
-            describe lo que ya pasó; esto es lo que hay que entregar al cerrar
-            una activación concreta. */}
-        <ExpedienteEntrega
-          ano={ultimoAno}
-          clientesMulti={clientesMulti}
-          puerta={puerta} />
       </div>
     </div>
   )

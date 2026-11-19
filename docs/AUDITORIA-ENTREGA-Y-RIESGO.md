@@ -725,3 +725,48 @@ falta. Contra el servidor:
 
 Y en pantalla, con los datos reales: la pastilla verde **CLIENTE**, el contador
 honesto «3 de 16 (19%)» —no «3 de 20»— y los 20 puntos con su estado.
+
+---
+
+## 15. El universo estaba mal elegido: 138 cuentas de cartera no están en la hoja
+
+**Cómo salió.** Dirección buscó **CBS Compresores** en Activaciones 2.0 y no
+aparecía. No era un recorte de la búsqueda: la cuenta **existe** —F24, CID
+134358, asesor Fátima, $4,939 de MRR, activa desde 2023-02-24— y **no tiene fila
+en `data/activaciones.xlsx`**.
+
+**Lo medido** (`npm run mide:universo`, 18 nov 2026):
+
+| | |
+|---|---|
+| activaciones en la hoja (por ID) | 2,820 |
+| cuentas en cartera | 224 |
+| se tocan (CID en las dos) | 86 |
+| **cuentas de cartera SIN fila en la hoja** | **138** |
+| activaciones que no están en cartera | 2,734 |
+| **universo unido** | **2,958** |
+
+86 + 138 = 224 y 86 + 2,734 = 2,820: el reparto cierra contra los dos totales.
+**Más de la mitad de la cartera no estaba en el universo**, así que no era un
+caso raro.
+
+**Qué cambió.**
+
+- `/api/entregas/buscar` busca contra la hoja **unida** a la cartera, y cada
+  resultado dice si tiene fila (`enLaHoja`) y su consecutivo (F24, C41…).
+- `/api/entregas/expediente?id=` ya no devuelve 404 cuando el ID no está en la
+  hoja: si hay cuenta de cartera con ese CID, construye el expediente igual. Los
+  apartados que salen de la hoja quedan en «falta» y un aviso dice **por qué**.
+  Si la consulta a `cuentas` falla, devuelve 502 diciéndolo — no «no existe».
+- La barra del reparto se calcula sobre las 2,958 y **declara el desglose**:
+  «2,820 activaciones de la hoja y 138 cuentas de cartera que no tienen fila en
+  ella». Un «2,958» a secas habría escondido de qué está hecho.
+
+**El panel pasa a ser lo primero de la pantalla.** Los únicos buscadores de
+arriba eran los desplegables de las gráficas, que sólo listan el año vivo. Ahora
+el panel está arriba y, al hacer clic en un resultado, abre **la ficha completa**
+—`components/FichaActivacion.tsx`, el mismo componente que abre el
+desplegable—: etiqueta, los 20 puntos abiertos y las columnas del archivo.
+
+**Y la ficha se pinta aunque no haya fila.** Antes, sin registros, decía «sin
+registros en el archivo» y se acababa ahí: una cuenta viva leída como un hueco.

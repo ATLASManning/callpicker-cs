@@ -15,7 +15,8 @@
     "test:roles": "ts-node --project tsconfig.import.json scripts/test-roles-entrega.ts",
     "mide:clientes": "ts-node --project tsconfig.import.json scripts/mide-cliente-vs-cuenta.ts",
     "test:veredicto": "ts-node --project tsconfig.import.json -r ./scripts/alias-ts.js scripts/test-sello-veredicto.ts",
-    "mide:distintivo": "ts-node --project tsconfig.import.json -r ./scripts/alias-ts.js scripts/mide-cuenta-o-cliente.ts"
+    "mide:distintivo": "ts-node --project tsconfig.import.json -r ./scripts/alias-ts.js scripts/mide-cuenta-o-cliente.ts",
+    "mide:universo": "ts-node --project tsconfig.import.json -r ./scripts/alias-ts.js scripts/mide-universo-entregas.ts"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",

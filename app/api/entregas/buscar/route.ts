@@ -48,7 +48,20 @@ interface Resultado {
   cliente: string
   ano:     string
   tipo:    string
+  /** `false` = cuenta de cartera SIN fila en Activaciones 2.0. */
+  enLaHoja: boolean
+  /** El consecutivo de cartera (F24, C41…), cuando la cuenta está en cartera. */
+  consecutivo: string
   clasificacion: Clasificacion
+}
+
+/** Lo que se pide de `cuentas`: los campos de la clasificación MÁS lo que hace
+ *  falta para listarlas cuando no están en la hoja. */
+const CAMPOS_LISTA = `${CAMPOS_CLASIFICACION}, consecutivo, asesor`
+
+interface CuentaLista extends FichaParaClasificar {
+  consecutivo?: string | null
+  asesor?: string | null
 }
 
 export async function GET(req: NextRequest) {
@@ -63,58 +76,84 @@ export async function GET(req: NextRequest) {
         { error: 'No se pudo leer data/activaciones.xlsx' }, { status: 404 })
     }
 
-    /* ── 1 · Buscar en la hoja entera ─────────────────────────────────────── */
-    const todas = Array.from(hoja.filas.values())
-    const coinciden = !q
-      ? todas
-      : todas.filter(f =>
-          f['id'].includes(q) || normBusqueda(f['cliente']).includes(q))
-
-    /* Un ID exacto va primero: quien teclea 162474 busca ésa, no las 30 que
-       lo contienen. Después, por año descendente —lo que se está cerrando es
-       lo que se consulta— y por nombre. */
-    coinciden.sort((a, b) => {
-      const ea = a['id'] === q ? 0 : 1
-      const eb = b['id'] === q ? 0 : 1
-      if (ea !== eb) return ea - eb
-      const aa = a['ano'] || '', ab = b['ano'] || ''
-      if (aa !== ab) return ab.localeCompare(aa)
-      return a['cliente'].localeCompare(b['cliente'], 'es')
-    })
-
-    const recorte = coinciden.slice(0, TOPE)
-
-    /* ── 2 · El distintivo de cada uno ────────────────────────────────────── */
-    const cids = recorte.map(f => f['id']).filter(Boolean)
-    let fichas: Map<string, FichaParaClasificar> | null = new Map()
+    /* ── 1 · LA CARTERA ENTERA, PRIMERO ───────────────────────────────────
+     *
+     * Son 224 filas: caben en una consulta y hacen falta COMPLETAS, no sólo
+     * las de los resultados. Dirección buscó «CBS Compresores» (F24, CID
+     * 134358) y no salía, porque el universo era la hoja y esa cuenta no está
+     * en ella. Medido el 18 nov 2026: **138 de 224 cuentas de cartera no
+     * tienen fila en Activaciones 2.0**. */
+    let fichas: Map<string, CuentaLista> | null = new Map()
     let cuentasError: string | null = null
-
-    if (cids.length) {
+    {
       const { data, error } = await supabaseAdmin
         .from('cuentas')
-        .select(CAMPOS_CLASIFICACION)
-        .in('cid', cids)
+        .select(CAMPOS_LISTA)
       if (error) {
         /* `null` sería «ninguna está en cartera», que es una afirmación.
            Aquí no se sabe, y eso viaja como `undefined` a `clasifica`. */
         fichas = null
         cuentasError = error.message
       } else {
-        for (const c of (data ?? []) as FichaParaClasificar[]) {
+        for (const c of (data ?? []) as unknown as CuentaLista[]) {
           const k = String(c.cid ?? '').trim()
           if (k) fichas!.set(k, c)
         }
       }
     }
 
-    let resultados: Resultado[] = recorte.map(f => ({
-      id:      f['id'],
-      cliente: f['cliente'],
-      ano:     f['ano'] || '',
-      tipo:    f['tipo'] || '',
-      clasificacion: clasifica(
-        fichas === null ? undefined : (fichas.get(f['id']) ?? null)),
+    /* ── 2 · El universo: la hoja UNIDA a la cartera ──────────────────────── */
+    const deLaHoja = Array.from(hoja.filas.values()).map(f => ({
+      id: f['id'], cliente: f['cliente'],
+      ano: f['ano'] || '', tipo: f['tipo'] || '', enLaHoja: true,
     }))
+    const enHoja = new Set(deLaHoja.map(x => x.id))
+    const soloCartera = fichas === null ? [] : Array.from(fichas.values())
+      .filter(c => !enHoja.has(String(c.cid ?? '').trim()))
+      .map(c => ({
+        id: String(c.cid ?? '').trim(),
+        cliente: String(c.empresa ?? '').trim(),
+        /* El año de alta, no el de la activación: NO hay activación. Se marca
+           con `enLaHoja:false` para que no se lea como una fila de la hoja. */
+        ano: String(c.activo_desde ?? '').slice(0, 4),
+        tipo: '', enLaHoja: false,
+      }))
+
+    const todas = [...deLaHoja, ...soloCartera]
+    const coinciden = !q
+      ? todas
+      : todas.filter(f =>
+          f.id.includes(q) || normBusqueda(f.cliente).includes(q))
+
+    /* Un ID exacto va primero: quien teclea 162474 busca ésa, no las 30 que
+       lo contienen. Después, por año descendente —lo que se está cerrando es
+       lo que se consulta— y por nombre. */
+    coinciden.sort((a, b) => {
+      const ea = a.id === q ? 0 : 1
+      const eb = b.id === q ? 0 : 1
+      if (ea !== eb) return ea - eb
+      /* Las de cartera primero a igualdad de año: son las que se gestionan. */
+      if (a.enLaHoja !== b.enLaHoja) return a.enLaHoja ? 1 : -1
+      const aa = a.ano || '', ab = b.ano || ''
+      if (aa !== ab) return ab.localeCompare(aa)
+      return a.cliente.localeCompare(b.cliente, 'es')
+    })
+
+    const recorte = coinciden.slice(0, TOPE)
+
+    /* ── 3 · El distintivo de cada uno ────────────────────────────────────── */
+    let resultados: Resultado[] = recorte.map(f => {
+      const ficha = fichas === null ? undefined : (fichas.get(f.id) ?? null)
+      return {
+        id:      f.id,
+        cliente: f.cliente,
+        ano:     f.ano,
+        tipo:    f.tipo,
+        enLaHoja: f.enLaHoja,
+        consecutivo: String(ficha?.consecutivo ?? ''),
+        clasificacion: clasifica(ficha),
+      }
+    })
 
     if (soloDistintivo === 'cliente' || soloDistintivo === 'cuenta') {
       resultados = resultados.filter(r => r.clasificacion.distintivo === soloDistintivo)
@@ -122,9 +161,16 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       resultados,
-      /* Las tres cifras se dicen por separado: cuántas hay en la hoja, cuántas
-         coinciden y cuántas viajan. Con una sola, un recorte parece un total. */
+      /* Las cifras se dicen por separado: de qué universo se buscó, cuántas
+         coinciden y cuántas viajan. Con una sola, un recorte parece un total.
+         Y el universo se desglosa, porque «2,958» sin desglosar escondería que
+         138 de ellas no son activaciones sino cuentas sin fila en la hoja. */
       totalEnLaHoja:   todas.length,
+      universo: {
+        total: todas.length,
+        activaciones: deLaHoja.length,
+        cuentasSinFilaEnLaHoja: soloCartera.length,
+      },
       coincidencias:   coinciden.length,
       devueltos:       resultados.length,
       recortado:       coinciden.length > TOPE,

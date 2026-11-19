@@ -38,18 +38,25 @@ import { leeJson, mensajeDeError } from '@/lib/respuesta-json'
    siguen pareciendo ciertas. */
 import type { Clasificacion, Expediente } from '@/components/ExpedienteApartados'
 import {
-  COLOR_DISTINTIVO, ListaApartados,
+  COLOR_DISTINTIVO,
   colorDistintivo as colorDe, textoDistintivo as textoDe,
 } from '@/components/ExpedienteApartados'
+import FichaActivacion from '@/components/FichaActivacion'
 
 interface ResultadoBusqueda {
   id: string; cliente: string; ano: string; tipo: string
+  /** `false` = cuenta de cartera SIN fila en Activaciones 2.0. */
+  enLaHoja: boolean
+  consecutivo: string
   clasificacion: Clasificacion
 }
 
 interface RespuestaBusqueda {
   resultados: ResultadoBusqueda[]
   totalEnLaHoja: number
+  /** El universo desglosado: «2,958» a secas escondería que 138 de ellas no
+   *  son activaciones sino cuentas de cartera sin fila en la hoja. */
+  universo?: { total: number; activaciones: number; cuentasSinFilaEnLaHoja: number }
   coincidencias: number
   devueltos: number
   recortado: boolean
@@ -63,7 +70,12 @@ type Respuesta = Expediente
 
 /** Lo medido sobre las 2,820, en el servidor. */
 export interface Puerta {
+  /** La hoja UNIDA a la cartera. No son sólo las activaciones. */
   total: number
+  /** Cuántas del total son filas de Activaciones 2.0. */
+  activaciones: number
+  /** Cuántas son cuentas de cartera SIN fila en la hoja. */
+  sinFilaEnLaHoja: number
   cliente: number
   incompleta: number
   fuera: number
@@ -184,11 +196,16 @@ export default function ExpedienteEntrega({
                 {/* Las tres cifras por separado: con una sola, un recorte
                     parece un total. */}
                 {lista.coincidencias.toLocaleString('es-MX')} de{' '}
-                {lista.totalEnLaHoja.toLocaleString('es-MX')} activaciones
+                {lista.totalEnLaHoja.toLocaleString('es-MX')}
+                {lista.universo
+                  ? <> ({lista.universo.activaciones.toLocaleString('es-MX')} activaciones
+                      {' '}+ {lista.universo.cuentasSinFilaEnLaHoja} cuentas de cartera
+                      {' '}sin fila en la hoja)</>
+                  : ' activaciones'}
                 {lista.recortado && <> · se muestran las primeras {lista.devueltos}</>}
                 {filtro !== 'todas' && <> · filtro aplicado sobre esas {lista.devueltos}</>}
               </>
-            ) : 'Se busca contra las 2,820, no sólo contra el año vivo.'}
+            ) : 'Se busca contra la hoja entera Y la cartera, no sólo contra el año vivo.'}
           </p>
         </div>
 
@@ -218,8 +235,17 @@ export default function ExpedienteEntrega({
                   {r.cliente}
                 </span>
                 <span style={{ fontSize: 12, color: TX_SUA, background: 'transparent' }}>
+                  {r.consecutivo ? `${r.consecutivo} · ` : ''}
                   {r.id}{r.ano ? ` · ${r.ano}` : ''}{r.tipo ? ` · ${r.tipo}` : ''}
                 </span>
+                {/* Se DICE cuándo una cuenta no tiene fila en la hoja. Sin esto
+                    se leería como una activación más y sus apartados en «falta»
+                    como trabajo sin hacer. Son 138 de 224. */}
+                {!r.enLaHoja && (
+                  <span style={{ fontSize: 11, color: TX_MID, background: 'transparent' }}>
+                    sin fila en Activaciones 2.0
+                  </span>
+                )}
                 {r.clasificacion.faltan.length > 0 && (
                   <span style={{ fontSize: 11.5, color: TX_MID, background: 'transparent' }}>
                     falta: {r.clasificacion.faltan.map(f => f.etiqueta).join(', ')}
@@ -305,6 +331,14 @@ function BarraPuerta({ p, filtro, alFiltrar }: {
             }} />
         ))}
       </div>
+      {/* El universo, desglosado. «2,958» a secas escondería que 138 de ellas
+          no son activaciones sino cuentas de cartera sin fila en la hoja. */}
+      <p style={{ fontSize: 11, color: TX_SUA, marginTop: 7, lineHeight: 1.5 }}>
+        {p.total.toLocaleString('es-MX')} en total:{' '}
+        {p.activaciones.toLocaleString('es-MX')} activaciones de la hoja y{' '}
+        {p.sinFilaEnLaHoja.toLocaleString('es-MX')} cuentas de cartera que no
+        tienen fila en ella.
+      </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
         <Chip activo={filtro === 'todas'} color="#1D6CAA"
               texto={`Todas · ${p.total.toLocaleString('es-MX')}`}
@@ -377,21 +411,9 @@ function Detalle({ exp, clasificacion, hermano, abre }: {
 
   return (
     <div style={{ marginTop: 22, borderTop: `1px solid ${BORDE}`, paddingTop: 20 }}>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-        <h3 style={{ fontSize: 16, fontWeight: 800, color: TX }}>{exp.cliente}</h3>
-        {clasificacion && (
-          <Pastilla color={colorDe(clasificacion)} texto={textoDe(clasificacion)} />
-        )}
-      </div>
-      <p style={{ fontSize: 12, color: TX_SUA, marginTop: 4 }}>
-        ID {exp.id}{exp.cid && exp.cid !== exp.id ? ` · CID ${exp.cid}` : ''}
-      </p>
-      {clasificacion && (
-        <p style={{ fontSize: 12.5, color: TX_MID, marginTop: 6, lineHeight: 1.6 }}>
-          {clasificacion.porque}
-        </p>
-      )}
-
+      {/* La cabecera —nombre, CID, etiqueta y por qué— la pinta la ficha de
+          abajo. Aquí sólo va lo que la ficha no puede saber: que esta cuenta
+          es una de varias del mismo cliente, y que no tiene fila en la hoja. */}
       {otras.length > 0 && (
         <div style={{
           marginTop: 12, padding: '11px 13px', borderRadius: 10,
@@ -417,9 +439,17 @@ function Detalle({ exp, clasificacion, hermano, abre }: {
         </div>
       )}
 
-      {/* La lista es EXACTAMENTE la misma que pinta la ficha del cliente, con
-          el mismo contador honesto y los mismos avisos. */}
-      <ListaApartados exp={exp} />
+      {/* Lo de «no tiene fila en la hoja» lo dice la ficha, pegado a donde se
+          nota. Decirlo también aquí lo repetía dos veces en la misma pantalla. */}
+
+      {/* LA FICHA COMPLETA, LA MISMA QUE ABRE EL DESPLEGABLE.
+          Dirección pidió un panel interactivo donde estén TODAS: un clic en un
+          resultado tiene que dar lo mismo —la etiqueta, los 20 puntos y las
+          columnas del archivo—, no una versión recortada. Por eso aquí no se
+          vuelve a pintar la lista de apartados: la trae la ficha. */}
+      <div style={{ marginTop: 16 }}>
+        <FichaActivacion cid={exp.id} cliente={exp.cliente} />
+      </div>
     </div>
   )
 }

@@ -7,8 +7,7 @@ import {
 import { formatMXN } from '@/lib/types'
 import CustomSelect from '@/components/CustomSelect'
 import { tonoSobreClaro, tonoSobreFondo } from '@/lib/contraste'
-import { leeJson, mensajeDeError } from '@/lib/respuesta-json'
-import ExpedienteApartados from '@/components/ExpedienteApartados'
+import FichaActivacion from '@/components/FichaActivacion'
 
 // ── Paleta clara ──────────────────────────────────────────────────────────────
 /* La paleta del Customer Success Operating System. Los hex salen del
@@ -267,91 +266,9 @@ function FilterSelect({
   )
 }
 
-// ── Ficha completa del cliente (todas las columnas del archivo) ───────────────
-interface CampoValor { campo: string; valor: string }
-interface RegistroDetalle { cid: string; cliente: string; campos: CampoValor[] }
-
-function FichaCliente({ cid, cliente }: { cid: string; cliente: string }) {
-  const [data, setData]   = useState<{ registros: RegistroDetalle[]; columnasArchivo: number } | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let vivo = true
-    setData(null); setError(null)
-    const qs = cid !== 'todos' ? `cid=${encodeURIComponent(cid)}` : `cliente=${encodeURIComponent(cliente)}`
-    ;(async () => {
-      try {
-        const r = await fetch(`/api/activaciones/detalle?${qs}`)
-        /* Antes era `r.json()` a secas. Con la sesión caducada el middleware
-           sirve el LOGIN con HTTP 200 y text/html, así que `r.json()` reventaba
-           con «Unexpected token '<'» y la ficha decía eso en rojo, como si el
-           dato estuviera mal. [[lib/respuesta-json.ts]] */
-        const d = await leeJson<{ registros: RegistroDetalle[]; columnasArchivo: number }>(r)
-        if (vivo) setData(d)
-      } catch (e) {
-        if (vivo) setError(mensajeDeError(e))
-      }
-    })()
-    return () => { vivo = false }
-  }, [cid, cliente])
-
-  const LARGOS = new Set(['Comentarios Encuesta', 'contacto'])
-
-  return (
-    <div style={{ padding:'18px 20px', borderRadius:14, background:'#FFFFFF', border:`1px solid ${BORDER}` }}>
-      <p style={{ fontSize:13, fontWeight:800, color:TX, marginBottom:4 }}>
-        Ficha del cliente — detalle completo del archivo
-      </p>
-      {!data && !error && <p style={{ fontSize:12, color:TX_LOW }}>Cargando detalles…</p>}
-      {error && <p style={{ fontSize:12, color:'#DC2626' }}>{error}</p>}
-      {data && data.registros.length === 0 && (
-        <p style={{ fontSize:12, color:TX_MID }}>Sin registros en el archivo para esta selección.</p>
-      )}
-      {data && data.registros.map((r, i) => (
-        <div key={`${r.cid}-${i}`} style={{ marginTop: i === 0 ? 10 : 18, paddingTop: i === 0 ? 0 : 16,
-          borderTop: i === 0 ? 'none' : `1px dashed ${BORDER}` }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10, flexWrap:'wrap' }}>
-            <span style={{ fontSize:13.5, fontWeight:800, color:TX }}>{r.cliente}</span>
-            <span style={{ fontSize:11, fontWeight:800, fontFamily:'monospace', color:ACCENT,
-              background:`${ACCENT}14`, border:`1px solid ${ACCENT}30`, padding:'2px 9px', borderRadius:99 }}>
-              CID {r.cid}
-            </span>
-            {data.registros.length > 1 && (
-              <span style={{ fontSize:10.5, color:TX_LOW }}>registro {i + 1} de {data.registros.length}</span>
-            )}
-          </div>
-
-          {/* LA ETIQUETA Y LOS 20 PUNTOS, EN LA FICHA
-              ─────────────────────────────────────────
-              Instrucción de dirección (18 nov 2026): se tiene que saber de un
-              clic quién es CLIENTE y quién es sólo una CUENTA, y los 20 puntos
-              de la entrega van aquí, no en una sección aparte. El bloque es el
-              mismo que usa el buscador de la puerta, para que no haya dos
-              lecturas del mismo expediente. */}
-          <ExpedienteApartados id={r.cid} />
-
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:'8px 18px', marginTop:16 }}>
-            {r.campos.filter(c => !LARGOS.has(c.campo) && c.campo !== 'ID' && c.campo !== 'Cliente').map(c => (
-              <div key={c.campo} style={{ minWidth:0 }}>
-                <p style={{ fontSize:9.5, fontWeight:700, color:TX_LOW, textTransform:'uppercase',
-                  letterSpacing:'0.06em', marginBottom:1 }}>{c.campo}</p>
-                <p style={{ fontSize:12.5, color:TX, fontWeight:600, overflowWrap:'break-word' }}>{c.valor}</p>
-              </div>
-            ))}
-          </div>
-          {r.campos.filter(c => LARGOS.has(c.campo)).map(c => (
-            <div key={c.campo} style={{ marginTop:12, padding:'10px 13px', background:'#F5F8FB',
-              border:`1px solid ${BORDER}`, borderRadius:9 }}>
-              <p style={{ fontSize:9.5, fontWeight:700, color:TX_LOW, textTransform:'uppercase',
-                letterSpacing:'0.06em', marginBottom:4 }}>{c.campo}</p>
-              <p style={{ fontSize:12.5, color:TX_MID, lineHeight:1.65, whiteSpace:'pre-wrap' }}>{c.valor}</p>
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  )
-}
+/* La ficha vive en `components/FichaActivacion.tsx`: la abren este
+   apartado y el panel de la puerta, y una ficha pintada de dos maneras
+   acaba diciendo dos cosas del mismo cliente. */
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function ActivacionesCharts({registros,anos}:{registros:RegistroItem[];anos:number[]}) {
@@ -514,7 +431,7 @@ export default function ActivacionesCharts({registros,anos}:{registros:RegistroI
 
       {/* ── Ficha completa al seleccionar Cliente o CID ──────────────────── */}
       {(selCli !== 'todos' || selCid !== 'todos') && (
-        <FichaCliente cid={selCid} cliente={selCli} />
+        <FichaActivacion cid={selCid} cliente={selCli} />
       )}
 
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}

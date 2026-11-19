@@ -373,13 +373,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         { error: 'data/activaciones.xlsx no disponible' }, { status: 404 })
     }
-    const fila = hoja.filas.get(id)
-    if (!fila) {
-      return NextResponse.json(
-        { error: `No hay ninguna activación con ID ${id}` }, { status: 404 })
-    }
-
-    const cid = fila['id'] ?? ''
+    /* ── ¿ESTÁ EN LA HOJA? Y SI NO, ¿ESTÁ EN LA CARTERA? ───────────────────
+     *
+     * Antes esto devolvía 404 en cuanto el ID no aparecía en
+     * `data/activaciones.xlsx`, y dirección lo encontró buscando **CBS
+     * Compresores** (F24, CID 134358): existe, factura, tiene asesor, y la
+     * pantalla decía que no.
+     *
+     * Medido con `npm run mide:universo` el 18 nov 2026: **138 de las 224
+     * cuentas de cartera no tienen fila en la hoja**. No era un caso raro, era
+     * más de la mitad. Así que el universo de una entrega no es la hoja: es la
+     * hoja **unida** a la cartera, y cuando la fila no existe se dice con
+     * palabras en vez de negar la cuenta.
+     */
+    const filaReal = hoja.filas.get(id)
+    const cid = id
 
     /* ── Las otras fuentes ─────────────────────────────────────────────────── */
     let cuenta: Record<string, unknown> | null = null
@@ -403,6 +411,33 @@ export async function GET(req: NextRequest) {
       // son cosas distintas, y confundirlas convierte una falla en un dato.
       errCuenta = String(e)
     }
+
+    /* Sin fila y sin ficha: aquí sí no hay nada que entregar. Pero si la
+       consulta a `cuentas` FALLÓ no se puede afirmar eso —sería convertir una
+       caída de la base en «esta cuenta no existe»—, y se dice. */
+    if (!filaReal && !cuenta) {
+      if (errCuenta) {
+        return NextResponse.json({
+          error: `No hay fila en Activaciones 2.0 para ${id} y el apartado `
+               + `Cuentas NO SE PUDO LEER, así que no se puede afirmar que la `
+               + `cuenta no exista: ${errCuenta}`,
+        }, { status: 502 })
+      }
+      return NextResponse.json({
+        error: `No hay ninguna activación con ID ${id} ni cuenta de cartera con `
+             + `ese CID.`,
+      }, { status: 404 })
+    }
+
+    /* Una fila vacía con el nombre de la cuenta: los apartados que salen de la
+       hoja quedarán en `falta`, que es la verdad —no están capturados—, y el
+       aviso de arriba dice POR QUÉ no lo están. Rellenarlos desde `cuentas`
+       sería hacer pasar la ficha por la entrega. */
+    const fila: FilaHoja = filaReal ?? {
+      id,
+      cliente: String((cuenta as Record<string, unknown>)?.empresa ?? ''),
+    }
+    const enLaHoja = Boolean(filaReal)
 
     const grcDoc = await leeJson('grc-zoho.json') as { filas?: Record<string, unknown>[] } | null
     const grc = (grcDoc?.filas ?? []).find(f => String(f.cid ?? '').trim() === cid) ?? null
@@ -452,6 +487,11 @@ export async function GET(req: NextRequest) {
          no es un juicio sobre el trabajo de nadie. */
       clasificacion: clasifica(errCuenta ? undefined : (cuenta ?? null)),
       fuentes: {
+        /* `false` significa que esta cuenta NO tiene fila en Activaciones 2.0,
+           no que la hoja esté vacía para ella. La pantalla lo dice con
+           palabras: si no, sus 16 apartados en `falta` se leerían como trabajo
+           sin hacer, cuando lo que pasa es que la entrega nunca pasó por ahí. */
+        enLaHoja,
         cuentaEnCartera: Boolean(cuenta),
         // Se dice cuando una fuente FALLÓ, en vez de dejarla como ausente.
         cuentaError: errCuenta,
