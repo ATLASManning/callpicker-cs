@@ -751,6 +751,39 @@ body {
   [style*="cp-girar"] { animation: none !important }
 }
 
+/* ── EL PULSO DE LA ALERTA CRÍTICA ─────────────────────────────────────────
+ *
+ * Dirección, 20 nov 2026, sobre la brecha entre plan y consumo: *«colócalo con
+ * mayor fuerza con colores que alerten. Incluso parpadeante»*.
+ *
+ * LO QUE PULSA ES EL HALO, NO EL TEXTO, y no es un detalle de gusto. Un texto
+ * que baja de opacidad cada segundo deja de poder leerse justo mientras se
+ * intenta leer: el ojo espera a que vuelva. Aquí la letra y el fondo de la caja
+ * se quedan quietos —y medidos a 4.5:1— y lo que late es el aro de alrededor,
+ * que es decoración y no lleva información. El hallazgo se lee entero en
+ * cualquier instante de la animación.
+ *
+ * El ciclo es de 1.8s: dos tercios de pulso por segundo, muy por debajo de los
+ * 3 destellos por segundo que marcan el riesgo fotosensible. Y como el halo se
+ * dibuja con `box-shadow`, no empuja a los vecinos ni cambia la altura de la
+ * lista mientras late.
+ *
+ * `prefers-reduced-motion` lo apaga dejando el aro PUESTO, en su extensión
+ * máxima — quien activa esa preferencia suele hacerlo por mareo, y lo que no
+ * puede pasar es que además se quede sin la señal. Misma regla que `.dash-anima`
+ * y `cp-girar`, unas líneas más arriba. */
+@keyframes cp-pulso-alerta {
+  0%, 100% { box-shadow: 0 0 0 0   rgba(220,38,38,0.55); }
+  50%      { box-shadow: 0 0 0 5px rgba(220,38,38,0); }
+}
+.cp-pulso-alerta { animation: cp-pulso-alerta 1.8s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .cp-pulso-alerta {
+    animation: none !important;
+    box-shadow: 0 0 0 3px rgba(220,38,38,0.35);
+  }
+}
+
 /* ── EL ALIAS ──────────────────────────────────────────────────────────────
  * `app/tickets/page.tsx` lleva la clase `cp-tickets` desde el 14 oct. En vez
  * de editar ese archivo otra vez, la clase vieja hereda la capa entera. Un

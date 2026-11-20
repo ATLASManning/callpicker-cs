@@ -44,7 +44,23 @@ import urllib.request
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
+# De donde se leen los veredictos.
+#
+# POR OMISION, PRODUCCION — es lo que hay que poder afirmar de lo que la gente
+# está viendo. Pero un verificador que SOLO sabe mirar produccion no puede
+# verificar un cambio antes de subirlo: corre, da verde, y lo que ha probado es
+# el codigo viejo. Eso paso el 20 nov 2026 al tocar `hallazgosDe`: las 21
+# comprobaciones pasaron contra Vercel mientras el cambio estaba sin desplegar,
+# y la diferencia de cifras se podia confundir con el efecto del cambio.
+#
+#     python scripts/verifica-graficas-dashboard.py --base http://localhost:3100
+#
+# La salida DICE contra que corrio, para que nadie lea un verde de produccion
+# como un verde del codigo que tiene delante.
 BASE = 'https://callpicker-cs.vercel.app'
+for _i, _a in enumerate(sys.argv):
+    if _a == '--base' and _i + 1 < len(sys.argv):
+        BASE = sys.argv[_i + 1].rstrip('/')
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOPE_FILAS = 12      # el mismo de DashAlertasGraficas.tsx
 N_TOP = 25           # el mismo de lib/facturacion-cuenta.ts
@@ -90,6 +106,8 @@ def main():
     d = trae()
     rows = d.get('rows') or []
     n = len(rows)
+    print(u'  ORIGEN   %s%s' % (BASE, u'' if 'localhost' in BASE or '127.0.0.1' in BASE
+                                else u'   <- PRODUCCION, no el codigo de tu copia'))
     print(u'  VERSION  %s · %d cuentas\n' % (d.get('version'), n))
     if not n:
         print(u'  sin filas: no se puede comprobar nada.')

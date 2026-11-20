@@ -53,11 +53,79 @@ export type Situacion =
 
 export type ClaseHallazgo = 'riesgo' | 'entrega' | 'analisis'
 
+/**
+ * CUÁNTO GRITA UN HALLAZGO. Por omisión no grita: `undefined` se pinta como
+ * hasta ahora, así que ningún hallazgo existente cambia de aspecto.
+ */
+export type Severidad = 'critica' | 'alta' | 'media' | 'baja' | 'ok'
+
 export interface Hallazgo {
   clase: ClaseHallazgo
   titulo: string
   /** La cifra o la frase que lo sostiene. Un hallazgo sin prueba no se publica. */
   prueba: string
+  /** Opcional. Si viene, la ficha lo pinta con el peso que le corresponde. */
+  severidad?: Severidad
+}
+
+/**
+ * LA BRECHA ENTRE EL PLAN Y EL CONSUMO, EN TRAMOS.
+ *
+ * ── POR QUÉ UNA ESCALA Y NO UN UMBRAL ──────────────────────────────────────
+ * Hasta el 20 nov 2026 esto era UNA condición: por debajo del 40% se encendía
+ * «Está pagando por minutos que no usa» y por encima no se decía nada. Dos
+ * cosas lo rompían.
+ *
+ * La primera es que el 40% dejaba fuera a cuentas que sí tienen la brecha: una
+ * que usa el 55% de lo que paga está desaprovechando casi la mitad del plan y
+ * la ficha callaba. Dirección pidió el 20 nov 2026 que se cubran **todos los
+ * casos donde el consumo va por debajo del plan**, no un tramo.
+ *
+ * La segunda es que un solo umbral pinta igual a quien no enciende el teléfono
+ * y a quien usa el 38%. Son conversaciones distintas: a la primera se le
+ * rescata la adopción o se le sustituye el producto, a la segunda se le ajusta
+ * el plan. Un color plano para las dos no ayuda a elegir por cuál empezar.
+ *
+ * ── POR QUÉ EL ÚLTIMO TRAMO NO ES UNA ALARMA ───────────────────────────────
+ * Medido el 20 nov 2026 sobre la cartera viva: **137 de 148 cuentas medibles
+ * —el 93%— consumen por debajo de su plan.** Si las 137 se pintaran en rojo, el
+ * rojo dejaría de distinguir nada. Y entre el 70% y el 100% el plan está BIEN
+ * dimensionado: decirle a esa cuenta que paga minutos que no usa sería falso.
+ * Entra en la escala —se cubre, que es lo que se pidió— con el peso que le
+ * toca, que es informativo.
+ *
+ * ── DÓNDE ACABA ESTA ESCALA, Y POR QUÉ NO EN 100 ───────────────────────────
+ * Cierra en **95**, no en 100, porque a partir del 95% ya habla otra tarjeta:
+ * «Se está acercando al límite de su plan», unas líneas más abajo. Si esta
+ * escala llegara a 100, una cuenta al 97% publicaría A LA VEZ «su plan está
+ * bien dimensionado» y «se está acercando al límite» — dos frases que se
+ * contradicen en la misma columna de la misma ficha. Entre 95 y 100 manda la
+ * del límite, que es la que trae la consecuencia (rebasar se cobra).
+ *
+ * El tramo se elige por el PRIMER `hasta` que el porcentaje no alcanza, así que
+ * la lista tiene que ir de menor a mayor. `scripts/mide-brecha-colores.mjs` lo
+ * comprueba, y comprueba también que no quede un hueco entre dos tramos: un
+ * hueco dejaría cuentas sin tarjeta sin que fallara nada.
+ */
+export const BRECHA_CONSUMO: ReadonlyArray<{
+  hasta: number
+  severidad: Severidad
+  titulo: string
+}> = [
+  { hasta: 1,   severidad: 'critica', titulo: 'No está usando el plan que paga' },
+  { hasta: 15,  severidad: 'alta',    titulo: 'Está pagando por minutos que casi no usa' },
+  { hasta: 40,  severidad: 'media',   titulo: 'Está pagando por minutos que no usa' },
+  { hasta: 70,  severidad: 'baja',    titulo: 'Su plan le queda grande' },
+  { hasta: 95,  severidad: 'ok',      titulo: 'Su plan está bien dimensionado' },
+]
+
+/** Donde empieza a mandar la tarjeta del límite. La escala de arriba cierra
+ *  justo aquí, y el medidor falla si los dos números se separan. */
+export const UMBRAL_CERCA_DEL_LIMITE = 95
+
+/** El tramo de la escala al que cae un porcentaje, o `null` si rebasa. */
+export function tramoBrecha(pct: number) {
+  return BRECHA_CONSUMO.find(t => pct < t.hasta) ?? null
 }
 
 /** El semáforo de ALERTAS. Cinco estados, y NO cuelga del Health Score. */
@@ -236,18 +304,26 @@ export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
       prueba: `${e.productosSinUso} producto(s) contratados sin uso registrado`,
     })
   }
-  if (e.consumoPct !== null && e.consumoPct < 40) {
-    h.push({
-      clase: 'entrega',
-      titulo: 'Está pagando por minutos que no usa',
-      prueba: `consume el ${e.consumoPct.toFixed(0)}% de su bolsa`,
-    })
+  /* TODOS los casos por debajo del plan, cada uno con su peso. El tramo sale
+     de `BRECHA_CONSUMO`; aquí no hay ningún número escrito. */
+  if (e.consumoPct !== null) {
+    const t = tramoBrecha(e.consumoPct)
+    if (t) {
+      h.push({
+        clase: 'entrega',
+        titulo: t.titulo,
+        prueba: `consume el ${e.consumoPct.toFixed(0)}% de su bolsa`
+              + (t.severidad === 'ok' ? '' : `; le sobra el ${(100 - e.consumoPct).toFixed(0)}%`),
+        severidad: t.severidad,
+      })
+    }
   }
-  if (e.consumoPct !== null && e.consumoPct > 95) {
+  if (e.consumoPct !== null && e.consumoPct >= UMBRAL_CERCA_DEL_LIMITE) {
     h.push({
       clase: 'entrega',
       titulo: 'Se está acercando al límite de su plan',
       prueba: `consume el ${e.consumoPct.toFixed(0)}% de su bolsa; rebasar se cobra`,
+      severidad: 'media',
     })
   }
 

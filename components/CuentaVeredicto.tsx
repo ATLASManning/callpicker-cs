@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { AlertTriangle, Gift, Search, ArrowUpRight, Phone, ClipboardList, Ear, History } from 'lucide-react'
-import { SITUACION, LUZ, type Veredicto, type ClaseHallazgo } from '@/lib/alertas-veredicto'
+import { SITUACION, LUZ, type Veredicto, type ClaseHallazgo, type Severidad } from '@/lib/alertas-veredicto'
 import { tonoSobreClaro, tonoSobreFondo, pastillaClara } from '@/lib/contraste'
 import type { Guion } from '@/lib/alertas-guion'
 import type { Movimiento, Sentido } from '@/lib/alertas-movimiento'
@@ -55,6 +55,32 @@ const BORDE     = '#DFE8EF'
 const BG_PEDIR   = '#FFFBEB'
 const BG_CUIDADO = '#FEF2F2'
 const BG_PREGUNTAS = '#F0FDF4'
+
+/* ── EL PESO DE UN HALLAZGO, EN COLOR ──────────────────────────────────────
+ *
+ * Dirección, 20 nov 2026: *«tendrás que colocarlo con mayor fuerza con colores
+ * que alerten. Incluso parpadeante»*, sobre la brecha entre el plan y el
+ * consumo.
+ *
+ * LOS TONOS SE MIDEN CONTRA EL FONDO DE SU PROPIA CAJA, no contra el blanco
+ * del panel. Fue el error de la primera medición de este archivo: la etiqueta
+ * ámbar daba 4.34:1 sobre el `#FFFBEB` de su caja y pasaba sobre blanco.
+ * `scripts/mide-brecha-colores.mjs` lo recalcula con la función REAL y falla
+ * si alguno baja de 4.5:1.
+ *
+ * `baja` y `ok` NO llevan caja. Son la mayoría de la cartera —el 93% de las
+ * cuentas medibles consume por debajo de su plan— y si todas llevaran fondo de
+ * color el panel entero sería un bloque tintado donde no se distingue nada.
+ * El peso lo lleva el que lo necesita. */
+const SEV: Record<Severidad, {
+  bg: string; borde: string | null; tono: string; pulso: boolean
+}> = {
+  critica: { bg: '#FEF2F2', borde: '#FCA5A5', tono: '#DC2626', pulso: true  },
+  alta:    { bg: '#FEF2F2', borde: '#FECACA', tono: '#DC2626', pulso: false },
+  media:   { bg: '#FFFBEB', borde: '#FDE68A', tono: '#D97706', pulso: false },
+  baja:    { bg: '#FFFFFF', borde: null,      tono: '#D97706', pulso: false },
+  ok:      { bg: '#FFFFFF', borde: null,      tono: '#10355D', pulso: false },
+}
 
 const CLASES: Array<{ k: ClaseHallazgo; etiqueta: string; tono: string; Icono: typeof AlertTriangle }> = [
   { k: 'riesgo',   etiqueta: 'Riesgo',              tono: '#DC2626', Icono: AlertTriangle },
@@ -304,16 +330,34 @@ export default function CuentaVeredicto({
                 <p className="text-[11px]" style={{ color: TX_SUAVE }}>Nada</p>
               ) : (
                 <ul className="space-y-1.5 pl-0" style={{ listStyle: 'none' }}>
-                  {hs.map((h, i) => (
-                    <li key={i}>
-                      <p className="text-[11.5px] font-semibold leading-tight" style={{ color: MARINO }}>
-                        {h.titulo}
-                      </p>
-                      {/* La prueba SIEMPRE visible. Un hallazgo sin su cifra no
-                          mueve a nadie, y es la regla de la casa. */}
-                      <p className="text-[10.5px] leading-snug" style={{ color: TX_SUAVE }}>{h.prueba}</p>
-                    </li>
-                  ))}
+                  {hs.map((h, i) => {
+                    /* Sin severidad se pinta como siempre. Así ningún hallazgo
+                       de los que ya existían cambia de aspecto por este cambio. */
+                    const s = h.severidad ? SEV[h.severidad] : null
+                    const conCaja = !!(s && s.borde)
+                    const cTitulo = s ? tonoSobreFondo(s.tono, s.bg, 4.5) : MARINO
+                    const cPrueba = s && conCaja
+                      ? tonoSobreFondo(s.tono, s.bg, 7) : TX_SUAVE
+                    return (
+                      <li key={i}
+                          className={s?.pulso ? 'cp-pulso-alerta' : undefined}
+                          style={conCaja ? {
+                            background: s!.bg, border: `1px solid ${s!.borde}`,
+                            borderLeft: `3px solid ${cTitulo}`,
+                            borderRadius: 8, padding: '6px 8px',
+                          } : undefined}>
+                        <p className="text-[11.5px] font-semibold leading-tight"
+                           style={{ color: cTitulo }}>
+                          {h.titulo}
+                        </p>
+                        {/* La prueba SIEMPRE visible. Un hallazgo sin su cifra no
+                            mueve a nadie, y es la regla de la casa. */}
+                        <p className="text-[10.5px] leading-snug" style={{ color: cPrueba }}>
+                          {h.prueba}
+                        </p>
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </div>
