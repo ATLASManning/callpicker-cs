@@ -62,21 +62,36 @@ MRR = 6463          # 3,320 (EURO STERN) + 3,143 (Zeekr) + 0 (OSPEM). Ver el
                     # guardia del dinero mas abajo: cada sumando sale del GRC.
 
 # ── Contactos ────────────────────────────────────────────────────────────────
-# VACIO, y esta vez con el alcance dicho: NINGUNA DE LAS FUENTES QUE SE
-# BARRIERON trae un interlocutor de este cliente —cartera, Activaciones 2.0,
-# tickets de Zoho Desk, DIDs, contratos, GRC, cortes, llamadas y chat—. Eso NO
-# es «no existe»: en la cuenta anterior (C71) escribi «no existe en ninguna
-# fuente» y horas despues aparecio el contacto en el registro de Zoho CRM, que
-# NO esta en el repositorio. Aqui pasa lo mismo: las oportunidades de este
-# cliente existen en Zoho CRM y ahi es donde hay que mirar.
+# CAPTURADO EL 19 nov 2026, DESPUES DEL ALTA. La primera version iba VACIA
+# porque ninguna de las fuentes BARRIDAS traia interlocutor, y se dijo con ese
+# alcance justamente porque en la cuenta anterior (C71) escribi «no existe en
+# ninguna fuente» y horas despues aparecio en Zoho CRM. Aqui volvio a pasar:
+# direccion paso el registro y SI hay interlocutor. Se corrige en el texto.
 #
-# Lo que SI hay son canales y nombres publicos, y NO se capturan como contacto:
-#   · callcenter@eurostern.com.mx — buzon corporativo, no un interlocutor.
-#   · Oscar Martin del Campo, director general «identificado en 2023», y Oscar
-#     Fernando Acosta Morones, gerente de BDC «segun perfil profesional». Los
-#     dos llegan marcados «vigencia pendiente de confirmar» por quien los paso.
-#     Publicar un cargo sin confirmar es inventar un interlocutor.
-CONTACTOS = []
+# EL NOMBRE NO SE INVENTA. La captura trae correo, telefono y movil, pero no
+# el nombre ni el cargo. Que el buzon sea «handrade@» sugiere un apellido
+# Andrade: es una deduccion del texto de un correo, no un dato, y por eso el
+# nombre queda SIN CAPTURAR y no se rellena con una suposicion.
+#
+# Y SIGUEN SIN CAPTURARSE, porque no son interlocutores de esta cuenta:
+#   · callcenter@eurostern.com.mx — buzon corporativo.
+#   · Oscar Martin del Campo (director general «identificado en 2023») y Oscar
+#     Fernando Acosta Morones (gerente de BDC «segun perfil profesional»), los
+#     dos marcados «vigencia pendiente de confirmar» por quien los paso.
+CONTACTOS = [
+    {'nombre': 'SIN CAPTURAR — la ficha trae correo y telefonos, no el nombre',
+     'cargo': 'SIN CAPTURAR',
+     'tel': '3312721787',
+     'email': 'handrade@eurostern.com.mx',
+     'nota': 'ES EL UNICO INTERLOCUTOR REGISTRADO y, segun direccion, es EL '
+             'MISMO en las tres agencias (EURO STERN, Zeekr y OSPEM), asi que '
+             'esta ficha sirve para los tres CIDs. El movil 3312721787 es la '
+             'via directa. OJO CON EL OTRO NUMERO: el «Telefono» de la ficha '
+             'es 3336304545, que es EXACTAMENTE nuestro DID 523336304545 de '
+             'la sede Minerva — o sea el fijo por el que se le llama es el '
+             'que le vendimos nosotros. Marcar ahi es entrar por el conmutador '
+             'que estamos midiendo, no a la persona.'},
+]
 
 SERVICIOS = [
     {'nombre': 'CID 181577 · EURO STERN — Conmutador IP VyC 20 extensiones',
@@ -172,6 +187,16 @@ es el del cliente. Cruzar por etiqueta mezcla cuentas.
 Nueve sedes sin numero nuestro es, a la vez, el riesgo y la conversacion de
 crecimiento de esta cuenta.
 
+— EL INTERLOCUTOR, Y EL DETALLE QUE TRAE DENTRO
+handrade@eurostern.com.mx · movil 3312721787. Segun direccion es EL MISMO
+contacto en las tres agencias, asi que vale para los tres CIDs. El nombre y el
+cargo NO vienen en la captura y no se rellenan: el buzon sugiere un apellido
+Andrade, pero deducir un nombre del texto de un correo es inventarlo.
+Y hay un detalle que no es anecdotico: el «Telefono» de su ficha es
+3336304545, que es EXACTAMENTE nuestro DID 523336304545 de la sede Minerva.
+El fijo por el que se le llama es el que le vendimos. Por eso el movil es la
+via directa — marcar al fijo es entrar por el conmutador que estamos midiendo.
+
 — LA BANDA: DIRECCION DICE AAA Y EL GRC DICE OTRA COSA
 Se registra AAA por instruccion de direccion. El corte vivo del GRC clasifica
 EURO STERN como AA, Zeekr como A y OSPEM como B, y `data/grc-reclasificaciones.json`
@@ -245,15 +270,24 @@ cuadra al peso con el primer pago de OSPEM. La de Zeekr NO cuadra: la
 oportunidad dice $2,245 y el primer pago $5,245, exactamente $3,000 de
 diferencia. Se registra con su etiqueta y no se promedia.
 
-LO QUE EL MOTOR ABRE DE VERDAD — leido, no supuesto (19 nov 2026):
-NUEVE hallazgos. Situacion: NO LA VEMOS · luz AMARILLO · esTop False.
+LO QUE EL MOTOR ABRE DE VERDAD — leido, no supuesto, y RELEIDO despues de
+capturar al interlocutor (19 nov 2026):
+OCHO hallazgos. Situacion: NO LA VEMOS · luz AMARILLO · esTop False.
   «No podemos ver su consumo — el CID tiene 2 de 5 meses con dato»
-  «Nunca se le ha contactado» · «Sin un solo contacto registrado»
-  «Sin una sola respuesta de Radar — 0 de 12»
+  «Nunca se le ha contactado» · «Sin una sola respuesta de Radar — 0 de 12»
   «No hay lectura de sus llamadas» · «Nunca se ha registrado una reunion»
-  «La cuenta no tiene auditoria» · «La relacion esta sin construir — 4%»
+  «La cuenta no tiene auditoria» · «La relacion esta sin construir — 10%»
   «Lo que le hemos resuelto — 5 tickets atendidos»
-El 4% es de RELACIONAMIENTO, no de consumo de voz: no contradice el 65.4%.
+El 10% es de RELACIONAMIENTO, no de consumo de voz: no contradice el 65.4%.
+
+ERAN NUEVE Y SON OCHO, Y ESA RESTA ES LA PRUEBA DE QUE ENTRO EL CONTACTO. La
+primera lectura, con `contactos_json` vacio, incluia «Sin un solo contacto
+registrado» y daba 4% de relacionamiento. Al capturar a handrade ese hallazgo
+se apago y el relacionamiento subio a 10%. Las dos cifras de la version
+anterior de esta nota quedaron viejas en el mismo instante y se corrigen aqui.
+Lo que NO se apago —y no hay que confundir— es «Nunca se le ha contactado»,
+que mide CONVERSACIONES por un canal real. Tener a quien marcarle no es
+haberle marcado.
 
 Y LAS DOS FRASES QUE PARECEN CONTRADECIRSE NO SE CONTRADICEN. El motor dice
 «no podemos ver su consumo» y esta ficha dice que consumio el 65.4% y el
@@ -283,13 +317,29 @@ QUE VA A SALIR VACIO EN EL TABLERO Y POR QUE — no es cero, es que no se ha med
 - CONTRATO: no aparece en `data/contratos.json`. Ese archivo cubre una parte de
   la cartera, asi que NO prueba que no haya contrato: hay que confirmarlo.
 
+*** CORRECCION DEL MISMO DIA: SI HAY INTERLOCUTOR ***
+El alta se escribio con `contactos_json` vacio y los cuatro `contacto_*` en
+nulo, diciendo que ninguna de las fuentes BARRIDAS traia interlocutor
+—cartera, Activaciones, tickets, DIDs, contratos, GRC, cortes, llamadas y
+chat—. Era cierto con ese alcance y por eso se escribio asi, despues de que en
+la cuenta anterior la frase «no existe en ninguna fuente» quedara desmentida.
+Horas despues direccion paso la ficha: handrade@eurostern.com.mx, telefono
+3336304545 y movil 3312721787. Queda capturado.
+LA LECCION SE CONFIRMA, no se estrena: lo que vive en Zoho CRM no esta en el
+repositorio, y una ausencia solo se puede declarar sobre lo que uno barrio.
+Dos altas seguidas han necesitado esta misma correccion.
+
+Y AL CAPTURARLO EL MOTOR TIENE QUE MOVERSE: `sin_contactos` depende de
+`cuantosContactos(contactos_json) === 0`, asi que el hallazgo «Sin un solo
+contacto registrado» debe APAGARSE y el relacionamiento subir. Lo que NO se
+apaga es «Nunca se le ha contactado», que mide conversaciones por un canal
+real: tener a quien marcarle no es haberle marcado. Si tras aplicar esto el
+conteo de hallazgos no baja, el contacto no entro.
+
 DATOS QUE FALTAN Y NO SE INVENTARON:
-- INTERLOCUTOR: ninguna de las fuentes que se barrieron trae uno —cartera,
-  Activaciones, tickets, DIDs, contratos, GRC, cortes, llamadas y chat—. Y eso
-  NO es «no existe»: en la cuenta anterior escribi esa frase y horas despues
-  aparecio el contacto en Zoho CRM, que no esta en el repositorio. Aqui el
-  cliente tiene DOS oportunidades en Zoho (arriba): ahi es donde hay que
-  mirar, y direccion dice que el interlocutor es el mismo en las tres agencias.
+- NOMBRE Y CARGO DEL INTERLOCUTOR: SIN CAPTURAR. La ficha trae los tres
+  canales y ningun nombre. El buzon «handrade@» sugiere un apellido Andrade:
+  eso es una deduccion del texto de un correo, no un dato, y no se publica.
 - CARGOS: Oscar Martin del Campo (director general, «identificado en 2023») y
   Oscar Fernando Acosta Morones (gerente de BDC, «segun perfil profesional»)
   llegan marcados como pendientes de confirmar por quien los paso. No se
@@ -339,10 +389,10 @@ FILA = {
                          'para toda la organizacion». No se rellena con una estimacion.',
     'pagina_web':        'https://www.mercedes-benz-eurostern-guadalajara.com.mx/',
     'direccion_fiscal':  None,
-    'contacto_nombre':   None,
-    'contacto_cargo':    None,
-    'contacto_tel':      None,
-    'contacto_email':    None,
+    'contacto_nombre':   None,          # SIN CAPTURAR: la ficha no lo trae y no se deduce
+    'contacto_cargo':    None,          # SIN CAPTURAR
+    'contacto_tel':      '3312721787',  # el MOVIL. El fijo de su ficha es nuestro propio DID
+    'contacto_email':    'handrade@eurostern.com.mx',
     'contactos_json':    CONTACTOS,
     'servicios_json':    SERVICIOS,
     'upsell_producto':   'NO ANTES DE EXPLICAR LOS TRES TICKETS DE CANCELACION. Despues, el '
@@ -384,8 +434,11 @@ print(u'  consecutivo libre : %s' % (u'NO — ya existe %s' % ya if existe else 
 print(u'  CID %s libre   : %s' % (CID, u'NO — ya esta en %s' % porcid if dup_cid else u'si'))
 for k in ('empresa', 'asesor', 'estado', 'cid', 'facturacion', 'activo_desde'):
     print(u'  %-18s %s' % (k, FILA[k]))
-print(u'  %-18s %d  (VACIO con el alcance dicho: ninguna de las fuentes BARRIDAS '
-      u'trae interlocutor. Zoho CRM no esta en el repositorio y ahi hay que mirar)'
+print(u'  %-18s %s' % ('contacto_email', FILA['contacto_email']))
+print(u'  %-18s %s  (el MOVIL; el fijo de su ficha es nuestro propio DID)'
+      % ('contacto_tel', FILA['contacto_tel']))
+print(u'  %-18s %d  (el unico del expediente, y el MISMO en las tres agencias. '
+      u'Nombre y cargo SIN CAPTURAR: la ficha no los trae y no se deducen)'
       % ('contactos_json', len(CONTACTOS)))
 print(u'  %-18s %d  (los TRES CIDs del cliente)' % ('servicios_json', len(SERVICIOS)))
 print(u'  %-18s %d caracteres' % ('observaciones_kam', len(OBS_KAM)))
@@ -509,8 +562,9 @@ print(u'  2. ¿OSPEM SIGUE ACTIVA? Direccion dice que si; el GRC la rotula')
 print(u'     «Desactivado». Sus dos unicos tickets son de cancelacion.')
 print(u'  3. ENTRAR POR ZEEKR, que lleva 25 meses y $67,656: ahi esta la')
 print(u'     relacion construida y su unico ticket fue de UPSALE.')
-print(u'  4. CAPTURAR UN INTERLOCUTOR. No hay NINGUNO en las fuentes barridas;')
-print(u'     las dos oportunidades de Zoho CRM son el sitio donde mirar.')
+print(u'  4. ESCRIBIRLE A handrade@eurostern.com.mx o marcarle al MOVIL')
+print(u'     3312721787. El fijo de su ficha es nuestro propio DID. Y pedirle')
+print(u'     el NOMBRE y el cargo: la captura no los trae y no se inventan.')
 print(u'  5. Censo de sedes: diez puntos publicados y UN solo DID nuestro.')
 print(u'  6. Que la banda AAA entre en grc-reclasificaciones.json, o el')
 print(u'     proximo corte la devuelve a AA.')

@@ -14,10 +14,13 @@ u"""COMPRUEBA EL ALTA DE EURO STERN (D61) EN PANTALLA, no en la base.
 
      - NO puede ser TOP. Con $6,463 cae en la posicion 91 de 143 y el corte
        esta en $15,607. Si sale TOP, algo lee mal el importe.
-     - NO PUEDE HABER CONTACTO PUBLICADO. Ninguna de las fuentes barridas trae
-       un interlocutor, y los canales corporativos (callcenter@eurostern.com.mx)
-       o un cargo «pendiente de confirmar» NO son interlocutores. Si aparece
-       uno, alguien lo invento.
+     - EL CONTACTO ES EL DE LA FICHA DE DIRECCION Y NADA MAS:
+       handrade@eurostern.com.mx y el MOVIL 3312721787. Dos cosas NO pueden
+       aparecer: el buzon corporativo callcenter@eurostern.com.mx o un cargo
+       «pendiente de confirmar» (seria inventar un interlocutor), y un NOMBRE
+       —la captura no lo trae, y deducir «Andrade» del buzon es inventarlo.
+       Tampoco puede sembrarse como telefono el 3336304545: ese es nuestro
+       propio DID de la sede Minerva, no la via directa a la persona.
      - EL MOTOR NO PUEDE DECIR QUE NO CONSUME. Los dos cortes dan 65.4% y
        69.8% de una bolsa de 2,500 minutos. Si un hallazgo publica un
        porcentaje de consumo cercano a cero, uno de los dos miente — y en C70
@@ -127,6 +130,9 @@ ANCLAS = [
     (u'2,395 horas',         u'el onboarding de cien dias'),
     (u'$2,245',              u'la oportunidad de Zeekr que NO cuadra con su primer pago'),
     (u'AA',                  u'la banda que dice el GRC, junto a la AAA de direccion'),
+    (u'handrade@eurostern.com.mx',
+                             u'el unico interlocutor, el mismo en las tres agencias'),
+    (u'3312721787',          u'el movil, que es la via directa'),
 ]
 print(u'\n  FRASES QUE TIENEN QUE SALIR EN LA FICHA SERVIDA:')
 for frase, porque in ANCLAS:
@@ -172,25 +178,36 @@ else:
         fallos.append(u'el CID no es %s: %s' % (CID, f['cid']))
     if float(f['facturacion']) != 6463.0:
         fallos.append(u'la facturacion no es 6,463: %s' % f['facturacion'])
-    # CONTROL NEGATIVO 2 — ningun interlocutor inventado.
-    puestos = [k for k in ('contacto_nombre', 'contacto_cargo', 'contacto_tel',
-                           'contacto_email') if f[k]]
-    if puestos:
-        fallos.append(u'hay contacto publicado y NINGUNA fuente barrida trae uno: %s'
-                      % u', '.join(u'%s=%s' % (k, f[k]) for k in puestos))
-    if f['contactos_json']:
-        fallos.append(u'`contactos_json` trae %d entrada(s) y no hay interlocutor '
-                      u'en las fuentes barridas' % len(f['contactos_json']))
-    # Y los canales corporativos no pueden haberse colado por ninguna via.
+    # CONTROL NEGATIVO 2 — el interlocutor es el de la ficha, y SOLO ese.
+    ESPERADO = {'contacto_email': u'handrade@eurostern.com.mx',
+                'contacto_tel':   u'3312721787'}
+    for k, val in sorted(ESPERADO.items()):
+        if (f[k] or u'').strip() != val:
+            fallos.append(u'`%s` deberia ser «%s» y trae «%s»' % (k, val, f[k]))
+    # El NOMBRE no existe en la captura: sembrarlo seria deducirlo del buzon.
+    if f['contacto_nombre']:
+        fallos.append(u'`contacto_nombre` trae «%s» y la ficha de direccion no da '
+                      u'ningun nombre' % f['contacto_nombre'])
     campos = json.dumps({k: f[k] for k in ('contacto_nombre', 'contacto_cargo',
                                            'contacto_tel', 'contacto_email',
                                            'contactos_json')}, ensure_ascii=False)
-    for c in (u'callcenter@eurostern.com.mx', u'Martin del Campo', u'Acosta Morones'):
+    # Ni canales corporativos, ni cargos sin confirmar, ni nuestro propio DID
+    # disfrazado de telefono del cliente.
+    for c, porque in ((u'callcenter@eurostern.com.mx', u'es un buzon corporativo'),
+                      (u'Martin del Campo', u'su vigencia esta sin confirmar'),
+                      (u'Acosta Morones',   u'su vigencia esta sin confirmar'),
+                      (u'Andrade',          u'es una deduccion del buzon, no un dato')):
         if c in campos:
-            fallos.append(u'«%s» esta publicado como contacto de la cuenta y no lo es' % c)
-    print(u'    contactos: %s'
-          % (u'VACIOS, con el alcance dicho — ninguna fuente barrida trae uno'
-             if not puestos and not f['contactos_json'] else u'*** HAY ALGUNO'))
+            fallos.append(u'«%s» esta publicado como contacto y %s' % (c, porque))
+    if u'3336304545' in (f['contacto_tel'] or u''):
+        fallos.append(u'el telefono sembrado es 3336304545, que es NUESTRO DID de '
+                      u'la sede Minerva, no la via directa al interlocutor')
+    cj = f['contactos_json'] or []
+    if len(cj) != 1:
+        fallos.append(u'`contactos_json` trae %d entradas y el expediente registra '
+                      u'UNO, el mismo para las tres agencias' % len(cj))
+    print(u'    contacto: %s · %s   (%d en contactos_json; nombre SIN CAPTURAR a '
+          u'proposito)' % (f['contacto_email'], f['contacto_tel'], len(cj)))
     # Los TRES servicios tienen que estar declarados: es la forma en que esta
     # cuenta guarda sus otros dos CIDs, porque la tabla solo tiene uno.
     sj = f['servicios_json'] or []
