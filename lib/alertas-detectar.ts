@@ -96,6 +96,15 @@ export const UMBRALES = {
   desplomeHasta: 10,
   /** Uso crónicamente bajo: nunca pasó de esto en todo el periodo. */
   usoBajo: 15,
+  /** Le SOBRA plan: nunca pasó de esto, pero sí pasó de `usoBajo`.
+   *
+   *  Es el techo de la brecha que se considera indicio de downgrade. Por
+   *  encima el plan está bien dimensionado — el 93% de la cartera medible
+   *  consume por debajo de su plan, así que una alerta sin techo no
+   *  distinguiría nada. Tiene que valer lo mismo que el tramo `baja` de
+   *  `BRECHA_CONSUMO` en `lib/alertas-veredicto.ts`, que es lo que la ficha
+   *  pinta; `scripts/mide-brecha-colores.mjs` falla si se separan. */
+  planSobrado: 70,
   /** Debajo de esto el consumo es CERO, no bajo. No es 0 exacto para que un
    *  residuo de punto flotante —0.0000001%— no se lea como uso real. */
   consumoCero: 0.5,
@@ -459,6 +468,16 @@ export async function detectarAlertas(
         add('uso_bajo', c,
             `Nunca pasó del ${Math.max(...pcts.map(p => p.pct)).toFixed(0)}% de su plan en `
             + `${pcts.length} meses, y paga ${cuantoPaga(c)}.`)
+      } else if (Math.max(...pcts.map(p => p.pct)) < UMBRALES.planSobrado) {
+        /* DESPUÉS de `uso_bajo` y ANTES de `rebasa_bolsa`. Al ir en la misma
+           cadena `if/else if`, una cuenta cae en UNO solo de los cubos, y pasar
+           de aquí a `uso_bajo` es el mismo episodio empeorando —los dos son
+           condición `consumo`— y no una alerta nueva. */
+        const pico = Math.max(...pcts.map(p => p.pct))
+        add('plan_sobrado', c,
+            `Nunca pasó del ${pico.toFixed(0)}% de su plan en ${pcts.length} meses: `
+            + `le sobra el ${(100 - pico).toFixed(0)}% de la bolsa que paga, `
+            + `y paga ${cuantoPaga(c)}.`)
       } else if (ult.pct > UMBRALES.rebase) {
         add('rebasa_bolsa', c,
             `En ${ult.mes} consumió el ${ult.pct.toFixed(0)}% de su bolsa: el excedente se cobra.`)

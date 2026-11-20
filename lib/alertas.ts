@@ -68,6 +68,7 @@ export type TipoAlerta =
   | 'desplome_consumo'
   | 'consumo_cero'
   | 'uso_bajo'
+  | 'plan_sobrado'
   | 'baja_declarada'
   | 'riesgo_escrito'
   | 'reduccion_declarada'
@@ -318,6 +319,34 @@ export const CATALOGO: Record<TipoAlerta, DefinicionAlerta> = {
     accion: 'Sesión de adopción: mostrar qué del plan no está usando. Es la cuenta '
           + 'que al apretarse el presupuesto pide bajar de plan.',
     enlaceEtiqueta: 'Ver adopción', ancla: 'adopcion',
+  },
+  /* Nace el 20 nov 2026 de la solicitud de Daniel Martínez: que la brecha entre
+   * el plan contratado y el consumo real abra alerta, porque **el downgrade por
+   * subutilización es churn y no lo estábamos contando como tal** — «lo
+   * consideramos como un rescate o bien que el cliente solo redujo su plan».
+   *
+   * POR QUÉ HACÍA FALTA UN TIPO NUEVO Y NO BASTABA `uso_bajo`. `uso_bajo` salta
+   * por debajo del 15%, y entre el 15% y el 70% no había NADA: medido el 20 nov
+   * 2026, **40 cuentas y $255,153 de MRR** cuya ficha decía que el cliente paga
+   * minutos que no usa mientras la lista de alertas callaba. Para verlas había
+   * que entrar cuenta por cuenta, y nadie recorre 191 fichas el lunes.
+   *
+   * CIERRA EN 70% Y NO EN 100 a propósito. El 93% de la cartera medible consume
+   * por debajo de su plan: una alerta que las cubriera todas no distinguiría
+   * nada. Por encima del 70% el plan está bien dimensionado y decirle a esa
+   * cuenta que paga de más sería falso. Es el mismo corte que `BRECHA_CONSUMO`
+   * en `alertas-veredicto.ts`, y hay un medidor que falla si se separan.
+   *
+   * Severidad MEDIA y no alta: la cuenta usa su servicio, sólo que le sobra
+   * plan. Es la conversación de dimensionar, no la de rescatar. */
+  plan_sobrado: {
+    tipo: 'plan_sobrado', familia: 'riesgo', severidad: 'media', dueno: 'asesor',
+    titulo: 'Le sobra plan: candidata a pedir reducción',
+    accion: 'Adelantarse a la petición. Llevar el dato a la mesa antes de que lo '
+          + 'traiga el cliente: o se trabaja la adopción de lo que no usa, o se le '
+          + 'propone sustituir minutos por producto —Chat, Agente Virtual— para que '
+          + 'el ajuste no salga del MRR.',
+    enlaceEtiqueta: 'Ver consumo y adopción', ancla: 'adopcion',
   },
   /* EL CASO BIOLABORATORIO SADAT, 6 oct 2026. Esta alerta nace de una cuenta
    * concreta y conviene que se recuerde cuál.
@@ -588,6 +617,7 @@ export const CONDICION: Record<TipoAlerta, Condicion> = {
   sin_consumo_medible: 'medicion',
   caida_consumo: 'consumo', desplome_consumo: 'consumo',
   consumo_cero: 'consumo', uso_bajo: 'consumo', rebasa_bolsa: 'consumo',
+  plan_sobrado: 'consumo',
   nunca_contactada: 'contacto', sin_interlocutor: 'contacto',
   silencio_60: 'contacto', silencio_30: 'contacto',
   sin_radar: 'radar',
@@ -798,7 +828,7 @@ export const INDICIO_BAJA: ReadonlySet<TipoAlerta> = new Set<TipoAlerta>([
   // Lo declaró alguien del equipo por escrito, con su fecha.
   'baja_declarada', 'reduccion_declarada', 'riesgo_escrito',
   // Deja de usar el servicio: el precursor clásico del downgrade.
-  'consumo_cero', 'desplome_consumo', 'caida_consumo', 'uso_bajo',
+  'consumo_cero', 'desplome_consumo', 'caida_consumo', 'uso_bajo', 'plan_sobrado',
   // Se rompe la relación: así se pierde una cuenta sin verla venir.
   'sin_interlocutor', 'silencio_60',
   // Le estamos fallando: el motivo de baja mejor documentado de esta cartera.
@@ -817,6 +847,7 @@ export const GRUPO_INDICIO: Partial<Record<TipoAlerta, GrupoIndicio>> = {
   riesgo_escrito: 'lo_declaro',
   consumo_cero: 'deja_de_usarlo', desplome_consumo: 'deja_de_usarlo',
   caida_consumo: 'deja_de_usarlo', uso_bajo: 'deja_de_usarlo',
+  plan_sobrado: 'deja_de_usarlo',
   sin_interlocutor: 'se_rompe_la_relacion', silencio_60: 'se_rompe_la_relacion',
   sac_fuera_sla: 'le_fallamos', sac_atraso_cronico: 'le_fallamos',
   sac_fallas_recurrentes: 'le_fallamos',

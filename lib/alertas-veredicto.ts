@@ -1,4 +1,4 @@
-import { esIndicioDeBaja, type Alerta, type TipoAlerta } from '@/lib/alertas'
+import { esIndicioDeBaja, CONDICION, type Alerta, type TipoAlerta } from '@/lib/alertas'
 
 /**
  * lib/alertas-veredicto.ts — EL VEREDICTO DE UNA CUENTA, Y SU ÚNICA ACCIÓN
@@ -57,7 +57,7 @@ export type ClaseHallazgo = 'riesgo' | 'entrega' | 'analisis'
  * CUÁNTO GRITA UN HALLAZGO. Por omisión no grita: `undefined` se pinta como
  * hasta ahora, así que ningún hallazgo existente cambia de aspecto.
  */
-export type Severidad = 'critica' | 'alta' | 'media' | 'baja' | 'ok'
+export type PesoHallazgo = 'critica' | 'alta' | 'media'
 
 export interface Hallazgo {
   clase: ClaseHallazgo
@@ -65,7 +65,7 @@ export interface Hallazgo {
   /** La cifra o la frase que lo sostiene. Un hallazgo sin prueba no se publica. */
   prueba: string
   /** Opcional. Si viene, la ficha lo pinta con el peso que le corresponde. */
-  severidad?: Severidad
+  peso?: PesoHallazgo
 }
 
 /**
@@ -89,10 +89,22 @@ export interface Hallazgo {
  * ── POR QUÉ EL ÚLTIMO TRAMO NO ES UNA ALARMA ───────────────────────────────
  * Medido el 20 nov 2026 sobre la cartera viva: **137 de 148 cuentas medibles
  * —el 93%— consumen por debajo de su plan.** Si las 137 se pintaran en rojo, el
- * rojo dejaría de distinguir nada. Y entre el 70% y el 100% el plan está BIEN
+ * rojo dejaría de distinguir nada. Y entre el 70% y el 95% el plan está BIEN
  * dimensionado: decirle a esa cuenta que paga minutos que no usa sería falso.
- * Entra en la escala —se cubre, que es lo que se pidió— con el peso que le
- * toca, que es informativo.
+ * Por eso ese tramo lleva `sobra: false` — se cubre, que es lo que se pidió,
+ * pero no como una alarma.
+ *
+ * ── QUIÉN ALARMA, DESDE EL 20 NOV 2026 ─────────────────────────────────────
+ * No esta escala: el DETECTOR. Dirección reclasificó la brecha como indicio de
+ * downgrade, y `consumo_cero`, `uso_bajo` y `plan_sobrado` la emiten como
+ * ALERTA de 0% a 70% —el mismo 70 que separa aquí `sobra` de bien
+ * dimensionado—, así que llegan a la ficha por el bucle de alertas, en clase
+ * `riesgo` y con su peso. Esta escala se quedó con el oficio de PONER LAS
+ * PALABRAS, y sólo se publica cuando el detector no ha dicho nada.
+ *
+ * El 70 vive en los dos sitios —aquí y en `UMBRALES.planSobrado`— porque son
+ * dos capas distintas, y `scripts/mide-brecha-colores.mjs` falla si se
+ * separan. Un espejo que nadie comprueba deja de ser espejo.
  *
  * ── DÓNDE ACABA ESTA ESCALA, Y POR QUÉ NO EN 100 ───────────────────────────
  * Cierra en **95**, no en 100, porque a partir del 95% ya habla otra tarjeta:
@@ -109,14 +121,16 @@ export interface Hallazgo {
  */
 export const BRECHA_CONSUMO: ReadonlyArray<{
   hasta: number
-  severidad: Severidad
+  /** ¿Le sobra plan? En el último tramo NO: ahí está bien dimensionado, y
+   *  decirle que paga minutos que no usa sería falso. */
+  sobra: boolean
   titulo: string
 }> = [
-  { hasta: 1,   severidad: 'critica', titulo: 'No está usando el plan que paga' },
-  { hasta: 15,  severidad: 'alta',    titulo: 'Está pagando por minutos que casi no usa' },
-  { hasta: 40,  severidad: 'media',   titulo: 'Está pagando por minutos que no usa' },
-  { hasta: 70,  severidad: 'baja',    titulo: 'Su plan le queda grande' },
-  { hasta: 95,  severidad: 'ok',      titulo: 'Su plan está bien dimensionado' },
+  { hasta: 1,  sobra: true,  titulo: 'No está usando el plan que paga' },
+  { hasta: 15, sobra: true,  titulo: 'Está pagando por minutos que casi no usa' },
+  { hasta: 40, sobra: true,  titulo: 'Está pagando por minutos que no usa' },
+  { hasta: 70, sobra: true,  titulo: 'Su plan le queda grande' },
+  { hasta: 95, sobra: false, titulo: 'Su plan está bien dimensionado' },
 ]
 
 /** Donde empieza a mandar la tarjeta del límite. La escala de arriba cierra
@@ -244,11 +258,30 @@ export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
    * declarar esta cuenta en orden?»— y la segunda se contesta con más cautela
    * que la primera. El 8 oct 2026 una luz verde se pintó sobre tres cuentas con
    * alerta crítica por relajar justo esto; no se vuelve a tocar a la baja. */
+  /* EL PESO VISUAL DE UNA ALERTA ES SU PROPIA SEVERIDAD, traducida.
+   *
+   * Son dos vocabularios y a propósito no se unificaron en un tipo: la
+   * severidad del catálogo ordena el TRABAJO —`prioridad()` la multiplica por
+   * el MRR— y el peso sólo decide cuánto grita la ficha. Mezclarlos haría que
+   * tocar un color moviera la cola del lunes.
+   *
+   * `oportunidad` no aparece aquí a propósito, y no es un olvido: una alerta de
+   * esa severidad nunca es indicio de baja —hoy es `rebasa_bolsa`, que es una
+   * venta— así que sale por la rama `entrega` y no llega a pedir peso. El
+   * `?? undefined` de abajo lo deja sin pintar si algún día llegara. */
+  const PESO_DE_SEVERIDAD: Record<string, PesoHallazgo | undefined> = {
+    critica: 'critica', alta: 'alta', media: 'media',
+  }
   for (const a of e.alertas) {
     const clase: ClaseHallazgo = esIndicioDeBaja(a) ? 'riesgo'
                                : a.familia === 'oportunidad' ? 'entrega'
                                : 'analisis'
-    h.push({ clase, titulo: a.titulo, prueba: a.evidencia })
+    /* Sólo las que son indicio pesan. Un hueco de captura nuestro —`analisis`—
+       no se pinta en rojo aunque el catálogo lo tenga por crítico: es crítico
+       para nosotros, no para el cliente, y es justo la distinción que dirección
+       trazó el 16 nov 2026. */
+    h.push({ clase, titulo: a.titulo, prueba: a.evidencia,
+             peso: clase === 'riesgo' ? PESO_DE_SEVERIDAD[a.severidad] : undefined })
   }
 
   /* ── UN HECHO SE DICE UNA VEZ ──────────────────────────────────────────
@@ -304,17 +337,41 @@ export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
       prueba: `${e.productosSinUso} producto(s) contratados sin uso registrado`,
     })
   }
-  /* TODOS los casos por debajo del plan, cada uno con su peso. El tramo sale
-     de `BRECHA_CONSUMO`; aquí no hay ningún número escrito. */
-  if (e.consumoPct !== null) {
+  /* ── LA BRECHA ENTRE EL PLAN Y EL CONSUMO ─────────────────────────────────
+   *
+   * Desde el 20 nov 2026 la brecha es un INDICIO DE DOWNGRADE por decisión de
+   * dirección, y lo que la emite es el DETECTOR: `consumo_cero`, `uso_bajo` y
+   * `plan_sobrado` cubren de 0% a 70% y ya entraron arriba, en clase `riesgo`,
+   * con su peso. Esta comprobación se queda para lo que ninguna de las tres
+   * dice.
+   *
+   * Y SE CALLA CUANDO SU GEMELA YA HABLÓ, que es la regla de este bloque. Las
+   * dos miden la brecha por caminos distintos —el detector mira el PICO de los
+   * cinco cortes, esto mira el ÚLTIMO— así que publicadas juntas darían dos
+   * porcentajes distintos del mismo hecho en la misma columna. Es exactamente
+   * lo que pasó con «No hay medición de consumo» en 49 fichas.
+   *
+   * Cuando el detector NO ha hablado, esto sí dice algo que nadie más dice: una
+   * cuenta con pico del 80% y último mes al 24% no abre alerta —su plan está
+   * bien dimensionado para su mes bueno— y aun así cerró el periodo usando una
+   * cuarta parte. Eso es información para la llamada, no una alarma.
+   *
+   * El silencio se decide por CONDICIÓN y no por una lista de títulos: los
+   * cinco tipos de consumo son los que `CONDICION` manda a `'consumo'`, y
+   * preguntárselo a ese mapa es lo que hace que un tipo nuevo —como lo fue
+   * `plan_sobrado` hoy mismo— entre solo, sin que nadie se acuerde de añadirlo
+   * aquí. Una lista tecleada aparte es la que se queda corta sin fallar. */
+  const yaHabloElDetector = e.alertas.some(a => CONDICION[a.tipo] === 'consumo')
+  if (e.consumoPct !== null && !yaHabloElDetector) {
     const t = tramoBrecha(e.consumoPct)
     if (t) {
-      h.push({
+      anota({
         clase: 'entrega',
         titulo: t.titulo,
         prueba: `consume el ${e.consumoPct.toFixed(0)}% de su bolsa`
-              + (t.severidad === 'ok' ? '' : `; le sobra el ${(100 - e.consumoPct).toFixed(0)}%`),
-        severidad: t.severidad,
+              + (t.sobra ? `; le sobra el ${(100 - e.consumoPct).toFixed(0)}%` : ''),
+        /* Sin peso: la alarma la lleva la alerta, en `riesgo`. Si esto también
+           gritara, una misma cuenta tendría dos cajas rojas por un solo hecho. */
       })
     }
   }
@@ -323,7 +380,7 @@ export function hallazgosDe(e: EstadoCuenta): Hallazgo[] {
       clase: 'entrega',
       titulo: 'Se está acercando al límite de su plan',
       prueba: `consume el ${e.consumoPct.toFixed(0)}% de su bolsa; rebasar se cobra`,
-      severidad: 'media',
+      peso: 'media',
     })
   }
 

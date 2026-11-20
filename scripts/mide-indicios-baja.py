@@ -62,6 +62,9 @@ INDICIO = {
     'desplome_consumo':       'deja de usarlo',
     'caida_consumo':          'deja de usarlo',
     'uso_bajo':               'deja de usarlo',
+    # 20 nov 2026: direccion reclasifico la brecha plan-consumo como
+    # indicio de downgrade. Cubre de `usoBajo` a `planSobrado` (15-70%).
+    'plan_sobrado':           'deja de usarlo',
     # Se rompe la relacion: asi se pierde una cuenta sin verla venir (Sadat).
     # `nunca_contactada` NO entra, y la medicion es la razon — ver FUERA.
     'sin_interlocutor':       'se rompe la relacion',

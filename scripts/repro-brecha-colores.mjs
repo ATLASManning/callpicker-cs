@@ -49,7 +49,7 @@ const { BRECHA_CONSUMO } = await jiti.import(path.join(RAIZ, 'lib/alertas-veredi
 /* El mapa se lee del componente, igual que en el medidor: una tercera copia a
    mano de estos colores sería una tercera cosa que se desincroniza. */
 const TSX = fs.readFileSync(path.join(RAIZ, 'components/CuentaVeredicto.tsx'), 'utf8')
-const BLOQUE = TSX.match(/const SEV: Record<Severidad,[\s\S]*?\n\}(?!\s*>)/)
+const BLOQUE = TSX.match(/const SEV: Record<PesoHallazgo,[\s\S]*?\n\}(?!\s*>)/)
 if (!BLOQUE) { console.log('\n  *** no se encontró el mapa SEV en el componente.\n'); process.exit(2) }
 const SEV = {}
 for (const m of BLOQUE[0].matchAll(
@@ -58,25 +58,50 @@ for (const m of BLOQUE[0].matchAll(
 }
 if (!Object.keys(SEV).length) { console.log('\n  *** el mapa SEV se leyó vacío.\n'); process.exit(2) }
 
-/* Un porcentaje de ejemplo DENTRO de cada tramo, para que el texto que se mira
-   sea el que de verdad se publicaría y no un relleno. */
-const EJEMPLO = { critica: 0, alta: 9, media: 24, baja: 55, ok: 82 }
+/* QUÉ SE MIRA. Desde el 20 nov 2026 la alarma la llevan las ALERTAS —la brecha
+   es indicio de downgrade— y el peso de cada una sale de la severidad de su
+   tipo. Así que lo que hay que ver son los tres pesos con el título REAL de su
+   alerta, más la tarjeta de la escala, que es la que sale cuando el detector no
+   ha dicho nada y por eso no grita.
 
+   Los títulos se leen del catálogo de `lib/alertas.ts`. No se importa porque
+   arrastra Supabase, que no arranca bajo Node 20. */
+const ALE = fs.readFileSync(path.join(RAIZ, 'lib/alertas.ts'), 'utf8')
+const tituloDe = (tipo) => {
+  const m = ALE.match(new RegExp(`tipo: '${tipo}',[\\s\\S]{0,200}?titulo: '([^']+)'`))
+  return m ? m[1] : null
+}
+const MUESTRA = [
+  { peso: 'critica', tipo: 'consumo_cero',
+    prueba: 'Cero minutos consumidos en los 5 meses medidos (2026-07 a 2026-11), y paga $7,264 al mes.' },
+  { peso: 'alta', tipo: 'uso_bajo',
+    prueba: 'Nunca pasó del 9% de su plan en 5 meses, y paga $11,029 al mes.' },
+  { peso: 'media', tipo: 'plan_sobrado',
+    prueba: 'Nunca pasó del 33% de su plan en 5 meses: le sobra el 67% de la bolsa que paga, y paga $7,679 al mes.' },
+]
 let filas = ''
-for (const t of BRECHA_CONSUMO) {
-  const s = SEV[t.severidad]
-  const caja = s.borde !== null
+for (const m of MUESTRA) {
+  const titulo = tituloDe(m.tipo)
+  if (!titulo) {
+    console.log(`\n  *** no se encontró el título de «${m.tipo}» en lib/alertas.ts.\n`)
+    process.exit(2)
+  }
+  const s = SEV[m.peso]
+  if (!s) { console.log(`\n  *** el componente no pinta el peso «${m.peso}».\n`); process.exit(2) }
   const cT = tonoSobreFondo(s.tono, s.bg, 4.5)
-  const cP = caja ? tonoSobreFondo(s.tono, s.bg, 7) : '#3D4B5C'
-  const pct = EJEMPLO[t.severidad]
-  const sobra = t.severidad === 'ok' ? '' : `; le sobra el ${100 - pct}%`
-  filas += `      <li class="${s.pulso ? 'cp-pulso-alerta' : ''}"${caja
-    ? ` style="background:${s.bg};border:1px solid ${s.borde};border-left:3px solid ${cT};border-radius:8px;padding:6px 8px"`
-    : ''}>
-        <p class="t" style="color:${cT}">${t.titulo}</p>
-        <p class="p" style="color:${cP}">consume el ${pct}% de su bolsa${sobra}</p>
+  const cP = tonoSobreFondo(s.tono, s.bg, 7)
+  filas += `      <li class="${s.pulso ? 'cp-pulso-alerta' : ''}"`
+         + ` style="background:${s.bg};border:1px solid ${s.borde};border-left:3px solid ${cT};border-radius:8px;padding:6px 8px">
+        <p class="t" style="color:${cT}">${titulo}</p>
+        <p class="p" style="color:${cP}">${m.prueba}</p>
       </li>\n`
 }
+/* Y la tarjeta sin peso, que es la mayoría de la cartera: se lee y no grita. */
+const SIN = BRECHA_CONSUMO.find(t => !t.sobra)
+filas += `      <li>
+        <p class="t" style="color:#122E5E">${SIN.titulo}</p>
+        <p class="p" style="color:#3D4B5C">consume el 82% de su bolsa</p>
+      </li>\n`
 
 const HTML = `<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
@@ -94,7 +119,7 @@ const HTML = `<!doctype html>
 </style></head>
 <body>
   <div class="cp-light panel">
-    <p class="rot">PARA ENSEÑARLE — LOS CINCO TRAMOS</p>
+    <p class="rot">LA BRECHA, COMO LA VE EL ASESOR</p>
     <ul>
 ${filas}    </ul>
   </div>

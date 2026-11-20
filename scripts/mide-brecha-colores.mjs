@@ -51,6 +51,18 @@ const jiti = crear(fileURLToPath(import.meta.url), { alias: { '@': RAIZ } })
 const { tonoSobreFondo } = await jiti.import(path.join(RAIZ, 'lib/contraste.ts'))
 const { BRECHA_CONSUMO, UMBRAL_CERCA_DEL_LIMITE, tramoBrecha } =
   await jiti.import(path.join(RAIZ, 'lib/alertas-veredicto.ts'))
+/* `UMBRALES` se lee del FUENTE y no se importa: `lib/alertas-detectar.ts`
+   arrastra `lib/supabase.ts`, y el cliente de Supabase no arranca bajo Node 20
+   («Node.js 20 detected without native WebSocket support»). Leer la constante
+   del texto es además lo que ya hace `scripts/mide-brecha-plan.py`. */
+const DET = fs.readFileSync(path.join(RAIZ, 'lib/alertas-detectar.ts'), 'utf8')
+const M_PLAN = DET.match(/planSobrado:\s*([0-9.]+)/)
+if (!M_PLAN) {
+  console.log('\n  *** lib/alertas-detectar.ts ya no define UMBRALES.planSobrado.')
+  console.log('      Sin ese numero no se puede comprobar el espejo. No se mide.\n')
+  process.exit(2)
+}
+const UMBRALES = { planSobrado: Number(M_PLAN[1]) }
 
 const canal = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4 }
 const aRgb = (h) => {
@@ -72,7 +84,7 @@ const TSX = fs.readFileSync(path.join(RAIZ, 'components/CuentaVeredicto.tsx'), '
    suyo sigue con `> = {`. Sin el lookahead, la captura se corta en la
    anotación de tipo y abajo se miden CERO pares — y una medición vacía
    imprimiría «todo mide» igual que una buena. */
-const BLOQUE = TSX.match(/const SEV: Record<Severidad,[\s\S]*?\n\}(?!\s*>)/)
+const BLOQUE = TSX.match(/const SEV: Record<PesoHallazgo,[\s\S]*?\n\}(?!\s*>)/)
 if (!BLOQUE) {
   console.log('\n  *** components/CuentaVeredicto.tsx ya no define el mapa SEV.')
   console.log('      O cambió de nombre, o cambió de forma. No se mide a ciegas.\n')
@@ -104,7 +116,7 @@ console.log('  1. LA ESCALA, leída de lib/alertas-veredicto.ts')
 let previo = 0
 for (const t of BRECHA_CONSUMO) {
   console.log(`     ${String(previo).padStart(3)}% a ${String(t.hasta).padStart(3)}%  `
-            + `${t.severidad.padEnd(8)} ${t.titulo}`)
+            + `${(t.sobra ? 'le sobra' : 'bien').padEnd(9)} ${t.titulo}`)
   if (t.hasta <= previo) mal(`el tramo ${t.hasta} no sube respecto al anterior (${previo})`)
   previo = t.hasta
 }
@@ -122,14 +134,30 @@ for (let p = 0; p < UMBRAL_CERCA_DEL_LIMITE; p += 0.5) {
 }
 console.log('')
 
-/* ── 2. Las severidades, en los dos sentidos ────────────────────────────── */
-console.log('  2. CADA SEVERIDAD DE LA ESCALA TIENE COLOR, Y AL REVÉS')
-const usadas = new Set(BRECHA_CONSUMO.map(t => t.severidad))
-/* `media` la usa también la tarjeta del límite, que no sale de la escala. */
-usadas.add('media')
-for (const s of usadas) if (!SEV[s]) mal(`la escala usa «${s}» y el componente no lo pinta`)
-for (const s of Object.keys(SEV)) if (!usadas.has(s)) mal(`el componente pinta «${s}» y nadie lo usa`)
-if (!fallan) console.log(`     ${usadas.size} severidades, todas con color. OK`)
+/* ── 2. El espejo del 70, y los pesos que el componente pinta ─────────── */
+console.log('  2. EL ESPEJO: donde acaba «le sobra» y donde salta plan_sobrado')
+const topeEscala = BRECHA_CONSUMO.filter(t => t.sobra).slice(-1)[0]?.hasta
+if (topeEscala !== UMBRALES.planSobrado) {
+  mal(`la ficha deja de decir «le sobra» en el ${topeEscala}% y el detector abre `
+    + `plan_sobrado hasta el ${UMBRALES.planSobrado}%. Entre los dos numeros la `
+    + `ficha y la lista de alertas dirian cosas distintas de la misma cuenta.`)
+} else {
+  console.log(`     los dos valen ${topeEscala}%. OK`)
+}
+/* Los pesos los pone `PESO_DE_SEVERIDAD`, traduciendo la severidad del
+   catalogo. Que el componente pinte EXACTAMENTE esos, ni uno mas ni uno
+   menos: uno de mas es codigo muerto que parece vivo, uno de menos es un
+   hallazgo sin color. */
+const VER = fs.readFileSync(path.join(RAIZ, 'lib/alertas-veredicto.ts'), 'utf8')
+const MAPA = VER.match(/const PESO_DE_SEVERIDAD[\s\S]*?\n  \}/)
+if (!MAPA) {
+  mal('no se encontro PESO_DE_SEVERIDAD en lib/alertas-veredicto.ts')
+} else {
+  const pesos = new Set([...MAPA[0].matchAll(/:\s*'(\w+)'/g)].map(m => m[1]))
+  for (const p of pesos) if (!SEV[p]) mal(`se asigna el peso «${p}» y el componente no lo pinta`)
+  for (const p of Object.keys(SEV)) if (!pesos.has(p)) mal(`el componente pinta «${p}» y nadie lo asigna`)
+  if (!fallan) console.log(`     ${pesos.size} pesos, todos con color y todos usados. OK`)
+}
 console.log('')
 
 /* ── 3 y 4. Los pares, y el control negativo ────────────────────────────── */

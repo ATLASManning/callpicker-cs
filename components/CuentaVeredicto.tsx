@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { AlertTriangle, Gift, Search, ArrowUpRight, Phone, ClipboardList, Ear, History } from 'lucide-react'
-import { SITUACION, LUZ, type Veredicto, type ClaseHallazgo, type Severidad } from '@/lib/alertas-veredicto'
+import { SITUACION, LUZ, type Veredicto, type ClaseHallazgo, type PesoHallazgo } from '@/lib/alertas-veredicto'
 import { tonoSobreClaro, tonoSobreFondo, pastillaClara } from '@/lib/contraste'
 import type { Guion } from '@/lib/alertas-guion'
 import type { Movimiento, Sentido } from '@/lib/alertas-movimiento'
@@ -72,14 +72,12 @@ const BG_PREGUNTAS = '#F0FDF4'
  * cuentas medibles consume por debajo de su plan— y si todas llevaran fondo de
  * color el panel entero sería un bloque tintado donde no se distingue nada.
  * El peso lo lleva el que lo necesita. */
-const SEV: Record<Severidad, {
+const SEV: Record<PesoHallazgo, {
   bg: string; borde: string | null; tono: string; pulso: boolean
 }> = {
   critica: { bg: '#FEF2F2', borde: '#FCA5A5', tono: '#DC2626', pulso: true  },
   alta:    { bg: '#FEF2F2', borde: '#FECACA', tono: '#DC2626', pulso: false },
   media:   { bg: '#FFFBEB', borde: '#FDE68A', tono: '#D97706', pulso: false },
-  baja:    { bg: '#FFFFFF', borde: null,      tono: '#D97706', pulso: false },
-  ok:      { bg: '#FFFFFF', borde: null,      tono: '#10355D', pulso: false },
 }
 
 const CLASES: Array<{ k: ClaseHallazgo; etiqueta: string; tono: string; Icono: typeof AlertTriangle }> = [
@@ -333,7 +331,7 @@ export default function CuentaVeredicto({
                   {hs.map((h, i) => {
                     /* Sin severidad se pinta como siempre. Así ningún hallazgo
                        de los que ya existían cambia de aspecto por este cambio. */
-                    const s = h.severidad ? SEV[h.severidad] : null
+                    const s = h.peso ? SEV[h.peso] : null
                     const conCaja = !!(s && s.borde)
                     const cTitulo = s ? tonoSobreFondo(s.tono, s.bg, 4.5) : MARINO
                     const cPrueba = s && conCaja

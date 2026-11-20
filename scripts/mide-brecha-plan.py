@@ -69,33 +69,34 @@ U = {}
 for k, v in re.findall(r'(\w+)\s*:\s*([0-9.]+)', _BLOQUE.group(1)):
     U[k] = float(v)
 for k in ('mesesCaida', 'caidaMinima', 'consumoMinimoParaMirar', 'desplomeDesde',
-          'desplomeHasta', 'usoBajo', 'consumoCero', 'rebase'):
+          'desplomeHasta', 'usoBajo', 'planSobrado', 'consumoCero', 'rebase'):
     if k not in U:
         print(u'  *** UMBRALES ya no trae «%s». No se mide con un numero inventado.' % k)
         raise SystemExit(2)
 VENTANA = 5      # `.slice(-5)` en el detector
 MINIMO = 3       # `if (pcts.length < 3)` en el detector
 
-# ── El OTRO umbral, el de la ficha. Tambien se lee ─────────────────────────
-# La subutilizacion YA se mide y YA se publica, pero en otro sitio y con otro
-# numero: `lib/alertas-veredicto.ts` enciende la tarjeta «Esta pagando por
-# minutos que no usa» por debajo del 40%, en la clase `entrega` («Para
-# ensenarle»), que el 16 nov 2026 dejo de ser alarma por instruccion de
-# direccion. El detector, en cambio, abre alerta por debajo del 15%.
+# ── Donde la FICHA deja de decir «le sobra plan» ───────────────────────────
+# Hasta el 20 nov 2026 habia DOS reglas sobre el mismo hecho y con distinto
+# numero: la ficha encendia «Esta pagando por minutos que no usa» por debajo
+# del 40% y el detector abria alerta por debajo del 15%. En medio, una banda
+# —40 cuentas, $255,153— donde la ficha lo decia y la lista de alertas callaba.
 #
-# DOS REGLAS SOBRE EL MISMO HECHO Y CON DISTINTO NUMERO: entre esos dos
-# umbrales hay una banda donde la ficha de la cuenta dice que el cliente paga
-# minutos que no usa y la lista de alertas no dice nada. Medir esa banda es el
-# objeto de este bloque; dejarla sin medir seria opinar sobre su tamano.
+# Ese dia direccion reclasifico la brecha como INDICIO DE DOWNGRADE y nacio
+# `plan_sobrado`, que cubre de `usoBajo` a `planSobrado`. La banda deberia
+# estar cerrada, y este guion lo COMPRUEBA en vez de darlo por hecho.
+#
+# El numero se lee del ultimo tramo con `sobra: true` de `BRECHA_CONSUMO`, no
+# de una constante tecleada aqui: si manana alguien mueve la escala, lo que
+# tiene que pasar es que este guion mida lo nuevo, no que mienta con lo viejo.
 _VER = io.open(os.path.join(RAIZ, 'lib', 'alertas-veredicto.ts'), encoding='utf-8').read()
-_TIT = u'Está pagando por minutos que no usa'
-_i = _VER.find(_TIT)
-_m = re.search(r'consumoPct\s*<\s*([0-9.]+)', _VER[max(0, _i - 400):_i]) if _i >= 0 else None
-if not _m:
-    print(u'  *** no se encontro el umbral de «%s» en lib/alertas-veredicto.ts.\n'
-          u'      O la tarjeta cambio de texto, o cambio de regla. No se mide a ciegas.' % _TIT)
+_TRAMOS = re.findall(r'\{\s*hasta:\s*([0-9.]+),\s*sobra:\s*(true|false)', _VER)
+_SOBRA = [float(h) for h, s in _TRAMOS if s == 'true']
+if not _SOBRA:
+    print(u'  *** no se pudo leer BRECHA_CONSUMO de lib/alertas-veredicto.ts.\n'
+          u'      O cambio de forma, o cambio de nombre. No se mide a ciegas.')
     raise SystemExit(2)
-UMBRAL_FICHA = float(_m.group(1))
+UMBRAL_FICHA = max(_SOBRA)
 
 ASESOR = None
 UMBRAL_PICO = 50.0
@@ -196,6 +197,12 @@ def clasifica(pcts):
         return u'consumo_cero'
     if pico < U['usoBajo']:
         return u'uso_bajo'
+    # Nace el 20 nov 2026, cuando direccion reclasifico la brecha como indicio
+    # de downgrade. Va DESPUES de `uso_bajo` y ANTES de `rebasa_bolsa`, igual
+    # que en el detector: el orden de la cadena decide en que cubo cae cada
+    # cuenta, asi que un espejo con el mismo cuerpo y otro orden no es espejo.
+    if pico < U['planSobrado']:
+        return u'plan_sobrado'
     if ult > U['rebase']:
         return u'rebasa_bolsa'
     return u'SIN ALERTA'
@@ -221,6 +228,7 @@ universo = len([c for c in vivas if not ASESOR or (c.get('asesor') or '') == ASE
 print(u'\n  QUE ALERTA DE CONSUMO ABRE CADA CUENTA — la cadena es `if/else if`,')
 print(u'  asi que cada cuenta cae en UNO y solo un cubo:')
 ORDEN = [u'caida_consumo', u'desplome_consumo', u'consumo_cero', u'uso_bajo',
+         u'plan_sobrado',
          u'rebasa_bolsa', u'sin_consumo_medible', u'SIN ALERTA']
 for k in ORDEN + [k for k in sorted(cubos) if k not in ORDEN]:
     v = cubos.get(k)
@@ -301,12 +309,19 @@ for k in sorted(pora, key=lambda k: -sum(m['mrr'] for m in pora[k])):
 # que detectar. Por eso aqui se mira la BASE, que es un hecho facturado y no
 # una proporcion: si la bolsa de un cliente encoge, el downgrade ya ocurrio.
 print(u'\n  ' + u'=' * 72)
-print(u'  LA FICHA YA LO DICE Y LA ALERTA NO — la banda entre los dos umbrales')
-print(u'  La tarjeta «%s» se enciende' % _TIT)
-print(u'  por debajo del %.0f%% del ULTIMO corte; el detector abre alerta por' % UMBRAL_FICHA)
-print(u'  debajo del %.0f%%. En medio no hay nada que avise.' % U['usoBajo'])
-print(u'  OJO: la tarjeta mira UN mes, no la ventana. Un mes flojo la enciende')
-print(u'  y un mes bueno la apaga, aunque el ano entero vaya igual.')
+print(u'  ¿QUEDO CERRADA LA BANDA MUDA? — se comprueba, no se da por hecho')
+print(u'  Antes del 20 nov 2026 la ficha decia «le sobra plan» por debajo del')
+print(u'  %.0f%% y el detector solo abria alerta por debajo del %.0f%%: en medio,'
+      % (UMBRAL_FICHA, U['usoBajo']))
+print(u'  40 cuentas y $255,153 que nadie veia sin entrar cuenta por cuenta.')
+print(u'  Con `plan_sobrado` (hasta el %.0f%%) eso deberia estar cerrado.'
+      % U['planSobrado'])
+print(u'')
+print(u'  Lo que PUEDE quedar, y no es un hueco: la ficha mira el ULTIMO corte y')
+print(u'  el detector el PICO de la ventana. Una cuenta con pico del 80% y ultimo')
+print(u'  mes al 24% no abre alerta —su plan le sirve en su mes bueno— y aun asi')
+print(u'  cerro el periodo usando una cuarta parte. Son medidas distintas de cosas')
+print(u'  distintas, no dos lecturas del mismo numero.')
 muda = []
 for c in vivas:
     if ASESOR and (c.get('asesor') or '') != ASESOR:
@@ -322,9 +337,22 @@ for c in vivas:
     mrr, _o = importe(c)
     muda.append({'c': c, 'mrr': mrr, 'ult': ult, 's': s})
 muda.sort(key=lambda b: -b['mrr'])
-print(u'\n  %d cuentas con la tarjeta ENCENDIDA en su ficha y NINGUNA alerta · $%s de MRR'
+print(u'\n  %d cuentas con la ficha diciendo «le sobra» y NINGUNA alerta · $%s de MRR'
       % (len(muda), u'{:,.0f}'.format(sum(b['mrr'] for b in muda))))
-print(u'  Para verlas hay que entrar cuenta por cuenta. Nadie las recorre el lunes.')
+# El pico de cada una dice cual de las dos cosas es. Si TODAS tienen el pico
+# por encima del umbral, la banda esta cerrada y lo que queda es la diferencia
+# de medida. Si alguna tiene el pico por debajo, hay un hueco de verdad.
+_hueco = [b for b in muda if max(x['pct'] for x in b['s']) < U['planSobrado']]
+if _hueco:
+    print(u'  *** %d de ellas tienen el PICO por debajo del %.0f%%: eso SI es un hueco,'
+          % (len(_hueco), U['planSobrado']))
+    print(u'      porque el detector deberia haberlas visto y no las vio.')
+elif muda:
+    print(u'  Las %d tienen el pico POR ENCIMA del %.0f%%: la banda esta cerrada y'
+          % (len(muda), U['planSobrado']))
+    print(u'  esto es la diferencia entre mirar el ultimo mes y mirar la ventana.')
+else:
+    print(u'  Banda cerrada, sin resto.')
 if muda:
     print(u'\n  %-5s %-30s %-8s %9s %7s  %s'
           % (u'cons', u'empresa', u'asesor', u'MRR', u'ultimo', u'serie de % por mes'))
