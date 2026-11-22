@@ -111,10 +111,15 @@ ago = [m for m in SER if m['mes'] == 'Agosto'][0]
 #
 # LO QUE ESTA PRUEBA VALE, Y HAY QUE SABERLO: hasta el 6 nov el numero venia de
 # una captura del tablero de Zoho, asi que comparaba el repo contra la FUENTE.
-# Con `GRF.xlsx` no llego captura, asi que 16.8% esta CALCULADO del propio
-# corte: a partir de aqui detecta que el .json se mueva por su cuenta, no que
-# el repo discrepe de Zoho. Para re-anclarla hace falta una captura nueva —
-# `verifica-contra-tablero.py`. [[feedback-metricas-derivadas-origen]]
+# Con el corte del 16 nov no llego captura, asi que el 16.8% quedo CALCULADO
+# del propio corte y durante seis dias detectaba que el .json se moviera por su
+# cuenta, NO que el repo discrepara de Zoho.
+#
+# RE-ANCLADA el 22 nov 2026: la captura de ese dia imprime agosto acumulado
+# 16.8%, el mismo valor. Que coincida no es casualidad afortunada — es que el
+# numero calculado del corte era correcto— pero hasta hoy eso no estaba
+# MEDIDO, y «resulto estar bien» no es lo mismo que «se comprobo».
+# [[feedback-metricas-derivadas-origen]]
 prueba('Agosto acumulado 16.8%% (17.1%% hasta el 11 oct · 17.0%% hasta el 6 nov)',
        abs(ago['grcAcumulado'] - 16.8) < 0.1,
        '%.1f%%' % ago['grcAcumulado'])
@@ -281,17 +286,48 @@ PUB_ANTES_2026_11_16 = {
 # detecta que el .json cambie por su cuenta, NO que el repo discrepe de Zoho.
 # Ese contraste vive en `verifica-contra-tablero.py` y sigue con la
 # transcripcion del 6 nov. [[feedback-metricas-derivadas-origen]]
-PUB = {
-       'Enero': (4650439.89, 74083.11, 20848.01),
-       'Febrero': (4697115.10, 65589.19, 34216.37),
+PUB_ANTES_2026_11_22 = {
        'Marzo': (4777829.30, 82546.00, 25734.97),
        'Abril': (4856114.51, 58214.06, 26406.59),
        'Mayo': (5075266.09, 32586.00, 42283.26),
-       'Junio': (5105407.13, 87260.00, 84204.82),
-       'Julio': (4945057.29, 67261.46, 24859.88),
        'Agosto': (5017300.54, 49315.00, 49851.84),
        'Septiembre': (4984993.16, 67795.96, 53799.34),
        'Octubre': (4921518.85, 268639.55, 37083.82)}
+
+# ── REEXPRESION DEL 22-NOV-2026 (export institucional, 3,675 filas) ───────
+# NO trae mes nuevo —noviembre ya existia— pero reexpresa SEIS meses cerrados,
+# y por primera vez las bases BAJAN:
+#   · Marzo, Abril y Mayo  MRR inicio -$1,656.00 EXACTOS cada uno. El mismo
+#     importe en tres meses distintos NO es redondeo; de donde sale NO ESTA
+#     MEDIDO y no se inventa aqui. Mayo ademas downgrade -$1,656.00.
+#   · Septiembre  MRR inicio +$1,175.00  y  churn -$2,497.00
+#   · Agosto      churn -$489.00
+#   · Octubre     churn $268,639.55 -> $235,976.53 (-$32,663.02) y downgrade
+#     +$0.28. SEXTA vez que un mes «cerrado» se corrige A LA BAJA.
+#
+# El delta quedo EXPLICADO con `concilia-grc-zoho.py` ANTES de tocar esta tabla
+# —CIERRA al centavo contra el delta de perdida, -$689,843.90— y la causa es la
+# de siempre: 479 lineas marcadas como perdida que DESDE ENTONCES FACTURARON
+# (-$657,417.52), 13 que cambiaron de monto y 2 que entraron.
+# [[regla-churn-mes-vencido]]
+#
+# ESTA VEZ SI HAY CAPTURA, y eso cambia lo que vale esta tabla. Las del 16 nov
+# iban CALCULADAS del propio corte —detectaban que el .json se moviera solo, no
+# que el repo discrepara de Zoho—. Estas diez filas estan COTEJADAS CELDA POR
+# CELDA contra la captura del tablero que mando Jose Manuel el 22 nov 2026, y
+# el contraste completo vive en `verifica-contra-tablero.py`, que vuelve a
+# APLICAR despues de seis dias sin hacerse. [[feedback-metricas-derivadas-origen]]
+PUB = {
+       'Enero': (4650439.89, 74083.11, 20848.01),
+       'Febrero': (4697115.10, 65589.19, 34216.37),
+       'Marzo': (4776173.30, 82546.00, 25734.97),
+       'Abril': (4854458.51, 58214.06, 26406.59),
+       'Mayo': (5073610.09, 32586.00, 40627.26),
+       'Junio': (5105407.13, 87260.00, 84204.82),
+       'Julio': (4945057.29, 67261.46, 24859.88),
+       'Agosto': (5017300.54, 48826.00, 49851.84),
+       'Septiembre': (4986168.16, 65298.96, 53799.34),
+       'Octubre': (4921518.85, 235976.53, 37084.10)}
 for m in SER:
     p = PUB.get(m['mes'])
     if not p:

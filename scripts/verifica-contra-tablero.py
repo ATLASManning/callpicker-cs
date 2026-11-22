@@ -49,7 +49,7 @@ CENT = 0.005
 # Y lo que NO se hace nunca: mover estos numeros para que cuadren con lo que el
 # repo calcula. Eso es hacer que la prueba le de la razon al codigo y deja de
 # comprobar nada. Se copian del tablero o no se tocan.
-FECHA_TRANSCRIPCION = '6 nov 2026'
+FECHA_TRANSCRIPCION = '22 nov 2026'
 
 # EL CORTE CONTRA EL QUE SE COPIO. Sin esto, la prueba no sabe distinguir «el
 # repo discrepa de Zoho» de «la transcripcion se quedo vieja», y cuando el
@@ -61,47 +61,65 @@ FECHA_TRANSCRIPCION = '6 nov 2026'
 # Si el corte vigente NO es este, la comparacion NO APLICA: se dice con
 # palabras y se pide la captura, en vez de gritar un descuadre que no se ha
 # medido. Lo que NUNCA se hace es rellenarla con lo que calcula el repo.
-CORTE_TRANSCRITO = 'CRF.xlsx'
+CORTE_TRANSCRITO = 'GRF.xlsx'
 
-# ── TRANSCRIPCION DEL TABLERO (6 nov 2026) ──────────────────────────────────
-# Copiada de la captura que mando Jose Manuel el 6 nov 2026. Trae YA NOVIEMBRE,
-# que la del 2 nov no tenia, y mueve tres meses respecto de aquella:
+# EL NOMBRE NO BASTA PARA IDENTIFICAR UN CORTE, y lo descubri el 22 nov 2026.
+# El corte del 16 nov y el del 22 nov son archivos DISTINTOS —se descargan como
+# `GRF.xlsx` y `GRF (1).xlsx`— pero `gen-grc-zoho.py` guarda el basename y el
+# navegador quita el « (1)» al abrirlo, asi que los DOS declaran `meta.origen =
+# GRF.xlsx`. Con solo el nombre, este guardia habria dicho «mismo corte, la
+# comparacion APLICA» con una transcripcion de otro dia, y entonces miente en
+# la direccion peligrosa: declara hecho el contraste contra la fuente cuando no
+# se hizo. Se le anade el conteo de filas, que si distingue (3,670 -> 3,675).
+# [[churn-analisis-data]] — el rotulo manda, pero un rotulo que se repite no
+# rotula nada.
+FILAS_TRANSCRITAS = 3675
+
+# ── TRANSCRIPCION DEL TABLERO (22 nov 2026) ─────────────────────────────────
+# Copiada de la captura que mando Jose Manuel el 22 nov 2026, celda por celda.
+# RE-ANCLA la prueba: desde el 16 nov estaba SIN HACER, porque con aquel corte
+# no llego captura y esta transcripcion seguia siendo la del 6 nov. Una prueba
+# que no aplica no es una prueba que pase.
 #
-#   · Junio downgrade 81,817.81 -> 84,212.81 (+2,395.00). Es la reclasificacion
-#     de TROQUELADOS MODULARES de «Churn mensual» a «Downgrade», la misma que
-#     salio en el corte de Churn de hoy. El GRC no cuenta el churn mensual y SI
-#     cuenta el downgrade, asi que la perdida REAL de junio baja lo mismo que
-#     sube la contada. [[grc-fuente-zoho]]
-#   · Octubre churn 351,054.00 -> 301,885.55 (-49,168.45). Clavado con el
-#     -$49,168.45 que midio `concilia-grc-export.py` hoy: 27 clientes marcados
-#     «Churn confirmado» llegaron facturando. CUARTA vez que un mes «cerrado»
-#     se corrige a la baja.
-#   · Las bases suben +169.00 en casi todos los meses, +2,564.00 en julio,
-#     +2,856.00 en octubre y +26,763.00 en septiembre. Eso NO es ruido de
-#     transcripcion: es el export reescribiendo meses cerrados, que es
-#     justamente por lo que esta prueba existe.
+# NOVIEMBRE SE DESTAPA. En la copia del 6 nov el tablero lo imprimia con churn
+# $0.00 y seis dias de vida; ahora trae $757,283.43 de churn y $56,065.33 de
+# downgrade — $813,348.76, el 17.1% de su propia base. No es que noviembre se
+# haya hundido en dos semanas: es el mes VIVO llenandose, que es cartera por
+# cobrar y no baja consumada. [[regla-churn-mes-vencido]]
 #
-# NOVIEMBRE ENTRA AQUI PERO NO SE PUBLICA. El tablero lo imprime con seis dias
-# de vida y churn $0; `esMesVivo` sigue excluyendo octubre. Esta transcripcion
-# es la REFERENCIA, no lo que publicamos: que noviembre aparezca aqui y falte
-# en `data/grc-zoho.json` es un hallazgo correcto, no un fallo que tapar.
+# OCTUBRE, que ya es mes cerrado, baja de $301,885.55 a $235,976.53 de churn
+# (-$65,909.02) y su perdida queda en $273,060.63. SEXTA vez que un mes
+# «cerrado» se corrige A LA BAJA, y la causa es la de siempre: `concilia-grc-
+# zoho.py` explica el delta ENTERO —cierra al centavo— con 479 lineas que
+# estaban marcadas como perdida y DESDE ENTONCES FACTURARON (-$657,417.52),
+# mas 13 que cambiaron de monto y 2 que entraron.
+#
+# Y las bases BAJAN, que es lo contrario de las seis reexpresiones anteriores:
+# -$1,656.00 exactos en marzo, abril y mayo (el mismo importe en tres meses no
+# es redondeo; de donde sale NO ESTA MEDIDO y no se inventa aqui) y +$1,175.00
+# en septiembre. Mayo se lleva ademas -$1,656.00 de downgrade.
+#
+# ESTO CONFIRMA LO QUE SE PUBLICO AYER. El corte AAA del 21 nov dejo octubre en
+# $273,060.63 de perdida y el acumulado cerrado en $1,215,274.49; el tablero
+# oficial imprime hoy exactamente esas dos cifras. Eran dos archivos distintos
+# de extracciones distintas y coinciden al centavo.
 #   mes: (MRR inicio, Churn, Downgrade, Perdida, GRC mensual %, GRC acum %)
 TABLERO = [
     (u'Enero',      4650439.89,  74083.11, 20848.01,   94931.12, 2.0,  2.0),
     (u'Febrero',    4697115.10,  65589.19, 34216.37,   99805.56, 2.1,  4.2),
-    (u'Marzo',      4777829.30,  82546.00, 25734.97,  108280.97, 2.3,  6.4),
-    (u'Abril',      4857590.51,  58214.06, 26413.59,   84627.65, 1.7,  8.2),
-    (u'Mayo',       5076735.09,  32586.00, 42283.26,   74869.26, 1.5,  9.6),
-    (u'Junio',      5106562.12,  87260.00, 84212.81,  171472.81, 3.4, 13.0),
-    (u'Julio',      4946533.29,  69086.46, 25281.75,   94368.21, 1.9, 14.9),
-    (u'Agosto',     5015057.60,  53199.28, 49851.84,  103051.12, 2.1, 17.0),
-    (u'Septiembre', 4982686.62,  68872.96, 55726.08,  124599.04, 2.5, 19.5),
-    (u'Octubre',    4917285.57, 301885.55, 37083.82,  338969.37, 6.9, 26.4),
-    (u'Noviembre',  4724025.77,      0.00, 21568.27,   21568.27, 0.5, 26.8),
+    (u'Marzo',      4776173.30,  82546.00, 25734.97,  108280.97, 2.3,  6.4),
+    (u'Abril',      4854458.51,  58214.06, 26406.59,   84620.65, 1.7,  8.2),
+    (u'Mayo',       5073610.09,  32586.00, 40627.26,   73213.26, 1.4,  9.6),
+    (u'Junio',      5105407.13,  87260.00, 84204.82,  171464.82, 3.4, 13.0),
+    (u'Julio',      4945057.29,  67261.46, 24859.88,   92121.34, 1.9, 14.8),
+    (u'Agosto',     5017300.54,  48826.00, 49851.84,   98677.84, 2.0, 16.8),
+    (u'Septiembre', 4986168.16,  65298.96, 53799.34,  119098.30, 2.4, 19.2),
+    (u'Octubre',    4921518.85, 235976.53, 37084.10,  273060.63, 5.5, 24.7),
+    (u'Noviembre',  4743246.91, 757283.43, 56065.33,  813348.76, 17.1, 41.9),
 ]
 # La fila «Resumen amplio» que el propio tablero imprime al pie.
-RESUMEN = {'mrr': 53751860.86, 'churn': 893322.61,
-           'down': 423220.77, 'perdida': 1316543.38, 'grc': 2.4}
+RESUMEN = {'mrr': 53770495.77, 'churn': 1574924.74,
+           'down': 453698.51, 'perdida': 2028623.25, 'grc': 3.8}
 
 fallos = []
 
@@ -196,12 +214,20 @@ for mes, mrr, ch, dw, pe, pct, acum in TABLERO:
 
 print(u'\n  ═══════════════════════════════════════════════════════════')
 corte_vigente = (d.get('meta') or {}).get('origen') or '(sin declarar)'
-if fallos and corte_vigente != CORTE_TRANSCRITO:
+filas_vigentes = (d.get('meta') or {}).get('filas')
+# DOS señas, no una: el nombre se repite entre cortes distintos (ver
+# FILAS_TRANSCRITAS). Si cualquiera de las dos no coincide, es otro corte.
+mismo_corte = (corte_vigente == CORTE_TRANSCRITO
+               and filas_vigentes == FILAS_TRANSCRITAS)
+if fallos and not mismo_corte:
     print(u'  ESTA COMPROBACIÓN NO APLICA HOY, y por eso no sale con error.')
     print(u'')
-    print(u'      transcripción copiada del tablero: %s, corte «%s»'
-          % (FECHA_TRANSCRIPCION, CORTE_TRANSCRITO))
-    print(u'      corte que sirve la pantalla AHORA:  «%s»' % corte_vigente)
+    print(u'      transcripción copiada del tablero: %s, corte «%s» de %s filas'
+          % (FECHA_TRANSCRIPCION, CORTE_TRANSCRITO,
+             format(FILAS_TRANSCRITAS, ',')))
+    print(u'      corte que sirve la pantalla AHORA:  «%s» de %s filas'
+          % (corte_vigente,
+             format(filas_vigentes, ',') if filas_vigentes else '?'))
     print(u'')
     print(u'  Son cortes distintos, así que los %d desajustes de arriba NO' % len(fallos))
     print(u'  dicen que el repo discrepe de Zoho: dicen que el tablero también')

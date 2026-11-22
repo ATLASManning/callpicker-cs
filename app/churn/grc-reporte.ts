@@ -49,25 +49,52 @@
    la transcripción de `verifica-contra-tablero.py` —que sí viene del tablero—
    es una comprobación de verdad; si se copiara de ahí, aquella pasaría por
    construcción. [[feedback-metricas-derivadas-origen]] */
-/* Recalculada del export institucional `GRF.xlsx` el 16 nov 2026 con
-   `mide-base-mrr.py --ts`. Se movieron DIEZ de los once meses: Abril
-   −$1,476.00, Mayo −$1,469.00, Junio −$1,154.99, Julio −$1,476.00, Agosto
-   +$2,242.94, Septiembre +$2,306.54, Octubre +$4,233.28 y Noviembre
-   +$6,279.28; Enero, Febrero y Marzo no se movieron.
+/* Recalculada del export institucional del 22 nov 2026 con
+   `mide-base-mrr.py --ts`. Se movieron CINCO meses, y en el sentido contrario
+   al de costumbre — las bases BAJAN:
+     · Marzo, Abril y Mayo  −$1,656.00 EXACTOS cada uno
+     · Septiembre           +$1,175.00
+     · Noviembre           +$12,941.86  (el mes vivo, que sigue llenándose)
+   El mismo importe repetido en tres meses cerrados NO es redondeo: es la firma
+   de una fila retroactiva. De dónde sale NO ESTÁ MEDIDO y no se inventa aquí.
+
+   LO CAZÓ `verifica-contra-tablero.py`, no la carga: `gen-grc-zoho.py` movió
+   la serie y esta constante se quedó atrás, cinco meses discrepando del
+   tablero. Es la misma patología que GRC_RESUMEN_CERRADOS lleva seis veces —
+   un espejo tecleado deja de ser espejo en cuanto la fuente se mueve, y aquí
+   se mueve CADA SEMANA.
+
    Al centavo, nunca redondeado: lo escribí una vez como 4886743 y lo cazó
    `verifica-contra-tablero.py` — un denominador redondeado da un porcentaje
-   que no es el del tablero. */
+   que no es el del tablero.
+
+   LAS DOS COMPROBACIONES SON INDEPENDIENTES, y por eso valen: estos once
+   valores salen del ARCHIVO vía `mide-base-mrr.py`, y la transcripción de
+   `verifica-contra-tablero.py` sale de la CAPTURA DEL TABLERO que mandó Jose
+   Manuel. Coinciden al centavo en los once meses. Si se copiaran uno del otro,
+   aquella prueba pasaría por construcción y no probaría nada.
+   [[feedback-metricas-derivadas-origen]] */
 export const GRC_BASE_MRR: Record<string, number> = {
   Enero:      4650439.89,
   Febrero:    4697115.10,
-  Marzo:      4777829.30,
-  Abril:      4856114.51,
-  Mayo:       5075266.09,
+  Marzo:      4776173.30,
+  Abril:      4854458.51,
+  Mayo:       5073610.09,
   Junio:      5105407.13,
   Julio:      4945057.29,
   Agosto:     5017300.54,
-  Septiembre: 4984993.16,
+  Septiembre: 4986168.16,
   Octubre:    4921518.85,
+  Noviembre:  4743246.91,
+}
+
+/** Las bases ANTES del corte del 22 nov 2026, para que el cambio sea
+ *  auditable y no una corrección silenciosa. Sólo los cinco que se movieron. */
+export const GRC_BASE_MRR_ANTES_2026_11_22: Record<string, number> = {
+  Marzo:      4777829.30,
+  Abril:      4856114.51,
+  Mayo:       5075266.09,
+  Septiembre: 4984993.16,
   Noviembre:  4730305.05,
 }
 
@@ -443,9 +470,21 @@ export const GRC_RESUMEN_CERRADOS = {
      a la baja —$305,723.37 el 16 nov, $279,742.63 en el tablero institucional y
      $273,060.63 en este export—. Por eso `hasta` NO se mueve a Noviembre:
      noviembre es el mes vivo y el tablero lo pinta al 18.3% mensual contra el
-     1.4–5.7% del resto del año. Esa cifra es cartera por cobrar. */
+     1.4–5.7% del resto del año. Esa cifra es cartera por cobrar.
+
+     22 nov 2026 — SÉPTIMA, y esta vez SÓLO la base: −$3,793.00. Churn,
+     downgrade y pérdida no se mueven NI UN CENTAVO. El delta es exactamente
+     −$1,656.00 × 3 (marzo, abril y mayo) + $1,175.00 (septiembre), o sea las
+     mismas bases que movió `GRC_BASE_MRR` y ninguna partida suelta. El pct
+     aguanta en 2.48%.
+
+     QUE LA PÉRDIDA NO SE MUEVA ES EL HALLAZGO, no la ausencia de uno: estas
+     tres cifras vienen de `aaa-grc-data.ts` (corte AAA del 21 nov) y el
+     tablero institucional del 22 nov imprime octubre en $273,060.63 y el
+     acumulado cerrado en $1,215,274.49. Dos extracciones distintas, dos días
+     distintos, el mismo centavo. */
   hasta:     'Octubre',
-  base:      49031041.86,
+  base:      49027248.86,
   churn:       817641.31,
   downgrade:   397633.18,
   perdida:    1215274.49,
