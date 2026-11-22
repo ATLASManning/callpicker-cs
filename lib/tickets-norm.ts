@@ -244,10 +244,12 @@ function construirPropietarios(filas: TicketRaw[]): Map<string, string> {
   // Segunda pasada: adoptar los nombres sueltos.
   const claves = Array.from(grupos.keys())
   const redirige = new Map<string, string>()
+  const ambiguos = new Set<string>()
   for (const k of claves) {
     if (k.includes(' ')) continue
     const candidatos = claves.filter(o => o !== k && o.startsWith(`${k} `))
     if (candidatos.length === 1) redirige.set(k, candidatos[0])
+    else if (candidatos.length > 1) ambiguos.add(k)
   }
   for (const [desde, hacia] of Array.from(redirige.entries())) {
     const g = grupos.get(desde)
@@ -289,6 +291,28 @@ function construirPropietarios(filas: TicketRaw[]): Map<string, string> {
     const soloInicial = clave(mejor).split(' ').filter(Boolean)
     if (soloInicial.length === 1 && soloInicial[0].length === 1) {
       canon.set(k, `Sin nombre («${mejor}»)`)
+      continue
+    }
+    /* Y UN NOMBRE DE PILA QUE ENCAJA EN DOS PERSONAS TAMPOCO ES UN NOMBRE.
+       Misma clase que la inicial suelta de arriba, y apareció en el corte del
+       21 nov 2026 con un efecto mucho mayor que su tamaño: Zoho capturó
+       `Alexis I.` y `Roberto I.` en UN folio cada uno —los dos del 20 nov,
+       abiertos y cerrados en minutos— y con eso dejó de haber un solo Alexis y
+       un solo Roberto.
+
+       La regla de arriba hace lo correcto y no los funde. Pero el precio lo
+       pagan los nombres SUELTOS que hasta ese día sí se adoptaban: `Alexis`
+       (48 folios) se desprendió de `Alexis González` (1,017) y `Roberto .`
+       (14) de `Roberto R.` (1,171). **62 folios cambiaron de barra**, y la
+       gráfica dibujaba dos barras para la misma persona sin decir por qué.
+
+       Separados se quedan —adivinar sigue siendo regalarle a uno el trabajo de
+       otro—, pero el rótulo nombra el hueco con palabras en vez de disfrazarlo
+       de agente, y conserva la cadena cruda para rastrearla hasta Zoho. Si la
+       mesa corrige la captura, el grupo se reabsorbe solo.
+       [[feedback-contexto-ia-sin-huecos]] */
+    if (ambiguos.has(k)) {
+      canon.set(k, `Sin apellido («${mejor}»)`)
       continue
     }
     canon.set(k, mejor)

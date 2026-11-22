@@ -78,6 +78,7 @@ for t in T:
 
 claves = list(grupos)
 redirige = {}
+ambiguos = {}
 for k in claves:
     if ' ' in k:
         continue
@@ -85,8 +86,7 @@ for k in claves:
     if len(cand) == 1:
         redirige[k] = cand[0]
     elif len(cand) > 1:
-        fallos.append('el nombre suelto «%s» encaja en %d grupos: %s — queda aparte, '
-                      'revisar a mano' % (k, len(cand), cand))
+        ambiguos[k] = cand
 for desde, hacia in redirige.items():
     grupos[hacia]['var'].update(grupos[desde]['var'])
     grupos[hacia]['total'] += grupos[desde]['total']
@@ -94,6 +94,24 @@ for desde, hacia in redirige.items():
 
 print('  %d cadenas distintas -> %d personas/colas'
       % (len({t['propietario'] for t in T if (t['propietario'] or '').strip()}), len(grupos)))
+
+# UN NOMBRE DE PILA QUE ENCAJA EN DOS PERSONAS NO SE FUNDE CON NINGUNA — y eso
+# esta bien— PERO TAMPOCO SE PINTA COMO SI FUERA UN AGENTE. El 21 nov 2026 dos
+# folios ('Alexis I.' y 'Roberto I.', uno cada uno) desprendieron 62 folios de
+# dos personas reales hacia barras propias. El dato no estaba mal; el ROTULO si.
+if ambiguos:
+    print('  AMBIGUOS · nombres de pila que encajan en varias personas:')
+    for k, cand in sorted(ambiguos.items()):
+        print('       «%s» -> %d folios en barra aparte; podria ser %s'
+              % (k, grupos[k]['total'], ', '.join(sorted(cand))))
+    print('       Se quedan aparte a proposito. Lo que se exige es que el rotulo')
+    print('       los nombre con palabras, no que se adivine a quien pertenecen.')
+    _NORM = io.open(os.path.join(RAIZ, 'lib', 'tickets-norm.ts'), encoding='utf-8').read()
+    check('ambiguos.has(k)' in _NORM and u'Sin apellido' in _NORM,
+          'tickets-norm.ts rotula con palabras los nombres de pila ambiguos '
+          '(«Sin apellido («…»)»), en vez de pintarlos como una persona mas')
+else:
+    print('  --   ningun nombre de pila ambiguo en este corte')
 
 # Dentro de un grupo, TODOS los apellidos completos deben ser compatibles.
 for k, g in grupos.items():
