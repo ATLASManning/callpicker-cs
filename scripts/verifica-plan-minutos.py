@@ -9,29 +9,27 @@
 import sys, io, re, collections, openpyxl
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
-MIN_POR_EXT = 1500
-MIN_POR_EXT_PLAUSIBLE = 50
-RX_EXT = re.compile(r'(\d+)\s*(?:extensi[oó]n(?:es)?|ext\b)', re.I)
-RX_EXT_ABREV = re.compile(r'^(\d+)\s+\S.*\bIL\b', re.I)
-RX_SIN_VOZ = re.compile(r'\bchat\b|\bagentes?\s+cp\b|sin\s+saldo|n[uú]meros?\s+virtuales?|whatsapp', re.I)
-BOLSA_MINIMA = 3
+# LA REGLA NO SE TECLEA AQUI. Se importa de `plan_minutos_py`, que la LEE de
+# `lib/plan-minutos.ts` y revienta si el .ts deja de decir lo que supone.
+#
+# POR QUE CAMBIO (21 nov 2026): esta copia se habia separado del modulo real y
+# nadie se enteraba, porque un espejo roto no falla: contesta de mas. A la
+# primera condicion le faltaba `and incl < BOLSA_MINIMA`, asi que todo plan de
+# Chat CON BOLSA DE VERDAD lo declaraba inmedible. En el corte del 21 nov eso
+# eran 105 cortes: este guion decia `sin_medicion` 319 y el modulo mide 214.
+#
+# Se destapo por CONTRADICCION INTERNA —`diff-cortes.py` daba 214 sobre el
+# mismo archivo— y la arbitro la copia autoritativa. Un verificador que
+# describe el sistema peor de lo que esta tambien miente, y de paso tapa si
+# apareció un inmedible NUEVO, que es justo lo que tiene que vigilar.
+# [[feedback-verificar-antes-asegurar]]
+from plan_minutos_py import base_minutos as _base_minutos
 
 
 def base_minutos(plan, incl):
-    """Replica exacta de baseMinutos() en TypeScript."""
-    nombre = plan or ''
-    m = RX_EXT.search(nombre) or RX_EXT_ABREV.search(nombre)
-    ext = int(m.group(1)) if m else None
-    if RX_SIN_VOZ.search(nombre) and not ext:
-        return None, ext, 'sin_medicion'
-    if ext and ext > 0:
-        porExt = (incl / ext) if incl > 0 else 0
-        if porExt >= MIN_POR_EXT_PLAUSIBLE:
-            return incl, ext, 'bolsa'
-        return ext * MIN_POR_EXT, ext, 'extensiones'
-    if incl >= BOLSA_MINIMA:
-        return incl, ext, 'bolsa'
-    return None, ext, 'sin_medicion'
+    """(base, extensiones, origen) — `ext` se conserva por la forma del TS."""
+    base, origen = _base_minutos(plan, incl)
+    return base, None, origen
 
 
 wb = openpyxl.load_workbook(r'D:\Windows\Projects\callpicker-cs\data\cortes-facturacion.xlsx',

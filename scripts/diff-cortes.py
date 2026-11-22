@@ -53,30 +53,20 @@ import openpyxl
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REL = 'data/cortes-facturacion.xlsx'
 
-# ── Replica EXACTA de lib/plan-minutos.ts ────────────────────────────
-MINUTOS_POR_EXTENSION = 1500
-MIN_POR_EXT_PLAUSIBLE = 50
-BOLSA_MINIMA = 3
-RX_EXTENSIONES = re.compile(r'(\d+)\s*(?:extensi[oó]n(?:es)?|ext\b)', re.I)
-RX_EXT_ABREVIADO = re.compile(r'^(\d+)\s+\S.*\bIL\b', re.I)
-RX_SIN_VOZ = re.compile(r'\bchat\b|\bagentes?\s+cp\b|sin\s+saldo|n[uú]meros?\s+virtuales?|whatsapp', re.I)
+# ── La regla se IMPORTA, no se copia ─────────────────────────────────
+# Esta copia estaba al dia el 21 nov 2026 —se comprobo contra la autoritativa
+# sobre las 25,310 filas y daba lo mismo—, pero era la TERCERA copia en Python
+# de la misma regla, y la hermana de `verifica-plan-minutos.py` ya se habia
+# separado sin que nada fallara. Una copia que hoy coincide es una copia que
+# puede dejar de coincidir mañana, y este guion es el que BLOQUEA la carga.
+# [[feedback-verificar-antes-asegurar]]
+from plan_minutos_py import base_minutos as _base_minutos
 
 
 def base_minutos(plan, incl):
-    """Devuelve (base, extensiones, origen). Misma logica y mismo ORDEN que el TS."""
-    nombre = str(plan or '')
-    m = RX_EXTENSIONES.search(nombre) or RX_EXT_ABREVIADO.search(nombre)
-    ext = int(m.group(1)) if m else None
-    if RX_SIN_VOZ.search(nombre) and not ext and incl < BOLSA_MINIMA:
-        return None, ext, 'sin_medicion'
-    if ext and ext > 0:
-        por_ext = (incl / ext) if incl > 0 else 0
-        if por_ext >= MIN_POR_EXT_PLAUSIBLE:
-            return incl, ext, 'bolsa'
-        return ext * MINUTOS_POR_EXTENSION, ext, 'extensiones'
-    if incl >= BOLSA_MINIMA:
-        return incl, ext, 'bolsa'
-    return None, ext, 'sin_medicion'
+    """(base, extensiones, origen) — `ext` se conserva por la forma del TS."""
+    base, origen = _base_minutos(plan, incl)
+    return base, None, origen
 
 
 def num(v):
