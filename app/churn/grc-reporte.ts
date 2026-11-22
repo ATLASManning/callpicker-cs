@@ -432,20 +432,36 @@ export const GRC_RESUMEN_CERRADOS = {
      $296,573.49, con lo que el promedio de meses cerrados pasa de 2.17% a
      2.55%. Las cuatro cifras las recalcula `verifica-resumen-cerrados.py`
      desde `aaa-grc-data.ts` + `GRC_BASE_MRR`; aquí no se teclea ninguna que él
-     no confirme. QUINTA vez que esta constante se queda atrás en una carga. */
+     no confirme. QUINTA vez que esta constante se queda atrás en una carga.
+
+     21 nov 2026 — SEXTA. El corte nuevo NO añade pérdida a los meses cerrados:
+     se la QUITA. Octubre baja de $305,723.37 a $273,060.63 y con eso el
+     promedio de cerrados pasa de 2.55% a 2.48%. La base no se mueve: los mismos
+     $49,031,041.86, porque entra el mismo periodo (Ene–Octubre).
+
+     Es cobranza entrando, no un mes que se encoge: octubre lleva TRES lecturas
+     a la baja —$305,723.37 el 16 nov, $279,742.63 en el tablero institucional y
+     $273,060.63 en este export—. Por eso `hasta` NO se mueve a Noviembre:
+     noviembre es el mes vivo y el tablero lo pinta al 18.3% mensual contra el
+     1.4–5.7% del resto del año. Esa cifra es cartera por cobrar. */
   hasta:     'Octubre',
   base:      49031041.86,
-  churn:       853290.33,
-  downgrade:   399288.90,
-  perdida:    1252579.23,
-  pct:               2.55,
+  churn:       817641.31,
+  downgrade:   397633.18,
+  perdida:    1215274.49,
+  pct:               2.48,
 }
 
 /**
  * El fraude / reestructura queda FUERA del Gross Revenue Churn: la pérdida
- * real del periodo enero–**octubre** es $1,692,860.67 —los tres churns más el
+ * real del periodo enero–**octubre** es $1,655,555.93 —los tres churns más el
  * downgrade—, sin los $457,716.65 de fraude-reestructura de los mismos diez
  * meses. Se reporta por separado.
+ *
+ * 21 nov 2026: baja desde $1,692,860.67 (−$37,304.74) y el fraude NO se mueve.
+ * Mismo periodo y misma composición: es octubre madurando, no un cambio de
+ * criterio. Ésta sí es comparable contra la anterior, al revés que el salto
+ * que avisa el párrafo de abajo.
  *
  * OJO al leer el salto desde los $1,327,044.73 que decía antes: **no es que la
  * pérdida creciera $365,815.94 en una carga**. Son dos cosas a la vez — entra
