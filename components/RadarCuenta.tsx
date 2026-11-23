@@ -4,7 +4,17 @@ import {
   Radar, Lock, Check, Loader2, Copy, Database, ClipboardList, X, Save,
 } from 'lucide-react'
 import { PREGUNTAS_RADAR, type RadarCuenta as RadarData, type NivelRadar } from '@/lib/radar'
-import { TX_TENUE } from '@/lib/contraste'
+import { TX_TENUE, tonoSobreOscuro, componeSobre } from '@/lib/contraste'
+
+/* LOS TONOS DE LETRA SE CALCULAN, NO SE ELIGEN. Los tres de abajo iban como
+   hex a ojo y medían 3.84:1, 3.38:1 y 4.34:1 sobre su propio fondo — los dos
+   primeros en un <span> con `background`, que `globals.css` NO repinta, así
+   que eran bajo contraste HOY. El tinte de la pastilla se compone antes de
+   medir: sobre `#082742` a secas el número sale optimista.
+   [[atlas-dashboard-contrast-architecture]] */
+const ATLAS_CHIP   = tonoSobreOscuro('#5B8DEF', componeSobre('#5B8DEF', 0.14))
+const ROJO_CHIP    = tonoSobreOscuro('#FF3B4E', componeSobre('#FF3B4E', 0.14))
+const ROJO_TARJETA = tonoSobreOscuro('#FF3B4E')
 
 const SQL_TABLA = `CREATE TABLE IF NOT EXISTS radar_respuestas (
   id          bigserial   PRIMARY KEY,
@@ -24,13 +34,22 @@ DO $do$ BEGIN
   THEN EXECUTE 'CREATE POLICY "service_role_all" ON radar_respuestas FOR ALL USING (true)'; END IF;
 END $do$;`
 
-const NIVEL_CFG: Record<NivelRadar, { color: string; bg: string; border: string }> = {
-  save:      { color: '#FF3B4E', bg: 'rgba(255,59,78,.13)',   border: 'rgba(255,59,78,.42)' },
-  recover:   { color: '#FB923C', bg: 'rgba(251,146,60,.13)',  border: 'rgba(251,146,60,.42)' },
-  prevent:   { color: '#FBBF24', bg: 'rgba(251,191,36,.13)',  border: 'rgba(251,191,36,.42)' },
-  optimize:  { color: '#5B8DEF', bg: 'rgba(91,141,239,.13)',  border: 'rgba(91,141,239,.42)' },
-  grow:      { color: '#3DD68C', bg: 'rgba(61,214,140,.13)',  border: 'rgba(61,214,140,.42)' },
-  sin_datos: { color: '#A8BACB', bg: 'rgba(148,163,184,.12)', border: 'rgba(148,163,184,.35)' },
+/* `color` es el tono del NIVEL: el icono, el filete y el número de 44px, que
+   son objeto gráfico y titular —3:1 les basta—. `tx` es el mismo tono subido a
+   4.5:1 para cuando ese color va en texto pequeño, que son dos sitios de este
+   archivo. Separarlos importa: aclarar el filete y el icono «por si acaso» los
+   convierte en protagonistas, y dejar el texto en el tono del filete lo deja
+   por debajo de AA. El `save` medía 4.34:1 en texto. */
+const nivel = (color: string, bg: string, border: string) =>
+  ({ color, bg, border, tx: tonoSobreOscuro(color) })
+
+const NIVEL_CFG: Record<NivelRadar, { color: string; bg: string; border: string; tx: string }> = {
+  save:      nivel('#FF3B4E', 'rgba(255,59,78,.13)',   'rgba(255,59,78,.42)'),
+  recover:   nivel('#FB923C', 'rgba(251,146,60,.13)',  'rgba(251,146,60,.42)'),
+  prevent:   nivel('#FBBF24', 'rgba(251,191,36,.13)',  'rgba(251,191,36,.42)'),
+  optimize:  nivel('#5B8DEF', 'rgba(91,141,239,.13)',  'rgba(91,141,239,.42)'),
+  grow:      nivel('#3DD68C', 'rgba(61,214,140,.13)',  'rgba(61,214,140,.42)'),
+  sin_datos: nivel('#A8BACB', 'rgba(148,163,184,.12)', 'rgba(148,163,184,.35)'),
 }
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
@@ -147,8 +166,12 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
         <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,.62)' }}>
           Radar de Cuenta
         </h3>
+        {/* El azul de ATLAS COMUNICA de quién es el dato, así que se conserva
+            el tono y se aclara lo justo. Un <span> que declara `background` NO
+            lo repinta `globals.css`, así que el 3.84:1 del #5B8DEF a 9px era
+            bajo contraste HOY, no deuda latente. */}
         <span className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold px-2 py-[3px] rounded-full"
-          style={{ background: 'rgba(91,141,239,.14)', color: '#5B8DEF', border: '1px solid rgba(91,141,239,.45)' }}>
+          style={{ background: 'rgba(91,141,239,.14)', color: ATLAS_CHIP, border: '1px solid rgba(91,141,239,.45)' }}>
           ATLAS · automático
         </span>
         <span className="inline-flex items-center gap-1 text-[9px] font-mono px-2 py-[3px] rounded-full"
@@ -209,7 +232,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
             if (u.pctConsumo === null) return null
             return (
               <p className="text-[11px] mt-1" style={{ color: TX_TENUE }}>
-                Último corte: <strong style={{ color: u.pctConsumo < 40 ? '#FF3B4E' : '#fff' }}>
+                Último corte: <strong style={{ color: u.pctConsumo < 40 ? ROJO_TARJETA : '#fff' }}>
                 {u.pctConsumo.toFixed(1)}%</strong> del plan · {fmtN(u.minutosCons)} de {fmtN(u.ilimitado && u.extensiones ? u.extensiones * 1500 : u.minutosIncl)} min
                 {u.ilimitado && ' (estimados por extensión)'}
               </p>
@@ -238,7 +261,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
         background: radar.alertasCriticas > 0 ? 'rgba(255,59,78,.09)' : 'rgba(255,255,255,.04)',
         border: `1px solid ${radar.alertasCriticas > 0 ? 'rgba(255,59,78,.28)' : 'rgba(255,255,255,.09)'}`,
       }}>
-        <strong style={{ color: cfg.color }}>Lectura de ATLAS: </strong>{radar.lecturaAtlas}
+        <strong style={{ color: cfg.tx }}>Lectura de ATLAS: </strong>{radar.lecturaAtlas}
       </p>
 
       {/* ── Pendiente del asesor ── */}
@@ -278,7 +301,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
             </div>
             {exigeRadar && respondidas < 12 && (
               <span className="text-[9.5px] font-mono font-semibold px-2 py-[3px] rounded-full"
-                style={{ background: 'rgba(255,59,78,.14)', color: '#FF3B4E', border: '1px solid rgba(255,59,78,.42)' }}>
+                style={{ background: 'rgba(255,59,78,.14)', color: ROJO_CHIP, border: '1px solid rgba(255,59,78,.42)' }}>
                 obligatorio · cuenta en riesgo
               </span>
             )}
@@ -305,7 +328,7 @@ export default function RadarCuenta({ cuentaId, asesor, canEdit = false }: Props
               <div>
                 <h2 className="text-sm font-bold text-gray-900">Radar de Cuenta · 12 preguntas obligatorias</h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Evaluación de ATLAS: <strong style={{ color: cfg.color }}>{radar.score} · {radar.titulo.split('·')[0].trim()}</strong> · respondidas {respondidas} de 12
+                  Evaluación de ATLAS: <strong style={{ color: cfg.tx }}>{radar.score} · {radar.titulo.split('·')[0].trim()}</strong> · respondidas {respondidas} de 12
                 </p>
               </div>
               <button onClick={() => setAbierto(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>

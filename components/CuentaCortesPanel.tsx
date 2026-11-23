@@ -136,7 +136,11 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
             </span>
           )}
         </div>
-        <a href={informeHref} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#10355D', textDecoration: 'none' }}>
+        {/* Sin `color`: este enlace no lleva clase, así que lo pinta
+            `.cp-card a:not([class])` en #60A5FA. El `#10355D` que había aquí
+            medía 1.22:1 sobre la tarjeta y sólo se leía porque esa regla lo
+            tapaba — tinta de marca heredada de cuando el panel era claro. */}
+        <a href={informeHref} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, textDecoration: 'none' }}>
           Ver informe <ExternalLink size={10} />
         </a>
       </div>
@@ -290,7 +294,10 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                           title={r.medible ? undefined : 'El plan no incluye minutos de voz: no hay base contra la cual medir el consumo'}>
                           {r.medible ? `${r.pctConsumo.toFixed(1)}%` : 's/med.'}
                         </td>
-                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: '#10355D' }}>{fmt$(r.monto)}</td>
+                        {/* Sin `color`: el monto va con la tinta de la tarjeta.
+                            El `#10355D` medía 1.22:1 y lo salvaba el
+                            `!important` de globals.css. */}
+                        <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700 }}>{fmt$(r.monto)}</td>
                         <td style={{ padding: '5px 8px', textAlign: 'center' }}>
                           <span style={{ background: clasColor + '18', color: clasColor, fontWeight: 700, padding: '2px 6px', borderRadius: 99, whiteSpace: 'nowrap', fontSize: 9 }}>
                             {r.clasificacion || '—'}
@@ -334,7 +341,7 @@ export default function CuentaCortesPanel({ cid, empresa }: { cid: string | null
                       <tr key={mes} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                         <td style={{ padding: '6px 8px', color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{fmtMes(mes)}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right', color: TX_TENUE }}>{v.count}</td>
-                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: '#10355D' }}>{fmt$(v.monto)}</td>
+                        <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>{fmt$(v.monto)}</td>
                         <td style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 700, color: avg === null ? TX_TENUE : pctColor(avg) }}>
                           {avg === null ? 's/med.' : `${avg.toFixed(1)}%`}
                         </td>

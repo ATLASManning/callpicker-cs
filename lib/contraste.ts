@@ -319,3 +319,135 @@ export function textoSobreSolido(hex: string, objetivo = 4.5): string {
   CACHE.set(clave, r)
   return r
 }
+
+/**
+ * EL FONDO DE LA TARJETA OSCURA. `app/globals.css` → `.cp-card { background }`.
+ *
+ * Es un espejo, y un espejo tecleado se desincroniza en silencio: el 13 oct
+ * 2026 la tarjeta pasó de `#0D1829` a `#082742` —más CLARA— y ocho colores
+ * dejaron de servir sin que nadie tocara una línea de color. Por eso este valor
+ * NO se cree: `scripts/revisa-color-invisible-cpcard.py` lee la regla del CSS,
+ * lee esta constante, y sale con 1 si no coinciden.
+ *
+ * `lib/paleta-cs.ts` dejó este tono fuera a propósito —«una constante de paleta
+ * sin uso es la mitad de las paletas gemelas»—. Ya tiene uso: es el fondo
+ * contra el que mide `tonoSobreOscuro`.
+ */
+export const FONDO_TARJETA = '#082742'
+
+/**
+ * El fondo REAL de una pastilla tintada DENTRO de la tarjeta oscura.
+ *
+ * Una pastilla `rgba(91,141,239,.14)` sobre `#082742` no es la tarjeta: es un
+ * pelo más clara, y eso le resta contraste a la letra clara que lleva encima.
+ * Medir contra la tarjeta a secas es el error que ya costó dos etiquetas en la
+ * ficha de cuenta — optimista en la dirección exacta en que no hay que serlo.
+ */
+export function componeSobre(
+  hex: string,
+  alfa = 0.14,
+  fondoHex: string = FONDO_TARJETA,
+): string {
+  return rgbAHex(compone(hexARgb(hex), alfa, hexARgb(fondoHex)))
+}
+
+/**
+ * EL QUINTO CASO: letra de color sobre una superficie OSCURA.
+ *
+ * Las cuatro funciones de arriba suponen que la respuesta es oscurecer. Sobre
+ * la tarjeta oscura hay que hacer lo contrario, y el repositorio ya lo había
+ * descubierto a mano: `components/AdopcionProducto.tsx` lleva un comentario que
+ * dice «aquí `tonoSobreFondo` no sirve —solo oscurece y el fondo ya es
+ * oscuro—» y resuelve ESE botón eligiendo un `#60A5FA` a ojo. Un caso resuelto
+ * a mano y treinta apoyados en el `!important` de `globals.css` son el mismo
+ * hueco: faltaba la función.
+ *
+ * OJO con lo que pasa si se usa `tonoSobreFondo` con un fondo oscuro: su bucle
+ * sólo multiplica por `k < 1`, nunca alcanza el objetivo, y devuelve su semilla
+ * `#0F172A` — marino casi negro sobre marino. No falla: apaga el texto. Medido
+ * el 23 nov 2026, ninguna pantalla lo llama así; esta función existe para que
+ * siga siendo cierto.
+ *
+ * Asciende hacia el blanco en pasos del 2%, que conserva el tono mucho mejor
+ * que saltar a blanco: `#FF3B4E` sobre la tarjeta pasa de 4.34:1 a 4.52:1
+ * aclarando un 4% y sigue siendo rojo.
+ *
+ * Esto es TEXTO (4.5:1). Para una barra o un trazo el mínimo es 3:1 — pasar
+ * `objetivo = 3` y no subirlo «por si acaso», que aclarar un objeto gráfico lo
+ * convierte en protagonista.
+ */
+/**
+ * EL BLANCO QUE PINTA LA TARJETA, no el blanco puro.
+ *
+ * `app/globals.css` fuerza `color: rgba(255,255,255,0.88) !important` en todo
+ * `p`, `label`, `strong`, `em`, `small`, `td`, `th`, `h1`-`h5` y en los `span`
+ * sin `background` propio dentro de `.cp-card`. O sea que un elemento que pide
+ * `#FFFFFF` NO recibe `#FFFFFF`: recibe este blanco al 88%, que mide menos.
+ */
+export const BLANCO_PISADO_ALFA = 0.88
+
+/**
+ * EL SEXTO CASO: el relleno que hay que MUDAR porque la letra ya no sube más.
+ *
+ * Las cinco funciones de arriba mueven la LETRA. Cuando la letra ya es blanca
+ * no queda hacia dónde moverla, y entonces lo que está mal es el relleno. Es
+ * literalmente la regla de la arquitectura de contraste: «un color que no se
+ * puede aclarar se MUDA de sitio».
+ *
+ * El caso real (medido el 23 nov 2026 en la ficha de cuenta): las pastillas de
+ * número Callpicker iban sobre `#0284C7` con letra `#FFFFFF`. El blanco puro
+ * sobre ese azul ya era 4.09:1 —por debajo de AA— y encima `globals.css` lo
+ * rebaja al 88% y lo deja en **3.51:1**. Las dos líneas de la pastilla, 12px
+ * negritas y 10px normal, se leían «bien» y no pasaban.
+ *
+ * Oscurece el relleno en pasos del 2% hasta que el blanco PISADO —no el puro,
+ * que es el que nadie recibe dentro de la tarjeta— alcanza el objetivo. Así la
+ * pastilla conserva su tono: `#0284C7` baja a un azul del mismo sitio de la
+ * rampa, no a marino.
+ */
+export function rellenoParaTextoClaro(
+  hex: string,
+  alfaTexto = BLANCO_PISADO_ALFA,
+  objetivo = 4.5,
+): string {
+  const clave = `r|${hex}|${alfaTexto}|${objetivo}`
+  const guardado = CACHE.get(clave)
+  if (guardado) return guardado
+
+  const base = hexARgb(hex)
+  let r = '#000000'
+  for (let k = 1; k > 0.02; k -= 0.02) {
+    /* Redondeado antes de medir, igual que en todas las de arriba. */
+    const cand = hexARgb(rgbAHex(base.map(c => c * k)))
+    const letra = compone([255, 255, 255], alfaTexto, cand)
+    if (contraste(letra, cand) >= objetivo) { r = rgbAHex(cand); break }
+  }
+  CACHE.set(clave, r)
+  return r
+}
+
+export function tonoSobreOscuro(
+  hex: string,
+  fondoHex: string = FONDO_TARJETA,
+  objetivo = 4.5,
+): string {
+  const clave = `o|${hex}|${fondoHex}|${objetivo}`
+  const guardado = CACHE.get(clave)
+  if (guardado) return guardado
+
+  const base = hexARgb(hex)
+  const fondo = hexARgb(fondoHex)
+  let r = '#FFFFFF'
+  if (contraste(base, fondo) >= objetivo) {
+    r = rgbAHex(base)
+  } else {
+    for (let k = 0.02; k <= 1; k += 0.02) {
+      /* Redondeado antes de medir, igual que las de arriba: el hex que se
+         publica es el que se mide, no el flotante intermedio. */
+      const cand = rgbAHex(base.map(c => c + (255 - c) * k))
+      if (contraste(hexARgb(cand), fondo) >= objetivo) { r = cand; break }
+    }
+  }
+  CACHE.set(clave, r)
+  return r
+}

@@ -1,6 +1,7 @@
 import type { DatosEnriquecidos, SenalComercial } from '@/lib/enriquecimiento/cuenta'
 import { ETIQUETA_ROL } from '@/lib/enriquecimiento/cuenta'
 import { textoFecha } from '@/lib/fecha-local'
+import { tonoSobreOscuro, componeSobre } from '@/lib/contraste'
 
 /**
  * Sección "Localizado por Atlas" DENTRO de la tarjeta de Información.
@@ -11,8 +12,18 @@ import { textoFecha } from '@/lib/fecha-local'
  * Sigue siendo información de apoyo: no sustituye ningún campo.
  */
 
-/** Color de Atlas — no se usa para ningún estado del dashboard. */
-const ATLAS = '#1D6CAA'
+/** Color de Atlas — no se usa para ningún estado del dashboard.
+ *
+ *  `#1D6CAA` es el acento de la paleta para fondo CLARO (5.56:1). Esta sección
+ *  vive DENTRO de la tarjeta de Información, que es oscura, y ahí el mismo tono
+ *  mide 2.74:1. Se leía porque `globals.css` repinta `<p>` y `<span>` de
+ *  blanco — o sea que el color que distingue «lo que localizó Atlas» de «lo que
+ *  capturó el KAM» no se estaba viendo. Que es justo lo que pidió dirección.
+ *  El tono se conserva y se aclara hasta AA. */
+const ATLAS_BASE = '#1D6CAA'
+const ATLAS = tonoSobreOscuro(ATLAS_BASE)
+/** Para la pastilla, medido contra su propio relleno `${ATLAS}22` (alfa .133). */
+const ATLAS_PASTILLA = tonoSobreOscuro(ATLAS_BASE, componeSobre(ATLAS_BASE, 0.133))
 
 const ETIQUETA: Record<string, string> = {
   contacto_nombre: 'Contacto principal', contacto_cargo: 'Cargo del contacto',
@@ -80,7 +91,7 @@ export default function DatosEnriquecidosPanel({ datos }: { datos: DatosEnriquec
                   {d.cargo}
                   {d.rol_decision && (
                     <span className="ml-1 px-1 rounded"
-                          style={{ background: `${ATLAS}22`, color: ATLAS }}>
+                          style={{ background: `${ATLAS_BASE}22`, color: ATLAS_PASTILLA }}>
                       {ETIQUETA_ROL[d.rol_decision] ?? d.rol_decision}
                     </span>
                   )}

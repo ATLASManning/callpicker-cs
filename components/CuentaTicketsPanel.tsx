@@ -1,19 +1,38 @@
 import { Ticket, AlertTriangle, ExternalLink, SearchX } from 'lucide-react'
 import type { TicketRow } from '@/lib/cuenta-data'
 import { textoFecha } from '@/lib/fecha-local'
+import { tonoSobreOscuro, componeSobre } from '@/lib/contraste'
 
 const PRIOR_COLOR: Record<string, string> = {
   High: '#ef4444', Medium: '#f59e0b', Low: '#22c55e', Urgent: '#b91c1c',
 }
 
+/**
+ * El tinte de la .bg-surface de la tarjeta oscura.
+ *
+ * `app/globals.css` repinta `.cp-card .bg-surface` con `rgba(255,255,255,0.07)`
+ * sobre `#082742`, así que el `bg-surface` blanco del tema de Tailwind NO es el
+ * fondo real aquí: es un marino un pelo más claro. Medir contra el blanco —o
+ * contra la tarjeta a secas— es equivocarse en la dirección optimista.
+ */
+const FONDO_CAJA = componeSobre('#FFFFFF', 0.07)
+
+/** El rojo de «Fallas» medido contra esa caja: `#ef4444` daba 3.32:1. */
+const ROJO_CAJA = tonoSobreOscuro('#ef4444', FONDO_CAJA)
+
 function PriorBadge({ p }: { p: string }) {
-  const color = PRIOR_COLOR[p] ?? '#667384'
+  const base = PRIOR_COLOR[p] ?? '#667384'
+  /* El `<span>` declara `background`, así que `globals.css` NO lo repinta de
+     blanco y el tono que se escriba aquí es el que se ve. Con el color crudo,
+     `#ef4444` sobre su propio tinte al 9% medía 3.78:1 y el ámbar 3.06:1; se
+     veían «bien» porque son pastillas y nadie las lee de cerca. */
+  const color = tonoSobreOscuro(base, componeSobre(base, 24 / 255))
   // Un campo vacío pintaba una pastilla muda. 242 tickets del archivo no traen
   // prioridad, y eso es un dato, no un hueco que haya que disimular.
   const etiqueta = (p ?? '').trim() || 'Sin prioridad'
   return (
     <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-      style={{ background: color + '18', color }}>
+      style={{ background: base + '18', color }}>
       {etiqueta}
     </span>
   )
@@ -96,7 +115,7 @@ export default function CuentaTicketsPanel({
           <div className="grid grid-cols-3 gap-2 mb-3">
             {[
               { label: 'Total',       val: total },
-              { label: 'Fallas',      val: fallas, color: fallas > 0 ? '#ef4444' : undefined },
+              { label: 'Fallas',      val: fallas, color: fallas > 0 ? ROJO_CAJA : undefined },
               { label: 'Últ. ticket', val: fmtFecha(lastFecha), mono: true },
             ].map(({ label, val, color, mono }) => (
               <div key={label} className="bg-surface rounded-lg px-3 py-2 text-center">

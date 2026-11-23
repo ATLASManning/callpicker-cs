@@ -11,15 +11,28 @@
 import Link from 'next/link'
 import { MessageCircle, AlertTriangle, TrendingUp, TrendingDown, ExternalLink } from 'lucide-react'
 import type { ChatDeCuenta } from '@/lib/chat-cuenta'
-import { TX_TENUE } from '@/lib/contraste'
+import { TX_TENUE, tonoSobreOscuro, componeSobre } from '@/lib/contraste'
+import { PLATA } from '@/lib/paleta-cs'
 
-const SEMAFORO: Record<string, { label: string; color: string }> = {
-  intenso:      { label: 'Uso intenso',  color: '#22C55E' },
-  saludable:    { label: 'Saludable',    color: '#22C55E' },
-  bajo:         { label: 'Uso bajo',     color: '#F97316' },
-  sin_uso:      { label: 'Sin uso',      color: '#EF4444' },
-  suspendida:   { label: 'Suspendida',   color: '#EF4444' },
-  sin_medicion: { label: 'Sin medición', color: '#3D4B5C' },
+/* `color` es el tono del estado: el icono y el relleno de la pastilla, que son
+   objeto gráfico. `tx` es el mismo tono subido a 4.5:1 contra ESA pastilla
+   —`${color}22`, alfa 0.133, compuesta sobre la tarjeta—, para la letra.
+   La pastilla es un `<span>` que declara `background`, y a ésos `globals.css`
+   NO los repinta: lo escrito es lo que se ve. Medido en la página servida el
+   23 nov 2026, «Sin medición» salía a 1.61:1 — invisible, no tenue.
+   Y el gris de «sin medición» era `#3D4B5C`, que es tinta de fondo CLARO; el
+   equivalente en superficie oscura es PLATA, que el propio token documenta
+   como «sólo sobre marino (6.25:1)». */
+const semaforo = (label: string, color: string) =>
+  ({ label, color, tx: tonoSobreOscuro(color, componeSobre(color, 0.133)) })
+
+const SEMAFORO: Record<string, { label: string; color: string; tx: string }> = {
+  intenso:      semaforo('Uso intenso',  '#22C55E'),
+  saludable:    semaforo('Saludable',    '#22C55E'),
+  bajo:         semaforo('Uso bajo',     '#F97316'),
+  sin_uso:      semaforo('Sin uso',      '#EF4444'),
+  suspendida:   semaforo('Suspendida',   '#EF4444'),
+  sin_medicion: semaforo('Sin medición', PLATA),
 }
 
 const num = (n: number) => n.toLocaleString('es-MX')
@@ -70,7 +83,7 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className="text-[10px] font-semibold px-2 py-1 rounded-lg whitespace-nowrap"
-            style={{ background: `${sem.color}22`, color: sem.color }}>
+            style={{ background: `${sem.color}22`, color: sem.tx }}>
             {sem.label}
           </span>
           <span className="text-[10px] font-semibold px-2 py-1 rounded-lg whitespace-nowrap"
@@ -141,12 +154,12 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
                 <p className="text-[11px] font-medium truncate" style={{ color: 'rgba(255,255,255,0.85)' }}>
                   {x.nombre}
                   {x.id !== null && (
-                    <span className="ml-1.5 font-mono" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                    <span className="ml-1.5 font-mono" style={{ color: TX_TENUE }}>
                       · ID {x.id}
                     </span>
                   )}
                 </p>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <p className="text-[10px]" style={{ color: TX_TENUE }}>
                   {x.mensajesEfectivos > 0
                     ? `${x.esPiso ? 'al menos ' : ''}${num(x.mensajesEfectivos)} mensajes`
                     : 'sin medición en el periodo'}
@@ -178,11 +191,11 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
           <>
             <div className="flex items-center gap-2.5 mb-2">
               <Marcador label="Health Score" valor={chat.hsOficial} color="rgba(255,255,255,0.55)" />
-              <span style={{ color: 'rgba(255,255,255,0.3)' }}>→</span>
+              <span style={{ color: TX_TENUE }}>→</span>
               <Marcador label="Con chat ponderado" valor={chat.hsAjustado}
                 color={delta >= 0 ? '#4ADE80' : '#F87171'} />
               <span className="text-[11px] font-semibold"
-                style={{ color: delta > 0 ? '#4ADE80' : delta < 0 ? '#F87171' : 'rgba(255,255,255,0.4)' }}>
+                style={{ color: delta > 0 ? '#4ADE80' : delta < 0 ? '#F87171' : TX_TENUE }}>
                 {delta > 0 ? '+' : ''}{delta}
               </span>
             </div>
@@ -198,9 +211,14 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
           </p>
         )}
 
+        {/* El token tenue y no un `rgba(255,255,255,0.4)`: `<li>` NO está en la
+            regla de `globals.css` (líneas 104-114), así que aquí no hay
+            `!important` que lo salve y lo escrito es lo que se ve. Medido en la
+            página servida el 23 nov 2026, el 0.4 daba 3.45:1 sobre
+            `rgb(19,48,74)` — por debajo de AA, HOY. */}
         <ul className="space-y-0.5">
           {chat.razones.map((r, i) => (
-            <li key={i} className="text-[10px] flex gap-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <li key={i} className="text-[10px] flex gap-1.5" style={{ color: TX_TENUE }}>
               <span>·</span>{r}
             </li>
           ))}
@@ -208,11 +226,15 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
       </div>
 
       {/* Hallazgos del semáforo */}
+      {/* El `<li>` no lo pisa `globals.css`; el 0.6 que había medía 6.1:1 y
+          pasaba, pero se unifica en el token para no tener dos tenues distintos
+          en la misma tarjeta. La viñeta va con el tono de TEXTO del estado, no
+          con el del icono. */}
       {chat.motivos.length > 0 && (
         <ul className="mt-2.5 space-y-1">
           {chat.motivos.map((m, i) => (
-            <li key={i} className="text-[11px] flex gap-1.5" style={{ color: 'rgba(255,255,255,0.6)' }}>
-              <span style={{ color: sem.color }}>·</span>{m}
+            <li key={i} className="text-[11px] flex gap-1.5" style={{ color: TX_TENUE }}>
+              <span style={{ color: sem.tx }}>·</span>{m}
             </li>
           ))}
         </ul>

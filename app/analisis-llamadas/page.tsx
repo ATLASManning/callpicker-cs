@@ -19,7 +19,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { PhoneIncoming, PhoneOutgoing, RefreshCw, AlertTriangle, Users, Clock } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
-import { TX_TENUE, tonoSobreFondo } from '@/lib/contraste'
+import { TX_TENUE, tonoSobreFondo, tonoSobreOscuro } from '@/lib/contraste'
 
 /* ── Tipos ─────────────────────────────────────────────────────────────── */
 interface Meta {
@@ -71,6 +71,11 @@ const fechaCorta = (iso: string) => {
 }
 
 const DC: React.CSSProperties = { background: '#0D1829', borderRadius: 14, padding: 18, border: '1px solid rgba(255,255,255,0.08)' }
+
+/** El rojo de la columna destacada, medido contra el panel `#0D1829` de `DC`:
+ *  `#ef4444` a pelo da 4.12:1 y se leía porque `globals.css` repinta el `<td>`
+ *  de blanco — o sea que el rojo que marca la última columna no se veía. */
+const RED_TX = tonoSobreOscuro(RED, '#0D1829')
 const DT: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 3 }
 const DS: React.CSSProperties = { fontSize: 11, color: TX_TENUE, marginBottom: 14 }
 
@@ -594,7 +599,10 @@ function Tabla({ cabeceras, filas, destacarUltima, fijarUltima }: {
             {cabeceras.map((c, i) => (
               <th key={c} style={{
                 padding: '6px 8px', textAlign: i === 0 || i === 1 ? 'left' : 'right',
-                color: '#667384', fontWeight: 700, fontSize: 10, whiteSpace: 'nowrap',
+                /* `TX_BAJO` es tinta de fondo CLARO: sobre este encabezado
+                   pegajoso (#0D1829) mide 3.69:1. El token tenue mide 4.74:1
+                   sobre esa misma superficie — ver la tabla de `contraste.ts`. */
+                color: TX_TENUE, fontWeight: 700, fontSize: 10, whiteSpace: 'nowrap',
                 borderBottom: '1px solid rgba(255,255,255,0.12)', position: 'sticky', top: 0, background: '#0D1829',
               }}>{c}</th>
             ))}
@@ -608,7 +616,7 @@ function Tabla({ cabeceras, filas, destacarUltima, fijarUltima }: {
                 {f.map((v, j) => (
                   <td key={j} style={{
                     padding: '5px 8px', textAlign: j === 0 || j === 1 ? 'left' : 'right',
-                    color: destacarUltima && j === f.length - 1 ? RED : 'rgba(255,255,255,0.75)',
+                    color: destacarUltima && j === f.length - 1 ? RED_TX : 'rgba(255,255,255,0.75)',
                     fontWeight: (destacarUltima && j === f.length - 1) || fijada ? 700 : 400,
                     maxWidth: j === 0 ? 240 : undefined, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     // Fondo propio y opaco: sin él, los renglones que pasan por

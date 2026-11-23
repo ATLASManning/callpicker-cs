@@ -426,7 +426,7 @@ export default function InformeCortesPage() {
         </div>
         {filtFecha && (
           <p style={{ marginTop: 10, fontSize: 12, color: TX_TENUE }}>
-            Mostrando: <strong style={{ color: '#10355D' }}>{fmtMes(filtFecha)}</strong>
+            Mostrando: <strong>{fmtMes(filtFecha)}</strong>
             {filtClas && <> · <strong>{filtClas}</strong></>}
             {filtPlan && <> · <strong>{filtPlan.length > 35 ? filtPlan.slice(0, 35) + '…' : filtPlan}</strong></>}
             {filtUso  && <> · <strong>{filtUso}</strong></>}
@@ -589,14 +589,21 @@ export default function InformeCortesPage() {
                         if (k === 'periodo')       return <td key={k} style={{ padding: '8px 10px', color: TX_TENUE, whiteSpace: 'nowrap', fontSize: 11 }}>{r.periodo}</td>
                         if (k === 'plan')          return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.plan}>{r.plan}</td>
                         if (k === 'minutosIncl')   return <td key={k} style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.75)', textAlign: 'right' }}>{r.minutosIncl.toLocaleString()}</td>
-                        if (k === 'minutosConsum') return <td key={k} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? '#ef4444' : '#082742' }}>{r.minutosConsum.toLocaleString()}</td>
+                        /* Los dos tonos de esta celda se habían quedado en el
+                           juego CLARO: `#082742` es el propio fondo de la
+                           tarjeta (1.00:1) y el `#ef4444` mide 4.05:1. Se leían
+                           porque `globals.css` repinta los `<td>` de blanco —el
+                           rojo del cero TAMBIÉN, así que el aviso de desuso
+                           llevaba meses sin verse de rojo. Son las dos líneas
+                           que faltaban al comentario de abajo. */
+                        if (k === 'minutosConsum') return <td key={k} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, color: r.minutosConsum === 0 ? ZONA_COLORS['0%'] : '#fff' }}>{r.minutosConsum.toLocaleString()}</td>
                         /* Un plan sin minutos de voz no consumió 0%: no tiene
                            qué consumir. Rojo ahí acusaría un desuso inventado. */
                         if (k === 'pctConsumo')    return <td key={k} style={{ padding: '8px 10px', textAlign: 'right' }}
                           title={r.medible ? undefined : 'El plan no incluye minutos de voz: no hay base contra la cual medir'}>
                           <span style={{ fontWeight: 700, color: r.medible ? pctColor(r.pctConsumo) : '#A8BACB' }}>
                             {r.medible ? `${r.pctConsumo.toFixed(1)}%` : 'sin medición'}</span></td>
-                        if (k === 'monto')         return <td key={k} style={{ padding: '8px 10px', fontWeight: 700, color: '#10355D', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>
+                        if (k === 'monto')         return <td key={k} style={{ padding: '8px 10px', fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap' }}>{fmt$(r.monto)}</td>
                         /* Paletas `_D`: la tabla está en una tarjeta oscura y
                            las claras (#10355D, #f59e0b) daban azul marino
                            sobre azul marino. Las gráficas de más abajo ya

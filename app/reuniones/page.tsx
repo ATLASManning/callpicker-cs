@@ -9,6 +9,15 @@ import Link from 'next/link'
 import CustomSelect from '@/components/CustomSelect'
 import { hoyLocal } from '@/lib/fecha-local'
 import { llevaCuenta, exigeCuenta, type TipoReunion } from '@/lib/reuniones-tipo'
+import { TX_TENUE, tonoSobreOscuro } from '@/lib/contraste'
+
+/* Los rótulos de Acuerdos y Próximos Pasos van en color porque el color es lo
+   que los distingue de un vistazo; se conserva el tono y se aclara hasta AA
+   sobre la tarjeta. El cuerpo del texto NO lleva color: lo pinta la tinta de
+   la tarjeta. La página es clara (#F5F8FB) y estas tarjetas son la isla
+   oscura, que es justo por qué este bloque estaba escrito al revés. */
+const AZUL_ACUERDOS = tonoSobreOscuro('#0057FF')
+const VERDE_PASOS   = tonoSobreOscuro('#059669')
 
 type Reunion = {
   id: string
@@ -658,7 +667,7 @@ export default function ReunionesPage() {
             <div className="cp-card text-center py-16">
               <Calendar size={40} className="mx-auto mb-3" style={{ color: '#A8BACB' }} />
               <p className="font-semibold mb-1" style={{ color: '#fff' }}>Sin reuniones registradas</p>
-              <p className="text-sm mb-4" style={{ color: '#3D4B5C' }}>
+              <p className="text-sm mb-4" style={{ color: TX_TENUE }}>
                 Documenta el resumen de cada meeting del equipo
               </p>
               <button onClick={() => { setShowForm(true); setForm(emptyForm()); setSaveError(null) }}
@@ -731,7 +740,7 @@ export default function ReunionesPage() {
                         </div>
                         <p className="text-sm font-semibold truncate" style={{ color: '#fff' }}>{r.titulo}</p>
                         {r.participantes && (
-                          <p className="text-xs truncate mt-0.5" style={{ color: '#3D4B5C' }}>
+                          <p className="text-xs truncate mt-0.5" style={{ color: TX_TENUE }}>
                             <Users size={10} className="inline mr-1" />{r.participantes}
                           </p>
                         )}
@@ -753,24 +762,30 @@ export default function ReunionesPage() {
 
                         {r.resumen && (
                           <div className="mb-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#3D4B5C' }}>Resumen</p>
-                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#202E3B' }}>{r.resumen}</p>
+                            {/* Este desplegable estaba escrito para fondo CLARO
+                                dentro de una `.cp-card` oscura: el rótulo medía
+                                1.71:1 y el cuerpo 1.10:1. Se leían porque
+                                `globals.css` repinta `<p>` de blanco. El cuerpo
+                                se queda SIN color para que lo pinte la tinta de
+                                la tarjeta, y el rótulo pasa al token tenue. */}
+                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: TX_TENUE }}>Resumen</p>
+                            <p className="text-sm whitespace-pre-wrap">{r.resumen}</p>
                           </div>
                         )}
 
                         {r.acuerdos && (
                           <div className="mb-3 p-3 rounded-xl"
                             style={{ background: 'rgba(0,87,255,0.04)', border: '1px solid rgba(0,87,255,0.1)' }}>
-                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#0057FF' }}>Acuerdos</p>
-                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#202E3B' }}>{r.acuerdos}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: AZUL_ACUERDOS }}>Acuerdos</p>
+                            <p className="text-sm whitespace-pre-wrap">{r.acuerdos}</p>
                           </div>
                         )}
 
                         {r.proximos_pasos && (
                           <div className="mb-3 p-3 rounded-xl"
                             style={{ background: 'rgba(5,150,105,0.04)', border: '1px solid rgba(5,150,105,0.12)' }}>
-                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#059669' }}>Próximos Pasos</p>
-                            <p className="text-sm whitespace-pre-wrap" style={{ color: '#202E3B' }}>{r.proximos_pasos}</p>
+                            <p className="text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: VERDE_PASOS }}>Próximos Pasos</p>
+                            <p className="text-sm whitespace-pre-wrap">{r.proximos_pasos}</p>
                           </div>
                         )}
 

@@ -6,7 +6,14 @@
    Octava ronda del mismo bug (8 oct 2026). `revisa-contraste-cpcard.py` cubre
    una direccion —el color que la cascada de `.cp-card` pinta de blanco dentro
    de una tarjeta oscura— y NO cubre la contraria, que es la que vuelve: texto
-   claro sobre el `#EFF6FF` de la pagina, que solo se lee seleccionandolo.
+   claro sobre el fondo claro de la pagina, que solo se lee seleccionandolo.
+
+   El fondo de la pagina se LEE de `app/globals.css` y no se teclea aqui: este
+   archivo decia `#EFF6FF`, que fue el fondo hasta que la paleta del Customer
+   Success Operating System lo cambio a `#F5F8FB` el 13 oct 2026. No afectaba
+   la medicion —solo salia en el texto del aviso— pero un guion que nombra un
+   fondo que ya no existe le ensena al que lo lea a medir contra la pantalla
+   equivocada. [[feedback-verificar-antes-asegurar]]
 
    LA REGLA, QUE AQUI SI ES DECIDIBLE
    ----------------------------------
@@ -47,6 +54,15 @@ LUM_CLARA = 0.55
 LUM_OSCURA = 0.30
 
 RX_COMENTARIO = re.compile(r'/\*[\s\S]*?\*/|//[^\n]*')
+
+
+def fondo_de_la_pagina():
+    """El `background` de `body`, leido de `app/globals.css`."""
+    ruta = os.path.join(RAIZ, 'app', 'globals.css')
+    css = io.open(ruta, encoding='utf-8-sig', errors='replace').read()
+    m = re.search(r'\bbody\s*\{([^}]*)\}', css)
+    c = re.search(r'background\s*:\s*(#[0-9a-fA-F]{3,8})', m.group(1)) if m else None
+    return c.group(1) if c else '(globals.css ya no declara `body { background }`)'
 
 
 def sin_comentarios(txt):
@@ -399,8 +415,15 @@ def analiza(txt):
     tiene_claro_fondo = False
 
     def anota(rgb):
-        """Clasifica una superficie. Devuelve nada; mueve las dos banderas."""
+        """Clasifica una superficie. Devuelve nada; mueve las banderas."""
         if rgb is None:
+            # UN FONDO QUE NO SE PUEDE RESOLVER NO ES «NINGUN FONDO OSCURO».
+            # `HeroModulo.tsx` pinta `background: HERO`, y HERO es un
+            # `linear-gradient` en `@/lib/paleta-cs`: no tiene un rgb que medir,
+            # asi que el archivo salia acusado de poner cinco colores claros
+            # «sin tener donde». El degradado es oscuro y el blanco es correcto.
+            # Con esto el archivo pasa a «hay que leerlo», que es la verdad.
+            banderas[2] = True
             return
         # Un blanco translucido NO oscurece: hereda lo de detras. Es el caso
         # de `rgba(255,255,255,0.04)`, que sobre pagina clara sigue claro.
@@ -410,7 +433,7 @@ def analiza(txt):
         elif l > LUM_CLARA:
             banderas[1] = True
 
-    banderas = [tiene_oscuro, tiene_claro_fondo]
+    banderas = [tiene_oscuro, tiene_claro_fondo, False]
     for lit, nom in RX_FONDO.findall(limpio):
         anota(resuelve(lit, nom))
 
@@ -429,7 +452,7 @@ def analiza(txt):
         anota(resuelve(m.group(1), m.group(2)))
         anota(resuelve(m.group(3), m.group(4)))
 
-    tiene_oscuro, tiene_claro_fondo = banderas
+    tiene_oscuro, tiene_claro_fondo, sin_resolver = banderas
 
     # ── Los colores de texto claros ────────────────────────────────────
     claros = []
@@ -441,7 +464,7 @@ def analiza(txt):
             claros.append(nom or lit)
     if RX_CLASE_BLANCA.search(limpio):
         claros.append('text-white')
-    return tiene_oscuro, tiene_claro_fondo, claros
+    return tiene_oscuro, tiene_claro_fondo, claros, sin_resolver
 
 
 CASOS_CAZA = [
@@ -595,15 +618,15 @@ if '--autoprueba' in sys.argv:
     print('')
     print('  DEBE CAZARLOS:')
     for etq, src in CASOS_CAZA:
-        osc, _, claros = analiza(src)
-        ok = (not osc) and bool(claros)
+        osc, _, claros, sin_resolver = analiza(src)
+        ok = (not osc) and not sin_resolver and bool(claros)
         if not ok:
             fallos.append(etq)
         print('    %-46s %s' % (etq[:46], 'caza' if ok else '** SE LE ESCAPA'))
     print('\n  DEBE CALLAR:')
     for etq, src in CASOS_MUDOS:
-        osc, _, claros = analiza(src)
-        ok = osc or not claros
+        osc, _, claros, sin_resolver = analiza(src)
+        ok = osc or sin_resolver or not claros
         if not ok:
             fallos.append('%s -> %s' % (etq, ', '.join(claros)))
         print('    %-46s %s' % (etq[:46], 'calla' if ok else '** GRITA'))
@@ -625,12 +648,12 @@ for ruta in archivos():
     for linea, frag, col in m_volteos:
         flips.append((rel, linea, frag, col))
 
-    osc, claro_fondo, claros = analiza(txt)
+    osc, claro_fondo, claros, sin_resolver = analiza(txt)
     if not claros:
         continue
-    if not osc:
+    if not osc and not sin_resolver:
         seguros.append((rel, sorted(set(claros))))
-    elif claro_fondo:
+    elif claro_fondo or sin_resolver:
         mixtos.append((rel, sorted(set(claros))))
 
 print('  %d archivo(s) .tsx revisados.\n' % n)
@@ -657,7 +680,8 @@ if flips:
 if seguros:
     print('  *** LETRA CLARA SIN NINGUNA SUPERFICIE OSCURA ***')
     print('  Estos archivos no declaran ni una `.cp-card` ni un fondo oscuro,')
-    print('  así que su texto claro cae sobre el #EFF6FF de la página.\n')
+    print('  así que su texto claro cae sobre el %s de la página.\n'
+          % fondo_de_la_pagina())
     for rel, cs in seguros:
         print('  %s' % rel)
         print('      %s' % ', '.join(cs)[:100])

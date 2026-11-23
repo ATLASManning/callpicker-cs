@@ -25,7 +25,18 @@ import EstadoCuentaBadge from '@/components/EstadoCuentaBadge'
 import CuentaBloqueoBanner from '@/components/CuentaBloqueoBanner'
 import CuentaVeredicto from '@/components/CuentaVeredicto'
 import { veredictosDeCartera } from '@/lib/alertas-estado'
-import { tonoSobreClaro, tonoSobrePagina, pastillaClara } from '@/lib/contraste'
+import { tonoSobreClaro, tonoSobrePagina, pastillaClara, rellenoParaTextoClaro } from '@/lib/contraste'
+
+/**
+ * El relleno de la pastilla de número Callpicker.
+ *
+ * Era `#0284C7` con letra blanca y medía **3.51:1** en pantalla: el blanco puro
+ * ya no llegaba a AA sobre ese azul (4.09:1) y `globals.css` lo rebaja al 88%.
+ * Aquí no se puede aclarar la letra —ya es blanca—, así que se muda el relleno.
+ * El borde se queda con el azul original, que ahora hace de filo claro.
+ */
+const DID_RELLENO = rellenoParaTextoClaro('#0284C7')
+import { TX_BAJO } from '@/lib/paleta-cs'
 import { guionDe } from '@/lib/alertas-guion'
 import { movimientoDeAlertas } from '@/lib/alertas-movimiento'
 import CuentaActualizarButton from '@/components/CuentaActualizarButton'
@@ -500,7 +511,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                   {dids.slice(0, MAX_DIDS_VISIBLES).map(d => (
                     <div key={d.numero}
                       title={d.etiqueta ? `${d.display} — ${d.etiqueta}` : d.display}
-                      style={{ background: '#0284C7', border: '1px solid #0369A1', borderRadius: 8, padding: '3px 9px' }}>
+                      style={{ background: DID_RELLENO, border: '1px solid #0284C7', borderRadius: 8, padding: '3px 9px' }}>
                       <p style={{ background: 'transparent', color: '#FFFFFF', fontSize: 12, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>
                         {d.display}
                       </p>
@@ -524,7 +535,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                       {dids.slice(MAX_DIDS_VISIBLES).map(d => (
                         <div key={d.numero}
                           title={d.etiqueta ? `${d.display} — ${d.etiqueta}` : d.display}
-                          style={{ background: '#0284C7', border: '1px solid #0369A1', borderRadius: 8, padding: '3px 9px' }}>
+                          style={{ background: DID_RELLENO, border: '1px solid #0284C7', borderRadius: 8, padding: '3px 9px' }}>
                           <p style={{ background: 'transparent', color: '#FFFFFF', fontSize: 12, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>
                             {d.display}
                           </p>
@@ -781,7 +792,11 @@ export default async function CuentaDetailPage({ params }: Props) {
                 </div>
 
                 {/* Meta */}
-                <p style={{ fontSize:11, color:'#A8BACB', margin:'0 0 10px' }}>
+                {/* `PLATA` (#A8BACB) es tinta de fondo MARINO —6.25:1 ahí—; este
+                    panel es blanco y ahí mide 1.99:1. No lo pisa nadie: es texto
+                    casi invisible HOY, y lo dice el propio comentario del token
+                    en `lib/paleta-cs.ts`. El tenue de fondo claro es TX_BAJO. */}
+                <p style={{ fontSize:11, color:TX_BAJO, margin:'0 0 10px' }}>
                   {auditoriaCase.fecha_periodo} · v{auditoriaCase.version} · Auditado: {auditoriaCase.fecha_auditoria}
                 </p>
 
@@ -826,7 +841,7 @@ export default async function CuentaDetailPage({ params }: Props) {
                     <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
                       {top3h.map((h, i) => (
                         <div key={i} style={{ display:'flex', gap:6, alignItems:'flex-start' }}>
-                          <span style={{ color:'#A8BACB', fontSize:13, flexShrink:0, lineHeight:1.4 }}>·</span>
+                          <span style={{ color:TX_BAJO, fontSize:13, flexShrink:0, lineHeight:1.4 }}>·</span>
                           <p style={{ fontSize:11, color:'#334155', lineHeight:1.5, margin:0 }}>
                             {h.length > 140 ? h.slice(0, 140) + '…' : h}
                           </p>
@@ -1002,7 +1017,7 @@ export default async function CuentaDetailPage({ params }: Props) {
 
                 {/* Bitácora: una entrada por resumen, con su separador de fecha */}
                 {entradas.length === 0 ? (
-                  <p style={{ fontSize:12, color:'#A8BACB', fontStyle:'italic', margin:'0 0 12px' }}>Sin observaciones registradas.</p>
+                  <p style={{ fontSize:12, color:TX_BAJO, fontStyle:'italic', margin:'0 0 12px' }}>Sin observaciones registradas.</p>
                 ) : (
                   <div style={{ margin:'0 0 12px' }}>
                     {entradas.map((e, i) => (

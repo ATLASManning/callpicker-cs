@@ -114,6 +114,18 @@ body {
 }
 /* Links en card oscura → azul claro legible */
 .cp-card a:not([class]) { color: #60A5FA !important; }
+/* ── La escotilla del <a>, que es el único elemento que no tenía ───────────
+   El resto de las reglas de arriba se esquivan declarando `background` en el
+   style (`span:not([style*="background"])`) o metiendo el texto en un <span>.
+   El <a> no: su selector mira la CLASE, así que una liga que trae su color ya
+   MEDIDO contra su propio fondo —una pastilla, por ejemplo— se repintaba de
+   azul y el tono se perdía sin que fallara nada. Medido el 23 nov 2026: la
+   liga de Anexos pedía verde `#4ADE80`, recibía `#60A5FA`, y ese azul sobre el
+   relleno verde de la pastilla daba 4.22:1.
+   Cualquier clase ya libra al <a> del `:not([class])`, pero una clase con
+   nombre deja la intención por escrito y se puede buscar. El `inherit` es la
+   red por si alguien la pone sin color inline. */
+.cp-card a.cp-liga-propia { color: inherit; }
 /* Botones: NO se fuerzan — usan sus propios colores inline */
 
 /* ── Sección con fondo claro dentro de cp-card (clase de escape) ──────────

@@ -33,8 +33,15 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # `<span ... style={{ ... }}>` con su objeto de estilo entero. El objeto puede
 # ocupar varias líneas, así que se captura hasta el `}}` que lo cierra.
 RX_SPAN = re.compile(r'<span\b([^>]*?)style=\{\{(.*?)\}\}', re.S)
-# Las etiquetas que se fuerzan SIN escape posible.
-RX_DURAS = re.compile(r'<(strong|em|small|p)\b([^>]*?)style=\{\{(.*?)\}\}', re.S)
+# Las etiquetas que se fuerzan SIN escape posible. La lista sale de la regla de
+# `app/globals.css` (lineas 104-114) y esta COMPLETA desde el 23 nov 2026: antes
+# decia `strong|em|small|p` y se dejaba fuera `td`, `th`, `label` y los `h1`-`h5`,
+# que esa misma regla tambien fuerza. Era ceguera medible, no criterio: el
+# `<td style={{ color: '#ef4444' }}>` de la tabla de cortes —el rojo que avisa de
+# CERO minutos consumidos— se publicaba blanco y este guion no lo contaba.
+RX_DURAS = re.compile(
+    r'<(strong|em|small|p|label|td|th|h1|h2|h3|h4|h5)\b([^>]*?)style=\{\{(.*?)\}\}',
+    re.S)
 RX_COLOR = re.compile(r'(?<![A-Za-z])color\s*:', re.I)
 RX_BG    = re.compile(r'background', re.I)
 
@@ -242,9 +249,23 @@ def main():
         print('  ningun color semantico en riesgo de perderse.')
         return 0
     print('  *** %d color(es) que globals.css pintaria de blanco. ***' % total)
-    print('  Arreglo: en un <span>, anadir `background` al style (vale')
-    print('  `transparent`). En <strong>/<p>/<em>/<small>, mover el color a un')
-    print('  <span> que lo declare, o usar la clase de escape .cp-light.')
+    print('')
+    print('  ARREGLO, Y EL ORDEN IMPORTA — leer esto antes de mover nada:')
+    print('')
+    print('  1. PRIMERO medir si el color se LEE sobre la tarjeta, con')
+    print('     `scripts/revisa-color-invisible-cpcard.py`. Si ese guion lo')
+    print('     acusa, el color es marino sobre marino y sacarlo del pisado NO')
+    print('     lo rescata: lo APAGA. Hay que aclararlo antes, con')
+    print('     `tonoSobreOscuro()` de lib/contraste.ts.')
+    print('  2. Si el color ya contrasta, entonces si: en un <span>, anadir')
+    print('     `background` al style (vale `transparent`). En las demas')
+    print('     etiquetas, mover el color a un <span> que lo declare.')
+    print('  3. Si lo que hay de verdad es una isla CLARA dentro de la tarjeta,')
+    print('     la clase de escape `.cp-light` — pero ojo: pasa a los hijos')
+    print('     `color: inherit`, asi que tampoco preserva el color en linea.')
+    print('')
+    print('  El consejo 2 a secas estuvo publicado aqui hasta el 23 nov 2026 y')
+    print('  es el que convierte una deuda latente en un texto invisible.')
     return 1
 
 

@@ -3,7 +3,7 @@ import {
   ETIQUETA_TEMA, COLOR_TEMA, etiquetaFormato, pesoLegible, TEMAS, type Anexo,
 } from '@/lib/anexos'
 import { textoFecha } from '@/lib/fecha-local'
-import { TX_TENUE } from '@/lib/contraste'
+import { TX_TENUE, tonoSobreOscuro, componeSobre } from '@/lib/contraste'
 
 /**
  * Documentos anexados a esta cuenta.
@@ -16,6 +16,9 @@ import { TX_TENUE } from '@/lib/contraste'
  * el panel viéndose «bien». Declarar el background, aunque sea transparente,
  * es la salida que el propio sistema dejó. Ver CuentaRelacionPanel.
  */
+
+/** El verde de la liga, medido contra su propio relleno al 16%. */
+const VERDE_PASTILLA = tonoSobreOscuro('#4ADE80', componeSobre('#4ADE80', 0.16))
 
 const TXT_HI  = 'rgba(255,255,255,0.92)'
 const TXT_MID = 'rgba(255,255,255,0.72)'
@@ -51,9 +54,14 @@ export default function CuentaAnexosPanel({
                        textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Anexos de la cuenta
         </span>
-        <Link href="/reuniones/anexos" style={{
+        {/* `cp-liga-propia` NO es decorativa: sin una clase, el
+            `.cp-card a:not([class])` de globals.css repintaba esta liga de
+            `#60A5FA` y el verde no llegaba nunca a la pantalla —ese azul sobre
+            el relleno verde medía 4.22:1—. Y el verde se mide contra el relleno
+            compuesto, no contra la tarjeta: la pastilla aclara el fondo. */}
+        <Link href="/reuniones/anexos" className="cp-liga-propia" style={{
           fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 999,
-          color: '#4ADE80', background: 'rgba(74,222,128,0.16)', border: '1px solid #4ADE8040',
+          color: VERDE_PASTILLA, background: 'rgba(74,222,128,0.16)', border: '1px solid #4ADE8040',
         }}>
           {anexos.length} {anexos.length === 1 ? 'documento' : 'documentos'}
         </Link>

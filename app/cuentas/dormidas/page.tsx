@@ -493,7 +493,11 @@ function DormidasPageInner() {
                       </td>
                       <td><SegmentoBadge seg={r.segmento} /></td>
                       <td>
-                        <span className="text-sm font-bold tabular-nums" style={{ color: '#10355D' }}>
+                        {/* Sin `color`: el marino medía 1.22:1 sobre la tarjeta
+                            y sólo se leía porque `globals.css` lo repintaba de
+                            blanco. La tinta de la tarjeta hace lo mismo sin
+                            depender de un `!important`. */}
+                        <span className="text-sm font-bold tabular-nums">
                           {r.mrr > 0 ? formatMXN(r.mrr) : '—'}
                         </span>
                       </td>

@@ -12,7 +12,9 @@ import {
 import type { SeguimientoConCuenta, OportunidadConCuenta, TicketConCuenta } from '@/lib/supabase'
 import type { Cuenta, SemaforoAsesor, Asesor, TipoSeguimiento } from '@/lib/types'
 import { ASESOR_CONFIG, configAsesor, SEMAFORO_CONFIG, getSemaforoCuenta, formatMXN } from '@/lib/types'
-import { TX_TENUE } from '@/lib/contraste'
+import { TX_TENUE, tonoSobreOscuro } from '@/lib/contraste'
+
+const AZUL_TARJETA = tonoSobreOscuro('#1D6CAA')
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -373,7 +375,12 @@ export default function JuntaAsesorPanel({
                             </td>
                             <td>
                               <span className="inline-flex items-center gap-1 text-xs font-semibold"
-                                style={{ color: o.tipo === 'upsell' ? '#1D6CAA' : '#0EA5E9' }}>
+                                /* El AZUL de la paleta es el acento sobre fondo
+                                   CLARO (5.56:1); aquí el fondo es la tarjeta
+                                   oscura y mide 2.74:1. Se aclara el mismo tono
+                                   para que upsell y cross-sell sigan
+                                   distinguiéndose por color. */
+                                style={{ color: o.tipo === 'upsell' ? AZUL_TARJETA : '#0EA5E9' }}>
                                 <TrendingUp size={12} />
                                 {o.tipo === 'upsell' ? 'Upsell' : 'Cross-sell'}
                               </span>

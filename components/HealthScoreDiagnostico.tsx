@@ -7,7 +7,7 @@ import type { Cuenta, Seguimiento } from '@/lib/types'
 import type { TicketRow } from '@/lib/cuenta-data'
 import HealthScoreRing from './HealthScoreRing'
 import { pesoMedido, textoPesoMedido } from '@/lib/health-score'
-import { TX_TENUE } from '@/lib/contraste'
+import { TX_TENUE, tonoSobreOscuro, componeSobre } from '@/lib/contraste'
 
 // ── Paleta de colores ─────────────────────────────────────────────────────────
 // Verde/Azul = sano · Naranja→Rojo intenso = riesgo gradiente según %
@@ -21,6 +21,20 @@ function scoreColor(s: number | null): string {
   if (s >= 20)   return '#DC2626'   // rojo
   return                '#B91C1C'   // rojo intenso
 }
+
+/* El MISMO tono, pero legible como TEXTO sobre su propia pastilla `${c}22`
+   (alfa 0.133) compuesta sobre la tarjeta. Los tonos de arriba están elegidos
+   para fondo claro: `#EA580C` sobre la pastilla mide 3.15:1 y `#DC2626` 2.4:1.
+   Se leían porque `globals.css` repinta `<strong>` de blanco — con lo cual el
+   rótulo de la dimensión en riesgo salía del mismo color que todo lo demás, y
+   el color era justamente lo que decía «ésta es la que está mal».
+   El icono de al lado NO se toca: es objeto gráfico y le basta 3:1. */
+const tonoTexto = (c: string) => tonoSobreOscuro(c, componeSobre(c, 0.133))
+
+/* El rojo REAL de la franja de aviso: es translúcido, así que su color es el
+   resultado de componerlo sobre la tarjeta, y cambia según la rama. */
+const rojoFranja = (perdida: boolean) =>
+  perdida ? componeSobre('#7F1D1D', 0.95) : componeSobre('#B91C1C', 0.85)
 
 // Color de la barra de alerta: se intensifica conforme baja el score
 function alertBarColor(s: number): string {
@@ -362,11 +376,20 @@ export default function HealthScoreDiagnostico({
           borderBottom: '1px solid rgba(255,255,255,0.1)',
         }}>
           <AlertTriangle size={12} style={{ color: '#FCA5A5', flexShrink: 0 }} />
-          <span style={{ fontSize: 10, fontWeight: 800, color: '#FCA5A5', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+          {/* La franja es roja OPACA, no la tarjeta: el tono se mide contra ese
+              rojo compuesto, que es distinto en las dos ramas. El #FCA5A5 daba
+              4.03:1 sobre el rojo del aviso y 4.40:1 sobre el de cuenta
+              perdida — los dos por debajo de AA a 10px, y se leían porque
+              `globals.css` repinta el <span> de blanco. */}
+          <span style={{ fontSize: 10, fontWeight: 800, color: tonoSobreOscuro('#FCA5A5', rojoFranja(hasAuditLoss)), letterSpacing: '0.07em', textTransform: 'uppercase' }}>
             {hasAuditLoss ? 'CUENTA PERDIDA' : 'AUDITORÍA EN RIESGO'}
           </span>
+          {/* Sin `opacity`: bajarla apaga el elemento entero contra el fondo y
+              deshace la medición que acabamos de hacer. Lo secundario se
+              distingue por el peso —800 arriba, normal aquí—, no restándole
+              contraste. */}
           {auditoriaNombre && (
-              <span style={{ fontSize: 10, color: 'rgba(252,165,165,0.7)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {auditoriaNombre}</span>
+              <span style={{ fontSize: 10, color: tonoSobreOscuro('#FCA5A5', rojoFranja(hasAuditLoss)), minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {auditoriaNombre}</span>
           )}
         </div>
       )}
@@ -378,7 +401,7 @@ export default function HealthScoreDiagnostico({
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
       }}>
         <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: TX_TENUE, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
             Diagnóstico Automático
           </p>
           <h3 style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.01em' }}>
@@ -458,7 +481,7 @@ export default function HealthScoreDiagnostico({
                       <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {d.label}
                       </span>
-                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{d.pct}</span>
+                      <span style={{ fontSize: 9, color: TX_TENUE, flexShrink: 0 }}>{d.pct}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0 }}>
                       {showBadge
@@ -481,7 +504,7 @@ export default function HealthScoreDiagnostico({
                   </div>
 
                   <p style={{
-                    fontSize: 10, color: 'rgba(255,255,255,0.4)', margin: '3px 0 0',
+                    fontSize: 10, color: TX_TENUE, margin: '3px 0 0',
                     lineHeight: 1.35, overflowWrap: 'anywhere',
                   }}>
                     {d.detail}
@@ -504,7 +527,7 @@ export default function HealthScoreDiagnostico({
               }}>
                 <TrendingDown size={11} style={{ color: alertBarColor(d.score!), flexShrink: 0, marginTop: 2 }} />
                 <span style={{ fontSize: 11, color: '#FCA5A5', fontWeight: 500, minWidth: 0, lineHeight: 1.4, overflowWrap: 'anywhere' }}>
-                  <strong style={{ color: alertBarColor(d.score!) }}>{d.label}:</strong> {d.detail}
+                  <strong style={{ color: tonoTexto(alertBarColor(d.score!)) }}>{d.label}:</strong> {d.detail}
                 </span>
               </div>
             ))}
@@ -542,7 +565,7 @@ export default function HealthScoreDiagnostico({
                 </div>
               ))}
             </div>
-            <p style={{ margin: '10px 0 0', fontSize: 9, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' }}>
+            <p style={{ margin: '10px 0 0', fontSize: 9, color: TX_TENUE, fontStyle: 'italic' }}>
               Solicitar al asesor como actividad de seguimiento SAC
             </p>
           </div>

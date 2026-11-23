@@ -18,7 +18,7 @@ import {
   serieMensual, mesLargo, fechaCorta, U,
   type LecturaLlamadas, type LlamadasMeta,
 } from '@/lib/llamadas-cuenta'
-import { TX_TENUE } from '@/lib/contraste'
+import { TX_TENUE, tonoSobreOscuro, componeSobre } from '@/lib/contraste'
 
 /* `BLU` era `#1B3FCC`, el azul de marca de la PÁGINA clara, y este panel es
    una tarjeta oscura: la pastilla «N entrantes» pintaba letra y fondo con ese
@@ -27,6 +27,20 @@ import { TX_TENUE } from '@/lib/contraste'
    un agente» (2.23:1) y la serie—, y `#60A5FA` es el azul que globals.css ya
    aplica a los enlaces dentro de una tarjeta oscura. */
 const RED = '#ef4444', BLU = '#60A5FA', IND = '#1D6CAA', GRY = '#A8BACB', AMB = '#f59e0b', GRN = '#22c55e'
+
+/* MEDIDOS CONTRA LA TARJETA, uno por uno, el 23 nov 2026: BLU 6.78:1, GRY
+   6.25:1, AMB 8.09:1 y GRN 5.92:1 pasan como texto. `RED` mide 4.05:1 y no
+   llega, y en la página servida eran NUEVE celdas y rótulos que sólo se leían
+   porque `globals.css` los repintaba de blanco — o sea que el rojo del aviso
+   llevaba meses sin verse rojo. Se parte en dos: el tono sigue sirviendo para
+   barras, filetes y cuadritos de leyenda (objeto gráfico, 3:1), y `RED_TX` es
+   el mismo rojo aclarado para cuando va en TEXTO.
+
+   Los seis van en una sola sentencia `const a = …, b = …`, y eso los hacía
+   invisibles para `revisa-color-invisible-cpcard.py`, que sólo resolvía una
+   declaración por línea. Salían en su cubo de «no se puede resolver», que es
+   por donde se encontraron. */
+const RED_TX = tonoSobreOscuro(RED)
 const DIA_INI = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const nf = (x: number) => x.toLocaleString('es-MX')
 
@@ -39,7 +53,7 @@ export function LlamadasSinLectura({ cid, meta }: { cid: string | null; meta: Ll
         <h3 style={ttl}>Atención de llamadas</h3>
         <span style={bdg(GRY)}>SIN LECTURA</span>
       </div>
-      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', lineHeight: 1.55, margin: 0 }}>
+      <p style={{ fontSize: 11, color: TX_TENUE, lineHeight: 1.55, margin: 0 }}>
         Esta cuenta no viene en el archivo de llamadas ({meta.cuentas} de 220 cuentas con asesor).
         No hay medición — no es que no tenga llamadas.
       </p>
@@ -64,7 +78,7 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
   const pctCon = d.sal && d.sal.total > 0 ? (100 * (d.sal.total - d.sal.noCon)) / d.sal.total : null
   const kcol = conf || sinVol ? GRY
     : l.delta === null ? 'rgba(255,255,255,0.75)'
-    : l.delta >= U.PTS_LLAMA ? RED : l.delta <= -U.PTS_LLAMA ? GRN : 'rgba(255,255,255,0.75)'
+    : l.delta >= U.PTS_LLAMA ? RED_TX : l.delta <= -U.PTS_LLAMA ? GRN : 'rgba(255,255,255,0.75)'
 
   return (
     <div className="cp-card">
@@ -117,7 +131,7 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
           background: cola.pos <= 4 ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.04)',
           border: `1px solid ${cola.pos <= 4 ? 'rgba(239,68,68,0.22)' : 'rgba(255,255,255,0.08)'}`,
         }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: cola.pos <= 4 ? RED : GRY }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: cola.pos <= 4 ? RED_TX : GRY }}>
             #{cola.pos}
           </span>
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>
@@ -151,7 +165,7 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
           value={l.delta === null ? '—' : `${l.delta >= 0 ? '+' : ''}${l.delta.toFixed(1)} pts`}
           sub={l.delta === null ? 'base insuficiente' : `su base previa: ${l.pctBase!.toFixed(1)}%`} />
         <Kpi icon={CalendarClock} label="Última llamada"
-          color={l.diasSinLlamada === null ? GRY : l.diasSinLlamada > U.DIAS_SILENCIO ? RED : l.diasSinLlamada <= 7 ? GRN : GRY}
+          color={l.diasSinLlamada === null ? GRY : l.diasSinLlamada > U.DIAS_SILENCIO ? RED_TX : l.diasSinLlamada <= 7 ? GRN : GRY}
           value={d.ultima ? fechaCorta(d.ultima) : '—'}
           sub={l.diasSinLlamada === null ? 'sin registro'
             : l.diasSinLlamada <= 1 ? 'al corte del archivo'
@@ -245,7 +259,7 @@ export default function CuentaLlamadasPanel({ l, meta, cola }: {
                     <td style={{ ...td, textAlign: 'left', color: x.d.startsWith('(') || x.d === 'otros destinos' ? GRY : 'rgba(255,255,255,0.85)', maxWidth: 210, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.d}>
                       {x.d}{x.otros ? ` (${x.otros})` : ''}
                     </td>
-                    <td style={{ ...td, color: RED, fontWeight: 700 }}>{nf(x.l)}</td>
+                    <td style={{ ...td, color: RED_TX, fontWeight: 700 }}>{nf(x.l)}</td>
                     {/* Las tres con «—» cuando faltan, y la de «Atendidas» con
                         el mismo criterio que las otras dos.
                         Mi primera versión ponía `?? x.c` de respaldo para un
@@ -377,7 +391,7 @@ function Grafica({ serie, conf, sinVol, base }: {
         })
         const etiqueta = !sinVol && s.etiquetable && s.pct !== null
         const col = conf ? GRY
-          : base !== null && s.pct !== null && s.pct - base >= U.PTS_LLAMA ? RED
+          : base !== null && s.pct !== null && s.pct - base >= U.PTS_LLAMA ? RED_TX
           : base !== null && s.pct !== null && base - s.pct >= U.PTS_LLAMA ? GRN
           : 'rgba(255,255,255,0.70)'
         return (
@@ -420,11 +434,11 @@ function TiraDias({ ent, peor, conf }: { ent: NonNullable<LecturaLlamadas['datos
             background: chico ? 'rgba(148,163,184,0.16)' : `rgba(239,68,68,${a.toFixed(2)})`,
             border: `1px solid ${i === peor && !conf ? RED : 'transparent'}`,
           }}>
-            <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', margin: 0 }}>{DIA_INI[i]}</p>
+            <p style={{ fontSize: 9, color: TX_TENUE, margin: 0 }}>{DIA_INI[i]}</p>
             <p style={{ fontSize: 11, fontWeight: 700, color: '#fff', margin: '1px 0 0' }}>
               {chico ? '—' : `${Math.round(pcts[i])}%`}
             </p>
-            <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.4)', margin: 0 }}>{nf(t)}</p>
+            <p style={{ fontSize: 8, color: TX_TENUE, margin: 0 }}>{nf(t)}</p>
           </div>
         )
       })}
@@ -506,7 +520,13 @@ const sec: React.CSSProperties = {
 const nota: React.CSSProperties = { fontSize: 9, color: GRY, lineHeight: 1.5, margin: '2px 0 0' }
 const th: React.CSSProperties = { padding: '5px 6px', color: GRY, fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap' }
 const td: React.CSSProperties = { padding: '4px 6px', textAlign: 'right', color: 'rgba(255,255,255,0.72)' }
+/* La letra de la pastilla se CALCULA contra su propio relleno `${c}22` —alfa
+   0.133— compuesto sobre la tarjeta, no contra la tarjeta a secas: el tinte la
+   aclara y le resta contraste justo en la dirección en que no hay que ser
+   optimista. Un `<span>` con `background` NO lo repinta `globals.css`, así que
+   aquí lo escrito es lo que se ve. */
 const bdg = (c: string): React.CSSProperties => ({
   fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 99,
-  whiteSpace: 'nowrap', background: `${c}22`, color: c === GRY ? GRY : c,
+  whiteSpace: 'nowrap', background: `${c}22`,
+  color: tonoSobreOscuro(c, componeSobre(c, 0.133)),
 })
