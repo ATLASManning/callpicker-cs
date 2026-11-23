@@ -136,6 +136,87 @@ def rota(f):
             or bool((f.get('operational_error') or '').strip()))
 
 
+# ── EL RESCATE: cuando falla la llamada de CUENTA, las de BANDEJA contestan ──
+# POR QUE EXISTE (23 nov 2026). Jose Manuel: «Medicall Care esta en cero y si
+# tiene movimiento». Lo tenia. El corte de octubre de Medicall Expert publica
+# `messages_total = 0` porque `account_summary` devolvio HTTP 500 — pero la hoja
+# de bandejas, EN LA MISMA CORRIDA, trae 6,118 mensajes en 4 bandejas con
+# nombre y apellido (Gisel 3,047 · Karla 2,875 · C12 190 · C11 6).
+#
+# Hasta hoy `rota()` detectaba bien la condicion y el rescate que hacia era
+# apuntar al MES ANTERIOR (`respaldoPeriodo`). Teniendo el dato del mismo
+# periodo medido a un lado, mandar al asesor a un corte de agosto es peor que
+# no decir nada: parece informacion y esta vencida.
+#
+# BARRIDO DEL LIBRO COMPLETO: 28 cortes · 18 cuentas · 18 clientes · 105,255
+# mensajes medidos que se publicaban como cero. En el ULTIMO corte de cada
+# cliente son 17 clientes y 42,094 mensajes.
+#
+# LA LLAVE ES (chatwoot_account_id, period_start, generated_at). No el nombre de
+# cuenta —viene inconsistente y a veces vacio— y no (cid, periodo): un CID puede
+# tener muchas cuentas de Chatwoot y Ancona Autopartes tiene QUINCE sucursales,
+# cada una con su propia lectura. Contarlas juntas da un numero que no se puede
+# reproducir; yo lo hice mal dos veces antes de acertar.
+#
+# Y `generated_at` NO sobra: las dos hojas no siempre vienen de la misma
+# corrida. El agosto de Medicall tiene el resumen de la re-corrida del 24 sep
+# (59,400, ok) y el detalle de la corrida fallida del 2 sep (4,112). Sin esa
+# tercera parte de la llave, el rescate cruzaria fotos de dias distintos.
+# [[callpicker-chat-fuente]] · [[feedback-cero-sin-medicion]]
+
+# `measurement_scope` decide QUE es lo rescatado, y se midio sobre las 229
+# llaves del libro donde se puede comparar detalle contra total de cuenta:
+#   · `contracted_inboxes`                 -> cuadra 33 de 33 (100%). ES el total.
+#   · `account_fallback_with_inbox_detail` -> cuadra 78 de 191 (41%). Es un PISO.
+# Publicar un piso como si fuera el total es la misma falta que publicar un cero
+# como si fuera desuso, solo que al reves. Por eso va separado y con palabras.
+ALCANCE_EXACTO = 'contracted_inboxes'
+
+
+def indiza_rescate(inb):
+    """(acct, periodo, corrida) -> lo que midieron las bandejas de esa corrida.
+
+       Devuelve ademas, por cuenta, la ultima fraccion CONOCIDA que capto el
+       detalle frente al total de cuenta. Sin eso, un piso de 6,118 se lee como
+       el dato; con eso se puede decir «en septiembre esta misma cuenta solo
+       capto el 13%», que es lo que convierte un numero en una cota.
+    """
+    agg = collections.defaultdict(lambda: {
+        'mensajes': 0, 'conversaciones': 0, 'cliente': 0, 'salida': 0,
+        'bandejas': 0, 'conTrafico': 0, 'alcances': set(), 'total': None})
+    for f in inb:
+        acct = f.get('chatwoot_account_id')
+        if not acct:
+            continue
+        # los renglones de relleno (inbox_id = 0, sin nombre) NO son bandejas:
+        # marcan que la medicion se hizo por respaldo de cuenta. Si entraran,
+        # el rescate contaria como bandeja medida justo lo que dice que no se
+        # midio bandeja por bandeja.
+        if f.get('inbox_id') in (None, '0') or not f.get('inbox_name'):
+            continue
+        k = (acct, f.get('period_start'), f.get('generated_at'))
+        a = agg[k]
+        m = num(f.get('messages_count')) or 0
+        a['mensajes'] += m
+        a['conversaciones'] += num(f.get('conversations_count')) or 0
+        a['cliente'] += num(f.get('customer_messages_count')) or 0
+        a['salida'] += num(f.get('outgoing_messages_count')) or 0
+        a['bandejas'] += 1
+        if m > 0:
+            a['conTrafico'] += 1
+        a['alcances'].add(f.get('measurement_scope'))
+        t = num(f.get('account_messages_total'))
+        if t is not None:
+            a['total'] = t
+
+    # historial de cobertura por cuenta, de lo mas viejo a lo mas nuevo
+    ref = {}
+    for (acct, per, _gen), a in sorted(agg.items(), key=lambda x: x[0][1] or ''):
+        if a['total'] and a['total'] > 0:
+            ref[acct] = (per, round(100.0 * a['mensajes'] / a['total'], 1))
+    return agg, ref
+
+
 # ── semaforo de salud de uso ─────────────────────────────────────────────────
 # Seis estados. El orden de evaluacion importa: los estados "no juzgables"
 # (sin medicion / suspendida) ganan a todo, porque colorear una cuenta cuya
@@ -152,21 +233,60 @@ def semaforo(c):
     if c['estado'] == 'suspended':
         return 'suspendida', ['Cuenta suspendida en el periodo — no se mide consumo.']
     if c['lecturaRota']:
-        m = ['La recolección de este corte falló (operational_error): '
-             'la cifra no es confiable, y un cero aquí no significa que el '
-             'cliente dejara de usarlo.']
-        # El ultimo corte BUENO del mismo libro, cuando existe. Sin esto la
-        # ficha no dice nada de una cuenta de la que si sabemos algo: solo que
-        # hoy no se pudo leer.
-        if c['respaldoPeriodo']:
-            m.append('Último dato fiable: %s mensajes en el corte del %s.'
-                     % (format(c['respaldoMensajes'] or 0, ','), c['respaldoPeriodo'][:10]))
-        else:
-            m.append('No hay ningún corte con lectura buena en todo el libro: '
-                     'de esta cuenta no se sabe nada, que no es lo mismo que cero.')
-        return 'sin_medicion', m
+        m = ['La llamada de resumen de cuenta falló (operational_error): el '
+             'cero de origen es de la lectura, no del cliente.']
 
-    msgs = c['mensajes'] or 0
+        # PRIMERO el dato del MISMO periodo, si las bandejas sí contestaron.
+        # Antes se saltaba directo al mes anterior teniendo esto al lado.
+        # UNA SOLA REDACCION. La pantalla pinta estas mismas frases dentro del
+        # bloque del rescate; cuando el bloque traia su propio texto, la ficha
+        # decia dos veces lo mismo y ademas con dos redondeos distintos (13% en
+        # la viñeta, 12.6% en el bloque). Van aqui, y la pantalla las SACA de la
+        # lista de viñetas por identidad —no por patron— para pintarlas una vez.
+        # No se recortan: Atlas sigue recibiendo `motivos` entero.
+        # [[feedback-fuente-unica-cuentas]] · [[feedback-contexto-ia-sin-huecos]]
+        resc = []
+        if c['rescateExacto']:
+            # `contracted_inboxes`: el detalle ES la medición, no una parte.
+            resc.append('Medido bandeja por bandeja en este mismo periodo: '
+                        '%s mensajes en %d de %d bandejas.'
+                        % (format(c['rescateMensajes'], ','), c['rescateBandejas'],
+                           c['rescateBandejasTotal']))
+            m.extend(resc)
+            c['motivosRescate'] = resc
+            # y sigue al semaforo normal, con la cifra rescatada
+        elif c['rescateMensajes']:
+            resc.append('AL MENOS %s mensajes en este periodo, medidos en %d de %d '
+                        'bandejas. No es el total: la suma de cuenta no se pudo '
+                        'leer y el desglose por bandeja suele quedarse corto.'
+                        % (format(c['rescateMensajes'], ','), c['rescateBandejas'],
+                           c['rescateBandejasTotal']))
+            if c['rescateRefPct'] is not None:
+                resc.append('De qué tamaño puede ser el hueco: en el corte del %s '
+                            'esta misma cuenta explicó por bandeja el %.1f%% de su '
+                            'total.' % (c['rescateRefPeriodo'][:10], c['rescateRefPct']))
+            if c['respaldoPeriodo']:
+                resc.append('Referencia anterior completa: %s mensajes en el corte del %s.'
+                            % (format(c['respaldoMensajes'] or 0, ','),
+                               c['respaldoPeriodo'][:10]))
+            m.extend(resc)
+            c['motivosRescate'] = resc
+            return 'sin_medicion', m
+        else:
+            # Sin rescate: el ultimo corte BUENO del mismo libro, cuando existe.
+            if c['respaldoPeriodo']:
+                m.append('Ninguna bandeja respondió en este corte. Último dato '
+                         'fiable: %s mensajes en el corte del %s.'
+                         % (format(c['respaldoMensajes'] or 0, ','),
+                            c['respaldoPeriodo'][:10]))
+            else:
+                m.append('No hay ningún corte con lectura buena en todo el libro: '
+                         'de esta cuenta no se sabe nada, que no es lo mismo que cero.')
+            return 'sin_medicion', m
+
+    msgs = c.get('mensajesEfectivos')
+    if msgs is None:
+        msgs = c['mensajes'] or 0
     if msgs == 0:
         m.append('Cero mensajes en el periodo completo.')
         if c['inboxesContratados']:
@@ -218,9 +338,25 @@ def semaforo(c):
 # fuera. Ver [[feedback_contexto_ia_sin_huecos]].
 
 def medible(c):
-    return (not c['lecturaRota']
-            and c['estado'] not in ('operational_error', 'suspended')
-            and c['mensajes'] > 0)
+    # Desde el 23 nov 2026 una cuenta con RESCATE EXACTO tambien es medible: la
+    # llamada de cuenta fallo pero el alcance declarado es `contracted_inboxes`,
+    # donde el detalle ES la medicion (cuadra 33 de 33 en el libro). Las de
+    # rescate PISO siguen fuera: con una cota no se calculan ratios.
+    return ((not c['lecturaRota'] or c.get('rescateExacto'))
+            and c['estado'] != 'suspended'
+            and (c.get('mensajesEfectivos') or 0) > 0)
+
+
+def ef(c, campo):
+    """El valor utilizable del campo: el del origen si la lectura fue buena, el
+       rescatado si no. Nunca mezcla: o toda la fila viene del resumen, o toda
+       viene del detalle de bandejas de esa misma corrida."""
+    if not c['lecturaRota']:
+        return c[campo]
+    return {'mensajes':        c.get('rescateMensajes'),
+            'conversaciones':  c.get('rescateConversaciones'),
+            'mensajesCliente': c.get('rescateCliente'),
+            'mensajesSalida':  c.get('rescateSalida')}.get(campo, c[campo])
 
 
 # Base minima para que un ratio signifique algo. Sin esto, una cuenta con 3
@@ -232,7 +368,9 @@ def indicadores_cuenta(c):
     """Senales de servicio y experiencia, a nivel cuenta Chatwoot."""
     if not medible(c):
         return None
-    ent, sal = c['mensajesCliente'] or 0, c['mensajesSalida'] or 0
+    ent, sal = ef(c, 'mensajesCliente') or 0, ef(c, 'mensajesSalida') or 0
+    msgs = ef(c, 'mensajes') or 0
+    conv = ef(c, 'conversaciones') or 0
     ind = {
         # BALANCE DE LA CONVERSACION — NO es "mensajes sin responder".
         # El dato es un conteo agregado por direccion: no existe mapeo
@@ -243,8 +381,11 @@ def indicadores_cuenta(c):
         # cuando hay base suficiente.
         'balance': round(sal / ent, 2) if ent >= BASE_MINIMA else None,
         'baseBalance': ent,
-        'msjPorConv': c['promedioPorConv'],
-        'cargaAgente': round(c['mensajes'] / c['agentes']) if c['agentes'] else None,
+        # el promedio del origen no existe cuando la lectura fallo: se
+        # reconstruye del rescate en vez de quedarse mudo.
+        'msjPorConv': (c['promedioPorConv'] if not c['lecturaRota']
+                       else (round(msgs / conv, 1) if conv > 0 else None)),
+        'cargaAgente': round(msgs / c['agentes']) if c['agentes'] else None,
         'crecimiento': c['crecimientoPct'],
     }
     # Un volumen enorme con 1-2 agentes no es sobrecarga humana: es automatizacion.
@@ -259,10 +400,10 @@ def indicadores_cliente(cuentas, inboxes):
     vivas = [c for c in cuentas if medible(c)]
     if not vivas:
         return None
-    ent = sum(c['mensajesCliente'] or 0 for c in vivas)
-    sal = sum(c['mensajesSalida'] or 0 for c in vivas)
-    conv = sum(c['conversaciones'] for c in vivas)
-    msgs = sum(c['mensajes'] for c in vivas)
+    ent = sum(ef(c, 'mensajesCliente') or 0 for c in vivas)
+    sal = sum(ef(c, 'mensajesSalida') or 0 for c in vivas)
+    conv = sum(ef(c, 'conversaciones') or 0 for c in vivas)
+    msgs = sum(ef(c, 'mensajes') or 0 for c in vivas)
     agentes = sum(c['agentes'] or 0 for c in vivas)
 
     # 3. Mezcla de canal. El QR es conexion NO oficial de WhatsApp: se desconecta
@@ -319,17 +460,34 @@ def semaforo_cliente(cuentas):
        cuenta conserva su propio color, que es donde vive ese matiz."""
     vivas = [c for c in cuentas if c['semaforo'] not in ('sin_medicion', 'suspendida')]
     if not vivas:
-        return ('suspendida', ['Todas las cuentas del cliente están suspendidas.']) \
-            if all(c['semaforo'] == 'suspendida' for c in cuentas) \
-            else ('sin_medicion', ['La recolección falló en todas las cuentas del cliente.'])
+        if all(c['semaforo'] == 'suspendida' for c in cuentas):
+            return 'suspendida', ['Todas las cuentas del cliente están suspendidas.']
+        # «Falló la recolección» a secas ya no basta: puede haber rescate, y
+        # decir solo que fallo esconde el volumen que SI se midio.
+        m = ['La llamada de resumen falló en todas las cuentas del cliente.']
+        resc = [c for c in cuentas if c['rescateMensajes']]
+        if resc:
+            m.append('Pero las bandejas sí respondieron: al menos %s mensajes '
+                     'medidos en este mismo periodo, en %d de %d cuenta(s). '
+                     'Un cero aquí sería falso.'
+                     % (format(sum(c['rescateMensajes'] for c in resc), ','),
+                        len(resc), len(cuentas)))
+        else:
+            m.append('Ninguna bandeja respondió tampoco, así que de este cliente '
+                     'no se sabe nada en este corte — que no es lo mismo que cero.')
+        return 'sin_medicion', m
 
     if len(vivas) == 1:
         return vivas[0]['semaforo'], list(vivas[0]['motivos'])
 
-    principal = max(vivas, key=lambda c: c['mensajes'])
+    # ef() y no c['mensajes']: desde el 23 nov `vivas` puede traer cuentas con
+    # RESCATE EXACTO, cuyo `mensajes` de origen es 0 porque fallo la llamada de
+    # cuenta. Sumar el crudo las metia en el agregado aportando cero y volvia a
+    # fabricar la caida que el rescate vino a quitar.
+    principal = max(vivas, key=lambda c: ef(c, 'mensajes') or 0)
     con_bolsa = [c for c in vivas if c['bolsaMensajes']]
     bolsa = sum(c['bolsaMensajes'] for c in con_bolsa) or None
-    pct = (sum(c['mensajes'] for c in con_bolsa) / bolsa * 100) if bolsa else None
+    pct = (sum(ef(c, 'mensajes') or 0 for c in con_bolsa) / bolsa * 100) if bolsa else None
     agg = {
         'estado': 'ok',
         # El agregado se arma SOLO con `vivas`, de donde ya se excluyeron las
@@ -339,7 +497,7 @@ def semaforo_cliente(cuentas):
         'lecturaRota': False,
         'respaldoPeriodo': None,
         'respaldoMensajes': None,
-        'mensajes': sum(c['mensajes'] for c in vivas),
+        'mensajes': sum(ef(c, 'mensajes') or 0 for c in vivas),
         'inboxesContratados': sum(c['inboxesContratados'] or 0 for c in vivas) or None,
         'inboxesActivos': sum(c['inboxesActivos'] or 0 for c in vivas),
         'bolsaMensajes': bolsa,
@@ -460,6 +618,8 @@ def main():
         if f.get('cid') and f.get('chatwoot_account_name'):
             porCuenta[(f['cid'], f['chatwoot_account_name'])].append(f)
 
+    rescates, refCobertura = indiza_rescate(inb)
+
     cuentas = []
     for (cid, nombreCuenta), filas in porCuenta.items():
         filas.sort(key=lambda x: x.get('period_start') or '', reverse=True)
@@ -509,6 +669,45 @@ def main():
             c['bolsaMensajes'] = None
         if c['bolsaMensajes'] is None:
             c['pctBolsa'] = None
+
+        # ── RESCATE con el detalle de bandejas de ESTA MISMA corrida ────────
+        # `mensajes` NO se sobreescribe nunca: lo que el origen publico sigue
+        # publicado, que es lo que hace auditable el rescate. Lo recuperado va
+        # en campos propios y la pantalla lo nombra.
+        r = rescates.get((v.get('chatwoot_account_id'), v.get('period_start'),
+                          v.get('generated_at'))) if c['lecturaRota'] else None
+        if r and r['mensajes'] > 0:
+            alc = sorted(a for a in r['alcances'] if a)
+            exacto = bool(alc) and all(a == ALCANCE_EXACTO for a in alc)
+            refer = refCobertura.get(v.get('chatwoot_account_id'))
+            c.update({
+                'rescateMensajes':       r['mensajes'],
+                'rescateConversaciones': r['conversaciones'],
+                'rescateCliente':        r['cliente'],
+                'rescateSalida':         r['salida'],
+                'rescateBandejas':       r['conTrafico'],
+                'rescateBandejasTotal':  r['bandejas'],
+                'rescateExacto':         exacto,
+                'rescateAlcance':        '/'.join(alc) or None,
+                # de que tamano puede ser el hueco, medido en esta misma cuenta
+                'rescateRefPeriodo': refer[0] if refer and not exacto else None,
+                'rescateRefPct':     refer[1] if refer and not exacto else None,
+            })
+        else:
+            c.update({k: None for k in (
+                'rescateMensajes', 'rescateConversaciones', 'rescateCliente',
+                'rescateSalida', 'rescateBandejas', 'rescateBandejasTotal',
+                'rescateAlcance', 'rescateRefPeriodo', 'rescateRefPct')})
+            c['rescateExacto'] = False
+
+        # Lo que se puede afirmar del periodo: la cifra del origen cuando se
+        # pudo leer, y el rescate cuando no. Es el campo que mira la pantalla.
+        c['mensajesEfectivos'] = (c['mensajes'] if not c['lecturaRota']
+                                  else (c['rescateMensajes'] or 0))
+
+        # `semaforo()` la rellena cuando hay rescate; aqui queda el piso para
+        # que el campo EXISTA siempre y la pantalla no tenga que preguntar.
+        c['motivosRescate'] = []
         c['semaforo'], c['motivos'] = semaforo(c)
         c['sacux'] = indicadores_cuenta(c)
         cuentas.append(c)
@@ -604,6 +803,14 @@ def main():
             'inboxesRelleno': relleno.get(cid, 0),
             'mensajes':       sum(c['mensajes'] for c in cs),
             'conversaciones': sum(c['conversaciones'] for c in cs),
+            # `mensajes` sigue siendo LO QUE PUBLICA EL ORIGEN, intacto. Esto
+            # es lo que se puede afirmar del periodo sumando el rescate, y va
+            # aparte para que nunca se confundan las dos bases de medicion.
+            'mensajesEfectivos':  sum(c['mensajesEfectivos'] for c in cs),
+            'mensajesRescatados': sum(c['rescateMensajes'] or 0 for c in cs),
+            'rescateExacto':      sum(1 for c in cs if c['rescateExacto']),
+            'rescatePiso':        sum(1 for c in cs
+                                      if c['rescateMensajes'] and not c['rescateExacto']),
             'inboxesContratados': sum(c['inboxesContratados'] or 0 for c in cs),
             'inboxesObservados':  sum(c['inboxesObservados'] or 0 for c in cs),
             'contratadosMuertos':     sum(1 for i in inboxes if i['contratado'] and i['mensajes'] == 0),
@@ -614,7 +821,9 @@ def main():
             'periodo': max(c['periodo'] or '' for c in cs),
             'conError': sum(1 for c in cs if c['semaforo'] == 'sin_medicion'),
         })
-    clientes.sort(key=lambda c: (-c['mensajes'], c['nombre'] or ''))
+    # Por EFECTIVOS: un cliente rescatado tiene `mensajes` 0 y se hundia al
+    # final de la lista justo cuando acabamos de demostrar que si tiene volumen.
+    clientes.sort(key=lambda c: (-c['mensajesEfectivos'], c['nombre'] or ''))
 
     dist = collections.Counter(c['semaforo'] for c in clientes)
     resumen = {
@@ -645,6 +854,48 @@ def main():
         'cuentasLecturaRota':  sum(1 for c in cuentas if c['lecturaRota']),
         'cuentasSinRespaldo':  sum(1 for c in cuentas
                                    if c['lecturaRota'] and not c['respaldoPeriodo']),
+        # ── EL RESCATE (23 nov 2026) ────────────────────────────────────────
+        # Lo que las bandejas SI midieron en los cortes cuya llamada de cuenta
+        # fallo. No se suma a `mensajes` —son dos bases de medicion y mezclarlas
+        # es justo lo que este modulo no hace—: va en su propio renglon, con el
+        # reparto entre lo que es dato y lo que es cota.
+        'mensajesRescatados':  sum(c['rescateMensajes'] or 0 for c in cuentas),
+        'mensajesEfectivos':   sum(c['mensajesEfectivos'] for c in cuentas),
+        'cuentasRescatadas':   sum(1 for c in cuentas if c['rescateMensajes']),
+        'cuentasRescateExacto': sum(1 for c in cuentas if c['rescateExacto']),
+        'cuentasRescatePiso':  sum(1 for c in cuentas
+                                   if c['rescateMensajes'] and not c['rescateExacto']),
+        'mensajesRescateExacto': sum(c['rescateMensajes'] or 0 for c in cuentas
+                                     if c['rescateExacto']),
+        'mensajesRescatePiso':   sum(c['rescateMensajes'] or 0 for c in cuentas
+                                     if c['rescateMensajes'] and not c['rescateExacto']),
+        # cuentas que siguen mudas: lectura rota y ninguna bandeja respondio
+        'cuentasSinRescate':   sum(1 for c in cuentas
+                                   if c['lecturaRota'] and not c['rescateMensajes']),
+        # LO QUE EL RESCATE AÑADE DE VERDAD, y no es `mensajesRescatados`.
+        # Hay cuentas con lectura rota que SI publicaron cifra —Travelling trae
+        # 172 con un HTTP 429— y esos mensajes ya estaban dentro de `mensajes`.
+        # Sumar los dos campos da 509,767 cuando el efectivo es 509,595: una
+        # cuenta contada dos veces. Un numero que no se puede reproducir no se
+        # publica, asi que el delta va calculado. [[feedback-tablas-deben-cerrar]]
+        'mensajesRescateNeto': (sum(c['mensajesEfectivos'] for c in cuentas)
+                                - sum(c['mensajes'] for c in cuentas)),
+        # El respaldo que de verdad sigue siendo la unica referencia: el de las
+        # cuentas MUDAS. `mensajesEnRespaldo` cuenta las 46 rotas, y atribuirselo
+        # a las 28 que no se pudieron rescatar es inflar el hueco con volumen
+        # que este corte ya midio. [[feedback-tablas-deben-cerrar]]
+        'mensajesEnRespaldoMudas': sum(c['respaldoMensajes'] or 0 for c in cuentas
+                                       if c['lecturaRota'] and not c['rescateMensajes']),
+        # MISMA CORRECCION QUE ARRIBA, en el conteo. `cuentasSinRespaldo` son 9
+        # sobre las 46 rotas, y una de ellas SI se rescato: decir «de las 28
+        # mudas, 9 no tienen ningun corte bueno» mete una cuenta que este corte
+        # ya midio en un subconjunto al que no pertenece, y la resta no cierra.
+        # Son 8. [[feedback-tablas-deben-cerrar]] · [[feedback-cero-sin-medicion]]
+        'cuentasSinRespaldoMudas': sum(1 for c in cuentas
+                                       if c['lecturaRota']
+                                       and not c['rescateMensajes']
+                                       and not c['respaldoPeriodo']),
+        'clientesRescatados':  sum(1 for c in clientes if c['mensajesRescatados']),
         # Volumen que esas cuentas tenian en su ULTIMO corte bueno. No entra en
         # `mensajes` —seria mezclar periodos— pero es la magnitud de lo que hoy
         # no se esta midiendo, y sin ella un 473,416 parece el total del chat.
@@ -672,9 +923,30 @@ def main():
     sinUso   = [c for c in clientes if c['semaforo'] == 'sin_uso']
     sinMed   = [c for c in clientes if c['semaforo'] in ('sin_medicion', 'suspendida')]
 
-    msgsTot   = sum(c['mensajes'] for c in clientes)
+    # EFECTIVOS, no crudos: el denominador del diagnostico tiene que ser el
+    # mismo volumen que publica la tarjeta de arriba. Con el crudo, un cliente
+    # rescatado pesaba CERO en la agenda justo despues de demostrar que tiene
+    # volumen, y `pctExplicado` se calculaba contra un total mas chico de la
+    # cuenta —inflandose—. [[feedback-metricas-derivadas-origen]]
+    msgsTot   = sum(c['mensajesEfectivos'] for c in clientes)
     msgsInbox = sum(i['mensajes'] for c in clientes for i in c['inboxes'])
     msgsClasif = sum(i['mensajes'] for c in clientes for i in c['inboxes'] if i['tipo'])
+
+    # EL EJEMPLO DE LA BRECHA, MEDIDO. La frase del apartado decia «PVnube, por
+    # ejemplo, tiene 342,362 mensajes en su cuenta y cero en el desglose» con el
+    # 342,362 TECLEADO A MANO. En el corte del 23 nov 2026 PVnube ya no cumple
+    # nada de eso: su lectura esta rota, publica CERO, y 342,362 no coincide ni
+    # con su respaldo (244,057). Un ejemplo escrito a mano deja de ser ejemplo en
+    # cuanto cambia el corte, y entonces ilustra con un dato falso justo la
+    # tarjeta que explica por que no hay que confiar en los totales.
+    # [[feedback-verificar-antes-asegurar]] · [[feedback-fuente-unica-cuentas]]
+    brecha = sorted(
+        [{'nombre': c['nombre'], 'mensajes': c['mensajesEfectivos']}
+         for c in clientes
+         if c['mensajesEfectivos'] > 0
+         and sum(i['mensajes'] for i in c['inboxes']) == 0],
+        key=lambda x: -x['mensajes'])
+    ejemploBrecha = dict(brecha[0], clientes=len(brecha)) if brecha else None
 
     riesgoQR = sorted(
         [{'cid': c['cid'], 'nombre': c['nombre'], 'tier': c['tier'],
@@ -767,13 +1039,21 @@ def main():
             'medibles': len(medibles),
             'sinUso':   len(sinUso),
             'sinMedicion': len(sinMed),
+            # de que esta hecho el denominador, con palabras y no por deduccion
+            'rescatados':      resumen['cuentasRescatadas'],
+            'rescateExacto':   resumen['cuentasRescateExacto'],
+            'rescatePiso':     resumen['cuentasRescatePiso'],
+            'cuentasMudas':    resumen['cuentasSinRescate'],
         },
         'volumen': {
             'total': msgsTot,
+            'publicadoPorElOrigen': resumen['mensajes'],
+            'rescatadoDeBandejas':  resumen['mensajesRescateNeto'],
             'explicadoPorBandeja': msgsInbox,
             'pctExplicado': round(100.0 * msgsInbox / msgsTot, 1) if msgsTot else None,
             'clasificadoPorTipo': msgsClasif,
             'pctClasificado': round(100.0 * msgsClasif / msgsTot, 1) if msgsTot else None,
+            'ejemploBrecha': ejemploBrecha,
         },
         'mezclaCanal': dict(collections.Counter(
             {t: sum(i['mensajes'] for c in clientes for i in c['inboxes'] if (i['tipo'] or 'Sin clasificar') == t)
@@ -825,6 +1105,7 @@ def main():
     for l in ['cid: string', 'cliente: string', 'cuenta: string', 'cuentaId: number | null',
               'periodo: string',
               'corte: number | null', 'estado: string', 'semaforo: SemaforoChat', 'motivos: string[]',
+              'motivosRescate: string[]',
               'conversaciones: number', 'mensajes: number', 'mensajesCliente: number',
               'mensajesSalida: number', 'promedioPorConv: number | null',
               'inboxesContratados: number | null', 'inboxesObservados: number | null',
@@ -834,6 +1115,18 @@ def main():
               'tendencia: string | null', 'tier: string | null',
               'respaldoPeriodo: string | null', 'respaldoMensajes: number | null',
               'lecturaRota: boolean',
+              '/** Lo que midieron las bandejas en ESTA misma corrida cuando la',
+              ' *  llamada de cuenta falló. `mensajes` conserva el cero del',
+              ' *  origen: esto va aparte para que el rescate sea auditable. */',
+              'rescateMensajes: number | null', 'rescateConversaciones: number | null',
+              'rescateCliente: number | null', 'rescateSalida: number | null',
+              'rescateBandejas: number | null', 'rescateBandejasTotal: number | null',
+              '/** true = el detalle ES el total (`contracted_inboxes`).',
+              ' *  false = es un PISO: «al menos N». */',
+              'rescateExacto: boolean', 'rescateAlcance: string | null',
+              'rescateRefPeriodo: string | null', 'rescateRefPct: number | null',
+              '/** `mensajes` si la lectura fue buena, el rescate si no. */',
+              'mensajesEfectivos: number',
               'sacux: Record<string, any> | null']:
         w('  ' + l)
     w('}')
@@ -842,6 +1135,8 @@ def main():
     for l in ['cid: string', 'nombre: string', 'tier: string | null', 'semaforo: SemaforoChat',
               'motivos: string[]', 'cuentas: ChatCuenta[]', 'inboxes: ChatInbox[]',
               'inboxesRelleno: number', 'mensajes: number', 'conversaciones: number',
+              'mensajesEfectivos: number', 'mensajesRescatados: number',
+              'rescateExacto: number', 'rescatePiso: number',
               'inboxesContratados: number', 'inboxesObservados: number',
               'contratadosMuertos: number', 'sinContratoConTrafico: number',
               'inboxesConTrafico: number', 'inboxesSinClasificar: number',
@@ -881,6 +1176,28 @@ def main():
     print('=== SEMAFORO (por cliente) ===')
     for k in ['saludable', 'intenso', 'bajo', 'sin_uso', 'sin_medicion', 'suspendida']:
         print('  %-14s %3d  %s' % (etq[k], dist.get(k, 0), '#' * dist.get(k, 0)))
+
+    print()
+    print('=== RESCATE CON EL DETALLE DE BANDEJAS ===')
+    print('  cuentas con lectura de cuenta rota      : %d' % resumen['cuentasLecturaRota'])
+    print('    de ellas, rescatadas del mismo periodo: %d  (%s mensajes)'
+          % (resumen['cuentasRescatadas'], format(resumen['mensajesRescatados'], ',')))
+    print('      · dato exacto (contracted_inboxes)  : %d  (%s mensajes)'
+          % (resumen['cuentasRescateExacto'], format(resumen['mensajesRescateExacto'], ',')))
+    print('      · piso «al menos N» (fallback)      : %d  (%s mensajes)'
+          % (resumen['cuentasRescatePiso'], format(resumen['mensajesRescatePiso'], ',')))
+    print('    siguen mudas (ninguna bandeja contesto): %d' % resumen['cuentasSinRescate'])
+    print('  mensajes publicados por el origen       : %s' % format(resumen['mensajes'], ','))
+    print('  mensajes que se pueden afirmar          : %s' % format(resumen['mensajesEfectivos'], ','))
+    if resumen['cuentasRescatadas']:
+        print()
+        print('  los rescates, uno por uno:')
+        for c in sorted((x for x in cuentas if x['rescateMensajes']),
+                        key=lambda x: -x['rescateMensajes']):
+            print('    %-8s %-26s %-24s %9s  %s'
+                  % (c['cid'], (c['cliente'] or '')[:26], (c['cuenta'] or '')[:24],
+                     format(c['rescateMensajes'], ','),
+                     'DATO' if c['rescateExacto'] else 'piso'))
 
     print()
     print('=== SEÑALES COMERCIALES ===')

@@ -385,7 +385,7 @@ function BandaCanales() {
     <div className="space-y-4">
       <Bloque
         titulo="Por dónde entra el tráfico que sí se puede clasificar"
-        base={`Cuidado con este gráfico: describe ${n(S.volumen.explicadoPorBandeja)} mensajes, que son el ${S.volumen.pctExplicado}% del total del portafolio (${n(S.volumen.total)}). El resto viene de cuentas que se midieron por respaldo y no traen desglose por bandeja. Lo clasificado por tipo es apenas el ${S.volumen.pctClasificado}%.`}
+        base={`Cuidado con este gráfico: describe ${n(S.volumen.explicadoPorBandeja)} mensajes, que son el ${S.volumen.pctExplicado}% del total del portafolio (${n(S.volumen.total)}). El resto viene de cuentas que reportan su total sin repartirlo entre bandejas. Lo clasificado por tipo es apenas el ${S.volumen.pctClasificado}%.`}
       >
         {/* barra apilada */}
         <div className="w-full rounded-lg overflow-hidden flex mb-3" style={{ height: 26 }}>
@@ -715,9 +715,22 @@ function BandaCobertura() {
           style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.25)' }}>
           <ArrowRight size={15} className="flex-shrink-0 mt-0.5" style={{ color: '#93C5FD' }} />
           <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)' }}>
-            Por eso ninguna lectura de canal de este apartado se presenta como porcentaje del portafolio.
-            Las cuentas medidas por respaldo reportan su total pero no lo reparten entre bandejas —
-            PVnube, por ejemplo, tiene {n(342362)} mensajes en su cuenta y cero en el desglose.
+            Por eso ninguna lectura de canal de este apartado se presenta como porcentaje del portafolio.{' '}
+            {/* EL EJEMPLO SALE DEL CORTE, no de la memoria. Aquí decía «PVnube,
+                por ejemplo, tiene 342,362 mensajes» con la cifra tecleada a mano:
+                en el corte del 23 nov 2026 PVnube publica CERO —su lectura está
+                rota— y 342,362 no coincide ni con su respaldo. La tarjeta que
+                explica por qué no confiar en los totales ilustraba con un dato
+                falso. [[feedback-verificar-antes-asegurar]] */}
+            Hay cuentas que reportan su total y no lo reparten entre bandejas
+            {S.volumen.ejemploBrecha ? (
+              <> — <span className="font-semibold" style={{ color: '#fff' }}>{S.volumen.ejemploBrecha.clientes} clientes</span>{' '}
+                tienen mensajes medidos y desglose cero, y el mayor es{' '}
+                {S.volumen.ejemploBrecha.nombre}, con {n(S.volumen.ejemploBrecha.mensajes)} mensajes
+                en su cuenta y nada en el desglose.</>
+            ) : (
+              <>, aunque en este corte no quedó ninguna: el desglose cubre a todas las que miden volumen.</>
+            )}{' '}
             Cerrar esa brecha depende de quien alimenta la hoja, no del tablero.
           </p>
         </div>

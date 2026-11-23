@@ -90,14 +90,16 @@ export default function CallpickerChatPage() {
     l = [...l].sort((a, b) => {
       if (orden === 'cid')      return Number(a.cid) - Number(b.cid)
       if (orden === 'nombre')   return a.nombre.localeCompare(b.nombre, 'es')
-      if (orden === 'semaforo') return ORDEN.indexOf(a.semaforo) - ORDEN.indexOf(b.semaforo) || b.mensajes - a.mensajes
-      return b.mensajes - a.mensajes
+      // por EFECTIVOS: ordenar por el crudo mandaba al fondo justo a los
+      // clientes cuyo volumen acabamos de recuperar.
+      if (orden === 'semaforo') return ORDEN.indexOf(a.semaforo) - ORDEN.indexOf(b.semaforo) || b.mensajesEfectivos - a.mensajesEfectivos
+      return b.mensajesEfectivos - a.mensajesEfectivos
     })
     return l
   }, [filtro, busca, orden])
 
   const visibles = useMemo(() => ({
-    mensajes: filtrados.reduce((s, c) => s + c.mensajes, 0),
+    mensajes: filtrados.reduce((s, c) => s + c.mensajesEfectivos, 0),
     conversaciones: filtrados.reduce((s, c) => s + c.conversaciones, 0),
   }), [filtrados])
 
@@ -129,8 +131,12 @@ export default function CallpickerChatPage() {
               eso hundía la tarjeta sin que nada lo dijera. El denominador va
               en el subtítulo para que el número grande no se lea como el total
               del chat. Ver el aviso de calidad del dato más abajo. */}
-          <StatCard label="Mensajes del periodo" value={n(CHAT_RESUMEN.mensajes)}
-            sub={`${n(CHAT_RESUMEN.conversaciones)} conversaciones · medido en ${CHAT_RESUMEN.cuentasMedidas} de ${CHAT_RESUMEN.cuentas} cuentas`}
+          {/* Desde el 23 nov 2026 el número grande es el EFECTIVO: lo que
+              publica el origen más lo que las bandejas sí midieron en los
+              cortes cuya llamada de cuenta falló. El subtítulo dice de qué
+              está hecho — un total sin su denominador no es un total. */}
+          <StatCard label="Mensajes del periodo" value={n(CHAT_RESUMEN.mensajesEfectivos)}
+            sub={`${n(CHAT_RESUMEN.mensajes)} leídos del resumen + ${n(CHAT_RESUMEN.mensajesRescateNeto)} rescatados bandeja por bandeja · medido en ${CHAT_RESUMEN.cuentasMedidas + CHAT_RESUMEN.cuentasRescatadas} de ${CHAT_RESUMEN.cuentas} cuentas`}
             icon={MessageCircle} variant="teal" />
           <StatCard label="Clientes sin uso" value={CHAT_RESUMEN.clientesSinUso}
             sub="cero mensajes medido, no lectura fallida" icon={CircleSlash} variant="danger" />
@@ -181,19 +187,37 @@ export default function CallpickerChatPage() {
                   de esa regla. Medido: #F97316 sobre #082742 da 5.43:1, pasa 4.5
                   para 12px. Lo vigila `scripts/mide-aviso-cpchat.py`.
                   [[atlas-dashboard-contrast-architecture]] */}
-              <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>{CHAT_RESUMEN.cuentasConError} de {CHAT_RESUMEN.cuentas}</span>{' '}
-              cuentas ({Math.round(100 * CHAT_RESUMEN.cuentasConError / CHAT_RESUMEN.cuentas)}%) no pudieron medir su consumo
+              {/* UN SOLO DENOMINADOR. Antes esta frase arrancaba con
+                  `cuentasConError` (las que siguen en gris) y seguía con «de
+                  esas 46», que es `cuentasLecturaRota`. Son dos poblaciones
+                  distintas desde que el rescate saca a algunas del gris, y
+                  mezclarlas hace que la resta no cierre a la vista. */}
+              <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>{CHAT_RESUMEN.cuentasLecturaRota} de {CHAT_RESUMEN.cuentas}</span>{' '}
+              cuentas ({Math.round(100 * CHAT_RESUMEN.cuentasLecturaRota / CHAT_RESUMEN.cuentas)}%) no pudieron leer su resumen
               (<code style={{ color: '#93C5FD' }}>operational_error</code>) — la hoja reporta{' '}
               <span className="font-semibold" style={{ color: '#fff' }}>HTTP 500</span> al pedir el resumen de{' '}
-              <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.inboxesConError}</span> bandejas; salen en gris
-              con su <span className="font-semibold" style={{ color: '#fff' }}>último corte con lectura buena</span> como referencia,
-              en vez de reportar una caída que no ocurrió.{' '}
-              <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>Esas cuentas sumaban {n(CHAT_RESUMEN.mensajesEnRespaldo)} mensajes</span>{' '}
-              la última vez que sí se pudieron leer, así que lo que falta de medir pesa más que lo medido — y por eso el total de
-              arriba no es el total del chat. De ellas,{' '}
-              <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.cuentasSinRespaldo}</span>{' '}
-              no tienen ningún corte bueno en todo el libro: de ésas no se sabe nada, que no es lo mismo que cero. Y{' '}
-              <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>{CHAT_RESUMEN.inboxesSinClasificar} de {CHAT_RESUMEN.inboxes}</span>{' '}
+              <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.inboxesConError}</span> bandejas.
+              {' '}Lo que falla es la llamada de <span className="font-semibold" style={{ color: '#fff' }}>cuenta</span>;
+              las de <span className="font-semibold" style={{ color: '#fff' }}>bandeja</span> a menudo sí contestan, así que
+              en <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>{CHAT_RESUMEN.cuentasRescatadas} de esas {CHAT_RESUMEN.cuentasLecturaRota}</span>{' '}
+              se publica lo que se midió bandeja por bandeja <span className="font-semibold" style={{ color: '#fff' }}>en ese mismo periodo</span>{' '}
+              —{n(CHAT_RESUMEN.mensajesRescatados)} mensajes, de los que {n(CHAT_RESUMEN.mensajesRescateNeto)} no estaban en el total— en vez de un cero o de un corte de hace un mes.
+              En <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.cuentasRescateExacto}</span> el alcance
+              declarado es <code style={{ color: '#93C5FD' }}>contracted_inboxes</code> y el desglose <span className="font-semibold" style={{ color: '#fff' }}>es</span> la medición;
+              en las otras <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.cuentasRescatePiso}</span> es
+              un <span className="font-semibold" style={{ color: '#fff' }}>piso</span>: dice «al menos N» y se queda en gris,
+              porque publicar una cota como si fuera el total es el mismo error que publicar un cero como desuso.
+              Las <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>{CHAT_RESUMEN.cuentasSinRescate} restantes</span>{' '}
+              siguen mudas —ninguna bandeja respondió— y salen con su último corte con lectura buena;
+              sumaban {n(CHAT_RESUMEN.mensajesEnRespaldoMudas)} mensajes
+              la última vez que sí se pudieron leer, así que lo que falta de medir sigue pesando más que lo medido. De ellas, en{' '}
+              {/* `cuentasSinRespaldoMudas`, no `cuentasSinRespaldo`: ese
+                  segundo campo son 9 sobre las 46 rotas y una de ellas SI se
+                  rescató, así que colgarlo de «las 28 mudas» mete en el
+                  subconjunto una cuenta que este corte ya midió. */}
+              <span className="font-semibold" style={{ color: '#fff' }}>{CHAT_RESUMEN.cuentasSinRespaldoMudas}</span>{' '}
+              no hay ningún corte bueno en todo el libro: de ésas no se sabe nada, que no es lo mismo que cero. Y{' '}
+              <span className="font-semibold" style={{ color: '#F97316', background: 'transparent' }}>{n(CHAT_RESUMEN.inboxesSinClasificar)} de {n(CHAT_RESUMEN.inboxes)}</span>{' '}
               bandejas no traen tipo (<code style={{ color: '#93C5FD' }}>inbox_type</code> vacío), así que no se puede decir si son
               WhatsApp API, QR, Facebook o Marketplace. Aquí no se infiere: se publica lo que trae la fuente.
             </div>
@@ -386,7 +410,20 @@ function FilaCliente({ c, abierto, onToggle }: { c: ChatCliente; abierto: boolea
             {cfg.label}
           </span>
         </td>
-        <td className="px-3 py-3 text-center font-bold" style={{ color: '#fff' }}>{n(c.mensajes)}</td>
+        {/* El EFECTIVO, no el crudo: un cliente rescatado trae `mensajes` 0
+            porque falló la llamada de cuenta, y se iba al fondo de la tabla
+            justo después de demostrar que sí tiene volumen. El renglón de
+            abajo nombra de dónde sale, para que nadie lo lea como medido
+            igual que el resto. */}
+        <td className="px-3 py-3 text-center font-bold" style={{ color: '#fff' }}>
+          {n(c.mensajesEfectivos)}
+          {c.mensajesRescatados > 0 && (
+            <span className="block text-[10px] font-normal mt-0.5" style={{ color: '#93C5FD' }}
+              title={`La llamada de resumen de cuenta falló. ${n(c.mensajesRescatados)} mensajes medidos bandeja por bandeja en este mismo periodo${c.rescatePiso > 0 ? ' — es un piso, no el total' : ''}.`}>
+              {c.rescatePiso > 0 ? 'al menos' : 'por bandeja'}
+            </span>
+          )}
+        </td>
         <td className="px-3 py-3 text-center" style={{ color: 'rgba(255,255,255,0.75)' }}>{n(c.conversaciones)}</td>
         <td className="px-3 py-3 text-center" style={{ color: 'rgba(255,255,255,0.75)' }}>
           {c.inboxesContratados || <span style={{ color: 'rgba(255,255,255,0.25)' }}>—</span>}
@@ -479,12 +516,27 @@ function Detalle({ c }: { c: ChatCliente }) {
                   </span>
                 </div>
 
+                {/* Cuando la llamada de cuenta falló, estas seis casillas
+                    venían TODAS en cero aunque las bandejas hubieran medido.
+                    Se rellenan con el detalle de esa misma corrida y la
+                    etiqueta lo dice — nunca se mezclan las dos bases: o toda
+                    la fila viene del resumen, o toda del desglose. */}
                 <div className="grid grid-cols-3 gap-2 text-center mb-2.5">
-                  <Dato label="Mensajes"       valor={n(cta.mensajes)} />
-                  <Dato label="Del cliente"    valor={n(cta.mensajesCliente)} />
-                  <Dato label="De salida"      valor={n(cta.mensajesSalida)} />
-                  <Dato label="Conversaciones" valor={n(cta.conversaciones)} />
-                  <Dato label="Msj./conv."     valor={cta.promedioPorConv != null ? cta.promedioPorConv.toFixed(1) : '—'} />
+                  <Dato label={cta.rescateMensajes != null ? 'Mensajes ·  bandejas' : 'Mensajes'}
+                    valor={n(cta.mensajesEfectivos)} />
+                  <Dato label="Del cliente"
+                    valor={n(cta.rescateMensajes != null ? (cta.rescateCliente ?? 0) : cta.mensajesCliente)} />
+                  <Dato label="De salida"
+                    valor={n(cta.rescateMensajes != null ? (cta.rescateSalida ?? 0) : cta.mensajesSalida)} />
+                  <Dato label="Conversaciones"
+                    valor={n(cta.rescateMensajes != null ? (cta.rescateConversaciones ?? 0) : cta.conversaciones)} />
+                  {/* el promedio del origen no existe cuando falló la lectura,
+                      pero el rescate trae mensajes y conversaciones: se
+                      reconstruye en vez de dejar un guion. */}
+                  <Dato label="Msj./conv."     valor={
+                    cta.rescateMensajes != null && cta.rescateConversaciones
+                      ? (cta.rescateMensajes / cta.rescateConversaciones).toFixed(1)
+                      : cta.promedioPorConv != null ? cta.promedioPorConv.toFixed(1) : '—'} />
                   <Dato label="Agentes"        valor={cta.agentes != null ? String(cta.agentes) : '—'} />
                 </div>
 
@@ -505,8 +557,17 @@ function Detalle({ c }: { c: ChatCliente }) {
                   </div>
                 )}
 
+                {/* LAS FRASES DEL RESCATE SE SACAN DE AQUÍ, por identidad
+                    contra `motivosRescate` —no por patrón—, porque el bloque
+                    azul de abajo las pinta ya formateadas. Con las dos, la
+                    ficha decía lo mismo dos veces y además con dos redondeos
+                    (13% en la viñeta, 12.6% en el bloque). `motivos` sigue
+                    completo en el dato: lo que Atlas lee no se recorta.
+                    [[feedback-contexto-ia-sin-huecos]] */}
                 <ul className="space-y-1">
-                  {cta.motivos.map((m, i) => (
+                  {cta.motivos
+                    .filter(m => !(cta.motivosRescate ?? []).includes(m))
+                    .map((m, i) => (
                     <li key={i} className="text-[11px] leading-snug flex gap-1.5"
                       style={{ color: 'rgba(255,255,255,0.7)' }}>
                       <span style={{ color: cfg.color }}>·</span>{m}
@@ -514,9 +575,34 @@ function Detalle({ c }: { c: ChatCliente }) {
                   ))}
                 </ul>
 
+                {/* EL RESCATE. Antes aquí sólo salía el corte anterior, y
+                    mandar al asesor a un dato de hace un mes teniendo la
+                    medición de ESTE periodo al lado es peor que no decir nada:
+                    parece información y está vencida. */}
+                {cta.rescateMensajes != null && (
+                  <div className="mt-2 pt-2 rounded-lg px-2.5 py-2"
+                    style={{ background: 'rgba(147,197,253,0.12)', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <p className="text-[10px] uppercase tracking-wide font-semibold mb-1" style={{ color: '#93C5FD' }}>
+                      {cta.rescateExacto ? 'Medido bandeja por bandeja' : 'Piso medido — no es el total'}
+                    </p>
+                    <p className="text-xs leading-snug" style={{ color: '#fff' }}>
+                      {cta.rescateExacto ? '' : 'Al menos '}
+                      <span className="font-bold">{n(cta.rescateMensajes)}</span> mensajes en{' '}
+                      {cta.rescateBandejas} de {cta.rescateBandejasTotal} bandejas, en este mismo periodo.
+                    </p>
+                    {!cta.rescateExacto && cta.rescateRefPct != null && (
+                      <p className="text-[10px] mt-1 leading-snug" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                        De qué tamaño puede ser el hueco: en el corte del {fecha(cta.rescateRefPeriodo!)} esta
+                        misma cuenta explicó por bandeja el {cta.rescateRefPct}% de su total.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {cta.semaforo === 'sin_medicion' && cta.respaldoMensajes != null && (
                   <p className="text-[11px] mt-2 pt-2" style={{ color: '#93C5FD', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                    Corte anterior ({fecha(cta.respaldoPeriodo!)}): {n(cta.respaldoMensajes)} mensajes.
+                    {cta.rescateMensajes != null ? 'Referencia anterior completa' : 'Corte anterior'}
+                    {' '}({fecha(cta.respaldoPeriodo!)}): {n(cta.respaldoMensajes)} mensajes.
                   </p>
                 )}
 
