@@ -807,6 +807,13 @@ def main():
             # es lo que se puede afirmar del periodo sumando el rescate, y va
             # aparte para que nunca se confundan las dos bases de medicion.
             'mensajesEfectivos':  sum(c['mensajesEfectivos'] for c in cs),
+            # Las conversaciones corren la MISMA suerte que los mensajes. Sin
+            # este campo la ficha de cuenta pedia `conversaciones` crudas y una
+            # cuenta rescatada salia con «sin dato» al lado de su propio piso
+            # medido. [[feedback-proactividad-jose-manuel]]
+            'conversacionesEfectivas': sum(
+                (c['rescateConversaciones'] or 0) if c['lecturaRota']
+                else c['conversaciones'] for c in cs),
             'mensajesRescatados': sum(c['rescateMensajes'] or 0 for c in cs),
             'rescateExacto':      sum(1 for c in cs if c['rescateExacto']),
             'rescatePiso':        sum(1 for c in cs
@@ -1135,7 +1142,8 @@ def main():
     for l in ['cid: string', 'nombre: string', 'tier: string | null', 'semaforo: SemaforoChat',
               'motivos: string[]', 'cuentas: ChatCuenta[]', 'inboxes: ChatInbox[]',
               'inboxesRelleno: number', 'mensajes: number', 'conversaciones: number',
-              'mensajesEfectivos: number', 'mensajesRescatados: number',
+              'mensajesEfectivos: number', 'conversacionesEfectivas: number',
+              'mensajesRescatados: number',
               'rescateExacto: number', 'rescatePiso: number',
               'inboxesContratados: number', 'inboxesObservados: number',
               'contratadosMuertos: number', 'sinContratoConTrafico: number',

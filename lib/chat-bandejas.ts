@@ -98,6 +98,14 @@ export function inventarioBandejas(): InventarioBandejas {
   const porProv = new Map<string, { bandejas: number; _clientes: Set<string> }>()
   const medicion = { ok: 0, lim: 0, err: 0, sinDato: 0 }
 
+  /* EL VOLUMEN DEL CLIENTE ES EL EFECTIVO. `mensajes` vale 0 cuando la llamada
+     de resumen falló, y desde el rescate (23 nov 2026) esos clientes SÍ tienen
+     volumen medido por bandeja. Con el crudo, el inventario los ordenaba al
+     final y `volumenTotal` quedaba por debajo del total que publica la tarjeta
+     del módulo: dos denominadores distintos en la misma pantalla.
+     [[feedback-fuente-unica-cuentas]] · [[feedback-tablas-deben-cerrar]] */
+  const vol = (c: any) => Number(c.mensajesEfectivos ?? c.mensajes ?? 0)
+
   const conWhatsbail = new Set<string>()
   const conGupshup = new Set<string>()
   const datosCliente = new Map<string, { tier: string | null; bandejas: number; mensajes: number }>()
@@ -148,7 +156,7 @@ export function inventarioBandejas(): InventarioBandejas {
     datosCliente.set(c.nombre, {
       tier: c.tier ?? null,
       bandejas: (c.inboxes ?? []).length,
-      mensajes: c.mensajes || 0,
+      mensajes: vol(c),
     })
   }
 
@@ -192,7 +200,7 @@ export function inventarioBandejas(): InventarioBandejas {
       bandejasCliente: (c.inboxes ?? []).length,
     })
     porTipoPrincipal.set(tipo, (porTipoPrincipal.get(tipo) ?? 0) + 1)
-    volumenConPrincipal += c.mensajes || 0
+    volumenConPrincipal += vol(c)
   }
   principales.sort((a, b) => b.mensajes - a.mensajes)
 
@@ -216,6 +224,6 @@ export function inventarioBandejas(): InventarioBandejas {
     clientesConPrincipal: principales.length,
     clientesTotales: cl.length,
     volumenConPrincipal,
-    volumenTotal: cl.reduce((s, c) => s + (c.mensajes || 0), 0),
+    volumenTotal: cl.reduce((s, c) => s + vol(c), 0),
   }
 }

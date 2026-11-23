@@ -43,7 +43,12 @@ export interface CuentaChatwoot {
   agentes:     number | null
   bolsa:       number | null
   pctBolsa:    number | null
+  /** Lo que publica el origen. Cero cuando la llamada de cuenta falló. */
   mensajes:    number
+  /** Lo afirmable del periodo: el rescate por bandeja cuando el resumen falló. */
+  mensajesEfectivos: number
+  /** true cuando la cifra es un PISO medido, no el total de la cuenta. */
+  esPiso:      boolean
   tendencia:   string | null
   crecimiento: number | null
 }
@@ -61,8 +66,16 @@ export interface ChatDeCuenta {
   periodo:       string
   semaforo:      string
   motivos:       string[]
+  /** Lo que publica el origen, intacto. */
   mensajes:      number
   conversaciones: number
+  /** Lo afirmable del periodo: incluye el rescate por bandeja. */
+  mensajesEfectivos:      number
+  conversacionesEfectivas: number
+  /** Mensajes que se recuperaron de la hoja de bandejas del MISMO periodo. */
+  rescatados:    number
+  /** true si TODO lo rescatado es un piso («al menos N»), no un total. */
+  rescateEsPiso: boolean
   cuentas:       CuentaChatwoot[]
 
   bandejasContratadas:   number
@@ -114,6 +127,20 @@ function ponderar(c: Record<string, unknown>, cuentas: CuentaChatwoot[]): { scor
   const semaforo = String(c.semaforo)
   const base = BASE[semaforo]
   if (base === null || base === undefined) {
+    // Un PISO no pondera, y la razón tiene que decir por qué. Con el rescate
+    // hay cuentas que SÍ traen volumen medido y aun así no se puede juzgar su
+    // uso: «al menos N» no distingue un cliente intenso de uno a la baja, y
+    // puntuar sobre una cota castigaría al que no se pudo leer entero.
+    const piso = Number(c.mensajesRescatados ?? 0)
+    if (piso > 0 && Number(c.rescateExacto ?? 0) === 0) {
+      return {
+        score: null,
+        // Sin la cifra a propósito: el panel ya la publica arriba y los motivos
+        // la repiten. Aquí lo que importa es POR QUÉ no pondera.
+        razones: ['Sólo hay un piso medido, no el total del periodo: alcanza para saber que '
+                  + 'hay uso, no para puntuarlo. El chat no mueve el Health Score.'],
+      }
+    }
     return { score: null, razones: ['Sin medición de uso en el periodo: el chat no mueve el Health Score.'] }
   }
 
@@ -167,6 +194,8 @@ export function chatDeCuenta(
     bolsa:       (x.bolsaMensajes as number | null) ?? null,
     pctBolsa:    (x.pctBolsa as number | null) ?? null,
     mensajes:    Number(x.mensajes ?? 0),
+    mensajesEfectivos: Number(x.mensajesEfectivos ?? x.mensajes ?? 0),
+    esPiso:      Boolean(x.rescateMensajes) && !x.rescateExacto,
     tendencia:   (x.tendencia as string | null) ?? null,
     crecimiento: (x.crecimientoPct as number | null) ?? null,
   }))
@@ -217,6 +246,19 @@ export function chatDeCuenta(
     motivos:        (c?.motivos as string[] | undefined) ?? [],
     mensajes,
     conversaciones: Number(c?.conversaciones ?? 0),
+    // EL RESCATE TAMBIÉN LLEGA A LA FICHA. Antes este panel sólo miraba
+    // `mensajes`, que para una cuenta con la llamada de resumen caída vale 0, y
+    // la ficha decía «sin dato» justo debajo de un motivo que ya afirmaba «al
+    // menos 6,118 mensajes medidos en este mismo periodo». Dos partes de la
+    // misma tarjeta contradiciéndose. [[feedback-proactividad-jose-manuel]]
+    mensajesEfectivos:       Number(c?.mensajesEfectivos ?? mensajes),
+    conversacionesEfectivas: Number(c?.conversacionesEfectivas ?? c?.conversaciones ?? 0),
+    rescatados:              Number(c?.mensajesRescatados ?? 0),
+    // Piso sólo si NINGUNO de los rescates de la cuenta es exacto: basta un
+    // tramo exacto para que decir «al menos» de todo el conjunto sea mentir
+    // hacia abajo sobre esa parte.
+    rescateEsPiso: Number(c?.mensajesRescatados ?? 0) > 0
+                   && Number(c?.rescateExacto ?? 0) === 0,
     cuentas,
     bandejasContratadas,
     bandejasConTrafico:    Number(c?.inboxesConTrafico ?? 0),

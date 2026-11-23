@@ -33,9 +33,24 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
      Akún tiene 31 bandejas contratadas y la recolección se cayó en todas sus
      cuentas: publicar «0 mensajes», «0 bandejas con tráfico» y un −100% de
      caída afirma que dejó de usar el chat, cuando lo cierto es que no lo
-     pudimos medir. Donde no hay medición se dice que no la hay. */
+     pudimos medir. Donde no hay medición se dice que no la hay.
+
+     DESDE EL RESCATE (23 nov 2026) SON TRES ESTADOS, NO DOS. Entre «medido» y
+     «sin dato» está el PISO: la llamada de cuenta falló pero las bandejas sí
+     contestaron, y hay un «al menos N» medido en ESE mismo periodo. Con dos
+     estados, Medicall Expert salía con «sin dato» en las cuatro cifras justo
+     encima de un motivo que decía «al menos 6,118 mensajes medidos en este
+     mismo periodo»: la misma tarjeta contradiciéndose. Un piso no es un total
+     —por eso va rotulado— pero taparlo es peor que un cero: es esconder uso
+     que sí se midió. [[feedback-cero-sin-medicion]] */
   const medido = chat.semaforo !== 'sin_medicion'
-  const cifra = (n: number) => (medido ? num(n) : 'sin dato')
+  const hayCifra = medido || chat.rescatados > 0
+  /* `some(esPiso)` y no `rescateEsPiso`: un cliente con dos cuentas rotas puede
+     traer una exacta —que le da semáforo— y otra en piso. Mirando sólo el
+     semáforo, esa segunda se colaba dentro del total sin rótulo. Basta UNA
+     cota para que el agregado sea una cota. [[feedback-tablas-deben-cerrar]] */
+  const piso = chat.rescatados > 0 && chat.cuentas.some(x => x.esPiso)
+  const cifra = (n: number) => (hayCifra ? num(n) : 'sin dato')
 
   return (
     <div className="cp-card">
@@ -87,15 +102,34 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
 
       {/* Cifras del periodo */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2.5">
-        <Dato label="Mensajes"       valor={cifra(chat.mensajes)} />
-        <Dato label="Conversaciones" valor={cifra(chat.conversaciones)} />
+        <Dato label="Mensajes" valor={cifra(chat.mensajesEfectivos)}
+          nota={piso ? 'al menos — no es el total' : undefined} />
+        <Dato label="Conversaciones" valor={cifra(chat.conversacionesEfectivas)}
+          nota={piso ? 'de las bandejas que sí respondieron' : undefined} />
         <Dato label="Bandejas contratadas"
           valor={chat.bandejasContratadas > 0 ? num(chat.bandejasContratadas) : '—'} />
         <Dato label="Bandejas con tráfico" valor={cifra(chat.bandejasConTrafico)}
+          nota={piso ? 'las que se pudieron leer' : undefined}
           alerta={medido && chat.contratadasMuertas > 0
             ? `${chat.contratadasMuertas} contratada(s) sin un solo mensaje`
             : undefined} />
       </div>
+
+      {/* De dónde sale la cifra cuando el resumen de cuenta no se pudo leer.
+          Sin esta línea, un «al menos» suelto parece una estimación nuestra. */}
+      {piso && (
+        <p className="text-[10px] mb-2.5 rounded-lg px-3 py-2 leading-snug"
+          style={{ background: 'rgba(147,197,253,0.10)', color: 'rgba(255,255,255,0.75)' }}>
+          {/* `background: 'transparent'` para escapar de la regla de globals.css
+              que pinta blanco todo <span> sin fondo propio dentro de .cp-card. */}
+          <span className="font-semibold" style={{ color: '#93C5FD', background: 'transparent' }}>
+            Piso medido, no el total.{' '}
+          </span>
+          La llamada de resumen de cuenta falló en el origen, pero las bandejas sí respondieron:
+          estas cifras son lo que ellas midieron <strong style={{ color: '#fff' }}>en este mismo
+          periodo</strong>. El total real es igual o mayor.
+        </p>
+      )}
 
       {/* Cuentas de Chatwoot — nombre + ID, como pidió Daniel Martínez */}
       {chat.cuentas.length > 0 && (
@@ -113,7 +147,9 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
                   )}
                 </p>
                 <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                  {medido ? `${num(x.mensajes)} mensajes` : 'sin medición en el periodo'}
+                  {x.mensajesEfectivos > 0
+                    ? `${x.esPiso ? 'al menos ' : ''}${num(x.mensajesEfectivos)} mensajes`
+                    : 'sin medición en el periodo'}
                   {x.agentes ? ` · ${x.agentes} agente(s) contratado(s)` : ''}
                   {x.bolsa ? ` · bolsa de ${num(x.bolsa)}` : ''}
                   {medido && x.pctBolsa !== null ? ` · ${x.pctBolsa.toFixed(0)}% consumido` : ''}
@@ -202,11 +238,27 @@ export default function CuentaChatPanel({ chat }: { chat: ChatDeCuenta }) {
   )
 }
 
-function Dato({ label, valor, alerta }: { label: string; valor: string; alerta?: string }) {
+function Dato({ label, valor, nota, alerta }:
+  { label: string; valor: string; nota?: string; alerta?: string }) {
   return (
     <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
       <p className="text-[10px]" style={{ color: TX_TENUE }}>{label}</p>
       <p className="text-sm font-bold" style={{ color: '#fff' }}>{valor}</p>
+      {/* #93C5FD sobre el fondo de la ficha: el mismo azul con el que el módulo
+          de Chat rotula sus pisos, para que la cota se lea igual en los dos
+          sitios. [[atlas-dashboard-contrast-architecture]] */}
+      {/* El rótulo va en un <span> CON `background`, no en un <p>: `globals.css`
+          fuerza `color: rgba(255,255,255,0.88) !important` a todo <p> dentro de
+          `.cp-card`, y a los <span> que no declaren fondo. Medido aquí mismo: el
+          #93C5FD se escribía y se publicaba BLANCO, con lo que la cota se leía
+          igual que el resto del texto. Declarar `background` —aunque sea
+          transparente— es la cláusula de escape de esa regla.
+          [[atlas-dashboard-contrast-architecture]] */}
+      {nota && (
+        <p className="text-[9px] mt-0.5">
+          <span style={{ color: '#93C5FD', background: 'transparent' }}>{nota}</span>
+        </p>
+      )}
       {alerta && <p className="text-[9px] mt-0.5" style={{ color: '#FDBA74' }}>{alerta}</p>}
     </div>
   )
