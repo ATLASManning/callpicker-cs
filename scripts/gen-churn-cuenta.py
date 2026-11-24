@@ -45,6 +45,24 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FUENTE_REPO = os.path.join(RAIZ, 'data', 'grc-por-clasificacion-2026.html')
 SALIDA = os.path.join(RAIZ, 'app', 'churn', 'cuenta-data.ts')
 
+# ── DÓNDE SE PUBLICA EL INFORME, Y POR QUÉ AHÍ ─────────────────────────────
+# El módulo enlaza el informe entero para poder abrirlo. Eso obliga a servirlo,
+# y el archivo lleva 1,373 nombres de cliente con su MRR.
+#
+# `public/auditorias/` es la ÚNICA carpeta —con `public/docs/`— que el
+# middleware exige sesión para servir (`esDocumento` en middleware.ts) y que
+# `publicExcludes` de next.config.js saca del precaché del Service Worker.
+# Todo lo demás que se ponga en `public/` queda público y además se guarda en
+# el navegador de quien abra la app. Ya pasó: el precaché barría `public/`
+# entero y se llevó 21 documentos de cliente. [[pwa-documentos-cliente]]
+#
+# Y LO ESCRIBE ESTE GUIÓN, no una copia a mano: si la copia publicada se
+# hiciera aparte, el día que entre un corte nuevo el módulo mediría un archivo
+# y el enlace abriría otro, sin que nada fallara.
+ENLACE = '/auditorias/GRC-por-clasificacion-cuenta-2026.html'
+PUBLICADO = os.path.join(RAIZ, 'public', 'auditorias',
+                         'GRC-por-clasificacion-cuenta-2026.html')
+
 # El periodo CERRADO llega hasta octubre. Los meses del dataset van 1..11 y el
 # evento guarda su mes en `ev[0]`, así que el corte es `<= 10`.
 MES_CERRADO = 10
@@ -147,6 +165,11 @@ def main():
         with io.open(FUENTE_REPO, 'w', encoding='utf-8', newline='') as f:
             f.write(html)
         print(u'  fuente copiada al repo: data/grc-por-clasificacion-2026.html')
+
+    # La copia que SE SIRVE sale del mismo texto que se acaba de medir.
+    with io.open(PUBLICADO, 'w', encoding='utf-8', newline='') as f:
+        f.write(html)
+    print(u'  publicado para el enlace: %s' % ENLACE)
 
     MESES = D['months']
     CLASES = D['classes']
@@ -283,6 +306,9 @@ def main():
                   u'«Gross Revenue Churn – 2026 confirmado»',
         'informe': u'Gross Revenue Churn por clasificación de cuenta · Ene–Oct 2026',
         'corte': u'31 de octubre de 2026',
+        # El informe completo, servido detrás de la sesión. Lo escribe este
+        # mismo guión, así que el enlace abre SIEMPRE el archivo que se midió.
+        'enlace': ENLACE,
         'periodoCerrado': u'enero – octubre 2026',
         'mesEnTransito': u'Noviembre 2026',
         'meses': MESES,

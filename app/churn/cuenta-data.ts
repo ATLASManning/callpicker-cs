@@ -54,6 +54,7 @@ export const CHURN_CUENTA_META = {
   "fuente": "GRC_Segmentado.xlsx (1,644 movimientos de pérdida) + tabla «Gross Revenue Churn – 2026 confirmado»",
   "informe": "Gross Revenue Churn por clasificación de cuenta · Ene–Oct 2026",
   "corte": "31 de octubre de 2026",
+  "enlace": "/auditorias/GRC-por-clasificacion-cuenta-2026.html",
   "periodoCerrado": "enero – octubre 2026",
   "mesEnTransito": "Noviembre 2026",
   "meses": [

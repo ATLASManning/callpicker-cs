@@ -282,6 +282,26 @@ ok(por_clase_cuentas == len(CUENTAS),
    u'y tambien las 1,373 del informe completo',
    u'%d de %d' % (por_clase_cuentas, len(CUENTAS)))
 
+# ─── 7b · EL ENLACE AL INFORME COMPLETO ────────────────────────────────────
+# La cabecera del módulo enlaza el informe entero. Tres cosas tienen que ser
+# ciertas o el enlace miente: que el archivo exista, que sea EL MISMO que se
+# midió, y que esté en la carpeta que el middleware protege —lleva 1,373
+# nombres de cliente con su MRR—. [[pwa-documentos-cliente]]
+seccion(u'7b', u'EL ENLACE ABRE EL ARCHIVO QUE SE MIDIÓ')
+enlace = META.get('enlace') or u''
+ok(enlace.startswith(u'/auditorias/') or enlace.startswith(u'/docs/'),
+   u'el enlace vive en una carpeta con sesion exigida', enlace or u'(no hay)')
+pub = os.path.join(RAIZ, 'public', enlace.lstrip('/').replace('/', os.sep))
+ok(os.path.exists(pub), u'el archivo publicado existe')
+if os.path.exists(pub):
+    import hashlib
+    def sha(p):
+        with open(p, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
+    fuente = os.path.join(RAIZ, 'data', 'grc-por-clasificacion-2026.html')
+    ok(sha(pub) == sha(fuente),
+       u'y es byte a byte el que midio el generador', sha(pub)[:16])
+
 # ─── 8 · LA PROSA DEL INFORME, CONTRA SUS PROPIOS NÚMEROS ──────────────────
 # El módulo no sólo publica la rejilla: publica las lecturas, los ocho
 # hallazgos, la tabla de decisión y el plan a 30/60/90 que el informe escribe

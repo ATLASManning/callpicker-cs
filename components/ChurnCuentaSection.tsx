@@ -29,6 +29,7 @@ import {
 import {
   AlertTriangle, ArrowUpDown, CalendarClock, Layers, Users, Clock,
   ListTree, Target, Sigma, Search, ChevronLeft, ChevronRight, Info,
+  ExternalLink,
 } from 'lucide-react'
 import CustomSelect from '@/components/CustomSelect'
 import { CHURN_CUENTA_META as M, CUENTAS_CHURN } from '@/app/churn/cuenta-data'
@@ -247,6 +248,17 @@ export default function ChurnCuentaSection() {
             <div className="text-right">
               <p className="text-[11px] text-gray-500 uppercase tracking-wide">Fuente</p>
               <p className="text-xs text-gray-700 max-w-sm">{M.fuente}</p>
+              {/* El informe entero, servido desde `public/auditorias/`: la
+                  carpeta que el middleware exige sesión para entregar y que
+                  el Service Worker NO precachea. Lleva 1,373 nombres de
+                  cliente, así que dónde vive no es un detalle.
+                  `AZUL` mide 5.56:1 sobre blanco; aquí no hay `.cp-card`. */}
+              <a href={M.enlace} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-1.5 text-xs font-semibold hover:underline"
+                style={{ color: AZUL }}>
+                <ExternalLink size={12} />
+                Abrir el informe completo
+              </a>
             </div>
           </div>
           <div className="px-4 pb-3 flex flex-wrap gap-1.5">
