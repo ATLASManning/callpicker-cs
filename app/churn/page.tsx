@@ -7,20 +7,22 @@ import type {
   ChurnPendiente, ChurnCancelado, ChurnDowngrade, ChurnReporte,
 } from './tipos'
 import GrcAaaSection from '@/components/GrcAaaSection'
+import ChurnCuentaSection from '@/components/ChurnCuentaSection'
 import CustomSelect from '@/components/CustomSelect'
 import {
   TrendingDown, XCircle, ArrowDownRight,
   Clock, BarChart3, CalendarDays, ChevronDown, ChevronUp,
   Plus, Trash2, X, ChevronLeft, ChevronRight, Check, Database, FileBarChart2,
-  RefreshCw,
+  RefreshCw, Users,
 } from 'lucide-react'
+import { CHURN_CUENTA_META } from './cuenta-data'
 import { tonoSobreClaro } from '@/lib/contraste'
 
 /* ═══════════════════════════════════════════════════════════════════════
    TIPOS
 ═══════════════════════════════════════════════════════════════════════ */
 type SemaforoChurn = 'cancelado' | 'pendiente' | 'downgrade' | 'suspendido'
-type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'aaa' | 'conciliacion'
+type Tab = 'resumen' | 'pendiente' | 'cancelados' | 'downgrades' | 'suspendidos' | 'desactivados' | 'grc' | 't1' | 'aaa' | 'cuenta' | 'conciliacion'
 
 
 /* ─── Tipos GRC Detalle AAA ───────────────────────────────────────── */
@@ -3844,7 +3846,7 @@ export default function ChurnPage() {
   // Análisis DATA (selector de períodos + KPIs + su tab-bar) se oculta por
   // completo para que el contenido de la sección se despliegue solo, sin
   // mezclarse con datos de otro contexto.
-  const SECCIONES_SUBMENU: Tab[] = ['aaa', 'conciliacion']
+  const SECCIONES_SUBMENU: Tab[] = ['aaa', 'cuenta', 'conciliacion']
   const enSeccionSubmenu = SECCIONES_SUBMENU.includes(tab)
 
   /* Rango real del acumulado, derivado de los reportes cargados.
@@ -3994,6 +3996,14 @@ export default function ChurnPage() {
               icon={<span style={{ fontSize: 13, lineHeight: 1 }}>⭐</span>}
               label="GRC · AAA 2026"
               bg="#10355D"
+            />
+            <AccesoBtn
+              active={tab === 'cuenta'}
+              onClick={() => setTab('cuenta')}
+              icon={<Users size={14} />}
+              label="Churn a Nivel Cuenta"
+              bg="#10355D"
+              badge={CHURN_CUENTA_META.cuentasFuente}
             />
             <AccesoBtn
               active={tab === 'conciliacion'}
@@ -5138,6 +5148,9 @@ export default function ChurnPage() {
 
         {/* ── GRC · AAA 2026 (Ene–Jul, corte 15 Jul) ─────────────── */}
         {tab === 'aaa' && <GrcAaaSection />}
+
+        {/* ── CHURN A NIVEL CUENTA (informe por clasificación, corte 31 oct) ── */}
+        {tab === 'cuenta' && <ChurnCuentaSection />}
 
         {/* ── CONCILIACIÓN ─────────────────────────────────────────── */}
         {tab === 'conciliacion' && <ConciliacionChurn />}
