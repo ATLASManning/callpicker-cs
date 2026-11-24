@@ -56,6 +56,32 @@ RX_YA_BLANCO = re.compile(
 # the start». La version sin flag dice lo mismo y no depende de la version.
 RX_COMENTARIO = re.compile(r'/\*[\s\S]*?\*/|//[^\n]*')
 
+# ── LA LINEA BASE VIVE AQUI, Y DICE DE CUANDO ES ───────────────────────────
+#
+# Este guion escupia un numero pelado y ese numero acabo copiado en tres
+# sitios con tres valores distintos: 162 en docs/AUDITORIA-ENTREGA-Y-RIESGO.md,
+# 164 en la memoria del proyecto y 192 en la realidad. Ninguno estaba mal el
+# dia que se escribio; los tres dejaron de valer sin avisar, y el 24 nov 2026
+# costo una investigacion entera averiguar que NO habia ninguna deriva.
+#
+# LA CAUSA, y es la leccion que la arquitectura de contraste repite: UNA
+# MEDICION CADUCA CUANDO CAMBIA LO QUE LA MIDE. El 23 nov (commit 6ef9864)
+# este guion dejo de estar ciego a <td>, <th>, <label> y <h1>-<h5>, que
+# `globals.css` fuerza exactamente igual que a los <p>. Medido en los dos
+# arboles, con los dos detectores:
+#
+#                        arbol 12 nov (98c07e5)   arbol 24 nov (5908047)
+#     detector viejo             164                      157
+#     detector de hoy            203                      192
+#
+# O sea: el tablero MEJORO 11 bajo el lente de hoy, y el salto de 164 a 192
+# es el detector viendo mas. Un 162 o un 164 escritos antes del 23 nov no son
+# comparables con este numero, y por eso el guion lo dice el solo en cada
+# corrida en vez de dejarlo a que alguien se acuerde.
+LINEA_BASE = 192
+LINEA_BASE_FECHA = u'24 nov 2026'
+LINEA_BASE_COMMIT = u'6ef9864'
+
 
 def en_ambito_oscuro(txt):
     """¿Este archivo DIBUJA una tarjeta oscura, o solo habla de ellas?
@@ -126,6 +152,36 @@ def es_blanco(estilo, blancas):
         if ramas and all(r in blancas or RX_YA_BLANCO.search(r) for r in ramas):
             return True
     return False
+
+
+def veredicto(total):
+    """El conteo de hoy contra la linea base, en palabras.
+
+       Funcion aparte y pura para que la autoprueba pueda dispararle las TRES
+       ramas. Una alarma que nadie ha visto sonar es una alarma de estado
+       desconocido: el dia que de verdad suba, nadie sabra si el mensaje sale.
+    """
+    out = ['  LINEA BASE %d (%s, commit %s) · HOY %d'
+           % (LINEA_BASE, LINEA_BASE_FECHA, LINEA_BASE_COMMIT, total)]
+    if total > LINEA_BASE:
+        out.append('  *** SUBIO %d: hay colores NUEVOS que se van a publicar '
+                   'en' % (total - LINEA_BASE))
+        out.append('      blanco. Eso si es una regresion y es lo que hay que '
+                   'mirar.')
+    elif total < LINEA_BASE:
+        out.append('  BAJO %d. Actualiza LINEA_BASE a %d en este guion en el '
+                   'mismo' % (LINEA_BASE - total, total))
+        out.append('  commit que lo baja, o la proxima regresion pasa '
+                   'inadvertida')
+        out.append('  por quedar debajo de un techo viejo.')
+    else:
+        out.append('  Sin cambio. No es cero a proposito: el plan son DOS '
+                   'pasos y el')
+        out.append('  segundo —relajar el `!important` de globals.css— esta '
+                   'pendiente')
+        out.append('  y va medido y aparte. Ver el mensaje del commit %s.'
+                   % LINEA_BASE_COMMIT)
+    return out
 
 
 def pinta(ruta, linea, etiqueta, fragmento, motivo):
@@ -221,6 +277,24 @@ def autoprueba():
     if faltan or sobran:
         return 1
     print('  autoprueba OK: caza las 3 que debe y calla en las 4 que debe.')
+
+    # Las TRES ramas de la comparacion con la linea base. Sin esto, la rama de
+    # regresion —la unica que de verdad importa— nunca se habria visto correr.
+    ramas = [
+        (LINEA_BASE + 1, 'SUBIO', 'regresion'),
+        (LINEA_BASE,     'Sin cambio', 'igual'),
+        (max(0, LINEA_BASE - 1), 'BAJO', 'mejora'),
+    ]
+    malas = []
+    for total, esperado, etiqueta in ramas:
+        texto = '\n'.join(veredicto(total))
+        if esperado not in texto:
+            malas.append(etiqueta)
+    if malas:
+        print('  *** la comparacion con la linea base NO avisa en: %s'
+              % ', '.join(malas))
+        return 1
+    print('  linea base OK: avisa en las tres ramas (sube, igual, baja).')
     return 0
 
 
@@ -250,6 +324,18 @@ def main():
         return 0
     print('  *** %d color(es) que globals.css pintaria de blanco. ***' % total)
     print('')
+
+    # ── El numero, contra su linea base y con su fecha ─────────────────────
+    # Un conteo a secas no se puede interpretar: no dice si subio, si bajo, ni
+    # si es comparable con el que alguien anoto hace dos semanas.
+    for linea in veredicto(total):
+        print(linea)
+    print('')
+    print('  Y OJO CON LAS CIFRAS VIEJAS: hasta el 22 nov 2026 este guion solo')
+    print('  miraba <span>, <strong>, <em>, <small> y <p>. Un 162 o un 164')
+    print('  anotados antes de esa fecha NO son comparables con este numero.')
+    print('  La tabla de las cuatro mediciones esta arriba, junto a LINEA_BASE.')
+    print('')
     print('  ARREGLO, Y EL ORDEN IMPORTA — leer esto antes de mover nada:')
     print('')
     print('  1. PRIMERO medir si el color se LEE sobre la tarjeta, con')
@@ -266,7 +352,20 @@ def main():
     print('')
     print('  El consejo 2 a secas estuvo publicado aqui hasta el 23 nov 2026 y')
     print('  es el que convierte una deuda latente en un texto invisible.')
-    return 1
+
+    # EL CODIGO DE SALIDA AHORA DISTINGUE, Y ANTES NO.
+    # Salia 1 tanto con avisos como al reventar, asi que no servia de puerta:
+    # habia que leerle el resumen para saber si algo habia empeorado. Ahora
+    # 1 es REGRESION —hay mas que en la linea base— y 0 es «igual o mejor»,
+    # que NO quiere decir «sin deuda»: la deuda es la que dice el conteo de
+    # arriba, y el paso 2 sigue pendiente.
+    if total > LINEA_BASE:
+        print('')
+        print('  (salida 1 = REGRESION contra la linea base)')
+        return 1
+    print('')
+    print('  (salida 0 = igual o mejor que la linea base; NO es «sin deuda»)')
+    return 0
 
 
 if __name__ == '__main__':

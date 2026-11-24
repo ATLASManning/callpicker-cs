@@ -378,6 +378,10 @@ en ninguna parte. Ahora se derivan de `ROLES`.
   segregación en rojo**. Una prueba que nunca se ha visto fallar no prueba nada.
 - `scripts/revisa-contraste-cpcard.py` → **162**, la línea base exacta. Los dos
   colores nuevos de la pantalla de usuarios no añadieron ni un hallazgo.
+  <br>*(Cifra del detector tal como era ese día. El 23 nov 2026 dejó de estar
+  ciego a `td`, `th`, `label` y `h1`-`h5`, así que **este 162 no es comparable
+  con los conteos posteriores**. La línea base viva la imprime el propio guión
+  en cada corrida.)*
 
 ### Lo que NO se hizo, y por qué
 
@@ -441,6 +445,8 @@ existe fuente» y «la fuente no lo mide» los vuelve indistinguibles.
 - **Se vio pintando en el navegador**, los 20 apartados con su pastilla de
   estado. «Lo desplegué» no es «lo están viendo».
 - `scripts/revisa-contraste-cpcard.py` → **162**, la línea base exacta.
+  <br>*(Cifra del detector de ese día; no comparable con los conteos
+  posteriores al 23 nov 2026 — ver la nota de arriba.)*
 
 ### Lo que falta, dicho por su nombre
 
