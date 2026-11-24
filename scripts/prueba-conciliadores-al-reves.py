@@ -103,6 +103,49 @@ CASOS = {
              u'<table', u'<tabla-rota'),
         ],
     },
+    'agua-inmaculada': {
+        'guion': gui('concilia-auditoria-agua-inmaculada.py'),
+        'doc': doc('Auditoria-Agua-Inmaculada-2026.html'),
+        'roturas': [
+            (u'cambiar un total entrante',
+             u'total:  [3524, 3693, 4016, 4151]', u'total:  [3524, 3693, 4016, 4100]'),
+            # Ésta es la importante: las «atendidas» del reporte son EXACTAMENTE
+            # las `Redirected` de nuestra fuente, y de ahí salió que las 7,895
+            # «no atendidas» llevan dentro el autoservicio y el buzón. Si se
+            # puede mover una sin que nada se queje, el hallazgo entero era
+            # suerte.
+            (u'descuadrar las atendidas contra nuestra fuente',
+             u'atend:  [1902, 1862, 1866, 1859]', u'atend:  [1902, 1862, 1866, 1900]'),
+            (u'cambiar los minutos salientes de abril',
+             u'mf:     [6697, 7033, 6723, 7933]', u'mf:     [6697, 7033, 6723, 7900]'),
+            (u'romper el reparto de entrantes por tipo',
+             u'sip_pc:  [1765, 1712, 1764, 1812]', u'sip_pc:  [1765, 1712, 1764, 1800]'),
+            # Un hueco NEGATIVO: más minutos por tipo que minutos en total. Las
+            # sumas de columna no lo cazan porque la tabla de tipos cierra sola.
+            (u'poner más minutos por tipo que en total',
+             u'celular:   [4712, 5146, 4937, 6058]', u'celular:   [4712, 5146, 4937, 7058]'),
+            (u'mover la hora pico de la serie por hora',
+             u',1101,1093,', u',1301,1093,'),
+            (u'quitarle el precio del plan a la portada',
+             u'Plan actual<strong>10,000 min · $10,500/mes</strong>',
+             u'Plan actual<strong>10,000 min</strong>'),
+            (u'borrar las notas de corrección', u'<!--NOTA:INICIO-->', u'<!--NOTA-BORRADA-->'),
+            (u'borrar la declaración de desfases',
+             u'<!-- CONCILIACION:MARCADOS', u'<!-- NADA:'),
+            # Reinstalar la frase falsa DEJANDO las notas puestas: las cifras
+            # siguen cuadrando y el documento se contradice a sí mismo.
+            (u'devolver la frase «más de la mitad no fueron atendidas»',
+             u'En abril se perdió una de cada tres llamadas entrantes',
+             u'En abril, más de la mitad de las llamadas entrantes no fueron atendidas'),
+            (u'devolver la tarjeta KPI de las 7,895',
+             u'<div class="kpi-valor">4,972</div>',
+             u'<div class="kpi-valor">7,895</div>'),
+            (u'meter a Claudia en el documento',
+             u'<h1>Agua Inmaculada</h1>', u'<h1>Agua Inmaculada (Claudia)</h1>'),
+            (u'romper el lector entero: matar el bloque de series',
+             u'const ent = {', u'const ent_roto = {'),
+        ],
+    },
 }
 
 

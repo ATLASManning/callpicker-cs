@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de Telefonía · Agua Inmaculada</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --azul: #0057A8;
+    --azul-claro: #E8F1FA;
+    --azul-medio: #3D7AC8;
+    --verde: #1A8A5A;
+    --verde-claro: #E6F5EE;
+    --rojo: #C0392B;
+    --rojo-claro: #FDECEA;
+    --naranja: #E67E22;
+    --naranja-claro: #FEF4E8;
+    --gris: #5A6475;
+    --gris-claro: #F4F6F9;
+    --borde: #DDE3EC;
+    --texto: #1A2233;
+    --blanco: #FFFFFF;
+    --sombra: 0 2px 12px rgba(0,87,168,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #EEF2F8; color: var(--texto); font-size: 14px; }
+
+  /* ── PORTADA ─────────────────────────────────────────────────── */
+  .portada {
+    background: linear-gradient(135deg, #003F7F 0%, #0057A8 50%, #1A73C8 100%);
+    color: white; padding: 60px 48px 50px; position: relative; overflow: hidden;
+  }
+  .portada::before {
+    content:''; position:absolute; top:-80px; right:-80px; width:360px; height:360px;
+    border-radius:50%; background:rgba(255,255,255,0.05);
+  }
+  .portada::after {
+    content:''; position:absolute; bottom:-60px; left:-60px; width:260px; height:260px;
+    border-radius:50%; background:rgba(255,255,255,0.04);
+  }
+  .portada-logo { font-size:12px; letter-spacing:2px; text-transform:uppercase; opacity:.7; margin-bottom:28px; }
+  .portada h1 { font-size:32px; font-weight:700; line-height:1.2; margin-bottom:12px; }
+  .portada h2 { font-size:18px; font-weight:400; opacity:.85; margin-bottom:36px; }
+  .portada-meta { display:flex; gap:40px; flex-wrap:wrap; }
+  .portada-meta-item { font-size:12px; opacity:.7; text-transform:uppercase; letter-spacing:1px; }
+  .portada-meta-item strong { display:block; font-size:16px; font-weight:600; opacity:1; color:white; margin-top:2px; }
+
+  /* ── LAYOUT ──────────────────────────────────────────────────── */
+  .container { max-width:1120px; margin:0 auto; padding:32px 20px; }
+
+  /* ── SECCIÓN ─────────────────────────────────────────────────── */
+  .seccion { margin-bottom:36px; }
+  .seccion-titulo {
+    font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+    color:var(--azul); border-bottom:2px solid var(--azul); padding-bottom:8px; margin-bottom:20px;
+  }
+
+  /* ── CARDS KPI ───────────────────────────────────────────────── */
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:28px; }
+  .kpi-card {
+    background:white; border-radius:10px; padding:20px 22px;
+    box-shadow:var(--sombra); border-top:3px solid var(--azul);
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .kpi-card.verde { border-top-color:var(--verde); }
+  .kpi-card.rojo { border-top-color:var(--rojo); }
+  .kpi-card.naranja { border-top-color:var(--naranja); }
+  .kpi-etiqueta { font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:var(--gris); font-weight:600; }
+  .kpi-valor { font-size:28px; font-weight:700; color:var(--texto); line-height:1.1; margin-top:4px; }
+  .kpi-sub { font-size:12px; color:var(--gris); margin-top:2px; }
+  .kpi-badge {
+    display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;
+    margin-top:6px; align-self:flex-start;
+  }
+  .badge-verde { background:var(--verde-claro); color:var(--verde); }
+  .badge-rojo { background:var(--rojo-claro); color:var(--rojo); }
+  .badge-naranja { background:var(--naranja-claro); color:var(--naranja); }
+  .badge-azul { background:var(--azul-claro); color:var(--azul); }
+
+  /* ── GRÁFICAS ────────────────────────────────────────────────── */
+  .graficas-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:28px; }
+  .graficas-grid.triple { grid-template-columns:1fr 1fr 1fr; }
+  .grafica-card {
+    background:white; border-radius:10px; padding:22px;
+    box-shadow:var(--sombra);
+  }
+  .grafica-card.full { grid-column:1/-1; }
+  .grafica-titulo { font-size:13px; font-weight:700; color:var(--texto); margin-bottom:4px; }
+  .grafica-sub { font-size:11px; color:var(--gris); margin-bottom:16px; }
+  .chart-wrap { position:relative; }
+
+  /* ── TABLA ───────────────────────────────────────────────────── */
+  .tabla-wrap { overflow-x:auto; margin-bottom:28px; }
+  table { width:100%; border-collapse:collapse; background:white; border-radius:10px; overflow:hidden; box-shadow:var(--sombra); }
+  thead th {
+    background:var(--azul); color:white; font-size:11px; font-weight:700;
+    letter-spacing:.6px; text-transform:uppercase; padding:11px 14px; text-align:center;
+  }
+  thead th:first-child { text-align:left; }
+  tbody td { padding:10px 14px; border-bottom:1px solid var(--borde); font-size:13px; text-align:center; }
+  tbody td:first-child { text-align:left; font-weight:600; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover td { background:var(--azul-claro); }
+  .tfoot-row td { background:var(--gris-claro); font-weight:700; border-top:2px solid var(--borde); }
+  .cel-verde { color:var(--verde); font-weight:700; }
+  .cel-naranja { color:var(--naranja); font-weight:700; }
+  .cel-rojo { color:var(--rojo); font-weight:700; }
+  .bar-cell { display:flex; align-items:center; gap:8px; justify-content:center; }
+  .bar-mini { height:8px; border-radius:4px; min-width:4px; }
+
+  /* ── HALLAZGOS ───────────────────────────────────────────────── */
+  .hallazgos-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px; }
+  .hallazgo {
+    background:white; border-radius:10px; padding:20px 22px;
+    box-shadow:var(--sombra); border-left:4px solid var(--azul);
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .hallazgo.rojo { border-left-color:var(--rojo); }
+  .hallazgo.verde { border-left-color:var(--verde); }
+  .hallazgo.naranja { border-left-color:var(--naranja); }
+  .hallazgo-num { font-size:28px; font-weight:800; color:var(--azul); line-height:1; }
+  .hallazgo.rojo .hallazgo-num { color:var(--rojo); }
+  .hallazgo.naranja .hallazgo-num { color:var(--naranja); }
+  .hallazgo-titulo { font-size:13px; font-weight:700; color:var(--texto); }
+  .hallazgo-desc { font-size:12px; color:var(--gris); line-height:1.5; }
+
+  /* ── PROPUESTAS ──────────────────────────────────────────────── */
+  .propuestas-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:28px; }
+  .propuesta {
+    background:white; border-radius:12px; padding:28px 24px;
+    box-shadow:var(--sombra); position:relative; border:2px solid var(--borde);
+  }
+  .propuesta.recomendada { border-color:var(--azul); }
+  .propuesta-badge {
+    position:absolute; top:-12px; left:24px;
+    background:var(--azul); color:white; font-size:11px; font-weight:700;
+    padding:3px 12px; border-radius:20px; letter-spacing:.5px;
+  }
+  .propuesta-plan { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--gris); font-weight:600; margin-bottom:8px; }
+  .propuesta-precio { font-size:30px; font-weight:800; color:var(--azul); line-height:1; margin-bottom:4px; }
+  .propuesta-precio span { font-size:14px; font-weight:400; color:var(--gris); }
+  .propuesta-minutos { font-size:13px; color:var(--gris); margin-bottom:16px; }
+  .propuesta-items { list-style:none; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .propuesta-items li {
+    font-size:12px; padding:6px 10px; border-radius:6px;
+    display:flex; align-items:flex-start; gap:8px; line-height:1.4;
+  }
+  .propuesta-items li::before { content:'✓'; font-weight:700; color:var(--verde); flex-shrink:0; }
+  .propuesta-items li.warning::before { content:'⚠'; color:var(--naranja); }
+  .propuesta-items li.destaque { background:var(--azul-claro); font-weight:600; color:var(--azul); }
+  .propuesta-items li.destaque::before { content:'★'; color:var(--azul); }
+
+  /* ── FRANJA HORARIA ──────────────────────────────────────────── */
+  .franja-info { background:var(--rojo-claro); border:1px solid #E8A09A; border-radius:8px; padding:14px 18px; margin-bottom:16px; font-size:13px; color:var(--rojo); font-weight:600; }
+
+  /* ── FOOTER ──────────────────────────────────────────────────── */
+  .footer { background:white; border-top:2px solid var(--borde); padding:24px 48px; text-align:center; font-size:11px; color:var(--gris); }
+  .footer strong { color:var(--azul); }
+
+  /* ── SEPARADOR ───────────────────────────────────────────────── */
+  .sep { height:1px; background:var(--borde); margin:28px 0; }
+  .corr{border:1px solid #e9d9b0;border-left:4px solid #c08a00;background:#fdf8ec;color:#52421c;border-radius:0 6px 6px 0;padding:13px 16px;margin:14px 0;font-size:12px;line-height:1.6;text-align:left}
+  .corr b{color:#3d3014}
+  .corr code{background:rgba(0,0,0,.05);padding:1px 4px;border-radius:3px;font-family:Consolas,monospace;font-size:11px}
+  .corr-t{display:block;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#8a6d1f;margin-bottom:5px}
+
+
+  /* ── ALERT ───────────────────────────────────────────────────── */
+  .alert { padding:14px 20px; border-radius:8px; font-size:13px; margin-bottom:20px; display:flex; gap:12px; align-items:flex-start; }
+  .alert.rojo { background:var(--rojo-claro); border:1px solid #EAA0A0; color:#7B1A1A; }
+  .alert.naranja { background:var(--naranja-claro); border:1px solid #E8C090; color:#7B4A0A; }
+  .alert.verde { background:var(--verde-claro); border:1px solid #90C8A8; color:#0A4A2A; }
+  .alert-icon { font-size:18px; flex-shrink:0; margin-top:1px; }
+  .alert-body strong { display:block; font-weight:700; margin-bottom:2px; }
+
+  @media(max-width:720px){
+    .graficas-grid, .graficas-grid.triple, .hallazgos-grid, .propuestas-grid { grid-template-columns:1fr; }
+    .portada { padding:32px 20px; }
+    .portada h1 { font-size:22px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ PORTADA ══════════════════════════════════════════════ -->
+<div class="portada">
+  <div class="portada-logo">Callpicker · Reporte Ejecutivo de Telefonía</div>
+  <h1>Agua Inmaculada</h1>
+  <h2>Análisis de Consumo y Capacidad · Enero – Abril 2026</h2>
+  <div class="portada-meta">
+    <div class="portada-meta-item">Cliente<strong>Agua Inmaculada S.A. de C.V.</strong></div>
+    <div class="portada-meta-item">CID<strong>333</strong></div>
+    <div class="portada-meta-item">Período<strong>Ene – Abr 2026</strong></div>
+    <div class="portada-meta-item">Plan actual<strong>10,000 min · $10,500/mes</strong></div>
+    <div class="portada-meta-item">Datos analizados<strong>Ene – Abr 2026</strong></div>
+    <div class="portada-meta-item">Conciliado<strong>23 Nov 2026</strong></div>
+  </div>
+</div>
+
+<!-- ══════════════════ CONTENIDO ════════════════════════════════════════════ -->
+<div class="container">
+
+  <!-- ── 1. INDICADORES CLAVE ─────────────────────────────────────────────── -->
+  <div class="seccion">
+    <div class="seccion-titulo">01 · Indicadores Clave</div>
+<!--NOTA:INICIO--><div class="corr"><span class="corr-t">Antes de leer: 11 aclaraciones de conciliación</span><b>Este documento se revisó cifra por cifra antes de publicarse y lleva 11 aclaraciones</b>, 4 de ellas señaladas en su sitio con este mismo fondo y 7 aplicadas directamente sobre el texto. Casi toda su aritmética <b>cierra</b>: los totales entrantes, el promedio de 9,150 minutos, el 91.5%, el 99.1% de abril y el +17.8% de crecimiento se reconstruyen desde sus propias series, y los totales y las atendidas coinciden <b>al récord</b> con nuestra fuente de llamadas.<br><br>Lo que se corrige es una cosa grande y cuatro chicas. La grande: <b>«no atendida» en este reporte quiere decir «no la tomó un agente»</b>, y en ese número van 2,359 llamadas que resolvió el autoservicio y 564 que dejaron recado. Las perdidas de verdad son <b>4,972 de 15,384 — el 32.3%, una de cada tres</b>, no más de la mitad. Las chicas: 322 minutos salientes que el reparto por tipo no alcanza, la serie por hora que incluye mayo parcial, la holgura publicada con dos denominadores y dos porcentajes de llamadas que ninguna tabla sostiene.<br><br><b>Y una advertencia de fecha:</b> los datos son de enero a abril de 2026 y las acciones del apartado 07 se acordaron el 2 de junio de 2026. La principal ya está aplicada desde el 23 de junio, su efecto se midió —la tasa de pérdida bajó del 32.6% al 30.7%, no bastó— y el último contacto que llegó al cliente es de ese mismo día. Nada de esto está en el cuerpo del reporte porque su ventana termina en abril.</div><!--NOTA:FIN-->
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-etiqueta">Promedio facturable / mes</div>
+        <div class="kpi-valor">9,150 <small style="font-size:16px;font-weight:400">min</small></div>
+        <div class="kpi-sub">Plan contratado: 10,000 min</div>
+        <span class="kpi-badge badge-azul">91.5% utilización promedio</span>
+      </div>
+      <div class="kpi-card naranja">
+        <div class="kpi-etiqueta">Uso en Abril 2026</div>
+        <div class="kpi-valor">9,910 <small style="font-size:16px;font-weight:400">min</small></div>
+        <div class="kpi-sub">Pico histórico del período</div>
+        <span class="kpi-badge badge-naranja">99.1% — Zona de riesgo</span>
+      </div>
+      <div class="kpi-card rojo">
+        <div class="kpi-etiqueta">Llamadas perdidas</div>
+        <div class="kpi-valor">4,972</div>
+        <div class="kpi-sub">De 15,384 entrantes (ene–abr). Otras 2,923 no llegaron a un
+          agente pero sí las resolvió el autoservicio (2,359) o quedaron en buzón (564).</div>
+        <span class="kpi-badge badge-rojo">Tasa real de pérdida: 32.3%</span>
+      </div>
+      <div class="kpi-card verde">
+        <div class="kpi-etiqueta">Volumen entrante total</div>
+        <div class="kpi-valor">15,384</div>
+        <div class="kpi-sub">Llamadas entrantes ene–abr</div>
+        <span class="kpi-badge badge-verde">+17.8% crecimiento ene→abr</span>
+      </div>
+    </div>
+
+    <div class="alert naranja">
+      <div class="alert-icon">⚠</div>
+      <div class="alert-body">
+        <strong>Señal de alerta: Abril al límite del plan</strong>
+        Con un crecimiento sostenido del 17.8% en volumen de llamadas (enero→abril), el plan de 10,000 minutos tiene margen operativo cada vez más estrecho. Continuar en el plan actual sin ajuste implica riesgo de sobrecosto en los próximos meses.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. CONSUMO MENSUAL ──────────────────────────────────────────────── -->
+  <div class="seccion">
+    <div class="seccion-titulo">02 · Consumo Mensual Facturable vs. Plan</div>
+
+    <div class="graficas-grid">
+      <div class="grafica-card">
+        <div class="grafica-titulo">Minutos facturables por mes</div>
+        <div class="grafica-sub">Reglas Callpicker aplicadas · Plan: 10,000 min</div>
+        <div class="chart-wrap"><canvas id="ch_minMes" height="220"></canvas></div>
+      </div>
+      <div class="grafica-card">
+        <div class="grafica-titulo">Porcentaje de uso del plan</div>
+        <div class="grafica-sub">% de la bolsa de 10,000 min consumida por mes</div>
+        <div class="chart-wrap"><canvas id="ch_usoPlan" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tabla resumen mensual -->
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Mes</th>
+            <th>Llamadas<br>Entrantes</th>
+            <th>Llamadas<br>Salientes</th>
+            <th>Total<br>Llamadas</th>
+            <th>Min. Facturables<br>Entrantes</th>
+            <th>Min. Facturables<br>Salientes</th>
+            <th>Total<br>Facturable</th>
+            <th>% Plan</th>
+          </tr>
+        </thead>
+        <tbody id="tbody_mensual"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── 3. DESGLOSE POR TIPO ────────────────────────────────────────────── -->
+  <div class="seccion">
+    <div class="seccion-titulo">03 · Desglose por Tipo de Destino</div>
+<!--NOTA:INICIO--><div class="corr"><span class="corr-t">Límites de este apartado</span><b>El reparto de minutos SALIENTES es un techo del 98.9%, no el total.</b> Los tres tipos suman <b>28,064</b> minutos y la tabla del apartado 02 declara <b>28,386</b> salientes: faltan <b>322</b> minutos (Ene 47 · Feb 42 · Mar 80 · Abr 153). La tabla de abajo cierra sobre sí misma y rotula su total como «100%», así que la misma cifra aparece con dos valores en el documento. El de arriba —28,386— es el que cuenta para el consumo del plan. El de entrantes, en cambio, <b>cierra exacto</b> los cuatro meses.<br><br><b>Y dos porcentajes de este apartado son de LLAMADAS, no de minutos, y no hay ninguna tabla que los sostenga:</b> «el celular es solo el 30-35% de las llamadas» y «el 28% de sus llamadas salientes» van a fijo o extensión. Todo el desglose publicado está en minutos —ahí fijo más extensión son el <b>25.7%</b>—, así que esos dos no se pueden recalcular desde el documento y quedan marcados como no verificables.</div><!--NOTA:FIN-->
+
+    <div class="graficas-grid">
+      <div class="grafica-card">
+        <div class="grafica-titulo">Composición minutos SALIENTES</div>
+        <div class="grafica-sub">Por tipo de destino · Acumulado ene–abr</div>
+        <div class="chart-wrap"><canvas id="ch_donutSal" height="240"></canvas></div>
+      </div>
+      <div class="grafica-card">
+        <div class="grafica-titulo">Composición minutos ENTRANTES</div>
+        <div class="grafica-sub">Por tipo de destino · Acumulado ene–abr</div>
+        <div class="chart-wrap"><canvas id="ch_donutEnt" height="240"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tabla tipos salientes por mes -->
+    <div class="grafica-titulo" style="margin-bottom:12px;padding:0">Minutos facturables SALIENTES por tipo y mes</div>
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo de Destino</th>
+            <th>Enero</th><th>Febrero</th><th>Marzo</th><th>Abril</th><th>Total</th><th>% del Total</th>
+          </tr>
+        </thead>
+        <tbody id="tbody_tipos_sal"></tbody>
+      </table>
+    </div>
+
+    <div class="grafica-titulo" style="margin-bottom:12px;margin-top:20px;padding:0">Minutos facturables ENTRANTES por tipo y mes</div>
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo de Destino</th>
+            <th>Enero</th><th>Febrero</th><th>Marzo</th><th>Abril</th><th>Total</th><th>% del Total</th>
+          </tr>
+        </thead>
+        <tbody id="tbody_tipos_ent"></tbody>
+      </table>
+    </div>
+
+    <!-- Stacked bar por mes -->
+    <div class="grafica-card full" style="margin-top:20px">
+      <div class="grafica-titulo">Evolución minutos salientes por tipo</div>
+      <div class="grafica-sub">Desglose mensual: celular consume la mayor parte de la bolsa</div>
+      <div class="chart-wrap"><canvas id="ch_stackedSal" height="180"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ── 4. LLAMADAS NO ATENDIDAS ───────────────────────────────────────── -->
+  <div class="seccion">
+    <div class="seccion-titulo">04 · Llamadas No Atendidas — Análisis de Impacto</div>
+<!--NOTA:INICIO--><div class="corr"><span class="corr-t">Corrección · qué cuenta este apartado</span><b>«No atendida» aquí significa «no la tomó un agente», no «nadie la atendió».</b> Las cuatro tarjetas de abajo y la gráfica de tendencia suman, en el mismo número, tres desenlaces distintos de nuestra plataforma: <b>perdidas</b> de verdad, llamadas que <b>resolvió el autoservicio</b> y llamadas que <b>dejaron recado en buzón</b>. Sobre ene–abr son 4,972 + 2,359 + 564 = 7,895.<br><br>Las tasas reales de <b>pérdida</b>, mes a mes, son <b>29.5% · 32.7% · 33.3% · 33.4%</b> (y no 46.0 · 49.6 · 53.5 · 55.2). La tendencia que señala el apartado <b>es real y sigue en pie</b> —sube casi 4 puntos de enero a abril—, pero su nivel es de una llamada perdida de cada tres, no de una de cada dos. Nuestra alerta interna de la cuenta mide el <b>32.1%</b> sobre el periodo ene–14 sep, que es la misma lectura.</div><!--NOTA:FIN-->
+
+    <div class="kpi-grid">
+      <div class="kpi-card rojo">
+        <div class="kpi-etiqueta">Enero</div>
+        <div class="kpi-valor">1,622</div>
+        <div class="kpi-sub">de 3,524 llamadas entrantes</div>
+        <span class="kpi-badge badge-rojo">Tasa: 46.0%</span>
+      </div>
+      <div class="kpi-card rojo">
+        <div class="kpi-etiqueta">Febrero</div>
+        <div class="kpi-valor">1,831</div>
+        <div class="kpi-sub">de 3,693 llamadas entrantes</div>
+        <span class="kpi-badge badge-rojo">Tasa: 49.6%</span>
+      </div>
+      <div class="kpi-card rojo">
+        <div class="kpi-etiqueta">Marzo</div>
+        <div class="kpi-valor">2,150</div>
+        <div class="kpi-sub">de 4,016 llamadas entrantes</div>
+        <span class="kpi-badge badge-rojo">Tasa: 53.5%</span>
+      </div>
+      <div class="kpi-card rojo">
+        <div class="kpi-etiqueta">Abril</div>
+        <div class="kpi-valor">2,292</div>
+        <div class="kpi-sub">de 4,151 llamadas entrantes</div>
+        <span class="kpi-badge badge-rojo">Tasa: 55.2%</span>
+      </div>
+    </div>
+
+    <div class="graficas-grid">
+      <div class="grafica-card">
+        <div class="grafica-titulo">Tendencia de tasa de llamadas no atendidas</div>
+        <div class="grafica-sub">Crecimiento sostenido mes a mes · Señal de saturación operativa</div>
+        <div class="chart-wrap"><canvas id="ch_tasaPerdida" height="220"></canvas></div>
+      </div>
+      <div class="grafica-card">
+        <div class="grafica-titulo">Volumen de llamadas no atendidas</div>
+        <div class="grafica-sub">Número absoluto por mes · Ene–Abr 2026</div>
+        <div class="chart-wrap"><canvas id="ch_volPerdidas" height="220"></canvas></div>
+      </div>
+    </div>
+
+    <div class="franja-info">🔴 Horas críticas: 09:00–13:00 concentran el 55% (5,241 de 9,486) de las llamadas que no tomó un agente. Hora pico: 09:00 h con 1,101 llamadas. El denominador de este 55% es la serie por hora, que cubre ene–abr más mayo parcial, no los 7,895 del periodo.</div>
+
+    <div class="grafica-card full">
+      <div class="grafica-titulo">Distribución de llamadas no atendidas por hora del día</div>
+      <div class="grafica-sub">9,486 llamadas que no tomó un agente · ene–abr <b>más mayo parcial</b> (el periodo ene–abr son 7,895: esta serie lleva 1,591 llamadas de mayo) · incluye autoservicio y buzón</div>
+      <div class="chart-wrap"><canvas id="ch_horas" height="180"></canvas></div>
+    </div>
+
+    <div class="alert rojo" style="margin-top:16px">
+      <div class="alert-icon">📌</div>
+      <div class="alert-body">
+        <strong>Hallazgo técnico: Llamadas marcadas como perdidas por extensión ocupada</strong>
+        Una parte de las llamadas clasificadas como "No atendidas" corresponden a situaciones donde la extensión de destino ya se encontraba en otra llamada activa. El sistema las marca como perdidas aunque el agente esté disponible para otras comunicaciones. <b>Este ajuste ya se aplicó:</b> el ticket #107776 del 23 de junio de 2026 configuró todas las extensiones activas de la cuenta para atender una sola llamada a la vez, sin costo adicional de plan.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. HALLAZGOS ESTRATÉGICOS ─────────────────────────────────────── -->
+  <div class="seccion">
+    <div class="seccion-titulo">05 · Hallazgos Estratégicos</div>
+
+    <div class="hallazgos-grid">
+      <div class="hallazgo naranja">
+        <div class="hallazgo-num">99.1%</div>
+        <div class="hallazgo-titulo">Plan al límite en Abril</div>
+        <div class="hallazgo-desc">Con 9,910 minutos facturables en abril sobre un plan de 10,000, el margen de seguridad se redujo a 90 minutos. Con la tendencia de +17.8% en volumen, el sobrecosto en los próximos meses es altamente probable sin ajuste del plan.</div>
+      </div>
+      <div class="hallazgo rojo">
+        <div class="hallazgo-num">33.4%</div>
+        <div class="hallazgo-titulo">Tasa de pérdida creciente</div>
+        <div class="hallazgo-desc">En abril se perdió una de cada tres llamadas entrantes: 1,385 de 4,151. La tasa subió 3.9 puntos desde enero (29.5%) sin señal de estabilización. Si se cuentan también las que resolvió el autoservicio y las que quedaron en buzón, la cifra sube al 55.2%, pero ésas sí recibieron una respuesta. La operación de ventas y atención al cliente de Agua Inmaculada está absorbiendo el impacto de las 1,385.</div>
+      </div>
+      <div class="hallazgo">
+        <div class="hallazgo-num">76%</div>
+        <div class="hallazgo-titulo">Celulares dominan el consumo saliente</div>
+        <div class="hallazgo-desc">Las llamadas salientes a celular representan entre el 70% y 76% del total de minutos facturables salientes, aunque son solo el 30-35% de las llamadas. Son el principal driver del consumo del plan y deben monitorearse mensualmente.</div>
+      </div>
+      <div class="hallazgo verde">
+        <div class="hallazgo-num">1 min</div>
+        <div class="hallazgo-titulo">Las llamadas a fijo y extensiones son eficientes</div>
+        <div class="hallazgo-desc">Bajo las reglas Callpicker, cada llamada a fijo o entre extensiones SIP descuenta exactamente 1 minuto sin importar duración. Esto beneficia a Agua Inmaculada: el 28% de sus llamadas salientes opera en este esquema económico.</div>
+      </div>
+      <div class="hallazgo rojo">
+        <div class="hallazgo-num">09:00</div>
+        <div class="hallazgo-titulo">Hora pico de saturación</div>
+        <div class="hallazgo-desc">Las 09:00 h registran el mayor volumen de llamadas no atendidas (1,101 en el período). La franja 09:00–13:00 concentra el 55% de todas las pérdidas. La operación necesita reforzar cobertura o redistribuir la atención en ese horario.</div>
+      </div>
+      <div class="hallazgo">
+        <div class="hallazgo-num">+17.8%</div>
+        <div class="hallazgo-titulo">Crecimiento orgánico del tráfico</div>
+        <div class="hallazgo-desc">El volumen total de llamadas entrantes creció de 3,524 en enero a 4,151 en abril. Este crecimiento refleja la expansión operativa del negocio. El plan actual fue diseñado para un volumen menor y ya no tiene la holgura adecuada para soportar esta tendencia.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 6. PROPUESTAS DE PLAN ───────────────────────────────────────────── -->
+  <div class="seccion">
+    <div class="seccion-titulo">06 · Propuestas de Ajuste de Plan</div>
+<!--NOTA:INICIO--><div class="corr"><span class="corr-t">Antes de leer los precios y los márgenes</span><b>1 · La base de los incrementos no es el importe institucional.</b> Las dos opciones parten de «Plan actual $10,500/mes» y de ahí salen «+$4,000» y «+$8,000». El importe que esta cuenta tiene en Gross Revenue Facturación es de <b>$12,500/mes</b> (banda AAA, estable). Contra esa base los incrementos serían <b>+$2,000</b> y <b>+$6,000</b>. O el $10,500 es sólo el componente de la bolsa de minutos —y entonces no es «el plan actual»—, o los incrementos están sobredimensionados. <b>Con lo que hay no se puede decidir, así que ninguna de las dos cifras se presenta como «lo que subiría su factura»</b> hasta cuadrarlo con facturación.<br><br><b>2 · Los minutos de este documento no salen de una fuente nuestra.</b> El plan de 10,000 y los consumos de 9,150 y 9,910 vienen de la exportación de la plataforma que acompaña al reporte. Este CID no tiene filas en nuestro archivo de cortes de facturación y la cuenta lleva abierta una alerta crítica por eso mismo. La aritmética interna cierra —el 91.5% y el 99.1% salen de las series—, pero el origen del dato es el cliente.<br><br><b>3 · La misma holgura se publica con dos valores.</b> La tarjeta de la Opción A dice «21% sobre el pico histórico (9,910)» —que es 2,090/9,910 = <b>21.1%</b>— y la tabla comparativa dice «Margen real sobre pico · 20.9%», que es 2,090/10,000, o sea sobre el plan <b>viejo</b>. Igual en la Opción B: 51.4% contra 50.9%. Las cifras de «sobre pico» correctas son <b>21.1%</b> y <b>51.4%</b>.<br><br><b>4 · Más minutos no recuperan llamadas perdidas.</b> Las dos cosas van en el mismo documento y se leen como una sola: ampliar la bolsa resuelve el <b>riesgo de excedente</b> de abril al 99.1%, y no toca la tasa de pérdida, que es un problema de <b>capacidad de atención</b>. Son dos decisiones distintas con dos justificaciones distintas.</div><!--NOTA:FIN-->
+
+    <div class="alert verde" style="margin-bottom:20px">
+      <div class="alert-icon">✅</div>
+      <div class="alert-body">
+        <strong>Contexto de la propuesta</strong>
+        El análisis confirma que el plan actual de 10,000 minutos fue adecuado hasta marzo. Con el crecimiento registrado, abril marcó el punto de inflexión. Las propuestas siguientes están diseñadas para dar continuidad operativa con margen de seguridad real, sin pagar por capacidad que no se necesita.
+      </div>
+    </div>
+
+    <div class="propuestas-grid">
+      <div class="propuesta recomendada">
+        <div class="propuesta-badge">⭐ RECOMENDADA</div>
+        <div class="propuesta-plan">Opción A — Plan 12,000 Minutos</div>
+        <div class="propuesta-precio">$14,500 <span>/mes + IVA</span></div>
+        <div class="propuesta-minutos">12,000 minutos incluidos · $4,000 adicional vs. plan actual</div>
+        <ul class="propuesta-items">
+          <li class="destaque">Margen operativo de 2,090 min sobre consumo abril</li>
+          <li>21% de holgura sobre el pico histórico (9,910 min)</li>
+          <li>Cubre crecimiento proyectado para los próximos 6–8 meses</li>
+          <li>Permite absorber picos estacionales sin sobrecosto</li>
+          <li>Incremento de $4,000/mes sobre el plan actual</li>
+          <li class="warning">Si el crecimiento supera 20% mensual, revisar en 6 meses</li>
+        </ul>
+      </div>
+      <div class="propuesta">
+        <div class="propuesta-plan">Opción B — Plan 15,000 Minutos</div>
+        <div class="propuesta-precio">$18,500 <span>/mes + IVA</span></div>
+        <div class="propuesta-minutos">15,000 minutos incluidos · $8,000 adicional vs. plan actual</div>
+        <ul class="propuesta-items">
+          <li class="destaque">51% de holgura sobre consumo actual — máxima tranquilidad</li>
+          <li>Recomendado si se proyecta incorporar más agentes en el año</li>
+          <li>Ideal si se activan canales adicionales (WhatsApp Business, bot)</li>
+          <li>Protección total ante estacionalidades o campañas</li>
+          <li>Permite integración con asistente virtual sin restricción</li>
+          <li class="warning">Implica 2.9% de exceso vs. consumo proyectado a corto plazo</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Tabla comparativa -->
+    <div class="tabla-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Parámetro</th>
+            <th>Plan actual (10,000 min)</th>
+            <th>Opción A (12,000 min) ⭐</th>
+            <th>Opción B (15,000 min)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Precio mensual</td>
+            <td>$10,500</td>
+            <td style="font-weight:700;color:var(--azul)">$14,500</td>
+            <td>$18,500</td>
+          </tr>
+          <tr>
+            <td>Minutos incluidos</td>
+            <td>10,000</td>
+            <td style="font-weight:700;color:var(--azul)">12,000</td>
+            <td>15,000</td>
+          </tr>
+          <tr>
+            <td>Consumo pico (Abr)</td>
+            <td class="cel-rojo">9,910 — 99.1%</td>
+            <td class="cel-verde">9,910 — 82.6%</td>
+            <td class="cel-verde">9,910 — 66.1%</td>
+          </tr>
+          <tr>
+            <td>Consumo promedio (ene–abr)</td>
+            <td class="cel-naranja">9,150 — 91.5%</td>
+            <td class="cel-verde">9,150 — 76.3%</td>
+            <td class="cel-verde">9,150 — 61.0%</td>
+          </tr>
+          <tr>
+            <td>Margen real sobre pico</td>
+            <td class="cel-rojo">90 min · 0.9%</td>
+            <td class="cel-verde">2,090 min · 20.9%</td>
+            <td class="cel-verde">5,090 min · 50.9%</td>
+          </tr>
+          <tr>
+            <td>Incremento mensual</td>
+            <td>Base</td>
+            <td style="font-weight:700">$4,000</td>
+            <td>$8,000</td>
+          </tr>
+          <tr>
+            <td>Riesgo de sobrecosto en 6 meses</td>
+            <td class="cel-rojo">MUY ALTO</td>
+            <td class="cel-verde">BAJO</td>
+            <td class="cel-verde">MUY BAJO</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── 7. PRÓXIMOS PASOS ───────────────────────────────────────────────── -->
+  <div class="seccion">
+    <div class="seccion-titulo">07 · Acciones Acordadas</div>
+<!--NOTA:INICIO--><div class="corr"><span class="corr-t">Estado real de estas acciones al 23 de noviembre de 2026</span><b>Este análisis es de los datos de enero a abril de 2026 y las acciones de abajo se acordaron en la reunión del 2 de junio de 2026.</b> Lo que ha pasado desde entonces, medido:<br><br>· <b>La reconfiguración de enrutamiento está hecha</b> (ticket #107776, 23 jun 2026). Y <b>se puede medir</b>: la tasa de pérdida pasó del <b>32.6%</b> (ene–may) al <b>30.7%</b> (jul al 14 sep). Bajó 1.8 puntos y sigue en 30.7%. <b>El ajuste de configuración no bastó</b>, y ése es el dato que falta en el documento: se corta en abril.<br><br>· <b>El incremento a 12,000 minutos —la Opción A— ya se aprobó evaluarlo</b> en esa misma reunión del 2 de junio. No es una propuesta nueva: lleva abierta desde entonces.<br><br>· El cliente, en el ticket <b>#107227</b> del 23 de junio, pidió un ajuste de plan porque consideraba que usaba <b>menos</b> de lo contratado. La propuesta de este documento va en dirección contraria, y eso hay que plantearlo de frente.<br><br>· <b>El último contacto que llegó al cliente es del 23 de junio de 2026</b>, hace 153 días. La cuenta tiene abierta una alerta crítica de silencio por eso. Ninguna de estas acciones puede presentarse como «en curso».</div><!--NOTA:FIN-->
+
+    <div class="hallazgos-grid">
+      <div class="hallazgo">
+        <div class="hallazgo-num" style="font-size:20px;color:var(--azul)">🔧</div>
+        <div class="hallazgo-titulo">Reconfiguración de enrutamiento</div>
+        <div class="hallazgo-desc">Callpicker revisará la configuración de las extensiones para evitar que las llamadas sigan timbrando cuando el agente ya está en otra llamada. Esto reducirá el volumen de llamadas falsamente marcadas como "no atendidas" sin costo adicional.</div>
+      </div>
+      <div class="hallazgo">
+        <div class="hallazgo-num" style="font-size:20px;color:var(--azul)">📱</div>
+        <div class="hallazgo-titulo">Extensiones en dispositivos móviles</div>
+        <div class="hallazgo-desc">Se habilitará el módulo de extensión móvil con encriptación de datos, permitiendo que los agentes reciban y realicen llamadas desde sus celulares como si estuvieran en la oficina. Aumenta la cobertura en horario pico.</div>
+      </div>
+      <div class="hallazgo">
+        <div class="hallazgo-num" style="font-size:20px;color:var(--azul)">🤖</div>
+        <div class="hallazgo-titulo">Exploración de asistente virtual</div>
+        <div class="hallazgo-desc">En la siguiente sesión se evaluará la implementación de un asistente virtual para atención de primer nivel, que puede absorber entre el 20-35% del volumen entrante, reduciendo la presión sobre los agentes en horario pico.</div>
+      </div>
+      <div class="hallazgo">
+        <div class="hallazgo-num" style="font-size:20px;color:var(--azul)">📊</div>
+        <div class="hallazgo-titulo">Revisión de consumo mensual</div>
+        <div class="hallazgo-desc">Se establecerá un reporte mensual de consumo para monitorear la evolución de los minutos facturables y la tasa de llamadas no atendidas, con alertas tempranas cuando el consumo supere el 85% del plan contratado.</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ══════════════════ FOOTER ════════════════════════════════════════════════ -->
+<div class="footer">
+  <strong>Callpicker</strong> · Satisfacción al Cliente · Documento confidencial para uso exclusivo de Agua Inmaculada ·
+  Período analizado: Enero – Abril 2026 · Preparado por: José Manuel López Delgadillo<br>Documento conciliado el 23 de noviembre de 2026 contra Gross Revenue Facturación y la fuente de llamadas de la plataforma (corte al 14 de septiembre de 2026). Las aclaraciones sobre fondo ocre son nuestras.
+</div>
+
+<!-- ══════════════════ SCRIPTS ═══════════════════════════════════════════════ -->
+<script>
+// ── DATOS ────────────────────────────────────────────────────────────────────
+const MESES_LABEL = ['Enero','Febrero','Marzo','Abril'];
+const PLAN = 10000;
+
+// Entrantes
+const ent = {
+  total:  [3524, 3693, 4016, 4151],
+  atend:  [1902, 1862, 1866, 1859],
+  perd:   [1622, 1831, 2150, 2292],
+  mf:     [2159, 2027, 2049, 1977]
+};
+
+// Salientes
+const sal = {
+  total:  [2915, 2726, 2563, 2670],
+  atend:  [2915, 2726, 2563, 2670],
+  mf:     [6697, 7033, 6723, 7933]
+};
+
+// Totales
+const totMF = ent.mf.map((v,i) => v + sal.mf[i]);
+const usoPlan = totMF.map(v => +(v/PLAN*100).toFixed(1));
+
+// Tipos salientes (min facturables)
+const salTipos = {
+  celular:   [4712, 5146, 4937, 6058],
+  extension: [1114, 1123, 1050, 1058],
+  fijo:      [ 824,  722,  656,  664],
+};
+
+// Tipos entrantes (min facturables)
+const entTipos = {
+  sip_pc:  [1765, 1712, 1764, 1812],
+  celular: [ 394,  315,  285,  165],
+};
+
+// Horas perdidas (todos los meses)
+const horas = Array.from({length:24},(_,i)=>i);
+const horaVals = [8,4,0,1,4,9,13,38,253,1101,1093,1017,1078,952,879,829,881,693,302,153,65,61,24,28];
+
+// Colores
+const C_AZUL   = '#0057A8';
+const C_AZUL_L = 'rgba(0,87,168,0.15)';
+const C_ROJO   = '#C0392B';
+const C_VERDE  = '#1A8A5A';
+const C_NAR    = '#E67E22';
+const C_GRIS   = '#5A6475';
+const PLAN_LINE = '#D94F3D';
+
+Chart.defaults.font.family = "'Segoe UI', Arial, sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#5A6475';
+
+// ── GRÁFICA 1: Minutos facturables por mes ────────────────────────────────
+new Chart(document.getElementById('ch_minMes'), {
+  type: 'bar',
+  data: {
+    labels: MESES_LABEL,
+    datasets: [
+      { label:'Min. Entrantes', data: ent.mf, backgroundColor:'rgba(26,138,90,0.75)', borderRadius:4 },
+      { label:'Min. Salientes', data: sal.mf, backgroundColor:'rgba(0,87,168,0.75)', borderRadius:4 },
+      { label:'Límite Plan',    data: [PLAN,PLAN,PLAN,PLAN],
+        type:'line', borderColor:PLAN_LINE, borderDash:[6,4], borderWidth:2,
+        pointRadius:0, fill:false }
+    ]
+  },
+  options: {
+    responsive:true, plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:14}}},
+    scales: {
+      x:{stacked:true, grid:{display:false}},
+      y:{stacked:true, beginAtZero:true, max:12000,
+         ticks:{callback:v=>v.toLocaleString('es-MX')},
+         grid:{color:'rgba(0,0,0,0.05)'}
+       }
+    }
+  }
+});
+
+// ── GRÁFICA 2: % de uso del plan ─────────────────────────────────────────
+new Chart(document.getElementById('ch_usoPlan'), {
+  type: 'line',
+  data: {
+    labels: MESES_LABEL,
+    datasets: [
+      {
+        label:'% Uso del Plan',
+        data: usoPlan,
+        borderColor: C_AZUL, backgroundColor: C_AZUL_L,
+        fill:true, tension:.35, borderWidth:3,
+        pointBackgroundColor:[C_VERDE,C_VERDE,C_VERDE,C_ROJO],
+        pointRadius:6, pointHoverRadius:8
+      },
+      { label:'Umbral crítico 90%', data:[90,90,90,90],
+        borderColor: C_NAR, borderDash:[5,4], borderWidth:2,
+        pointRadius:0, fill:false }
+    ]
+  },
+  options: {
+    responsive:true, plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:14}}},
+    scales:{
+      y:{beginAtZero:false, min:80, max:105, ticks:{callback:v=>v+'%'}, grid:{color:'rgba(0,0,0,0.05)'}},
+      x:{grid:{display:false}}
+    }
+  }
+});
+
+// ── Tabla mensual ─────────────────────────────────────────────────────────
+const tbody = document.getElementById('tbody_mensual');
+MESES_LABEL.forEach((m,i)=>{
+  const mf = totMF[i];
+  const pct = usoPlan[i];
+  const pctClass = pct >= 95 ? 'cel-rojo' : pct >= 88 ? 'cel-naranja' : 'cel-verde';
+  tbody.innerHTML += `<tr>
+    <td>${m}</td>
+    <td>${ent.total[i].toLocaleString('es-MX')}</td>
+    <td>${sal.total[i].toLocaleString('es-MX')}</td>
+    <td>${(ent.total[i]+sal.total[i]).toLocaleString('es-MX')}</td>
+    <td>${ent.mf[i].toLocaleString('es-MX')}</td>
+    <td>${sal.mf[i].toLocaleString('es-MX')}</td>
+    <td><strong>${mf.toLocaleString('es-MX')}</strong></td>
+    <td class="${pctClass}">${pct}%</td>
+  </tr>`;
+});
+// Totales
+const totEntMF=ent.mf.reduce((a,b)=>a+b,0), totSalMF=sal.mf.reduce((a,b)=>a+b,0);
+tbody.innerHTML+=`<tr class="tfoot-row">
+  <td>TOTAL / PROMEDIO</td>
+  <td>${ent.total.reduce((a,b)=>a+b).toLocaleString('es-MX')}</td>
+  <td>${sal.total.reduce((a,b)=>a+b).toLocaleString('es-MX')}</td>
+  <td>${(ent.total.reduce((a,b)=>a+b)+sal.total.reduce((a,b)=>a+b)).toLocaleString('es-MX')}</td>
+  <td>${totEntMF.toLocaleString('es-MX')}</td>
+  <td>${totSalMF.toLocaleString('es-MX')}</td>
+  <td>${(totEntMF+totSalMF).toLocaleString('es-MX')}</td>
+  <td>Prom: 91.5%</td>
+</tr>`;
+
+// ── GRÁFICA 3: Donut salientes ────────────────────────────────────────────
+const totSalTipo = {
+  celular:   salTipos.celular.reduce((a,b)=>a+b),
+  extension: salTipos.extension.reduce((a,b)=>a+b),
+  fijo:      salTipos.fijo.reduce((a,b)=>a+b),
+};
+new Chart(document.getElementById('ch_donutSal'), {
+  type:'doughnut',
+  data:{
+    labels:['Celular','Extensión','Fijo'],
+    datasets:[{
+      data:[totSalTipo.celular, totSalTipo.extension, totSalTipo.fijo],
+      backgroundColor:[C_ROJO,'rgba(0,87,168,0.7)',C_VERDE],
+      borderWidth:2, borderColor:'#fff'
+    }]
+  },
+  options:{
+    responsive:true, cutout:'65%',
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:12,padding:14}},
+      tooltip:{callbacks:{label:c=>{
+        const t=c.dataset.data.reduce((a,b)=>a+b);
+        return ` ${c.label}: ${c.raw.toLocaleString('es-MX')} min (${(c.raw/t*100).toFixed(1)}%)`;
+      }}}
+    }
+  }
+});
+
+// ── GRÁFICA 4: Donut entrantes ────────────────────────────────────────────
+const totEntTipo = {
+  sip_pc:  entTipos.sip_pc.reduce((a,b)=>a+b),
+  celular: entTipos.celular.reduce((a,b)=>a+b),
+};
+new Chart(document.getElementById('ch_donutEnt'), {
+  type:'doughnut',
+  data:{
+    labels:['SIP/PC (1 min c/u)','Celular (min reales)'],
+    datasets:[{
+      data:[totEntTipo.sip_pc, totEntTipo.celular],
+      backgroundColor:['rgba(0,87,168,0.75)', C_ROJO],
+      borderWidth:2, borderColor:'#fff'
+    }]
+  },
+  options:{
+    responsive:true, cutout:'65%',
+    plugins:{
+      legend:{position:'bottom',labels:{boxWidth:12,padding:14}},
+      tooltip:{callbacks:{label:c=>{
+        const t=c.dataset.data.reduce((a,b)=>a+b);
+        return ` ${c.label}: ${c.raw.toLocaleString('es-MX')} min (${(c.raw/t*100).toFixed(1)}%)`;
+      }}}
+    }
+  }
+});
+
+// ── Tablas tipos ──────────────────────────────────────────────────────────
+function buildTipoTable(tbodyId, tipos, labelMap){
+  const tb = document.getElementById(tbodyId);
+  const grandTotal = Object.values(tipos).reduce((s,arr)=>s+arr.reduce((a,b)=>a+b),0);
+  Object.entries(tipos).forEach(([tipo, arr])=>{
+    const tot = arr.reduce((a,b)=>a+b);
+    const pct = (tot/grandTotal*100).toFixed(1);
+    const label = labelMap[tipo]||tipo;
+    tb.innerHTML += `<tr>
+      <td>${label}</td>
+      ${arr.map(v=>`<td>${v.toLocaleString('es-MX')}</td>`).join('')}
+      <td><strong>${tot.toLocaleString('es-MX')}</strong></td>
+      <td>${pct}%</td>
+    </tr>`;
+  });
+  const tots = [0,1,2,3].map(i=>Object.values(tipos).reduce((s,a)=>s+a[i],0));
+  tb.innerHTML+=`<tr class="tfoot-row">
+    <td>TOTAL</td>
+    ${tots.map(v=>`<td>${v.toLocaleString('es-MX')}</td>`).join('')}
+    <td>${tots.reduce((a,b)=>a+b).toLocaleString('es-MX')}</td>
+    <td>100%</td>
+  </tr>`;
+}
+
+buildTipoTable('tbody_tipos_sal', salTipos, {
+  celular:'📱 Celular (min reales)', extension:'🔗 Extensión (1 min)', fijo:'☎ Fijo (1 min)'
+});
+buildTipoTable('tbody_tipos_ent', entTipos, {
+  sip_pc:'💻 SIP / PC (1 min)', celular:'📱 Celular (min reales)'
+});
+
+// ── GRÁFICA 5: Stacked bar salientes ─────────────────────────────────────
+new Chart(document.getElementById('ch_stackedSal'), {
+  type:'bar',
+  data:{
+    labels:MESES_LABEL,
+    datasets:[
+      {label:'Celular',   data:salTipos.celular,   backgroundColor:C_ROJO, borderRadius:4},
+      {label:'Extensión', data:salTipos.extension, backgroundColor:'rgba(0,87,168,0.65)', borderRadius:4},
+      {label:'Fijo',      data:salTipos.fijo,      backgroundColor:C_VERDE, borderRadius:4},
+    ]
+  },
+  options:{
+    responsive:true,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:14}}},
+    scales:{
+      x:{stacked:true, grid:{display:false}},
+      y:{stacked:true, ticks:{callback:v=>v.toLocaleString('es-MX')}, grid:{color:'rgba(0,0,0,0.05)'}}
+    }
+  }
+});
+
+// ── GRÁFICA 6: Tasa de pérdida ────────────────────────────────────────────
+new Chart(document.getElementById('ch_tasaPerdida'), {
+  type:'line',
+  data:{
+    labels:MESES_LABEL,
+    datasets:[{
+      label:'% Llamadas no atendidas',
+      data:[46.0, 49.6, 53.5, 55.2],
+      borderColor:C_ROJO, backgroundColor:'rgba(192,57,43,0.12)',
+      fill:true, tension:.35, borderWidth:3,
+      pointBackgroundColor:C_ROJO, pointRadius:6, pointHoverRadius:8
+    }]
+  },
+  options:{
+    responsive:true, plugins:{legend:{display:false}},
+    scales:{
+      y:{min:40, max:62, ticks:{callback:v=>v+'%'}, grid:{color:'rgba(0,0,0,0.05)'}},
+      x:{grid:{display:false}}
+    }
+  }
+});
+
+// ── GRÁFICA 7: Volumen perdidas ───────────────────────────────────────────
+new Chart(document.getElementById('ch_volPerdidas'), {
+  type:'bar',
+  data:{
+    labels:MESES_LABEL,
+    datasets:[{
+      label:'Llamadas no atendidas',
+      data:[1622, 1831, 2150, 2292],
+      backgroundColor:[
+        'rgba(192,57,43,0.6)','rgba(192,57,43,0.7)',
+        'rgba(192,57,43,0.85)','rgba(192,57,43,1.0)'
+      ],
+      borderRadius:6
+    }]
+  },
+  options:{
+    responsive:true, plugins:{legend:{display:false}},
+    scales:{
+      y:{beginAtZero:true, ticks:{callback:v=>v.toLocaleString('es-MX')}, grid:{color:'rgba(0,0,0,0.05)'}},
+      x:{grid:{display:false}}
+    }
+  }
+});
+
+// ── GRÁFICA 8: Distribución horaria ──────────────────────────────────────
+const horaCols = horaVals.map((_,i)=>{
+  if(i>=9&&i<=13) return 'rgba(192,57,43,0.85)';
+  if(i>=14&&i<=17) return 'rgba(230,126,34,0.75)';
+  return 'rgba(90,100,117,0.45)';
+});
+new Chart(document.getElementById('ch_horas'), {
+  type:'bar',
+  data:{
+    labels:horas.map(h=>h.toString().padStart(2,'0')+':00'),
+    datasets:[{
+      label:'Llamadas no atendidas',
+      data:horaVals,
+      backgroundColor:horaCols,
+      borderRadius:4
+    }]
+  },
+  options:{
+    responsive:true,
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{
+        label:c=>{
+          const t=horaVals.reduce((a,b)=>a+b);
+          return ` ${c.raw.toLocaleString('es-MX')} llamadas (${(c.raw/t*100).toFixed(1)}%)`;
+        }
+      }}
+    },
+    scales:{
+      y:{beginAtZero:true, ticks:{callback:v=>v.toLocaleString('es-MX')}, grid:{color:'rgba(0,0,0,0.05)'}},
+      x:{grid:{display:false}, ticks:{font:{size:10}}}
+    }
+  }
+});
+</script>
+<!-- CONCILIACION:MARCADOS no-atendidas-incluye-autoservicio-y-buzon, salientes-por-tipo-faltan-322-min, serie-por-hora-incluye-mayo-parcial, holgura-con-dos-denominadores, base-del-plan-10500-vs-grc-12500, minutos-sin-fuente-propia, repartos-por-llamada-sin-tabla, acciones-ya-aplicadas-en-junio -->
+</body>
+</html>

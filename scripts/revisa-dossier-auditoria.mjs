@@ -100,6 +100,27 @@ const EXIGIDO = {
     ['health score 50, no 76',
                              'la cifra que el borrador traía mal, dicha como prohibición'],
   ],
+  /* AGUA INMACULADA. Aquí las frases protegen de lo que decíamos NOSOTROS, en
+     dos documentos distintos y con dos cifras distintas de lo mismo: la v1.0
+     de este expediente publicaba «8,791 no atendidas» y el reporte de
+     noviembre «7,895 — más de la mitad de las llamadas entrantes». Las dos
+     cuentan como abandono las llamadas que resolvió el autoservicio y las que
+     dejaron recado. Si «4,972» o «no las 7,895» caen del corte, Atlas vuelve a
+     servirle al asesor una tasa del doble de la real, y el cliente la puede
+     refutar con su propia plataforma en una llamada.
+     «1.8 puntos y no bastó» es el marco: el ajuste que el cliente PIDIÓ en
+     junio se aplicó y sirvió, así que la llamada empieza reconociéndolo. Sin
+     esa frase el asesor entra a proponer el mismo ajuste por segunda vez.
+     Y «153 días» es lo que impide presentar como «en curso» un plan de acción
+     que lleva cinco meses sin que nadie hable con el cliente. */
+  'agua-inmaculada': [
+    ['4,972',                  'las perdidas reales; sin esto Atlas cita las 7,895 infladas'],
+    ['32.3%',                  'la tasa real de pérdida, una de cada tres'],
+    ['no las 7,895',           'la cifra que NO se debe citar, dicha como prohibición'],
+    ['1.8 puntos y no bastó',  'el marco: el ajuste de junio ya se hizo y sí sirvió'],
+    ['153 días',               'el silencio que impide presentar el plan como «en curso»'],
+    ['$12,500',                'el MRR del GRC; el reporte parte de $10,500'],
+  ],
   /* CARGO LIFT. Aquí el peligro no es una cifra mala: es el MARCO. Esta cuenta
      MEJORÓ su atención —la pérdida bajó de 10.4% a 6.5%— y a la vez perdió la
      mitad de su demanda, y `lib/seguimiento-auditoria.ts` mete los TRES
