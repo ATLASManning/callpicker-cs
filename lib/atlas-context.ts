@@ -15,7 +15,7 @@ import { datosEnriquecidosDeCuenta } from './enriquecimiento/cuenta'
 import { esConElCliente, etiquetaTipo } from './reuniones-tipo'
 import { lineaSeguimientosKAM } from './seguimiento-tipos'
 import { AAA_GRC_MESES_CERRADOS, GRC_MES_EXCLUIDO } from './grc-cerrados'
-import { REPORTE_S29_OCT_2026 } from '@/app/churn/reporte-actual'
+import { REPORTE_S30_NOV_2026 } from '@/app/churn/reporte-actual'
 import { ahoraEnMexico, fechaLocal, hoyEnMexico } from './fecha-local'
 import { seccionesGlosario } from './glosario-atlas'
 import { seccionesPlanesPago } from './planes-pago'
@@ -786,7 +786,7 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
   modulos.push('churn-grc')
 
   // Corte vigente de Gross Revenue Churn — misma fuente que renderiza el módulo.
-  const rep = REPORTE_S29_OCT_2026
+  const rep = REPORTE_S30_NOV_2026
   if (rep.grc) {
     const evo = rep.grc.evolucion
       .map(e => `${e.mes} ${e.pct}%${e.anterior !== undefined ? ` (ant. ${e.anterior}%)` : ''}`)
@@ -992,8 +992,10 @@ ${topRiesgo || '    Ninguna en riesgo critico'}`
       ? ''
       : `  POR QUÉ SE FUERON — conteo de motivos de ${mesCorte}${deEmpresa} `
         + `(${motivosClientes} clientes, $${motivosMonto.toLocaleString('es-MX')}; cuadra con las `
-        + `cancelaciones del corte). Son agregados: el corte NO dice qué cliente tuvo qué motivo, `
-        + `así que no se lo atribuyas a nadie por nombre.\n`
+        + `cancelaciones del corte). ESTA TABLA ES UN AGREGADO y no reparte los motivos entre `
+        + `nombres: para saber el motivo de un cliente concreto, mira SU entrada en la lista de `
+        + `cancelaciones de arriba. Si ahí no lo trae, no se lo atribuyas por nombre — deducirlo `
+        + `de este conteo es inventarlo.\n`
         + motivos
           .map((m, i) => `    ${i + 1}/${motivos.length}. ${m.motivo}: ${m.clientes} cliente(s), `
             + `$${m.importe.toLocaleString('es-MX')}`)
