@@ -56,14 +56,40 @@ export const MISION = '#EFF7FC'   // el fondo de `.mission`
    el otro se queda con la medición vieja SIN QUE FALLE NADA.
    Como los topes son los mismos, **las cinco mediciones de abajo valen para
    los dos**: cambiar el ÁNGULO mueve dónde aparece cada tono, no cuáles son. */
-const HERO_TOPES = '#0B2D4D,#15537F 72%,#1F6A90'
+/* LOS TRES TONOS, cada uno con nombre y una sola vez. Antes vivían pegados en
+   una sola cadena, y eso obligaba a que el hero y el menú recorrieran
+   EXACTAMENTE el mismo camino. Son dos superficies de forma distinta —una
+   banda ancha y baja contra una columna alta— y la misma rampa no les sienta
+   igual: separar los tonos de su recorrido deja que cada una elija el suyo sin
+   estrenar un color. */
+const T_OSCURO = '#0B2D4D'
+const T_MEDIO  = '#15537F'
+const T_CLARO  = '#1F6A90'
+
+const HERO_TOPES = `${T_OSCURO},${T_MEDIO} 72%,${T_CLARO}`
 
 export const HERO = `linear-gradient(127deg,${HERO_TOPES})`
 
-/* EL MENÚ LATERAL. Vertical y con el extremo claro ABAJO, donde está el
-   bloque del usuario; el grueso de los apartados cae sobre la mitad oscura.
-   Lo mide `scripts/mide-paleta-sidebar.py`, que lee estos topes de aquí. */
-export const SIDEBAR = `linear-gradient(177deg,${HERO_TOPES})`
+/* EL MENÚ LATERAL. Vertical, y **no llega al tono claro**: la columna recorre
+   del marino al medio y se queda PLANA en el último tercio.
+
+   Por qué (dirección, 25 nov 2026, con la captura delante): «que el color gris
+   oscuro sea parejo en esta parte, tiende a perderse en la parte inferior».
+   Con el recorrido completo del hero, una columna de pantalla entera estira la
+   rampa de `#0B2D4D` a `#1F6A90` —la luminancia se multiplica por 4.6— y el
+   pie, que es justo donde va el bloque del usuario, quedaba lavado. Acabando
+   en `#15537F` el salto baja a 2.9x y el tramo plano quita el degradado de
+   donde se notaba.
+
+   **No es un tono nuevo**: `#15537F` es el tope intermedio que el hero ya usa.
+   Estrenar un azul aquí sería la trampa de las paletas gemelas — alguien
+   corrige uno y el otro se queda con la medición vieja sin que falle nada.
+
+   Y el cambio va SIEMPRE a favor del contraste: el extremo que aprieta se
+   vuelve más oscuro, así que los tonos claros del menú miden MÁS que antes, no
+   menos. Lo recalcula `scripts/mide-paleta-sidebar.py`, que lee esta constante
+   —no los topes del hero— porque es la que el menú pinta de verdad. */
+export const SIDEBAR = `linear-gradient(177deg,${T_OSCURO},${T_MEDIO} 62%,${T_MEDIO})`
 export const HERO_TAG  = '#B3E8FF'   // 4.51:1 sobre el extremo claro
 export const HERO_CIAN = '#8AD7F8'   // 3.73:1 — titular de 44px, mínimo 3:1
 export const HERO_LEAD = '#D7E7F2'   // 4.71:1

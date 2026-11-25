@@ -76,20 +76,43 @@ def compone(frente_rgb, alfa, fondo_rgb):
 # ── El espejo: los topes salen del archivo de paleta ─────────────────────────
 
 def topes_del_degradado():
+    u"""Los topes que pinta el MENÚ, resueltos desde `SIDEBAR`.
+
+       Hasta el 25 nov 2026 esto leía `HERO_TOPES`, y valía porque el menú era
+       el degradado del hero girado. Ya no lo es: la columna se queda en el
+       tono medio y no llega al claro. Seguir leyendo los topes del hero haría
+       que el guion midiera contra `#1F6A90`, un tono que el menú **ya no
+       pinta** — y como ese extremo es más claro, mediría de MÁS y daría verde
+       pase lo que pase. Un espejo que apunta a otra superficie es peor que no
+       tener espejo.
+
+       `SIDEBAR` es una plantilla con `${T_...}` dentro, así que primero se
+       resuelven las constantes de hex del archivo y después se extraen.
+    """
     ruta = os.path.join(RAIZ, 'lib', 'paleta-cs.ts')
     txt = io.open(ruta, encoding='utf-8').read()
-    m = re.search(r"const\s+HERO_TOPES\s*=\s*'([^']+)'", txt)
+    m = re.search(r'export\s+const\s+SIDEBAR\s*=\s*[`\'"]([^`\'"]+)[`\'"]', txt)
     if not m:
-        m = re.search(r"export const HERO\s*=\s*'linear-gradient\([^,]+,([^']+)\)'", txt)
-        if not m:
-            print(u'  *** No pude leer los topes del degradado de lib/paleta-cs.ts ***')
-            sys.exit(2)
+        print(u'  *** lib/paleta-cs.ts ya no exporta SIDEBAR. No se mide a ciegas. ***')
+        sys.exit(2)
     crudo = m.group(1)
+    consts = dict(re.findall(r"const\s+(\w+)\s*=\s*'(#[0-9A-Fa-f]{6})'", txt))
+    def _sub(mm):
+        if mm.group(1) not in consts:
+            print(u'  *** SIDEBAR usa «%s» y no es una constante de hex del archivo. ***'
+                  % mm.group(1))
+            sys.exit(2)
+        return consts[mm.group(1)]
+    crudo = re.sub(r'\$\{(\w+)\}', _sub, crudo)
     hexes = re.findall(r'#[0-9A-Fa-f]{6}', crudo)
     if len(hexes) < 2:
-        print(u'  *** Los topes leídos no traen al menos dos colores: %s ***' % crudo)
+        print(u'  *** Los topes de SIDEBAR no traen al menos dos colores: %s ***' % crudo)
         sys.exit(2)
-    return hexes
+    # El que aprieta es el MÁS CLARO, que no tiene por qué ser el último tope:
+    # el menú repite el tono medio para dejar el pie plano. Ordenar por
+    # luminancia y no por posición.
+    hexes.sort(key=lambda h: luminancia(hex_a_rgb(h)))
+    return [hexes[0], hexes[-1]]
 
 
 def aclara_hasta(hexc, fondo_rgb, objetivo):
