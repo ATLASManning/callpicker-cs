@@ -105,6 +105,26 @@ for cond, n in porcond.most_common():
     print(u'    %-14s %4d' % (cond, n))
 
 print('')
+print(u'  LOS 240 QUE SI, POR TIPO — que es lo que de verdad dice QUE pasa')
+print(u'  ' + '-' * 68)
+print(u'  La condicion agrupa para escalar; el TIPO es el hallazgo. Dentro de')
+print(u'  `consumo` caben «dejo de llamar» y «paga mucho mas de lo que usa»,')
+print(u'  que no son el mismo problema ni se atienden igual.')
+portipo = collections.Counter()
+dinerotipo = collections.defaultdict(float)
+medibles = collections.Counter()
+for c in sla:
+    portipo[(c['condicion'], c['tipo'])] += 1
+    if c.get('mrr_en_riesgo') is not None:
+        dinerotipo[(c['condicion'], c['tipo'])] += float(c['mrr_en_riesgo'])
+        medibles[(c['condicion'], c['tipo'])] += 1
+for (cond, tipo), n in portipo.most_common():
+    med = medibles[(cond, tipo)]
+    importe = (u'$%s' % format(int(dinerotipo[(cond, tipo)]), ',d')) if med else u'sin medir'
+    cola = u'' if med == n else u'  (%d de %d con importe)' % (med, n)
+    print(u'    %-12s %-26s %4d   %12s%s' % (cond, tipo, n, importe, cola))
+
+print('')
 print(u'  POR SEVERIDAD, Y CUANTAS SUBIERON DE NIVEL')
 print(u'  ' + '-' * 68)
 porsev = collections.Counter(c['severidad'] for c in sla)
