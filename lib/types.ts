@@ -181,6 +181,29 @@ export interface Seguimiento {
   asesor: string | null
   duracion_min: number | null
   created_at: string
+
+  /* ── LA EVIDENCIA DE UN COMPROMISO DE ATENCIÓN (25 nov 2026) ─────────────
+   *
+   * Opcionales, y lo son de verdad: de los nueve tipos de seguimiento, los que
+   * no son canal de contacto no cierran ninguna alerta y no traen nada de
+   * esto. Las columnas son NULLABLE en la base por la misma razón — un NOT NULL
+   * habría roto los 445 seguimientos que ya están y los formularios que los
+   * escriben. La exigencia la aplica el SERVIDOR cuando viene `alerta_sla_id`,
+   * no el esquema: ver `validaSeguimiento` en `lib/alertas-sla.ts`.
+   *
+   * POR QUÉ SON COLUMNAS Y NO TEXTO DENTRO DE `descripcion`. El patrón de
+   * `componerSolicitud` —etiquetas fijas dentro de la prosa— sirve para leer una
+   * ficha, y para las métricas de cumplimiento no: «¿cuántas gestiones quedaron
+   * sin próximo paso?» sobre prosa es un LIKE, y este repositorio ya midió tres
+   * sitios donde un `slice` sobre esa misma prosa publicaba fontanería en vez
+   * de contenido. */
+  alerta_sla_id?: string | null
+  /** Con quién se habló. Una gestión sin interlocutor no es una gestión. */
+  contacto_nombre?: string | null
+  contacto_puesto?: string | null
+  proximo_paso?: string | null
+  /** `date`: el próximo paso sin fecha es una intención. */
+  proximo_paso_fecha?: string | null
 }
 
 // ── Health Score Historial ───────────────────────────────────────────────────

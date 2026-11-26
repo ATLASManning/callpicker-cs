@@ -631,6 +631,52 @@ export const CONDICION: Record<TipoAlerta, Condicion> = {
   downgrade_repetido: 'facturacion', churn_facturado: 'facturacion',
 }
 
+/**
+ * QUÉ APAGA CADA CONDICIÓN. Es doctrina del catálogo, no de una pantalla.
+ *
+ * Vivía en `lib/alertas-movimiento.ts`, que es quien la publica en la ficha, y
+ * se mudó aquí el 25 nov 2026 cuando el SLA de alertas tuvo que decir la misma
+ * frase. Dos motivos, y el segundo es el que decidió el sitio:
+ *
+ *   1. El compromiso de atención afirma que una alerta queda ATENDIDA con la
+ *      evidencia, y acto seguido tiene que decir que eso NO la apaga y qué sí.
+ *      Son las dos mitades de la misma verdad; tecleada aparte, la segunda se
+ *      separa de la primera sin que falle nada.
+ *   2. `alertas-movimiento.ts` habla con Supabase, y `lib/supabase.ts` no se
+ *      puede importar fuera de Next en Node 20. Cualquier módulo que lo
+ *      arrastrara dejaba de ser probable con `ts-node`. Este archivo no importa
+ *      nada, y por eso aquí la frase sí se puede probar.
+ *
+ * LA LISTA INCÓMODA, QUE ES EL VALOR DE ESTA CONSTANTE: a la mayoría de las
+ * condiciones NO las apaga nada que capturemos nosotros. El consumo lo mueve el
+ * cliente usando el servicio, la medición Ingeniería, la facturación el corte
+ * siguiente del GRC, y la atención telefónica el enrutamiento del propio
+ * cliente. Prometer lo contrario convierte la alerta en una tarea imposible, y
+ * en este proyecto lo que se percibe como imposible se abandona.
+ */
+export const LO_QUE_LA_APAGA: Record<Condicion, string> = {
+  contacto:  'hablar con el cliente',
+  escrito:   'lo que el equipo escriba sobre esta cuenta',
+  radar:     'contestar el Radar de la ficha',
+  contactos: 'capturar contactos en la ficha',
+  ficha:     'completar la ficha',
+  consumo:   'que el cliente vuelva a usar el servicio',
+  medicion:  'que llegue el reporte de llamadas',
+  importe:   'que la cuenta aparezca en el corte de facturación',
+  mesa:      'que la mesa de ayuda cierre el folio',
+  /* La apaga el ENRUTAMIENTO del cliente, no una llamada nuestra. Y conviene
+     que la pantalla lo diga con esas palabras: el reflejo ante esta alerta es
+     marcarle al cliente, y marcarle no cambia el número. Lo que lo cambia es
+     que alguien arregle las extensiones muertas y los horarios. */
+  atencion:  'que sus llamadas entrantes empiecen a contestarse',
+  /* La apaga el CORTE siguiente del GRC, no una conversación. Y es importante
+     decirlo así: esta alerta nace de que la factura ya bajó, de modo que
+     hablar con el cliente —que es exactamente lo que hay que hacer— no la
+     apaga. Se apaga cuando el mes siguiente deje de traer la reducción. */
+  facturacion: 'que el siguiente corte del GRC ya no traiga la reducción',
+  trabajo:   'nada: este tipo de alerta se retiró',
+}
+
 /* ── PENDIENTE EN SUPABASE, Y NO ES OPCIONAL ───────────────────────────────
  *
  * El CHECK de `alertas_episodios.condicion` sigue con los siete valores

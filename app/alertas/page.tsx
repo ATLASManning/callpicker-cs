@@ -7,6 +7,7 @@ import { SITUACION, LUZ, type Situacion, type ClaseHallazgo } from '@/lib/alerta
 import { hoyEnPalabras } from '@/lib/fecha-local'
 import { movimientoDeCartera, type Movimiento } from '@/lib/alertas-movimiento'
 import { TX_TENUE } from '@/lib/contraste'
+import { BannerSla, ColaSla, PanelCumplimiento } from '@/components/CompromisosSla'
 
 /**
  * /alertas — EL OBJETIVO DE TRABAJO DE SAC
@@ -164,6 +165,33 @@ export default async function AlertasPage({
           </span>
         </div>
       )}
+
+      {/* ── LOS COMPROMISOS DE ATENCIÓN ──────────────────────────────────────
+          VA ARRIBA DE TODO, y no es decoración del orden: lo de abajo es el
+          reparto de la cartera —qué le pasa a cada cuenta—, y esto es lo que
+          hay que hacer HOY y para cuándo. Un asesor que entra tiene que ver
+          primero lo que vence, no el panorama.
+
+          El banner y la cola leen la misma ruta (`/api/alertas/sla`) y por eso
+          no se contradicen: el resumen se calcula ANTES de los filtros de
+          pantalla, así que el banner dice cuántas hay y la cola cuántas se
+          están pintando. Dos lecturas de la misma verdad, no dos verdades. */}
+      <BannerSla superficie="oscura" asesor={asesorFiltro} />
+
+      {/* El cumplimiento VA ANTES de la cola, no al final: una cola de cuarenta
+          renglones deja cualquier cosa de abajo sin leer, y esto es lo que dice
+          si el módulo está sirviendo para algo. `verAsesores` sólo para quien ve
+          más de una cartera — a un asesor la API le devuelve su propia fila y
+          nada más, así que el desglose no le añadiría nada. */}
+      <PanelCumplimiento superficie="oscura" asesor={asesorFiltro}
+                         verAsesores={!rolAsesor} />
+
+      <div>
+        <p style={C(PAG_HI, { fontSize: 13, fontWeight: 700, margin: '0 0 8px' })}>
+          Compromisos de atención
+        </p>
+        <ColaSla superficie="oscura" asesor={asesorFiltro} rol={h.get('x-user-rol') ?? 'viewer'} />
+      </div>
 
       {/* ── EL SEMÁFORO: el reparto de la cartera ───────────────────────── */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

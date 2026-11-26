@@ -13,6 +13,7 @@ import {
 import LogoCallpicker from '@/components/LogoCallpicker'
 import type { SessionPayload } from '@/lib/auth'
 import { esAdminDelTablero, puedeVerUsoDashboard } from '@/lib/auth'
+import { tonoSla } from '@/lib/sla-tonos'
 
 /* ── EL DEGRADADO DEL HERO, TAMBIÉN EN EL ÍNDICE ──────────────────────────────
  *
@@ -115,8 +116,26 @@ const LLAVE_FIJO    = 'cs-menu-fijo'
    garantiza que el día que alguien añada un cuarto se olvide de uno: ese
    renglón se quedaría con la etiqueta encendida asomando en el riel, sin que
    nada falle. El contexto no se puede olvidar. */
-type EstadoMenu = { abierto: boolean; anima: (prop: string) => string }
-const CtxMenu = createContext<EstadoMenu>({ abierto: true, anima: () => 'none' })
+/**
+ * `compromisos` viaja por el MISMO contexto, y por la misma razón.
+ *
+ * El contador de «Alertas de Cliente» lo pinta `NavLink`, que se monta en tres
+ * sitios. Pasarlo por `props` obligaría a tocar los tres y el día que se añada
+ * un cuarto el contador faltaría ahí sin que nada falle — exactamente el
+ * argumento de arriba.
+ *
+ * `null` = NO SE PUDO LEER, y no se pinta nada. Un `0` cuando la tabla no
+ * existe diría «no tienes nada pendiente» a un asesor con alertas vencidas, que
+ * es la mentira más cara que puede decir un menú. [[feedback-cero-sin-medicion]]
+ */
+type Compromisos = { abiertas: number; vencidas: number } | null
+type EstadoMenu = {
+  abierto: boolean
+  anima: (prop: string) => string
+  compromisos: Compromisos
+}
+const CtxMenu = createContext<EstadoMenu>(
+  { abierto: true, anima: () => 'none', compromisos: null })
 
 /** ¿El foco llegó TABULANDO, o es el rastro de un clic?
     `:focus-visible` lo decide el navegador. Se pregunta con `matches` dentro de
@@ -307,8 +326,25 @@ const NAV: NavEntry[] = [...NAV_ENTRADAS].sort((a, b) =>
 function NavLink({ href, label, icon: Icon, indent = false }: NavItem & { indent?: boolean }) {
   const path   = usePathname()
   const active = path === href || (href !== '/' && path.startsWith(href))
-  const { abierto, anima } = useContext(CtxMenu)
+  const { abierto, anima, compromisos } = useContext(CtxMenu)
   const velo = { opacity: abierto ? 1 : 0, transition: anima('opacity') }
+
+  /* EL CONTADOR DE ALERTAS. Sólo en su renglón, y sólo si se pudo medir.
+     Con alguna vencida se pinta como RELLENO SÓLIDO rojo con su letra elegida
+     por `textoSobreSolido`, no como un rojo translúcido: un velo claro sobre
+     este degradado deja sin margen a la letra —el badge de los grupos ya tuvo
+     ese bug, y midió 4.10:1 con blanco puro—. Y el relleno no es el único
+     aviso: el número va con `title` y `aria-label` en palabras.
+
+     SU MEDICIÓN NO ESTÁ EN `mide-paleta-sidebar.py`, y eso es correcto: ese
+     guión barre los colores de TEXTO contra el degradado, y éste es el segundo
+     color del menú cuyo fondo no es la barra —el primero fue el relleno del
+     avatar de rol—. Va en `scripts/mide-tonos-sla.mjs`, que mide la letra
+     contra el relleno: 4.83:1. [[atlas-dashboard-contrast-architecture]] */
+  const esAlertas = href === '/alertas'
+  const conta = esAlertas ? compromisos : null
+  const urge = !!conta && conta.vencidas > 0
+  const tonoUrge = tonoSla('rojo_intenso', 'oscura')
 
   return (
     <Link
@@ -339,6 +375,27 @@ function NavLink({ href, label, icon: Icon, indent = false }: NavItem & { indent
     >
       <Icon size={indent ? 13 : 16} style={{ color: active ? IC_A : IC, flexShrink: 0 }} />
       <span className="flex-1 truncate" style={velo}>{label}</span>
+      {conta && conta.abiertas > 0 && (
+        <span
+          className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+          title={urge
+            ? `${conta.abiertas} alertas por atender, ${conta.vencidas} con el plazo vencido`
+            : `${conta.abiertas} alertas por atender, ninguna vencida`}
+          aria-label={urge
+            ? `${conta.abiertas} alertas por atender, ${conta.vencidas} vencidas`
+            : `${conta.abiertas} alertas por atender`}
+          style={{
+            background: urge ? (tonoUrge.relleno ?? '#DC2626') : 'rgba(0,0,0,0.25)',
+            color: urge ? (tonoUrge.sobreRelleno ?? '#FFFFFF') : '#FFFFFF',
+            /* El contador NO se desvanece con el menú compacto: es la única
+               cosa de este menú que hay que poder ver sin abrirlo. Los 64 px
+               del riel caben el icono y dos dígitos. */
+            flexShrink: 0,
+          }}
+        >
+          {conta.abiertas}
+        </span>
+      )}
       {active && !indent && (
         <ChevronRight size={13} style={{ color: TX_SEC, ...velo }} />
       )}
@@ -462,6 +519,7 @@ export default function Sidebar() {
   const [raton, setRaton] = useState(false)
   const [foco,  setFoco]  = useState(false)
   const [fijo,  setFijo]  = useState(false)
+  const [compromisos, setCompromisos] = useState<Compromisos>(null)
   const abierto = fijo || raton || foco
   const quieto  = usaMenosMovimiento()
   const anima   = (prop: string) => (quieto ? 'none' : `${prop} 180ms ease`)
@@ -478,6 +536,24 @@ export default function Sidebar() {
     setFijo(v)
     try { window.localStorage.setItem(LLAVE_FIJO, v ? '1' : '0') } catch { /* modo privado */ }
   }
+
+  /* EL CONTADOR DE ALERTAS, una lectura por carga de menú.
+     `null` mientras no se sepa y `null` si falla: el badge no se pinta. Un cero
+     fabricado aquí sería peor que no tener contador. Y no se refresca en bucle
+     —el menú vive en todas las pantallas y un sondeo sería una consulta por
+     minuto por pestaña abierta—: el dato cambia una vez al día, con la corrida
+     del cron. */
+  useEffect(() => {
+    fetch('/api/alertas/sla')
+      .then(r => r.ok ? r.json() : null)
+      .then(j => {
+        const r = j?.resumen
+        if (!r || j?.noMedible || j?.error) { setCompromisos(null); return }
+        setCompromisos({ abiertas: Number(r.abiertas) || 0,
+                         vencidas: Number(r.vencidas) || 0 })
+      })
+      .catch(() => setCompromisos(null))
+  }, [])
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(setMe)
@@ -542,7 +618,7 @@ export default function Sidebar() {
     // EL <aside> ES EL HUECO, NO EL MENÚ. Mide 64 px mientras el menú no está
     // fijado, aunque el panel de dentro esté abierto: así el contenido de
     // <main> no se recoloca cada vez que el ratón roza la columna.
-    <CtxMenu.Provider value={{ abierto, anima }}>
+    <CtxMenu.Provider value={{ abierto, anima, compromisos }}>
     <aside className="flex-shrink-0 h-full"
       style={{
         position: 'relative',

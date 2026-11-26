@@ -1,6 +1,6 @@
 ﻿import { supabaseAdmin, traerPorPaginas, esTablaInexistente } from '@/lib/supabase'
 import { hoyEnMexico } from '@/lib/fecha-local'
-import { PESO_SEVERIDAD, type Condicion } from '@/lib/alertas'
+import { PESO_SEVERIDAD, LO_QUE_LA_APAGA, type Condicion } from '@/lib/alertas'
 import { CANALES_CONTACTO } from '@/lib/contacto-cuenta'
 import { esConElCliente } from '@/lib/reuniones-tipo'
 import {
@@ -52,30 +52,19 @@ import {
 /** Lo que una persona captura sobre una cuenta. */
 export type TipoCaptura = 'reunion' | 'seguimiento' | 'observacion' | 'actividad'
 
-/** Qué apaga cada condición, dicho para leerlo en pantalla. */
-const LO_QUE_LA_APAGA: Record<Condicion, string> = {
-  contacto:  'hablar con el cliente',
-  escrito:   'lo que el equipo escriba sobre esta cuenta',
-  radar:     'contestar el Radar de la ficha',
-  contactos: 'capturar contactos en la ficha',
-  ficha:     'completar la ficha',
-  consumo:   'que el cliente vuelva a usar el servicio',
-  medicion:  'que llegue el reporte de llamadas',
-  importe:   'que la cuenta aparezca en el corte de facturación',
-  mesa:      'que la mesa de ayuda cierre el folio',
-  /* La apaga el ENRUTAMIENTO del cliente, no una llamada nuestra. Y conviene
-     que la pantalla lo diga con esas palabras: el reflejo ante esta alerta es
-     marcarle al cliente, y marcarle no cambia el número. Lo que lo cambia es
-     que alguien arregle las extensiones muertas y los horarios. */
-  atencion:  'que sus llamadas entrantes empiecen a contestarse',
-  /* La apaga el CORTE siguiente del GRC, no una conversación. Y es importante
-     decirlo así: esta alerta nace de que la factura ya bajó, de modo que
-     hablar con el cliente —que es exactamente lo que hay que hacer— no la
-     apaga. Se apaga cuando el mes siguiente deje de traer la reducción.
-     Prometer lo contrario convertiría la alerta en una tarea imposible. */
-  facturacion: 'que el siguiente corte del GRC ya no traiga la reducción',
-  trabajo:   'nada: este tipo de alerta se retiró',
-}
+/* `LO_QUE_LA_APAGA` SE MUDÓ A `lib/alertas.ts` el 25 nov 2026, y la mudanza
+   tiene una razón que conviene no perder.
+
+   El SLA de alertas tiene que decir la MISMA frase: su pantalla afirma que una
+   alerta queda ATENDIDA con la evidencia, y acto seguido tiene que decir que
+   eso no la APAGA y qué sí. Si la segunda frase se teclea aparte, las dos
+   definiciones se separan sin que falle nada.
+
+   Pero este archivo habla con Supabase, y `lib/supabase.ts` no se puede
+   importar fuera de Next en Node 20 —el cliente construye un RealtimeClient que
+   exige WebSocket nativo—, así que cualquier módulo que lo importara dejaba de
+   ser probable con `ts-node`. La frase es doctrina del CATÁLOGO, igual que
+   `CONDICION`, y `lib/alertas.ts` no importa nada: ahí sí se puede probar. */
 
 /**
  * Qué captura puede mover cada condición. Lo que no está aquí, NO la mueve —

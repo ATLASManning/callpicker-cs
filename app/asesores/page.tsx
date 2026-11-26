@@ -12,6 +12,7 @@ import { auditoriasPorAsesor, auditoriasDe } from '@/lib/auditorias-por-asesor'
 import { veredictosDeCartera, type MapaVeredictos } from '@/lib/alertas-estado'
 import { SITUACION, LUZ } from '@/lib/alertas-veredicto'
 import ColaDeTrabajoAsesor, { ColaCargando, type AlertasAsesor } from '@/components/ColaDeTrabajoAsesor'
+import { BannerSla } from '@/components/CompromisosSla'
 import { Suspense } from 'react'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -160,6 +161,23 @@ export default async function AsesoresPage() {
         subtitle="Vista de cartera individual por ejecutivo de Customer Success"
         actions={<AutoRefresh intervalMs={300_000} showIndicator />}
       />
+
+      {/* ══ EL BANNER DE COMPROMISOS ═════════════════════════════════════════
+          Ésta es la pantalla de inicio de los tres asesores, así que es donde
+          el banner tiene que estar: lo primero que se ve al entrar es cuántas
+          alertas hay que atender y cuántas van vencidas.
+
+          `asesor={isAsesor ? asesorHeader : undefined}` — a un asesor se le
+          resume SU cartera; a dirección, toda. Y no hace falta que el candado
+          viva aquí: la API recorta por cartera por su cuenta y le niega a un
+          rol `asesor` la cola de otra persona aunque la pida por la URL.
+          Pasarlo es para que dirección vea el total, no para autorizar.
+
+          `superficie="clara"`: esta pantalla es `cp-doc`, isla CLARA, letra
+          oscura. [[atlas-dashboard-contrast-architecture]] */}
+      <div className="px-6 pb-2">
+        <BannerSla superficie="clara" asesor={isAsesor ? asesorHeader : undefined} />
+      </div>
 
       <div className="px-6 pb-8 space-y-5">
         {ASESORES.map((asesor, idx) => {

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getCuentaById, updateCuenta, saveHealthSnapshot, deleteCuenta } from '@/lib/supabase'
+import {
+  getCuentaById, updateCuenta, saveHealthSnapshot, deleteCuenta,
+  supabaseAdmin, esTablaInexistente,
+} from '@/lib/supabase'
 import { sesionDe, esSuya, puedeConsultar, firmaDeSesion } from '@/lib/dueno'
+import { hoyEnMexico } from '@/lib/fecha-local'
+import { diffDeCampos, validaEdicion, limiteDeReintento } from '@/lib/alertas-sla'
+import {
+  compromisoPorId, vinculaEvidencia, leeConfiguracion,
+} from '@/lib/alertas-sla-sync'
 
 interface Ctx { params: { id: string } }
 
@@ -51,15 +59,122 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       }
     }
 
-    const updated = await updateCuenta(params.id, body)
+    /* ════════════════════════════════════════════════════════════════════════
+     * QUÉ CAMBIÓ — y si eso cierra la atención de una alerta
+     * ════════════════════════════════════════════════════════════════════════
+     *
+     * EL DIFF SE CALCULA ANTES DEL UPDATE, porque después ya no hay con qué
+     * comparar: `actual` es la fila como estaba, y es el único momento en que
+     * existe. No se recalcula leyendo otra vez, que daría un diff vacío.
+     *
+     * `alerta_sla_id` NO ENTRA EN EL DIFF ni en el update: es el amarre con el
+     * compromiso, no un campo de la cuenta. Sin quitarlo, mandar el id sería por
+     * sí mismo «un cambio real» y cualquier guardado cerraría la alerta — la
+     * trampa exacta que `validaEdicion` existe para cerrar. */
+    const slaId = String(body?.alerta_sla_id ?? '').trim() || null
+    const campos: Record<string, unknown> = { ...(body ?? {}) }
+    delete campos.alerta_sla_id
+
+    const diff = diffDeCampos(
+      actual as unknown as Record<string, unknown>, campos)
+
+    let sla = null
+    if (slaId) {
+      sla = await compromisoPorId(slaId)
+      if (!sla) {
+        return NextResponse.json(
+          { error: 'No existe ese compromiso de atención.' }, { status: 404 })
+      }
+      if (String(sla.cuenta_id) !== String(actual.id)) {
+        return NextResponse.json(
+          { error: 'No existe ese compromiso de atención.' }, { status: 404 })
+      }
+      if (sla.estado === 'cerrada') {
+        return NextResponse.json(
+          { error: 'Ese compromiso ya está cerrado. La ficha se puede editar '
+                 + 'sin vincularla.' }, { status: 409 })
+      }
+      const v = validaEdicion(diff)
+      if (!v.ok) {
+        return NextResponse.json({
+          error: 'evidencia_insuficiente',
+          faltan: v.faltan,
+          mensaje: 'Esta edición no cierra la alerta: ' + v.faltan.join(' '),
+        }, { status: 422 })
+      }
+    }
+
+    const updated = await updateCuenta(params.id, campos)
 
     // Auto-save health score snapshot when scores change
     const scoreKeys = ['score_actividad','score_adopcion','score_pago','score_relacional']
-    if (scoreKeys.some(k => k in body)) {
+    if (scoreKeys.some(k => k in campos)) {
       await saveHealthSnapshot(params.id, updated)
     }
 
-    return NextResponse.json(updated)
+    /* LA BITÁCORA DE EDICIONES SE ESCRIBE AUNQUE NO HAYA ALERTA, y por eso vale:
+       el día que alguien pregunte quién cambió el MRR de una cuenta, la
+       respuesta no puede depender de que esa edición cerrara una alerta.
+       Mejor esfuerzo: si la tabla todavía no existe —migración sin correr— el
+       PATCH no se cae, que es una pantalla en uso. Lo que no se hace es cerrar
+       la alerta en ese caso: se dice. */
+    let bitacora: Record<string, unknown> | null = null
+    if (Object.keys(diff).length > 0) {
+      const { data: fila, error: eDiff } = await supabaseAdmin
+        .from('cuentas_ediciones')
+        .insert({
+          cuenta_id: actual.id,
+          alerta_sla_id: slaId,
+          usuario: s.asesor ?? s.rol ?? 'sin firma',
+          rol: s.rol ?? null,
+          diff,
+        })
+        .select('id')
+        .single()
+      bitacora = eDiff
+        ? { ok: false, error: eDiff.message,
+            falta_migracion: esTablaInexistente(eDiff) }
+        : { ok: true, id: fila?.id, campos: Object.keys(diff) }
+    }
+
+    let atencion: Record<string, unknown> | null = null
+    if (sla) {
+      const idBitacora = bitacora && bitacora.ok === true ? String(bitacora.id) : null
+      if (!idBitacora) {
+        /* Sin asiento en la bitácora no hay evidencia a la que apuntar, y
+           `alertas_sla.evidencia_id` apuntaría al vacío. Se dice. */
+        atencion = {
+          ok: false,
+          error: 'La edición se guardó en la cuenta, pero no se pudo registrar el '
+               + 'cambio en la bitácora, así que la alerta sigue abierta: sin '
+               + 'asiento no hay evidencia que enseñar. '
+               + String((bitacora as { error?: unknown } | null)?.error ?? ''),
+        }
+      } else {
+        const cfg = await leeConfiguracion()
+        const r = await vinculaEvidencia({
+          sla,
+          evidenciaTipo: 'edicion',
+          evidenciaId: idBitacora,
+          resumen: 'Campos corregidos: ' + Object.keys(diff).join(', '),
+          resultado: null,
+          efecto: 'cierra',
+          usuario: s.asesor ?? s.rol ?? 'sin firma',
+          rol: s.rol ?? null,
+          inhabiles: cfg.calendario.inhabiles,
+          parametros: cfg.parametros,
+          reintentoLimite: limiteDeReintento(hoyEnMexico(), cfg.calendario.inhabiles),
+        })
+        atencion = r.ok
+          ? { ok: true, estado: r.estado, campos: Object.keys(diff),
+              mensaje: 'Corrección registrada, pendiente de validación. Esto NO '
+                     + 'apaga la alerta: la apaga que la fuente siguiente traiga '
+                     + 'el dato corregido.' }
+          : { ok: false, error: r.error }
+      }
+    }
+
+    return NextResponse.json({ ...updated, bitacora, atencion })
   } catch (e: unknown) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

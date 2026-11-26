@@ -24,6 +24,7 @@ import { bloqueoComercialDeCuenta } from '@/lib/elegibilidad'
 import EstadoCuentaBadge from '@/components/EstadoCuentaBadge'
 import CuentaBloqueoBanner from '@/components/CuentaBloqueoBanner'
 import CuentaVeredicto from '@/components/CuentaVeredicto'
+import { CompromisosDeCuenta } from '@/components/CompromisosSla'
 import { veredictosDeCartera } from '@/lib/alertas-estado'
 import { tonoSobreClaro, tonoSobrePagina, pastillaClara, rellenoParaTextoClaro } from '@/lib/contraste'
 
@@ -451,6 +452,27 @@ export default async function CuentaDetailPage({ params }: Props) {
           />
         </div>
       )}
+
+      {/* ══ LOS COMPROMISOS DE ATENCIÓN DE ESTA CUENTA ═══════════════════════
+          Debajo del veredicto y ARRIBA de los paneles, porque responde la
+          pregunta siguiente: el veredicto dice qué le pasa, esto dice para
+          cuándo hay que haberlo atendido y con qué se cierra.
+
+          Es SECCIÓN FIJA: se pinta aunque no haya ninguna alerta abierta, y en
+          ese caso lo dice con palabras. Esconderla cuando está vacía haría que
+          «sin alertas» y «no se midió» se vieran igual, que es exactamente lo
+          que no se puede colapsar. [[feedback-cero-sin-medicion]]
+
+          `superficie="clara"`: esta ficha NO tiene ni una `.cp-card` —medido—,
+          así que es isla clara y la letra va oscura.
+          [[atlas-dashboard-contrast-architecture]] */}
+      <div className="mx-6 mt-4">
+        <CompromisosDeCuenta
+          cuentaId={cuenta.id}
+          superficie="clara"
+          rol={h.get('x-user-rol') ?? 'viewer'}
+        />
+      </div>
 
       <div className="p-6 grid grid-cols-1 xl:grid-cols-3 gap-5">
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { detectarAlertas } from '@/lib/alertas-detectar'
 import { alertasConMemoria } from '@/lib/alertas-episodios'
+import { sincronizarCompromisos } from '@/lib/alertas-sla-sync'
+import { avisoDiarioSla } from '@/lib/alertas-sla-aviso'
 import { tomarSnapshot, lunesDeEstaSemana } from '@/lib/prediccion/snapshot'
 import { ahoraEnMexico, fechaLocal } from '@/lib/fecha-local'
 
@@ -25,9 +27,13 @@ import { ahoraEnMexico, fechaLocal } from '@/lib/fecha-local'
  * Así que la entrada es DIARIA y lo que se gatea es el snapshot:
  *
  *   · sellar alertas  → TODOS los días
+ *   · compromisos SLA → TODOS los días (el semáforo de vencimiento se calcula
+ *                       al leer, pero quien ABRE el compromiso del día y quien
+ *                       escala al tablero de incumplimientos es esta corrida)
+ *   · aviso por correo→ TODOS los días, y SÓLO con `SLA_CORREO=1`
  *   · snapshot        → sólo los LUNES (o con `?snapshot=1`)
  *
- * Una entrada de cron, las dos cadencias intactas.
+ * Una entrada de cron, las tres cadencias intactas.
  *
  * ── EL ORDEN NO ES CASUAL ─────────────────────────────────────────────────
  *
@@ -94,7 +100,88 @@ export async function GET(req: NextRequest) {
     console.error('[cron diario] sellado:', sellado.falla)
   }
 
-  /* ── 2 · SNAPSHOT, sólo los lunes ──────────────────────────────────────── */
+  /* ── 2 · LOS COMPROMISOS DE ATENCIÓN ───────────────────────────────────────
+   *
+   * VA DESPUÉS DEL SELLADO Y ANTES DEL SNAPSHOT, y ninguno de los dos órdenes
+   * es casual.
+   *
+   * Después del sellado porque un compromiso CUELGA de un episodio: si corriera
+   * antes, los episodios que nacen hoy todavía no existirían y sus alertas
+   * amanecerían sin fecha compromiso — o sea, leídas como atendidas por
+   * omisión. Y los que acaban de cerrarse seguirían abiertos, así que su
+   * compromiso no se cerraría hasta mañana.
+   *
+   * Antes del snapshot porque el retrato de la semana lee el estado de las
+   * alertas, y leerlo a medio escribir publicaría una foto que no corresponde a
+   * ningún momento.
+   *
+   * Y si el sellado FALLÓ, esto no corre: sincronizar compromisos contra una
+   * tabla de episodios a medio sellar abriría unos y cerraría otros por una
+   * razón que no es la del cliente. Se dice por qué en vez de devolver ceros. */
+  let compromisos: Record<string, unknown> | null = null
+  if (sellado.ok === true) {
+    try {
+      const r = await sincronizarCompromisos({ alcance: 'completo' })
+      compromisos = {
+        ok: r.falla === null,
+        abiertos: r.abiertos, nuevos: r.nuevos, cerrados: r.cerrados,
+        escalados: r.escalados,
+        /* Las condiciones que alertan y no tienen plazo configurado. Un hueco
+           aquí deja alertas sin fecha en el panel, y eso no se ve: hay que
+           poder leerlo de un vistazo. */
+        sinConfigurar: r.sinConfigurar,
+        sinCerrar: r.sinCerrar, falla: r.falla,
+      }
+    } catch (e) {
+      compromisos = { ok: false,
+                      falla: e instanceof Error ? e.message : 'error desconocido' }
+      console.error('[cron diario] compromisos:', compromisos.falla)
+    }
+  } else {
+    compromisos = {
+      ok: false,
+      falla: 'no se sincronizaron: el sellado de episodios falló en esta corrida, '
+           + 'y los compromisos cuelgan de los episodios',
+    }
+  }
+
+  /* ── 3 · EL AVISO POR CORREO ───────────────────────────────────────────────
+   *
+   * VA DESPUÉS DE SINCRONIZAR, porque lo que anuncia son los compromisos que
+   * esa sincronización acaba de abrir y escalar. Antes anunciaría el estado de
+   * ayer.
+   *
+   * NO CORRE SI LOS COMPROMISOS FALLARON: un resumen calculado sobre una tabla
+   * a medio escribir le diría a alguien que tiene cuatro alertas vencidas
+   * cuando tiene nueve, o al revés. Un aviso falso quema el canal: a la tercera
+   * vez, el correo se archiva sin abrir y el día que traiga una crítica de
+   * verdad tampoco se abrirá.
+   *
+   * Y VIENE APAGADO. Sin `SLA_CORREO=1` calcula el lote, publica a quién le
+   * habría escrito y no manda nada. Encenderlo es de quien responde por el
+   * equipo. Ver `lib/alertas-sla-aviso.ts`. */
+  let aviso: Record<string, unknown> | null = null
+  if (compromisos && compromisos.ok === true) {
+    try {
+      const r = await avisoDiarioSla()
+      aviso = { ok: r.fallas.length === 0, enviado: r.enviado,
+                porque: r.porque, lote: r.lote, fallas: r.fallas }
+    } catch (e) {
+      /* La falla del correo NO tumba la corrida: los compromisos ya están
+         escritos y eso es el dato. Esto era sólo cómo se cuenta. */
+      aviso = { ok: false, enviado: false,
+                falla: e instanceof Error ? e.message : 'error desconocido' }
+      console.error('[cron diario] aviso:', aviso.falla)
+    }
+  } else {
+    aviso = {
+      ok: false, enviado: false,
+      porque: 'no se avisó: los compromisos no se sincronizaron en esta corrida, '
+            + 'y anunciar una cola a medio escribir es peor que no anunciarla',
+    }
+  }
+
+  /* ── 4 · SNAPSHOT, sólo los lunes ──────────────────────────────────────── */
   let snapshot: Record<string, unknown> | null = null
   if (tocaSnapshot) {
     try {
@@ -120,7 +207,9 @@ export async function GET(req: NextRequest) {
      publicó «nuevos: 4, falla: null» durante un día entero mientras los mismos
      cuatro episodios se rechazaban en silencio. */
   return NextResponse.json({
-    ok: sellado.ok === true && (snapshot === null || snapshot.ok === true),
+    ok: sellado.ok === true
+      && (compromisos === null || compromisos.ok === true)
+      && (snapshot === null || snapshot.ok === true),
     disparo,
     dia: fechaLocal(hoyMx),
     /* Se dice POR QUÉ no hubo snapshot, en vez de omitirlo sin más: un `null`
@@ -129,6 +218,12 @@ export async function GET(req: NextRequest) {
       ? (esLunes ? 'sí, es lunes' : 'sí, forzado con ?snapshot=1')
       : `no, hoy no es lunes (semana en curso: ${lunesDeEstaSemana()})`,
     sellado,
+    compromisos,
+    /* `aviso` NO entra en el `ok` de arriba: que el correo no salga no hace
+       fallida la corrida —el dato quedó escrito— y meterlo ahí pondría el
+       semáforo del cron en rojo todos los días mientras `SLA_CORREO` esté
+       apagado, que es su estado por omisión. Se publica aparte, con su razón. */
+    aviso,
     snapshot,
   })
 }

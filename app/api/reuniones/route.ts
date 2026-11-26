@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin, esTablaInexistente } from '@/lib/supabase'
 import { llevaCuenta, exigeCuenta } from '@/lib/reuniones-tipo'
 import { interpretaValor, catalogoCuentas } from '@/lib/catalogo-cuentas'
+import { hoyEnMexico } from '@/lib/fecha-local'
+import { sesionDe } from '@/lib/dueno'
+import { validaReunion, limiteDeReintento } from '@/lib/alertas-sla'
+import {
+  compromisoPorId, vinculaEvidencia, leeConfiguracion,
+} from '@/lib/alertas-sla-sync'
 
 export const dynamic = 'force-dynamic'
 
@@ -131,6 +137,62 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+   * ¿ESTA REUNIÓN CIERRA LA ATENCIÓN DE UNA ALERTA?
+   * ══════════════════════════════════════════════════════════════════════════
+   *
+   * Mismas tres exigencias que en `/api/seguimientos`, y se comprueban ANTES de
+   * insertar por la misma razón: una reunión guardada que no cerró la alerta que
+   * el asesor creía cerrar es peor que una reunión rechazada.
+   *
+   * LA CUARTA, Y ES PROPIA DE AQUÍ: una reunión amarrada sólo por CID lleva
+   * `cuenta_id` en NULL —así entran los 2,556 clientes que no tienen ficha en
+   * `cuentas`—. Un compromiso cuelga de un episodio, y un episodio cuelga de una
+   * cuenta: sin uuid no hay nada que comparar, así que no puede ser evidencia.
+   * Se dice con palabras en vez de dejar que `null === null` cierre la alerta de
+   * cualquier otra cuenta sin uuid. */
+  const slaId = String(body?.alerta_sla_id ?? '').trim() || null
+  let sla = null
+  if (slaId) {
+    sla = await compromisoPorId(slaId)
+    if (!sla) {
+      return NextResponse.json(
+        { error: 'No existe ese compromiso de atención.' }, { status: 404 })
+    }
+    if (!cuentaIdFinal) {
+      return NextResponse.json({
+        error: 'reunion_sin_cuenta_en_cartera',
+        mensaje: 'Esta reunión no está amarrada a una cuenta de la cartera (sólo al '
+               + 'CID del padrón de facturación), así que no puede cerrar la '
+               + 'atención de una alerta. Registrar la reunión sin vincularla, y '
+               + 'cerrar la alerta con un seguimiento en la cuenta.',
+      }, { status: 400 })
+    }
+    if (String(sla.cuenta_id) !== String(cuentaIdFinal)) {
+      /* 404 y no 403, igual que en seguimientos: un mensaje distinguible
+         confirmaría que el id existe y de qué cuenta es. */
+      return NextResponse.json(
+        { error: 'No existe ese compromiso de atención.' }, { status: 404 })
+    }
+    if (sla.estado === 'cerrada') {
+      return NextResponse.json(
+        { error: 'Ese compromiso ya está cerrado. La reunión se puede registrar '
+               + 'sin vincularla.' }, { status: 409 })
+    }
+    const cfgPrevia = await leeConfiguracion()
+    const v = validaReunion(
+      { fecha, participantes, resumen, acuerdos, proximos_pasos },
+      cfgPrevia.parametros,
+    )
+    if (!v.ok) {
+      return NextResponse.json({
+        error: 'evidencia_insuficiente',
+        faltan: v.faltan,
+        mensaje: 'Esta reunión no cierra la alerta todavía. Falta: ' + v.faltan.join(' '),
+      }, { status: 422 })
+    }
+  }
+
   const { data, error } = await supabaseAdmin
     .from('reuniones')
     .insert({
@@ -186,5 +248,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ row: data })
+  /* ── Y AHORA SÍ: se vincula la evidencia ──────────────────────────────────
+   *
+   * Una reunión NO tiene «resultado», así que el efecto es siempre `cierra`: no
+   * existe la reunión «sin respuesta» —si no se presentaron, no hubo reunión y
+   * eso se captura como seguimiento—. Por eso aquí no hay rama de reintento. */
+  let atencion: Record<string, unknown> | null = null
+  if (sla) {
+    const cfg = await leeConfiguracion()
+    const r = await vinculaEvidencia({
+      sla,
+      evidenciaTipo: 'reunion',
+      evidenciaId: String((data as { id: unknown }).id),
+      resumen: String(resumen ?? '').slice(0, 500),
+      resultado: null,
+      efecto: 'cierra',
+      usuario: sesionDe(req.headers).asesor ?? 'sin firma',
+      rol: req.headers.get('x-user-rol'),
+      inhabiles: cfg.calendario.inhabiles,
+      parametros: cfg.parametros,
+      reintentoLimite: limiteDeReintento(hoyEnMexico(), cfg.calendario.inhabiles),
+    })
+    atencion = r.ok
+      ? {
+          ok: true, estado: r.estado, efecto: 'cierra',
+          mensaje: 'Atención registrada con la minuta, pendiente de validación. '
+                 + 'Esto NO apaga la alerta: sigue en la lista hasta que la '
+                 + 'condición se apague.',
+        }
+      : { ok: false, error: r.error }
+  }
+
+  /* 200 aunque la vinculación falle: la reunión SÍ se guardó, y un error haría
+     que el formulario la reintentara y la duplicara. `atencion.ok` lo dice. */
+  return NextResponse.json({ row: data, atencion })
 }
