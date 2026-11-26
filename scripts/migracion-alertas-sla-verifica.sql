@@ -27,9 +27,13 @@
 -- empezaba a funcionar. Un comentario que avisa de eso no basta: lo que se lee
 -- de un vistazo es la columna de veredictos, no el encabezado.
 --
--- Ahora miden INVARIANTES, que son verdad el primer día y el día mil: ningún
--- compromiso abierto sin fecha límite, ningún asiento huérfano, ninguna edición
--- con diff vacío. [[feedback-cero-sin-medicion]]
+-- Ahora miden INVARIANTES, que son verdad el primer día y el día mil.
+--
+-- Y EL PRIMER INTENTO DE ESOS TRES TAMPOCO SERVÍA: preguntaba cosas que el
+-- esquema ya hace imposibles, así que salían verdes sin probar nada. Están
+-- reescritos sobre lo que NINGUNA restricción vigila — ver el comentario largo
+-- junto al renglón 4. Un verde que no se puede perder no es un verde.
+-- [[feedback-cero-sin-medicion]] [[feedback-probar-al-reves]]
 -- ═══════════════════════════════════════════════════════════════════════════
 
 WITH chk(n, comprobacion, obtenido, esperado) AS (
@@ -43,29 +47,47 @@ WITH chk(n, comprobacion, obtenido, esperado) AS (
     (3, 'sla_parametros · parámetros que no son por condición',
         (SELECT count(*) FROM public.sla_parametros), 10::bigint),
 
-    -- Un compromiso abierto SIN fecha límite es el hueco que no se ve: el panel
-    -- lo lee como atendido por omisión. Nace así cuando su condición no tiene
-    -- fila en `sla_config`, que se arregla sembrando, no tocando código.
-    (4, 'alertas_sla · compromisos abiertos SIN fecha límite',
-        (SELECT count(*) FROM public.alertas_sla
-          WHERE estado NOT IN ('cerrada','rechazada')
-            AND fecha_limite IS NULL), 0::bigint),
+    -- ── 4, 5 y 6: TRES QUE ESTUVIERON VERDES DE GRATIS (26 nov 2026) ────────
+    -- La primera versión de estos tres preguntaba por `fecha_limite IS NULL`,
+    -- por un `sla_id` huérfano y por un `diff` vacío. Los tres salieron en
+    -- verde, y ninguno de los tres podía salir de otra manera: `fecha_limite`
+    -- es `DATE NOT NULL`, el `sla_id` tiene FK con ON DELETE CASCADE y el
+    -- `diff` lo cubre el CHECK `diff_no_vacio` —cuya existencia confirma el
+    -- renglón 11—. O sea que eran imposibles de falsear: un «ok» que el
+    -- esquema regala, no una medición. Es la misma trampa que el verificador
+    -- que concluye éxito por defecto. [[feedback-verificar-antes-asegurar]]
+    --
+    -- Los tres de ahora NO los protege nada: `condicion` es TEXT suelto sin FK,
+    -- y la coherencia entre la evidencia y la cuenta del compromiso no la
+    -- vigila ninguna restricción. Pueden salir distintos de cero, que es el
+    -- único requisito para que un verde signifique algo.
 
-    -- Un asiento que apunta a un compromiso que ya no existe. No debería poder
-    -- pasar —hay FK con ON DELETE CASCADE—, y justamente por eso vale medirlo:
-    -- si sale distinto de cero, la FK no está donde se cree que está.
-    (5, 'alertas_sla_bitacora · asientos huérfanos',
+    -- EL HUECO QUE NO SE VE: una condición que alerta y no tiene plazo. Su
+    -- compromiso nace sin reloj y el panel lo lee como atendido por omisión.
+    -- Se arregla sembrando una fila en `sla_config`, no tocando código.
+    (4, 'alertas_sla · compromisos abiertos cuya condición NO está en sla_config',
+        (SELECT count(*) FROM public.alertas_sla s
+          WHERE s.estado NOT IN ('cerrada','rechazada')
+            AND NOT EXISTS (SELECT 1 FROM public.sla_config c
+                             WHERE c.condicion = s.condicion)), 0::bigint),
+
+    -- Un asiento firmado contra una cuenta distinta de la del compromiso. Es
+    -- la bitácora de quién respondió por qué cuenta: si se cruzan, el registro
+    -- acusa a la cuenta equivocada.
+    (5, 'alertas_sla_bitacora · asientos cuya cuenta NO es la del compromiso',
         (SELECT count(*) FROM public.alertas_sla_bitacora b
-          WHERE b.sla_id IS NOT NULL
-            AND NOT EXISTS (SELECT 1 FROM public.alertas_sla s
-                             WHERE s.id = b.sla_id)), 0::bigint),
+           JOIN public.alertas_sla s ON s.id = b.sla_id
+          WHERE b.cuenta_id IS NOT NULL
+            AND b.cuenta_id <> s.cuenta_id), 0::bigint),
 
-    -- Una edición con diff vacío sería «editar sin cambiar nada» contado como
-    -- evidencia, que es exactamente lo que el encargo prohíbe. Lo impide el
-    -- CHECK `diff_no_vacio`; esto comprueba que el CHECK está HACIENDO algo.
-    (6, 'cuentas_ediciones · ediciones con diff vacío',
-        (SELECT count(*) FROM public.cuentas_ediciones
-          WHERE diff = '{}'::jsonb), 0::bigint),
+    -- LA REGLA CENTRAL DEL ENCARGO: la evidencia va «registrada en la misma
+    -- cuenta». Una edición colgada de un compromiso de OTRA cuenta cerraría
+    -- una alerta con trabajo hecho en otro cliente, y nada en el esquema lo
+    -- impide: son dos FK independientes que nadie obliga a coincidir.
+    (6, 'cuentas_ediciones · evidencia colgada de un compromiso de OTRA cuenta',
+        (SELECT count(*) FROM public.cuentas_ediciones e
+           JOIN public.alertas_sla s ON s.id = e.alerta_sla_id
+          WHERE e.cuenta_id <> s.cuenta_id), 0::bigint),
 
     -- RLS activado en las SEIS. Un `false` aquí es una fuga abierta.
     (7, 'RLS ACTIVADO en las seis tablas nuevas',
