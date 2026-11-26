@@ -15,8 +15,15 @@
 --
 -- CÓMO SE LEE
 -- -----------
---   · `veredicto = ok`        → esa comprobación pasó.
---   · `veredicto = *** NO ***`→ esa NO pasó. El `obtenido` dice qué salió.
+--   · `veredicto = ok`             → esa comprobación pasó.
+--   · `veredicto = *** NO ***`     → esa NO pasó. El `obtenido` dice qué salió.
+--   · `veredicto = — sin medir —`  → el universo estaba vacío. NO es un
+--     aprobado: es que no había nada que mirar, y conviene volver cuando lo
+--     haya. Sólo lo pueden decir los renglones 4, 5 y 6.
+--
+-- Los renglones 4 y 5 también los mide `scripts/mide-coherencia-sla.py` sin
+-- pegar nada: son tablas normales, que PostgREST sí sirve. Este archivo hace
+-- falta por los otros diez, que leen el CATÁLOGO de Postgres.
 --
 -- LAS TRECE VALEN SIEMPRE, Y ESO SE CORRIGIÓ (26 nov 2026)
 -- --------------------------------------------------------
@@ -65,29 +72,36 @@ WITH chk(n, comprobacion, obtenido, esperado) AS (
     -- EL HUECO QUE NO SE VE: una condición que alerta y no tiene plazo. Su
     -- compromiso nace sin reloj y el panel lo lee como atendido por omisión.
     -- Se arregla sembrando una fila en `sla_config`, no tocando código.
+    -- El `CASE … THEN NULL` de los tres es deliberado: si el UNIVERSO está
+    -- vacío, `obtenido` sale NULL y el veredicto dice «— sin medir —» en vez
+    -- de «ok». Un `0 = 0` sobre cero filas es la cara exacta de un sistema
+    -- sano, y no prueba nada. [[feedback-cero-sin-medicion]]
     (4, 'alertas_sla · compromisos abiertos cuya condición NO está en sla_config',
-        (SELECT count(*) FROM public.alertas_sla s
-          WHERE s.estado NOT IN ('cerrada','rechazada')
-            AND NOT EXISTS (SELECT 1 FROM public.sla_config c
-                             WHERE c.condicion = s.condicion)), 0::bigint),
+        (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE count(*) FILTER (
+                  WHERE NOT EXISTS (SELECT 1 FROM public.sla_config c
+                                     WHERE c.condicion = s.condicion)) END
+           FROM public.alertas_sla s
+          WHERE s.estado NOT IN ('cerrada','rechazada')), 0::bigint),
 
     -- Un asiento firmado contra una cuenta distinta de la del compromiso. Es
     -- la bitácora de quién respondió por qué cuenta: si se cruzan, el registro
     -- acusa a la cuenta equivocada.
     (5, 'alertas_sla_bitacora · asientos cuya cuenta NO es la del compromiso',
-        (SELECT count(*) FROM public.alertas_sla_bitacora b
+        (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE count(*) FILTER (
+                  WHERE b.cuenta_id <> s.cuenta_id) END
+           FROM public.alertas_sla_bitacora b
            JOIN public.alertas_sla s ON s.id = b.sla_id
-          WHERE b.cuenta_id IS NOT NULL
-            AND b.cuenta_id <> s.cuenta_id), 0::bigint),
+          WHERE b.cuenta_id IS NOT NULL), 0::bigint),
 
     -- LA REGLA CENTRAL DEL ENCARGO: la evidencia va «registrada en la misma
     -- cuenta». Una edición colgada de un compromiso de OTRA cuenta cerraría
     -- una alerta con trabajo hecho en otro cliente, y nada en el esquema lo
     -- impide: son dos FK independientes que nadie obliga a coincidir.
     (6, 'cuentas_ediciones · evidencia colgada de un compromiso de OTRA cuenta',
-        (SELECT count(*) FROM public.cuentas_ediciones e
-           JOIN public.alertas_sla s ON s.id = e.alerta_sla_id
-          WHERE e.cuenta_id <> s.cuenta_id), 0::bigint),
+        (SELECT CASE WHEN count(*) = 0 THEN NULL ELSE count(*) FILTER (
+                  WHERE e.cuenta_id <> s.cuenta_id) END
+           FROM public.cuentas_ediciones e
+           JOIN public.alertas_sla s ON s.id = e.alerta_sla_id), 0::bigint),
 
     -- RLS activado en las SEIS. Un `false` aquí es una fuga abierta.
     (7, 'RLS ACTIVADO en las seis tablas nuevas',
@@ -160,6 +174,8 @@ SELECT n,
        comprobacion,
        obtenido,
        esperado,
-       CASE WHEN obtenido = esperado THEN 'ok' ELSE '*** NO ***' END AS veredicto
+       CASE WHEN obtenido IS NULL      THEN '— sin medir —'
+            WHEN obtenido = esperado   THEN 'ok'
+            ELSE                            '*** NO ***' END AS veredicto
   FROM chk
  ORDER BY n;
