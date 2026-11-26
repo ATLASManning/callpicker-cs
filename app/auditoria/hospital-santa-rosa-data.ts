@@ -3,77 +3,145 @@ import type { AuditoriaCase } from './types'
 /**
  * HOSPITAL SANTA ROSA · C4 · CID 81735
  *
- * v2.0 — ACTUALIZACIÓN DEL 12 NOV 2026. Sustituye al corte de julio, que cubría
- * 203 días y 55,638 registros; éste cubre 315 días y 85,467, y confirma el
- * hallazgo central con casi el doble de datos.
+ * v3.0 — ACTUALIZACIÓN DEL 26 NOV 2026. Tercer corte del año: 330 días y 89,238
+ * registros (48,106 entrantes + 41,132 salientes), contra los 315 días y 85,467
+ * del 12 nov y los 203 días y 55,638 de julio.
+ *
+ * ── LO QUE CAMBIA LA CONVERSACIÓN EN ESTE CORTE ─────────────────────────────
+ *
+ * A. **EL HALLAZGO CENTRAL VALE EL DOBLE DE LO QUE EL DOCUMENTO DICE.** El
+ *    resumen ejecutivo afirma que «el 38.2% corresponde a comunicación interna
+ *    entre extensiones». La comunicación interna real es el **73.98%** de las
+ *    89,238 llamadas: 32,653 entrantes internas (36.59%) + 33,364 salientes
+ *    internas (37.39%). El 38.2% es la cuota de las salientes internas más las
+ *    inválidas — la mitad del fenómeno rotulada como el fenómeno entero. Casi
+ *    tres cuartas partes de la telefonía de este hospital es tráfico interno, y
+ *    ése es el tráfico que pierde ~24%.
+ *
+ * B. **OCTUBRE ES EL MEJOR MES CERRADO DEL AÑO EN AMBAS DIRECCIONES** (19.3%
+ *    entrante y 20.2% saliente, contra 22.9% y 23.6% en enero), y el documento
+ *    afirma «sin una tendencia de mejora ni de deterioro marcado» y fija el
+ *    rango en «22% a 32%». El piso real de los meses cerrados es 19.3%. Un
+ *    rango cuyo piso está 2.7 puntos por encima del mínimo real borra
+ *    precisamente el único mes bueno del año — y es el dato con el que se
+ *    entra a hablar con el hospital. [[feedback-cero-sin-medicion]]
+ *
+ * C. **EL GRC MARCA LA CUENTA «CHURN CONFIRMADO» CON MRR FINAL $0.** Fila del
+ *    corte vigente: clasif AAA, 10 facturas, 61 meses, $1,270,317 acumulados,
+ *    `mrrIni 18345`, `mrrFin 0.0`, `perdida 18345`, `movimiento 'Churn
+ *    confirmado'` — y a la vez `verificacion 'sigue_viva'` verificada por
+ *    cartera, con `cuentas.estado = 'activo'` y contacto el 26 nov 2026. Las
+ *    dos cosas no pueden ser verdad. Una señal de churn en el GRC NO es
+ *    autorización de baja: se declara y se sube a dirección, y no se toca el
+ *    estado de la cuenta desde aquí. Es el mismo patrón que apareció el mismo
+ *    día en Sellomatic (D27). [[feedback-conciliacion-churn]]
+ *    [[regla-churn-mes-vencido]]
+ *
+ * ── CINCO CIFRAS QUE NO CIERRAN, MEDIDAS CON GUION ──────────────────────────
+ * `python scripts/concilia-auditoria-santa-rosa-2026-11-26.py <ruta.html>`
+ * (guion NUEVO: el del 12 nov sólo entiende la forma `const D` y este corte
+ * embebe `const DATA`). Lo que reporta:
+ *   1. «38.2% comunicación interna» → real 73.98%.
+ *   2. «15.9% salientes externas» → real 7.93% (son 7,079 de 89,238).
+ *   3. Las tres cuotas del resumen suman 108.0% porque LOS CUBOS SE SOLAPAN:
+ *      las entrantes internas están contadas dentro de «entrantes» (53.9%, que
+ *      sí es correcto) y otra vez dentro de «comunicación interna».
+ *   4. «93,036 minutos reales conectados» → sus dos sumandos del propio objeto
+ *      dan 92,349 (55,613 + 36,736). Difieren 687.
+ *   5. El rango «22%–32%» → el piso real es 19.3%.
+ * Y dos avisos de lectura, no de aritmética: el KPI «24.7% · promedio
+ * entrante+saliente» no es ese promedio (23.89%), sino el total con los 689
+ * marcados inválidos dentro (24.68%); y el «sin mejora observable» del punto B.
+ *
+ * TODO LO DEMÁS CIERRA AL DÍGITO, y es mucho: los dos totales contra sus tres
+ * categorías, el desenlace de las entrantes, las perdidas por categoría, las
+ * cuatro series mensuales, los dos repartos de perdidas, las 44 tasas
+ * mensuales, las 50 filas de las dos tablas y las cuatro clases de evaluación.
+ * La extracción de datos de este corte es sólida; lo que falla es el resumen.
+ *
+ * ── Y UN DEFECTO DE FORMA QUE ROMPE EL RENDER ───────────────────────────────
+ * El documento trae `<h4">` (con una comilla suelta) en la sección 5. Corregido
+ * al publicar.
  *
  * ── TRES COSAS QUE EL DOCUMENTO ENTREGADO TRAÍA MAL Y AQUÍ VAN CORREGIDAS ───
  *
- * 1. EL ASESOR. El reporte nombra a «Claudia Hernández» como responsable, en el
- *    encabezado, en el pie y en cuatro de las seis filas del plan de
- *    seguimiento. **Erick la sustituyó el 15 oct 2026** en 71 cuentas y ésta es
- *    una de ellas: `cuentas.asesor` y el GRC vigente dicen Erick, y el respaldo
- *    `data/respaldo-asesor-claudia.2026-10-15.json` la lista. Un documento
- *    operativo que asigna seis acciones a quien ya no lleva la cuenta no es un
- *    detalle de forma. [[erick-sustituye-a-claudia]]
+ * 1. EL ASESOR, OTRA VEZ. El reporte del 26 nov vuelve a nombrar a «Claudia
+ *    Hernández» como responsable, en el pie y en tres filas del plan de
+ *    seguimiento más la propuesta de portafolio. **Erick la sustituyó el 15 oct
+ *    2026** en 71 cuentas y ésta es una de ellas: `cuentas.asesor` y el GRC
+ *    vigente dicen Erick, y el respaldo
+ *    `data/respaldo-asesor-claudia.2026-10-15.json` la lista. Es el mismo
+ *    defecto que el corte del 12 nov, no corregido en origen, y aparece también
+ *    en los reportes de ALTERNET (C10) y Grupo Neruc (C9) del mismo lote: es
+ *    una clase de error del generador de reportes, no un descuido de este
+ *    documento. [[erick-sustituye-a-claudia]]
  *
- * 2. EL MRR. El reporte repite «$20,953», que viene heredado del corte de
- *    julio. **El MRR institucional es el del GRC y nada más**: `mrrIni 18345`,
- *    estable en los tres cortes revisados (2 oct, 13 oct y el vigente).
- *    `cuentas.facturacion` dice 20,999 y tampoco sirve. [[grc-fuente-zoho]]
- *    [[project-callpicker-pendientes]]
+ * 2. EL MRR. El reporte repite «MRR fijo de $20,953», que viene heredado del
+ *    corte de julio. **El MRR institucional es el del GRC y nada más**:
+ *    `mrrIni 18345`. `cuentas.facturacion` dice 20,999 y tampoco sirve, y ni
+ *    siquiera coincide con el documento: son TRES cifras distintas para lo
+ *    mismo. `servicios_json` trae el concepto sin importe, así que la ficha no
+ *    puede arbitrar. [[grc-fuente-zoho]] [[feedback-fuente-unica-cuentas]]
  *
- * 3. EL DESGLOSE DEL AUTOSERVICIO NO CIERRA. El 23.4% implica 3,467 llamadas
- *    sobre las 14,817 externas entrantes; el reparto por línea del documento
- *    suma 1,483 (10.0%) **aun teniendo un cubo «Otras líneas»**, que por
- *    convención cierra la tabla. El indicador agregado sí se sostiene —sigue la
- *    tendencia del 24.5% de julio, que cerraba sobre 9,766—, pero **el desglose
- *    por línea no se cita** hasta que Análisis DATA lo confirme. Marcado con
- *    palabras, no omitido. [[feedback-tablas-deben-cerrar]]
- *    [[feedback-contexto-ia-sin-huecos]]
+ * 3. EL AUTOSERVICIO, AHORA SÍ CIERRA. El corte del 12 nov declaraba 23.4% con
+ *    un reparto por línea que sumaba 1,483 de las 3,467 implícitas, y por eso
+ *    la v2.0 prohibía citar ese desglose. Este corte publica 7.5% y **cuadra
+ *    exacto**: 3,629 de 48,106 entrantes = 7.544%. El desglose por línea ya no
+ *    aparece en el documento, así que la prohibición de la v2.0 deja de
+ *    aplicar — pero el salto de 23.4% a 7.5% es un cambio de DENOMINADOR
+ *    (externas entrantes contra entrantes totales), no una caída del
+ *    autoservicio, y los dos NO se presentan como serie.
+ *    [[feedback-tablas-deben-cerrar]] [[feedback-metricas-derivadas-origen]]
  *
- * Lo verifica `python scripts/concilia-auditoria-santa-rosa.py`, que lee las
- * cifras EMBEBIDAS en el propio `.html` y las recalcula: los dos totales, los
- * dos repartos de entrantes externas, las 54 tasas de extensión, los cuatro
- * rangos que el texto afirma y los minutos. Todo lo demás cierra al número.
+ * ── POR QUÉ ESTE CORTE NECESITÓ UN CONCILIADOR NUEVO ────────────────────────
+ * Al pasarle este documento a `concilia-auditoria-santa-rosa.py`, el guion
+ * **ignoró el argumento** —tenía la ruta clavada en una constante— y concilió
+ * el documento del 12 NOV, imprimiendo «ok» siete veces sobre un archivo que
+ * nadie le había pedido mirar. Un verificador que concilia el documento
+ * equivocado y concluye éxito es peor que no tener verificador. Quedó
+ * arreglado: ahora acepta la ruta, imprime SIEMPRE el archivo leído y, si le
+ * dan la forma que no entiende, falla diciendo cuál usar. El corte del 26 nov
+ * se concilia con `concilia-auditoria-santa-rosa-2026-11-26.py`.
+ * [[feedback-verificar-antes-asegurar]]
  *
  * ── Y UNA CONTRADICCIÓN CON NUESTRO PROPIO MOTOR ────────────────────────────
- * La cuenta tiene CUATRO alertas abiertas, confirmadas el 12 nov 2026, dos de
- * ellas críticas — entre ellas `sin_interlocutor`, en condición desde el 6 jul
- * 2026. El reporte da por resuelto el problema de contacto con la actualización
- * a Ernesto del 21-jul. **Las dos cosas no pueden ser verdad.** Va como hallazgo
- * y como acción, no como nota al pie. [[alertas-cliente]]
+ * La cuenta tiene CUATRO alertas abiertas, dos de ellas críticas — entre ellas
+ * `sin_interlocutor`, en condición desde el 6 jul 2026. El reporte da por
+ * resuelto el problema de contacto con la actualización a Ernesto del 21-jul.
+ * **Las dos cosas no pueden ser verdad.** Va como hallazgo y como acción, no
+ * como nota al pie. [[alertas-cliente]]
  */
 export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
   id:                    'hospital-santa-rosa',
   asesor:                'Erick',
   nombre:                'Hospital Santa Rosa',
   sector:                'Salud / Hospitales Privados',
-  fecha_periodo:         'Enero – Noviembre 2026 (315 días)',
+  fecha_periodo:         '1 ene – 26 nov 2026 (330 días) · nov en tránsito',
   fecha_auditoria:       'Nov 2026',
-  tipo_cliente:          'Mediana · 51–200 empleados · 1 oficina · AAA',
-  descripcion_contexto:  'Unidad hospitalaria privada · Querétaro, Qro. · C4 · CID 81735 · Asesor: Erick Sánchez',
+  tipo_cliente:          'Mediana · 51–200 empleados · 1 oficina · AAA · MRR $18,345 (GRC, marcado «Churn confirmado»)',
+  descripcion_contexto:  'Unidad hospitalaria privada · Querétaro, Qro. · C4 · CID 81735 · Asesor: Erick Sánchez · 89,238 registros',
   estado:                'en_riesgo',
   clasificacion:         'CONFIDENCIAL',
-  version:               '2.0',
+  version:               '3.0',
 
   kpis: [
-    { label: 'Pérdida comunicación interna',  value: '25.0% / 23.0%', color: '#ef4444' },
-    { label: 'Pérdida salientes externas',    value: '38.6%',         color: '#f97316' },
-    { label: 'MRR institucional (GRC)',       value: '$18,345',       color: '#6366f1' },
-    { label: 'Alertas abiertas',              value: '4 · 2 críticas', color: '#dc2626' },
+    { label: 'La telefonía es INTERNA',       value: '73.98% · 66,017 de 89,238', color: '#ef4444' },
+    { label: 'Pérdida interna (ent / sal)',   value: '22.9% / 24.9%',             color: '#dc2626' },
+    { label: 'Octubre, mejor mes cerrado',    value: '19.3% / 20.2%',             color: '#22c55e' },
+    { label: 'Devolución de perdidas',        value: '0.9% · 78 de 8,309',        color: '#f59e0b' },
   ],
 
   resumen_ejecutivo:
-    'Actualización de la auditoría forense con 29,829 registros nuevos (agosto–noviembre), que llevan la base de 55,638 a 85,467 registros y el periodo de 203 a 315 días. ' +
-    'Diez meses completos confirman el hallazgo central del corte de julio y, en los indicadores internos, lo agravan: la comunicación entre extensiones pierde 25.0% de los intentos salientes y 23.0% de los entrantes, y no hubo una sola mejora sostenida en todo el año — la pérdida interna nunca bajó de 19.3% ni la saliente externa de 33.0% en ningún mes. Agosto fue el peor mes interno (31.7%). ' +
-    'La atención al paciente externo sigue siendo el punto fuerte con 5.3% de pérdida, aunque sube desde el 4.9% de julio. ' +
-    'Casi cuatro meses habrían bastado para corregir lo que el corte anterior ya documentaba; ningún indicador de riesgo mejoró, lo que sitúa el problema en que los hallazgos nunca llegaron al cliente. ' +
-    'Nota de rigor: el reporte entregado asigna la cuenta a Claudia Hernández y cifra el MRR en $20,953; ambas están desactualizadas y aquí van corregidas contra la cartera y el GRC.',
+    'Tercer corte del año: 330 días y 89,238 registros (48,106 entrantes y 41,132 salientes), contra los 85,467 del 12 de noviembre y los 55,638 de julio. Y el corte cambia dos cosas de fondo que el documento entregado no dice.\n\n' +
+    'La primera es el tamaño del hallazgo central. El reporte afirma que la comunicación interna es el 38.2% de la telefonía del hospital; es el 73.98% — 32,653 entrantes internas más 33,364 salientes internas de las 89,238 llamadas. El 38.2% es sólo la mitad saliente del fenómeno, rotulada como el fenómeno completo. Casi tres cuartas partes del teléfono de este hospital es tráfico entre extensiones, y ése es el tráfico que pierde cerca de una cuarta parte de los intentos: 22.9% en entrantes y 24.9% en salientes (23.9% combinado extensión a extensión; 24.7% si se cuentan los 689 marcados inválidos, que es la cifra que el documento publica bajo la etiqueta equivocada de «promedio»).\n\n' +
+    'La segunda es que octubre es el mejor mes cerrado del año EN AMBAS DIRECCIONES: 19.3% entrante y 20.2% saliente, contra 22.9% y 23.6% en enero. El documento afirma «sin una tendencia de mejora» y fija el rango en 22%–32%, un piso 2.7 puntos por encima del mínimo real, lo que borra el único mes bueno del año. Noviembre, en tránsito, va igual (19.5% y 20.2%). Hay algo que mejoró y nadie ha documentado qué cambió — y es precisamente el dato con el que se entra a hablar con el hospital.\n\n' +
+    'Lo que no mejoró es la recuperación: de 8,309 llamadas entrantes perdidas, 78 (0.9%) fueron devueltas. En la práctica operativa una llamada perdida es una llamada cerrada. Y la atención al paciente externo sigue siendo el punto fuerte: 5.3% de pérdida en 15,349 llamadas.\n\n' +
+    'Tres notas de rigor que hay que llevar a la conversación. El reporte vuelve a asignar la cuenta a Claudia Hernández, a quien Erick sustituyó el 15 de octubre. Cifra el MRR en $20,953, cuando el institucional del GRC es $18,345 y la ficha dice $20,999: tres cifras para lo mismo. Y el GRC marca esta cuenta como «Churn confirmado» con MRR final en $0 y pérdida de $18,345, mientras la declara a la vez `sigue_viva`, con estado activo y contacto el 26 de noviembre. Eso se sube a dirección; no se da de baja nada desde aquí.',
 
   resultado_positivo:
-    'Atención a pacientes externos: 5.3% de pérdida en 14,817 llamadas entrantes genuinas, muy por debajo del promedio del sector y sostenida al duplicarse el volumen analizado. ' +
-    'El reparto de esas 14,817 llamadas cierra al número tanto por hora del día como por día de la semana, y las 54 tasas de pérdida por extensión se recalculan exactas desde sus partes: la extracción de datos de este corte es sólida.',
+    'Octubre es el mejor mes cerrado del año en las dos direcciones internas (19.3% y 20.2%) y noviembre va igual. Es la primera señal de mejora real en tres cortes, y el documento la niega: hay algo que cambió en la operación del hospital y vale más averiguar qué fue que insistir en el problema.\n\n' +
+    'La atención a pacientes externos sigue siendo sólida: 5.3% de pérdida en 15,349 llamadas entrantes, muy por debajo del promedio del sector y estable al crecer el volumen analizado por tercera vez.\n\n' +
+    'Y la extracción de datos de este corte es la más limpia de los tres: cierran al dígito los dos totales contra sus tres categorías, el desenlace de las entrantes, las perdidas por categoría, las cuatro series mensuales, los dos repartos de perdidas, las 44 tasas mensuales, las 50 filas de las tablas de extensión y departamento, y las cuatro clases de evaluación. Lo que falla es el resumen ejecutivo, no el dato.',
 
   /* EL ORDEN DE ESTA LISTA NO ES ESTÉTICO.
    *
@@ -90,16 +158,25 @@ export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
    * Si alguien reordena esto, mueve lo que Atlas sabe de esta cuenta sin que
    * falle nada. [[feedback-contexto-ia-sin-huecos]] */
   hallazgos: [
-    'NO PRESENTAR AL CLIENTE TODAVÍA: 4 alertas abiertas reconfirmadas el 12-nov-2026, dos de ellas críticas — sin_interlocutor, en condición desde el 6 jul, y sin_consumo_medible. El reporte da por cerrado el problema de contacto con la actualización a Ernesto del 21-jul y el motor dice que no: una de las dos lecturas está mal, y sin_consumo_medible es ceguera nuestra sobre una cuenta de la que tenemos 85,467 registros.',
-    'Ningún indicador mejoró entre el corte del 23-jul y el del 12-nov: salientes externas 39.0%→38.6%, internas 24.7%→25.0%, entrantes internas 22.5%→23.0%. Cuatro meses sin corrección operativa, con los hallazgos ya documentados desde julio y nunca entregados al cliente.',
-    'La pérdida interna nunca bajó de 19.3% ni la saliente externa de 33.0% en ningún mes de 2026: es condición estructural, no un pico. Agosto fue el peor mes interno con 31.7%. Septiembre y octubre mejoran parcialmente sin normalizar el indicador, y nadie ha documentado qué cambió.',
-    'NO CITES el desglose de autoservicio por línea: suma 1,483 y el 23.4% declarado implica 3,467 sobre 14,817 externas entrantes. El indicador agregado sí se sostiene; el reparto entre líneas queda sin medir hasta que Análisis DATA lo confirme.',
-    'Extensión 548: de 36 intentos con 100% de pérdida a 94 intentos con 100% de pérdida. El volumen se multiplicó por 2.6 sin que la tasa se moviera un punto. Deja de ser una anomalía de volumen bajo: es una extensión que NUNCA conecta y nadie la ha apagado ni corregido. La 537 igual, con 20 intentos.',
-    'Jefatura de Enfermería (ext. 502): 3,174 intentos recibidos, 1,162 perdidos, 36.6%. Enfermería de Urgencias (ext. 509): 2,983 intentos, 1,114 perdidos, 37.3%. Ambas empeoran frente a julio (+1.6 y +2.4 puntos) y siguen siendo los dos mayores puntos de riesgo combinado por volumen y tasa.',
-    'ALERTA DE MEDICIÓN: `sin_consumo_medible` sigue abierta y crítica mientras esta auditoría tiene 85,467 registros reales de tráfico de la misma cuenta. En `cuentas`, `llamadas_cambio_pct` y `llamadas_atendidas_pct` valen 0.0 — un cero sin medición. El dato para cerrar esa ceguera existe y está en este documento.',
+    'El hallazgo central vale el DOBLE: el reporte dice que la comunicación interna es 38.2% de la telefonía y es 73.98% (66,017 de 89,238). El 38.2% es sólo su mitad saliente.',
+    'Octubre es el MEJOR mes cerrado del año en ambas direcciones (19.3% y 20.2%, contra 22.9% y 23.6% en enero). El reporte dice «sin mejora observable» y pone el piso en 22%. Sí hubo.',
+    'El GRC marca la cuenta «Churn confirmado» con MRR final $0 y pérdida de $18,345, y a la vez la declara viva, con estado activo y contacto el 26 nov. Va a dirección; NO es baja.',
+    'De 8,309 entrantes perdidas, sólo 78 (0.9%) se devolvieron. En la práctica una llamada perdida es una llamada cerrada: no hay recuperación que compense la pérdida interna.',
+    'NO CITES el MRR del documento: dice «MRR fijo de $20,953», el GRC dice $18,345 y la ficha $20,999. Son TRES cifras para lo mismo y `servicios_json` trae el concepto sin importe, así que la ficha no puede arbitrar. La institucional es la del GRC.',
+    'EL ASESOR ESTÁ MAL, OTRA VEZ: el reporte vuelve a nombrar a Claudia Hernández en el pie, en tres filas del plan de seguimiento y en la propuesta de portafolio. Erick la sustituyó el 15 oct 2026. Es el mismo defecto del corte del 12 nov sin corregir en origen, y aparece también en los reportes de ALTERNET (C10) y Grupo Neruc (C9) del mismo lote: es una clase de error del generador, no un descuido de este documento.',
+    '4 alertas abiertas, dos críticas — `sin_interlocutor`, en condición desde el 6 jul, y `sin_consumo_medible`. El reporte da por cerrado el problema de contacto con la actualización a Ernesto del 21-jul y el motor dice que no: una de las dos lecturas está mal. Y `sin_consumo_medible` es ceguera NUESTRA sobre una cuenta de la que tenemos 89,238 registros: en `cuentas`, `llamadas_cambio_pct` y `llamadas_atendidas_pct` valen 0.0.',
+    'El reparto que sí cierra al 100.00%, y que es el que hay que usar: entrantes internas 32,653 (36.59%), entrantes externas 15,349 (17.20%), entrantes anómalas 104 (0.12%), salientes internas 33,364 (37.39%), salientes externas 7,079 (7.93%) y salientes inválidas 689 (0.77%). Las tres cuotas del resumen ejecutivo del documento suman 108.0% porque los cubos se solapan: las entrantes internas están contadas dos veces.',
+    'OTRA CIFRA DEL RESUMEN QUE NO CIERRA: «15.9% a llamadas salientes hacia teléfonos externos». Las salientes externas son 7,079 de 89,238, el 7.93%. El 15.9% no se reconstruye desde la propia clasificación del documento.',
+    'MARCADO en el documento · «93,036 minutos reales conectados» no cuadra con sus dos sumandos del propio objeto de datos: 55,613 entrantes + 36,736 salientes = 92,349. Difieren 687. Con plan ilimitado los minutos son indicador de uso y no base de facturación, pero una cifra que no sale de sus partes no se publica sin marcarla.',
+    'MARCADO en el documento · el KPI «24.7% · pérdida en comunicación interna (promedio entrante+saliente)» no es ese promedio, que da 23.89%. El 24.7% sale de meter los 689 marcados inválidos en numerador y denominador (24.68%). Las dos lecturas son defendibles; la etiqueta describe una y publica la otra.',
+    '689 intentos de marcado inválido en el año, 100% perdidos — indicio de directorio interno desactualizado o mal comunicado al personal. Es la corrección más barata del reporte y no requiere nada de nuestra parte.',
+    'Extensión 548: tercer corte consecutivo con 100% de pérdida, ahora con 96 intentos recibidos y 96 perdidos. De 36 a 94 a 96 intentos sin que la tasa se moviera un punto. Dejó de ser una anomalía de volumen bajo hace dos cortes: es una extensión que NUNCA conecta y nadie la ha apagado ni corregido. Le siguen la 599 (87.8%, 74 intentos) y la 534 (72.6%, 84 intentos).',
+    'Jefatura de Enfermería (ext. 502): 3,313 intentos recibidos, 1,207 perdidos, 36.4% — es la extensión MÁS marcada del hospital. Enfermería de Urgencias (ext. 509): 3,126 intentos, 1,155 perdidos, 36.9%, la segunda. Siguen siendo los dos mayores puntos de riesgo combinado por volumen y tasa, y las dos están en áreas clínicas.',
+    'Del lado de quién marca, las dos puertas de admisión concentran el volumen: Admisión principal 1 realiza 6,436 intentos internos con 29.6% de pérdida y Admisión principal 2 otros 2,800 con 30.6%. Agendar cirugía QX hace 5,380 con 24.0%. Son los tres departamentos que más dependen del teléfono interno, y los tres pierden entre uno de cada cuatro y uno de cada tres intentos.',
     'Validación cruzada nueva: el export de entrantes conserva la extensión de ORIGEN incluso en llamadas perdidas, lo que permite medir el mismo fenómeno desde dos fuentes independientes. Sistemas (48.8% destino / 52.2% origen) y Vigilancia (34.3% / 33.6%) aparecen altas en las dos; Talento Humano (31.7% / 26.5%) también. Admisión NO: principal 1 mide 13.3% como destino y 28.3% como origen, así que el documento la incluye en esa lista sin que las dos vistas coincidan.',
     'El export de entrantes PERDIÓ el campo de extensión receptora (destination_data_3) que permitía verificar nombres. Se reutilizó el directorio verificado en julio (30 extensiones); las extensiones 548, 511 y 537 quedan sin nombre confirmado y el documento no se lo inventa — correcto, y hay que recuperar el campo.',
-    '33,640 minutos reales de conversación en el periodo (25,848 entrantes + 7,792 salientes), contra 22,043 en el corte de julio. Plan ilimitado: es indicador de uso, no base de facturación.',
+    '92,349 minutos reales de conversación en el periodo según sus dos sumandos (55,613 entrantes + 36,736 salientes), contra los 33,640 del corte del 12 nov. Plan ilimitado: es indicador de uso, no base de facturación. El encabezado del documento publica 93,036 y ésa es la cifra marcada.',
+    'La voz del paciente sigue sin medirse: sólo 579 de 36,029 llamadas entrantes contestadas (1.6%) recibieron calificación, 428 positivas y 151 negativas. En 29,845 casos el ejecutivo colgó antes de pasar la encuesta. El documento hace bien en no usarla como señal de riesgo — y hay que corregir el flujo, porque una muestra de 1.6% no sostiene ninguna conclusión.',
   ],
 
   cronologia: [
@@ -112,6 +189,8 @@ export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
     { fecha: '15 Oct 2026',  responsable: 'Dirección',          evento: 'Erick sustituye a Claudia en la cartera; Hospital Santa Rosa es una de las 71 cuentas que cambian de responsable.', tipo: 'neutral' },
     { fecha: 'Ago–Oct 2026', responsable: 'Plataforma',         evento: 'Agosto marca el peor mes interno del año (31.7% salientes / 28.8% entrantes). Septiembre y octubre mejoran parcialmente sin normalizar el indicador — nadie ha documentado qué cambió.', tipo: 'problema' },
     { fecha: '12 Nov 2026',  responsable: 'Callpicker / ATLAS', evento: 'Actualización forense: 85,467 registros, 315 días. Ningún indicador de riesgo mejoró en cuatro meses. Las cuatro alertas se reconfirman el mismo día.', tipo: 'problema' },
+    { fecha: 'Oct 2026',     responsable: 'Hospital',           evento: 'MEJOR MES CERRADO DEL AÑO en ambas direcciones internas: 19.3% de pérdida entrante y 20.2% saliente, contra 22.9% y 23.6% en enero. Nadie ha documentado qué cambió, y el reporte del 26 nov lo niega al fijar el rango en «22%–32%».', tipo: 'ok' },
+    { fecha: '26 Nov 2026',  responsable: 'Callpicker / SAC',   evento: 'Tercer corte: 89,238 registros, 330 días. El conciliador nuevo encuentra cinco cifras del resumen ejecutivo que no cierran —entre ellas que la comunicación interna es 73.98% y no 38.2%— y confirma al dígito todo lo demás. Se detecta que el GRC marca la cuenta «Churn confirmado» con MRR final $0 mientras está activa: se sube a dirección sin tocar el estado.', tipo: 'pivote' },
   ],
 
   perfil_campos: [
@@ -121,7 +200,9 @@ export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
     { label: 'Tamaño',              value: 'Mediana · 51–200 empleados · 1 oficina' },
     { label: 'Cliente desde',       value: 'Septiembre 2021 — 61 meses facturados según el GRC' },
     { label: 'Servicio contratado', value: 'Extensión VyC con SIM + Extensión VyC (plan ilimitado)' },
-    { label: 'MRR institucional',   value: '$18,345 — del GRC, clasificación AAA. El reporte entregado dice $20,953 (heredado de julio) y cuentas.facturacion dice $20,999; ninguno de los dos es la fuente.' },
+    { label: 'MRR institucional',   value: '$18,345 — del GRC, clasificación AAA, 10 facturas y $1,270,317 acumulados en 61 meses. El reporte entregado dice $20,953 (heredado de julio) y `cuentas.facturacion` dice $20,999: ninguno de los dos es la fuente.' },
+    { label: 'Señal de churn',      value: 'El GRC trae `movimiento: Churn confirmado`, `mrrFin 0.0` y `perdida 18345`, y a la vez `verificacion: sigue_viva` verificada por cartera, con `cuentas.estado = activo` y contacto el 26 nov 2026. CONTRADICCIÓN ABIERTA en dirección — no es autorización de baja.' },
+    { label: 'Reparto del tráfico', value: '73.98% interno (36.59% entrante + 37.39% saliente) · 17.20% entrante externo · 7.93% saliente externo · 0.89% anómalo o inválido. Cierra al 100.00%.' },
     { label: 'Contacto principal',  value: 'Ernesto (Administrador) — actualizado 21-jul-2026, tel. 4425920061' },
     { label: 'Contacto anterior',   value: 'Guillermo Peña — ya no labora (~4 años)' },
     { label: 'Asesor de cuenta',    value: 'Erick Sánchez (desde el 15 oct 2026; antes Claudia Hernández)' },
@@ -337,7 +418,28 @@ export const HOSPITAL_SANTA_ROSA: AuditoriaCase = {
 
   documentos: [
     {
-      nombre:      'Hospital Santa Rosa · Auditoría forense de tráfico telefónico — Actualización 12 nov 2026',
+      nombre:      'Hospital Santa Rosa · Auditoría forense de tráfico telefónico — Corte 26 nov 2026',
+      ruta:        '/auditorias/Hospital-Santa-Rosa-Auditoria-Forense-2026-11-26.html',
+      descripcion:
+        'Reporte completo e interactivo del corte del 26 nov 2026 sobre 89,238 registros del CID 81735 ' +
+        '(48,106 entrantes + 41,132 salientes), 1 ene – 26 nov 2026, con noviembre marcado como mes en ' +
+        'tránsito: tendencia mensual de las cuatro tasas de pérdida, comunicación interna extensión a ' +
+        'extensión, riesgo por extensión destino y por departamento origen, mapa volumen-vs-tasa, ' +
+        'atención a pacientes externos por hora, autoservicio y devolución, FODA, matriz de hallazgos y ' +
+        'plan de seguimiento. DOCUMENTO INTERNO: no se comparte con el cliente tal cual. ' +
+        'PUBLICADO CON SEIS CORRECCIONES VISIBLES DENTRO DEL PROPIO DOCUMENTO: la comunicación interna es ' +
+        'el 73.98% del tráfico y no el 38.2% (el 38.2% es sólo su mitad saliente); las salientes externas ' +
+        'son el 7.93% y no el 15.9%; las tres cuotas del resumen suman 108.0% porque los cubos se solapan, ' +
+        'y se sustituyen por el reparto de seis clases que cierra al 100.00%; los minutos del encabezado ' +
+        '(93,036) no cuadran con sus sumandos (92,349); el rango de la pérdida interna tiene piso en 19.3% ' +
+        'y no en 22%, porque octubre es el mejor mes cerrado del año en ambas direcciones; y el asesor ' +
+        'responsable es Erick Sánchez, no Claudia Hernández. Se declara además que el GRC marca la cuenta ' +
+        '«Churn confirmado» con MRR final $0 mientras está activa y al corriente. ' +
+        'Lo verifica `python scripts/concilia-auditoria-santa-rosa-2026-11-26.py <ruta>`, que recalcula ' +
+        'las cifras embebidas en el archivo: todo lo demás cierra al dígito.',
+    },
+    {
+      nombre:      'Hospital Santa Rosa · Auditoría forense — Corte anterior, 12 nov 2026',
       ruta:        '/auditorias/Hospital_Santa_Rosa_Auditoria_Forense_2026-11-12.html',
       descripcion:
         'Reporte completo e interactivo del corte del 12 nov 2026 sobre 85,467 registros del CID 81735 ' +

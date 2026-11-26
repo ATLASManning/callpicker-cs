@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Auditoría de llamadas · Campestre Los Viveros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: ejecutivo, sobrio, de mesa de gráficos de periódico; hallazgo primero, evidencia después.
+   IDEA: expediente de auditoría operativa: cada número con su fuente y su siguiente paso.
+   PICTURE: tiras 100% por periodo que muestran cómo se cayó la atención de 53% a 31%.
+   COLOUR and TYPE: banda cielo #4fb3e8, tinta #10223a, naranja #ff7a1a para lo que se pierde; Outfit + Inter.
+   LAYOUT: banda con hallazgo y cifras, luego gráficas en rejilla, FODA en 2x2, plan en tabla. */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0b1726);--ink:light-dark(#10223a,#e8eef6);--mut:light-dark(#4f6178,#9fb0c6);--line:light-dark(#dfe6ee,#22344d);--card:light-dark(#f5f8fb,#112036);--sky:#4fb3e8;--band:light-dark(#4fb3e8,#123b5c);--bandink:light-dark(#0b1d33,#eaf4fb);
+--ans:light-dark(#1f6fb2,#5bb2ee);--lost:#ff7a1a;--menu:light-dark(#f7c79c,#a8582a);--vm:light-dark(#a9b4c2,#5b6b80)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Outfit,Inter,sans-serif;line-height:1.1;text-wrap:balance;margin:0 0 .4em}
+h1{font-size:clamp(30px,4.6vw,48px);font-weight:700}h2{font-size:clamp(24px,3vw,32px);font-weight:600;margin-top:.2em}h3{font-size:19px;font-weight:600}
+p{margin:.3em 0 .9em;max-width:72ch}
+.band{padding:clamp(28px,4vw,60px) max(5vw,16px)}.wrap{max-width:1240px;margin:0 auto}
+.top{background:var(--band);color:var(--bandink)}
+.top .meta{font-size:14px;opacity:.85;margin-bottom:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0}
+.kpi{background:light-dark(rgba(255,255,255,.55),rgba(0,0,0,.25));border-radius:12px;padding:14px 16px}
+.kpi b{display:block;font:600 clamp(26px,3.4vw,36px)/1.1 Outfit,sans-serif}.kpi span{font-size:14px}
+.kpi.hot b{color:light-dark(#b34700,#ff9a4d)}
+.periods{background:light-dark(rgba(255,255,255,.7),rgba(0,0,0,.3));border-radius:14px;padding:18px}
+.prow{display:grid;grid-template-columns:120px minmax(0,1fr) 64px;gap:10px;align-items:center;margin:9px 0;font-size:14px}
+.bar{display:flex;height:30px;border-radius:6px;overflow:hidden}.bar i{display:block;height:100%}
+.prow .v{font:600 18px Outfit,sans-serif;text-align:right;white-space:nowrap}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;margin:6px 0 4px}.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.nav{display:flex;gap:6px 18px;flex-wrap:wrap;padding:12px max(5vw,16px);border-bottom:1px solid var(--line);font-size:14px;background:var(--bg)}
+.nav a{color:var(--ink);text-decoration:none;padding:8px 0}.nav a:hover{text-decoration:underline}
+@media(min-width:900px){.nav{position:sticky;top:0;z-index:5}}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:22px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card p.note{font-size:14px;color:var(--mut);margin:.5em 0 0}
+.fig{position:relative;min-height:300px}.fig>svg{position:absolute;inset:0;width:100%;height:100%}
+.fig.tall{min-height:340px}
+.find{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px}
+.find article{border-top:3px solid var(--ink);padding-top:12px}.find article.hot{border-color:var(--lost)}
+.find .n{font:600 28px Outfit,sans-serif}.find p{font-size:15px}
+table{width:100%;border-collapse:collapse;font-size:14.5px}th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--mut)}td.r,th.r{text-align:right;white-space:nowrap}
+.mini{display:flex;height:12px;border-radius:3px;overflow:hidden;min-width:120px}.mini i{display:block;height:100%}
+.foda{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}@media(max-width:760px){.foda{grid-template-columns:minmax(0,1fr)}}
+.foda section{border-radius:14px;padding:18px;border:1px solid var(--line)}
+.foda ul{margin:0;padding-left:18px}.foda li{margin:.35em 0;font-size:15px}
+.F{background:light-dark(#eaf5fc,#0f2a40)}.D{background:light-dark(#fff1e6,#33200f)}.O{background:light-dark(#edf7f1,#10291d)}.A{background:light-dark(#f6eef0,#2c1620)}
+.heat{display:grid;grid-template-columns:28px repeat(14,minmax(0,1fr));gap:3px;font-size:12px}
+.heat div{aspect-ratio:1.25;border-radius:4px;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+.heat .lab{background:none!important;color:var(--mut)}
+.gap{height:8px}.src{font-size:13px;color:var(--mut)}
+.scroll{overflow-x:auto}
+@media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:8em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:7.5em;margin-inline-start:-8em;white-space:normal;color:var(--mut)}.stack td:empty{display:none}.prow{grid-template-columns:86px minmax(0,1fr) 52px}}
+</style>
+<script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script>
+</head>
+<body><section id="cp-nota-conciliacion" style="margin:0 0 28px 0;padding:24px 28px;border:2px solid #b45309;border-left:8px solid #b45309;border-radius:0 12px 12px 0;background:#fffbeb;color:#1f2937;font-family:system-ui,-apple-system,Segoe UI,sans-serif"><div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#b45309;margin:0 0 6px 0">Nota de conciliación · Dirección SAC</div><h2 style="margin:0 0 4px 0;font-size:21px;color:#1f2937">Campestre Los Viveros · Z35 · CID 38444</h2><p style="margin:0 0 16px 0;font-size:14px;color:#4b5563">Conciliado el 26 de noviembre de 2026 contra cartera, el Gross Revenue y las fuentes de llamadas. 3 puntos de conciliación. Asesor de la cuenta: <strong>Dan</strong>. Nada del texto original se borró: lo corregido queda al lado de lo publicado.</p><ol style="margin:0;padding-left:22px;font-size:14.5px"><li style="margin:0 0 10px 0;line-height:1.55">«17 llegaron entre medianoche y las 5 h y todas terminaron perdidas, SIN BUZÓN»: la propia serie horaria del documento trae 7 llamadas a buzón en esa franja (h0 2, h1 2, h2 1, h5 2). Son 24 llamadas: 17 perdidas y 7 a buzón.</li><li style="margin:0 0 10px 0;line-height:1.55">«31% del plan de 400 min usado (último corte)» viene de la ficha («capacidad ociosa 69%»), no de la medición — y el propio documento cuestiona esa ficha dos secciones más abajo. Medido: el mes de mayor consumo es enero con 111 min (27.8%) y el último mes cerrado, octubre, 107 min (26.8%).</li><li style="margin:0 0 10px 0;line-height:1.55">VERIFICADO: los cinco repartos (mes, destino, periodo, día y hora) cierran contra las 782 entrantes, y los cuatro desenlaces suman el total (260 + 286 + 194 + 42). El MRR publicado ($1,069) coincide con el institucional del GRC.</li></ol></section>
+<header class="band top"><div class="wrap">
+<div class="meta">Auditoría de llamadas · CAMPESTRE LOS VIVEROS · CID 38444 · KAM: Dan · Detalle del 2 ene al 25 nov 2026 · Elaborado por Satisfacción al Cliente (SAC), 26 nov 2026</div>
+<h1>Dos de cada tres llamadas que recibe la cuenta no llegan a una persona, y ninguna perdida se devuelve</h1>
+<p>De 782 llamadas entrantes, solo 260 fueron atendidas por un agente. La atención cayó de 53% (ene–may) a 31% tras la reestructura de agosto, y 354 de los 569 números que llamaron en el año nunca fueron atendidos. Para una inmobiliaria, cada uno de esos números es un prospecto o un cliente de postventa sin respuesta.</p>
+<div class="kpis">
+<div class="kpi"><b>782</b><span>entrantes · 569 números únicos</span></div>
+<div class="kpi"><b>33.2%</b><span>atendidas por un agente</span></div>
+<div class="kpi hot"><b>36.6%</b><span>perdidas: sonó y nadie tomó</span></div>
+<div class="kpi hot"><b>24.8%</b><span>abandonadas en el menú</span></div>
+<div class="kpi hot"><b>0</b><span>devoluciones de llamada registradas</span></div>
+<div class="kpi"><b>31%</b><span>del plan de 400 min usado (último corte)</span></div>
+</div>
+<div class="periods">
+<h3>Atención por periodo: qué pasó con cada 100 llamadas</h3>
+<div class="legend"><span><i style="background:var(--ans)"></i>Atendida</span><span><i style="background:var(--lost)"></i>Perdida</span><span><i style="background:var(--menu)"></i>Abandono en menú</span><span><i style="background:var(--vm)"></i>Buzón</span></div>
+<div id="per"></div>
+<p class="src" style="margin:8px 0 0">La cifra a la derecha es el % atendido. 26 ago es cuando el ruteo pasa de Ventas/Postventa/Veronesa/Campestre a BDC. Noviembre llega al 25 y se lee como mes en tránsito.</p>
+</div>
+</div></header>
+
+<nav class="nav scroll"><a href="#hallazgos">Hallazgos</a><a href="#tiempo">Mes y semana</a><a href="#dia">Día y hora</a><a href="#destinos">Destinos</a><a href="#salientes">Salientes</a><a href="#tablero">Cruce con tablero</a><a href="#foda">FODA</a><a href="#plan">Plan de acción</a><a href="#preguntas">Preguntas al cliente</a><a href="#metodo">Método</a></nav>
+
+<section class="band" id="hallazgos"><div class="wrap">
+<h2>Hallazgos principales</h2>
+<p>Cada hallazgo indica la evidencia del archivo de llamadas. Donde el dato no alcanza para afirmar una causa, se marca como hipótesis a validar con el cliente.</p>
+<div class="find">
+<article class="hot"><div class="n">66.8%</div><h3>Lo que no llega a una persona es la regla, no la excepción</h3><p>522 de 782 entrantes terminaron perdidas (286), abandonadas en el menú (194) o en buzón (42). Incluso en horario hábil (L–V, 9 a 19 h) solo se atiende el 35.7%: el problema no es de horario, es de capacidad y de diseño del flujo.</p></article>
+<article class="hot"><div class="n">354 / 569</div><h3>El 62% de quienes llamaron nunca habló con nadie</h3><p>Esos 354 números generaron 418 llamadas. De 522 llamadas no atendidas, solo 110 volvieron a intentar en 24 h y apenas 35 lo lograron. El primer contacto se atiende en 33.2% de los casos: el prospecto nuevo recibe la peor experiencia.</p></article>
+<article class="hot"><div class="n">0</div><h3>No existe rutina de devolución</h3><p>El campo de devolución está en cero en las 782 entrantes. Desde que arrancó la marcación saliente (23 oct), solo 2 de 54 no atendidas recibieron llamada de regreso, y fue 7 y 11 días después. Lo saliente es una campaña, no un rescate de perdidas.</p></article>
+<article><div class="n">10.7%</div><h3>Junio–julio: colapso de atención</h3><p>De 178 entrantes solo 19 fueron atendidas y 115 se perdieron. Coincide con lo que el titular explicó al KAM: cambios internos en su plantilla. La demanda subió (113 entrantes en julio) justo cuando bajó la capacidad.</p></article>
+<article><div class="n">26 ago</div><h3>Reestructura del flujo hacia BDC</h3><p>Ventas, Veronesa y Campestre reciben su última llamada el 25 ago; BDC su primera el 27 ago. Coincide con los tickets «Ajuste en Flujo» del 16 jul, 24 y 25 ago. Las perdidas bajaron de 65% (jun–jul) a 28%, pero el abandono en menú subió de 13% (ene–jul) a 36%.</p></article>
+<article class="hot"><div class="n">1 de 4</div><h3>El menú se volvió la nueva fuga</h3><p>194 llamadas terminaron en el menú, 140 de ellas desde agosto. No sabemos si el menú resuelve (información grabada) o expulsa (opciones confusas, tiempo de espera). Hipótesis a validar: tras el rediseño, el menú tiene más pasos y la gente cuelga.</p></article>
+<article><div class="n">52.6%</div><h3>Ventas perdía más de la mitad</h3><p>Mientras existió, Ventas recibió 247 llamadas y perdió 130. Postventa perdió 46 de 91 (50.5%). BDC hoy pierde 38.5%. Con 2 extensiones VyC registradas en la ficha para 5 destinos, la hipótesis más fuerte es falta de agentes conectados, no falla de plataforma: soporte registra 12 tickets y 0 fallas.</p></article>
+<article class="hot"><div class="n">14 / 14</div><h3>«Constructora HYG» es un destino muerto</h3><p>Todas sus llamadas, de febrero a noviembre, cayeron a buzón. Es la marca del sitio web registrado en la ficha (constructorahyg.com). Si es la línea corporativa, el cliente no lo sabe.</p></article>
+<article><div class="n">14 llamadas</div><h3>El propio director vive la falla</h3><p>El número de Victor Carden (Director operativo, único contacto) aparece 14 veces: 8 perdidas (7 en Ventas) y 4 abandonos en menú en 12 minutos el 25 ago, el mismo día del ticket de ajuste de flujo. Su percepción del servicio se está formando con esas pruebas.</p></article>
+<article><div class="n">76</div><h3>Fuera de horario no hay respuesta</h3><p>76 entrantes antes de las 9 o después de las 19 h: 4 atendidas, 51 perdidas. 17 llegaron entre medianoche y las 5 h y todas terminaron perdidas, sin buzón. El domingo pierde 62% (28 de 45).</p></article>
+<article><div class="n">4.2%</div><h3>La encuesta casi no se usa</h3><p>Solo 11 de 260 atendidas tienen calificación (8 positivas, 3 negativas). En 52% de las atendidas el ejecutivo colgó sin pasar a encuesta. No hay voz del cliente final para defender la calidad.</p></article>
+<article><div class="n">1.7 min</div><h3>BDC filtra, no conversa</h3><p>La llamada atendida en BDC dura en promedio 1.7 min (mediana 1) contra 2.7 en Ventas y 3.2 en Postventa. Consistente con un rol de calificación y transferencia; hay que confirmar si la transferencia posterior se está midiendo.</p></article>
+</div>
+</div></section>
+
+<section class="band" id="tiempo" style="background:var(--card)"><div class="wrap">
+<h2>Comportamiento por mes y por semana</h2>
+<div class="grid2">
+<div class="card"><h3>Entrantes por mes y desenlace</h3><div class="legend"><span><i style="background:var(--ans)"></i>Atendida</span><span><i style="background:var(--lost)"></i>Perdida</span><span><i style="background:var(--menu)"></i>Menú</span><span><i style="background:var(--vm)"></i>Buzón</span></div><div class="fig tall"><svg id="gm"></svg></div><p class="note">El % arriba de cada barra es lo atendido. Noviembre (1–25) en tono claro: mes en tránsito.</p></div>
+<div class="card"><h3>% atendido por semana</h3><div class="fig tall"><svg id="gw"></svg></div><p class="note">Línea: % atendido. Columnas grises: volumen semanal. Las semanas con menos de 10 llamadas se marcan con punto hueco.</p></div>
+</div>
+<div class="gap"></div>
+<div class="card scroll"><h3>Tabla mensual</h3><table id="tm"></table></div>
+</div></section>
+
+<section class="band" id="dia"><div class="wrap">
+<h2>Día de la semana y hora</h2>
+<div class="grid2">
+<div class="card"><h3>Por día de la semana</h3><div id="gd"></div><p class="note">Viernes es el día de más carga (152). El domingo es el peor día relativo: 62% perdidas.</p></div>
+<div class="card"><h3>Por hora del día</h3><div class="fig"><svg id="gh"></svg></div><p class="note">El pico está entre 12 y 14 h. A las 15 h se pierde 44%, la peor hora hábil; a las 16 h baja a 17%. Horas tal como vienen en el archivo, sin zona horaria declarada.</p></div>
+</div>
+<div class="gap"></div>
+<div class="card"><h3>Mapa de calor: % no atendido por día y hora (7 a 20 h)</h3><p class="src">El número es el volumen de llamadas; el color, la proporción no atendida. Celdas sin llamadas en blanco.</p><div class="scroll"><div class="heat" id="hm" style="min-width:560px"></div></div></div>
+</div></section>
+
+<section class="band" id="destinos" style="background:var(--card)"><div class="wrap">
+<h2>Destinos configurados</h2>
+<p>Los nombres son los que el cliente tiene en su flujo. Las 4 columnas de desenlace suman el total de cada destino.</p>
+<div class="card scroll"><table class="stack" id="td"></table></div>
+</div></section>
+
+<section class="band" id="salientes"><div class="wrap">
+<h2>Marcación saliente</h2>
+<p>81 llamadas salientes, todas desde BDC por el número 55 4438 5940, entre el 23 oct y el 24 nov. 69 de ellas ocurrieron en solo dos tardes (23 y 27 oct): patrón de campaña de contacto. Contacto efectivo 63% (51 de 81), duración media 42 s. Solo 4 de los 61 números marcados habían llamado antes a la cuenta.</p>
+<div class="grid2">
+<div class="card"><h3>Salientes por día</h3><div class="fig"><svg id="go"></svg></div></div>
+<div class="card"><h3>Lectura</h3><p>La cuenta empezó a usar la plataforma para salir, no solo para recibir: es la señal de adopción más valiosa del año y explica la «migración de canal». El mismo 23 oct se abrieron 3 tickets (Login, WhatsApp, Duda operativa): el equipo aprendió sobre la marcha.</p><p>Después del 27 oct la marcación cae a 1–3 llamadas por día. Si la campaña no tiene seguimiento, el hábito se pierde. Es el momento de convertirla en rutina diaria de devolución de perdidas.</p></div>
+</div>
+</div></section>
+
+<section class="band" id="tablero" style="background:var(--card)"><div class="wrap">
+<h2>Cruce con el tablero de la cuenta</h2>
+<p>El detalle de llamadas confirma parte de la lectura del tablero y corrige otra parte. Se propone ajustar la métrica, no descartarla.</p>
+<div class="card scroll"><table class="stack"><thead><tr><th>Indicador del tablero</th><th>Lo que muestra el detalle</th><th>Implicación</th></tr></thead><tbody>
+<tr><td>Sin contestar 21.7% en agosto (30 de 138)</td><td>Cuenta solo las perdidas. Con abandono en menú (54) y buzón (8), agosto queda en 66.7% no atendido</td><td>El tablero trata el menú como «resuelto». Propuesta: mostrar ambas lecturas hasta validar qué hace el menú</td></tr>
+<tr><td>No registra llamadas salientes</td><td>81 salientes desde el 23 oct</td><td>La ventana del tablero cerró el 14 sep; la adopción saliente aún no se refleja</td></tr>
+<tr><td>Estable, 577 entrantes (ene–14 sep)</td><td>La atención cayó de 53% a 11% y luego a 31%</td><td>El volumen es estable; la calidad de atención no lo es</td></tr>
+<tr><td>Capacidad ociosa 69%</td><td>692 min en 11 meses, máximo 111 en un mes</td><td>Riesgo de solicitud de plan menor; oportunidad de usar esos minutos en devolución de llamadas</td></tr>
+<tr><td>Un solo contacto, 120 días sin conversación de valor</td><td>Ese contacto llama a su propia línea y encuentra fallas</td><td>La próxima conversación debe abrir con datos, no con una revisión de rutina</td></tr>
+</tbody></table></div>
+</div></section>
+
+<section class="band" id="foda"><div class="wrap">
+<h2>FODA de la cuenta</h2>
+<div class="foda">
+<section class="F"><h3>Fortalezas</h3><ul>
+<li>6 años como cliente, pagos al corriente, sin incidencias de cobranza</li>
+<li>Demanda real y creciente: 569 números únicos y pico de 138 entrantes en agosto</li>
+<li>Cliente activo con su flujo: reestructuró destinos y abrió BDC</li>
+<li>Arrancó marcación saliente con 63% de contacto efectivo</li>
+<li>Plataforma estable: 12 tickets, todos de asistencia, 0 fallas</li>
+<li>Pago automático con adopción alta</li>
+</ul></section>
+<section class="D"><h3>Debilidades</h3><ul>
+<li>66.8% de entrantes no llega a una persona; 354 números nunca atendidos</li>
+<li>Cero devoluciones de llamadas perdidas</li>
+<li>Menú con 25% de abandono, que casi se triplicó tras el rediseño (13% → 36%)</li>
+<li>Destino Constructora HYG 100% a buzón</li>
+<li>2 extensiones para 5 destinos; sin cobertura fuera de horario</li>
+<li>Encuesta casi sin uso (4.2%); un solo contacto en la cuenta; 0/6 módulos activados</li>
+</ul></section>
+<section class="O"><h3>Oportunidades</h3><ul>
+<li>Rutina diaria de devolución de perdidas con los minutos ociosos del plan</li>
+<li>Agente de voz con IA para fuera de horario y desborde en horas pico</li>
+<li>Rediseño del menú con el cliente, medido semana a semana</li>
+<li>Extensiones adicionales o grupo de timbrado para Ventas/BDC</li>
+<li>Multimarca: Campestre, Veronesa, Constructora HYG pueden tener números y reportes propios</li>
+<li>Interés en integración con su CRM: canalizarlo a Producto/Ingeniería como requerimiento</li>
+</ul></section>
+<section class="A"><h3>Amenazas</h3><ul>
+<li>Costo de salida bajo: sin módulos ni integraciones que lo retengan</li>
+<li>GoHighLevel, el CRM que le interesa, trae telefonía propia (LC Phone) y varios proveedores ya venden integración nativa con él</li>
+<li>El director atribuye a la plataforma lo que es capacidad interna si nadie le muestra los datos</li>
+<li>Rotación de plantilla repetible: el colapso de jun–jul puede volver</li>
+<li>Uso de 31% del plan: posible solicitud de plan menor (MRR $1,069)</li>
+<li>Dependencia de un único contacto</li>
+</ul></section>
+</div>
+</div></section>
+
+<section class="band" id="plan" style="background:var(--card)"><div class="wrap">
+<h2>Plan de acción propuesto</h2>
+<p>Ordenado por impacto en retención. Cada propuesta lleva dueño y siguiente paso; los plazos son sugeridos.</p>
+<div class="card scroll"><table class="stack"><thead><tr><th>Propuesta</th><th>Dueño</th><th>Siguiente paso</th><th>Plazo</th><th>Indicador</th></tr></thead><tbody>
+<tr><td>Sesión de resultados con Victor Carden: 3 cifras (66.8% no atendido, 354 números sin respuesta, 0 devoluciones) y el caso Constructora HYG</td><td>Dan (KAM)</td><td>Agendar 30 min y enviar este reporte antes</td><td>1ª semana dic</td><td>Reunión registrada + 2º contacto identificado</td></tr>
+<tr><td>Corregir el destino Constructora HYG</td><td>Soporte + cliente</td><td>Confirmar a qué extensión o número debe ir</td><td>En la sesión</td><td>Buzón de ese destino en 0</td></tr>
+<tr><td>Rutina diaria de devolución: lista de perdidas del día anterior para BDC</td><td>SAC configura, BDC ejecuta</td><td>Proponer horario fijo (ej. 9:00) y medir devoluciones</td><td>Dic</td><td>% de perdidas devueltas en &lt;24 h</td></tr>
+<tr><td>Revisión del menú: opciones, mensajes y tiempos</td><td>Soporte + cliente</td><td>Escuchar el menú en vivo y mapear cada opción</td><td>Dic</td><td>Abandono en menú bajo 15%</td></tr>
+<tr><td>Cobertura de desborde y fuera de horario: piloto de agente de voz con IA o buzón con aviso</td><td>Comercial + SAC</td><td>Demo con el volumen real: 76 fuera de horario y pico 12–14 h</td><td>Ene 2027</td><td>Atención total sobre 60%</td></tr>
+<tr><td>Dimensionar extensiones vs. destinos activos</td><td>Dan + Comercial</td><td>Preguntar cuántas personas atienden hoy cada destino</td><td>En la sesión</td><td>Perdidas en BDC bajo 20%</td></tr>
+<tr><td>Integración con su CRM (interés en GoHighLevel)</td><td>SAC → Producto/Ingeniería</td><td>Levantar el caso de uso y evaluar factibilidad vía API</td><td>Dic</td><td>Respuesta formal al cliente</td></tr>
+<tr><td>Ajustar la métrica de «sin contestar» del tablero para separar menú y buzón</td><td>SAC (ATLAS)</td><td>Definir regla una vez validado qué hace el menú</td><td>Dic</td><td>Métrica alineada al detalle</td></tr>
+</tbody></table></div>
+</div></section>
+
+<section class="band" id="preguntas"><div class="wrap">
+<h2>Preguntas que solo el cliente puede contestar</h2>
+<div class="grid2">
+<div class="card"><ul>
+<li>¿Qué dice y qué hace cada opción del menú? ¿Alguna opción solo informa y cuelga?</li>
+<li>¿Cuántas personas atienden hoy BDC y en qué horario? ¿Cambió la plantilla en junio y julio?</li>
+<li>¿A dónde se transfiere una llamada después de BDC? ¿Ventas y Postventa siguen existiendo?</li>
+<li>¿Qué es Constructora HYG en el flujo y quién debería contestar ahí?</li>
+</ul></div>
+<div class="card"><ul>
+<li>¿Qué buscaban con la campaña del 23 y 27 oct, y qué resultado tuvo?</li>
+<li>¿Qué integración con GoHighLevel necesitan: registrar llamadas, crear prospectos, marcar desde el CRM?</li>
+<li>¿Quién más decide sobre herramientas como Callpicker y quién autoriza el presupuesto?</li>
+<li>¿Cuánto vale para ellos un prospecto que llama y no es atendido?</li>
+</ul></div>
+</div>
+</div></section>
+
+<section class="band" id="metodo" style="background:var(--card)"><div class="wrap">
+<h2>Método y límites</h2>
+<p>Fuente: detalle de llamadas de Callpicker del CID 38444 (hojas Entrantes, Salientes y Resumen), 2 ene al 25 nov 2026, cruzado con la ficha de la cuenta y los tickets de Zoho Desk. Noviembre se considera mes en tránsito y no se usa para conclusiones de tendencia.</p>
+<p>«Atendida» es una llamada redirigida y contestada por una extensión. «Perdida» sonó en un destino y nadie la tomó. «Abandonada en menú» terminó en autoservicio sin llegar a destino: puede incluir llamadas resueltas por información grabada, por eso se reporta aparte. El archivo no trae tiempo de espera ni zona horaria; las horas se leen como vienen. La duración de entrantes viene en minutos redondeados. Los números con patrón de conmutador (por ejemplo terminados en 0000) se mantuvieron en el conteo; no se clasificaron como spam sin evidencia.</p>
+<p class="src">Referencia externa sobre la telefonía nativa de GoHighLevel: trellus.ai, «How to Make Calls From GoHighLevel»; thestackinsiders.com, «GoHighLevel phone system».</p>
+</div></section>
+
+<script>
+{
+const D={"M": [{"m": "2026-01", "ans": 29, "lost": 7, "menu": 2, "vm": 1, "mins": 111, "out": 0, "outans": 0, "outmin": 0}, {"m": "2026-02", "ans": 17, "lost": 5, "menu": 3, "vm": 1, "mins": 66, "out": 0, "outans": 0, "outmin": 0}, {"m": "2026-03", "ans": 23, "lost": 23, "menu": 7, "vm": 2, "mins": 53, "out": 0, "outans": 0, "outmin": 0}, {"m": "2026-04", "ans": 26, "lost": 20, "menu": 5, "vm": 2, "mins": 42, "out": 0, "outans": 0, "outmin": 0}, {"m": "2026-05", "ans": 26, "lost": 18, "menu": 8, "vm": 2, "mins": 72, "out": 0, "outans": 0, "outmin": 0}, {"m": "2026-06", "ans": 8, "lost": 47, "menu": 7, "vm": 3, "mins": 20, "out": 0, "outans": 0, "outmin": 0}, {"m": "2026-07", "ans": 11, "lost": 68, "menu": 22, "vm": 12, "mins": 37, "out": 0, "outans": 0, "outmin": 0}, {"m": "2026-08", "ans": 46, "lost": 30, "menu": 54, "vm": 8, "mins": 106, "out": 0, "outans": 0, "outmin": 0}, {"m": "2026-09", "ans": 18, "lost": 28, "menu": 34, "vm": 5, "mins": 27, "out": 0, "outans": 0, "outmin": 0}, {"m": "2026-10", "ans": 34, "lost": 26, "menu": 30, "vm": 4, "mins": 50, "out": 72, "outans": 46, "outmin": 57}, {"m": "2026-11", "ans": 22, "lost": 14, "menu": 22, "vm": 2, "mins": 45, "out": 9, "outans": 5, "outmin": 6}], "W": [{"w": "2025-12-29", "ans": 4, "lost": 1, "menu": 1, "vm": 0}, {"w": "2026-01-05", "ans": 3, "lost": 1, "menu": 0, "vm": 0}, {"w": "2026-01-12", "ans": 9, "lost": 0, "menu": 1, "vm": 0}, {"w": "2026-01-19", "ans": 7, "lost": 4, "menu": 0, "vm": 1}, {"w": "2026-01-26", "ans": 6, "lost": 1, "menu": 0, "vm": 0}, {"w": "2026-02-02", "ans": 2, "lost": 1, "menu": 0, "vm": 0}, {"w": "2026-02-09", "ans": 3, "lost": 2, "menu": 2, "vm": 0}, {"w": "2026-02-16", "ans": 7, "lost": 1, "menu": 0, "vm": 0}, {"w": "2026-02-23", "ans": 5, "lost": 1, "menu": 1, "vm": 1}, {"w": "2026-03-02", "ans": 2, "lost": 0, "menu": 2, "vm": 1}, {"w": "2026-03-09", "ans": 3, "lost": 3, "menu": 1, "vm": 0}, {"w": "2026-03-16", "ans": 10, "lost": 14, "menu": 2, "vm": 1}, {"w": "2026-03-23", "ans": 8, "lost": 5, "menu": 2, "vm": 0}, {"w": "2026-03-30", "ans": 3, "lost": 6, "menu": 0, "vm": 0}, {"w": "2026-04-06", "ans": 4, "lost": 4, "menu": 2, "vm": 1}, {"w": "2026-04-13", "ans": 11, "lost": 6, "menu": 1, "vm": 1}, {"w": "2026-04-20", "ans": 6, "lost": 3, "menu": 1, "vm": 0}, {"w": "2026-04-27", "ans": 7, "lost": 2, "menu": 1, "vm": 0}, {"w": "2026-05-04", "ans": 6, "lost": 4, "menu": 0, "vm": 1}, {"w": "2026-05-11", "ans": 6, "lost": 1, "menu": 2, "vm": 0}, {"w": "2026-05-18", "ans": 3, "lost": 7, "menu": 4, "vm": 1}, {"w": "2026-05-25", "ans": 6, "lost": 6, "menu": 2, "vm": 0}, {"w": "2026-06-01", "ans": 1, "lost": 7, "menu": 2, "vm": 1}, {"w": "2026-06-08", "ans": 5, "lost": 16, "menu": 1, "vm": 1}, {"w": "2026-06-15", "ans": 0, "lost": 7, "menu": 1, "vm": 1}, {"w": "2026-06-22", "ans": 1, "lost": 13, "menu": 1, "vm": 0}, {"w": "2026-06-29", "ans": 2, "lost": 4, "menu": 2, "vm": 3}, {"w": "2026-07-06", "ans": 0, "lost": 8, "menu": 0, "vm": 0}, {"w": "2026-07-13", "ans": 5, "lost": 15, "menu": 4, "vm": 2}, {"w": "2026-07-20", "ans": 5, "lost": 20, "menu": 8, "vm": 3}, {"w": "2026-07-27", "ans": 0, "lost": 26, "menu": 10, "vm": 4}, {"w": "2026-08-03", "ans": 1, "lost": 5, "menu": 2, "vm": 1}, {"w": "2026-08-10", "ans": 21, "lost": 5, "menu": 15, "vm": 1}, {"w": "2026-08-17", "ans": 11, "lost": 9, "menu": 18, "vm": 2}, {"w": "2026-08-24", "ans": 11, "lost": 9, "menu": 17, "vm": 4}, {"w": "2026-08-31", "ans": 6, "lost": 4, "menu": 9, "vm": 2}, {"w": "2026-09-07", "ans": 4, "lost": 7, "menu": 13, "vm": 2}, {"w": "2026-09-14", "ans": 6, "lost": 3, "menu": 2, "vm": 1}, {"w": "2026-09-21", "ans": 3, "lost": 9, "menu": 8, "vm": 0}, {"w": "2026-09-28", "ans": 3, "lost": 10, "menu": 7, "vm": 2}, {"w": "2026-10-05", "ans": 10, "lost": 4, "menu": 9, "vm": 0}, {"w": "2026-10-12", "ans": 8, "lost": 5, "menu": 6, "vm": 1}, {"w": "2026-10-19", "ans": 9, "lost": 8, "menu": 7, "vm": 1}, {"w": "2026-10-26", "ans": 6, "lost": 5, "menu": 5, "vm": 0}, {"w": "2026-11-02", "ans": 7, "lost": 4, "menu": 3, "vm": 1}, {"w": "2026-11-09", "ans": 8, "lost": 5, "menu": 10, "vm": 1}, {"w": "2026-11-16", "ans": 3, "lost": 4, "menu": 8, "vm": 0}, {"w": "2026-11-23", "ans": 3, "lost": 1, "menu": 1, "vm": 0}], "D": [{"d": 0, "ans": 43, "lost": 47, "menu": 31, "vm": 6}, {"d": 1, "ans": 36, "lost": 53, "menu": 42, "vm": 4}, {"d": 2, "ans": 47, "lost": 45, "menu": 38, "vm": 5}, {"d": 3, "ans": 50, "lost": 42, "menu": 25, "vm": 10}, {"d": 4, "ans": 50, "lost": 48, "menu": 47, "vm": 7}, {"d": 5, "ans": 24, "lost": 23, "menu": 7, "vm": 7}, {"d": 6, "ans": 10, "lost": 28, "menu": 4, "vm": 3}], "H": [{"h": 0, "ans": 0, "lost": 5, "menu": 0, "vm": 0}, {"h": 1, "ans": 0, "lost": 3, "menu": 0, "vm": 0}, {"h": 2, "ans": 0, "lost": 2, "menu": 0, "vm": 0}, {"h": 3, "ans": 0, "lost": 0, "menu": 0, "vm": 0}, {"h": 4, "ans": 0, "lost": 4, "menu": 0, "vm": 0}, {"h": 5, "ans": 0, "lost": 3, "menu": 0, "vm": 0}, {"h": 6, "ans": 0, "lost": 0, "menu": 0, "vm": 0}, {"h": 7, "ans": 0, "lost": 0, "menu": 1, "vm": 0}, {"h": 8, "ans": 0, "lost": 6, "menu": 0, "vm": 5}, {"h": 9, "ans": 16, "lost": 19, "menu": 13, "vm": 1}, {"h": 10, "ans": 23, "lost": 27, "menu": 14, "vm": 4}, {"h": 11, "ans": 28, "lost": 25, "menu": 16, "vm": 4}, {"h": 12, "ans": 33, "lost": 28, "menu": 26, "vm": 2}, {"h": 13, "ans": 38, "lost": 30, "menu": 21, "vm": 5}, {"h": 14, "ans": 24, "lost": 29, "menu": 29, "vm": 4}, {"h": 15, "ans": 16, "lost": 30, "menu": 20, "vm": 2}, {"h": 16, "ans": 29, "lost": 12, "menu": 28, "vm": 3}, {"h": 17, "ans": 33, "lost": 20, "menu": 17, "vm": 2}, {"h": 18, "ans": 16, "lost": 15, "menu": 4, "vm": 0}, {"h": 19, "ans": 4, "lost": 11, "menu": 4, "vm": 1}, {"h": 20, "ans": 0, "lost": 9, "menu": 1, "vm": 2}, {"h": 21, "ans": 0, "lost": 2, "menu": 0, "vm": 1}, {"h": 22, "ans": 0, "lost": 2, "menu": 0, "vm": 3}, {"h": 23, "ans": 0, "lost": 4, "menu": 0, "vm": 3}], "HM": [[[1, 1], [0, 0], [4, 1], [9, 5], [9, 5], [26, 19], [13, 6], [13, 10], [13, 13], [12, 6], [10, 4], [7, 5], [4, 3], [4, 4]], [[0, 0], [4, 4], [11, 9], [14, 10], [2, 2], [14, 11], [26, 14], [15, 12], [7, 6], [12, 11], [12, 8], [9, 3], [2, 2], [2, 2]], [[0, 0], [3, 3], [9, 5], [13, 8], [23, 18], [12, 7], [17, 9], [14, 9], [8, 6], [11, 6], [17, 11], [4, 2], [3, 3], [0, 0]], [[0, 0], [1, 1], [11, 7], [12, 8], [11, 7], [13, 7], [11, 5], [12, 9], [12, 11], [18, 8], [11, 3], [8, 6], [3, 1], [0, 0]], [[0, 0], [0, 0], [9, 7], [14, 12], [12, 8], [11, 7], [15, 12], [19, 11], [23, 13], [14, 8], [14, 8], [5, 1], [4, 3], [5, 5]], [[0, 0], [2, 2], [1, 0], [2, 1], [12, 3], [7, 2], [7, 5], [8, 7], [2, 1], [4, 3], [7, 4], [1, 1], [3, 3], [1, 1]], [[0, 0], [1, 1], [4, 4], [4, 1], [4, 2], [6, 3], [5, 5], [5, 4], [3, 2], [1, 1], [1, 1], [1, 1], [1, 1], [0, 0]]], "DS": [{"n": "Ventas", "tot": 247, "ans": 106, "lost": 130, "menu": 0, "vm": 11, "mins": 284, "med": 2.0, "first": "2026-01-02", "last": "2026-08-25"}, {"n": "Sin destino (menú/horario)", "tot": 234, "ans": 0, "lost": 40, "menu": 194, "vm": 0, "mins": 0, "med": 0, "first": "2026-01-03", "last": "2026-11-25"}, {"n": "BDC", "tot": 148, "ans": 82, "lost": 57, "menu": 0, "vm": 9, "mins": 136, "med": 1.0, "first": "2026-08-27", "last": "2026-11-25"}, {"n": "Postventa", "tot": 91, "ans": 41, "lost": 46, "menu": 0, "vm": 4, "mins": 133, "med": 2.0, "first": "2026-01-06", "last": "2026-10-24"}, {"n": "Veronesa", "tot": 32, "ans": 19, "lost": 10, "menu": 0, "vm": 3, "mins": 53, "med": 2.0, "first": "2026-01-03", "last": "2026-08-25"}, {"n": "Campestre", "tot": 16, "ans": 12, "lost": 3, "menu": 0, "vm": 1, "mins": 23, "med": 1.0, "first": "2026-01-15", "last": "2026-08-25"}, {"n": "Constructora HYG", "tot": 14, "ans": 0, "lost": 0, "menu": 0, "vm": 14, "mins": 0, "med": 0, "first": "2026-02-27", "last": "2026-11-02"}], "P": [{"p": "Ene–May", "tot": 227, "ans": 121, "lost": 73, "menu": 25, "vm": 8}, {"p": "Jun–Jul", "tot": 178, "ans": 19, "lost": 115, "menu": 29, "vm": 15}, {"p": "1–25 ago", "tot": 111, "ans": 38, "lost": 23, "menu": 45, "vm": 5}, {"p": "26 ago–25 nov", "tot": 266, "ans": 82, "lost": 75, "menu": 95, "vm": 14}], "O": [{"d": "2026-10-23", "n": 32, "ans": 24}, {"d": "2026-10-27", "n": 37, "ans": 19}, {"d": "2026-10-29", "n": 1, "ans": 1}, {"d": "2026-10-31", "n": 2, "ans": 2}, {"d": "2026-11-04", "n": 1, "ans": 1}, {"d": "2026-11-05", "n": 1, "ans": 0}, {"d": "2026-11-06", "n": 1, "ans": 1}, {"d": "2026-11-11", "n": 1, "ans": 1}, {"d": "2026-11-23", "n": 3, "ans": 1}, {"d": "2026-11-24", "n": 2, "ans": 1}], "OH": [{"h": 12, "n": 3, "ans": 3}, {"h": 13, "n": 2, "ans": 1}, {"h": 14, "n": 34, "ans": 17}, {"h": 15, "n": 16, "ans": 10}, {"h": 16, "n": 22, "ans": 17}, {"h": 19, "n": 4, "ans": 3}]};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const C=()=>({ans:css('--ans'),lost:css('--lost'),menu:css('--menu'),vm:css('--vm'),ink:css('--ink'),mut:css('--mut'),line:css('--line')});
+const K=['ans','lost','menu','vm'];const tot=r=>K.reduce((a,k)=>a+r[k],0);const pct=(a,b)=>b?(100*a/b):0;
+const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const DIAS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const seg=r=>{const t=tot(r);return K.map(k=>`<i style="width:${pct(r[k],t)}%;background:var(--${k})" title="${k}: ${r[k]}"></i>`).join('')};
+document.getElementById('per').innerHTML=D.P.map(r=>`<div class="prow"><span>${r.p}<br><small>${r.tot} llamadas</small></span><div class="bar">${seg(r)}</div><span class="v">${pct(r.ans,r.tot).toFixed(0)}%</span></div>`).join('');
+document.getElementById('gd').innerHTML=D.D.map(r=>`<div class="prow"><span>${DIAS[r.d]}</span><div class="bar" style="height:22px">${seg(r)}</div><span class="v" style="font-size:15px">${tot(r)}</span></div>`).join('')+'<p class="src">Cifra a la derecha: entrantes totales del día.</p>';
+const tm=document.getElementById('tm');
+tm.innerHTML='<thead><tr><th>Mes</th><th class="r">Entrantes</th><th class="r">Atendidas</th><th class="r">Perdidas</th><th class="r">Menú</th><th class="r">Buzón</th><th class="r">% atendido</th><th class="r">Min. ent.</th><th class="r">Salientes</th><th class="r">Sal. contest.</th></tr></thead><tbody>'+D.M.map(r=>{const t=tot(r);return `<tr><td>${MES[+r.m.slice(5)-1]}${r.m.endsWith('11')?' (tránsito)':''}</td><td class="r">${t}</td><td class="r">${r.ans}</td><td class="r">${r.lost}</td><td class="r">${r.menu}</td><td class="r">${r.vm}</td><td class="r"><b>${pct(r.ans,t).toFixed(1)}%</b></td><td class="r">${r.mins}</td><td class="r">${r.out}</td><td class="r">${r.outans}</td></tr>`}).join('')+'</tbody>';
+const td=document.getElementById('td');
+td.innerHTML='<thead><tr><th>Destino</th><th class="r">Total</th><th class="r">Atendidas</th><th class="r">Perdidas</th><th class="r">Menú</th><th class="r">Buzón</th><th class="r">% perdida</th><th>Desenlace</th><th>Activo</th></tr></thead><tbody>'+D.DS.map(r=>`<tr><td><b>${r.n}</b></td><td class="r">${r.tot}</td><td class="r">${r.ans}</td><td class="r">${r.lost}</td><td class="r">${r.menu}</td><td class="r">${r.vm}</td><td class="r">${pct(r.lost+r.vm,r.tot).toFixed(1)}%</td><td><div class="mini">${seg(r)}</div></td><td>${r.first.slice(5).split('-').reverse().join('/')} – ${r.last.slice(5).split('-').reverse().join('/')}</td></tr>`).join('')+'</tbody>';
+document.querySelector('#td thead th:nth-child(7)').textContent='% perdida + buzón';
+const hm=document.getElementById('hm');let h='<div class="lab"></div>';for(let x=7;x<=20;x++)h+=`<div class="lab">${x}</div>`;
+D.HM.forEach((row,d)=>{h+=`<div class="lab">${'LMXJVSD'[d]}</div>`;row.forEach(([n,na])=>{if(!n){h+='<div style="background:var(--card)"></div>';return}const p=na/n;const bg=`color-mix(in srgb, var(--lost) ${Math.round(6+p*94)}%, var(--bg))`;h+=`<div style="background:${bg};color:${p>.6?'#fff':'var(--ink)'}" title="${DIAS[d]} ${n} llamadas, ${Math.round(p*100)}% no atendidas">${n}</div>`})});
+hm.innerHTML=h;
+function stacked(svg,rows,lab,opt={}){const c=C();const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;const m={t:24,r:8,b:28,l:34};const iw=W-m.l-m.r,ih=H-m.t-m.b;const mx=Math.max(...rows.map(tot))*1.08;const bw=iw/rows.length;let s='';
+for(let g=0;g<=4;g++){const v=Math.round(mx*g/4),y=m.t+ih-ih*g/4;s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="${c.line}"/><text x="${m.l-6}" y="${y+4}" font-size="11" text-anchor="end" fill="${c.mut}">${v}</text>`}
+rows.forEach((r,i)=>{let y=m.t+ih;const x=m.l+i*bw+bw*.15,w=bw*.7;const op=opt.dim&&opt.dim(r)?.45:1;K.forEach(k=>{const hh=ih*r[k]/mx;y-=hh;s+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" fill="${c[k]}" opacity="${op}"/>`});
+if(opt.pct&&bw>26)s+=`<text x="${x+w/2}" y="${y-6}" font-size="11" text-anchor="middle" fill="${c.ink}" font-weight="600">${pct(r.ans,tot(r)).toFixed(0)}%</text>`;
+const L=lab(r,i);if(L&&(bw>22||i%3==0))s+=`<text x="${x+w/2}" y="${H-10}" font-size="11" text-anchor="middle" fill="${c.mut}">${L}</text>`});svg.innerHTML=s}
+function gw(svg){const c=C();const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;const m={t:16,r:36,b:28,l:34};const iw=W-m.l-m.r,ih=H-m.t-m.b;const R=D.W;const mx=Math.max(...R.map(tot));const bw=iw/R.length;let s='';
+for(let g=0;g<=4;g++){const y=m.t+ih-ih*g/4;s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y}" y2="${y}" stroke="${c.line}"/><text x="${m.l-6}" y="${y+4}" font-size="11" text-anchor="end" fill="${c.mut}">${g*25}%</text><text x="${W-m.r+6}" y="${y+4}" font-size="11" fill="${c.mut}">${Math.round(mx*g/4)}</text>`}
+R.forEach((r,i)=>{const hh=ih*tot(r)/mx;s+=`<rect x="${m.l+i*bw+1}" y="${m.t+ih-hh}" width="${Math.max(bw-2,1)}" height="${hh}" fill="${c.vm}" opacity=".35"/>`});
+const pts=R.map((r,i)=>[m.l+i*bw+bw/2,m.t+ih-ih*pct(r.ans,tot(r))/100,tot(r)]);s+=`<polyline fill="none" stroke="${c.ans}" stroke-width="2.5" points="${pts.map(p=>p[0]+','+p[1]).join(' ')}"/>`;
+pts.forEach(p=>s+=`<circle cx="${p[0]}" cy="${p[1]}" r="3.2" fill="${p[2]<10?'var(--bg)':c.ans}" stroke="${c.ans}" stroke-width="1.5"/>`);
+R.forEach((r,i)=>{const d=r.w.slice(5);if(d.endsWith('-01')||d.endsWith('-02')||d.endsWith('-03')||d.endsWith('-04')||d.endsWith('-05')||d.endsWith('-06')||d.endsWith('-07')){s+=`<text x="${m.l+i*bw+bw/2}" y="${H-10}" font-size="11" text-anchor="middle" fill="${c.mut}">${MES[+d.slice(0,2)-1]}</text>`}});svg.innerHTML=s}
+function bars(svg,rows,lab){const c=C();const W=svg.clientWidth,H=svg.clientHeight;if(!W)return;const m={t:20,r:8,b:30,l:30};const iw=W-m.l-m.r,ih=H-m.t-m.b;const mx=Math.max(...rows.map(r=>r.n))*1.12;const bw=iw/rows.length;let s='';
+rows.forEach((r,i)=>{const x=m.l+i*bw+bw*.2,w=bw*.6;const ha=ih*r.ans/mx,hl=ih*(r.n-r.ans)/mx;s+=`<rect x="${x}" y="${m.t+ih-ha}" width="${w}" height="${ha}" fill="${c.ans}"/><rect x="${x}" y="${m.t+ih-ha-hl}" width="${w}" height="${hl}" fill="${c.lost}"/><text x="${x+w/2}" y="${m.t+ih-ha-hl-5}" font-size="11" text-anchor="middle" fill="${c.ink}">${r.n}</text><text x="${x+w/2}" y="${H-10}" font-size="10.5" text-anchor="middle" fill="${c.mut}">${lab(r)}</text>`});
+s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${m.t+ih}" y2="${m.t+ih}" stroke="${c.line}"/>`;svg.innerHTML=s}
+const gm=document.getElementById('gm'),gwS=document.getElementById('gw'),gh=document.getElementById('gh'),go=document.getElementById('go');
+const draw=()=>{stacked(gm,D.M,r=>MES[+r.m.slice(5)-1],{pct:1,dim:r=>r.m.endsWith('11')});gw(gwS);stacked(gh,D.H,r=>r.h%2==0?r.h:'');bars(go,D.O,r=>r.d.slice(8)+'/'+r.d.slice(5,7))};
+const ro=new ResizeObserver(draw);[gm,gwS,gh,go].forEach(e=>ro.observe(e));
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+}
+</script>
+</body>
+</html>

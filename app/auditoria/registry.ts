@@ -82,6 +82,13 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
      $88,783 (GRC, dos líneas con este consecutivo), no los $59,423 de la
      ficha: con el correcto es la #2 de la cartera. */
   { id: 'tech-people',     nombre: 'Tech People (Servicios y Reparaciones TP)', consecutivos: ['C1'] },
+  /* Alta del 26 nov 2026. 155,406 entrantes en once meses y el diagnóstico más
+     limpio del lote: la capacidad está descartada por DOS vías —pico de 8
+     simultáneas sobre 13 extensiones, y más pérdida con poca carga (12.3%) que
+     con mucha (3.5%)—, así que son puestos sin persona. Bitácora 1 pasó de
+     16.8% a 59.4% mientras su volumen caía de 3,785 a 310 llamadas. El
+     incidente del 20 nov (172 de 223 en cinco horas) NO tiene ticket. */
+  { id: 'easo',            nombre: 'EASO (Transportes EASO)',            consecutivos: ['C14'] },
   // ── Dan ───────────────────────────────────────────────────────────────────
   { id: 'salud-y-hogar',   nombre: 'Salud y Hogar',                    consecutivos: ['D3']  },
   { id: 'cintascove',      nombre: 'Cintas Cove S.A. de C.V.',         consecutivos: ['D14'] },
@@ -106,6 +113,35 @@ export const AUDITORIA_REFS: AuditoriaRef[] = [
      de llamadas sin contestar NO es una falla —van todas a un agente
      virtual— y su MRR real es $1,078, no los $38,123 de la ficha. */
   { id: 'system-ooapas',     nombre: 'Grupo System OOAPAS (Estradata)',     consecutivos: ['D2']  },
+  /* ── Altas del 26 nov 2026 ───────────────────────────────────────────────
+     Cinco expedientes nuevos del mismo lote de reportes. Lo que los une no es
+     el asesor: es que en los cinco el dato de nuestras fuentes contradijo algo
+     que el documento entregado daba por bueno, y eso quedó declarado DENTRO de
+     cada documento publicado ([[auditoria-modulo]]). */
+  /* 66.8% de las entrantes no llega a una persona y CERO devoluciones en 782
+     llamadas. El riesgo real lo declaró el cliente: pidió integración con
+     GoHighLevel, que trae telefonía propia, y con 0 de 6 módulos el costo de
+     salida es cero. Su MRR cuadra EXACTO con el GRC: $1,069. */
+  { id: 'campestre-los-viveros', nombre: 'Campestre Los Viveros',         consecutivos: ['Z35'] },
+  /* 10 sedes y 14 números, con Chapultepec 68 al 94.7% de atención contra
+     Coffee Depot Guadalajara al 23.1% de pérdida: diez veces de diferencia en
+     la misma plataforma. El 95% de las pérdidas ocurre con la extensión LIBRE.
+     Y su MRR institucional NO ES MEDIBLE: el GRC no trae fila para el CID
+     17297 ni por nombre, así que los $12,554 de la ficha no se pueden citar. */
+  { id: 'san-son',           nombre: 'SAN-SON (Sanson · Coffee Depot)',   consecutivos: ['D10'] },
+  /* Un solo número generaba el 20.6% del tráfico y el 60.8% de las perdidas:
+     sin él, atiende 9 de cada 10. La fuga es que no devuelve (14 llamadas en
+     todo el año). Y el GRC la marca «Churn confirmado» con mrrFin $0 mientras
+     paga al corriente y usa el 66% del plan: contradicción abierta en
+     dirección, NO autorización de baja. */
+  { id: 'sellomatic',        nombre: 'Sellomatic Impresores',             consecutivos: ['D27'] },
+  /* Una sola línea (la 0404) concentra el 86.8% de las pérdidas reales con el
+     23.8% del tráfico, y la cola de Bitrix ya resuelve al 1.4% los siete días:
+     el 69% de esas pérdidas cae en horas que Bitrix cubre. Un tercio de las
+     pérdidas brutas son pruebas internas del TI del cliente. La caída de
+     entrantes NO es deterioro: la entrada volvió a Telmex y el cliente quiere
+     portarla de vuelta. */
+  { id: 'ehi-global',        nombre: 'EHI Global (Grupo Antyr)',          consecutivos: ['D8']  },
   // ── Erick · altas posteriores al relevo ────────────────────────────────────
   //    (Dos expedientes del bloque «Dan» de arriba también son suyos según
   //     `cuentas.asesor`: VAEO Business Club (C51) y NERUC Sede Central

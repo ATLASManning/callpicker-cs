@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoría Forense de Tráfico Telefónico — Hospital Santa Rosa de Viterbo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#0B2545; --blue:#1565C0; --teal:#0E8388; --red:#C62828; --orange:#EF6C00;
+  --green:#2E7D32; --gray:#9AA5B1; --graydark:#667085; --lightblue:#5DA9E9;
+  --bg:#F4F6F9; --card:#FFFFFF; --border:#E2E6EC; --text:#1A2333;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;line-height:1.55}
+header{background:linear-gradient(135deg,var(--navy),#123a6b);color:#fff;padding:40px 6vw 30px}
+header h1{margin:0 0 6px;font-size:1.65rem;font-weight:700}
+header p{margin:2px 0;color:#cfe0f5;font-size:.95rem}
+.badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+  padding:3px 10px;border-radius:20px;font-size:.78rem;margin-top:10px;margin-right:8px}
+nav{background:#0d2d54;padding:0 6vw;display:flex;flex-wrap:wrap;gap:2px;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+nav a{color:#cfe0f5;text-decoration:none;font-size:.82rem;padding:12px 10px;white-space:nowrap}
+nav a:hover{color:#fff;background:rgba(255,255,255,.08)}
+main{max-width:1180px;margin:0 auto;padding:0 6vw 60px}
+section{margin-top:44px;scroll-margin-top:50px}
+h2{color:var(--navy);font-size:1.3rem;border-bottom:3px solid var(--teal);padding-bottom:8px;margin-bottom:18px}
+h3{color:var(--navy);font-size:1.05rem;margin:22px 0 10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 22px;margin-bottom:16px;box-shadow:0 1px 3px rgba(20,30,50,.05)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:18px 0}
+.kpi{background:var(--card);border:1px solid var(--border);border-left:5px solid var(--blue);border-radius:8px;padding:14px 16px}
+.kpi.red{border-left-color:var(--red)} .kpi.green{border-left-color:var(--green)} .kpi.orange{border-left-color:var(--orange)} .kpi.teal{border-left-color:var(--teal)}
+.kpi .n{font-size:1.5rem;font-weight:700;color:var(--navy)} .kpi .l{font-size:.78rem;color:var(--graydark)}
+.chart-box{position:relative;height:340px;margin:14px 0}
+.chart-box.tall{height:420px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:800px){.two-col{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:10px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left}
+th{background:#f0f3f8;color:var(--navy);cursor:pointer;user-select:none;position:sticky;top:0}
+th:hover{background:#e4e9f2}
+tr:hover td{background:#f8fafc}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:600}
+.tag.hi{background:#fde8e8;color:var(--red)} .tag.mid{background:#fff3e0;color:var(--orange)} .tag.ok{background:#e8f5e9;color:var(--green)}
+.tag.nv{background:#eceff3;color:var(--graydark)}
+.callout{border-radius:8px;padding:16px 18px;margin:16px 0;border-left:5px solid}
+.callout.info{background:#eaf2fc;border-color:var(--blue)}
+.callout.warn{background:#fff3e0;border-color:var(--orange)}
+.callout.risk{background:#fdecea;border-color:var(--red)}
+.callout.good{background:#eaf7ec;border-color:var(--green)}
+.callout h4{margin:0 0 6px;color:var(--navy);font-size:.95rem}
+.foda-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:800px){.foda-grid{grid-template-columns:1fr}}
+.foda-box{border-radius:8px;padding:16px;color:#fff}
+.foda-box h4{margin:0 0 8px;font-size:1rem}
+.foda-box ul{margin:0;padding-left:18px;font-size:.87rem}
+.foda-box ul li{margin-bottom:5px}
+.f{background:#2E7D32}.o{background:#1565C0}.d{background:#C62828}.a{background:#EF6C00}
+.findings-table td:first-child{font-weight:600;color:var(--navy)}
+.filter-row{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+input.filter{padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;flex:1;min-width:180px}
+footer{background:var(--navy);color:#b8c7e0;padding:26px 6vw;font-size:.8rem;text-align:center}
+.note{font-size:.78rem;color:var(--graydark);font-style:italic;margin-top:6px}
+.legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.proposal{background:#f0f3f8;border:1px dashed var(--blue);border-radius:8px;padding:12px 16px;margin:10px 0}
+.proposal b{color:var(--navy)}
+</style>
+</head>
+<body><section id="cp-nota-conciliacion" style="margin:0 0 28px 0;padding:24px 28px;border:2px solid #b45309;border-left:8px solid #b45309;border-radius:0 12px 12px 0;background:#fffbeb;color:#1f2937;font-family:system-ui,-apple-system,Segoe UI,sans-serif"><div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#b45309;margin:0 0 6px 0">Nota de conciliación · Dirección SAC</div><h2 style="margin:0 0 4px 0;font-size:21px;color:#1f2937">Hospital Santa Rosa · C4</h2><p style="margin:0 0 16px 0;font-size:14px;color:#4b5563">Conciliado el 26 de noviembre de 2026 contra cartera, el Gross Revenue y las fuentes de llamadas. 7 puntos de conciliación. Asesor de la cuenta: <strong>Erick</strong>. Nada del texto original se borró: lo corregido queda al lado de lo publicado.</p><ol style="margin:0;padding-left:22px;font-size:14.5px"><li style="margin:0 0 10px 0;line-height:1.55">EL HALLAZGO CENTRAL VALE EL DOBLE: el documento dice que la comunicación interna es el 38.2% de la telefonía, y es el 73.98% (66,017 de 89,238 registros). El 38.2% es sólo su mitad saliente.</li><li style="margin:0 0 10px 0;line-height:1.55">«15.9% salientes externas»: lo medido es 7.93% (7,079 de 89,238).</li><li style="margin:0 0 10px 0;line-height:1.55">Las tres cuotas del resumen suman 108.0%: los cubos se traslapan. El reparto que cierra al 100.00% es: entrantes internas 32,653 (36.59%), entrantes externas 15,349 (17.20%), entrantes anómalas 104 (0.12%), salientes internas 33,364 (37.39%), salientes externas 7,079 (7.93%) y salientes inválidas 689 (0.77%).</li><li style="margin:0 0 10px 0;line-height:1.55">Minutos: 55,613 + 36,736 = 92,349, y el encabezado declara 93,036. Difieren en 687.</li><li style="margin:0 0 10px 0;line-height:1.55">«Sin mejora observable» y un piso de 22%: OCTUBRE ES EL MEJOR MES CERRADO DEL AÑO en ambas direcciones (19.3% y 20.2%, contra 22.9% y 23.6% en enero). Sí hubo mejora.</li><li style="margin:0 0 10px 0;line-height:1.55">«24.7% de pérdida promedio»: de extensión a extensión es 23.89%. El 24.7% sale de incluir las 689 marcaciones inválidas (24.68%).</li><li style="margin:0 0 10px 0;line-height:1.55">GRC: la cuenta aparece con movimiento «Churn confirmado», MRR final $0 y pérdida de $18,345, y a la vez viva, con estado activo y contacto el 26 nov. Va a dirección; NO es baja.</li></ol></section>
+<header>
+  <h1>Auditoría Forense de Tráfico Telefónico</h1>
+  <p>Hospital Santa Rosa de Viterbo · Customer ID 81735</p>
+  <p>Periodo analizado: 1 de enero – 26 de noviembre de 2026 (330 días)</p>
+  <span class="badge">89,238 registros de llamada</span>
+  <span class="badge">Plan de minutos ilimitados</span>
+  <span class="badge">Fuente: detalle de llamadas Callpicker</span>
+</header>
+<nav>
+  <a href="#resumen">Resumen ejecutivo</a>
+  <a href="#metodologia">Metodología</a>
+  <a href="#volumen">Volumen y tendencia</a>
+  <a href="#interna">Comunicación interna</a>
+  <a href="#externa">Atención externa</a>
+  <a href="#autoservicio">Autoservicio y devolución</a>
+  <a href="#foda">FODA</a>
+  <a href="#hallazgos">Hallazgos</a>
+  <a href="#portafolio">Oportunidades de portafolio</a>
+  <a href="#seguimiento">Plan de seguimiento</a>
+</nav>
+<main>
+
+<section id="resumen">
+<h2>1 · Resumen ejecutivo</h2>
+<div class="card">
+<p>Entre el 1 de enero y el 26 de noviembre de 2026, Hospital Santa Rosa de Viterbo registró <b>89,238 llamadas</b> a través de su servicio Callpicker: 48,106 entrantes y 41,132 salientes. De ese total, el 38.2% corresponde a comunicación interna entre extensiones, el 15.9% a llamadas salientes hacia teléfonos externos, y el 53.9% a llamadas entrantes (internas y externas combinadas). El hallazgo central de esta auditoría es el mismo que debe orientar la conversación con la cuenta: <b>la comunicación interna del hospital pierde entre 23% y 25% de sus intentos</b>, una tasa estructural y sostenida mes con mes, muy por encima de la pérdida en la atención a pacientes externos (5.3% en llamadas entrantes).</p>
+<p>Un hallazgo adicional, no visible en auditorías de volumen simples, es la capacidad real de recuperación ante una llamada perdida: de las 8,309 llamadas entrantes perdidas en el periodo, únicamente 78 (0.9%) fueron devueltas exitosamente por el personal del hospital. En la práctica, una llamada que no se contesta al primer intento casi nunca se recupera.</p>
+<p>El servicio opera bajo un <b>plan de minutos ilimitados</b> (Extensión VyC con SIM + Extensión VyC, MRR fijo de $20,953 MXN). Las cifras de minutos que se presentan en este documento son, por lo tanto, indicadores de uso e intensidad operativa — nunca una base de facturación variable.</p>
+<div class="kpi-grid">
+  <div class="kpi"><div class="n">89,238</div><div class="l">Llamadas totales en el periodo</div></div>
+  <div class="kpi red"><div class="n">24.7%</div><div class="l">Pérdida en comunicación interna (promedio entrante+saliente)</div></div>
+  <div class="kpi green"><div class="n">5.3%</div><div class="l">Pérdida en llamadas entrantes externas (pacientes)</div></div>
+  <div class="kpi orange"><div class="n">0.9%</div><div class="l">Llamadas perdidas recuperadas por devolución</div></div>
+  <div class="kpi teal"><div class="n">7.5%</div><div class="l">Entrantes resueltas en autoservicio / IVR</div></div>
+  <div class="kpi"><div class="n">93,036</div><div class="l">Minutos reales conectados (indicador de uso)</div></div>
+</div>
+</div>
+</section>
+
+<section id="metodologia">
+<h2>2 · Metodología</h2>
+<div class="card">
+<p>El archivo fuente contiene tres hojas: <b>Entrantes</b> (48,106 registros), <b>Salientes</b> (41,132 registros) y un <b>Resumen</b> pre-calculado por Callpicker, usado aquí como verificación cruzada independiente — todos los totales de este documento coinciden exactamente con esa hoja.</p>
+<p><b>Clasificación interna / externa.</b> En Salientes, el archivo trae por primera vez columnas explícitas <code>origen</code>/<code>destino</code> que identifican si el objetivo marcado fue una extensión interna o un teléfono externo; esta auditoría usa ese campo directamente en vez de inferirlo por longitud de dígitos, lo que elimina ambigüedad. En Entrantes (que no trae ese campo) la clasificación se obtiene por longitud del identificador de origen: 3 dígitos = extensión interna, 10 dígitos = número externo; el resto (0.2% de los registros) se marca como anómalo.</p>
+<p><b>Atribución de nombres por departamento.</b> El campo <code>destination_data_1</code> tiene un significado distinto en cada hoja, verificado contra los totales de la hoja Resumen: en <b>Salientes</b> identifica el <u>departamento que origina</u> la llamada; en <b>Entrantes</b> identifica el <u>departamento que contesta</u>. Ambas asignaciones coinciden al 100% con los conteos independientes de Callpicker. El archivo no incluye el número de extensión del departamento que contesta, por lo que la tabla de riesgo por extensión destino (sección 4) sólo trae nombre confirmado en las extensiones que ya se habían verificado en cortes anteriores de este mismo tipo de ejercicio; el resto se reporta por número con la etiqueta explícita "No verificado" — nunca se asigna un nombre por suposición.</p>
+<p><b>Mes en curso.</b> Noviembre 2026 está incluido únicamente hasta el día 26; se muestra en las gráficas de tendencia marcado como mes en tránsito y se excluye de las lecturas de cierre mensual, ya que un mes parcial no es comparable a un mes completo.</p>
+</div>
+</section>
+
+<section id="volumen">
+<h2>3 · Volumen y tendencia</h2>
+<div class="two-col">
+  <div class="card"><h3>Distribución del tráfico total</h3><div class="chart-box"><canvas id="chDistribucion"></canvas></div></div>
+  <div class="card"><h3>Estatus de llamadas entrantes</h3><div class="chart-box"><canvas id="chEstatusEnt"></canvas></div></div>
+</div>
+<div class="card">
+<h3>Tendencia mensual de pérdida — interna vs. externa (entrantes)</h3>
+<div class="chart-box tall"><canvas id="chTendenciaEnt"></canvas></div>
+<p class="note">Noviembre (punteado) es un mes en tránsito, con 26 de sus días registrados; no se interpreta como cierre de mes.</p>
+</div>
+<div class="card">
+<h3>Tendencia mensual de pérdida — interna vs. externa (salientes)</h3>
+<div class="chart-box tall"><canvas id="chTendenciaSal"></canvas></div>
+</div>
+<div class="callout warn">
+<h4>Lectura de la tendencia</h4>
+<p>La pérdida en comunicación interna se mantiene en un rango de 22% a 32% todos los meses cerrados del año, sin una tendencia de mejora ni de deterioro marcado — es un problema estructural, no un episodio puntual. Agosto es consistentemente el mes con peor desempeño en ambas direcciones (28.8% entrante, 31.7% saliente). Mayo registra el menor volumen absoluto del año en ambas hojas; al tratarse de una caída de volumen y no de tasa, se documenta como observación a validar con el hospital (posible periodo vacacional o contingencia operativa) y no como una mejora real del servicio.</p>
+</div>
+</section>
+
+<section id="interna">
+<h2>4 · Comunicación interna (extensión a extensión)</h2>
+<div class="kpi-grid">
+  <div class="kpi red"><div class="n">22.9%</div><div class="l">Pérdida interna — entrantes (32,653 intentos)</div></div>
+  <div class="kpi red"><div class="n">24.9%</div><div class="l">Pérdida interna — salientes limpias (33,364 intentos)</div></div>
+  <div class="kpi orange"><div class="n">689</div><div class="l">Intentos de marcado anómalo (dígitos inválidos), 100% perdidos</div></div>
+</div>
+<div class="two-col">
+<div class="card">
+<h3>Riesgo por extensión destino (quién recibe)</h3>
+<p class="note">Extensiones con 50 o más intentos recibidos en el periodo. Nombre verificado solo donde se confirma contra registros previos auditados de esta cuenta.</p>
+<div class="filter-row"><input class="filter" id="fDestino" placeholder="Filtrar por extensión o nombre..."></div>
+<div style="max-height:380px;overflow:auto">
+<table id="tblDestino">
+<thead><tr><th data-k="num">Extensión</th><th data-k="nombre">Departamento</th><th data-k="tot">Intentos</th><th data-k="lost">Perdidas</th><th data-k="tasa">Tasa pérdida</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+<div class="card">
+<h3>Riesgo por departamento origen (quién marca)</h3>
+<p class="note">Departamentos con 20 o más intentos internos realizados. Nombre siempre confirmado (campo directo de Callpicker).</p>
+<div class="filter-row"><input class="filter" id="fOrigen" placeholder="Filtrar por departamento..."></div>
+<div style="max-height:380px;overflow:auto">
+<table id="tblOrigen">
+<thead><tr><th data-k="nombre">Departamento</th><th data-k="tot">Intentos</th><th data-k="lost">Perdidas</th><th data-k="tasa">Tasa pérdida</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="card">
+<h3>Mapa de riesgo: volumen vs. tasa de pérdida (extensiones destino)</h3>
+<div class="chart-box tall"><canvas id="chBurbuja"></canvas></div>
+</div>
+<div class="callout risk">
+<h4>Extensiones en estado crítico</h4>
+<p>La extensión 548 no contesta ninguna llamada: 96 intentos recibidos en el periodo, 96 perdidos (100%). Le siguen la extensión 599 (87.8% de pérdida, 74 intentos) y la extensión 534 (72.6%, 84 intentos). Entre las líneas de alto volumen, Sistemas (ext. 510, 432 intentos) pierde 49.1% y Enfermería Urgencias (ext. 509, 3,126 intentos, la segunda extensión más marcada del hospital) pierde 36.9%.</p>
+</div>
+</section>
+
+<section id="externa">
+<h2>5 · Atención a pacientes y contactos externos</h2>
+<div class="kpi-grid">
+  <div class="kpi green"><div class="n">5.3%</div><div class="l">Pérdida en llamadas entrantes externas (15,349 llamadas)</div></div>
+  <div class="kpi orange"><div class="n">39.3%</div><div class="l">Pérdida en llamadas salientes hacia externos (7,079 llamadas)</div></div>
+  <div class="kpi"><div class="n">26,837</div><div class="l">Minutos reales conectados en atención entrante externa</div></div>
+</div>
+<div class="card">
+<h3>Llamadas entrantes externas perdidas por hora del día</h3>
+<div class="chart-box"><canvas id="chHora"></canvas></div>
+<p class="note">La pérdida externa se concentra en horario laboral (9:00–17:00), donde también se concentra el mayor volumen de llamadas de pacientes — es un problema de capacidad en horas pico, no de horario nocturno desatendido.</p>
+</div>
+<div class="callout info">
+<h4">Sobre la pérdida saliente externa</h4>
+<p>El 39.3% de pérdida en llamadas salientes hacia teléfonos externos refleja en gran medida que el destinatario (paciente, proveedor) no contesta — un factor fuera del control directo del hospital, a diferencia de la pérdida interna. Se documenta por completitud, pero no se pondera igual que la pérdida entrante en la lectura de riesgo operativo.</p>
+</div>
+</section>
+
+<section id="autoservicio">
+<h2>6 · Autoservicio, IVR y devolución de llamadas</h2>
+<div class="two-col">
+<div class="card">
+<h3>Composición de llamadas entrantes</h3>
+<div class="chart-box"><canvas id="chComposicion"></canvas></div>
+</div>
+<div class="card">
+<h3>Devolución de llamadas perdidas (callback)</h3>
+<div class="chart-box"><canvas id="chDevolucion"></canvas></div>
+</div>
+</div>
+<div class="callout risk">
+<h4>El hallazgo más accionable del periodo</h4>
+<p>De 8,309 llamadas entrantes perdidas, solo 78 (0.9%) fueron devueltas exitosamente. El 99.1% restante nunca recibió una llamada de regreso del hospital. Esto significa que, en la práctica operativa actual, una llamada perdida es una llamada cerrada — no existe un mecanismo de recuperación que compense la tasa de pérdida de las secciones 4 y 5.</p>
+</div>
+<div class="callout info">
+<h4>Nota sobre evaluación de satisfacción</h4>
+<p>Solo el 1.6% de las llamadas entrantes contestadas (579 de 36,029) recibió una calificación del paciente. Con una tasa de respuesta tan baja, esta auditoría no utiliza la evaluación de satisfacción como señal de riesgo — es una muestra demasiado pequeña para sostener conclusiones, y se reporta aquí únicamente como dato de contexto.</p>
+</div>
+</section>
+
+<section id="foda">
+<h2>7 · FODA del servicio de telefonía</h2>
+<div class="foda-grid">
+<div class="foda-box f"><h4>Fortalezas</h4><ul>
+<li>Atención externa a pacientes con pérdida baja y estable (5.3%).</li>
+<li>Autoservicio/IVR activo, resolviendo una fracción de la demanda sin intervención humana.</li>
+<li>Volumen operativo alto y sostenido (más de 89 mil llamadas en 11 meses) sin plan limitado que restrinja el uso.</li>
+</ul></div>
+<div class="foda-box o"><h4>Oportunidades</h4><ul>
+<li>Enrutamiento inteligente para las extensiones de mayor pérdida (548, 599, 534, 510, 509, 502).</li>
+<li>Mecanismo automático de devolución de llamada para elevar el 0.9% actual de recuperación.</li>
+<li>Agente de voz con IA para absorber picos de demanda externa en horario 9:00–17:00.</li>
+</ul></div>
+<div class="foda-box d"><h4>Debilidades</h4><ul>
+<li>Pérdida interna estructural de 23–25%, sostenida los 11 meses, sin mejora observable.</li>
+<li>689 intentos de marcado inválido en el año, 100% perdidos — indicio de directorio interno desactualizado o mal comunicado al personal.</li>
+<li>Prácticamente nula capacidad de recuperación de llamadas perdidas (0.9%).</li>
+</ul></div>
+<div class="foda-box a"><h4>Amenazas</h4><ul>
+<li>Una llamada interna perdida puede traducirse en una demora clínica o administrativa no visible en los indicadores de atención a paciente.</li>
+<li>Extensiones con pérdida cercana al 100% (548, 599, 534) sugieren líneas abandonadas o mal asignadas, con riesgo de queja o incidente si corresponden a un área crítica.</li>
+<li>Sin corrección, el patrón de pérdida interna seguirá repitiéndose mes a mes como se observa en los 11 meses analizados.</li>
+</ul></div>
+</div>
+</section>
+
+<section id="hallazgos">
+<h2>8 · Matriz de hallazgos</h2>
+<div class="card">
+<table class="findings-table">
+<thead><tr><th>Hallazgo</th><th>Evidencia</th><th>Severidad</th></tr></thead>
+<tbody>
+<tr><td>Pérdida estructural en comunicación interna</td><td>22.9% entrante / 24.9% saliente, sostenido en los 11 meses cerrados</td><td><span class="tag hi">Alta</span></td></tr>
+<tr><td>Casi nula recuperación de llamadas perdidas</td><td>78 de 8,309 devoluciones exitosas (0.9%)</td><td><span class="tag hi">Alta</span></td></tr>
+<tr><td>Extensiones con pérdida cercana al 100%</td><td>Ext. 548 (100%), 599 (87.8%), 534 (72.6%)</td><td><span class="tag hi">Alta</span></td></tr>
+<tr><td>Marcado interno inválido</td><td>689 intentos con dígitos anómalos, 100% perdidos</td><td><span class="tag mid">Media</span></td></tr>
+<tr><td>Pérdida en horas pico de atención externa</td><td>Concentración de pérdida entrante externa entre 9:00 y 17:00</td><td><span class="tag mid">Media</span></td></tr>
+<tr><td>Directorio de extensiones incompleto para auditoría</td><td>16 de 25 extensiones de alto volumen sin nombre verificado en este corte</td><td><span class="tag nv">Limitación de datos</span></td></tr>
+<tr><td>Atención externa a pacientes estable</td><td>5.3% de pérdida, sin señal de deterioro</td><td><span class="tag ok">Controlado</span></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section id="portafolio">
+<h2>9 · Oportunidades de portafolio Callpicker</h2>
+<div class="card">
+<p>Las cifras de esta auditoría apuntan a tres frentes concretos donde el portafolio de Callpicker puede convertir un hallazgo en una propuesta de valor medible para el hospital:</p>
+<div class="proposal"><b>Enrutamiento inteligente de extensiones internas.</b> Reasignar o desviar automáticamente las llamadas hacia las extensiones de mayor pérdida (548, 599, 534, 510, 509, 502) a un respaldo humano o a cola, en vez de dejarlas sonar sin contestación. <i>Dueño sugerido: KAM de cuenta junto con el área técnica de Callpicker. Siguiente paso: validar con el hospital si esas extensiones siguen activas y a qué área pertenecen.</i></div>
+<div class="proposal"><b>Agente de voz con IA para contención de picos.</b> Atender el volumen entrante externo en las horas de mayor concentración (9:00–17:00) con un agente de voz IA de primer nivel, liberando capacidad humana para los casos que requieren intervención. <i>Dueño sugerido: Claudia Hernández (asesor de cuenta). Siguiente paso: dimensionar el volumen de horas pico con el hospital y proponer una prueba piloto.</i></div>
+<div class="proposal"><b>Devolución automática de llamadas perdidas.</b> Implementar un flujo de callback automático que eleve la tasa de recuperación actual (0.9%) sin depender de que el personal recuerde regresar la llamada manualmente. <i>Dueño sugerido: KAM de cuenta. Siguiente paso: proponer el módulo de devolución automática como prueba acotada a las extensiones de mayor volumen perdido.</i></div>
+</div>
+</section>
+
+<section id="seguimiento">
+<h2>10 · Plan de seguimiento</h2>
+<div class="card">
+<table>
+<thead><tr><th>Acción</th><th>Responsable</th><th>Plazo sugerido</th></tr></thead>
+<tbody>
+<tr><td>Validar con el hospital la identidad actual de las extensiones 548, 599, 534, 178, 510 y 536 (alto volumen y alta pérdida)</td><td>Claudia Hernández (asesor de cuenta)</td><td>Próxima visita de seguimiento</td></tr>
+<tr><td>Presentar hallazgo de pérdida interna estructural y proponer enrutamiento inteligente</td><td>KAM de cuenta</td><td>2 semanas</td></tr>
+<tr><td>Evaluar piloto de agente de voz IA en horario de mayor demanda externa</td><td>KAM de cuenta + área técnica</td><td>1 mes</td></tr>
+<tr><td>Proponer módulo de devolución automática de llamadas perdidas</td><td>KAM de cuenta</td><td>1 mes</td></tr>
+<tr><td>Dar seguimiento al bajo volumen de mayo 2026 para descartar o confirmar causa operativa</td><td>Claudia Hernández (asesor de cuenta)</td><td>Próxima visita de seguimiento</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+</main>
+<footer>
+Documento generado por Callpicker con base en metodología forense de clasificación de tráfico telefónico (interno vs. externo), con verificación cruzada contra los indicadores propios de la plataforma. Hospital Santa Rosa de Viterbo opera con plan de llamadas ilimitadas; las cifras de minutos de este documento son indicadores de uso operativo, no de facturación variable.<br>
+Asesor de cuenta responsable: Claudia Hernández.
+</footer>
+
+<script>
+const DATA = {"periodo": {"inicio": "2026-01-01", "fin": "2026-11-26", "dias": 330}, "totales": {"entrantes": 48106, "salientes": 41132, "ent_contestadas": 36029, "ent_perdidas": 8309, "ent_autoservicio": 3629, "ent_buzon": 139, "sal_contestadas": 29372, "sal_perdidas": 11760, "min_entrantes_reales": 55613, "min_salientes_reales": 36736}, "clasificacion": {"ent_interna": {"tot": 32653, "perdidas": 7481}, "ent_externa": {"tot": 15349, "perdidas": 820}, "ent_anomala": {"tot": 104, "perdidas": 8}, "sal_interna": {"tot": 33364, "perdidas": 8292}, "sal_externa": {"tot": 7079, "perdidas": 2779}, "sal_anomala": {"tot": 689, "perdidas": 689}}, "devolucion": {"perdidas_ent": 8309, "exitosas": 78}, "evaluacion": {"Ejecutivo colgó, sin evaluación": 29845, "Cliente colgó (sin encuesta)": 5605, "Positiva": 428, "Negativa": 151}, "meses_lbl": ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov*"], "ent_mensual": [{"mes": "2026-01", "int_tot": 3312, "int_lost": 759, "ext_tot": 1342, "ext_lost": 63}, {"mes": "2026-02", "int_tot": 2903, "int_lost": 572, "ext_tot": 1382, "ext_lost": 45}, {"mes": "2026-03", "int_tot": 3479, "int_lost": 765, "ext_tot": 1761, "ext_lost": 88}, {"mes": "2026-04", "int_tot": 3203, "int_lost": 831, "ext_tot": 1461, "ext_lost": 75}, {"mes": "2026-05", "int_tot": 1812, "int_lost": 424, "ext_tot": 1476, "ext_lost": 91}, {"mes": "2026-06", "int_tot": 3371, "int_lost": 716, "ext_tot": 1301, "ext_lost": 72}, {"mes": "2026-07", "int_tot": 3094, "int_lost": 748, "ext_tot": 1457, "ext_lost": 64}, {"mes": "2026-08", "int_tot": 3109, "int_lost": 896, "ext_tot": 1537, "ext_lost": 86}, {"mes": "2026-09", "int_tot": 2986, "int_lost": 724, "ext_tot": 1175, "ext_lost": 85}, {"mes": "2026-10", "int_tot": 2791, "int_lost": 540, "ext_tot": 1396, "ext_lost": 95}, {"mes": "2026-11", "int_tot": 2593, "int_lost": 506, "ext_tot": 1061, "ext_lost": 56}], "sal_mensual": [{"mes": "2026-01", "int_tot": 3333, "int_lost": 786, "ext_tot": 803, "ext_lost": 318}, {"mes": "2026-02", "int_tot": 3069, "int_lost": 754, "ext_tot": 724, "ext_lost": 317}, {"mes": "2026-03", "int_tot": 3560, "int_lost": 852, "ext_tot": 711, "ext_lost": 284}, {"mes": "2026-04", "int_tot": 3227, "int_lost": 867, "ext_tot": 719, "ext_lost": 281}, {"mes": "2026-05", "int_tot": 1988, "int_lost": 606, "ext_tot": 468, "ext_lost": 215}, {"mes": "2026-06", "int_tot": 3394, "int_lost": 746, "ext_tot": 745, "ext_lost": 268}, {"mes": "2026-07", "int_tot": 3134, "int_lost": 798, "ext_tot": 628, "ext_lost": 217}, {"mes": "2026-08", "int_tot": 3223, "int_lost": 1021, "ext_tot": 638, "ext_lost": 275}, {"mes": "2026-09", "int_tot": 3016, "int_lost": 765, "ext_tot": 554, "ext_lost": 191}, {"mes": "2026-10", "int_tot": 2812, "int_lost": 569, "ext_tot": 586, "ext_lost": 236}, {"mes": "2026-11", "int_tot": 2608, "int_lost": 528, "ext_tot": 503, "ext_lost": 177}], "ent_int_tasa": [22.9, 19.7, 22.0, 25.9, 23.4, 21.2, 24.2, 28.8, 24.2, 19.3, 19.5], "ent_ext_tasa": [4.7, 3.3, 5.0, 5.1, 6.2, 5.5, 4.4, 5.6, 7.2, 6.8, 5.3], "sal_int_tasa": [23.6, 24.6, 23.9, 26.9, 30.5, 22.0, 25.5, 31.7, 25.4, 20.2, 20.2], "sal_ext_tasa": [39.6, 43.8, 39.9, 39.1, 45.9, 36.0, 34.6, 43.1, 34.5, 40.3, 35.2], "hours": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], "ext_lost_by_hour": [9, 5, 2, 3, 9, 6, 11, 11, 42, 57, 72, 59, 61, 57, 67, 73, 75, 66, 42, 35, 13, 12, 15, 18], "dow_lbl": ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"], "int_lost_by_dow": [1104, 1008, 1051, 1060, 1361, 1100, 797], "tabla_destino": {"548": {"tot": 96, "lost": 96, "tasa": 100.0, "nombre": "No verificado"}, "599": {"tot": 74, "lost": 65, "tasa": 87.8, "nombre": "No verificado"}, "534": {"tot": 84, "lost": 61, "tasa": 72.6, "nombre": "No verificado"}, "178": {"tot": 490, "lost": 242, "tasa": 49.4, "nombre": "No verificado"}, "510": {"tot": 432, "lost": 212, "tasa": 49.1, "nombre": "Sistemas"}, "536": {"tot": 223, "lost": 91, "tasa": 40.8, "nombre": "No verificado"}, "530": {"tot": 522, "lost": 204, "tasa": 39.1, "nombre": "No verificado"}, "509": {"tot": 3126, "lost": 1155, "tasa": 36.9, "nombre": "Enfermería Urgencias"}, "502": {"tot": 3313, "lost": 1207, "tasa": 36.4, "nombre": "Jefatura de Enfermería"}, "900": {"tot": 685, "lost": 238, "tasa": 34.7, "nombre": "Vigilancia"}, "520": {"tot": 241, "lost": 79, "tasa": 32.8, "nombre": "No verificado"}, "531": {"tot": 589, "lost": 184, "tasa": 31.2, "nombre": "No verificado"}, "505": {"tot": 889, "lost": 271, "tasa": 30.5, "nombre": "No verificado"}, "535": {"tot": 128, "lost": 38, "tasa": 29.7, "nombre": "No verificado"}, "114": {"tot": 245, "lost": 72, "tasa": 29.4, "nombre": "Sala de capacitación"}, "508": {"tot": 597, "lost": 148, "tasa": 24.8, "nombre": "No verificado"}, "504": {"tot": 474, "lost": 105, "tasa": 22.2, "nombre": "No verificado"}, "100": {"tot": 4661, "lost": 1018, "tasa": 21.8, "nombre": "No verificado"}, "543": {"tot": 2262, "lost": 451, "tasa": 19.9, "nombre": "Agendar cirugía QX"}, "501": {"tot": 692, "lost": 129, "tasa": 18.6, "nombre": "No verificado"}, "533": {"tot": 1652, "lost": 281, "tasa": 17.0, "nombre": "Laboratorio"}, "540": {"tot": 313, "lost": 53, "tasa": 16.9, "nombre": "No verificado"}, "541": {"tot": 3172, "lost": 521, "tasa": 16.4, "nombre": "Farmacia"}, "500": {"tot": 5404, "lost": 710, "tasa": 13.1, "nombre": "Admisión principal 1"}, "507": {"tot": 2558, "lost": 294, "tasa": 11.5, "nombre": "No verificado"}}, "tabla_origen": {"Sistemas": {"tot": 65, "lost": 31, "tasa": 47.7}, "Sala de capacitación": {"tot": 161, "lost": 65, "tasa": 40.4}, "Vigilancia": {"tot": 490, "lost": 180, "tasa": 36.7}, "Gerencia médica": {"tot": 81, "lost": 28, "tasa": 34.6}, "Contabilidad": {"tot": 76, "lost": 25, "tasa": 32.9}, "Archivo clínico": {"tot": 408, "lost": 134, "tasa": 32.8}, "Admisión Consulta externa": {"tot": 260, "lost": 85, "tasa": 32.7}, "Admisión principal 2": {"tot": 2800, "lost": 856, "tasa": 30.6}, "Admisión principal 1": {"tot": 6436, "lost": 1903, "tasa": 29.6}, "Nutricion": {"tot": 731, "lost": 216, "tasa": 29.5}, "Laboratorio": {"tot": 100, "lost": 29, "tasa": 29.0}, "Talento Humano": {"tot": 798, "lost": 226, "tasa": 28.3}, "Farmacia": {"tot": 1505, "lost": 413, "tasa": 27.4}, "Agendar cirugía QX": {"tot": 5380, "lost": 1292, "tasa": 24.0}, "Jefatura de Enfermería": {"tot": 3316, "lost": 758, "tasa": 22.9}, "Terapia intensiva": {"tot": 788, "lost": 170, "tasa": 21.6}, "Cunero Patológico": {"tot": 28, "lost": 6, "tasa": 21.4}, "Contabilidad Consultorios": {"tot": 272, "lost": 57, "tasa": 21.0}, "Admisión imagen": {"tot": 248, "lost": 52, "tasa": 21.0}, "Enfermería Urgencias": {"tot": 2295, "lost": 445, "tasa": 19.4}, "Análisis de cuentas": {"tot": 1198, "lost": 228, "tasa": 19.0}, "Central enfermería 2": {"tot": 540, "lost": 101, "tasa": 18.7}, "Consultorio Urgencias": {"tot": 582, "lost": 108, "tasa": 18.6}, "Tococirugía Quirófano": {"tot": 120, "lost": 22, "tasa": 18.3}, "Central  enfermería 1": {"tot": 4640, "lost": 843, "tasa": 18.2}}};
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.color = '#4b5566';
+const PAL = {navy:'#0B2545',blue:'#1565C0',teal:'#0E8388',red:'#C62828',orange:'#EF6C00',green:'#2E7D32',gray:'#9AA5B1',lightblue:'#5DA9E9'};
+
+// 1. Distribución general
+new Chart(document.getElementById('chDistribucion'), {
+  type:'bar',
+  data:{labels:['Entrantes','Salientes externas','Salientes internas'],
+    datasets:[{label:'Llamadas', data:[DATA.totales.entrantes, DATA.clasificacion.sal_externa.tot, DATA.clasificacion.sal_interna.tot],
+      backgroundColor:[PAL.blue, PAL.orange, PAL.teal]}]},
+  options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+});
+
+// 2. Estatus entrantes (donut)
+new Chart(document.getElementById('chEstatusEnt'), {
+  type:'doughnut',
+  data:{labels:['Contestada','Perdida','Abandonada en menú','Buzón Callpicker'],
+    datasets:[{data:[DATA.totales.ent_contestadas, DATA.totales.ent_perdidas, DATA.totales.ent_autoservicio - 0, DATA.totales.ent_buzon],
+      backgroundColor:[PAL.green,PAL.red,PAL.orange,PAL.gray]}]},
+  options:{plugins:{legend:{position:'bottom'}}}
+});
+
+// 3/4. Tendencia mensual entrantes/salientes
+function tendChart(ctx, mArr, intTasa, extTasa){
+  const labels = DATA.meses_lbl;
+  return new Chart(ctx, {
+    type:'line',
+    data:{labels, datasets:[
+      {label:'Interna (% perdida)', data:intTasa, borderColor:PAL.red, backgroundColor:'transparent', tension:.25,
+       segment:{borderDash: ctx=> ctx.p1DataIndex===labels.length-1 ? [6,4]: undefined}},
+      {label:'Externa (% perdida)', data:extTasa, borderColor:PAL.blue, backgroundColor:'transparent', tension:.25,
+       segment:{borderDash: ctx=> ctx.p1DataIndex===labels.length-1 ? [6,4]: undefined}},
+    ]},
+    options:{plugins:{legend:{position:'bottom'}}, scales:{y:{beginAtZero:true, ticks:{callback:v=>v+'%'}}}}
+  });
+}
+tendChart(document.getElementById('chTendenciaEnt'), DATA.ent_mensual, DATA.ent_int_tasa, DATA.ent_ext_tasa);
+tendChart(document.getElementById('chTendenciaSal'), DATA.sal_mensual, DATA.sal_int_tasa, DATA.sal_ext_tasa);
+
+// 8. Hora
+new Chart(document.getElementById('chHora'), {
+  type:'bar',
+  data:{labels: DATA.hours.map(h=>h+':00'), datasets:[{label:'Llamadas externas perdidas', data: DATA.ext_lost_by_hour, backgroundColor:PAL.orange}]},
+  options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+});
+
+// Composición entrantes (donut) reuse section 6
+new Chart(document.getElementById('chComposicion'), {
+  type:'pie',
+  data:{labels:['Contestada','Perdida','Abandonada en menú','Buzón Callpicker'],
+    datasets:[{data:[DATA.totales.ent_contestadas, DATA.totales.ent_perdidas, DATA.totales.ent_autoservicio, DATA.totales.ent_buzon],
+      backgroundColor:[PAL.green,PAL.red,PAL.orange,PAL.gray]}]},
+  options:{plugins:{legend:{position:'bottom'}}}
+});
+
+// Devolución
+new Chart(document.getElementById('chDevolucion'), {
+  type:'doughnut',
+  data:{labels:['Devuelta exitosamente','No devuelta'],
+    datasets:[{data:[DATA.devolucion.exitosas, DATA.devolucion.perdidas_ent - DATA.devolucion.exitosas], backgroundColor:[PAL.green, PAL.red]}]},
+  options:{plugins:{legend:{position:'bottom'}}}
+});
+
+// Burbuja riesgo
+const destinoKeys = Object.keys(DATA.tabla_destino);
+new Chart(document.getElementById('chBurbuja'), {
+  type:'bubble',
+  data:{datasets:[{label:'Extensión destino',
+    data: destinoKeys.map(k=>{const d=DATA.tabla_destino[k]; return {x:d.tot, y:d.tasa, r: Math.max(5, d.tot/80), ext:k, nombre:d.nombre};}),
+    backgroundColor: destinoKeys.map(k=> DATA.tabla_destino[k].tasa>=50?'rgba(198,40,40,.6)': DATA.tabla_destino[k].tasa>=30?'rgba(239,108,0,.6)':'rgba(21,101,192,.6)')
+  }]},
+  options:{plugins:{legend:{display:false}, tooltip:{callbacks:{label:(c)=>{const d=c.raw; return `Ext. ${d.ext} (${d.nombre}): ${d.x} intentos, ${d.y}% perdida`;}}}},
+    scales:{x:{title:{display:true,text:'Volumen de intentos recibidos'}}, y:{title:{display:true,text:'% pérdida'}}}}
+});
+
+// Tablas
+function fillTable(tbodyId, dataObj, isDestino){
+  const tbody = document.querySelector(tbodyId+' tbody');
+  let rows = Object.entries(dataObj).map(([k,v])=> isDestino? {num:k, nombre:v.nombre, tot:v.tot, lost:v.lost, tasa:v.tasa} : {nombre:k, tot:v.tot, lost:v.lost, tasa:v.tasa});
+  rows.sort((a,b)=> b.tasa - a.tasa);
+  function render(){
+    tbody.innerHTML = rows.map(r=>{
+      const tagClass = r.tasa>=50?'hi': r.tasa>=25?'mid':'ok';
+      const nameTag = (!isDestino) ? '' : (r.nombre==='No verificado' ? '<span class="tag nv">No verificado</span>' : r.nombre);
+      return `<tr>${isDestino?`<td>${r.num}</td><td>${nameTag}</td>`:`<td>${r.nombre}</td>`}<td>${r.tot}</td><td>${r.lost}</td><td><span class="tag ${tagClass}">${r.tasa}%</span></td></tr>`;
+    }).join('');
+  }
+  render();
+  tbody.parentElement.querySelectorAll('th[data-k]').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const k = th.dataset.k;
+      rows.sort((a,b)=> typeof a[k]==='string' ? a[k].localeCompare(b[k]) : b[k]-a[k]);
+      render();
+    });
+  });
+  return rows;
+}
+const destinoRows = fillTable('#tblDestino', DATA.tabla_destino, true);
+const origenRows = fillTable('#tblOrigen', DATA.tabla_origen, false);
+
+document.getElementById('fDestino').addEventListener('input', (e)=>{
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('#tblDestino tbody tr').forEach(tr=>{
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+document.getElementById('fOrigen').addEventListener('input', (e)=>{
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('#tblOrigen tbody tr').forEach(tr=>{
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+</body>
+</html>

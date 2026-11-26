@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoría de atención telefónica · SAN-SON / COCITEC · CID 17297</title>
+<style>
+:root{color-scheme:light;
+ --bg:#f6f7f9;--surface:#ffffff;--ink:#191919;--ink2:#555b66;--ink3:#8a919c;--line:#e3e6ea;--grid:#eceef1;
+ --s1:#257de0;--s2:#f47230;--s3:#00b894;--s4:#f2a600;--s7:#6a4ce2;
+ --navy:#0e2a47;--good:#0a7d2c;--warn:#b26a00;--crit:#c62828;
+ --seq1:#cce3fd;--seq7:#0e3d7e;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px 64px}
+header.hero{background:var(--navy);color:#fff;padding:40px 0 34px;margin-bottom:28px}
+header.hero .wrap{padding-bottom:0}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
+h1{font-size:30px;line-height:1.2;margin:8px 0 10px;font-weight:700}
+.hero p{margin:0;max-width:860px;opacity:.9}
+.meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:18px;font-size:13px;opacity:.85}
+h2{font-size:21px;margin:42px 0 6px}
+h2 .n{color:var(--s1);margin-right:8px}
+.lead{color:var(--ink2);margin:0 0 16px;max-width:900px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:16px}
+.thesis{border-left:5px solid var(--s1);font-size:17px}
+.thesis b{color:var(--navy)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}@media(max-width:760px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.kpi .v{font-size:30px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:13px;color:var(--ink2);margin-top:4px}
+.kpi .s{font-size:12px;color:var(--ink3);margin-top:6px}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:middle}
+.t-crit{background:#fde8e8;color:var(--crit)}.t-warn{background:#fff3df;color:var(--warn)}.t-good{background:#e4f5e9;color:var(--good)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.ctitle{font-weight:650;font-size:15px;margin:0 0 2px}
+.csub{font-size:13px;color:var(--ink2);margin:0 0 10px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--ink2);margin:0 0 6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:inherit;fill:var(--ink2);font-size:11px}
+.note{font-size:12.5px;color:var(--ink3);margin-top:8px}
+#tip{position:fixed;pointer-events:none;background:#191919;color:#fff;font-size:12.5px;line-height:1.45;padding:8px 10px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);opacity:0;transition:opacity .08s;z-index:10;max-width:280px}
+#tip b{font-weight:650}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{font-size:12px;color:var(--ink2);font-weight:600;background:#fafbfc}
+td.bad{color:var(--crit);font-weight:650}td.ok{color:var(--good);font-weight:650}
+.find{display:grid;grid-template-columns:44px 1fr;gap:4px 14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.find:last-child{border-bottom:0}
+.find .k{font-weight:700;color:var(--s1);font-size:15px}
+.find h4{margin:0 0 4px;font-size:15.5px}
+.find p{margin:0;color:var(--ink2)}
+.find .so{margin-top:6px;font-size:13.5px;color:var(--ink)}
+.foda{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.foda{grid-template-columns:1fr}}
+.fq{border-radius:12px;padding:18px 20px;border:1px solid var(--line);background:var(--surface)}
+.fq h3{margin:0 0 8px;font-size:16px;display:flex;align-items:center;gap:10px}
+.fq h3 span{display:inline-flex;width:30px;height:30px;border-radius:8px;align-items:center;justify-content:center;color:#fff;font-weight:800}
+.fq ul{margin:0;padding-left:18px}.fq li{margin:6px 0;color:var(--ink)}
+.fF span{background:var(--good)}.fO span{background:var(--s1)}.fD span{background:var(--warn)}.fA span{background:var(--crit)}
+.plan td{white-space:normal;text-align:left;vertical-align:top}
+.plan th{text-align:left}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:1px 7px;background:#eaf2fd;color:#1757ac}
+.say{background:#0e2a47;color:#fff;border:0}
+.say p{margin:8px 0}.say .q{font-size:16.5px}
+.small{font-size:13px;color:var(--ink2)}
+.toggle{font-size:12.5px;color:var(--s1);cursor:pointer;background:none;border:0;padding:0;margin-top:8px}
+footer{margin-top:40px;font-size:12.5px;color:var(--ink3);border-top:1px solid var(--line);padding-top:16px}
+@media print{#tip{display:none}.card,.kpi,.fq{break-inside:avoid}body{background:#fff}}
+</style>
+</head>
+<body><section id="cp-nota-conciliacion" style="margin:0 0 28px 0;padding:24px 28px;border:2px solid #b45309;border-left:8px solid #b45309;border-radius:0 12px 12px 0;background:#fffbeb;color:#1f2937;font-family:system-ui,-apple-system,Segoe UI,sans-serif"><div style="font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#b45309;margin:0 0 6px 0">Nota de conciliación · Dirección SAC</div><h2 style="margin:0 0 4px 0;font-size:21px;color:#1f2937">SAN-SON (Sanson y Coffee Depot) · D10 · CID 17297</h2><p style="margin:0 0 16px 0;font-size:14px;color:#4b5563">Conciliado el 26 de noviembre de 2026 contra cartera, el Gross Revenue y las fuentes de llamadas. 5 puntos de conciliación. Asesor de la cuenta: <strong>Dan</strong>. Nada del texto original se borró: lo corregido queda al lado de lo publicado.</p><ol style="margin:0;padding-left:22px;font-size:14.5px"><li style="margin:0 0 10px 0;line-height:1.55">MRR institucional NO MEDIBLE: el GRC no trae fila para el CID 17297 ni por el nombre «SAN-SON». La ficha guarda $12,554 y ésa NO es la cifra institucional. No se puede citar un MRR para esta cuenta (el documento tampoco lo hace).</li><li style="margin:0 0 10px 0;line-height:1.55">«COCITEC» no aparece en ninguna de nuestras fuentes —cartera, DIDs, GRC, activaciones ni contratos—. La cuenta es SAN-SON, con las marcas Sanson y Coffee Depot.</li><li style="margin:0 0 10px 0;line-height:1.55">La tabla por sucursal declara excluir «3 números con comportamiento atípico (207 llamadas)», pero sus 12 filas suman EXACTAMENTE las 9,095 del total: la exclusión no se puede reconstruir desde la tabla.</li><li style="margin:0 0 10px 0;line-height:1.55">«Sábado después de las 14 h: 129 llamadas, todas sin atender»: el mapa de calor publicado tiene ventana de 7 a 20 h y sólo enseña 125. Las otras 4 caen después de las 20 h.</li><li style="margin:0 0 10px 0;line-height:1.55">VERIFICADO: las seis series cierran contra las 9,095 llamadas del periodo cerrado, y el DID 229 456 0121 ($99) y el Agente CP Chat ($898, con el chat inactivo) están los dos en la ficha de servicios, como afirma el documento.</li></ol></section>
+<div id="tip"></div>
+<header class="hero"><div class="wrap">
+ <div class="eyebrow">Callpicker · Satisfacción al Cliente (SAC) · Auditoría de atención telefónica</div>
+ <h1>SAN-SON / COCITEC — una de cada tres llamadas no llega a una persona, y casi ocho de cada diez de esos clientes no vuelven a ser atendidos</h1>
+ <p>Auditoría de las llamadas entrantes de la red de sucursales Sanson y Coffee Depot: volumen, horario, día, semana, sucursal, recuperación de llamadas no atendidas, lectura FODA y ruta de acción.</p>
+ <div class="meta"><span>CID Zoho 17297</span><span>Cliente desde feb 2019</span><span>Periodo cerrado: 2 ene – 31 oct 2026</span><span>Noviembre 2026 (1–26) en tránsito</span><span>Fuente: detalle de llamadas Callpicker</span></div>
+</div></header>
+
+<div class="wrap">
+
+<div class="card thesis">
+<b>Lectura central.</b> El problema no es la plataforma ni la capacidad de líneas: es <b>cobertura humana y recuperación</b>. En el periodo cerrado entraron <b>9,095</b> llamadas; solo el <b>66.7%</b> fue atendido por una persona. Dentro del horario en que la propia red contesta, se pierde el <b>13.2%</b>; fuera de ese horario llegan <b>1,368</b> llamadas y <b>1,238</b> no las toma nadie. Solo el <b>5%</b> de las pérdidas en horario coincide con la extensión ocupada: se pierden porque <b>nadie levanta el teléfono</b>, no porque las líneas estén saturadas. Y como la cuenta no registra marcación saliente ni devoluciones en Callpicker, <b>el 77.9% de las llamadas no atendidas no termina en una atención a ese mismo número en los 7 días siguientes</b>.
+</div>
+
+<div class="kpis">
+ <div class="kpi"><div class="v">9,095</div><div class="l">Llamadas entrantes (ene–oct)</div><div class="s">~37.9 por día hábil · 6,033 números distintos</div></div>
+ <div class="kpi"><div class="v">66.7%</div><div class="l">Atendidas por una persona <span class="tag t-warn">VIGILAR</span></div><div class="s">6,067 llamadas · 16,268 minutos</div></div>
+ <div class="kpi"><div class="v">1,929</div><div class="l">Sin contestar (timbró y nadie tomó) <span class="tag t-crit">CRÍTICO</span></div><div class="s">21.2% del total · + 435 a buzón · + 664 colgaron en el menú</div></div>
+ <div class="kpi"><div class="v">13.2%</div><div class="l">Pérdida dentro del horario de atención</div><div class="s">Atención en horario: 76.8% · rango por sucursal 2%–23%</div></div>
+ <div class="kpi"><div class="v">1,368</div><div class="l">Llamadas fuera de horario <span class="tag t-warn">DEMANDA SIN CUBRIR</span></div><div class="s">1,238 sin atender · domingo, antes de abrir y después de cerrar</div></div>
+ <div class="kpi"><div class="v">22.1%</div><div class="l">Recuperación en 7 días <span class="tag t-crit">CRÍTICO</span></div><div class="s">1,668 de 2,144 números con una llamada no atendida nunca fueron atendidos en 7 días</div></div>
+</div>
+
+<h2><span class="n">01</span>Tendencia mensual y semanal</h2>
+<p class="lead">El volumen es estable (entre 819 y 1,089 llamadas al mes): no hay caída de demanda. Lo que se mueve es la disciplina de atención: enero fue el mejor mes y desde febrero la pérdida en horario se estacionó entre 10% y 16%.</p>
+<div class="card">
+ <p class="ctitle">Llamadas entrantes por mes y desenlace</p>
+ <p class="csub">Noviembre 1–26 se muestra atenuado: mes en tránsito, no se compara contra los cerrados.</p>
+ <div class="legend" id="lg-month"></div>
+ <div id="c-month"></div>
+</div>
+<div class="grid2">
+ <div class="card">
+  <p class="ctitle">% de pérdida dentro del horario de atención, por mes</p>
+  <p class="csub">Solo llamadas que entraron cuando la sucursal contesta; aísla la falla operativa del horario.</p>
+  <div id="c-monthrate"></div>
+ </div>
+ <div class="card">
+  <p class="ctitle">Llamadas por semana: total contra sin contestar</p>
+  <p class="csub">48 semanas (lunes a domingo). La última semana está incompleta (23–26 nov).</p>
+  <div class="legend"><span><i style="background:var(--s1)"></i>Total entrantes</span><span><i style="background:var(--s2)"></i>Sin contestar</span></div>
+  <div id="c-week"></div>
+ </div>
+</div>
+
+<h2><span class="n">02</span>Día de la semana y hora</h2>
+<p class="lead">El patrón dibuja dos huecos de cobertura muy claros: la <b>primera hora</b> (8–10 h, cuando el cliente ya marca y varias sucursales aún no abren) y el <b>fin de semana</b> (sábado después de las 14 h y todo el domingo, donde no hay quien conteste).</p>
+<div class="grid2">
+ <div class="card">
+  <p class="ctitle">Llamadas por día de la semana</p>
+  <p class="csub">Periodo cerrado ene–oct 2026.</p>
+  <div class="legend" id="lg-dow"></div>
+  <div id="c-dow"></div>
+ </div>
+ <div class="card">
+  <p class="ctitle">Llamadas por hora del día</p>
+  <p class="csub">Hora tal como viene en el archivo (sin zona horaria declarada).</p>
+  <div class="legend" id="lg-hour"></div>
+  <div id="c-hour"></div>
+ </div>
+</div>
+<div class="card">
+ <p class="ctitle">Mapa de calor: % de llamadas que no llegan a una persona (día × hora, 7–20 h)</p>
+ <p class="csub">Más oscuro = peor. Incluye sin contestar, buzón y abandono en menú. Pasa el cursor para ver volumen. Celdas con menos de 5 llamadas se muestran en gris.</p>
+ <div id="c-heat"></div>
+ <div class="note">Lectura: de lunes a viernes, entre 10 y 17 h la red no atiende entre 14% y 36%; a las 9 h se pierde la mitad, a las 8 h prácticamente todo, y a las 18 h vuelve a subir a 39–64%. El sábado se sostiene hasta las 13 h y luego cae al 100%.</div>
+</div>
+
+<h2><span class="n">03</span>Sucursal por sucursal</h2>
+<p class="lead">La misma plataforma, la misma marca y resultados opuestos: <b>Sanson Chapultepec 68</b> atiende el 94.7% en horario; <b>Coffee Depot Guadalajara</b> pierde el 23.1%. La diferencia no es tecnológica, es operativa — y eso significa que se puede corregir.</p>
+<div class="card">
+ <p class="ctitle">Desenlace dentro del horario de atención, por número Callpicker</p>
+ <p class="csub">Ordenado de menor a mayor atención. Excluye 3 números con comportamiento atípico (207 llamadas repetitivas, ver nota metodológica).</p>
+ <div class="legend" id="lg-site"></div>
+ <div id="c-site"></div>
+</div>
+<div class="card" style="overflow-x:auto">
+ <p class="ctitle">Tabla de sucursales (periodo cerrado ene–oct 2026)</p>
+ <table id="t-site"></table>
+ <div class="note">“En horario” = llamadas que entraron dentro de la ventana en que cada sucursal efectivamente contesta (inferida del 1% al 99% de sus llamadas atendidas, lunes a viernes y sábado por separado; domingo sin atención). “Fuera de horario sin atender” incluye sin contestar, buzón y abandono. Encuesta: solo el ~3% de las llamadas contestadas tiene evaluación, por lo que es indicativa, no concluyente.</div>
+</div>
+
+<h2><span class="n">04</span>¿Qué pasa con el cliente que no fue atendido?</h2>
+<p class="lead">Esta es la métrica que conecta la telefonía con la venta. Se siguió cada llamada no atendida para ver si ese mismo número fue atendido después (en cualquier sucursal).</p>
+<div class="grid2">
+ <div class="card">
+  <p class="ctitle">Llamadas no atendidas que terminan en una atención posterior</p>
+  <p class="csub">Base: 3,197 llamadas no atendidas (sin contestar, buzón o abandono), todo el periodo con 7 días de margen.</p>
+  <div id="c-rec"></div>
+ </div>
+ <div class="card">
+  <p class="ctitle">Lo que significa</p>
+  <p>Solo el <b>13.5%</b> se recupera en la primera hora y el <b>22.1%</b> en una semana. <b>1,668 números</b> que intentaron comunicarse no fueron atendidos en los 7 días siguientes.</p>
+  <p>La cuenta tiene <b>0 llamadas salientes</b> y <b>0 devoluciones</b> registradas en Callpicker. Si la red devuelve llamadas desde celulares o líneas propias, ese esfuerzo es invisible: no se mide, no se asigna y no se puede auditar.</p>
+  <p class="small">Límite del dato: un cliente pudo volver por otro canal (WhatsApp, tienda, correo) o desde otro número. Por eso el 78% es un techo de pérdida, no una cifra de venta perdida. Aun así, ninguna versión de esta cifra es aceptable para una red comercial de 10 sedes.</p>
+ </div>
+</div>
+
+<h2><span class="n">05</span>Hallazgos</h2>
+<div class="card" id="findings">
+ <div class="find"><div class="k">H1</div><div><h4>La pérdida no es de capacidad: es de cobertura humana</h4><p>Al cruzar cada llamada perdida en horario contra las llamadas en curso del mismo destino, solo el 5.1% coincidió con la extensión ocupada. El 95% restante timbró en un destino libre y nadie contestó.</p><div class="so">Implicación: agregar líneas no resuelve nada; lo resuelve un grupo de timbrado con respaldo, desborde a otra sucursal o un agente de voz con IA.</div></div></div>
+ <div class="find"><div class="k">H2</div><div><h4>La primera hora es un hueco estructural</h4><p>Entre las 8 y las 10 h de lunes a viernes entran ~900 llamadas en el periodo; a las 8 h casi ninguna se atiende y a las 9 h se pierde la mitad. Las sucursales de CDMX y Tlalnepantla empiezan a contestar a las 10 h, mientras Guadalajara, Aguascalientes, Puebla y Cancún lo hacen desde las 9 h.</p><div class="so">Coffee Depot Chapultepec concentra 463 llamadas fuera de su horario: 171 antes de abrir entre semana, 83 en domingo y el resto por la tarde y el sábado.</div></div></div>
+ <div class="find"><div class="k">H3</div><div><h4>Fin de semana: demanda real sin nadie del otro lado</h4><p>Sábado después de las 14 h: 129 llamadas, todas sin atender. Domingo: 148 llamadas y ninguna contestada (74% termina en “sin contestar” y el resto en buzón).</p><div class="so">Es el caso de uso exacto de un agente de voz con IA o de un desborde a buzón con devolución programada.</div></div></div>
+ <div class="find"><div class="k">H4</div><div><h4>La brecha entre sucursales es de 10 a 1</h4><p>Sanson Chapultepec 68 pierde 2.3% en horario; Coffee Depot Guadalajara 23.1%, Refacciones 21.6%, Puebla 19.0%, Sanson Guadalajara 18.9% y Sanson Chapultepec Outlet 17.8% (Puebla y Refacciones con menos de 100 llamadas en horario: tomarlas como señal). Guadalajara (ambas marcas) concentra casi la mitad (47%) de las pérdidas en horario de toda la red.</p><div class="so">Chapultepec 68 es el modelo interno a replicar: ya demuestra que la red puede operar arriba del 90%.</div></div></div>
+ <div class="find"><div class="k">H5</div><div><h4>Un menú que expulsa clientes</h4><p>Sanson Tlalnepantla registra 32.6% de abandono en el menú y Coffee Depot Chapultepec 16.2% (ya descontando números repetitivos atípicos). El resto de la red está entre 3% y 7%.</p><div class="so">Señal de IVR con demasiadas opciones, mensaje largo o una opción que no lleva a nadie. Se corrige con rediseño de menú, sin costo de licencia.</div></div></div>
+ <div class="find"><div class="k">H6</div><div><h4>Extensiones personales que solo llevan al buzón</h4><p>Franklin Sambrano (Guadalajara, 59), Teresa Vital (Cancún, 34) y Eduardo Villar (Outlet, 16) aparecen como destino únicamente en llamadas que terminaron en buzón: ninguna fue contestada en el periodo.</p><div class="so">O la extensión no está registrada en un dispositivo, o se usa como buzón. En ambos casos hay que validarlo con el cliente.</div></div></div>
+ <div class="find"><div class="k">H7</div><div><h4>Cero devolución, cero medición del esfuerzo</h4><p>Ninguna llamada saliente ni devolución registrada en Callpicker en 11 meses. La recuperación a 7 días es de 22.1%.</p><div class="so">El plan contratado es Visibilidad y Control: hoy el cliente paga por visibilidad que no está usando para actuar.</div></div></div>
+ <div class="find"><div class="k">H8</div><div><h4>La voz del cliente casi no se escucha</h4><p>Solo 187 evaluaciones en 6,067 llamadas contestadas (~3%): 133 positivas. Cancún (9 negativas de 19) y Coffee Depot Guadalajara (10 de 27) concentran la proporción más alta de negativas. El 68% de las llamadas contestadas termina con el ejecutivo colgando, lo que impide que el cliente llegue a la encuesta.</p><div class="so">Muestra pequeña: es una alerta para investigar, no un veredicto.</div></div></div>
+ <div class="find"><div class="k">H9</div><div><h4>Ruido que distorsiona la lectura</h4><p>Tres números concentran 207 llamadas repetitivas que casi nunca se atienden (98, 80 y 29 llamadas, activas hasta julio–agosto) y un número que coincide casi con la línea de Chapultepec (55 2700 5600, 18 llamadas) sugiere pruebas internas.</p><div class="so">Se excluyeron del cálculo por sucursal. Conviene confirmar con el cliente si son proveedores, robollamadas o pruebas.</div></div></div>
+ <div class="find"><div class="k">H10</div><div><h4>Activos contratados sin uso visible</h4><p>Hay números con tráfico marginal en 11 meses (Chapultepec Outlet 55 4000 1908: 4 llamadas; Coffee Depot Chapultepec 55 4438 0131: 7) y un DID contratado (229 456 0121) que no aparece en el detalle de llamadas. El Agente CP Chat aparece en servicios contratados, mientras la ficha de adopción no lo registra como activo.</p><div class="so">Higiene de cuenta antes de cualquier propuesta: lo que el cliente paga y no usa es el primer argumento de una baja.</div></div></div>
+</div>
+
+<h2><span class="n">06</span>FODA de la operación telefónica</h2>
+<div class="foda">
+ <div class="fq fF"><h3><span>F</span>Fortalezas</h3><ul>
+  <li>Cliente de casi 8 años, al corriente en pagos y con relación activa con su asesor.</li>
+  <li>Demanda estable y alta: ~38 llamadas por día hábil distribuidas en 14 números y 10 sedes.</li>
+  <li>Prueba interna de excelencia: Sanson Chapultepec 68 atiende 94.7% en horario con la duración media más alta (3.7 min).</li>
+  <li>Líneas sin saturación: solo 5% de las pérdidas coincide con extensión ocupada.</li>
+  <li>Infraestructura ya montada: IVR, desvíos por sucursal y buzones fuera de horario configurados.</li>
+ </ul></div>
+ <div class="fq fD"><h3><span>D</span>Debilidades</h3><ul>
+  <li>33% de las llamadas no llega a una persona; 13.2% se pierde aun dentro de horario.</li>
+  <li>Huecos de cobertura a las 8–10 h, después de las 18 h, sábado por la tarde y domingo.</li>
+  <li>Cero devoluciones y cero salientes registradas: recuperación de 22% a 7 días.</li>
+  <li>Guadalajara (dos marcas) y Refacciones con pérdidas de 19–23% en horario.</li>
+  <li>Menús con abandono alto (Tlalnepantla 33%, Coffee Depot Chapultepec 16%).</li>
+  <li>0 de 6 módulos adicionales activados en 7 años; encuesta con ~3% de cobertura.</li>
+ </ul></div>
+ <div class="fq fO"><h3><span>O</span>Oportunidades</h3><ul>
+  <li>Agente de voz con IA para fuera de horario y desborde: cubre las ~1,370 llamadas fuera de horario que en 10 meses nadie tomó.</li>
+  <li>Grupos de timbrado y desborde entre sucursales de la misma ciudad (Guadalajara, CDMX).</li>
+  <li>Alerta y lista diaria de llamadas perdidas para devolución medible desde Callpicker.</li>
+  <li>Rediseño de IVR en Tlalnepantla y Coffee Depot Chapultepec sin costo de licencia.</li>
+  <li>Replicar el modelo Chapultepec 68 como estándar de red; usar el panel administrador para un tablero por sucursal.</li>
+  <li>Canal escrito (Chat / WhatsApp) para la demanda de fin de semana y fuera de horario.</li>
+ </ul></div>
+ <div class="fq fA"><h3><span>A</span>Amenazas</h3><ul>
+  <li>Venta perdida silenciosa: cada llamada no atendida en una comercializadora es una cotización que puede ir a la competencia.</li>
+  <li>Bajo costo de salida: sin módulos ni integraciones, Callpicker puede percibirse como “solo conmutador”.</li>
+  <li>Relación concentrada en 2 contactos y 55 días sin conversación de valor documentada.</li>
+  <li>El cliente puede atribuir a la plataforma una falla que es operativa si nadie le muestra el dato.</li>
+  <li>Servicios contratados sin uso visible: argumento natural para recortar o cancelar.</li>
+ </ul></div>
+</div>
+
+<h2><span class="n">07</span>Ruta de acción propuesta</h2>
+<p class="lead">Ordenada por impacto y facilidad. Lo que depende del cliente se presenta como propuesta con dueño y siguiente paso.</p>
+<div class="card" style="overflow-x:auto">
+<table class="plan">
+<tr><th style="width:4%">#</th><th style="width:28%">Acción</th><th style="width:30%">Por qué</th><th style="width:14%">Dueño</th><th style="width:24%">Siguiente paso</th></tr>
+<tr><td>1</td><td><b>Sesión de resultados con dirección</b> (Ruben Kreplak) mostrando este tablero</td><td>El cliente no ve la pérdida; sin dato no hay decisión.</td><td>Asesor (Dan) + SAC</td><td>Agendar llamada de 30 min esta semana; enviar el reporte antes.</td></tr>
+<tr><td>2</td><td><b>Validar horarios oficiales</b> por sucursal y extensiones personales (Franklin, Teresa, Eduardo)</td><td>Separa falla operativa de horario real; detecta extensiones sin dispositivo.</td><td>Asesor + Paulina (encargada Callpicker)</td><td>Enviar lista de 12 destinos con horario inferido para confirmar.</td></tr>
+<tr><td>3</td><td><b>Grupo de timbrado con desborde</b> en Guadalajara (Sanson ↔ Coffee Depot) y Outlet ↔ Chapultepec 68</td><td>95% de las pérdidas ocurre con extensión libre: falta un segundo timbre.</td><td>Soporte Callpicker</td><td>Propuesta de configuración con regla de 20 s y prueba piloto de 2 semanas.</td></tr>
+<tr><td>4</td><td><b>Rediseño de IVR</b> en Sanson Tlalnepantla y Coffee Depot Chapultepec</td><td>Abandono de 33% y 16% contra 3–7% del resto.</td><td>Soporte Callpicker + cliente</td><td>Revisar grabación y árbol de opciones; dejar máximo 3 opciones.</td></tr>
+<tr><td>5</td><td><b>Lista diaria de llamadas perdidas</b> y devolución desde Callpicker</td><td>Recuperación de 22% a 7 días; hoy el esfuerzo es invisible.</td><td>Cliente (gerentes de sucursal)</td><td>Activar reporte diario por sucursal; meta inicial: devolver el 80% el mismo día.</td></tr>
+<tr><td>6</td><td><b>Agente de voz con IA</b> fuera de horario y en desborde</td><td>~1,370 llamadas en 10 meses fuera de horario; fines de semana sin cobertura.</td><td>Asesor + Comercial</td><td>Demo con un flujo real: captura de datos, horario y cotización; propuesta con piloto en Coffee Depot Chapultepec.</td></tr>
+<tr><td>7</td><td><b>Higiene de cuenta</b>: DID 229 456 0121, números de tráfico marginal y estado real del Agente CP Chat</td><td>Lo que se paga y no se usa debilita la renovación.</td><td>Asesor + Facturación</td><td>Revisar con el cliente y decidir: activar, reasignar o dar de baja.</td></tr>
+<tr><td>8</td><td><b>Tablero mensual de atención por sucursal</b></td><td>Convierte la telefonía en indicador de gestión comercial del cliente.</td><td>SAC</td><td>Envío mensual con 4 métricas: % atención en horario, perdidas, recuperación y abandono de menú.</td></tr>
+</table>
+<div class="note">Meta propuesta a 90 días (para acordar con el cliente): pérdida en horario ≤ 8% en la red y ≤ 12% en cada sucursal; recuperación a 7 días ≥ 60%; abandono de menú ≤ 7%.</div>
+</div>
+
+<h2><span class="n">08</span>Qué le digo al cliente</h2>
+<div class="card say">
+ <p class="q">“Ruben, revisamos todas sus llamadas de enero a octubre. La plataforma está bien y sus líneas no están saturadas. El reto es otro: de cada tres clientes que le marcan, uno no habla con nadie, y casi ocho de cada diez de ellos no vuelven a ser atendidos en la semana.”</p>
+ <p class="q">“Lo interesante es que usted ya tiene la respuesta en casa: Chapultepec 68 contesta el 95%. Coffee Depot Guadalajara pierde casi una de cada cuatro. No es tecnología, es cobertura.”</p>
+ <p class="q">“Le propongo tres cosas sin cambiar su operación: un segundo timbre entre sucursales, una lista diaria de llamadas perdidas para devolverlas, y cubrir con IA los horarios en que hoy no hay nadie. ¿Le parece si lo probamos dos semanas en Guadalajara y medimos?”</p>
+</div>
+
+<h2><span class="n">09</span>Puntos a validar y metodología</h2>
+<div class="card small">
+ <p><b>Fuente.</b> Detalle de llamadas entrantes de Callpicker del 2 de enero al 26 de noviembre de 2026 (9,729 registros); la hoja de salientes viene vacía. Análisis cerrado: enero–octubre (9,095 llamadas). Noviembre se presenta como mes en tránsito.</p>
+ <p><b>Definiciones.</b> “Atendida” = contestada por una extensión. “Sin contestar” = entró y ninguna extensión la tomó. “Buzón” y “abandono en menú” se reportan aparte; ninguno cuenta como atención humana.</p>
+ <p><b>Horario de atención.</b> No fue proporcionado por el cliente; se infirió por sucursal a partir de sus llamadas contestadas. Debe validarse (acción 2). Cancún está en hora del sureste, una hora adelante de CDMX; el archivo no declara zona horaria.</p>
+ <p><b>Ocupado.</b> Se comparó cada pérdida en horario contra llamadas contestadas en curso del mismo destino; la duración viene en minutos enteros, por lo que la cifra de 5% es aproximada.</p>
+ <p><b>Recuperación.</b> Se considera recuperada si el mismo número fue atendido después, en cualquier sucursal. No capta devoluciones desde celulares ni contacto por otros canales.</p>
+ <p><b>Exclusiones.</b> Números 55 1946 4996, 55 9653 1658 y 477 946 0125 (207 llamadas repetitivas) se excluyen del cálculo por sucursal; sí están en los totales generales.</p>
+</div>
+
+<footer>Satisfacción al Cliente (SAC) · Callpicker · Elaborado el 26 de noviembre de 2026 · Uso interno y para conversación con el cliente.</footer>
+</div>
+
+<script>
+const D={"month": {"labels": ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"], "series": {"Contestada": [618, 625, 700, 711, 557, 597, 613, 520, 537, 589, 421], "Perdida": [136, 191, 238, 249, 199, 170, 174, 187, 190, 195, 154], "Abandonada en menú": [49, 87, 99, 79, 68, 79, 49, 58, 46, 50, 34], "Buzón Callpicker": [32, 29, 47, 50, 25, 41, 61, 58, 46, 46, 25]}}, "month_inh_lost": [8.3, 14.1, 14.8, 14.3, 15.8, 10.8, 10.2, 15.2, 13.5, 14.0, 14.9], "month_ans": [74.0, 67.1, 64.6, 65.3, 65.6, 67.3, 68.3, 63.2, 65.6, 66.9, 66.4], "dow": {"labels": ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"], "series": {"Contestada": [1206, 1216, 1124, 1137, 1022, 362, 0], "Perdida": [353, 297, 300, 285, 280, 305, 109], "Abandonada en menú": [137, 113, 114, 151, 120, 29, 0], "Buzón Callpicker": [88, 66, 69, 42, 63, 68, 39]}}, "hour": {"labels": ["0h", "1h", "2h", "3h", "4h", "5h", "6h", "7h", "8h", "9h", "10h", "11h", "12h", "13h", "14h", "15h", "16h", "17h", "18h", "19h", "20h", "21h", "22h", "23h"], "series": {"Contestada": [0, 0, 0, 0, 0, 0, 0, 0, 2, 345, 956, 913, 965, 911, 504, 461, 519, 395, 96, 0, 0, 0, 0, 0], "Perdida": [6, 5, 4, 4, 3, 13, 7, 18, 132, 338, 207, 149, 168, 155, 172, 118, 115, 91, 65, 63, 45, 25, 11, 15], "Abandonada en menú": [0, 0, 0, 0, 0, 0, 2, 0, 1, 16, 87, 77, 79, 91, 62, 72, 66, 75, 34, 1, 0, 0, 0, 1], "Buzón Callpicker": [2, 2, 1, 0, 0, 2, 6, 4, 86, 69, 30, 21, 28, 30, 28, 19, 16, 21, 21, 19, 8, 11, 4, 7]}}, "heat": {"rows": ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"], "cols": ["7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"], "v": [[100, 100, 53, 30, 19, 23, 25, 30, 30, 20, 28, 38, 100, 100], [100, 100, 51, 18, 19, 15, 18, 26, 24, 31, 33, 41, 100, 100], [100, 97, 54, 20, 20, 23, 20, 30, 29, 21, 23, 63, 100, 100], [100, 97, 55, 24, 21, 14, 17, 25, 25, 24, 37, 63, 100, 100], [100, 100, 47, 24, 17, 22, 22, 31, 30, 22, 26, 53, 100, 100], [100, 100, 86, 33, 32, 34, 40, 100, 100, 100, 100, 100, 100, 100], [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]], "n": [[3, 54, 161, 244, 218, 250, 225, 152, 114, 160, 121, 34, 16, 15], [8, 26, 131, 221, 241, 209, 201, 145, 151, 156, 112, 44, 8, 10], [1, 36, 136, 235, 205, 215, 200, 122, 121, 131, 119, 41, 21, 5], [1, 35, 142, 220, 201, 203, 237, 134, 127, 119, 121, 38, 7, 11], [6, 44, 134, 196, 163, 189, 197, 153, 122, 114, 88, 43, 14, 6], [2, 21, 63, 148, 122, 160, 110, 41, 24, 25, 16, 9, 8, 2], [1, 5, 1, 16, 10, 14, 17, 19, 11, 11, 5, 7, 9, 4]]}, "week": {"labels": ["2025-12-29", "2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16", "2026-02-23", "2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23", "2026-03-30", "2026-04-06", "2026-04-13", "2026-04-20", "2026-04-27", "2026-05-04", "2026-05-11", "2026-05-18", "2026-05-25", "2026-06-01", "2026-06-08", "2026-06-15", "2026-06-22", "2026-06-29", "2026-07-06", "2026-07-13", "2026-07-20", "2026-07-27", "2026-08-03", "2026-08-10", "2026-08-17", "2026-08-24", "2026-08-31", "2026-09-07", "2026-09-14", "2026-09-21", "2026-09-28", "2026-10-05", "2026-10-12", "2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09", "2026-11-16", "2026-11-23"], "tot": [45, 168, 208, 191, 224, 246, 231, 258, 197, 277, 209, 264, 250, 212, 265, 253, 264, 238, 201, 198, 203, 187, 207, 171, 226, 210, 198, 169, 205, 221, 202, 176, 187, 189, 200, 195, 209, 192, 154, 205, 207, 225, 200, 163, 184, 189, 169, 87], "ans": [36, 114, 154, 141, 173, 148, 177, 179, 121, 159, 140, 160, 182, 101, 183, 186, 178, 124, 137, 133, 153, 132, 149, 111, 145, 137, 132, 116, 134, 150, 144, 100, 134, 129, 121, 128, 144, 108, 106, 131, 142, 141, 127, 127, 119, 126, 109, 67], "lost": [7, 33, 30, 31, 36, 69, 29, 43, 49, 68, 40, 68, 49, 83, 54, 45, 54, 78, 42, 37, 26, 42, 37, 39, 44, 39, 46, 32, 39, 45, 37, 39, 40, 34, 47, 51, 35, 56, 37, 52, 43, 54, 51, 24, 43, 44, 45, 17]}, "sites": [{"site": "Coffee depot Chapultepec", "n": 1488, "inh": 1025, "off": 463, "ans": 76.3, "lost": 7.5, "ivr": 16.2, "vm": 0.0, "offlost": 446, "dur": 2.74, "pos": 7, "neg": 4}, {"site": "Sanson Chapultepec 68", "n": 1488, "inh": 1330, "off": 158, "ans": 94.7, "lost": 2.3, "ivr": 2.8, "vm": 0.2, "offlost": 134, "dur": 3.74, "pos": 41, "neg": 15}, {"site": "Sanson Guadalajara", "n": 1480, "inh": 1378, "off": 102, "ans": 73.5, "lost": 18.9, "ivr": 3.9, "vm": 3.7, "offlost": 81, "dur": 2.36, "pos": 18, "neg": 5}, {"site": "Sanson Aguascalientes", "n": 1113, "inh": 1002, "off": 111, "ans": 79.9, "lost": 12.6, "ivr": 6.7, "vm": 0.8, "offlost": 96, "dur": 2.29, "pos": 14, "neg": 2}, {"site": "Coffee depot Guadalajara", "n": 1076, "inh": 950, "off": 126, "ans": 67.6, "lost": 23.1, "ivr": 5.9, "vm": 3.5, "offlost": 111, "dur": 1.96, "pos": 17, "neg": 10}, {"site": "Sanson Cancún", "n": 824, "inh": 641, "off": 183, "ans": 79.3, "lost": 13.6, "ivr": 3.4, "vm": 3.7, "offlost": 170, "dur": 2.31, "pos": 10, "neg": 9}, {"site": "Coffee depot Tlalnepantla", "n": 821, "inh": 708, "off": 113, "ans": 77.2, "lost": 16.2, "ivr": 3.9, "vm": 2.7, "offlost": 101, "dur": 2.34, "pos": 6, "neg": 3}, {"site": "Sanson Chapultepec Outlet", "n": 528, "inh": 454, "off": 74, "ans": 73.8, "lost": 17.8, "ivr": 5.7, "vm": 2.6, "offlost": 66, "dur": 2.69, "pos": 12, "neg": 5}, {"site": "Sanson Tlalnepantla", "n": 109, "inh": 86, "off": 23, "ans": 60.5, "lost": 7.0, "ivr": 32.6, "vm": 0.0, "offlost": 22, "dur": 2.53, "pos": 1, "neg": 1}, {"site": "Departamento de refacciones", "n": 99, "inh": 88, "off": 11, "ans": 68.2, "lost": 21.6, "ivr": 6.8, "vm": 3.4, "offlost": 9, "dur": 3.71, "pos": 4, "neg": 0}, {"site": "Sanson Puebla", "n": 66, "inh": 63, "off": 3, "ans": 74.6, "lost": 19.0, "ivr": 6.3, "vm": 0.0, "offlost": 1, "dur": 3.02, "pos": 3, "neg": 0}, {"site": "Chapultepec Outlet", "n": 3, "inh": 2, "off": 1, "ans": 50.0, "lost": 50.0, "ivr": 0.0, "vm": 0.0, "offlost": 1, "dur": 1.0, "pos": 0, "neg": 0}], "kpi": {"total": 9095, "ans": 6067, "lost": 1929, "ivr": 664, "vm": 435, "minutes": 16268, "inh": 7727, "off": 1368, "inh_lost": 13.2, "inh_ans": 76.8, "off_unans": 1238, "callers": 6033, "sun": 148, "sat_pm": 129, "h8": 195, "wd_after19": 171, "eval_n": 187, "eval_pos": 133, "avgday": 37.9, "ans_pct": 66.7, "lost_pct": 21.2, "nov": {"total": 634, "ans": 66.4, "inh_lost": 14.9}, "rec": {"n": 3197, "h1": 13.5, "h24": 19.7, "d7": 22.1, "callers": 2144, "never": 1668}}};
+const S=['Contestada','Perdida','Abandonada en menú','Buzón Callpicker'];
+const SL={'Contestada':'Atendida por persona','Perdida':'Sin contestar','Abandonada en menú':'Abandonó en el menú','Buzón Callpicker':'Buzón'};
+const SC={'Contestada':'var(--s1)','Perdida':'var(--s2)','Abandonada en menú':'var(--s3)','Buzón Callpicker':'var(--s4)'};
+const fmt=n=>n.toLocaleString('es-MX');
+const tip=document.getElementById('tip');
+function showTip(ev,html){tip.innerHTML=html;tip.style.opacity=1;let x=ev.clientX+14,y=ev.clientY+14;const w=tip.offsetWidth,h=tip.offsetHeight;if(x+w>innerWidth-8)x=ev.clientX-w-14;if(y+h>innerHeight-8)y=ev.clientY-h-14;tip.style.left=x+'px';tip.style.top=y+'px';}
+function hideTip(){tip.style.opacity=0}
+const NS='http://www.w3.org/2000/svg';
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+function legend(id){const L=document.getElementById(id);L.innerHTML=S.map(s=>`<span><i style="background:${SC[s]}"></i>${SL[s]}</span>`).join('')}
+function nice(m){const p=Math.pow(10,Math.floor(Math.log10(m)));const r=m/p;const s=r<=1.5?.25:r<=3?.5:r<=6?1:2;return Math.ceil(m/(s*p))*s*p}
+function ticks(max,n=4){const out=[];const st=max/n;for(let i=0;i<=n;i++)out.push(Math.round(st*i));return out}
+
+function stacked(id,labels,series,opt={}){
+ const W=opt.w||560,H=opt.h||260,ml=44,mr=8,mt=18,mb=28;const host=document.getElementById(id);
+ const svg=el('svg',{viewBox:`0 0 ${W} ${H}`,role:'img'},host);
+ const tot=labels.map((_,i)=>S.reduce((a,s)=>a+series[s][i],0));
+ const max=nice(Math.max(...tot));const iw=W-ml-mr,ih=H-mt-mb;const bw=iw/labels.length;const gap=Math.max(2,bw*0.22);
+ ticks(max).forEach(t=>{const y=mt+ih-ih*t/max;el('line',{x1:ml,x2:W-mr,y1:y,y2:y,stroke:'var(--grid)'},svg);el('text',{x:ml-6,y:y+4,'text-anchor':'end'},svg).textContent=fmt(t)});
+ labels.forEach((lb,i)=>{let y=mt+ih;const x=ml+i*bw+gap/2,w=bw-gap;const g=el('g',{opacity:(opt.dim&&opt.dim(i))?0.5:1},svg);
+  const segs=S.filter(s=>series[s][i]>0);
+  segs.forEach((s,j)=>{const v=series[s][i];const h=ih*v/max;const top=j===segs.length-1;
+   const r=el('rect',{x,y:y-h+(j>0?0:0),width:w,height:Math.max(0,h-(j<segs.length-1?1.5:0)),fill:SC[s],rx:top?Math.min(3,w/3):0},g);y-=h;});
+  if(opt.pct){const p=tot[i]?Math.round(100*(tot[i]-series['Contestada'][i])/tot[i]):0;el('text',{x:x+w/2,y:mt+ih-ih*tot[i]/max-5,'text-anchor':'middle','font-size':10,fill:'var(--ink2)'},svg).textContent=tot[i]?p+'%':''}
+  if(!opt.every||i%opt.every===0)el('text',{x:x+w/2,y:H-10,'text-anchor':'middle'},svg).textContent=lb;
+  const hit=el('rect',{x:ml+i*bw,y:mt,width:bw,height:ih,fill:'transparent'},svg);
+  hit.addEventListener('mousemove',ev=>{let h=`<b>${opt.tipLabel?opt.tipLabel(i):lb}</b> · ${fmt(tot[i])} llamadas<br>`;S.forEach(s=>{const v=series[s][i];h+=`<span style="color:${SC[s]}">■</span> ${SL[s]}: ${fmt(v)} (${tot[i]?Math.round(v*100/tot[i]):0}%)<br>`});showTip(ev,h)});hit.addEventListener('mouseleave',hideTip);
+ });
+ if(opt.pct)el('text',{x:ml,y:10,'font-size':10.5},svg).textContent='Etiqueta = % que no llegó a una persona';
+}
+function line(id,labels,sets,opt={}){
+ const W=opt.w||560,H=opt.h||230,ml=40,mr=14,mt=16,mb=28;const host=document.getElementById(id);const svg=el('svg',{viewBox:`0 0 ${W} ${H}`},host);
+ const all=sets.flatMap(s=>s.v);const max=opt.max||nice(Math.max(...all));const iw=W-ml-mr,ih=H-mt-mb;const X=i=>ml+(labels.length===1?iw/2:iw*i/(labels.length-1));const Y=v=>mt+ih-ih*v/max;
+ ticks(max).forEach(t=>{const y=Y(t);el('line',{x1:ml,x2:W-mr,y1:y,y2:y,stroke:'var(--grid)'},svg);el('text',{x:ml-6,y:y+4,'text-anchor':'end'},svg).textContent=fmt(t)+(opt.suf||'')});
+ sets.forEach(s=>{let d='';s.v.forEach((v,i)=>{d+=(i?'L':'M')+X(i)+' '+Y(v)});el('path',{d,fill:'none',stroke:s.c,'stroke-width':2,'stroke-linejoin':'round','stroke-dasharray':s.dash||''},svg);
+  if(opt.dots)s.v.forEach((v,i)=>el('circle',{cx:X(i),cy:Y(v),r:4,fill:s.c,stroke:'#fff','stroke-width':2},svg));
+  if(opt.endLabel){const i=s.v.length-1;}
+ });
+ if(opt.labelPts)opt.labelPts.forEach(i=>{const v=sets[0].v[i];el('text',{x:X(i),y:Y(v)-9,'text-anchor':'middle','font-size':10.5,fill:'var(--ink)'},svg).textContent=v+(opt.suf||'')});
+ labels.forEach((lb,i)=>{if(!opt.every||i%opt.every===0)el('text',{x:X(i),y:H-9,'text-anchor':'middle'},svg).textContent=opt.xfmt?opt.xfmt(lb):lb});
+ const cross=el('line',{y1:mt,y2:mt+ih,stroke:'var(--ink3)','stroke-dasharray':'3 3',opacity:0},svg);
+ const hit=el('rect',{x:ml,y:mt,width:iw,height:ih,fill:'transparent'},svg);
+ hit.addEventListener('mousemove',ev=>{const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());let i=Math.round((p.x-ml)/iw*(labels.length-1));i=Math.max(0,Math.min(labels.length-1,i));cross.setAttribute('x1',X(i));cross.setAttribute('x2',X(i));cross.setAttribute('opacity',1);
+  let h=`<b>${opt.tipX?opt.tipX(labels[i],i):labels[i]}</b><br>`;sets.forEach(s=>h+=`<span style="color:${s.c}">■</span> ${s.n}: ${fmt(s.v[i])}${opt.suf||''}<br>`);if(opt.tipExtra)h+=opt.tipExtra(i);showTip(ev,h)});
+ hit.addEventListener('mouseleave',()=>{hideTip();cross.setAttribute('opacity',0)});
+}
+const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const mlab=D.month.labels.map(m=>MES[+m.slice(5)-1]);
+legend('lg-month');stacked('c-month',mlab,D.month.series,{w:1100,h:280,pct:true,dim:i=>D.month.labels[i]==='2026-11',tipLabel:i=>mlab[i]+' 2026'+(D.month.labels[i]==='2026-11'?' (1–26, en tránsito)':'')});
+line('c-monthrate',mlab,[{n:'Pérdida en horario',v:D.month_inh_lost,c:'var(--s2)'}],{max:20,suf:'%',dots:true,labelPts:D.month_inh_lost.map((_,i)=>i),tipX:(l,i)=>l+' 2026'+(i===10?' (en tránsito)':'')});
+const wl=D.week.labels;
+line('c-week',wl,[{n:'Total entrantes',v:D.week.tot,c:'var(--s1)'},{n:'Sin contestar',v:D.week.lost,c:'var(--s2)'}],{every:8,xfmt:l=>{const d=new Date(l+'T00:00');return d.getDate()+' '+MES[d.getMonth()]},tipX:l=>{const d=new Date(l+'T00:00');return 'Semana del '+d.getDate()+' '+MES[d.getMonth()]}});
+legend('lg-dow');stacked('c-dow',D.dow.labels,D.dow.series,{pct:true});
+legend('lg-hour');stacked('c-hour',D.hour.labels.map(h=>h.replace('h','')),D.hour.series,{every:2,tipLabel:i=>i+':00–'+i+':59'});
+
+// heatmap
+(function(){const H=D.heat;const host=document.getElementById('c-heat');const cw=60,ch=34,ml=44,mt=22;const W=ml+cw*H.cols.length+4,Hh=mt+ch*H.rows.length+4;const svg=el('svg',{viewBox:`0 0 ${W} ${Hh}`},host);
+ const ramp=['#cce3fd','#9dc8f7','#6aabf1','#338ced','#2370cd','#1757ac','#0e3d7e'];
+ H.cols.forEach((c,j)=>el('text',{x:ml+j*cw+cw/2,y:14,'text-anchor':'middle'},svg).textContent=c+' h');
+ H.rows.forEach((r,i)=>{el('text',{x:ml-8,y:mt+i*ch+ch/2+4,'text-anchor':'end'},svg).textContent=r;
+  H.cols.forEach((c,j)=>{const v=H.v[i][j],n=H.n[i][j];const small=n<5;const k=v==null?0:Math.min(6,Math.floor(v/100*7));const fill=small?'#eceef1':ramp[k];
+   const x=ml+j*cw,y=mt+i*ch;const rc=el('rect',{x:x+1,y:y+1,width:cw-2,height:ch-2,rx:4,fill},svg);
+   if(!small){const t=el('text',{x:x+cw/2,y:y+ch/2+4,'text-anchor':'middle','font-size':11.5,'font-weight':600},svg);t.textContent=v+'%';t.style.fill=k>=3?'#fff':'#191919'}
+   rc.addEventListener('mousemove',ev=>showTip(ev,`<b>${r} ${c}:00–${c}:59</b><br>${fmt(n)} llamadas<br>${v==null?'—':v+'% no llegó a una persona'}`));rc.addEventListener('mouseleave',hideTip)})});
+})();
+
+// sites
+(function(){const rows=D.sites.filter(r=>r.inh>=30).slice().sort((a,b)=>a.ans-b.ans);legend('lg-site');
+ const host=document.getElementById('c-site');const W=1100,rh=30,ml=210,mr=60,mt=6;const H=mt+rows.length*rh+20;const svg=el('svg',{viewBox:`0 0 ${W} ${H}`},host);const iw=W-ml-mr;
+ const key={'Contestada':'ans','Perdida':'lost','Abandonada en menú':'ivr','Buzón Callpicker':'vm'};
+ [0,25,50,75,100].forEach(t=>{const x=ml+iw*t/100;el('line',{x1:x,x2:x,y1:mt,y2:H-18,stroke:'var(--grid)'},svg);el('text',{x,y:H-4,'text-anchor':'middle'},svg).textContent=t+'%'});
+ rows.forEach((r,i)=>{const y=mt+i*rh;el('text',{x:ml-10,y:y+rh/2+4,'text-anchor':'end','font-size':12.5,fill:'var(--ink)'},svg).textContent=r.site;
+  let x=ml;const tot=S.reduce((a,s)=>a+r[key[s]],0);S.forEach(s=>{const w=iw*r[key[s]]/tot;el('rect',{x,y:y+5,width:Math.max(0,w-1.5),height:rh-10,fill:SC[s],rx:2},svg);x+=w});
+  el('text',{x:W-mr+8,y:y+rh/2+4,'font-size':12,fill:'var(--ink)','font-weight':600},svg).textContent=r.lost+'% pérd.';
+  const hit=el('rect',{x:0,y,width:W,height:rh,fill:'transparent'},svg);hit.addEventListener('mousemove',ev=>{let h=`<b>${r.site}</b><br>${fmt(r.inh)} llamadas en horario<br>`;S.forEach(s=>h+=`<span style="color:${SC[s]}">■</span> ${SL[s]}: ${r[key[s]]}%<br>`);showTip(ev,h)});hit.addEventListener('mouseleave',hideTip)});
+ const t=document.getElementById('t-site');let h='<tr><th>Número / sucursal</th><th>Entrantes</th><th>En horario</th><th>Atención en horario</th><th>Pérdida en horario</th><th>Abandono menú</th><th>Fuera de horario sin atender</th><th>Duración media (min)</th><th>Encuesta +/−</th></tr>';
+ D.sites.forEach(r=>{const cl=r.lost>=17?'bad':r.lost<=5?'ok':'';const ci=r.ivr>=10?'bad':'';h+=`<tr><td>${r.site}</td><td>${fmt(r.n)}</td><td>${fmt(r.inh)}</td><td>${r.ans}%</td><td class="${cl}">${r.lost}%</td><td class="${ci}">${r.ivr}%</td><td>${fmt(r.offlost)}</td><td>${r.dur.toFixed(1)}</td><td>${r.pos} / ${r.neg}</td></tr>`});t.innerHTML=h;
+})();
+
+// recovery
+(function(){const k=D.kpi.rec;const host=document.getElementById('c-rec');const W=520,H=190,ml=120,mr=60;const svg=el('svg',{viewBox:`0 0 ${W} ${H}`},host);const iw=W-ml-mr;
+ const rows=[['En 1 hora',k.h1],['En 24 horas',k.h24],['En 7 días',k.d7],['Nunca en 7 días',+(100-k.d7).toFixed(1)]];
+ rows.forEach((r,i)=>{const y=14+i*42;el('text',{x:ml-10,y:y+18,'text-anchor':'end','font-size':12.5,fill:'var(--ink)'},svg).textContent=r[0];
+  el('rect',{x:ml,y:y+4,width:iw,height:22,rx:4,fill:'#f0f2f5'},svg);el('rect',{x:ml,y:y+4,width:iw*r[1]/100,height:22,rx:4,fill:i===3?'var(--s2)':'var(--s1)'},svg);
+  el('text',{x:ml+iw+8,y:y+20,'font-size':13,'font-weight':700,fill:'var(--ink)'},svg).textContent=r[1]+'%'});
+})();
+</script>
+</body>
+</html>

@@ -44,6 +44,11 @@ import { ODONTOPREV }           from './odontoprev-data'
 import { LINEACEL }             from './lineacel-data'
 import { PROBEMEDIC }           from './probemedic-data'
 import { ABRL }                 from './abrl-data'
+import { CAMPESTRE_LOS_VIVEROS } from './campestre-los-viveros-data'
+import { SAN_SON }              from './san-son-data'
+import { SELLOMATIC }           from './sellomatic-data'
+import { EASO }                 from './easo-data'
+import { EHI_GLOBAL }           from './ehi-global-data'
 import type { AuditoriaCase } from './types'
 
 /* EL ORDEN DE ESTE ARREGLO IMPORTA PARA LAS CUENTAS SIN ASESOR.
@@ -60,6 +65,7 @@ export const STATIC_CASES: AuditoriaCase[] = [
   NERUC_SEDE_CENTRAL, JASON_DE_MEXICO, GWEP, MINT_CARGO, CARGO_LIFT, CASA_GALVAN, GRUPO_2711, LI_FINANCIERA, SOFIA, RDS_INVEST_VACAY,
   UNIVERSITY_4_PEOPLE, VIAJES_MACULL, CP_190196, TORRES_CORZO, TECH_PEOPLE, SYSTEM_OOAPAS,
   SECCION_AMARILLA, IMPAS_CHIHUAHUA, ECODELI, ODONTOPREV, PROBEMEDIC, ABRL,
+  CAMPESTRE_LOS_VIVEROS, SAN_SON, SELLOMATIC, EASO, EHI_GLOBAL,
   LINEACEL,
 ]
 

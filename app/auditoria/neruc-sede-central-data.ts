@@ -1,38 +1,145 @@
 import type { AuditoriaCase } from './types'
 
+/**
+ * NERUC SEDE CENTRAL · C9 · CID 73660 · Erick
+ *
+ * v2.0 — ACTUALIZACIÓN DEL 26 NOV 2026. La v1.0 auditaba 30 días (26 jun – 25
+ * jul) y 8,355 registros de UNA cuenta. Este corte cubre once meses (1 ene –
+ * 26 nov) y **las CINCO cuentas del grupo**: 107,386 llamadas (57,965
+ * entrantes + 49,421 salientes) y 148,416 minutos.
+ *
+ * ── LA REESTRUCTURACIÓN QUE PEDÍA LA v1.0 ESTÁ EJECUTADA Y VERIFICADA ───────
+ * La v1.0 cerraba con tres peticiones: separar Kia Corregidora en cuenta
+ * propia, bajar los DIDs sin tráfico y dimensionar el plan al consumo real.
+ * Las tres ocurrieron, y este corte las mide:
+ *   · Las 5 cuentas son 5 CIDs reales en Zoho con fechas de migración
+ *     verificables número por número.
+ *   · El plan de Sede Central quedó en 500 minutos y va al 27.0% en octubre
+ *     (135 min) con noviembre proyectado al 23.8%. Bien dimensionado: sin
+ *     sobreconsumo y sin sobrepago.
+ *   · La caída de minutos de Kia entre agosto y septiembre (8,832 → 3,630
+ *     entrantes) es EFECTO DE LA MIGRACIÓN, no una caída de tráfico. Leerla
+ *     como deterioro sería el error más fácil de cometer con este corte.
+ * Por eso **el titular de la v1.0 —«127.6% de consumo, subestimado en
+ * 30.7%»— es HISTÓRICO**. Se conserva en los hallazgos 6 a 10 porque explica
+ * por qué se reestructuró, no porque siga vigente.
+ *
+ * ── TRES COSAS QUE EL DOCUMENTO ENTREGADO TRAE MAL ──────────────────────────
+ *
+ * 1. **«Fuera de horario / finde 19.5%» SUMA POBLACIONES QUE SE SOLAPAN.** Son
+ *    7.7% fuera de 9:00–19:00 (4,438 llamadas) más 11.8% en fin de semana
+ *    (6,852). Una llamada del sábado a las 20 h está en los dos cubos, así que
+ *    la unión es **HASTA 19.5%**, no 19.5%. Un sábado por la tarde no se puede
+ *    contar dos veces. [[feedback-metricas-derivadas-origen]]
+ *
+ * 2. **LAS 19,801 LLAMADAS NO ATENDIDAS ATRIBUIDAS A CUATRO CUENTAS SON DEL
+ *    GRUPO ENTERO.** El documento dice: «De 19,801 llamadas no atendidas en
+ *    Neruc One, Sede Central, Vehículos Japoneses Zapata y Automóviles Pro
+ *    Snop combinadas, 0 recibieron un callback exitoso». Esas cuatro suman
+ *    **1,952** (980 + 509 + 71 + 392); las 19,801 son las cuatro MÁS las
+ *    17,849 de Kia, que sí tiene recuperación (789, el 4.4%). El hallazgo de
+ *    fondo es cierto —cero recuperación en las cuatro— pero el número está
+ *    inflado 10 veces, y con él la gravedad que se le presenta al cliente.
+ *    [[feedback-tablas-deben-cerrar]]
+ *
+ * 3. **EL ASESOR.** El reporte vuelve a nombrar a Claudia Hernández. Erick la
+ *    sustituyó el 15 oct 2026, y `cuentas.asesor` y el GRC vigente dicen
+ *    Erick. Es el mismo defecto que traen los reportes de ALTERNET (C10) y
+ *    Hospital Santa Rosa (C4) del mismo lote: clase de error del generador.
+ *    [[erick-sustituye-a-claudia]]
+ *
+ * ── Y DOS DIFERENCIAS DE FICHA QUE IMPORTAN ────────────────────────────────
+ *   · **MRR institucional: $2,433** (GRC, `movimiento 'MRR estable'`, AAA, 10
+ *     facturas, 66 meses, $719,029 acumulados). La v1.0 citaba la factura de
+ *     agosto, $15,705.21, que era el mundo ANTES de la reestructuración, y
+ *     `cuentas.facturacion` sigue en $11,411. La reestructuración recortó el
+ *     MRR de esta cuenta cerca del 79%: eso es lo que costó dimensionarla
+ *     bien, y hay que decirlo en voz alta antes de celebrar el 27.0% de uso.
+ *     [[grc-fuente-zoho]]
+ *   · **`cuentas.servicio` sigue diciendo «Calltracking Co-Branding 10,000 min
+ *     + 121 DIDs Nacionales + 2 DIDs Internacionales».** El plan real son 500
+ *     minutos y el documento mide 23 DIDs activos en el CRM (19 vistos en
+ *     oct–nov, 42 en todo el año). La ficha quedó en el mundo de julio.
+ *     [[feedback-fuente-unica-cuentas]]
+ */
 export const NERUC_SEDE_CENTRAL: AuditoriaCase = {
   id:     'neruc-sede-central',
   asesor: 'Erick',
 
   nombre:               'NERUC Sede Central',
   sector:               'Agencia de Performance Marketing / Reseller Callpicker (Co-Branding)',
-  fecha_periodo:        '26 Jun – 25 Jul 2026',
-  fecha_auditoria:      'Ago 2026',
-  tipo_cliente:         'Reseller Co-Branding · CID 73660 · Consecutivo C9',
-  descripcion_contexto: 'Auditoría Forense de Tráfico · CALLPICKER · 8,355 registros individuales · Entrantes + Salientes · 30 días',
+  fecha_periodo:        '1 ene – 26 nov 2026 · nov en tránsito',
+  fecha_auditoria:      'Nov 2026',
+  tipo_cliente:         'Reseller Co-Branding · CID 73660 · C9 · MRR $2,433 (GRC) · grupo de 5 cuentas',
+  descripcion_contexto: 'Auditoría de llamadas del GRUPO NERUC · 5 cuentas y 5 CIDs · 107,386 llamadas (57,965 entrantes + 49,421 salientes) · 148,416 minutos · Asesor: Erick',
   estado:               'en_riesgo',
   clasificacion:        'CONFIDENCIAL',
-  version:              '1.0',
+  version:              '2.0',
 
   /* ── KPIs ─────────────────────────────────────────────────────── */
   kpis: [
-    { label: 'Consumo total real',         value: '12,764 min · 127.6%', color: '#ef4444' },
-    { label: 'Reportado en Slack',         value: '8,850 min (solo Entrantes)', color: '#f59e0b' },
-    { label: 'DIDs activos / contratados', value: '56 / 123 (45.5%)',    color: '#6366f1' },
-    { label: 'Concentración Kia Corregidora', value: '56.1% del consumo total', color: '#00B4FF' },
+    { label: 'Plan de Sede Central',        value: '27.0% de 500 min',       color: '#22c55e' },
+    { label: 'Abandono en menú (Kia)',      value: '23.1% · 11,760 al año',  color: '#ef4444' },
+    { label: 'Recuperación de perdidas',    value: '4.4% sólo en Kia · 0% en 4', color: '#dc2626' },
+    { label: 'MRR institucional (GRC)',     value: '$2,433',                 color: '#6366f1' },
   ],
 
   /* ── Resumen ejecutivo ────────────────────────────────────────── */
-  resumen_ejecutivo: 'El archivo real de llamadas (8,355 registros) contradice la cifra que llegó a la mesa de decisión. El mensaje de Daniel/Mario en Slack (8,850 min, "cercanos al plan") corresponde exactamente a la suma de tráfico ENTRANTE — no incluye ni un minuto de tráfico SALIENTE.\n\nSumando ambos sentidos, el consumo real del periodo es 12,764 min contra un plan de 10,000 min → 127.6% de utilización. La cuenta lleva un mes SOBRE el límite de su plan sin que nadie en el equipo lo hubiera detectado. Esa diferencia (3,914 min salientes omitidos) equivale al 30.7% del consumo total.\n\nMás allá de la cifra, la auditoría identifica cuatro hallazgos adicionales: concentración extrema del 56.1% en una sola sub-cuenta (Kia Corregidora 1), 54.5% del pool de DIDs contratado sin actividad, patrón de marcación saliente con tasa de conexión débil, y una cifra "corregida" en el CRM que no puede reconciliarse con las reglas disponibles.',
+  resumen_ejecutivo:
+    'La reestructuración que pedía el corte de agosto está hecha, y este corte la valida: las cinco ' +
+    'cuentas corresponden a cinco CIDs reales en Zoho con fechas de migración verificables número por ' +
+    'número, y el plan de Sede Central quedó en 500 minutos con un uso del 27.0% en octubre (135 min) y ' +
+    'una proyección del 23.8% para noviembre. Bien dimensionado: ni sobreconsumo ni sobrepago.\n\n' +
+    'Eso obliga a una advertencia antes de leer cualquier gráfica: la caída de minutos de Kia Corregidora ' +
+    'entre agosto y septiembre (8,832 a 3,630 minutos entrantes) es el efecto de la migración a su propio ' +
+    'CID, no una caída de tráfico. Leerla como deterioro es el error más fácil de cometer con este ' +
+    'documento.\n\n' +
+    'El hallazgo que sí es nuevo y grande está en Kia Corregidora: 11,760 de sus 50,915 llamadas ' +
+    'entrantes del año (23.1%) se perdieron DENTRO del menú telefónico, antes de llegar con un agente. Es ' +
+    'más del doble de su tasa de perdida tradicional (12.0%) y, en volumen, la mayor pérdida de leads de ' +
+    'las cinco cuentas juntas. El archivo no dice si es el diseño del IVR, los tiempos de espera o el ' +
+    'volumen en horas pico: eso se pregunta.\n\n' +
+    'Y hay una capacidad que existe y no está replicada: Kia recupera el 4.4% de sus llamadas no ' +
+    'atendidas con callback (789 de 17,849), mientras las otras cuatro cuentas recuperan CERO de sus ' +
+    '1,952. La función funciona; simplemente no está encendida en el resto del grupo.\n\n' +
+    'Tres notas de rigor sobre el documento entregado. El «19.5% fuera de horario / fin de semana» suma ' +
+    'dos poblaciones que se solapan (un sábado a las 20 h está en las dos), así que es HASTA 19.5%. Las ' +
+    '«19,801 llamadas no atendidas» que atribuye a cuatro cuentas son del grupo entero: esas cuatro suman ' +
+    '1,952. Y vuelve a nombrar a Claudia Hernández como responsable, cuando Erick la sustituyó el 15 de ' +
+    'octubre.',
 
-  resultado_positivo: 'El cliente es un reseller con modelo validado: sus clientes finales ya reconocen y confían en Callpicker, lo que elimina la necesidad de co-branding. Factura de agosto pagada al corriente ($15,705.21). La reunión del 04 ago reveló un proyecto de alto valor estratégico: Neruc Prime OS — sistema empresarial propio (CRM + SMS + IA + automatización) que usará a Callpicker como motor de telefonía backend vía API/webhooks. Hay un pipeline de crecimiento concreto: 5 agencias Mazda EdoMex + separación de Kia Corregidora en cuenta propia.',
+  resultado_positivo:
+    'Esta es la cuenta del lote donde una recomendación nuestra se ejecutó y se puede medir. Las tres ' +
+    'peticiones del corte de agosto —separar Kia en cuenta propia, bajar los DIDs sin tráfico y ' +
+    'dimensionar el plan al consumo real— están cumplidas: cinco CIDs reales, 23 DIDs activos en el CRM ' +
+    'contra los 123 contratados de julio, y un plan de 500 minutos al 27.0%. Es el mejor argumento de ' +
+    'servicio que tenemos con este cliente.\n\n' +
+    'El modelo de reseller sigue validado: sus clientes finales reconocen y confían en Callpicker, lo que ' +
+    'hizo innecesario el co-branding. Y el proyecto Neruc Prime OS —CRM, SMS, IA y automatización propios, ' +
+    'con Callpicker como motor de telefonía vía API— sigue siendo el upsell de mayor valor estratégico de ' +
+    'la cartera: una integración de infraestructura que ningún competidor replica fácilmente.',
 
   hallazgos: [
-    'HALLAZGO 1 — Reporte subestimó el consumo en 30.7%: El Slack de Daniel/Mario reporta 8,850 min ("cercanos al plan"). Esa cifra coincide exactamente con la suma de la hoja Entrantes — el reporte de soporte no incorporó tráfico saliente. El archivo muestra 3,914 min salientes (4,016 llamadas), concentrados en Kia Corregidora 1 y Suzuki Campestre 2 con campañas de marcación activas. Consumo real: 12,764 min / 127.6%.',
-    'HALLAZGO 2 — Cifra "corregida" del CRM (11,794 min) no reconciliable: La nota del CRM registra "ent 7,880 min + sal 3,914 min = 11,794 min" aplicando fijo=1min/llamada. El componente saliente coincide exacto. El entrante (7,880) no se pudo reproducir: la hipótesis más cercana (600 llamadas tipo "fixed" facturadas a 1min en vez de su duración real) da 7,855 min, a 25 min del valor reportado. Pendiente confirmar con Claudia la regla exacta. Cifra verificable y defendible: 12,764 min.',
-    'HALLAZGO 3 — Concentración extrema: Kia Corregidora 1 = 56.1% del consumo: 7,160 min en el periodo (4,192 entrantes + 2,968 salientes). Las top 5 sub-cuentas concentran el 89.5% del tráfico; las otras 51 sub-cuentas activas se reparten solo el 10.5% restante. Esto valida de forma independiente la decisión de separar Kia en cuenta propia ya tomada en la reunión del 04 ago.',
-    'HALLAZGO 4 — Solo 45.5% del pool de DIDs contratado tuvo actividad: 123 DIDs contratados (121 nacionales + 2 internacionales). Solo 56 números (45.5%) registraron al menos una llamada en el periodo. Los 67 restantes (54.5%) no tuvieron tráfico alguno. Evidencia directa y objetiva que respalda la solicitud de baja de DIDs ya iniciada por el cliente.',
-    'HALLAZGO 5 — Marcación saliente con baja tasa de conexión: Kia Corregidora 1: 2,823 llamadas salientes, 69.1% de conexión, 1.52 min promedio. Suzuki Campestre 2: 1,163 llamadas, 44.8% de conexión, 1.68 min promedio. Patrón de alto volumen + baja conexión + llamadas cortas — requiere confirmar directamente con el cliente qué herramienta o campaña genera ese volumen saliente antes de la próxima reunión.',
+    'La reestructuración está EJECUTADA y verificada: 5 CIDs reales en Zoho y el plan de Sede Central en 500 min al 27.0% en octubre. Bien dimensionado, sin sobreconsumo ni sobrepago.',
+    'CUIDADO al leer las gráficas: la caída de minutos de Kia entre agosto y septiembre (8,832 → 3,630) es efecto de la migración a su propio CID, NO una caída de tráfico del cliente.',
+    'Kia Corregidora pierde 11,760 de sus 50,915 entrantes del año DENTRO del menú (23.1%), más del doble de su tasa de perdida (12.0%). Es la mayor fuga de leads de las 5 cuentas.',
+    'La recuperación de perdidas existe y no está replicada: Kia recupera 789 (4.4% de 17,849) y las otras CUATRO cuentas recuperan CERO de sus 1,952 llamadas no atendidas.',
+    'MARCADO en el documento · «fuera de horario / finde 19.5%» suma dos poblaciones que SE SOLAPAN: 7.7% fuera de 9:00–19:00 (4,438 llamadas) más 11.8% en fin de semana (6,852). Un sábado a las 20 h está en los dos cubos, así que la unión es HASTA 19.5%. La oportunidad es real —1,351 perdidas fuera de horario y 1,323 en fin de semana— pero no se suma.',
+    'MARCADO en el documento · «De 19,801 llamadas no atendidas en Neruc One, Sede Central, Vehículos Japoneses Zapata y Automóviles Pro Snop combinadas, 0 recibieron callback». Esas cuatro suman 1,952 (980 + 509 + 71 + 392); las 19,801 son el grupo ENTERO, incluyendo las 17,849 de Kia, que sí tiene recuperación. El hallazgo es cierto; el número está inflado diez veces.',
+    'EL ASESOR ESTÁ MAL: el reporte vuelve a nombrar a Claudia Hernández. Erick la sustituyó el 15 oct 2026 y `cuentas.asesor` y el GRC vigente dicen Erick. Es el mismo defecto de los reportes de ALTERNET (C10) y Hospital Santa Rosa (C4) del mismo lote: una clase de error del generador, no un descuido de este documento.',
+    'MRR institucional: $2,433 (GRC, «MRR estable», AAA, 10 facturas, 66 meses, $719,029 acumulados). NO los $15,705.21 de la factura de agosto que citaba el corte anterior —ése era el mundo previo a la reestructuración— ni los $11,411 que sigue guardando la ficha. La reestructuración recortó el MRR de esta cuenta cerca del 79%: eso es lo que costó dimensionarla bien, y hay que decirlo antes de celebrar el 27.0% de uso.',
+    'LA FICHA QUEDÓ EN JULIO: `cuentas.servicio` sigue diciendo «Calltracking Co-Branding 10,000 min + 121 DIDs Nacionales + 2 DIDs Internacionales». El plan real son 500 minutos y el documento mide 23 DIDs activos en el CRM (19 vistos en oct–nov y 42 en todo el año). `servicios_json` está vacío, así que la ficha no puede arbitrar nada de esta cuenta.',
+    'Concentración que no se movió con la separación: dos números de Kia —Kia Corregidora 1 (22,531 llamadas, 7,394 abandonadas en menú) y Stellantis Pro Snop Querétaro (9,656 llamadas, 3,215 abandonadas)— concentran la mayor parte del abandono del grupo. El problema del IVR vive en esos dos números.',
+    'Las horas de mayor abandono son las de mayor demanda: de 9 a 13 h el menú pierde entre 1,131 y 1,475 llamadas por hora, y el pico de perdidas (794) cae a las 13 h. Eso apunta a tiempos de espera o capacidad en hora punta más que a un árbol mal diseñado — pero el archivo no lo separa, así que se pregunta.',
+    'Seis agentes concentran las evaluaciones negativas de forma desproporcionada: Erick Alejandro Ramírez Mejía tiene 58 negativas contra 11 positivas en 457 contestadas, y Valeria Palencia 33 contra 7 en 114. No es muestra pequeña en el primer caso: es una señal de capacitación o de asignación de cola.',
+    'La última evaluación negativa registrada es del 26 nov 2026, el mismo día del corte, y nueve de las veinte más recientes son de Changan Querétaro Norte y Hotel Villa Mexicana (Neruc One). El problema de calidad no es histórico: está ocurriendo.',
+    'Sede Central casi no marca: 122 salientes en once meses con 52.5% de conexión y 1.97 min de promedio. La saliente del grupo es de Kia (49,298 llamadas, 62.2% de conexión). Es coherente con el nuevo rol de Sede Central como cuenta de administración, no de operación.',
+    '─── LO QUE SIGUE ES HISTÓRICO: el corte de 30 días del 26 jun – 25 jul 2026, que motivó la reestructuración. Se conserva porque explica POR QUÉ se reestructuró, no porque siga vigente. El plan de 10,000 minutos ya no existe. ───',
+    'HISTÓRICO (jul 2026) — Reporte subestimó el consumo en 30.7%: El Slack de Daniel/Mario reporta 8,850 min ("cercanos al plan"). Esa cifra coincide exactamente con la suma de la hoja Entrantes — el reporte de soporte no incorporó tráfico saliente. El archivo muestra 3,914 min salientes (4,016 llamadas), concentrados en Kia Corregidora 1 y Suzuki Campestre 2 con campañas de marcación activas. Consumo real: 12,764 min / 127.6%.',
+    'HISTÓRICO (jul 2026) — Cifra "corregida" del CRM (11,794 min) no reconciliable: La nota del CRM registra "ent 7,880 min + sal 3,914 min = 11,794 min" aplicando fijo=1min/llamada. El componente saliente coincide exacto. El entrante (7,880) no se pudo reproducir: la hipótesis más cercana (600 llamadas tipo "fixed" facturadas a 1min en vez de su duración real) da 7,855 min, a 25 min del valor reportado. Pendiente confirmar con Claudia la regla exacta. Cifra verificable y defendible: 12,764 min.',
+    'HISTÓRICO (jul 2026) — Concentración extrema: Kia Corregidora 1 = 56.1% del consumo: 7,160 min en el periodo (4,192 entrantes + 2,968 salientes). Las top 5 sub-cuentas concentran el 89.5% del tráfico; las otras 51 sub-cuentas activas se reparten solo el 10.5% restante. Esto valida de forma independiente la decisión de separar Kia en cuenta propia ya tomada en la reunión del 04 ago.',
+    'HISTÓRICO (jul 2026) — Solo 45.5% del pool de DIDs contratado tuvo actividad: 123 DIDs contratados (121 nacionales + 2 internacionales). Solo 56 números (45.5%) registraron al menos una llamada en el periodo. Los 67 restantes (54.5%) no tuvieron tráfico alguno. Evidencia directa y objetiva que respalda la solicitud de baja de DIDs ya iniciada por el cliente.',
+    'HISTÓRICO (jul 2026) — Marcación saliente con baja tasa de conexión: Kia Corregidora 1: 2,823 llamadas salientes, 69.1% de conexión, 1.52 min promedio. Suzuki Campestre 2: 1,163 llamadas, 44.8% de conexión, 1.68 min promedio. Patrón de alto volumen + baja conexión + llamadas cortas — requiere confirmar directamente con el cliente qué herramienta o campaña genera ese volumen saliente antes de la próxima reunión.',
   ],
 
   /* ── Cronología ──────────────────────────────────────────────── */
@@ -125,24 +232,28 @@ export const NERUC_SEDE_CENTRAL: AuditoriaCase = {
   ],
 
   /* ── Plan de acción ──────────────────────────────────────────── */
+  /* Las acciones de v1.0 (jul 2026) con criterio «antes del 18 ago» están
+   * EJECUTADAS o vencidas, y se bajaron a la sección histórica del plan
+   * mediano. Un plan inmediato con fecha de agosto en un expediente de
+   * noviembre pide trabajo que ya se hizo. */
   plan_inmediato: [
-    { accion: 'Confirmar con Claudia la regla exacta usada para "fijo=1min" (7,880 min entrantes) antes de usar 11,794 min en cualquier comunicación', responsable: 'Daniel / Erick', criterio: 'Cifra reconciliada y documentada antes del 18 ago' },
-    { accion: 'Sustituir 8,850 min por 12,764 min (127.6%) en todas las comunicaciones internas y externas a partir de ahora', responsable: 'Daniel / CS', criterio: 'Ningún documento o mensaje nuevo cita 8,850 min como consumo total' },
-    { accion: 'Alex Rendón: resolver líneas bloqueadas en Sembia/Sirena (WhatsApp API) — impacta bajas de DIDs pendientes de Grupo Vanguardia', responsable: 'Alex Rendón (Colpicker Chat)', criterio: 'DIDs liberados para procesar la baja solicitada por Axél' },
-    { accion: 'Axél: confirmar desglose de los 55 DIDs solicitados vs los 67 sin actividad detectados en la auditoría — evitar duplicar trabajo', responsable: 'Axél / Daniel', criterio: 'Lista única reconciliada de números a dar de baja' },
+    { accion: 'Kia Corregidora pierde 11,760 de sus 50,915 entrantes DENTRO del menú (23.1%), más del doble de su tasa de perdida. Es la mayor fuga de leads de las cinco cuentas y nadie la está trabajando: revisar el árbol del IVR y el destino de cada opción.', responsable: 'Erick + Técnico', criterio: 'Árbol revisado y medición del abandono en menú a 30 días' },
+    { accion: 'Replicar en las otras cuatro cuentas la recuperación de perdidas que ya opera en Kia (789 llamadas, 4.4%). Las cuatro recuperan CERO de sus 1,952 no atendidas: es un proceso que existe adentro del grupo y no está extendido.', responsable: 'Erick', criterio: 'Protocolo de devolución activo en las cuatro cuentas y primera medición' },
+    { accion: 'Corregir `cuentas.servicio` de C9: todavía describe el plan eliminado de 10,000 min y 123 DIDs. El plan vigente es de 500 min y el MRR institucional $2,433, no los $15,705 de la factura de agosto.', responsable: 'Erick', criterio: 'Ficha alineada al plan vigente y al GRC' },
+    { accion: 'No citar el «19,801 llamadas no atendidas en cuatro cuentas» del reporte: es la cifra del grupo completo y esas cuatro suman 1,952. Si el dato llegó al cliente, corregirlo por escrito antes de la siguiente reunión.', responsable: 'Erick', criterio: 'Confirmado si se comunicó y corregido en su caso' },
   ],
 
   plan_mediano: [
-    { accion: 'Ejecutar reestructuración acordada: Kia Corregidora en cuenta propia, Mazda EdoMex en cuenta nueva, Sede Central reducida', responsable: 'Daniel / Axél', criterio: 'Diagrama de Axél recibido · Propuesta formal enviada antes del 18 ago' },
-    { accion: 'Cancelar cuenta Streark: gestionar baja definitiva y detener cobros asociados', responsable: 'Axél', criterio: 'Cuenta Streark cerrada en sistema' },
-    { accion: 'Redimensionar plan base Sede Central post-migración de Kia: ~4,000-5,000 min reales remanentes', responsable: 'Daniel / Pricing', criterio: 'Plan propuesto con precio validado interno antes de la reunión del 18 ago' },
-    { accion: 'Cotizar Mazda EdoMex (5 agencias) usando consumo real de Kia Corregidora como referencia — no los 25,000 min estimados por Axél', responsable: 'Daniel', criterio: 'Propuesta formal enviada antes del 18 ago' },
+    { accion: 'Medir el plan de 500 min de Sede Central dos meses más: octubre cerró en 27.0% y un plan al 27% invita al downgrade. Si se sostiene por debajo del 30%, proponer el ajuste nosotros antes de que lo pida el cliente.', responsable: 'Erick', criterio: 'Dos cortes medidos y decisión de plan documentada' },
+    { accion: 'Retomar la oferta de API / Neruc Prime OS con el consumo real de cada CID ya separado: la reestructuración que la hacía imposible está ejecutada, y ahora cada agencia tiene su propia medición.', responsable: 'Erick + Producto', criterio: 'Propuesta API presentada con el consumo real por CID' },
+    { accion: 'HISTÓRICO (jul–ago 2026) — EJECUTADO: la reestructuración acordada el 4 ago (Kia Corregidora en cuenta propia, co-branding eliminado, Sede Central reducida) está verificada: cinco CIDs reales en Zoho y plan de 500 min. No volver a pedirla.', responsable: 'Daniel / Axél', criterio: 'Verificado el 26 nov 2026 · cerrado' },
+    { accion: 'HISTÓRICO (jul 2026) — La cifra "corregida" del CRM de 11,794 min nunca se pudo reconciliar (la hipótesis más cercana da 7,855 contra 7,880 entrantes). No usar 11,794 ni 8,850: la cifra defendible de ese periodo es 12,764 min. La regla exacta sigue sin confirmar con Claudia Hernández, que fue quien la aplicó.', responsable: 'Daniel / Erick', criterio: 'Vencido sin reconciliar · se deja declarado, no se cita la cifra' },
   ],
 
   plan_estrategico: [
-    { accion: 'Neruc Prime OS: formalizar oferta API/Developer plan — webhooks, consumo en tiempo real, integración con Power BI / Make / n8n', responsable: 'Daniel / Producto', criterio: 'Propuesta API presentada en reunión del 18 ago o la siguiente' },
-    { accion: 'Panel por sub-cuenta + alertas de consumo: resuelve la causa raíz de falta de visibilidad confirmada por Axél en reunión', responsable: 'Daniel / Producto CP', criterio: 'Demo o acceso habilitado para Neruc antes de sep 2026' },
-    { accion: 'Revisar calidad de marcación saliente (Kia 69.1%, Suzuki 44.8%) con el cliente: identificar herramienta, proponer IA de voz o ajuste de campaña', responsable: 'Erick / Daniel', criterio: 'Pregunta directa en reunión 18 ago · Respuesta documentada' },
+    { accion: 'Panel por sub-cuenta + alertas de consumo: era la causa raíz que Axél confirmó en la reunión del 4 ago y sigue abierta. Con los cinco CIDs ya separados, cada agencia puede tener su propia vista.', responsable: 'Erick / Producto CP', criterio: 'Demo o acceso habilitado para Neruc' },
+    { accion: 'Revisar la calidad de marcación saliente con el cliente (Kia 69.1%, Suzuki 44.8%): identificar la herramienta que marca, y proponer IA de voz o ajuste de campaña según lo que se encuentre.', responsable: 'Erick / Daniel', criterio: 'Pregunta planteada y respuesta documentada en la siguiente reunión' },
+    { accion: 'Cotizar Mazda EdoMex (5 agencias) con el consumo real de Kia Corregidora como referencia, no con los 25,000 min que estimó Axél. La migración de Kia ya dio la base de comparación que faltaba.', responsable: 'Erick / Daniel', criterio: 'Propuesta formal enviada con el comparable medido' },
   ],
 
   areas_oportunidad: [
@@ -248,5 +359,35 @@ export const NERUC_SEDE_CENTRAL: AuditoriaCase = {
     'Proceso mejorado: establecer reporte de consumo bidireccional como estándar en todos los clientes con tráfico saliente activo',
   ],
 
-  recomendacion_central: 'Entregar esta auditoría directamente a Axél en la reunión del 18 ago como acto de transparencia: "Encontramos que el número que usamos estaba incompleto — te compartimos el análisis completo para que tomes decisiones con el dato real." Eso convierte un error interno en un diferenciador de servicio. Desde ahí, proponer el panel en tiempo real (resuelve su problema confirmado), formalizar la propuesta Neruc Prime OS (API) y cerrar el dimensionamiento correcto para Mazda EdoMex.',
+  recomendacion_central:
+    'Entrar reconociendo lo que se cumplió, porque es cierto y es nuestro mejor argumento con este ' +
+    'cliente: las tres peticiones de agosto están ejecutadas y el plan de Sede Central va al 27.0% de sus ' +
+    '500 minutos. Sobre esa base, poner el hallazgo nuevo: Kia pierde 11,760 llamadas al año dentro del ' +
+    'menú, más del doble de lo que pierde por no contestar, y eso son leads de agencia automotriz. ' +
+    'Proponer dos cosas concretas y medibles: encender el callback en las cuatro cuentas que hoy recuperan ' +
+    'cero de sus 1,952 llamadas no atendidas —la función ya funciona en Kia al 4.4%—, y revisar el IVR de ' +
+    'los dos números que concentran el abandono. Para la cobertura fuera de horario y fin de semana, ' +
+    'hablar de HASTA 19.5% y no de 19.5%, porque el sábado por la tarde está en los dos cubos. Y una cosa ' +
+    'de casa antes de la reunión: actualizar la ficha, que sigue diciendo 10,000 minutos y 123 DIDs, y ' +
+    'llevar el MRR institucional correcto ($2,433) en lugar de la factura de agosto.',
+
+  documentos: [
+    {
+      nombre: 'Auditoría de llamadas · Grupo NERUC (5 cuentas) · 2026',
+      ruta: '/auditorias/Auditoria-Grupo-Neruc-2026.html',
+      descripcion:
+        'Reporte interactivo del GRUPO NERUC completo —Sede Central (CID 73660), Neruc One, Kia ' +
+        'Corregidora, Vehículos Japoneses Zapata y Automóviles Pro Snop— sobre 107,386 llamadas (57,965 ' +
+        'entrantes + 49,421 salientes) y 148,416 minutos, 1 ene – 26 nov 2026 con noviembre en tránsito: ' +
+        'la reestructuración de agosto validada CID por CID, tendencia mensual, semanal y diaria, ' +
+        'distribución por hora y por día, abandono en menú, los 25 números de mayor volumen, 30 agentes, ' +
+        'evaluaciones negativas, recuperación por cuenta, calidad de saliente y dimensionamiento del plan. ' +
+        'PUBLICADO CON TRES CORRECCIONES VISIBLES DENTRO DEL DOCUMENTO: el «19.5% fuera de horario / fin de ' +
+        'semana» suma dos poblaciones que se solapan y se corrige a HASTA 19.5%; las «19,801 llamadas no ' +
+        'atendidas» atribuidas a cuatro cuentas son del grupo entero y esas cuatro suman 1,952; y el asesor ' +
+        'responsable es Erick, no Claudia Hernández. Se declara además que el MRR institucional es $2,433 ' +
+        '(GRC) y que la ficha de la cuenta sigue describiendo el plan de 10,000 minutos y 123 DIDs que la ' +
+        'propia reestructuración eliminó.',
+    },
+  ],
 }

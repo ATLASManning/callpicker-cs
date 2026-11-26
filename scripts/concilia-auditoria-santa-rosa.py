@@ -50,11 +50,27 @@ import sys
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DOC = os.path.join(RAIZ, 'public', 'auditorias',
-                   'Hospital_Santa_Rosa_Auditoria_Forense_2026-11-12.html')
+DOC_POR_OMISION = os.path.join(RAIZ, 'public', 'auditorias',
+                               'Hospital_Santa_Rosa_Auditoria_Forense_2026-11-12.html')
 
-# El corte anterior, tal como lo declara el expediente de julio.
-REGISTROS_CORTE_ANTERIOR = 55638
+# ── POR QUÉ ESTE GUION ACEPTA UNA RUTA ──────────────────────────────────────
+# El 26 nov 2026 se le pasó la ruta del corte NUEVO y el guion, que tenía el
+# documento clavado en una constante, ignoró el argumento y concilió el de
+# NOVIEMBRE 12 — imprimiendo «ok» siete veces sobre un archivo que nadie le
+# había pedido mirar. Un verificador que concilia el documento equivocado y
+# concluye éxito es peor que no tener verificador: da por verificado lo que no
+# se miró. [[feedback-verificar-antes-asegurar]]
+#
+# Desde entonces: la ruta se pasa como argumento y el encabezado imprime
+# SIEMPRE el archivo leído. Este guion sólo entiende la forma `const D` del
+# corte del 12 nov; el corte del 26 nov embebe `const DATA` con otras llaves y
+# lo concilia `concilia-auditoria-santa-rosa-2026-11-26.py`. Si se le pasa un
+# documento de la otra forma, FALLA diciendo cuál usar — no finge conciliarlo.
+DOC = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else DOC_POR_OMISION
+
+# El corte anterior, tal como lo declara el expediente de julio. Se puede
+# sobrescribir con el segundo argumento para conciliar otro par de cortes.
+REGISTROS_CORTE_ANTERIOR = int(sys.argv[2]) if len(sys.argv) > 2 else 55638
 
 fallos = []
 avisos = []
@@ -88,8 +104,16 @@ def lee_datos():
     m = re.search(r'const\s+D\s*=\s*(\{.*?\})\s*;\s*\n', txt, re.S)
     if not m:
         print(u'  *** No pude extraer el objeto `const D` del documento. ***')
-        print(u'      Si el formato del reporte cambió, este guion deja de')
-        print(u'      conciliar y ESO es el hallazgo, no un detalle del parser.')
+        print(u'      %s' % DOC)
+        if re.search(r'const\s+DATA\s*=\s*\{', txt):
+            print(u'')
+            print(u'      Ese documento embebe `const DATA`, que es la forma del')
+            print(u'      corte del 26 nov 2026. Conciliadlo con:')
+            print(u'        python scripts/concilia-auditoria-santa-rosa-2026-11-26.py')
+            print(u'      Este guion NO lo entiende y no va a fingir que sí.')
+        else:
+            print(u'      Si el formato del reporte cambió, este guion deja de')
+            print(u'      conciliar y ESO es el hallazgo, no un detalle del parser.')
         sys.exit(2)
     return json.loads(m.group(1))
 
@@ -99,8 +123,8 @@ def main():
     k = D['kpis']
 
     print(u'')
-    print(u'  CONCILIACIÓN — Hospital Santa Rosa · corte 12 nov 2026')
-    print(u'  %s' % os.path.basename(DOC))
+    print(u'  CONCILIACIÓN — Hospital Santa Rosa · forma `const D` (corte 12 nov 2026)')
+    print(u'  archivo leído: %s' % DOC)
     print(u'')
 
     # ── 1 y 2 · los totales ──────────────────────────────────────────────
