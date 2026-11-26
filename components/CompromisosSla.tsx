@@ -139,6 +139,43 @@ function tema(superficie: Superficie) {
  * LA LECTURA
  * ═══════════════════════════════════════════════════════════════════════════ */
 
+/**
+ * Lee la respuesta como JSON, y cuando NO lo es dice qué pasó en español.
+ *
+ * ── POR QUÉ NO BASTA CON `r.json()` ───────────────────────────────────────
+ *
+ * `middleware.ts` de este proyecto sirve la pantalla de LOGIN con **HTTP 200**
+ * para toda ruta protegida, `/api/*` incluida. O sea que una sesión caducada no
+ * llega aquí como 401: llega como un 200 con HTML dentro, y `r.json()` revienta
+ * con «Unexpected token '<', "<!DOCTYPE "... is not valid JSON».
+ *
+ * Eso se vio EN PANTALLA, no en una prueba: los tres bloques de /alertas
+ * pintaban esa cadena tal cual. Decía la verdad —no se midió— pero en un idioma
+ * que no es el de nadie, y escondía la única acción que resuelve el problema,
+ * que es volver a entrar. Un mensaje de error genérico convierte cada fallo en
+ * una investigación. [[feedback-verificar-antes-asegurar]]
+ */
+async function leeJson(r: Response): Promise<Record<string, unknown>> {
+  const texto = await r.text()
+  const cabeza = texto.trimStart().slice(0, 1)
+  if (cabeza === '<') {
+    throw new Error(
+      'La sesión caducó: el servidor devolvió la pantalla de acceso en vez de '
+      + 'los datos. Vuelve a entrar y recarga.',
+    )
+  }
+  try {
+    return JSON.parse(texto) as Record<string, unknown>
+  } catch {
+    /* Ni JSON ni login. Se dice el código y el principio del cuerpo, que es lo
+       que permite distinguir un 502 del proxy de un error de la ruta. */
+    throw new Error(
+      `El servidor respondió algo que no es JSON (HTTP ${r.status}): `
+      + `${texto.slice(0, 120) || '(cuerpo vacío)'}`,
+    )
+  }
+}
+
 function useCompromisos(query: string) {
   const [d, setD] = useState<Respuesta | null>(null)
   const [cargando, setCargando] = useState(true)
@@ -146,8 +183,8 @@ function useCompromisos(query: string) {
   const leer = useCallback(() => {
     setCargando(true)
     fetch(`/api/alertas/sla${query}`)
-      .then(r => r.json())
-      .then((j: Respuesta) => setD(j))
+      .then(leeJson)
+      .then((j) => setD(j as Respuesta))
       /* Una falla de red NO se pinta como «no hay nada»: se dice. Una cola
          vacía por error se lee igual que una cola vacía de verdad, y eso es
          justo lo que esta casa tiene prohibido colapsar. */
@@ -187,7 +224,7 @@ export function BannerSla({ superficie = 'clara', asesor }:
   if (d?.error || d?.noMedible) {
     const tono = tonoSla('amarillo', superficie)
     return (
-      <div style={{ ...caja(t), borderLeft: `4px solid ${tono.trazo}` }}>
+      <div style={{ ...caja(t), ...filoIzquierdo(tono.trazo, 4) }}>
         <span style={C(tono.texto, { fontSize: 12, fontWeight: 600 })}>
           <AlertTriangle size={13} style={{ display: 'inline', marginRight: 6 }} />
           No se está midiendo el vencimiento de las alertas
@@ -221,11 +258,11 @@ export function BannerSla({ superficie = 'clara', asesor }:
 
   return (
     <div style={{
-      ...caja(t),
-      borderLeft: `4px solid ${tono.trazo}`,
-      ...(nivel === 'rojo_intenso'
-        ? { background: tono.relleno ?? t.panel, borderColor: tono.relleno ?? t.borde }
-        : {}),
+      /* El orden importa: el marco de los cuatro lados primero y el filo del
+         semáforo DESPUÉS, para que el izquierdo acabe del color del nivel. */
+      ...caja(t, nivel === 'rojo_intenso' ? (tono.relleno ?? t.borde) : t.borde),
+      ...filoIzquierdo(tono.trazo, 4),
+      ...(nivel === 'rojo_intenso' ? { background: tono.relleno ?? t.panel } : {}),
     }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span style={C(nivel === 'rojo_intenso' ? (tono.sobreRelleno ?? '#FFFFFF') : tono.texto,
@@ -287,9 +324,45 @@ function Dato({ etq, n, nivel, superficie, t }: {
   )
 }
 
-function caja(t: ReturnType<typeof tema>): React.CSSProperties {
+/**
+ * El marco, lado por lado y SIN ATAJOS.
+ *
+ * ── POR QUÉ NO `border: '1px solid X'` ────────────────────────────────────
+ *
+ * Porque encima se le pone un `borderLeft` de color para el semáforo, y React
+ * **se niega a mezclar un atajo con su versión por lado**: avisa en consola
+ * «Removing borderLeft border» y, al repintar, QUITA el borde izquierdo. O sea
+ * que el filete de color —que es el indicador gráfico del nivel— desaparecía en
+ * cuanto el componente se volvía a renderizar: al filtrar por asesor, al
+ * recargar la cola, al reprogramar. En la primera pintura se veía bien, así que
+ * una captura lo daba por bueno.
+ *
+ * Salió del AVISO DE CONSOLA, no de mirar: el cambio es invisible hasta que algo
+ * dispara el segundo render. Por eso se leen los mensajes, no sólo la pantalla.
+ *
+ * `borderColor` y `borderStyle` tampoco valen: son atajos de los cuatro lados y
+ * chocan igual con `borderLeftColor`. Van los doce longhands.
+ */
+function marco(color: string, ancho = 1): React.CSSProperties {
   return {
-    background: t.panel, border: `1px solid ${t.borde}`,
+    borderTopWidth: ancho, borderTopStyle: 'solid', borderTopColor: color,
+    borderRightWidth: ancho, borderRightStyle: 'solid', borderRightColor: color,
+    borderBottomWidth: ancho, borderBottomStyle: 'solid', borderBottomColor: color,
+    borderLeftWidth: ancho, borderLeftStyle: 'solid', borderLeftColor: color,
+  }
+}
+
+/** Sólo el lado izquierdo, para pintarlo del color del nivel. */
+function filoIzquierdo(color: string, ancho: number): React.CSSProperties {
+  return {
+    borderLeftWidth: ancho, borderLeftStyle: 'solid', borderLeftColor: color,
+  }
+}
+
+function caja(t: ReturnType<typeof tema>, color?: string): React.CSSProperties {
+  return {
+    background: t.panel,
+    ...marco(color ?? t.borde),
     borderRadius: 12, padding: '12px 16px',
   }
 }
@@ -507,8 +580,11 @@ export function PanelCumplimiento({ superficie = 'oscura', asesor, verAsesores }
   useEffect(() => {
     const q = asesor ? `?asesor=${encodeURIComponent(asesor)}` : ''
     fetch(`/api/alertas/sla/metricas${q}`)
-      .then(r => r.json())
-      .then(setD)
+      .then(leeJson)
+      /* Por `unknown`: `leeJson` promete un objeto sin forma —es lo honesto,
+         no ha validado nada— y TypeScript no deja saltar de ahí a `Cumplimiento`
+         de un paso. El cast dice «confío en la ruta», que es justo lo que es. */
+      .then(j => setD(j as unknown as Cumplimiento))
       .catch(e => setD({ error: String(e?.message ?? e) } as Cumplimiento))
       .finally(() => setCargando(false))
   }, [asesor])
@@ -670,8 +746,10 @@ function RenglonSla({ f, superficie, rol, hecho, conCuenta }: {
   return (
     <div style={{
       background: t.panel,
-      border: `1px solid ${intenso ? (tono.relleno ?? t.borde) : t.borde}`,
-      borderLeft: `${intenso ? 6 : 3}px solid ${tono.trazo}`,
+      /* Marco por lados y DESPUES el filo del semaforo. Mezclar `border` con
+         `borderLeft` hace que React quite el segundo al repintar. */
+      ...marco(intenso ? (tono.relleno ?? t.borde) : t.borde),
+      ...filoIzquierdo(tono.trazo, intenso ? 6 : 3),
       borderRadius: 12, padding: '12px 16px',
       /* Una INCUMPLIDA se marca también con el aro, no sólo con el color: un
          borde grueso se ve en escala de grises y en una captura comprimida. */
@@ -850,8 +928,8 @@ function Reprogramar({ sla, t, superficie, hecho }: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion: 'reprogramar', motivo }),
       })
-      const j = await r.json()
-      if (!r.ok) { setFalla(j?.mensaje ?? j?.error ?? `HTTP ${r.status}`); return }
+      const j = await leeJson(r)
+      if (!r.ok) { setFalla(String(j?.mensaje ?? j?.error ?? `HTTP ${r.status}`)); return }
       hecho()
     } catch (e) {
       setFalla(String((e as Error)?.message ?? e))
@@ -926,8 +1004,8 @@ function Validacion({ sla, t, superficie, hecho }: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ accion, motivo }),
       })
-      const j = await r.json()
-      if (!r.ok) { setFalla(j?.mensaje ?? j?.error ?? `HTTP ${r.status}`); return }
+      const j = await leeJson(r)
+      if (!r.ok) { setFalla(String(j?.mensaje ?? j?.error ?? `HTTP ${r.status}`)); return }
       hecho()
     } catch (e) {
       setFalla(String((e as Error)?.message ?? e))

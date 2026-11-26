@@ -501,9 +501,11 @@ if (fallos === 0) {
             + `${INHABILES.size} días inhábiles.`)
   console.log('')
   console.log('  LO QUE ESTO **NO** PRUEBA, y hay que decirlo: nada que necesite la')
-  console.log('  base. La migración no está corrida, así que los criterios de RLS, el')
-  console.log('  banner contra un conteo SQL, la inmutabilidad de la bitácora y el no')
-  console.log('  duplicado siguen SIN COMPROBAR.')
+  console.log('  base. Esta batería corre sobre funciones puras y NO SE CONECTA, así')
+  console.log('  que no sabe —ni puede decir— si la migración está aplicada: los')
+  console.log('  criterios de RLS, el banner contra un conteo SQL, la inmutabilidad')
+  console.log('  de la bitácora y el no duplicado se comprueban aparte, con')
+  console.log('  `verifica-sla-rest.py` y los dos .sql del editor.')
 } else {
   console.log(`  ${fallos} FALLA(S).`)
 }
