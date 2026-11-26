@@ -1,0 +1,7 @@
+{
+  "//": "Para los guiones que PINTAN un componente real fuera de Next (hoy, scripts/repro-tarjeta-cuenta.ts). tsconfig.json deja el JSX en `preserve` porque de eso se encarga Next; fuera de Next no hay quien lo transforme. Va `react-jsx` y no `react`: los componentes de este repo no importan `React`, y con el runtime clasico el JSX compilado buscaria un `React` que no esta en su ambito. Vive en su propio archivo y no como bandera en package.json porque las comillas de --compilerOptions no sobreviven a npm en Windows.",
+  "extends": "./tsconfig.import.json",
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  }
+}

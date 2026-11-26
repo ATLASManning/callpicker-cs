@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, CalendarClock, ArrowRight, Pin, Clock } from 'lucide-react'
 import { tonoSla, type Superficie } from '@/lib/sla-tonos'
+import { agrupaPorCuenta, peorDe, porNivel, type GrupoDe } from '@/lib/agrupa-alertas'
 import type { NivelSemaforo } from '@/lib/alertas-sla'
 
 /**
@@ -110,6 +111,10 @@ export type JugadaSla =
       texto: string
     }
   | { medible: false; porque: string; texto: string }
+
+/** Las alertas de UNA cuenta. La regla de agrupado vive en
+ *  `lib/agrupa-alertas.ts`, que sí se puede probar fuera de Next. */
+export type GrupoCuenta = GrupoDe<FilaSla>
 
 export interface Resumen {
   asesor: string | null
@@ -446,7 +451,14 @@ export function ColaSla({ superficie = 'oscura', asesor, rol }:
     )
   }
 
-  /* ── LA CLASE QUE VA PRIMERA, SEPARADA ───────────────────────────────────
+  /* ── UNA TARJETA POR CUENTA ──────────────────────────────────────────────
+     Antes de agrupar, cada alerta traía su propia tarjeta con el nombre, el
+     consecutivo, el asesor y el importe repetidos: GRUPO TORRES CORZO salía
+     tres veces seguidas con «$316,541 al mes» en las tres. El por qué de la
+     tarjeta está arriba de `TarjetaCuenta`. */
+  const grupos = agrupaPorCuenta(filas)
+
+  /* ── LA CLASE QUE VA PRIMERA ─────────────────────────────────────────────
      Dirección, 26 nov 2026: «paga mucho más de lo que usa» es la alerta de
      mayor riesgo, porque de ahí salen la cancelación y el downgrade y porque
      es la única que el asesor puede ADELANTARSE a blindar.
@@ -454,11 +466,27 @@ export function ColaSla({ superficie = 'oscura', asesor, rol }:
      Va en bloque propio y no fundida en el orden por dinero. Si se fundiera,
      una cuenta que YA ESCRIBIÓ que se va quedaría por debajo de una que sólo
      tiene el plan grande; las dos urgen y no compiten por el mismo renglón.
-     La API ya las manda delante, así que este reparto no reordena nada: sólo
-     pone el rótulo que explica por qué están arriba. */
-  const sub = filas.filter(f => f.subutilizacion)
-  const resto = filas.filter(f => !f.subutilizacion)
+
+     EL REPARTO ES POR CUENTA, NO POR ALERTA: una cuenta con `plan_sobrado` y
+     `sin_contacto` entra aquí ENTERA, con sus dos alertas dentro de la misma
+     tarjeta. Repartir sus alertas entre los dos bloques la partiría en dos
+     fichas del mismo cliente en la misma pantalla, que es exactamente lo que
+     esta agrupación vino a quitar. Ninguna cuenta puede salir en los dos
+     bloques, y ninguna alerta se queda fuera de los dos.
+
+     La API ya manda delante las de esta clase, así que esto no reordena nada:
+     sólo pone el rótulo que explica por qué están arriba. */
+  const esDeLaClase = (g: GrupoCuenta) => g.filas.some(f => f.subutilizacion)
+  const sub = grupos.filter(esDeLaClase)
+  const resto = grupos.filter(g => !esDeLaClase(g))
   const r = d?.resumen?.subutilizacion ?? null
+
+  /* Las alertas de OTRA clase que viajan dentro de esas tarjetas. Se dicen: sin
+     esta cuenta, el rótulo diría «111 alertas» sobre un bloque donde se ven más
+     renglones que ésos, y lo que se lee entonces es que el conteo miente.
+     [[feedback-tablas-deben-cerrar]] */
+  const otrasEnLaClase = sub.reduce(
+    (n, g) => n + g.filas.filter(f => !f.subutilizacion).length, 0)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -494,10 +522,18 @@ export function ColaSla({ superficie = 'oscura', asesor, rol }:
                 les inventa una cifra.
               </div>
             )}
+            {otrasEnLaClase > 0 && (
+              <div style={C(t.low, { fontSize: 11, marginTop: 4, lineHeight: 1.6 })}>
+                Esas cuentas traen además {otrasEnLaClase} alerta
+                {otrasEnLaClase === 1 ? '' : 's'} de otra clase. Van dentro de la
+                misma tarjeta —el cliente es uno— y por eso aquí se ven más
+                renglones que alertas de esta clase.
+              </div>
+            )}
           </div>
-          {sub.map(f => (
-            <RenglonSla key={f.id} f={f} superficie={superficie} rol={rol}
-                        hecho={recargar} conCuenta />
+          {sub.map(g => (
+            <TarjetaCuenta key={g.cuenta_id} grupo={g} superficie={superficie}
+                           rol={rol} hecho={recargar} />
           ))}
         </>
       )}
@@ -510,9 +546,9 @@ export function ColaSla({ superficie = 'oscura', asesor, rol }:
               EL RESTO DE LA COLA
             </div>
           )}
-          {resto.map(f => (
-            <RenglonSla key={f.id} f={f} superficie={superficie} rol={rol}
-                        hecho={recargar} conCuenta />
+          {resto.map(g => (
+            <TarjetaCuenta key={g.cuenta_id} grupo={g} superficie={superficie}
+                           rol={rol} hecho={recargar} />
           ))}
         </>
       )}
@@ -829,14 +865,83 @@ function Metrica({ etq, valor, detalle, nivel, superficie, t }: {
  * EL RENGLÓN
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-function RenglonSla({ f, superficie, rol, hecho, conCuenta }: {
-  f: FilaSla; superficie: Superficie; rol?: string
-  hecho: () => void; conCuenta?: boolean
+/**
+ * La pastilla del semáforo. SIEMPRE lleva su palabra: el color no va solo.
+ *
+ * `relleno`/`sobreRelleno` sólo se usan juntos —el segundo está medido contra
+ * el primero—, y únicamente en el nivel intenso, que es donde ese relleno se
+ * pinta de verdad. [[atlas-dashboard-contrast-architecture]]
+ */
+function Pastilla({ nivel, texto, superficie, icono }: {
+  nivel: NivelSemaforo; texto: string; superficie: Superficie; icono?: boolean
+}) {
+  const tono = tonoSla(nivel, superficie)
+  const intenso = nivel === 'rojo_intenso'
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '4px 10px', borderRadius: 999, flexShrink: 0,
+      background: intenso ? (tono.relleno ?? 'transparent') : tono.tinte,
+      ...marco(tono.trazo),
+    }}>
+      {intenso && icono !== false && (
+        <Pin size={11} style={{ color: tono.sobreRelleno ?? '#FFFFFF' }} />
+      )}
+      <span style={C(intenso ? (tono.sobreRelleno ?? '#FFFFFF') : tono.texto,
+                     { fontSize: 11, fontWeight: 700, letterSpacing: 0.3 })}>
+        {texto}
+      </span>
+    </span>
+  )
+}
+
+/**
+ * UNA TARJETA POR CUENTA, con todas sus alertas dentro.
+ *
+ * ── DE DÓNDE SALE ─────────────────────────────────────────────────────────
+ *
+ * Dirección, 26 nov 2026, mirando la cola: GRUPO TORRES CORZO aparecía tres
+ * veces seguidas y las tres repetían el nombre, el consecutivo, el asesor y los
+ * «$316,541 al mes». Tres veces el mismo importe apilado SE LEE como tres
+ * importes: esa cuenta parecía traer $949,623. El dinero ya se contaba una sola
+ * vez en el banner (`sumaPorCuenta` en la ruta); lo que mentía era el apilado.
+ *
+ * Y hay una razón de doctrina además de la estética: el sujeto de una alerta es
+ * LA CUENTA, no la condición. [[alertas-cliente]] Un cliente con tres focos
+ * abiertos es UNA llamada con tres temas, no tres llamadas.
+ *
+ * ── LO QUE LA TARJETA NO HACE ─────────────────────────────────────────────
+ *
+ * No funde, no resume y no esconde ninguna alerta: las N siguen enteras dentro,
+ * cada una con su semáforo, su acción, su evidencia y sus botones. Agrupar
+ * ocultando una alerta sería peor que el apilado que vino a arreglar.
+ *
+ * ── EL NIVEL DE LA TARJETA ES EL PEOR, NO EL PROMEDIO ─────────────────────
+ *
+ * Una incumplida entre tres no es «dos tercios bien». Es la misma regla del
+ * banner, y la razón por la que el desglose por nivel va debajo del nombre: el
+ * filo dice lo peor, la línea dice el reparto completo.
+ */
+export function TarjetaCuenta({ grupo, superficie, rol, hecho }: {
+  grupo: GrupoCuenta; superficie: Superficie; rol?: string; hecho: () => void
 }) {
   const t = tema(superficie)
-  const tono = tonoSla(f.semaforo.nivel, superficie)
-  const intenso = f.semaforo.nivel === 'rojo_intenso'
-  const [abierto, setAbierto] = useState(false)
+  const filas = grupo.filas
+  const peor = peorDe(filas)
+  const tono = tonoSla(peor.semaforo.nivel, superficie)
+  const intenso = peor.semaforo.nivel === 'rojo_intenso'
+  const cabeza = filas[0]
+  const varias = filas.length > 1
+
+  /* EL IMPORTE SE PINTA UNA VEZ, y si las alertas de la cuenta no coinciden se
+     DICE en vez de elegir una en silencio. Deberían coincidir —todas leen el
+     mismo `mrr_en_riesgo` de la cuenta—, así que una discrepancia es un defecto
+     de datos, y un defecto callado es el que nadie arregla.
+     [[feedback-metricas-derivadas-origen]] */
+  const importes = Array.from(new Set(
+    filas.map(f => f.mrr).filter((v): v is number => v !== null && v !== undefined)))
+  const dispares = importes.length > 1
+  const importe = importes.length === 0 ? null : Math.max(...importes)
 
   return (
     <div style={{
@@ -845,43 +950,165 @@ function RenglonSla({ f, superficie, rol, hecho, conCuenta }: {
          `borderLeft` hace que React quite el segundo al repintar. */
       ...marco(intenso ? (tono.relleno ?? t.borde) : t.borde),
       ...filoIzquierdo(tono.trazo, intenso ? 6 : 3),
-      borderRadius: 12, padding: '12px 16px',
+      borderRadius: 12,
       /* Una INCUMPLIDA se marca también con el aro, no sólo con el color: un
          borde grueso se ve en escala de grises y en una captura comprimida. */
       boxShadow: intenso ? `0 0 0 2px ${tono.trazo}55` : 'none',
     }}>
-      {/* ── La pastilla del semáforo, SIEMPRE con palabras ─────────────── */}
+      {/* ── LA CUENTA, UNA VEZ ──────────────────────────────────────────── */}
+      <div style={{ padding: varias ? '12px 16px 10px' : '12px 16px 0',
+                    display: 'flex', justifyContent: 'space-between',
+                    gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {/* `flex: 1 1 320px` y `minWidth: 0` NO son adorno. Sin ellos, el aviso
+            de importes discrepantes —dos renglones de texto— ensancha esta
+            columna, la pastilla del conteo no cabe y SALTA debajo del desglose,
+            alineada a la izquierda y descolgada de todo. Se vio en la
+            reproducción (`npm run repro:tarjeta`), no razonando sobre el flex:
+            con una línea corta de aviso no pasa. */}
+        <div style={{ flex: '1 1 320px', minWidth: 0 }}>
+          <Link href={`/cuentas/${grupo.cuenta_id}`} style={{ textDecoration: 'none' }}>
+            <span style={C(t.hi, { fontSize: 14, fontWeight: 700 })}>
+              {cabeza.empresa ?? 'cuenta sin nombre'}
+            </span>
+          </Link>
+          <span style={C(t.low, { fontSize: 11, marginLeft: 8 })}>
+            {cabeza.consecutivo ? `${cabeza.consecutivo} · ` : ''}
+            {cabeza.dueno || 'sin asesor'} · {dinero(importe)} al mes
+          </span>
+          {dispares && (
+            <div style={C(tonoSla('amarillo', superficie).texto,
+                          { fontSize: 10.5, marginTop: 2, lineHeight: 1.6 })}>
+              Sus alertas traen importes distintos ({dinero(Math.min(...importes))} a{' '}
+              {dinero(Math.max(...importes))}): arriba va el mayor y la
+              diferencia hay que revisarla en la ficha.
+            </div>
+          )}
+          {/* EL REPARTO POR NIVEL, con palabras. Sin esta línea, una tarjeta de
+              cinco alertas sólo dice cuál es la peor y esconde si las otras
+              cuatro vencen mañana o el mes que entra. */}
+          {varias && (
+            <div style={{ marginTop: 6, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {porNivel(filas).map(v => (
+                <span key={v.etiqueta} style={{ display: 'inline-flex', gap: 4,
+                                                alignItems: 'baseline' }}>
+                  <span style={C(tonoSla(v.nivel, superficie).texto,
+                                 { fontSize: 13, fontWeight: 700 })}>{v.n}</span>
+                  <span style={C(t.low, { fontSize: 10.5 })}>
+                    {v.etiqueta.toLowerCase()}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Con una sola alerta la pastilla de la tarjeta sería la misma que la
+            del renglón, dos veces el mismo rótulo a diez píxeles. Con varias,
+            dice CUÁNTAS son y de qué color es la peor. */}
+        {varias && (
+          /* SIN EL ALFILER. `Pin` marca «fijada: no se puede ocultar», que es
+             una propiedad de UNA alerta incumplida. Sobre un conteo no
+             significa nada, y un icono que no significa nada enseña a no
+             mirarlos. */
+          <Pastilla nivel={peor.semaforo.nivel} superficie={superficie}
+                    icono={false} texto={`${filas.length} alertas`} />
+        )}
+      </div>
+
+      {filas.map(f => (
+        <div key={f.id} style={{
+          padding: '12px 16px',
+          /* La raya va también ANTES de la primera: separa la cabecera de la
+             cuenta del cuerpo de la alerta. Sin ella, el título del primer
+             foco se lee como un tercer renglón del encabezado. */
+          ...(varias
+            ? { borderTopWidth: 1, borderTopStyle: 'solid' as const,
+                borderTopColor: t.borde }
+            : {}),
+        }}>
+          <CuerpoAlerta f={f} superficie={superficie} rol={rol} hecho={hecho}
+                        punto={varias} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Una alerta suelta, en su propia tarjeta. Es la vista de la ficha de cuenta,
+ *  donde el nombre del cliente ya está arriba y no hay nada que agrupar. */
+function RenglonSla({ f, superficie, rol, hecho, conCuenta }: {
+  f: FilaSla; superficie: Superficie; rol?: string
+  hecho: () => void; conCuenta?: boolean
+}) {
+  const t = tema(superficie)
+  const tono = tonoSla(f.semaforo.nivel, superficie)
+  const intenso = f.semaforo.nivel === 'rojo_intenso'
+
+  return (
+    <div style={{
+      background: t.panel,
+      ...marco(intenso ? (tono.relleno ?? t.borde) : t.borde),
+      ...filoIzquierdo(tono.trazo, intenso ? 6 : 3),
+      borderRadius: 12, padding: '12px 16px',
+      boxShadow: intenso ? `0 0 0 2px ${tono.trazo}55` : 'none',
+    }}>
+      {/* La línea de cuenta se queda COMO ESTABA: el nombre sólo cuando se pide,
+          y el consecutivo, el dueño y el importe siempre. En la ficha esta vista
+          se monta sin nombre pero CON esa línea, y quitársela de paso sería
+          cambiar una pantalla que nadie pidió tocar. */}
+      <div style={{ marginBottom: 4 }}>
+        {conCuenta && (
+          <Link href={`/cuentas/${f.cuenta_id}`} style={{ textDecoration: 'none' }}>
+            <span style={C(t.hi, { fontSize: 13.5, fontWeight: 700 })}>
+              {f.empresa ?? 'cuenta sin nombre'}
+            </span>
+          </Link>
+        )}
+        <span style={C(t.low, { fontSize: 11, marginLeft: conCuenta ? 8 : 0 })}>
+          {f.consecutivo ? `${f.consecutivo} · ` : ''}
+          {f.dueno || 'sin asesor'} · {dinero(f.mrr)} al mes
+        </span>
+      </div>
+      <CuerpoAlerta f={f} superficie={superficie} rol={rol} hecho={hecho} />
+    </div>
+  )
+}
+
+/**
+ * EL CUERPO DE UNA ALERTA, sin tarjeta y sin cabecera de cuenta.
+ *
+ * Lo comparten la tarjeta agrupada y el renglón suelto. En dos copias, una
+ * corrección en la redacción de «esto NO apaga la alerta» se quedaría a medias
+ * en la otra pantalla sin que nada fallara — es el patrón de paletas gemelas
+ * aplicado a las frases.
+ */
+function CuerpoAlerta({ f, superficie, rol, hecho, punto }: {
+  f: FilaSla; superficie: Superficie; rol?: string
+  hecho: () => void; punto?: boolean
+}) {
+  const t = tema(superficie)
+  const tono = tonoSla(f.semaforo.nivel, superficie)
+  const [abierto, setAbierto] = useState(false)
+
+  return (
+    <>
+      {/* ── El título y la pastilla del semáforo, SIEMPRE con palabras ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between',
                     gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <div>
-          {conCuenta && (
-            <Link href={`/cuentas/${f.cuenta_id}`} style={{ textDecoration: 'none' }}>
-              <span style={C(t.hi, { fontSize: 13.5, fontWeight: 700 })}>
-                {f.empresa ?? 'cuenta sin nombre'}
-              </span>
-            </Link>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+          {/* El cuadrito repite el color del renglón dentro de una tarjeta de
+              varias, para poder barrerla con la vista. NO lleva el dato solo:
+              la pastilla de al lado dice la palabra. */}
+          {punto && (
+            <span style={{ width: 7, height: 7, borderRadius: 2, flexShrink: 0,
+                           background: tono.trazo, display: 'inline-block' }} />
           )}
-          <span style={C(t.low, { fontSize: 11, marginLeft: conCuenta ? 8 : 0 })}>
-            {f.consecutivo ? `${f.consecutivo} · ` : ''}
-            {f.dueno || 'sin asesor'} · {dinero(f.mrr)} al mes
-          </span>
-          <div style={C(t.hi, { fontSize: 12.5, fontWeight: 600, marginTop: 2 })}>
+          <div style={C(t.hi, { fontSize: 12.5, fontWeight: 600 })}>
             {f.titulo}
           </div>
         </div>
-
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          padding: '4px 10px', borderRadius: 999,
-          background: intenso ? (tono.relleno ?? 'transparent') : tono.tinte,
-          border: `1px solid ${tono.trazo}`,
-        }}>
-          {intenso && <Pin size={11} style={{ color: tono.sobreRelleno ?? '#FFFFFF' }} />}
-          <span style={C(intenso ? (tono.sobreRelleno ?? '#FFFFFF') : tono.texto,
-                         { fontSize: 11, fontWeight: 700, letterSpacing: 0.3 })}>
-            {f.etiquetaNivel}
-          </span>
-        </span>
+        <Pastilla nivel={f.semaforo.nivel} superficie={superficie}
+                  texto={f.etiquetaNivel} />
       </div>
 
       {/* ── CUÁNDO. En días hábiles y con la fecha, nunca sólo el color ── */}
@@ -1019,7 +1246,7 @@ function RenglonSla({ f, superficie, rol, hecho, conCuenta }: {
 
       {abierto && <Reprogramar sla={f} t={t} superficie={superficie}
                                hecho={() => { setAbierto(false); hecho() }} />}
-    </div>
+    </>
   )
 }
 
