@@ -18,11 +18,18 @@
 --   · `veredicto = ok`        → esa comprobación pasó.
 --   · `veredicto = *** NO ***`→ esa NO pasó. El `obtenido` dice qué salió.
 --
--- Los renglones 4, 5 y 6 esperan CERO porque se corren recién aplicada la
--- migración, antes de la primera corrida del cron. Después de que el cron abra
--- compromisos dejarán de ser cero, y eso NO es una falla: es que el sistema ya
--- está trabajando. Son los únicos tres con esa lectura; los otros diez valen
--- siempre.
+-- LAS TRECE VALEN SIEMPRE, Y ESO SE CORRIGIÓ (26 nov 2026)
+-- --------------------------------------------------------
+-- Los renglones 4, 5 y 6 contaban filas y esperaban CERO, porque se escribieron
+-- para correrse recién aplicada la migración y antes del primer cron. En cuanto
+-- el cron abrió los 240 primeros compromisos, esos tres pasaron a decir
+-- «*** NO ***» — o sea que el verificador se ponía ROJO justo cuando el sistema
+-- empezaba a funcionar. Un comentario que avisa de eso no basta: lo que se lee
+-- de un vistazo es la columna de veredictos, no el encabezado.
+--
+-- Ahora miden INVARIANTES, que son verdad el primer día y el día mil: ningún
+-- compromiso abierto sin fecha límite, ningún asiento huérfano, ninguna edición
+-- con diff vacío. [[feedback-cero-sin-medicion]]
 -- ═══════════════════════════════════════════════════════════════════════════
 
 WITH chk(n, comprobacion, obtenido, esperado) AS (
@@ -36,14 +43,29 @@ WITH chk(n, comprobacion, obtenido, esperado) AS (
     (3, 'sla_parametros · parámetros que no son por condición',
         (SELECT count(*) FROM public.sla_parametros), 10::bigint),
 
-    (4, 'alertas_sla · compromisos (0 ANTES del primer cron)',
-        (SELECT count(*) FROM public.alertas_sla), 0::bigint),
+    -- Un compromiso abierto SIN fecha límite es el hueco que no se ve: el panel
+    -- lo lee como atendido por omisión. Nace así cuando su condición no tiene
+    -- fila en `sla_config`, que se arregla sembrando, no tocando código.
+    (4, 'alertas_sla · compromisos abiertos SIN fecha límite',
+        (SELECT count(*) FROM public.alertas_sla
+          WHERE estado NOT IN ('cerrada','rechazada')
+            AND fecha_limite IS NULL), 0::bigint),
 
-    (5, 'alertas_sla_bitacora · asientos (0 ANTES del primer cron)',
-        (SELECT count(*) FROM public.alertas_sla_bitacora), 0::bigint),
+    -- Un asiento que apunta a un compromiso que ya no existe. No debería poder
+    -- pasar —hay FK con ON DELETE CASCADE—, y justamente por eso vale medirlo:
+    -- si sale distinto de cero, la FK no está donde se cree que está.
+    (5, 'alertas_sla_bitacora · asientos huérfanos',
+        (SELECT count(*) FROM public.alertas_sla_bitacora b
+          WHERE b.sla_id IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM public.alertas_sla s
+                             WHERE s.id = b.sla_id)), 0::bigint),
 
-    (6, 'cuentas_ediciones · diffs de ficha (0 ANTES del primer cron)',
-        (SELECT count(*) FROM public.cuentas_ediciones), 0::bigint),
+    -- Una edición con diff vacío sería «editar sin cambiar nada» contado como
+    -- evidencia, que es exactamente lo que el encargo prohíbe. Lo impide el
+    -- CHECK `diff_no_vacio`; esto comprueba que el CHECK está HACIENDO algo.
+    (6, 'cuentas_ediciones · ediciones con diff vacío',
+        (SELECT count(*) FROM public.cuentas_ediciones
+          WHERE diff = '{}'::jsonb), 0::bigint),
 
     -- RLS activado en las SEIS. Un `false` aquí es una fuga abierta.
     (7, 'RLS ACTIVADO en las seis tablas nuevas',
