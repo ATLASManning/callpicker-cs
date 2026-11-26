@@ -10,6 +10,7 @@ import {
   type EstadoSla, type EvidenciaTipo, type NivelSemaforo, type Semaforo,
   type SeveridadSla,
 } from '@/lib/alertas-sla'
+import { jugadasPorCuenta, esSubutilizacion } from '@/lib/redimensionar-cuenta'
 
 /**
  * GET /api/alertas/sla — LA COLA DE TRABAJO, CON SU SEMÁFORO
@@ -158,6 +159,17 @@ export async function GET(req: NextRequest) {
     /* ── La prosa de cada compromiso ────────────────────────────────────── */
     const episodios = await episodiosDe(filas.map(f => f.episodio_id))
 
+    /* ── LA JUGADA DE REDIMENSIONAR, SÓLO PARA SU CLASE ──────────────────
+       Instrucción de dirección del 26 nov 2026. Se pide SÓLO para las cuentas
+       de subutilización, no para las 240: abrir el Excel de cortes y la
+       escalera para una alerta de tickets sería pagar la lectura entera por
+       un dato que esa alerta no usa. */
+    const deSubutilizacion = filas.filter(f => esSubutilizacion(f.tipo))
+    const jugadas = await jugadasPorCuenta(deSubutilizacion.map(f => ({
+      id: String(f.cuenta_id),
+      mrr: f.mrr_en_riesgo === null ? null : Number(f.mrr_en_riesgo),
+    })))
+
     const enriquecidas = filas.map(f => {
       const semaforo: Semaforo = semaforoDe(
         { estado: f.estado, severidad: f.severidad,
@@ -187,6 +199,12 @@ export async function GET(req: NextRequest) {
         noApagaLaAlerta: cierre.alerta,
         laApaga: LO_QUE_LA_APAGA[f.condicion] ?? null,
         enlace: `/cuentas/${f.cuenta_id}${def?.ancla ? '#' + def.ancla : ''}`,
+        /* «Paga más de lo que usa»: la clase que dirección puso primera, con
+           la jugada de redimensionamiento ya resuelta. Para el resto va
+           `false` y `null` — no `undefined`, que en JSON desaparece y en
+           pantalla se confunde con «no se pudo calcular». */
+        subutilizacion: esSubutilizacion(f.tipo),
+        jugada: jugadas.get(String(f.cuenta_id))?.jugada ?? null,
       }
     })
 
@@ -206,6 +224,24 @@ export async function GET(req: NextRequest) {
          `resumir()` en lib/alertas.ts. */
       mrrEnRiesgo: sumaPorCuenta(abiertas),
       mrrVencido: sumaPorCuenta(abiertas.filter(x => x.semaforo.vencida)),
+      /* LA CLASE QUE VA PRIMERA, contada aparte. Su dinero también se suma por
+         CUENTA y no por alerta: una cuenta con `uso_bajo` y `caida_consumo`
+         abiertos pierde su MRR una vez, no dos. */
+      subutilizacion: (() => {
+        const suyas = abiertas.filter(x => x.subutilizacion)
+        const conJugada = suyas.filter(x => x.jugada?.medible === true)
+        return {
+          cuentas: new Set(suyas.map(x => x.cuenta_id)).size,
+          alertas: suyas.length,
+          mrr: sumaPorCuenta(suyas),
+          vencidas: suyas.filter(x => x.semaforo.vencida).length,
+          /* Cuántas traen una propuesta con números y cuántas no. Publicarlo es
+             lo que impide que la pantalla parezca completa cuando no lo está.
+             [[feedback-cero-sin-medicion]] */
+          conPropuesta: conJugada.length,
+          sinPropuesta: suyas.length - conJugada.length,
+        }
+      })(),
       porSemaforo: contarPor(abiertas, x => x.semaforo.nivel),
       porCondicion: contarPor(abiertas, x => x.condicion),
       porSeveridad: contarPor(abiertas, x => x.severidad),
@@ -226,8 +262,21 @@ export async function GET(req: NextRequest) {
     if (condicion) lista = lista.filter(x => x.condicion === condicion)
     if (severidad) lista = lista.filter(x => x.severidad === severidad)
 
+    /* ── EL ORDEN: LA SUBUTILIZACIÓN PRIMERO ─────────────────────────────
+       Instrucción de dirección del 26 nov 2026: «la alerta de mayor riesgo que
+       tenemos», porque de ahí salen la cancelación y el downgrade y porque es
+       la única que el asesor puede ADELANTARSE a blindar.
+
+       Va como grupo propio delante, no fundida en el orden por dinero. Si se
+       fundiera, una cuenta que ya escribió que se va quedaría por debajo de
+       una que sólo tiene el plan grande, y las dos son urgentes por motivos
+       distintos. Dentro de cada grupo manda el orden de siempre: semáforo y
+       después dinero descendente. */
+    const cola = [...ordenaCola(lista.filter(x => x.subutilizacion)),
+                  ...ordenaCola(lista.filter(x => !x.subutilizacion))]
+
     return NextResponse.json({
-      rows: ordenaCola(lista),
+      rows: cola,
       mostradas: lista.length,
       resumen,
       hoy,

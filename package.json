@@ -14,6 +14,7 @@
     "test:conector": "ts-node --project tsconfig.import.json scripts/test-conector-comunicaciones.ts",
     "test:roles": "ts-node --project tsconfig.import.json scripts/test-roles-entrega.ts",
     "test:sla": "ts-node --project tsconfig.import.json -r ./scripts/alias-ts.js scripts/test-sla.ts",
+    "test:redimensionar": "ts-node --project tsconfig.import.json -r ./scripts/alias-ts.js scripts/test-redimensionar.ts",
     "mide:tonos-sla": "node scripts/mide-tonos-sla.mjs",
     "mide:clientes": "ts-node --project tsconfig.import.json scripts/mide-cliente-vs-cuenta.ts",
     "test:veredicto": "ts-node --project tsconfig.import.json -r ./scripts/alias-ts.js scripts/test-sello-veredicto.ts",

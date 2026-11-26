@@ -88,7 +88,28 @@ export interface FilaSla {
   evidencia_tipo: string | null
   evidencia_resumen: string | null
   enlace: string
+  /** «Paga más de lo que usa»: la clase que dirección puso primera. */
+  subutilizacion?: boolean
+  /** La jugada de redimensionamiento. `null` = no se pidió para esta clase. */
+  jugada?: JugadaSla | null
 }
+
+/**
+ * La jugada de redimensionar tal como viaja por la API. Se refleja aquí en vez
+ * de importar el tipo de `lib/redimensionar.ts` porque este componente es de
+ * cliente y ese módulo arrastra tipos de `plan-minutos`; lo que SÍ está
+ * amarrado es que un `medible: false` siempre trae `porque`, para que la
+ * pantalla nunca tenga que elegir entre enseñar un hueco o inventarlo.
+ */
+export type JugadaSla =
+  | {
+      medible: true
+      mesesMirados: number; mesPico: string; picoMin: number; baseMin: number
+      pctPico: number; bolsaObjetivo: number; sobranMin: number
+      producto: string; porQueEseProducto: string; ademas: string | null
+      texto: string
+    }
+  | { medible: false; porque: string; texto: string }
 
 export interface Resumen {
   asesor: string | null
@@ -102,6 +123,16 @@ export interface Resumen {
   mrrVencido: number
   cuentas: number
   meta: { enTiempoPct: number; criticasVencidas: number }
+  /**
+   * «Paga más de lo que usa», contado aparte porque va primero.
+   * `conPropuesta` + `sinPropuesta` = `alertas`, y las dos se publican: un
+   * bloque donde falten propuestas tiene que decir cuántas faltan, no
+   * enseñar los huecos sin contarlos. [[feedback-tablas-deben-cerrar]]
+   */
+  subutilizacion?: {
+    cuentas: number; alertas: number; mrr: number; vencidas: number
+    conPropuesta: number; sinPropuesta: number
+  }
 }
 
 interface Respuesta {
@@ -415,12 +446,76 @@ export function ColaSla({ superficie = 'oscura', asesor, rol }:
     )
   }
 
+  /* ── LA CLASE QUE VA PRIMERA, SEPARADA ───────────────────────────────────
+     Dirección, 26 nov 2026: «paga mucho más de lo que usa» es la alerta de
+     mayor riesgo, porque de ahí salen la cancelación y el downgrade y porque
+     es la única que el asesor puede ADELANTARSE a blindar.
+
+     Va en bloque propio y no fundida en el orden por dinero. Si se fundiera,
+     una cuenta que YA ESCRIBIÓ que se va quedaría por debajo de una que sólo
+     tiene el plan grande; las dos urgen y no compiten por el mismo renglón.
+     La API ya las manda delante, así que este reparto no reordena nada: sólo
+     pone el rótulo que explica por qué están arriba. */
+  const sub = filas.filter(f => f.subutilizacion)
+  const resto = filas.filter(f => !f.subutilizacion)
+  const r = d?.resumen?.subutilizacion ?? null
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {filas.map(f => (
-        <RenglonSla key={f.id} f={f} superficie={superficie} rol={rol}
-                    hecho={recargar} conCuenta />
-      ))}
+      {sub.length > 0 && (
+        <>
+          <div style={{ ...caja(t), ...filoIzquierdo(tonoSla('rojo', superficie).trazo, 4) }}>
+            <div style={C(t.hi, { fontSize: 13, fontWeight: 700 })}>
+              Pagan más de lo que usan
+            </div>
+            <div style={C(t.mid, { fontSize: 11.5, marginTop: 3, lineHeight: 1.6 })}>
+              {r
+                ? <>
+                    {r.cuentas} cuenta{r.cuentas === 1 ? '' : 's'} ·{' '}
+                    {dinero(r.mrr)} al mes en riesgo
+                    {r.vencidas > 0 && ` · ${r.vencidas} ya vencida${r.vencidas === 1 ? '' : 's'}`}
+                  </>
+                : <>{sub.length} alerta{sub.length === 1 ? '' : 's'}</>}
+              . Van primero porque de aquí salen la cancelación y el downgrade,
+              y porque son las únicas que se pueden blindar ANTES de que el
+              cliente lo pida: redimensionar la bolsa a lo que de verdad usa, con
+              25% de holgura sobre su mes más alto, y sustituir el sobrante con
+              producto que sí vaya a usar.
+            </div>
+            {/* CUÁNTAS TRAEN PROPUESTA Y CUÁNTAS NO. Sin esta línea, un bloque
+                donde la mitad de los renglones dice «no se puede proponer»
+                parece una pantalla rota en vez de una medición honesta.
+                [[feedback-cero-sin-medicion]] */}
+            {r && r.sinPropuesta > 0 && (
+              <div style={C(tonoSla('amarillo', superficie).texto,
+                            { fontSize: 11, marginTop: 4, lineHeight: 1.6 })}>
+                {r.conPropuesta} con propuesta calculada y {r.sinPropuesta} sin
+                ella: a ésas les falta un dato y cada renglón dice cuál. No se
+                les inventa una cifra.
+              </div>
+            )}
+          </div>
+          {sub.map(f => (
+            <RenglonSla key={f.id} f={f} superficie={superficie} rol={rol}
+                        hecho={recargar} conCuenta />
+          ))}
+        </>
+      )}
+
+      {resto.length > 0 && (
+        <>
+          {sub.length > 0 && (
+            <div style={C(t.low, { fontSize: 10, fontWeight: 700,
+                                   letterSpacing: 0.4, marginTop: 6 })}>
+              EL RESTO DE LA COLA
+            </div>
+          )}
+          {resto.map(f => (
+            <RenglonSla key={f.id} f={f} superficie={superficie} rol={rol}
+                        hecho={recargar} conCuenta />
+          ))}
+        </>
+      )}
     </div>
   )
 }
@@ -834,6 +929,32 @@ function RenglonSla({ f, superficie, rol, hecho, conCuenta }: {
           </div>
         </div>
       </div>
+
+      {/* ── LA JUGADA DE REDIMENSIONAR ─────────────────────────────────────
+          Sólo en la clase «paga más de lo que usa», que dirección puso primera
+          el 26 nov 2026. Va DEBAJO de la acción y no en su lugar: la acción
+          dice con qué se cierra el compromiso, y esto dice qué llevar a la
+          llamada. Son dos cosas y mezclarlas haría creer que proponer un
+          producto cierra la alerta.
+
+          NO SE INVENTA NINGÚN COLOR: la caja usa los mismos tokens de texto
+          del renglón y el trazo del propio semáforo. Un tono nuevo aquí
+          tendría que medirse contra el fondo REAL y abriría la ronda número
+          quince del mismo bug. [[atlas-dashboard-contrast-architecture]] */}
+      {f.subutilizacion && f.jugada && (
+        <div style={{ marginTop: 8, paddingLeft: 10,
+                      ...filoIzquierdo(tono.trazo, 2) }}>
+          <span style={C(t.low, { fontSize: 10, fontWeight: 700, letterSpacing: 0.4 })}>
+            {f.jugada.medible
+              ? 'QUÉ PROPONERLE'
+              : 'NO SE PUEDE PROPONER TODAVÍA'}
+          </span>
+          <div style={C(f.jugada.medible ? t.hi : t.mid,
+                        { fontSize: 12, marginTop: 3, lineHeight: 1.65 })}>
+            {f.jugada.texto}
+          </div>
+        </div>
+      )}
 
       {/* ── POR QUÉ SE GENERÓ: 2-3 señales, todas del episodio ─────────── */}
       {f.porque.length > 0 && (

@@ -56,8 +56,16 @@ async function loadMap(): Promise<Map<string, CorteCuenta[]>> {
 }
 
 async function leerArchivo(): Promise<Map<string, CorteCuenta[]>> {
-  const xlsx = (await import('xlsx')).default
-  const fs   = (await import('fs')).default
+  /* El `?? módulo` NO sobra. Con el import dinámico, `.default` llega bien en
+     Next y llega `undefined` bajo cargadores con otra interoperabilidad —jiti,
+     que es con el que se reproducen estas reglas fuera del navegador—. Sin
+     esta red, el módulo sólo se puede ejecutar dentro de Next y la tentación
+     es tocar producción para que el guion arranque, que es justo al revés.
+     En Next el comportamiento no cambia: ahí `.default` existe. */
+  const modXlsx = await import('xlsx')
+  const modFs   = await import('fs')
+  const xlsx = modXlsx.default ?? (modXlsx as unknown as typeof modXlsx.default)
+  const fs   = modFs.default ?? (modFs as unknown as typeof modFs.default)
   const filePath = path.join(process.cwd(), 'data', 'cortes-facturacion.xlsx')
   const map = new Map<string, CorteCuenta[]>()
   if (!fs.existsSync(filePath)) { _cache = map; _cacheTime = Date.now(); return map }

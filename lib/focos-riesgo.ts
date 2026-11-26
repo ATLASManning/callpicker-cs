@@ -234,7 +234,11 @@ let _escalera: Map<string, FilaEscalera> | null = null
  * redacción de «no hay dato» en vez de inventarse cifras. Es la regla de
  * [[feedback_contexto_ia_sin_huecos]]: el hueco se dice con palabras.
  */
-async function cargarEscalera(): Promise<Map<string, FilaEscalera>> {
+/* EXPORTADA el 26 nov 2026 para `lib/redimensionar-cuenta.ts`, que necesita los
+   mismos `tiene_*` y el mismo índice. Se comparte la función en vez de copiar
+   la lectura: dos lecturas del mismo JSON se desincronizan el día que una
+   aprenda a indexar por CID y la otra no. El comportamiento no cambia. */
+export async function cargarEscalera(): Promise<Map<string, FilaEscalera>> {
   if (_escalera) return _escalera
   const m = new Map<string, FilaEscalera>()
   try {
