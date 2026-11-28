@@ -37,6 +37,22 @@ import { tonoSobreClaro, tonoSobrePagina, pastillaClara, rellenoParaTextoClaro }
  * El borde se queda con el azul original, que ahora hace de filo claro.
  */
 const DID_RELLENO = rellenoParaTextoClaro('#0284C7')
+
+/**
+ * El relleno de la pastilla de número EN PORTABILIDAD.
+ *
+ * Ámbar y no azul a propósito: estos números todavía NO son nuestros, y
+ * pintarlos del mismo color que los DID entregados los haría indistinguibles
+ * de un vistazo —que es justo como se mira esta sección—. El tono se calcula
+ * igual que el azul de al lado, contra el blanco PISADO al 88% que fuerza
+ * `globals.css` y no contra el blanco puro: el `#F59E0B` a pelo mide 1.93:1 y
+ * no llega ni a la mitad de AA. El borde conserva el ámbar vivo como filo.
+ *
+ * Y el color NO es lo único que lo distingue: la etiqueta dice «portabilidad»
+ * con palabras y el bloque lleva su propio rótulo. Un estado que solo se
+ * comunica por color no se comunica.
+ */
+const PORT_RELLENO = rellenoParaTextoClaro('#F59E0B')
 import { TX_BAJO } from '@/lib/paleta-cs'
 import { guionDe } from '@/lib/alertas-guion'
 import { movimientoDeAlertas } from '@/lib/alertas-movimiento'
@@ -65,7 +81,7 @@ import { parseObservaciones } from '@/lib/observaciones-kam'
 import { getTicketsByCuenta } from '@/lib/cuenta-data'
 import { datosEnriquecidosDeCuenta } from '@/lib/enriquecimiento/cuenta'
 import { cortesDeCuenta } from '@/lib/cortes-cuenta'
-import { didsDeCuenta } from '@/lib/dids-cuenta'
+import { didsDeCuenta, portabilidadDeCuenta } from '@/lib/dids-cuenta'
 import DatosEnriquecidosPanel from '@/components/DatosEnriquecidos'
 import CuentaRelacionPanel from '@/components/CuentaRelacionPanel'
 import CuentaAnexosPanel from '@/components/CuentaAnexosPanel'
@@ -212,6 +228,7 @@ export default async function CuentaDetailPage({ params }: Props) {
   // CID: la columna «CUENTA» del export es la etiqueta de cada número, no la
   // razón social, y cruzar por nombre mezclaría cuentas.
   const dids = await didsDeCuenta(cuenta.cid)
+  const portabilidad = await portabilidadDeCuenta(cuenta.cid)
 
   // Plan contratado según el último corte de facturación (fuente viva).
   // Se muestra en Información como referencia de qué tiene el cliente.
@@ -571,6 +588,43 @@ export default async function CuentaDetailPage({ params }: Props) {
                     </div>
                   </details>
                 )}
+              </div>
+            )}
+
+            {/* ── En portabilidad ────────────────────────────────────────────
+                Los números que el cliente está trayendo y que TODAVÍA NO son
+                nuestros. Van en su propio bloque y con su propio conteo, no
+                sumados a los de arriba: «Números Callpicker · N» responde a
+                «¿qué números tiene hoy?», y un número en trámite no es uno de
+                esos. Salen de `data/dids-portabilidad.json` porque `dids.json`
+                lo genera un script y borraría cualquier fila escrita a mano.
+
+                Mismo tratamiento de color que las pastillas azules —relleno
+                calculado contra el blanco PISADO, etiqueta en `<p>` con
+                `background` declarado— y ámbar para que no se confundan con un
+                DID entregado. */}
+            {portabilidad.length > 0 && (
+              <div>
+                <p className="text-[10px] text-textLow mb-1.5">
+                  En portabilidad · {portabilidad.length.toLocaleString('es-MX')} — aún no son nuestros
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {portabilidad.map(p => (
+                    <div key={p.numero}
+                      title={[p.display, p.etiqueta, p.desde ? `en trámite desde ${p.desde}` : '', p.nota]
+                        .filter(Boolean).join(' — ')}
+                      style={{ background: PORT_RELLENO, border: '1px solid #F59E0B', borderRadius: 8, padding: '3px 9px' }}>
+                      <p style={{ background: 'transparent', color: '#FFFFFF', fontSize: 12, fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>
+                        {p.display}
+                      </p>
+                      {p.etiqueta && (
+                        <p style={{ background: 'transparent', color: 'rgba(255,255,255,0.88)', fontSize: 10, margin: 0, maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {p.etiqueta}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

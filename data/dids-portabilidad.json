@@ -1,0 +1,38 @@
+{
+  "_lea_esto_antes_de_editar": [
+    "Números que un cliente está portando HACIA Callpicker y que TODAVÍA NO SON NUESTROS.",
+    "POR QUÉ NO VIVEN EN data/dids.json: ese archivo lo GENERA scripts/gen-dids.py desde el",
+    "export «DIDs en Callpicker.xlsx». Cualquier cosa escrita ahí a mano se borra en la",
+    "siguiente carga, sin avisar y sin que falle nada.",
+    "POR QUÉ NO SE SUMAN AL CONTEO: «Números Callpicker · N» dice cuántos números le hemos",
+    "entregado al cliente. Contar ahí uno que aún no tenemos publica una capacidad que no",
+    "existe, y la ficha dejaría de poder usarse para responder «¿qué números tiene?».",
+    "CUÁNDO SE BORRA UNA FILA: cuando la portabilidad entra, el número aparece solo en el",
+    "export y pasa a ser un DID normal. lib/dids-cuenta.ts ya no lo pinta aquí —compara",
+    "contra dids.json y lo descarta—, así que una fila vieja no miente en pantalla; pero",
+    "estorba, y el sitio de la verdad pasa a ser el export. Quitarla al conciliar."
+  ],
+  "porCid": {
+    "27954": [
+      {
+        "n": "526699851454",
+        "e": "TELMEX (portabilidad)",
+        "desde": "2026-11-25",
+        "nota": "Es el teléfono que su sitio publica como el de la matriz, y la extensión 14 de este número es la del Ing. Favela según su tarjeta. Cuando la portabilidad entre, el número por el que el público llama a Autocentro Guzmán va a ser un DID nuestro."
+      },
+      {
+        "n": "526699851291",
+        "e": "TELMEX (portabilidad)",
+        "desde": "2026-11-25",
+        "nota": "Segunda línea TELMEX del correo del 25 nov 2026 con la documentación de portabilidad."
+      }
+    ]
+  },
+  "_pendientes": {
+    "27954": [
+      "LA COTIZACIÓN COBRA TRES NÚMEROS Y EL CORREO DOCUMENTA DOS. El tercero podría ser el 669 454 0570 que ya quedó asignado el 26 nov, pero ninguna fuente lo dice: no se escribe aquí hasta confirmarlo, porque cambia el trámite y cambia el cobro.",
+      "LA PORTABILIDAD ESTÁ DETENIDA al 27 nov 2026: la persona del INE no aparece en el acta. El Ing. Favela mandó el ACTA PODER ese mismo día y nadie ha confirmado por escrito que con eso quedó cubierto el requisito.",
+      "SIN CONFIRMAR SI ESTAS LÍNEAS LLEVAN INTERNET ASOCIADO. Activaciones advirtió que si lo llevan hay que pedirle a TELMEX que lo desasocie ANTES, o el cliente pierde el internet cuando entre la portabilidad."
+    ]
+  }
+}

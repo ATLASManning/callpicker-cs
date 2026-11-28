@@ -27,6 +27,18 @@ export interface Did {
   display: string
 }
 
+/** Un número que el cliente está portando hacia Callpicker y que aún no es nuestro. */
+export interface DidEnPortabilidad extends Did {
+  /** Desde cuándo consta el trámite, en ISO. Puede venir vacío. */
+  desde: string
+  /** Por qué importa ese número en concreto. Va al tooltip. */
+  nota: string
+}
+
+interface ArchivoPortabilidad {
+  porCid: Record<string, { n: string; e?: string; desde?: string; nota?: string }[]>
+}
+
 interface ArchivoDids {
   totalNumeros: number
   totalCids: number
@@ -106,6 +118,76 @@ export async function didsDeCuenta(cid: string | null | undefined): Promise<Did[
     etiqueta: f.e ?? '',
     display: formateaDid(f.n),
   }))
+}
+
+/* ── Números EN PORTABILIDAD ────────────────────────────────────────────────
+ *
+ * Los que el cliente está trayendo hacia Callpicker y todavía NO son nuestros.
+ * Viven en `data/dids-portabilidad.json` y no en `dids.json` por una razón
+ * mecánica: ese otro archivo lo GENERA `scripts/gen-dids.py` desde el export,
+ * así que una fila escrita a mano ahí se borra en la siguiente carga sin que
+ * falle nada. Mismo patrón que `contratos-addenda.json`.
+ *
+ * Y NO SE SUMAN AL CONTEO DE NÚMEROS CALLPICKER. «Números Callpicker · N» dice
+ * cuántos números le hemos entregado al cliente; meter ahí uno que aún no
+ * tenemos publica una capacidad que no existe.
+ */
+let _cachePort: ArchivoPortabilidad | null = null
+let _cachePortTime = 0
+let _cargandoPort: Promise<ArchivoPortabilidad> | null = null
+const VACIO_PORT: ArchivoPortabilidad = { porCid: {} }
+
+async function leerPortabilidad(): Promise<ArchivoPortabilidad> {
+  try {
+    const fs = (await import('fs')).default
+    const p = path.join(process.cwd(), 'data', 'dids-portabilidad.json')
+    if (!fs.existsSync(p)) { _cachePort = VACIO_PORT; _cachePortTime = Date.now(); return VACIO_PORT }
+    const d = JSON.parse(fs.readFileSync(p, 'utf-8')) as ArchivoPortabilidad
+    const limpio: ArchivoPortabilidad = { porCid: d?.porCid ?? {} }
+    _cachePort = limpio
+    _cachePortTime = Date.now()
+    return limpio
+  } catch {
+    _cachePort = VACIO_PORT
+    _cachePortTime = Date.now()
+    return VACIO_PORT
+  }
+}
+
+async function cargarPortabilidad(): Promise<ArchivoPortabilidad> {
+  if (_cachePort && Date.now() - _cachePortTime < CACHE_TTL) return _cachePort
+  if (_cargandoPort) return _cargandoPort
+  _cargandoPort = leerPortabilidad().finally(() => { _cargandoPort = null })
+  return _cargandoPort
+}
+
+/**
+ * Los números que una cuenta está portando, por CID.
+ *
+ * **Descarta solo el que YA llegó.** Cuando una portabilidad entra, el número
+ * aparece en el export y pasa a ser un DID normal; si siguiera pintándose aquí,
+ * la ficha diría «en portabilidad» de algo que ya es nuestro y lo enseñaría dos
+ * veces. Comparar contra `dids.json` hace que la fila vieja deje de mentir sola,
+ * sin depender de que alguien se acuerde de borrarla.
+ */
+export async function portabilidadDeCuenta(
+  cid: string | null | undefined,
+): Promise<DidEnPortabilidad[]> {
+  const c = String(cid ?? '').trim()
+  if (!c || c === '0') return []
+  const [port, propios] = await Promise.all([cargarPortabilidad(), cargar()])
+  const filas = port.porCid[c]
+  if (!filas || filas.length === 0) return []
+  const yaNuestros = new Set((propios.porCid[c] ?? []).map(f => String(f.n).replace(/\D/g, '')))
+  return filas
+    .filter(f => !yaNuestros.has(String(f.n ?? '').replace(/\D/g, '')))
+    .map(f => ({
+      numero: String(f.n ?? ''),
+      etiqueta: f.e ?? '',
+      display: formateaDid(String(f.n ?? '')),
+      desde: f.desde ?? '',
+      nota: f.nota ?? '',
+    }))
 }
 
 /* La búsqueda por número —pegar un número entrante y caer en la cuenta— se
